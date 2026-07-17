@@ -1,0 +1,41 @@
+# Secrets and local configuration
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+credentials/
+.credentials/
+credentials.*
+.credentials.*
+secrets/
+.secrets/
+secrets.*
+.secrets.*
+config.local.*
+settings.local.*
+local.settings.*
+*.local.json
+*.local.yaml
+*.local.yml
+*.local.toml
+
+# Python environment and caches
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local runtime artifacts
+logs/
+*.log
+tmp/
+temp/
+audio-temp/
+voice-temp/
+*.tmp.ogg
+*.tmp.opus
+*.tmp.wav
+*.tmp.mp3
+*.tmp.m4a
