@@ -7,10 +7,10 @@
 ## Текущее состояние
 
 - Gate 0: локальный baseline `ea5bd51` принят.
-- Gate 1: contracts/state policy существует как незакоммиченный draft; независимый аудит выявил критические обходы привязки результата и доказательств, поэтому статус — **REWORK**.
-- Gate 2A: Telegram ingress принят в изолированном commit `8478a77`, но ещё не интегрирован в `main`.
-- Gate 2B: voice preview принят в изолированном commit `227076d`, но ещё не интегрирован в `main`.
-- Gate 3: безопасный Codex CLI adapter не реализован.
+- Documentation baseline: канонический комплект 01–10 и ADR 0001–0008 принят в `364e6ab`.
+- Gate 1: contracts/state/completion policy принят в `7b92978`.
+- Gate 2: Telegram ingress и безопасный bytes-only voice preview приняты в `5df4ccd`.
+- Gate 3A: fake-only Codex CLI boundary принят в `294047c`; live process не подключён.
 - Gate 4: сквозной fake-сценарий не собран; реальный Telegram bot не подключался.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
@@ -44,17 +44,20 @@ authenticated Telegram ingress
 ```text
 src/
 ├── agents/          # replaceable workers; сейчас только прототип AuditAgent
-├── contracts/       # versioned Core contracts (Gate 1 draft)
-├── core/            # deterministic policy guards (Gate 1 draft)
+├── contracts/       # локальные versioned Core contracts
+├── core/            # deterministic policy guards
 ├── memory/          # локальный codebase-search prototype
 ├── models/          # текущая runtime Task model
 ├── orchestrator/    # parsing, routing, graph and state manager
-└── skills/          # rule-based helpers
+├── skills/          # rule-based helpers
+├── transport/       # Telegram normalization, без сетевого клиента
+├── voice/           # bytes-only preview и provider boundary
+└── workers/         # fake-only Codex CLI boundary
 docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Telegram/voice файлы пока находятся только в отдельной локальной ветке и появятся в этой структуре после контролируемой интеграции.
+Компоненты Gate 1–3 пока не соединены в один trusted вертикальный сценарий. Наличие адаптера не означает подключение Telegram API, live Codex process или production-доступа.
 
 ## Локальная проверка
 
