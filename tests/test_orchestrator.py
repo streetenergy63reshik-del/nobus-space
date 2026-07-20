@@ -16,7 +16,7 @@ def orchestrator() -> NobusOrchestrator:
 
 @pytest.mark.asyncio
 async def test_audit_ozon_task_lifecycle(orchestrator: NobusOrchestrator) -> None:
-    """Full cycle: submit /audit ozon and get a completed result."""
+    """Full cycle: submit /audit ozon and get an unverified draft."""
     request = UserRequest(
         source=TaskSource.TELEGRAM,
         raw_text="/audit ozon",
@@ -25,7 +25,7 @@ async def test_audit_ozon_task_lifecycle(orchestrator: NobusOrchestrator) -> Non
 
     task = await orchestrator.submit(request)
 
-    assert task.status == TaskStatus.COMPLETED
+    assert task.status == TaskStatus.DRAFT
     assert task.intent == "audit"
     assert task.agent_id == "audit"
     assert task.result is not None
@@ -65,7 +65,7 @@ async def test_unrouted_intent_fails(orchestrator: NobusOrchestrator) -> None:
 
 @pytest.mark.asyncio
 async def test_help_rule_based_response(orchestrator: NobusOrchestrator) -> None:
-    """Help intent should be answered by Ponytail rules without an agent."""
+    """Help intent should be answered by the trusted rule-engine identity."""
     request = UserRequest(
         source=TaskSource.TELEGRAM,
         raw_text="/help",
@@ -73,16 +73,16 @@ async def test_help_rule_based_response(orchestrator: NobusOrchestrator) -> None
 
     task = await orchestrator.submit(request)
 
-    assert task.status == TaskStatus.COMPLETED
+    assert task.status == TaskStatus.DRAFT
     assert task.intent == "help"
-    assert task.agent_id is None
+    assert task.agent_id == "core:rule-engine"
     assert task.result is not None
     assert "/audit" in task.result["data"]["message"]
 
 
 @pytest.mark.asyncio
 async def test_status_rule_based_response(orchestrator: NobusOrchestrator) -> None:
-    """Status intent should be answered by Ponytail rules without an agent."""
+    """Status intent should be answered by the trusted rule-engine identity."""
     request = UserRequest(
         source=TaskSource.TELEGRAM,
         raw_text="/status",
@@ -90,9 +90,9 @@ async def test_status_rule_based_response(orchestrator: NobusOrchestrator) -> No
 
     task = await orchestrator.submit(request)
 
-    assert task.status == TaskStatus.COMPLETED
+    assert task.status == TaskStatus.DRAFT
     assert task.intent == "status"
-    assert task.agent_id is None
+    assert task.agent_id == "core:rule-engine"
     assert task.result is not None
     assert "Space Nobus" in task.result["data"]["message"]
 
@@ -110,7 +110,7 @@ async def test_get_status_returns_task(orchestrator: NobusOrchestrator) -> None:
 
     assert fetched is not None
     assert fetched.id == task.id
-    assert fetched.status == TaskStatus.COMPLETED
+    assert fetched.status == TaskStatus.DRAFT
 
 
 @pytest.mark.asyncio

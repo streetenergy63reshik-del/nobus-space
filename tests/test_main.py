@@ -38,7 +38,7 @@ def test_create_task(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["intent"] == "audit"
-    assert data["status"] == "completed"
+    assert data["status"] == "draft"
     assert data["result"]["data"]["marketplace"] == "ozon"
 
 
@@ -55,5 +55,5 @@ def test_create_task_help(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["intent"] == "help"
-    assert data["status"] == "completed"
+    assert data["status"] == "draft"
     assert "/audit" in data["result"]["data"]["message"]

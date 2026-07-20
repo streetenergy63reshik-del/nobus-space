@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from src.agents.audit_agent import AuditAgent
 from src.agents.base import AgentRegistry
 from src.memory.codebase_memory import CodebaseMemory
@@ -57,7 +59,7 @@ class NobusOrchestrator:
         """Run the task through the LangGraph workflow."""
         return await self.graph.run(task)
 
-    async def get_status(self, task_id: int) -> Task | None:
+    async def get_status(self, task_id: UUID) -> Task | None:
         """Return the current task state."""
         return await self.state_manager.get(task_id)
 

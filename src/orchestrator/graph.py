@@ -83,8 +83,13 @@ class OrchestratorGraph:
         if rule_response is not None:
             await state_manager.update(
                 task.id,
-                status=TaskStatus.COMPLETED,
-                result={"success": True, "data": rule_response, "message": rule_response.get("message", "")},
+                status=TaskStatus.DRAFT,
+                agent_id="core:rule-engine",
+                result={
+                    "success": True,
+                    "data": rule_response,
+                    "message": rule_response.get("message", ""),
+                },
             )
             return {"task": await state_manager.get(task.id)}  # type: ignore[return-value]
 
@@ -137,17 +142,24 @@ class OrchestratorGraph:
                     result=result.model_dump(),
                     context={"pending_question": result.question},
                 )
+            elif result.success:
+                await state_manager.update(
+                    task.id,
+                    status=TaskStatus.DRAFT,
+                    result=result.model_dump(),
+                )
             else:
                 await state_manager.update(
                     task.id,
-                    status=TaskStatus.COMPLETED,
+                    status=TaskStatus.FAILED,
                     result=result.model_dump(),
+                    error_message=result.message or "Agent execution failed.",
                 )
-        except Exception as exc:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             await state_manager.update(
                 task.id,
                 status=TaskStatus.FAILED,
-                error_message=str(exc),
+                error_message="agent_execution_failed",
             )
 
         return {"task": await state_manager.get(task.id)}  # type: ignore[return-value]
@@ -173,7 +185,7 @@ class OrchestratorGraph:
     def _after_parse(state: OrchestratorState) -> str:
         """Decide the next step after parsing."""
         status = state["task"].status
-        if status in {TaskStatus.FAILED, TaskStatus.COMPLETED}:
+        if status in {TaskStatus.FAILED, TaskStatus.DRAFT}:
             return "respond"
         return "route"
 
