@@ -1,99 +1,80 @@
-# nobus-orchestrator-dev
+# Nobus Space — Telegram Orchestrator MVP
 
-Локальная песочница для разработки главного агента-оркестратора платформы **Space Nobus**.
+`nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
 
-Здесь создаётся ядро оркестратора и подчинённые агенты в изоляции от основного MVP (`space-nobus/`). После тестов код будет перенесён в основную платформу.
+Проект находится в разработке и не готов к автономной production-эксплуатации.
 
-## Текущее состояние (сессия 2026-07-16)
+## Текущее состояние
 
-Реализованы **Этап 1** и **Этап 2** общего плана:
+- Gate 0: локальный baseline `ea5bd51` принят.
+- Gate 1: contracts/state policy существует как незакоммиченный draft; независимый аудит выявил критические обходы привязки результата и доказательств, поэтому статус — **REWORK**.
+- Gate 2A: Telegram ingress принят в изолированном commit `8478a77`, но ещё не интегрирован в `main`.
+- Gate 2B: voice preview принят в изолированном commit `227076d`, но ещё не интегрирован в `main`.
+- Gate 3: безопасный Codex CLI adapter не реализован.
+- Gate 4: сквозной fake-сценарий не собран; реальный Telegram bot не подключался.
 
-- ✅ Ядро оркестратора (`NobusOrchestrator`, `Task`, `StateManager`).
-- ✅ Правиловое распознавание намерений (`IntentParser`) с LLM-fallback под флагом.
-- ✅ Маршрутизация задач (`TaskRouter`, `AgentRegistry`).
-- ✅ LangGraph-граф (`src/orchestrator/graph.py`) — явные узлы и переходы.
-- ✅ Ponytail-правила экономии токенов (`src/skills/ponytail_rules.py`).
-- ✅ Память кодовой базы (`src/memory/codebase_memory.py`) — keyword/fuzzy поиск по `.py` файлам.
-- ✅ Базовый `AuditAgent` (заглушка с рабочим интерфейсом).
-- ✅ 25 юнит-тестов, все проходят.
+Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
+
+## Документация
+
+Канонический индекс: [docs/README.md](docs/README.md). В документах всегда разделены:
+
+- `CURRENT` — подтверждённое поведение существующего кода;
+- `TARGET` — обязательная целевая архитектура;
+- статус решения (`CANONICAL`/ADR `ACCEPTED`) — правило, которое может быть ещё не реализовано.
+
+## План MVP
+
+```text
+authenticated Telegram ingress
+  -> text or voice preview
+  -> explicit confirmation when needed
+  -> trusted TaskContract
+  -> persisted task and ordered WorkerEvents
+  -> local Codex CLI worker
+  -> result-bound L1 / L2 / L3 evidence
+  -> L4 for every external mutation
+  -> concise Telegram response
+```
+
+Сначала собирается полностью локальный сценарий на fake adapters. Токены, сетевые вызовы, публикация, deploy, деньги, удаление и изменение внешних систем не входят в автономные ночные работы.
 
 ## Структура
 
-```
-nobus-orchestrator-dev/
-├── README.md
-├── requirements.txt
-├── src/
-│   ├── config.py                # настройки (без секретов)
-│   ├── models/
-│   │   └── task.py              # модель задачи + статусы
-│   ├── agents/
-│   │   ├── base.py              # BaseAgent, AgentResult, AgentRegistry, PonytailMixin
-│   │   └── audit_agent.py       # агент аудита маркетплейсов (заглушка)
-│   ├── memory/
-│   │   └── codebase_memory.py   # индексация и поиск по кодовой базе
-│   ├── skills/
-│   │   └── ponytail_rules.py    # правила экономии токенов
-│   └── orchestrator/
-│       ├── intent_parser.py     # распознавание намерений (rules + LLM fallback)
-│       ├── router.py            # маршрутизация задач
-│       ├── state_manager.py     # управление состоянием (in-memory)
-│       ├── orchestrator.py      # главный агент
-│       └── graph.py             # LangGraph-граф
-└── tests/
-    ├── test_orchestrator.py
-    ├── test_graph.py
-    ├── test_llm_fallback.py
-    ├── test_ponytail_rules.py
-    └── test_codebase_memory.py
-```
-
-## Установка и запуск тестов
-
-```bash
-cd nobus-orchestrator-dev
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest tests -v
-```
-
-Последний результат:
-
 ```text
-25 passed in 0.50s
+src/
+├── agents/          # replaceable workers; сейчас только прототип AuditAgent
+├── contracts/       # versioned Core contracts (Gate 1 draft)
+├── core/            # deterministic policy guards (Gate 1 draft)
+├── memory/          # локальный codebase-search prototype
+├── models/          # текущая runtime Task model
+├── orchestrator/    # parsing, routing, graph and state manager
+└── skills/          # rule-based helpers
+docs/                # каноническая документация и ADR
+tests/               # unit, policy and API tests
 ```
 
-## Что работает сейчас
+Telegram/voice файлы пока находятся только в отдельной локальной ветке и появятся в этой структуре после контролируемой интеграции.
 
-- `/audit ozon|wb` — создаёт задачу, маршрутизирует на `AuditAgent`, возвращает результат.
-- `/help` — отвечает правилом Ponytail, без агентов и без LLM.
-- `/status` — отвечает правилом Ponytail, без агентов и без LLM.
-- Неизвестная команда — `FAILED` с пояснением.
-- Распознанный интент без зарегистрированного агента — `FAILED`.
-- LangGraph-граф проходит через узлы `parse → route → execute → respond` с условными ранними выходами.
+## Локальная проверка
 
-## План на следующую сессию
+Требуется Python 3.12. Виртуальное окружение создаётся локально и не добавляется в Git.
 
-1. **Этап 3: Human-in-the-loop**
-   - Расширить `AgentResult` флагом `requires_input`.
-   - Добавить узел `human_input_node` в граф.
-   - Метод `NobusOrchestrator.provide_input(task_id, user_reply)`.
-   - Тесты на диалог с уточнением.
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:DEBUG='false'
+.\.venv\Scripts\python.exe -m pytest -q
+```
 
-2. **Этап 4: Zero-error layer / ensemble voting**
-   - `EnsembleVoter`, `FactChecker`, `CircuitBreaker`.
-   - Узел `verify_node` в графе.
-   - Retry для внешних API.
+Если Python 3.12 недоступен, окружение считается неподготовленным; не следует подменять это production-ready инструкцией.
 
-3. **Этап 5: Voice адаптеры**
-   - Абстракция `VoiceProvider`.
-   - Stub-адаптеры LiveKit / Pipecat.
+## Безопасность разработки
 
-## Правила работы в папке
+- Не записывать в репозиторий Telegram token, API keys, credentials, cookies, `.env`, сырые voice-файлы, логи или клиентские данные.
+- Не считать `.env` защищённым secret store.
+- Не выполнять push, deploy, публикацию и внешние изменения без отдельного явного подтверждения владельца.
+- Любой результат остаётся `DRAFT` до независимых L1/L2/L3; все внешние записи дополнительно требуют связанного L4.
+- При rework старая ревизия результата и её доказательства не переиспользуются.
 
-- Все секреты хранятся в `.env`, файл не коммитится.
-- Код пишем на Python 3.12 с типизацией.
-- Все асинхронные операции через `async`/`await`.
-- Сначала тесты, потом перенос в основную платформу.
+Локальные правила исполнителей: [AGENTS.md](AGENTS.md).
