@@ -10,6 +10,8 @@
 
 Каноническая документация, Core contracts/policy, Telegram ingress, bytes-only voice preview, fake-only Codex CLI boundary, local text fake E2E, trusted ingress envelope и изолированное SQLite checkpoint-хранилище приняты независимыми L1/L2/L3 и локально зафиксированы в `main`.
 
+Локальный durable status outbox также принят L1/L2/L3 в `6258ffb`, но остаётся в изолированной ветке до контролируемой интеграции в `main`; реальная отправка в Telegram отсутствует.
+
 Компоненты ещё не образуют рабочий сетевой Telegram-оркестратор: SQLite-модуль пока не wired в runtime. Следующий автономный блок — Gate 4D: actor-bound single-use подтверждение voice preview без downloader/network. Реальные Telegram credentials, polling/webhook, Codex process, deployment и внешние записи не запускались.
 
 ## Gate status
@@ -25,6 +27,7 @@
 | Gate 4A — local fake vertical E2E | `dfc2e66` | 10 target; 262 full; independent result/evidence/replay/leakage review | **ACCEPTED** |
 | Gate 4B — trusted ingress envelope | `2afd880` | 176 target; 354 full; 20 independent regression | **ACCEPTED** |
 | Gate 4C — durable SQLite checkpoints | `d775699` | 61 target; 365 full; restart/tamper/policy recovery review | **ACCEPTED; NOT WIRED** |
+| Gate 4E — durable status outbox | `6258ffb` | 110 target; 414 full; independent replay/time/receipt review | **ACCEPTED; NOT WIRED** |
 | Gate 5A — authenticated real Telegram boundary | файлов нет | token/network/callback authentication отсутствуют | **BLOCKED UNTIL L4** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
@@ -63,7 +66,7 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 ### Main worktree
 
 - Ветка: `main`.
-- Последний принятый implementation commit: `d775699 feat: add durable SQLite policy checkpoints`.
+- Последний принятый implementation commit: `6258ffb feat: add durable local status outbox`.
 - Предыдущие принятые commits: `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
 - Remote отсутствует; push не выполнялся.
 - Канонические docs синхронизированы отдельным локальным docs commit после независимой проверки этого снимка.
@@ -97,8 +100,7 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 ## Следующая автономная очередь без L4
 
 1. Gate 4D: voice preview → actor-bound single-use confirm без downloader/network.
-2. Gate 4E: SQLite safe outbox без реальной отправки в Telegram.
-3. Gate 4F: runtime wiring и restart/recovery E2E.
+2. Gate 4F: runtime wiring и restart/recovery E2E.
 
 ## Обязательная остановка и L4
 
