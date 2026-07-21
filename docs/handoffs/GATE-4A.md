@@ -4,6 +4,8 @@
 
 **Дата:** 2026-07-21
 
+**Commit:** `dfc2e66 feat: add local fake Telegram vertical`
+
 ## Контракт результата
 
 Цель Gate 4A — доказать полностью локальный text flow через уже существующие

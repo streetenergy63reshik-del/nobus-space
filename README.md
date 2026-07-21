@@ -11,7 +11,7 @@
 - Gate 1: contracts/state/completion policy принят в `7b92978`.
 - Gate 2: Telegram ingress и безопасный bytes-only voice preview приняты в `5df4ccd`.
 - Gate 3A: fake-only Codex CLI boundary принят в `294047c`; live process не подключён.
-- Gate 4: сквозной fake-сценарий не собран; реальный Telegram bot не подключался.
+- Gate 4A: локальный text-only fake E2E принят в `dfc2e66`; voice confirm, persistence и реальный Telegram bot ещё не подключены.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 
@@ -57,7 +57,7 @@ docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Компоненты Gate 1–3 пока не соединены в один trusted вертикальный сценарий. Наличие адаптера не означает подключение Telegram API, live Codex process или production-доступа.
+Text-компоненты Gate 1–3 соединены только в локальный fake-сценарий. Наличие этой композиции не означает authenticated Telegram API, persistence, live Codex process или production-доступа.
 
 ## Локальная проверка
 
