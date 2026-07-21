@@ -2,8 +2,11 @@
 
 from src.contracts.models import (
     HumanApprovalRecord,
+    IngressKind,
+    IngressSource,
     RiskLevel,
     TaskContract,
+    TrustedIngressEnvelope,
     VerificationBundle,
     VerificationBundleStatus,
     VerificationLevel,
@@ -14,8 +17,11 @@ from src.contracts.models import (
 
 __all__ = [
     "HumanApprovalRecord",
+    "IngressKind",
+    "IngressSource",
     "RiskLevel",
     "TaskContract",
+    "TrustedIngressEnvelope",
     "VerificationBundle",
     "VerificationBundleStatus",
     "VerificationLevel",

@@ -8,7 +8,14 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import ValidationError
 
-from src.contracts import TaskContract, WorkerEvent, WorkerEventType
+from src.contracts import (
+    IngressKind,
+    IngressSource,
+    TaskContract,
+    TrustedIngressEnvelope,
+    WorkerEvent,
+    WorkerEventType,
+)
 from src.core import (
     canonical_json_digest,
     DuplicateIdempotencyKeyError,
@@ -23,6 +30,33 @@ TASK_ID = UUID("11111111-1111-4111-8111-111111111111")
 OTHER_TASK_ID = UUID("22222222-2222-4222-8222-222222222222")
 ATTEMPT_ID = UUID("33333333-3333-4333-8333-333333333333")
 OTHER_ATTEMPT_ID = UUID("44444444-4444-4444-8444-444444444444")
+INGRESS_ID = UUID("55555555-5555-4555-8555-555555555555")
+
+
+def make_envelope(
+    *,
+    tenant_id: str = "tenant-a",
+    idempotency_key: str = "tenant-a:audit:1",
+    source: IngressSource = IngressSource.API,
+) -> TrustedIngressEnvelope:
+    data = {
+        "ingress_id": INGRESS_ID,
+        "tenant_id": tenant_id,
+        "source": source,
+        "actor_identity": "api:test-client",
+        "external_message_id": "request:test-1",
+        "idempotency_key": idempotency_key,
+        "received_at": datetime(2026, 7, 21, tzinfo=UTC),
+        "kind": IngressKind.SYSTEM_JOB,
+        "content_ref": "sha256:" + "2" * 64,
+        "auth_context_ref": "sha256:" + "3" * 64,
+    }
+    revision = canonical_json_digest(
+        TrustedIngressEnvelope.model_construct(
+            **data, envelope_revision="sha256:" + "0" * 64
+        ).model_dump(mode="json", exclude={"envelope_revision"})
+    )
+    return TrustedIngressEnvelope(**data, envelope_revision=revision)
 
 
 def make_contract(**overrides: object) -> TaskContract:
@@ -40,7 +74,24 @@ def make_contract(**overrides: object) -> TaskContract:
         "quality_profile": "standard",
     }
     data.update(overrides)
+    if "ingress_digest" not in overrides:
+        data["ingress_digest"] = make_envelope(
+            tenant_id=str(data["tenant_id"]),
+            idempotency_key=str(data["idempotency_key"]),
+            source=IngressSource(str(data["source"])),
+        ).envelope_revision
     return TaskContract(**data)
+
+
+def register_contract(store: InMemoryPolicyStore, contract: TaskContract) -> None:
+    store.register_contract(
+        contract,
+        make_envelope(
+            tenant_id=contract.tenant_id,
+            idempotency_key=contract.idempotency_key,
+            source=IngressSource(contract.source),
+        ),
+    )
 
 
 def make_event(sequence: object, **overrides: object) -> WorkerEvent:
@@ -63,7 +114,7 @@ def make_event(sequence: object, **overrides: object) -> WorkerEvent:
 def bound_store() -> InMemoryPolicyStore:
     store = InMemoryPolicyStore()
     contract = make_contract()
-    store.register_contract(contract)
+    register_contract(store, contract)
     store.bind_worker(
         TASK_ID,
         "tenant-a",
@@ -99,6 +150,17 @@ def test_missing_tenant_and_path_traversal_are_rejected() -> None:
             make_contract(allowed_paths=[path])
 
 
+@pytest.mark.parametrize(
+    "ingress_digest",
+    [None, "", "a" * 64, "sha256:" + "A" * 64, "sha256:bad"],
+)
+def test_task_contract_requires_exact_ingress_digest(
+    ingress_digest: object,
+) -> None:
+    with pytest.raises(ValidationError):
+        make_contract(ingress_digest=ingress_digest)
+
+
 @pytest.mark.parametrize("timeout", [0, 3601, True, 1.0])
 def test_timeout_requires_a_real_bounded_integer(timeout: object) -> None:
     with pytest.raises(ValidationError):
@@ -107,20 +169,35 @@ def test_timeout_requires_a_real_bounded_integer(timeout: object) -> None:
 
 def test_idempotency_is_scoped_to_tenant() -> None:
     store = InMemoryPolicyStore()
-    store.register_contract(make_contract())
+    register_contract(store, make_contract())
     with pytest.raises(DuplicateIdempotencyKeyError):
-        store.register_contract(make_contract(task_id=OTHER_TASK_ID))
+        register_contract(store, make_contract(task_id=OTHER_TASK_ID))
 
-    store.register_contract(
-        make_contract(task_id=OTHER_TASK_ID, tenant_id="tenant-b")
+    register_contract(
+        store, make_contract(task_id=OTHER_TASK_ID, tenant_id="tenant-b")
     )
+
+
+def test_every_contract_requires_exact_ingress_without_partial_mutation() -> None:
+    store = InMemoryPolicyStore()
+    contract = make_contract()
+    with pytest.raises(TypeError):
+        store.register_contract(contract)
+    with pytest.raises(EventBindingError, match="binding mismatch"):
+        store.register_contract(
+            contract,
+            make_envelope(source=IngressSource.SCHEDULER),
+        )
+
+    register_contract(store, contract)
 
 
 def test_task_id_cannot_be_rebound_to_another_tenant() -> None:
     store = InMemoryPolicyStore()
-    store.register_contract(make_contract())
+    register_contract(store, make_contract())
     with pytest.raises(EventBindingError, match="another tenant"):
-        store.register_contract(
+        register_contract(
+            store,
             make_contract(
                 tenant_id="tenant-b",
                 idempotency_key="tenant-b:audit:1",
@@ -130,9 +207,11 @@ def test_task_id_cannot_be_rebound_to_another_tenant() -> None:
 
 def test_task_id_cannot_be_registered_again_with_another_idempotency_key() -> None:
     store = InMemoryPolicyStore()
-    store.register_contract(make_contract())
+    register_contract(store, make_contract())
     with pytest.raises(EventBindingError, match="already registered"):
-        store.register_contract(make_contract(idempotency_key="tenant-a:audit:2"))
+        register_contract(
+            store, make_contract(idempotency_key="tenant-a:audit:2")
+        )
 
 
 def test_worker_event_requires_registered_task_tenant_and_worker() -> None:

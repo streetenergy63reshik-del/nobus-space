@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import ntpath
 import posixpath
@@ -37,6 +39,21 @@ _SECRET_KEY_MARKERS = (
     "sessionid",
     "token",
 )
+
+
+def canonical_json_digest(value: Any) -> str:
+    """Return the single canonical SHA-256 representation used by contracts."""
+    try:
+        encoded = json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise ValueError("value is not strict JSON") from exc
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
 class ContractModel(BaseModel):
@@ -80,6 +97,23 @@ class WorkerEventType(str, Enum):
     USAGE = "usage"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+class IngressSource(str, Enum):
+    """Closed registry of trusted ingress sources."""
+
+    TELEGRAM = "telegram"
+    API = "api"
+    SCHEDULER = "scheduler"
+
+
+class IngressKind(str, Enum):
+    """Closed registry of normalized ingress payload kinds."""
+
+    TEXT = "text"
+    VOICE_PREVIEW = "voice_preview"
+    CALLBACK = "callback"
+    SYSTEM_JOB = "system_job"
 
 
 def _non_empty(value: str, field_name: str) -> str:
@@ -156,6 +190,7 @@ class TaskContract(ContractModel):
     schema_version: Literal["1"] = "1"
     task_id: UUID
     idempotency_key: str = Field(min_length=1, max_length=128)
+    ingress_digest: str
     tenant_id: str
     source: str
     instruction: str
@@ -173,6 +208,11 @@ class TaskContract(ContractModel):
     def validate_required_text(cls, value: str, info: Any) -> str:
         return _non_empty(value, info.field_name)
 
+    @field_validator("ingress_digest")
+    @classmethod
+    def validate_ingress_digest(cls, value: str) -> str:
+        return _normalize_digest(value, "ingress_digest")
+
     @field_validator("allowed_paths")
     @classmethod
     def normalize_allowed_paths(cls, values: tuple[str, ...]) -> tuple[str, ...]:
@@ -189,6 +229,51 @@ class TaskContract(ContractModel):
         cls, values: tuple[str, ...]
     ) -> tuple[str, ...]:
         return _normalized_items(values, "acceptance_criteria")
+
+
+class TrustedIngressEnvelope(ContractModel):
+    """Server-created proof binding normalized ingress to one task contract."""
+
+    schema_version: Literal["1"] = "1"
+    ingress_id: UUID
+    tenant_id: str = Field(max_length=128)
+    source: IngressSource
+    actor_identity: str = Field(max_length=128)
+    external_message_id: str = Field(max_length=256)
+    idempotency_key: str = Field(max_length=128)
+    received_at: datetime
+    kind: IngressKind
+    content_ref: str
+    auth_context_ref: str
+    envelope_revision: str
+
+    @field_validator(
+        "tenant_id", "actor_identity", "external_message_id", "idempotency_key"
+    )
+    @classmethod
+    def normalize_required_text(cls, value: str, info: Any) -> str:
+        return _non_empty(value, info.field_name)
+
+    @field_validator("content_ref", "auth_context_ref", "envelope_revision")
+    @classmethod
+    def validate_digest_fields(cls, value: str, info: Any) -> str:
+        return _normalize_digest(value, info.field_name)
+
+    @field_validator("received_at")
+    @classmethod
+    def validate_received_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("received_at must be timezone-aware")
+        return value
+
+    @model_validator(mode="after")
+    def validate_revision(self) -> "TrustedIngressEnvelope":
+        expected = canonical_json_digest(
+            self.model_dump(mode="json", exclude={"envelope_revision"})
+        )
+        if self.envelope_revision != expected:
+            raise ValueError("envelope_revision does not match envelope contents")
+        return self
 
 
 class _StartedPayload(ContractModel):

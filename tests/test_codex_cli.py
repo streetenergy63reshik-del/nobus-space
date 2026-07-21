@@ -100,6 +100,7 @@ def make_contract(allowed: Path, **overrides: object) -> TaskContract:
     data: dict[str, object] = {
         "task_id": uuid4(),
         "idempotency_key": "tenant-a:worker:1",
+        "ingress_digest": "sha256:" + "1" * 64,
         "tenant_id": "tenant-a",
         "source": "api",
         "instruction": "Inspect the repository; $(touch escaped) is plain input.",

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
+import src.transport.telegram.gateway as gateway_module
 from src.transport.telegram.gateway import (
     InMemoryCallbackTokenStore,
     InMemoryUpdateIdStore,
@@ -27,6 +29,7 @@ CHAT_A = 222222
 USER_B = 333333
 CHAT_B = 444444
 CALLBACK_TOKEN = "AbcdEFgh_12345678"
+AUTH_CONTEXT_REF = "sha256:" + "a" * 64
 
 
 def make_gateway(
@@ -34,10 +37,19 @@ def make_gateway(
     bindings: dict[tuple[int, int], ActorBinding] | None = None,
     callback_tokens: dict[str, tuple[int, int]] | None = None,
     update_store: InMemoryUpdateIdStore | None = None,
+    clock: Any = None,
 ) -> TelegramGateway:
+    options = {} if clock is None else {"clock": clock}
     return TelegramGateway(
         actor_bindings=bindings
-        or {(USER_A, CHAT_A): ActorBinding(tenant_id="tenant-a", role="owner")},
+        or {
+            (USER_A, CHAT_A): ActorBinding(
+                tenant_id="tenant-a",
+                actor_identity="telegram:user-a",
+                role="owner",
+                auth_context_ref=AUTH_CONTEXT_REF,
+            )
+        },
         update_id_store=update_store or InMemoryUpdateIdStore(),
         callback_token_store=InMemoryCallbackTokenStore(
             callback_tokens
@@ -46,6 +58,7 @@ def make_gateway(
         ),
         max_text_length=100,
         max_voice_duration=60,
+        **options,
     )
 
 
@@ -91,12 +104,12 @@ def make_voice_update(
 
 
 def make_callback_update(
-    data: Any = CALLBACK_TOKEN, *, update_id: int = 3
+    data: Any = CALLBACK_TOKEN, *, update_id: int = 3, query_id: Any = " query-id "
 ) -> dict[str, Any]:
     return {
         "update_id": update_id,
         "callback_query": {
-            "id": " query-id ",
+            "id": query_id,
             "from": {"id": USER_A},
             "message": {"chat": {"id": CHAT_A}},
             "data": data,
@@ -112,14 +125,22 @@ def test_text_is_normalized_and_bound_to_server_owned_tenant(
     assert isinstance(result.payload, TextMessage)
     assert result.payload.text == "hello world"
     assert result.payload.tenant_id == "tenant-a"
+    assert result.payload.actor_identity == "telegram:user-a"
     assert result.payload.actor_role == "owner"
+    assert result.payload.auth_context_ref == AUTH_CONTEXT_REF
 
 
 def test_allowlist_uses_exact_pairs_not_cartesian_product() -> None:
     gateway = make_gateway(
         bindings={
-            (USER_A, CHAT_A): ActorBinding(tenant_id="tenant-a", role="owner"),
-            (USER_B, CHAT_B): ActorBinding(tenant_id="tenant-b", role="operator"),
+            (USER_A, CHAT_A): ActorBinding(
+                tenant_id="tenant-a", actor_identity="telegram:user-a",
+                role="owner", auth_context_ref=AUTH_CONTEXT_REF,
+            ),
+            (USER_B, CHAT_B): ActorBinding(
+                tenant_id="tenant-b", actor_identity="telegram:user-b",
+                role="operator", auth_context_ref="sha256:" + "b" * 64,
+            ),
         }
     )
     result = gateway.process_update(
@@ -130,9 +151,17 @@ def test_allowlist_uses_exact_pairs_not_cartesian_product() -> None:
 
 
 def test_binding_configuration_is_copied_and_immutable() -> None:
-    bindings = {(USER_A, CHAT_A): ActorBinding(tenant_id="tenant-a", role="owner")}
+    bindings = {
+        (USER_A, CHAT_A): ActorBinding(
+            tenant_id="tenant-a", actor_identity="telegram:user-a",
+            role="owner", auth_context_ref=AUTH_CONTEXT_REF,
+        )
+    }
     gateway = make_gateway(bindings=bindings)
-    bindings[(USER_B, CHAT_B)] = ActorBinding(tenant_id="tenant-b", role="owner")
+    bindings[(USER_B, CHAT_B)] = ActorBinding(
+        tenant_id="tenant-b", actor_identity="telegram:user-b",
+        role="owner", auth_context_ref="sha256:" + "b" * 64,
+    )
     result = gateway.process_update(
         make_text_update(update_id=8, user_id=USER_B, chat_id=CHAT_B)
     )
@@ -199,6 +228,54 @@ def test_callback_exposes_only_one_time_opaque_token() -> None:
     replay = gateway.process_update(make_callback_update(update_id=4))
     assert replay.status == IngressStatus.REJECTED
     assert replay.reason == "invalid or used callback token"
+
+
+def test_oversized_callback_query_does_not_consume_claims() -> None:
+    gateway = make_gateway()
+    rejected = gateway.process_update(
+        make_callback_update(update_id=30, query_id="x" * 300)
+    )
+    assert rejected.status == IngressStatus.REJECTED
+    assert rejected.reason == "trusted ingress unavailable"
+
+    accepted = gateway.process_update(make_callback_update(update_id=30))
+    assert accepted.status == IngressStatus.ACCEPTED
+
+
+def test_digest_failure_does_not_consume_claims(monkeypatch: pytest.MonkeyPatch) -> None:
+    gateway = make_gateway()
+    digest = gateway_module.canonical_json_digest
+    calls = 0
+
+    def fail_once(value: Any) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("digest failed")
+        return digest(value)
+
+    monkeypatch.setattr(gateway_module, "canonical_json_digest", fail_once)
+    assert (
+        gateway.process_update(make_callback_update(update_id=32)).reason
+        == "trusted ingress unavailable"
+    )
+    assert (
+        gateway.process_update(make_callback_update(update_id=32)).status
+        == IngressStatus.ACCEPTED
+    )
+
+
+def test_received_at_is_normalized_to_utc() -> None:
+    local_time = datetime(
+        2026, 7, 21, 12, 30, tzinfo=timezone(timedelta(hours=3))
+    )
+    result = make_gateway(clock=lambda: local_time).process_update(
+        make_text_update(update_id=31)
+    )
+    assert result.status == IngressStatus.ACCEPTED
+    assert result.envelope is not None
+    assert result.envelope.received_at == datetime(2026, 7, 21, 9, 30, tzinfo=UTC)
+    assert result.envelope.received_at.tzinfo is UTC
 
 
 @pytest.mark.parametrize(
@@ -274,7 +351,9 @@ def test_normalized_models_forbid_extra_and_are_frozen() -> None:
     message = TextMessage(
         update_id=1,
         tenant_id="tenant-a",
+        actor_identity="telegram:user-a",
         actor_role="owner",
+        auth_context_ref=AUTH_CONTEXT_REF,
         user_id=USER_A,
         chat_id=CHAT_A,
         message_id=1,

@@ -104,6 +104,8 @@ class StateManager:
             payload={
                 "acceptance_criteria": list(validated.acceptance_criteria),
                 "allowed_paths": list(validated.allowed_paths),
+                "ingress_digest": validated.ingress_digest,
+                "ingress_idempotency_key": validated.idempotency_key,
                 "permissions": list(validated.permissions),
                 "quality_profile": validated.quality_profile,
                 "timeout_seconds": validated.timeout_seconds,

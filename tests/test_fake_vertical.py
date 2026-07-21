@@ -35,6 +35,7 @@ USER_ID = 111
 CHAT_ID = 222
 CALLBACK_TOKEN = "AbcdEFgh_12345678"
 BASE_TIME = datetime(2026, 7, 21, tzinfo=UTC)
+AUTH_CONTEXT_REF = "sha256:" + "a" * 64
 
 
 @dataclass
@@ -210,7 +211,12 @@ def build_vertical(
     manager = StateManager(trusted)
     gateway = TelegramGateway(
         actor_bindings={
-            (USER_ID, CHAT_ID): ActorBinding(tenant_id="tenant-a", role="owner")
+            (USER_ID, CHAT_ID): ActorBinding(
+                tenant_id="tenant-a",
+                actor_identity="telegram:owner",
+                role="owner",
+                auth_context_ref=AUTH_CONTEXT_REF,
+            )
         },
         update_id_store=InMemoryUpdateIdStore(),
         callback_token_store=InMemoryCallbackTokenStore(
@@ -257,9 +263,14 @@ async def test_text_vertical_completes_with_server_owned_contract_and_exact_bind
     assert stored.status == TaskStatus.COMPLETED
     assert stored.payload["permissions"] == ["repo.read", "process.run_allowlisted"]
     assert stored.payload["allowed_paths"] == [str(local_files[0])]
+    assert stored.payload["ingress_digest"].startswith("sha256:")
+    assert stored.payload["ingress_idempotency_key"].startswith("sha256:")
+    assert "critical" not in stored.payload
+    assert "repo.write_allowlisted" not in stored.payload["permissions"]
     reconstructed = TaskContract(
         task_id=stored.id,
-        idempotency_key="telegram:update:1",
+        idempotency_key=stored.payload["ingress_idempotency_key"],
+        ingress_digest=stored.payload["ingress_digest"],
         tenant_id=stored.tenant_id,
         source=stored.source.value,
         instruction=stored.intent,

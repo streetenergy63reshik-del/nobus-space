@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict
 from src.contracts import (
     RiskLevel,
     TaskContract,
+    TrustedIngressEnvelope,
     VerificationBundle,
     VerificationBundleStatus,
     VerificationLevel,
@@ -126,8 +127,11 @@ class FakeVertical:
             return self._response(FakeVerticalStatus.UNSUPPORTED, "Update is unsupported.")
 
         try:
-            contract = self._contract(ingress.payload)
-            self._policy_store.register_contract(contract)
+            envelope = ingress.envelope
+            if envelope is None:
+                raise ValueError("trusted ingress envelope is missing")
+            contract = self._contract(ingress.payload, envelope)
+            self._policy_store.register_contract(contract, envelope)
         except DuplicateIdempotencyKeyError:
             return self._response(
                 FakeVerticalStatus.DUPLICATE, "Update was already processed."
@@ -186,12 +190,20 @@ class FakeVertical:
                 task_id=task.id if task is not None else contract.task_id,
             )
 
-    def _contract(self, message: TextMessage) -> TaskContract:
+    def _contract(
+        self, message: TextMessage, envelope: TrustedIngressEnvelope
+    ) -> TaskContract:
+        if (
+            envelope.tenant_id != message.tenant_id
+            or envelope.actor_identity != message.actor_identity
+        ):
+            raise ValueError("trusted ingress binding mismatch")
         return TaskContract(
             task_id=uuid4(),
-            idempotency_key=f"telegram:update:{message.update_id}",
-            tenant_id=message.tenant_id,
-            source="telegram",
+            idempotency_key=envelope.idempotency_key,
+            ingress_digest=envelope.envelope_revision,
+            tenant_id=envelope.tenant_id,
+            source=envelope.source.value,
             instruction=message.text,
             allowed_paths=(self._allowed_path,),
             permissions=self._PERMISSIONS,

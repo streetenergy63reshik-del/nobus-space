@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
+import threading
 from collections.abc import Collection, Mapping
 from datetime import datetime
 from types import MappingProxyType
@@ -14,12 +13,14 @@ from src.contracts import (
     HumanApprovalRecord,
     RiskLevel,
     TaskContract,
+    TrustedIngressEnvelope,
     VerificationBundle,
     VerificationBundleStatus,
     VerificationLevel,
     VerificationLevelStatus,
     WorkerEvent,
 )
+from src.contracts.models import canonical_json_digest as _canonical_json_digest
 from src.models.task import TaskStatus
 
 
@@ -145,16 +146,9 @@ _FAILED_STAGE_BY_SOURCE: dict[TaskStatus, int] = {
 def canonical_json_digest(value: Any) -> str:
     """Return a deterministic SHA-256 digest for strict JSON-compatible data."""
     try:
-        encoded = json.dumps(
-            value,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode("utf-8")
-    except (TypeError, ValueError) as exc:
+        return _canonical_json_digest(value)
+    except ValueError as exc:
         raise PolicyViolation("value is not strict JSON") from exc
-    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
 def task_contract_digest(contract: TaskContract) -> str:
@@ -174,23 +168,42 @@ class InMemoryPolicyStore:
         ] = {}
         self._event_ids: set[UUID] = set()
         self._last_sequences: dict[tuple[str, UUID, UUID], int] = {}
+        self._trusted_ingress: dict[str, UUID] = {}
+        self._registration_lock = threading.Lock()
 
-    def register_contract(self, contract: TaskContract) -> None:
+    def register_contract(
+        self,
+        contract: TaskContract,
+        envelope: TrustedIngressEnvelope,
+    ) -> None:
         """Accept a tenant task once and reject duplicate or conflicting bindings."""
         validated = TaskContract.model_validate(contract.model_dump())
+        trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump())
+        if (
+            validated.source != trusted.source.value
+            or validated.tenant_id != trusted.tenant_id
+            or validated.idempotency_key != trusted.idempotency_key
+            or validated.ingress_digest != trusted.envelope_revision
+        ):
+            raise EventBindingError("contract/ingress binding mismatch")
+
         key = (validated.tenant_id, validated.idempotency_key)
-        if key in self._idempotency_keys:
-            raise DuplicateIdempotencyKeyError("duplicate idempotency key")
-        existing = self._task_contracts.get(validated.task_id)
-        if existing is not None:
-            if existing[0] != validated.tenant_id:
-                raise EventBindingError("task is already bound to another tenant")
-            raise EventBindingError("task is already registered")
-        self._idempotency_keys.add(key)
-        self._task_contracts[validated.task_id] = (
-            validated.tenant_id,
-            task_contract_digest(validated),
-        )
+        with self._registration_lock:
+            if key in self._idempotency_keys:
+                raise DuplicateIdempotencyKeyError("duplicate idempotency key")
+            existing = self._task_contracts.get(validated.task_id)
+            if existing is not None:
+                if existing[0] != validated.tenant_id:
+                    raise EventBindingError("task is already bound to another tenant")
+                raise EventBindingError("task is already registered")
+            if trusted.envelope_revision in self._trusted_ingress:
+                raise EventBindingError("trusted ingress is already registered")
+            self._idempotency_keys.add(key)
+            self._task_contracts[validated.task_id] = (
+                validated.tenant_id,
+                task_contract_digest(validated),
+            )
+            self._trusted_ingress[trusted.envelope_revision] = validated.task_id
 
     def bind_worker(
         self,

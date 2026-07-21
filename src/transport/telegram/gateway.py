@@ -4,18 +4,25 @@ from __future__ import annotations
 
 import re
 import threading
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any, Protocol, TypeVar, runtime_checkable
+from uuid import UUID, uuid4
+
+from src.contracts import TrustedIngressEnvelope
+from src.contracts.models import canonical_json_digest
 
 from .models import (
     ActorBinding,
     CallbackQuery,
     IngressResult,
     IngressStatus,
+    TrustedIngressResult,
     TextMessage,
     VoiceMessage,
     VoiceMetadata,
+    _telegram_payload_facts,
 )
 
 
@@ -143,6 +150,8 @@ class TelegramGateway:
         callback_token_store: CallbackTokenStore,
         max_text_length: int = 4096,
         max_voice_duration: int = 300,
+        ingress_id_factory: Callable[[], UUID] = uuid4,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         normalized: dict[tuple[int, int], ActorBinding] = {}
         for pair, binding in actor_bindings.items():
@@ -173,17 +182,111 @@ class TelegramGateway:
         self._callback_token_store = callback_token_store
         self._max_text_length = max_text_length
         self._max_voice_duration = max_voice_duration
+        self._ingress_id_factory = ingress_id_factory
+        self._clock = clock
 
-    def process_update(self, update: dict[str, Any]) -> IngressResult:
-        """Claim and normalize one raw Telegram update."""
+    def process_update(self, update: dict[str, Any]) -> TrustedIngressResult:
+        """Claim one raw update and atomically mint its trusted envelope."""
+        update_id = update.get("update_id") if _is_dict(update) else None
+        safe_update_id = update_id if _is_non_negative_int(update_id) else None
+        try:
+            ingress_id = self._ingress_id_factory()
+            received_at = self._clock()
+            if type(ingress_id) is not UUID:
+                raise ValueError("ingress id must be a UUID")
+            if (
+                type(received_at) is not datetime
+                or received_at.tzinfo is None
+                or received_at.utcoffset() is None
+            ):
+                raise ValueError("received time must be timezone-aware")
+            received_at = received_at.astimezone(UTC)
+        except Exception:
+            return TrustedIngressResult.model_validate(
+                _rejected(None, "trusted ingress unavailable").model_dump()
+            )
+
+        try:
+            normalized = self._normalize_update(update)
+            candidate = self._trusted_ingress(normalized, ingress_id, received_at)
+            if safe_update_id is None:
+                return candidate
+
+            duplicate = TrustedIngressResult.model_validate(
+                _rejected(safe_update_id, "duplicate update_id").model_dump()
+            )
+            invalid_callback = TrustedIngressResult.model_validate(
+                _rejected(
+                    safe_update_id, "invalid or used callback token"
+                ).model_dump()
+            )
+            callback_claim: tuple[str, int, int] | None = None
+            if (
+                candidate.status == IngressStatus.ACCEPTED
+                and type(candidate.payload) is CallbackQuery
+            ):
+                callback_claim = (
+                    candidate.payload.callback_token,
+                    candidate.payload.user_id,
+                    candidate.payload.chat_id,
+                )
+        except Exception:
+            return TrustedIngressResult.model_validate(
+                _rejected(safe_update_id, "trusted ingress unavailable").model_dump()
+            )
+
+        if not self._update_id_store.claim(safe_update_id):
+            return duplicate
+        if callback_claim is not None:
+            token, user_id, chat_id = callback_claim
+            if not self._callback_token_store.claim(token, user_id, chat_id):
+                return invalid_callback
+        return candidate
+
+    @staticmethod
+    def _trusted_ingress(
+        normalized: IngressResult,
+        ingress_id: UUID,
+        received_at: datetime,
+    ) -> TrustedIngressResult:
+        if normalized.status != IngressStatus.ACCEPTED:
+            return TrustedIngressResult.model_validate(normalized.model_dump())
+        payload = normalized.payload
+        if payload is None:  # pragma: no cover - normalization invariant
+            return TrustedIngressResult.model_validate(
+                _rejected(
+                    normalized.update_id, "trusted ingress unavailable"
+                ).model_dump()
+            )
+        facts = _telegram_payload_facts(payload)
+        envelope_data = {
+            "schema_version": "1",
+            "ingress_id": ingress_id,
+            "tenant_id": payload.tenant_id,
+            "actor_identity": payload.actor_identity,
+            "auth_context_ref": payload.auth_context_ref,
+            "received_at": received_at,
+            **facts,
+        }
+        revision = canonical_json_digest(
+            TrustedIngressEnvelope.model_construct(
+                **envelope_data, envelope_revision="sha256:" + "0" * 64
+            ).model_dump(mode="json", exclude={"envelope_revision"})
+        )
+        envelope = TrustedIngressEnvelope(
+            **envelope_data, envelope_revision=revision
+        )
+        return TrustedIngressResult.model_validate(
+            {**normalized.model_dump(), "envelope": envelope.model_dump()}
+        )
+
+    def _normalize_update(self, update: dict[str, Any]) -> IngressResult:
+        """Normalize one raw Telegram update without mutating claim stores."""
         if not _is_dict(update):
             return _rejected(None, "update is not a dict")
         update_id = update.get("update_id")
         if not _is_non_negative_int(update_id):
             return _rejected(None, "missing or invalid update_id")
-        if not self._update_id_store.claim(update_id):
-            return _rejected(update_id, "duplicate update_id")
-
         has_message = "message" in update
         has_callback = "callback_query" in update
         if has_message and has_callback:
@@ -247,7 +350,9 @@ class TelegramGateway:
             payload=TextMessage(
                 update_id=update_id,
                 tenant_id=binding.tenant_id,
+                actor_identity=binding.actor_identity,
                 actor_role=binding.role,
+                auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
                 chat_id=chat_id,
                 message_id=message_id,
@@ -292,7 +397,9 @@ class TelegramGateway:
             payload=VoiceMessage(
                 update_id=update_id,
                 tenant_id=binding.tenant_id,
+                actor_identity=binding.actor_identity,
                 actor_role=binding.role,
+                auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
                 chat_id=chat_id,
                 message_id=message_id,
@@ -331,15 +438,15 @@ class TelegramGateway:
         token = callback_query.get("data")
         if not _is_callback_token(token):
             return _rejected(update_id, "malformed callback token")
-        if not self._callback_token_store.claim(token, user_id, chat_id):
-            return _rejected(update_id, "invalid or used callback token")
         return IngressResult(
             status=IngressStatus.ACCEPTED,
             update_id=update_id,
             payload=CallbackQuery(
                 update_id=update_id,
                 tenant_id=binding.tenant_id,
+                actor_identity=binding.actor_identity,
                 actor_role=binding.role,
+                auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
                 chat_id=chat_id,
                 query_id=query_id.strip(),
