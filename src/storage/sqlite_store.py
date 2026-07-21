@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterator
@@ -295,7 +295,7 @@ class SQLiteStore:
 
     def _initialize(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("PRAGMA journal_mode = WAL")
             connection.executescript(
                 """
@@ -468,6 +468,54 @@ class SQLiteStore:
             snapshot_digest=digest,
             projection=projection,
         )
+
+    def read_ingress_claim(
+        self,
+        envelope: TrustedIngressEnvelope,
+    ) -> StoredTaskSnapshot | None:
+        """Resolve an existing stable ingress claim without creating state."""
+        validated = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
+        fingerprint = _stable_ingress_fingerprint(validated)
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT ingress_fingerprint, task_id, claim_binding_digest
+                       FROM ingress_claims
+                       WHERE tenant_id = ? AND idempotency_key = ?""",
+                    (validated.tenant_id, validated.idempotency_key),
+                ).fetchone()
+                if row is None:
+                    return None
+                if (
+                    not _is_digest(row["ingress_fingerprint"])
+                    or row["ingress_fingerprint"] != fingerprint
+                ):
+                    raise IngressClaimConflictError(
+                        "trusted ingress claim conflict"
+                    )
+                stored = self._select_task(
+                    connection,
+                    validated.tenant_id,
+                    UUID(row["task_id"]),
+                )
+                if stored is None:
+                    raise ValueError("ingress claim has no task snapshot")
+                expected_binding = _claim_binding_digest(
+                    fingerprint,
+                    tenant_id=validated.tenant_id,
+                    idempotency_key=validated.idempotency_key,
+                    task_id=stored.projection.task_id,
+                    contract_digest=stored.projection.contract_digest,
+                )
+                if row["claim_binding_digest"] != expected_binding:
+                    raise ValueError("ingress claim binding mismatch")
+                return stored
+        except IngressClaimConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
 
     def claim_ingress_with_task(
         self,
@@ -817,10 +865,77 @@ class SQLiteStore:
         if not isinstance(task_id, UUID):
             raise ValueError("task_id must be a UUID")
         try:
-            with self._connect() as connection:
+            with closing(self._connect()) as connection:
                 return self._select_task(connection, tenant, task_id)
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
+
+    def _append_event_row(
+        self,
+        connection: sqlite3.Connection,
+        event: WorkerEvent,
+        event_json: str,
+        event_digest: str,
+    ) -> None:
+        task_snapshot = self._select_task(
+            connection, event.tenant_id, event.task_id
+        )
+        if (
+            task_snapshot is None
+            or task_snapshot.projection.contract_digest != event.contract_digest
+        ):
+            raise AuditEventConflictError("worker event task binding mismatch")
+
+        existing_id = connection.execute(
+            """SELECT event_digest FROM audit_events
+               WHERE tenant_id = ? AND event_id = ?""",
+            (event.tenant_id, str(event.event_id)),
+        ).fetchone()
+        if existing_id is not None:
+            raise AuditEventConflictError("worker event id already exists")
+
+        previous = connection.execute(
+            """SELECT sequence, worker_identity FROM audit_events
+               WHERE tenant_id = ? AND task_id = ? AND attempt_id = ?
+               ORDER BY sequence DESC LIMIT 1""",
+            (
+                event.tenant_id,
+                str(event.task_id),
+                str(event.attempt_id),
+            ),
+        ).fetchone()
+        expected = 1 if previous is None else previous["sequence"] + 1
+        if event.sequence != expected:
+            raise AuditEventOrderError(
+                f"worker event sequence must be {expected}"
+            )
+        if (
+            previous is not None
+            and previous["worker_identity"].casefold()
+            != event.worker_identity.casefold()
+        ):
+            raise AuditEventConflictError("worker attempt identity mismatch")
+
+        try:
+            connection.execute(
+                """INSERT INTO audit_events
+                   (tenant_id, task_id, attempt_id, sequence, event_id,
+                    contract_digest, worker_identity, event_digest, event_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    event.tenant_id,
+                    str(event.task_id),
+                    str(event.attempt_id),
+                    event.sequence,
+                    str(event.event_id),
+                    event.contract_digest,
+                    event.worker_identity,
+                    event_digest,
+                    event_json,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            raise AuditEventConflictError("worker event conflict") from None
 
     def append_event(self, event: WorkerEvent) -> None:
         """Append one strictly ordered, task-bound worker audit event."""
@@ -831,71 +946,60 @@ class SQLiteStore:
 
         try:
             with self._transaction() as connection:
-                task_snapshot = self._select_task(
-                    connection, validated.tenant_id, validated.task_id
+                self._append_event_row(
+                    connection, validated, event_json, event_digest
                 )
-                if (
-                    task_snapshot is None
-                    or task_snapshot.projection.contract_digest
-                    != validated.contract_digest
-                ):
-                    raise AuditEventConflictError(
-                        "worker event task binding mismatch"
-                    )
-
-                existing_id = connection.execute(
-                    """SELECT event_digest FROM audit_events
-                       WHERE tenant_id = ? AND event_id = ?""",
-                    (validated.tenant_id, str(validated.event_id)),
-                ).fetchone()
-                if existing_id is not None:
-                    raise AuditEventConflictError("worker event id already exists")
-
-                previous = connection.execute(
-                    """SELECT sequence, worker_identity FROM audit_events
-                       WHERE tenant_id = ? AND task_id = ? AND attempt_id = ?
-                       ORDER BY sequence DESC LIMIT 1""",
-                    (
-                        validated.tenant_id,
-                        str(validated.task_id),
-                        str(validated.attempt_id),
-                    ),
-                ).fetchone()
-                expected = 1 if previous is None else previous["sequence"] + 1
-                if validated.sequence != expected:
-                    raise AuditEventOrderError(
-                        f"worker event sequence must be {expected}"
-                    )
-                if (
-                    previous is not None
-                    and previous["worker_identity"].casefold()
-                    != validated.worker_identity.casefold()
-                ):
-                    raise AuditEventConflictError(
-                        "worker attempt identity mismatch"
-                    )
-
-                try:
-                    connection.execute(
-                        """INSERT INTO audit_events
-                           (tenant_id, task_id, attempt_id, sequence, event_id,
-                            contract_digest, worker_identity, event_digest, event_json)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            validated.tenant_id,
-                            str(validated.task_id),
-                            str(validated.attempt_id),
-                            validated.sequence,
-                            str(validated.event_id),
-                            validated.contract_digest,
-                            validated.worker_identity,
-                            event_digest,
-                            event_json,
-                        ),
-                    )
-                except sqlite3.IntegrityError:
-                    raise AuditEventConflictError("worker event conflict") from None
         except (AuditEventConflictError, AuditEventOrderError):
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def save_task_and_append_event(
+        self,
+        task: Task,
+        event: WorkerEvent,
+        *,
+        expected_revision: int,
+    ) -> StoredTaskSnapshot:
+        """Atomically persist one Task transition and its worker audit event."""
+        expected = _strict_revision(expected_revision)
+        try:
+            projection, projection_json, projection_digest = (
+                _validate_task_projection(task)
+            )
+            validated_event = WorkerEvent.model_validate(
+                event.model_dump(mode="json")
+            )
+        except ValueError:
+            raise SnapshotConflictError("task or event projection is invalid") from None
+        if (
+            validated_event.tenant_id != projection.tenant_id
+            or validated_event.task_id != projection.task_id
+            or validated_event.contract_digest != projection.contract_digest
+        ):
+            raise AuditEventConflictError("worker event task binding mismatch")
+        event_data = validated_event.model_dump(mode="json")
+        event_json = _canonical_json(event_data)
+        event_digest = canonical_json_digest(event_data)
+
+        try:
+            with self._transaction() as connection:
+                snapshot = self._save_task_cas(
+                    connection,
+                    projection,
+                    projection_json,
+                    projection_digest,
+                    expected_revision=expected,
+                )
+                self._append_event_row(
+                    connection, validated_event, event_json, event_digest
+                )
+                return snapshot
+        except (
+            SnapshotConflictError,
+            AuditEventConflictError,
+            AuditEventOrderError,
+        ):
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
@@ -908,7 +1012,7 @@ class SQLiteStore:
         if not isinstance(task_id, UUID) or not isinstance(attempt_id, UUID):
             raise ValueError("task_id and attempt_id must be UUID values")
         try:
-            with self._connect() as connection:
+            with closing(self._connect()) as connection:
                 task_snapshot = self._select_task(connection, tenant, task_id)
                 if task_snapshot is None:
                     return ()
@@ -1079,6 +1183,7 @@ class SQLiteStore:
         *,
         expected_revision: int,
         destination_ref: str,
+        event: WorkerEvent | None = None,
         max_attempts: int = 3,
         now: datetime | None = None,
     ) -> OutboxEnqueueResult:
@@ -1102,6 +1207,26 @@ class SQLiteStore:
             )
         except ValueError:
             raise SnapshotConflictError("task result projection is invalid") from None
+
+        validated_event: WorkerEvent | None = None
+        event_json = ""
+        event_digest = ""
+        if event is not None:
+            try:
+                validated_event = WorkerEvent.model_validate(
+                    event.model_dump(mode="json")
+                )
+            except ValueError:
+                raise AuditEventConflictError("worker event is invalid") from None
+            if (
+                validated_event.tenant_id != projection.tenant_id
+                or validated_event.task_id != projection.task_id
+                or validated_event.contract_digest != projection.contract_digest
+            ):
+                raise AuditEventConflictError("worker event task binding mismatch")
+            event_data = validated_event.model_dump(mode="json")
+            event_json = _canonical_json(event_data)
+            event_digest = canonical_json_digest(event_data)
 
         task_revision = expected + 1
         fingerprint = message_fingerprint(
@@ -1170,6 +1295,13 @@ class SQLiteStore:
                     projection_digest,
                     expected_revision=expected,
                 )
+                if validated_event is not None:
+                    self._append_event_row(
+                        connection,
+                        validated_event,
+                        event_json,
+                        event_digest,
+                    )
                 message_data = pending.model_dump(mode="json")
                 message_json = _canonical_json(message_data)
                 message_digest = canonical_json_digest(message_data)
@@ -1207,7 +1339,13 @@ class SQLiteStore:
                     task_revision=stored.revision,
                     message=pending,
                 )
-        except (SnapshotConflictError, OutboxConflictError, OutboxCorruptionError):
+        except (
+            SnapshotConflictError,
+            OutboxConflictError,
+            OutboxCorruptionError,
+            AuditEventConflictError,
+            AuditEventOrderError,
+        ):
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
@@ -1467,7 +1605,7 @@ class SQLiteStore:
         if not isinstance(message_id, UUID):
             raise ValueError("message_id must be a UUID")
         try:
-            with self._connect() as connection:
+            with closing(self._connect()) as connection:
                 return self._select_outbox_message(connection, tenant, message_id)
         except OutboxCorruptionError:
             raise
@@ -1481,7 +1619,7 @@ class SQLiteStore:
         if not isinstance(message_id, UUID):
             raise ValueError("message_id must be a UUID")
         try:
-            with self._connect() as connection:
+            with closing(self._connect()) as connection:
                 if self._select_outbox_message(connection, tenant, message_id) is None:
                     return ()
                 rows = connection.execute(

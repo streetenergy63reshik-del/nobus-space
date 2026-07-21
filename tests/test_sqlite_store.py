@@ -1034,3 +1034,21 @@ def test_malformed_database_and_bad_path_errors_are_sanitized(tmp_path: Path) ->
         assert str(raised.value) == "durable store is invalid"
         assert raised.value.__cause__ is None
         assert str(path) not in str(raised.value)
+
+
+def test_read_connections_release_database_file_without_gc(tmp_path: Path) -> None:
+    path = tmp_path / "state.sqlite3"
+    store = SQLiteStore(path)
+    task_id = uuid4()
+    attempt_id = uuid4()
+    message_id = uuid4()
+
+    for _ in range(25):
+        assert store.read_task("tenant-a", task_id) is None
+        assert store.read_events("tenant-a", task_id, attempt_id) == ()
+        assert store.read_outbox_message("tenant-a", message_id) is None
+        assert store.read_outbox_receipts("tenant-a", message_id) == ()
+
+    moved = tmp_path / "moved.sqlite3"
+    path.replace(moved)
+    moved.replace(path)

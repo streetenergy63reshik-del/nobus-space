@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import UTC, datetime
+from collections.abc import Callable
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -90,7 +91,12 @@ class StateManager:
         self._tasks[task.id] = task
         return task.model_copy(deep=True)
 
-    async def create_from_contract(self, contract: TaskContract) -> Task:
+    async def create_from_contract(
+        self,
+        contract: TaskContract,
+        *,
+        before_commit: Callable[[Task], None] | None = None,
+    ) -> Task:
         """Create one runtime task with the exact accepted contract binding."""
         validated = TaskContract.model_validate(contract.model_dump())
         if validated.task_id in self._tasks:
@@ -113,6 +119,8 @@ class StateManager:
             risk=validated.risk,
             status=TaskStatus.PENDING,
         )
+        if before_commit is not None:
+            before_commit(task.model_copy(deep=True))
         self._tasks[task.id] = task
         return task.model_copy(deep=True)
 
@@ -126,6 +134,7 @@ class StateManager:
         human_approval: HumanApprovalRecord | None = None,
         error_message: str | None = None,
         context: dict[str, Any] | None = None,
+        before_commit: Callable[[Task], None] | None = None,
     ) -> Task | None:
         """Validate and atomically store one task update."""
         task = self._tasks.get(task_id)
@@ -354,6 +363,8 @@ class StateManager:
                 approval_window_end=candidate.updated_at,
             )
 
+        if before_commit is not None:
+            before_commit(candidate.model_copy(deep=True))
         self._tasks[task.id] = candidate
         return candidate.model_copy(deep=True)
 

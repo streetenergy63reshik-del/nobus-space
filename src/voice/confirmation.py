@@ -21,7 +21,7 @@ from pydantic import (
     model_validator,
 )
 
-from src.contracts import TrustedIngressEnvelope
+from src.contracts import IngressKind, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.transport.telegram import (
     CallbackQuery,
@@ -106,6 +106,21 @@ class ConfirmedVoicePreview(VoiceConfirmationModel):
     confidence: float | None = Field(default=None, ge=0, le=1)
     confirmed_at: datetime
     callback_token_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    voice_envelope: TrustedIngressEnvelope
+
+    @model_validator(mode="after")
+    def validate_voice_envelope(self) -> "ConfirmedVoicePreview":
+        envelope = self.voice_envelope
+        if (
+            envelope.kind is not IngressKind.VOICE_PREVIEW
+            or envelope.tenant_id != self.tenant_id
+            or envelope.actor_identity != self.actor_identity
+            or envelope.auth_context_ref != self.auth_context_ref
+            or envelope.envelope_revision != self.voice_envelope_revision
+            or envelope.content_ref != self.voice_content_ref
+        ):
+            raise ValueError("confirmed preview envelope binding mismatch")
+        return self
 
     @field_validator("tenant_id", "actor_identity", "actor_role", "transcript")
     @classmethod
@@ -168,6 +183,7 @@ class _PreviewBinding:
     confidence: float | None
     issued_at: datetime
     expires_at: datetime
+    voice_envelope: TrustedIngressEnvelope
 
 
 @dataclass
@@ -357,6 +373,7 @@ class InMemoryVoiceConfirmationStore:
                 confidence=validated_preview.confidence,
                 issued_at=now,
                 expires_at=now + timedelta(seconds=ttl_seconds),
+                voice_envelope=validated_envelope,
             )
             for _ in range(3):
                 token_failed = False
@@ -473,6 +490,7 @@ class InMemoryVoiceConfirmationStore:
                 confidence=binding.confidence,
                 confirmed_at=now,
                 callback_token_digest=digest,
+                voice_envelope=binding.voice_envelope,
             )
             del self._entries[digest]
             self._add_tombstone_locked(digest, binding, now)

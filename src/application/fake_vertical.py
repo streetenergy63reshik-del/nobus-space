@@ -34,6 +34,7 @@ from src.transport.telegram import (
     TextMessage,
     VoiceMessage,
 )
+from src.voice import VoiceConfirmationChallenge
 from src.workers import CodexCliAdapter
 
 
@@ -61,6 +62,9 @@ class FakeVerticalStatus(str, Enum):
 
     COMPLETED = "completed"
     DUPLICATE = "duplicate"
+    NEEDS_VOICE_CONFIRMATION = "needs_voice_confirmation"
+    RECOVERED = "recovered"
+    RECOVERY_REQUIRED = "recovery_required"
     FAILED = "failed"
     NEEDS_VOICE_PREVIEW = "needs_voice_preview"
     REJECTED = "rejected"
@@ -75,6 +79,8 @@ class FakeVerticalResponse(BaseModel):
     status: FakeVerticalStatus
     task_id: UUID | None = None
     result_digest: str | None = None
+    voice_preview: str | None = None
+    confirmation_challenge: VoiceConfirmationChallenge | None = None
     message: str
 
 
@@ -126,12 +132,22 @@ class FakeVertical:
         if not isinstance(ingress.payload, TextMessage):
             return self._response(FakeVerticalStatus.UNSUPPORTED, "Update is unsupported.")
 
+        envelope = ingress.envelope
+        if envelope is None:
+            return self._response(
+                FakeVerticalStatus.FAILED, "Task could not be created."
+            )
+        return await self._run_instruction(ingress.payload.text, envelope)
+
+    async def _run_instruction(
+        self,
+        instruction: str,
+        envelope: TrustedIngressEnvelope,
+    ) -> FakeVerticalResponse:
+        """Run one already-confirmed instruction through local Core boundaries."""
         try:
-            envelope = ingress.envelope
-            if envelope is None:
-                raise ValueError("trusted ingress envelope is missing")
-            contract = self._contract(ingress.payload, envelope)
-            self._policy_store.register_contract(contract, envelope)
+            contract = self._contract(instruction, envelope)
+            task = await self._begin_task(contract, envelope)
         except DuplicateIdempotencyKeyError:
             return self._response(
                 FakeVerticalStatus.DUPLICATE, "Update was already processed."
@@ -139,23 +155,16 @@ class FakeVertical:
         except Exception:
             return self._response(FakeVerticalStatus.FAILED, "Task could not be created.")
 
-        task: Task | None = None
         try:
-            task = await self._state.create_from_contract(contract)
-            task = await self._required_update(task.id, status=TaskStatus.PARSING)
+            task = await self._start_worker(contract, task)
             worker_result = await self._worker.execute(contract)
-            task = await self._required_update(
-                task.id,
-                status=TaskStatus.DRAFT,
-                agent_id=self._EXECUTOR_IDENTITY,
-                result={
-                    "output_digest": canonical_json_digest(
-                        {"message": worker_result.message}
-                    ),
-                    "summary": "Worker completed.",
-                },
+            task = await self._record_worker_result(
+                contract,
+                task,
+                worker_result.message,
             )
-            assert task.result is not None and task.result_digest is not None
+            if task.result is None or task.result_digest is None:
+                raise RuntimeError("worker result binding is unavailable")
             candidate = VerificationInput(
                 tenant_id=task.tenant_id,
                 task_id=task.id,
@@ -172,7 +181,7 @@ class FakeVertical:
                     "Task verification failed.",
                     task_id=task.id,
                 )
-            task = await self._required_update(task.id, status=TaskStatus.COMPLETED)
+            task = await self._complete(task)
             return self._response(
                 FakeVerticalStatus.COMPLETED,
                 "Task completed.",
@@ -182,29 +191,57 @@ class FakeVertical:
         except asyncio.CancelledError:
             raise
         except Exception:
-            if task is not None:
-                await self._escalate(task)
+            await self._escalate(task)
             return self._response(
                 FakeVerticalStatus.FAILED,
                 "Task execution failed.",
-                task_id=task.id if task is not None else contract.task_id,
+                task_id=task.id,
             )
 
+    async def _begin_task(
+        self,
+        contract: TaskContract,
+        envelope: TrustedIngressEnvelope,
+    ) -> Task:
+        self._policy_store.register_contract(contract, envelope)
+        return await self._state.create_from_contract(contract)
+
+    async def _start_worker(self, contract: TaskContract, task: Task) -> Task:
+        return await self._required_update(task.id, status=TaskStatus.PARSING)
+
+    async def _record_worker_result(
+        self,
+        contract: TaskContract,
+        task: Task,
+        message: str,
+    ) -> Task:
+        return await self._required_update(
+            task.id,
+            status=TaskStatus.DRAFT,
+            agent_id=self._EXECUTOR_IDENTITY,
+            result={
+                "output_digest": canonical_json_digest({"message": message}),
+                "summary": "Worker completed.",
+            },
+        )
+
+    async def _complete(self, task: Task) -> Task:
+        return await self._required_update(task.id, status=TaskStatus.COMPLETED)
+
     def _contract(
-        self, message: TextMessage, envelope: TrustedIngressEnvelope
+        self, instruction: str, envelope: TrustedIngressEnvelope
     ) -> TaskContract:
-        if (
-            envelope.tenant_id != message.tenant_id
-            or envelope.actor_identity != message.actor_identity
-        ):
-            raise ValueError("trusted ingress binding mismatch")
+        try:
+            envelope = TrustedIngressEnvelope.model_validate(envelope.model_dump())
+        except Exception:
+            raise ValueError("trusted ingress binding mismatch") from None
         return TaskContract(
             task_id=uuid4(),
             idempotency_key=envelope.idempotency_key,
             ingress_digest=envelope.envelope_revision,
             tenant_id=envelope.tenant_id,
             source=envelope.source.value,
-            instruction=message.text,
+            instruction=instruction,
             allowed_paths=(self._allowed_path,),
             permissions=self._PERMISSIONS,
             risk=RiskLevel.LOW,
@@ -265,9 +302,10 @@ class FakeVertical:
             TaskStatus.DRAFT,
             TaskStatus.L1_VALIDATED,
             TaskStatus.L2_VERIFIED,
+            TaskStatus.L3_APPROVED,
         }:
             try:
-                await self._state.update(
+                await self._required_update(
                     task.id,
                     status=TaskStatus.ESCALATE,
                     error_message="execution_failed",
@@ -276,7 +314,7 @@ class FakeVertical:
                 pass
         elif task.status == TaskStatus.PARSING:
             try:
-                await self._state.update(
+                await self._required_update(
                     task.id,
                     status=TaskStatus.FAILED,
                     error_message="worker_failed",
