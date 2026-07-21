@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterator
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
@@ -27,6 +27,15 @@ from src.core.policy import (
     task_contract_digest,
 )
 from src.models.task import Task, TaskSource, TaskStatus
+from src.storage.outbox import (
+    DeliveryReceipt,
+    OutboxEnqueueResult,
+    OutboxMessage,
+    OutboxStatus,
+    ReceiptType,
+    message_fingerprint,
+    message_id_for,
+)
 
 
 class StoreCorruptionError(RuntimeError):
@@ -47,6 +56,22 @@ class AuditEventConflictError(ValueError):
 
 class AuditEventOrderError(ValueError):
     """A worker event did not immediately follow the stored sequence."""
+
+
+class OutboxConflictError(ValueError):
+    """An outbox idempotency binding was reused for different state."""
+
+
+class OutboxLeaseError(ValueError):
+    """A receipt did not match the current unexpired lease."""
+
+
+class OutboxReceiptConflictError(ValueError):
+    """A receipt identifier was already recorded."""
+
+
+class OutboxCorruptionError(StoreCorruptionError):
+    """Stored outbox state failed its row/JSON/digest checks."""
 
 
 class DurableTaskProjection(BaseModel):
@@ -75,6 +100,7 @@ class DurableTaskProjection(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
     @model_validator(mode="after")
     def validate_projection(self) -> "DurableTaskProjection":
         for field_name in ("created_at", "updated_at"):
@@ -100,6 +126,7 @@ class StoredTaskSnapshot(BaseModel):
     updated_at: datetime
     snapshot_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     projection: DurableTaskProjection
+
 
     @model_validator(mode="after")
     def validate_binding(self) -> "StoredTaskSnapshot":
@@ -314,6 +341,61 @@ class SQLiteStore:
                         REFERENCES task_snapshots (tenant_id, task_id)
                         ON DELETE RESTRICT
                 );
+
+                CREATE TABLE IF NOT EXISTS outbox_messages (
+                    tenant_id TEXT NOT NULL,
+                    message_id TEXT NOT NULL,
+                    message_fingerprint TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    task_revision INTEGER NOT NULL CHECK (task_revision >= 2),
+                    task_projection_digest TEXT NOT NULL,
+                    status TEXT NOT NULL
+                        CHECK (status IN ('pending','leased','acked','failed')),
+                    attempt_count INTEGER NOT NULL CHECK (attempt_count >= 0),
+                    max_attempts INTEGER NOT NULL CHECK (max_attempts BETWEEN 1 AND 10),
+                    next_attempt_at TEXT,
+                    lease_id TEXT,
+                    lease_owner TEXT,
+                    lease_expires_at TEXT,
+                    state_revision INTEGER NOT NULL CHECK (state_revision >= 1),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    message_digest TEXT NOT NULL,
+                    message_json TEXT NOT NULL,
+                    PRIMARY KEY (tenant_id, message_id),
+                    UNIQUE (tenant_id, message_fingerprint),
+                    FOREIGN KEY (tenant_id, task_id)
+                        REFERENCES task_snapshots (tenant_id, task_id)
+                        ON DELETE RESTRICT
+                );
+
+                CREATE TABLE IF NOT EXISTS outbox_receipts (
+                    tenant_id TEXT NOT NULL,
+                    message_id TEXT NOT NULL,
+                    receipt_id TEXT NOT NULL,
+                    lease_id TEXT NOT NULL,
+                    attempt_count INTEGER NOT NULL CHECK (attempt_count >= 1),
+                    receipt_type TEXT NOT NULL
+                        CHECK (receipt_type IN ('ack','nack','timeout')),
+                    received_at TEXT NOT NULL,
+                    receipt_digest TEXT NOT NULL,
+                    receipt_json TEXT NOT NULL,
+                    PRIMARY KEY (tenant_id, message_id, receipt_id),
+                    FOREIGN KEY (tenant_id, message_id)
+                        REFERENCES outbox_messages (tenant_id, message_id)
+                        ON DELETE RESTRICT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_outbox_pending
+                    ON outbox_messages (tenant_id, next_attempt_at, created_at)
+                    WHERE status = 'pending';
+
+                CREATE INDEX IF NOT EXISTS idx_outbox_expired
+                    ON outbox_messages (tenant_id, lease_expires_at)
+                    WHERE status = 'leased';
+
+                CREATE INDEX IF NOT EXISTS idx_outbox_receipts
+                    ON outbox_receipts (tenant_id, message_id, received_at);
                 """
             )
 
@@ -531,6 +613,183 @@ class SQLiteStore:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
 
+    def _save_task_cas(
+        self,
+        connection: sqlite3.Connection,
+        projection: DurableTaskProjection,
+        projection_json: str,
+        digest: str,
+        *,
+        expected_revision: int,
+    ) -> StoredTaskSnapshot:
+        """Persist one already-validated transition inside the caller transaction."""
+        next_revision = expected_revision + 1
+        existing = self._select_task(
+            connection, projection.tenant_id, projection.task_id
+        )
+        if existing is None or existing.revision != expected_revision:
+            raise SnapshotConflictError("task snapshot revision conflict")
+        previous = existing.projection
+        if (
+            projection.task_id != previous.task_id
+            or projection.tenant_id != previous.tenant_id
+            or projection.contract_digest != previous.contract_digest
+            or projection.source != previous.source
+            or projection.risk != previous.risk
+            or projection.created_at != previous.created_at
+            or projection.result_revision < previous.result_revision
+            or projection.updated_at < previous.updated_at
+        ):
+            raise SnapshotConflictError("task snapshot binding mismatch")
+        executor_reassigned_on_redraft = (
+            previous.status == TaskStatus.REWORK
+            and projection.status == TaskStatus.DRAFT
+            and projection.result_revision > previous.result_revision
+            and projection.result_digest is not None
+        )
+        if (
+            previous.agent_id is not None
+            and projection.agent_id != previous.agent_id
+            and not executor_reassigned_on_redraft
+        ):
+            raise SnapshotConflictError("task executor is immutable")
+        clearing_result_for_rework = (
+            projection.status == TaskStatus.REWORK
+            and previous.result_digest is not None
+            and projection.result_digest is None
+            and projection.output_digest is None
+        )
+        if projection.result_revision > previous.result_revision and (
+            projection.result_revision != previous.result_revision + 1
+            or projection.status != TaskStatus.DRAFT
+            or projection.result_digest is None
+        ):
+            raise SnapshotConflictError(
+                "a new result revision must be sealed on DRAFT"
+            )
+        if (
+            projection.result_revision == previous.result_revision
+            and (
+                projection.result_digest != previous.result_digest
+                or projection.output_digest != previous.output_digest
+            )
+            and not clearing_result_for_rework
+        ):
+            raise SnapshotConflictError("task result binding is immutable")
+        if projection.status == TaskStatus.REWORK:
+            expected_verification_history = previous.verification_history + (
+                (previous.verification_bundle,)
+                if previous.verification_bundle is not None
+                else ()
+            )
+            expected_approval_history = previous.approval_history + (
+                (previous.human_approval,)
+                if previous.human_approval is not None
+                else ()
+            )
+            if (
+                projection.verification_bundle is not None
+                or projection.human_approval is not None
+                or projection.verification_history
+                != expected_verification_history
+                or projection.approval_history != expected_approval_history
+            ):
+                raise SnapshotConflictError(
+                    "REWORK must archive the exact active evidence"
+                )
+        elif (
+            projection.verification_history != previous.verification_history
+            or projection.approval_history != previous.approval_history
+        ):
+            raise SnapshotConflictError("task audit history is immutable")
+        if previous.verification_bundle is not None:
+            current_bundle = projection.verification_bundle
+            clearing_for_rework = projection.status == TaskStatus.REWORK
+            if not clearing_for_rework and (
+                current_bundle is None
+                or previous.verification_bundle.tenant_id
+                != current_bundle.tenant_id
+                or previous.verification_bundle.task_id != current_bundle.task_id
+                or previous.verification_bundle.contract_digest
+                != current_bundle.contract_digest
+                or previous.verification_bundle.result_revision
+                != current_bundle.result_revision
+                or previous.verification_bundle.result_digest
+                != current_bundle.result_digest
+                or previous.verification_bundle.executor_identity
+                != current_bundle.executor_identity
+                or any(
+                    old is not None and old != new
+                    for old, new in zip(
+                        (
+                            previous.verification_bundle.l1,
+                            previous.verification_bundle.l2,
+                            previous.verification_bundle.l3,
+                        ),
+                        (
+                            current_bundle.l1,
+                            current_bundle.l2,
+                            current_bundle.l3,
+                        ),
+                    )
+                )
+            ):
+                raise SnapshotConflictError(
+                    "task verification evidence is immutable"
+                )
+        if previous.human_approval is not None:
+            clearing_approval_for_rework = projection.status == TaskStatus.REWORK
+            if (
+                not clearing_approval_for_rework
+                and projection.human_approval != previous.human_approval
+            ):
+                raise SnapshotConflictError(
+                    "task approval evidence is immutable"
+                )
+        try:
+            ensure_transition(
+                previous.status,
+                projection.status,
+                task_id=projection.task_id,
+                tenant_id=projection.tenant_id,
+                contract_digest=projection.contract_digest,
+                result_revision=projection.result_revision,
+                result_digest=projection.result_digest,
+                risk=projection.risk,
+                bundle=projection.verification_bundle,
+                executor_identity=projection.agent_id,
+                verifier_registry=self._verifier_registry,
+                human_approval=projection.human_approval,
+                approval_window_start=previous.updated_at,
+                approval_window_end=projection.updated_at,
+            )
+        except ValueError:
+            raise SnapshotConflictError("task transition rejected") from None
+        cursor = connection.execute(
+            """UPDATE task_snapshots
+               SET revision = ?, updated_at = ?, projection_digest = ?, projection_json = ?
+               WHERE tenant_id = ? AND task_id = ? AND revision = ?
+                 AND contract_digest = ?""",
+            (
+                next_revision,
+                projection.updated_at.isoformat(),
+                digest,
+                projection_json,
+                projection.tenant_id,
+                str(projection.task_id),
+                expected_revision,
+                projection.contract_digest,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise SnapshotConflictError("task snapshot revision conflict")
+        return StoredTaskSnapshot(
+            revision=next_revision,
+            updated_at=projection.updated_at,
+            snapshot_digest=digest,
+            projection=projection,
+        )
+
     def save_task(self, task: Task, *, expected_revision: int) -> StoredTaskSnapshot:
         """Compare-and-swap an existing recovery-safe task projection."""
         expected = _strict_revision(expected_revision)
@@ -538,184 +797,19 @@ class SQLiteStore:
             projection, projection_json, digest = _validate_task_projection(task)
         except ValueError:
             raise SnapshotConflictError("task result projection is invalid") from None
-        next_revision = expected + 1
-
         try:
             with self._transaction() as connection:
-                existing = self._select_task(
-                    connection, projection.tenant_id, projection.task_id
+                return self._save_task_cas(
+                    connection,
+                    projection,
+                    projection_json,
+                    digest,
+                    expected_revision=expected,
                 )
-                if existing is None or existing.revision != expected:
-                    raise SnapshotConflictError("task snapshot revision conflict")
-                previous = existing.projection
-                if (
-                    projection.task_id != previous.task_id
-                    or projection.tenant_id != previous.tenant_id
-                    or projection.contract_digest != previous.contract_digest
-                    or projection.source != previous.source
-                    or projection.risk != previous.risk
-                    or projection.created_at != previous.created_at
-                    or projection.result_revision < previous.result_revision
-                    or projection.updated_at < previous.updated_at
-                ):
-                    raise SnapshotConflictError("task snapshot binding mismatch")
-                executor_reassigned_on_redraft = (
-                    previous.status == TaskStatus.REWORK
-                    and projection.status == TaskStatus.DRAFT
-                    and projection.result_revision > previous.result_revision
-                    and projection.result_digest is not None
-                )
-                if (
-                    previous.agent_id is not None
-                    and projection.agent_id != previous.agent_id
-                    and not executor_reassigned_on_redraft
-                ):
-                    raise SnapshotConflictError("task executor is immutable")
-                clearing_result_for_rework = (
-                    projection.status == TaskStatus.REWORK
-                    and previous.result_digest is not None
-                    and projection.result_digest is None
-                    and projection.output_digest is None
-                )
-                if projection.result_revision > previous.result_revision and (
-                    projection.result_revision != previous.result_revision + 1
-                    or projection.status != TaskStatus.DRAFT
-                    or projection.result_digest is None
-                ):
-                    raise SnapshotConflictError(
-                        "a new result revision must be sealed on DRAFT"
-                    )
-                if (
-                    projection.result_revision == previous.result_revision
-                    and (
-                        projection.result_digest != previous.result_digest
-                        or projection.output_digest != previous.output_digest
-                    )
-                    and not clearing_result_for_rework
-                ):
-                    raise SnapshotConflictError("task result binding is immutable")
-                if projection.status == TaskStatus.REWORK:
-                    expected_verification_history = previous.verification_history + (
-                        (previous.verification_bundle,)
-                        if previous.verification_bundle is not None
-                        else ()
-                    )
-                    expected_approval_history = previous.approval_history + (
-                        (previous.human_approval,)
-                        if previous.human_approval is not None
-                        else ()
-                    )
-                    if (
-                        projection.verification_bundle is not None
-                        or projection.human_approval is not None
-                        or projection.verification_history
-                        != expected_verification_history
-                        or projection.approval_history != expected_approval_history
-                    ):
-                        raise SnapshotConflictError(
-                            "REWORK must archive the exact active evidence"
-                        )
-                elif (
-                    projection.verification_history
-                    != previous.verification_history
-                    or projection.approval_history != previous.approval_history
-                ):
-                    raise SnapshotConflictError("task audit history is immutable")
-                if previous.verification_bundle is not None:
-                    current_bundle = projection.verification_bundle
-                    clearing_for_rework = projection.status == TaskStatus.REWORK
-                    if not clearing_for_rework and (
-                        current_bundle is None
-                        or previous.verification_bundle.tenant_id
-                        != current_bundle.tenant_id
-                        or previous.verification_bundle.task_id
-                        != current_bundle.task_id
-                        or previous.verification_bundle.contract_digest
-                        != current_bundle.contract_digest
-                        or previous.verification_bundle.result_revision
-                        != current_bundle.result_revision
-                        or previous.verification_bundle.result_digest
-                        != current_bundle.result_digest
-                        or previous.verification_bundle.executor_identity
-                        != current_bundle.executor_identity
-                        or any(
-                            old is not None and old != new
-                            for old, new in zip(
-                                (
-                                    previous.verification_bundle.l1,
-                                    previous.verification_bundle.l2,
-                                    previous.verification_bundle.l3,
-                                ),
-                                (
-                                    current_bundle.l1,
-                                    current_bundle.l2,
-                                    current_bundle.l3,
-                                ),
-                            )
-                        )
-                    ):
-                        raise SnapshotConflictError(
-                            "task verification evidence is immutable"
-                        )
-                if previous.human_approval is not None:
-                    clearing_approval_for_rework = (
-                        projection.status == TaskStatus.REWORK
-                    )
-                    if (
-                        not clearing_approval_for_rework
-                        and projection.human_approval != previous.human_approval
-                    ):
-                        raise SnapshotConflictError(
-                            "task approval evidence is immutable"
-                        )
-                try:
-                    ensure_transition(
-                        previous.status,
-                        projection.status,
-                        task_id=projection.task_id,
-                        tenant_id=projection.tenant_id,
-                        contract_digest=projection.contract_digest,
-                        result_revision=projection.result_revision,
-                        result_digest=projection.result_digest,
-                        risk=projection.risk,
-                        bundle=projection.verification_bundle,
-                        executor_identity=projection.agent_id,
-                        verifier_registry=self._verifier_registry,
-                        human_approval=projection.human_approval,
-                        approval_window_start=previous.updated_at,
-                        approval_window_end=projection.updated_at,
-                    )
-                except ValueError:
-                    raise SnapshotConflictError("task transition rejected") from None
-                cursor = connection.execute(
-                    """UPDATE task_snapshots
-                       SET revision = ?, updated_at = ?, projection_digest = ?, projection_json = ?
-                       WHERE tenant_id = ? AND task_id = ? AND revision = ?
-                         AND contract_digest = ?""",
-                    (
-                        next_revision,
-                        projection.updated_at.isoformat(),
-                        digest,
-                        projection_json,
-                        projection.tenant_id,
-                        str(projection.task_id),
-                        expected,
-                        projection.contract_digest,
-                    ),
-                )
-                if cursor.rowcount != 1:
-                    raise SnapshotConflictError("task snapshot revision conflict")
         except SnapshotConflictError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
-
-        return StoredTaskSnapshot(
-            revision=next_revision,
-            updated_at=projection.updated_at,
-            snapshot_digest=digest,
-            projection=projection,
-        )
 
     def read_task(self, tenant_id: str, task_id: UUID) -> StoredTaskSnapshot | None:
         """Read one tenant-scoped task snapshot and verify every stored binding."""
@@ -856,5 +950,580 @@ class SQLiteStore:
                     worker_identity = parsed.worker_identity
                     events.append(parsed)
                 return tuple(events)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    @staticmethod
+    def _outbox_from_row(
+        row: sqlite3.Row, *, tenant_id: str, message_id: UUID
+    ) -> OutboxMessage:
+        try:
+            message = OutboxMessage.model_validate_json(row["message_json"])
+            digest = canonical_json_digest(message.model_dump(mode="json"))
+        except (ValueError, TypeError):
+            raise OutboxCorruptionError("outbox message is invalid") from None
+        bindings = (
+            row["tenant_id"] == tenant_id == message.tenant_id,
+            row["message_id"] == str(message_id) == str(message.message_id),
+            row["message_fingerprint"] == message.message_fingerprint,
+            row["task_id"] == str(message.task_id),
+            row["task_revision"] == message.task_revision,
+            row["task_projection_digest"] == message.task_projection_digest,
+            row["status"] == message.status.value,
+            row["attempt_count"] == message.attempt_count,
+            row["max_attempts"] == message.max_attempts,
+            row["next_attempt_at"]
+            == (
+                message.next_attempt_at.isoformat()
+                if message.next_attempt_at is not None
+                else None
+            ),
+            row["lease_id"]
+            == (str(message.lease_id) if message.lease_id is not None else None),
+            row["lease_owner"]
+            == (
+                str(message.lease_owner)
+                if message.lease_owner is not None
+                else None
+            ),
+            row["lease_expires_at"]
+            == (
+                message.lease_expires_at.isoformat()
+                if message.lease_expires_at is not None
+                else None
+            ),
+            row["state_revision"] == message.state_revision,
+            row["created_at"] == message.created_at.isoformat(),
+            row["updated_at"] == message.updated_at.isoformat(),
+            row["message_digest"] == digest,
+        )
+        if not all(bindings):
+            raise OutboxCorruptionError("outbox message binding mismatch")
+        return message
+
+    @staticmethod
+    def _select_outbox_message(
+        connection: sqlite3.Connection, tenant_id: str, message_id: UUID
+    ) -> OutboxMessage | None:
+        row = connection.execute(
+            """SELECT tenant_id, message_id, message_fingerprint, task_id,
+                      task_revision, task_projection_digest, status, attempt_count, max_attempts,
+                      next_attempt_at, lease_id, lease_owner, lease_expires_at,
+                      state_revision, created_at, updated_at, message_digest,
+                      message_json
+               FROM outbox_messages
+               WHERE tenant_id = ? AND message_id = ?""",
+            (tenant_id, str(message_id)),
+        ).fetchone()
+        if row is None:
+            return None
+        return SQLiteStore._outbox_from_row(
+            row, tenant_id=tenant_id, message_id=message_id
+        )
+
+    @staticmethod
+    def _update_outbox_message(
+        connection: sqlite3.Connection,
+        message: OutboxMessage,
+        *,
+        previous_state_revision: int,
+        previous_digest: str,
+    ) -> None:
+        data = message.model_dump(mode="json")
+        message_json = _canonical_json(data)
+        digest = canonical_json_digest(data)
+        cursor = connection.execute(
+            """UPDATE outbox_messages
+               SET status = ?, attempt_count = ?, max_attempts = ?,
+                   next_attempt_at = ?, lease_id = ?, lease_owner = ?,
+                   lease_expires_at = ?, state_revision = ?, updated_at = ?,
+                   message_digest = ?, message_json = ?
+               WHERE tenant_id = ? AND message_id = ?
+                 AND state_revision = ? AND message_digest = ?""",
+            (
+                message.status.value,
+                message.attempt_count,
+                message.max_attempts,
+                (
+                    message.next_attempt_at.isoformat()
+                    if message.next_attempt_at is not None
+                    else None
+                ),
+                str(message.lease_id) if message.lease_id is not None else None,
+                (
+                    str(message.lease_owner)
+                    if message.lease_owner is not None
+                    else None
+                ),
+                (
+                    message.lease_expires_at.isoformat()
+                    if message.lease_expires_at is not None
+                    else None
+                ),
+                message.state_revision,
+                message.updated_at.isoformat(),
+                digest,
+                message_json,
+                message.tenant_id,
+                str(message.message_id),
+                previous_state_revision,
+                previous_digest,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise OutboxCorruptionError("outbox lifecycle CAS failed")
+
+    def save_task_and_enqueue_status(
+        self,
+        task: Task,
+        *,
+        expected_revision: int,
+        destination_ref: str,
+        max_attempts: int = 3,
+        now: datetime | None = None,
+    ) -> OutboxEnqueueResult:
+        """Atomically persist one Task transition and its safe status notice."""
+        expected = _strict_revision(expected_revision)
+        if not _is_digest(destination_ref):
+            raise ValueError("destination_ref must be a sha256 reference")
+        if (
+            isinstance(max_attempts, bool)
+            or not isinstance(max_attempts, int)
+            or not 1 <= max_attempts <= 10
+        ):
+            raise ValueError("max_attempts must be an integer from 1 to 10")
+        timestamp = now or datetime.now(UTC)
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("now must be timezone-aware")
+        timestamp = timestamp.astimezone(UTC)
+        try:
+            projection, projection_json, projection_digest = (
+                _validate_task_projection(task)
+            )
+        except ValueError:
+            raise SnapshotConflictError("task result projection is invalid") from None
+
+        task_revision = expected + 1
+        fingerprint = message_fingerprint(
+            tenant_id=projection.tenant_id,
+            task_id=projection.task_id,
+            task_revision=task_revision,
+            task_projection_digest=projection_digest,
+            contract_digest=projection.contract_digest,
+            result_revision=projection.result_revision,
+            result_digest=projection.result_digest,
+            destination_ref=destination_ref,
+            task_status=projection.status,
+        )
+        message_id = message_id_for(fingerprint)
+        pending = OutboxMessage(
+            message_id=message_id,
+            message_fingerprint=fingerprint,
+            tenant_id=projection.tenant_id,
+            task_id=projection.task_id,
+            task_revision=task_revision,
+            task_projection_digest=projection_digest,
+            contract_digest=projection.contract_digest,
+            result_revision=projection.result_revision,
+            result_digest=projection.result_digest,
+            destination_ref=destination_ref,
+            template_id="task_status",
+            task_status=projection.status,
+            status=OutboxStatus.PENDING,
+            attempt_count=0,
+            max_attempts=max_attempts,
+            state_revision=1,
+            created_at=timestamp,
+            updated_at=timestamp,
+        )
+        try:
+            with self._transaction() as connection:
+                existing = self._select_outbox_message(
+                    connection, projection.tenant_id, message_id
+                )
+                if existing is not None:
+                    if (
+                        existing.message_fingerprint != fingerprint
+                        or existing.task_id != projection.task_id
+                        or existing.task_revision != task_revision
+                        or existing.task_projection_digest != projection_digest
+                        or existing.contract_digest != projection.contract_digest
+                        or existing.result_revision != projection.result_revision
+                        or existing.result_digest != projection.result_digest
+                        or existing.destination_ref != destination_ref
+                        or existing.task_status != projection.status
+                        or existing.max_attempts != max_attempts
+                    ):
+                        raise OutboxConflictError(
+                            "outbox idempotency binding mismatch"
+                        )
+                    return OutboxEnqueueResult(
+                        created=False,
+                        task_revision=existing.task_revision,
+                        message=existing,
+                    )
+
+                stored = self._save_task_cas(
+                    connection,
+                    projection,
+                    projection_json,
+                    projection_digest,
+                    expected_revision=expected,
+                )
+                message_data = pending.model_dump(mode="json")
+                message_json = _canonical_json(message_data)
+                message_digest = canonical_json_digest(message_data)
+                connection.execute(
+                    """INSERT INTO outbox_messages
+                       (tenant_id, message_id, message_fingerprint, task_id,
+                        task_revision, task_projection_digest, status, attempt_count, max_attempts,
+                        next_attempt_at, lease_id, lease_owner,
+                        lease_expires_at, state_revision, created_at,
+                        updated_at, message_digest, message_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        pending.tenant_id,
+                        str(pending.message_id),
+                        pending.message_fingerprint,
+                        str(pending.task_id),
+                        pending.task_revision,
+                        pending.task_projection_digest,
+                        pending.status.value,
+                        pending.attempt_count,
+                        pending.max_attempts,
+                        None,
+                        None,
+                        None,
+                        None,
+                        pending.state_revision,
+                        pending.created_at.isoformat(),
+                        pending.updated_at.isoformat(),
+                        message_digest,
+                        message_json,
+                    ),
+                )
+                return OutboxEnqueueResult(
+                    created=True,
+                    task_revision=stored.revision,
+                    message=pending,
+                )
+        except (SnapshotConflictError, OutboxConflictError, OutboxCorruptionError):
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def claim_outbox_messages(
+        self,
+        tenant_id: str,
+        *,
+        lease_owner: UUID,
+        lease_duration_seconds: int,
+        limit: int = 10,
+        now: datetime | None = None,
+    ) -> tuple[OutboxMessage, ...]:
+        """Reclaim expired work and return post-update leased messages."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(lease_owner, UUID):
+            raise ValueError("lease_owner must be a UUID")
+        if (
+            isinstance(lease_duration_seconds, bool)
+            or not isinstance(lease_duration_seconds, int)
+            or lease_duration_seconds < 1
+            or lease_duration_seconds > 3600
+        ):
+            raise ValueError("lease_duration_seconds must be between 1 and 3600")
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 100
+        ):
+            raise ValueError("limit must be between 1 and 100")
+        timestamp = now or datetime.now(UTC)
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("now must be timezone-aware")
+        timestamp = timestamp.astimezone(UTC)
+        lease_expires_at = timestamp + timedelta(seconds=lease_duration_seconds)
+
+        try:
+            with self._transaction() as connection:
+                expired_rows = connection.execute(
+                    """SELECT tenant_id, message_id, message_fingerprint, task_id,
+                              task_revision, task_projection_digest, status, attempt_count, max_attempts,
+                              next_attempt_at, lease_id, lease_owner,
+                              lease_expires_at, state_revision, created_at,
+                              updated_at, message_digest, message_json
+                       FROM outbox_messages
+                       WHERE tenant_id = ? AND status = 'leased'
+                         AND lease_expires_at <= ?
+                       ORDER BY lease_expires_at, message_id LIMIT ?""",
+                    (tenant, timestamp.isoformat(), limit),
+                ).fetchall()
+                for row in expired_rows:
+                    message = self._outbox_from_row(
+                        row,
+                        tenant_id=tenant,
+                        message_id=UUID(row["message_id"]),
+                    )
+                    if timestamp < message.updated_at:
+                        raise OutboxCorruptionError("outbox clock moved backwards")
+                    failed = message.attempt_count >= message.max_attempts
+                    reclaimed = message.model_copy(
+                        update={
+                            "status": (
+                                OutboxStatus.FAILED
+                                if failed
+                                else OutboxStatus.PENDING
+                            ),
+                            "next_attempt_at": None if failed else timestamp,
+                            "lease_id": None,
+                            "lease_owner": None,
+                            "lease_expires_at": None,
+                            "state_revision": message.state_revision + 1,
+                            "updated_at": timestamp,
+                        }
+                    )
+                    reclaimed = OutboxMessage.model_validate(
+                        reclaimed.model_dump(mode="json")
+                    )
+                    self._update_outbox_message(
+                        connection,
+                        reclaimed,
+                        previous_state_revision=message.state_revision,
+                        previous_digest=row["message_digest"],
+                    )
+
+                rows = connection.execute(
+                    """SELECT tenant_id, message_id, message_fingerprint, task_id,
+                              task_revision, task_projection_digest, status, attempt_count, max_attempts,
+                              next_attempt_at, lease_id, lease_owner,
+                              lease_expires_at, state_revision, created_at,
+                              updated_at, message_digest, message_json
+                       FROM outbox_messages
+                       WHERE tenant_id = ? AND status = 'pending'
+                         AND attempt_count < max_attempts
+                         AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+                       ORDER BY created_at, message_id LIMIT ?""",
+                    (tenant, timestamp.isoformat(), limit),
+                ).fetchall()
+                leased: list[OutboxMessage] = []
+                for row in rows:
+                    message = self._outbox_from_row(
+                        row,
+                        tenant_id=tenant,
+                        message_id=UUID(row["message_id"]),
+                    )
+                    if timestamp < message.updated_at:
+                        raise OutboxCorruptionError("outbox clock moved backwards")
+                    claimed = message.model_copy(
+                        update={
+                            "status": OutboxStatus.LEASED,
+                            "attempt_count": message.attempt_count + 1,
+                            "next_attempt_at": None,
+                            "lease_id": uuid4(),
+                            "lease_owner": lease_owner,
+                            "lease_expires_at": lease_expires_at,
+                            "state_revision": message.state_revision + 1,
+                            "updated_at": timestamp,
+                        }
+                    )
+                    claimed = OutboxMessage.model_validate(
+                        claimed.model_dump(mode="json")
+                    )
+                    self._update_outbox_message(
+                        connection,
+                        claimed,
+                        previous_state_revision=message.state_revision,
+                        previous_digest=row["message_digest"],
+                    )
+                    leased.append(claimed)
+                return tuple(leased)
+        except OutboxCorruptionError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def record_outbox_receipt(
+        self,
+        receipt: DeliveryReceipt,
+        *,
+        lease_owner: UUID,
+        now: datetime | None = None,
+    ) -> OutboxMessage:
+        """Record an outcome only for the exact current unexpired lease."""
+        validated = DeliveryReceipt.model_validate(receipt.model_dump(mode="json"))
+        if not isinstance(lease_owner, UUID):
+            raise ValueError("lease_owner must be a UUID")
+        timestamp = now or datetime.now(UTC)
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("now must be timezone-aware")
+        timestamp = timestamp.astimezone(UTC)
+        if validated.received_at > timestamp:
+            raise ValueError("receipt time cannot be in the future")
+
+        try:
+            with self._transaction() as connection:
+                duplicate = connection.execute(
+                    """SELECT 1 FROM outbox_receipts
+                       WHERE tenant_id = ? AND message_id = ? AND receipt_id = ?""",
+                    (
+                        validated.tenant_id,
+                        str(validated.message_id),
+                        str(validated.receipt_id),
+                    ),
+                ).fetchone()
+                if duplicate is not None:
+                    raise OutboxReceiptConflictError("receipt already recorded")
+                row = connection.execute(
+                    """SELECT tenant_id, message_id, message_fingerprint, task_id,
+                              task_revision, task_projection_digest, status, attempt_count, max_attempts,
+                              next_attempt_at, lease_id, lease_owner,
+                              lease_expires_at, state_revision, created_at,
+                              updated_at, message_digest, message_json
+                       FROM outbox_messages
+                       WHERE tenant_id = ? AND message_id = ?""",
+                    (validated.tenant_id, str(validated.message_id)),
+                ).fetchone()
+                if row is None:
+                    raise OutboxLeaseError("message is not leased")
+                message = self._outbox_from_row(
+                    row,
+                    tenant_id=validated.tenant_id,
+                    message_id=validated.message_id,
+                )
+                if (
+                    message.status is not OutboxStatus.LEASED
+                    or message.lease_owner != lease_owner
+                    or message.lease_id != validated.lease_id
+                    or message.attempt_count != validated.attempt_count
+                    or message.lease_expires_at is None
+                    or message.lease_expires_at <= timestamp
+                    or validated.received_at < message.updated_at
+                ):
+                    raise OutboxLeaseError("receipt does not match current lease")
+
+                if validated.receipt_type is ReceiptType.ACK:
+                    new_status = OutboxStatus.ACKED
+                    next_attempt_at = None
+                elif message.attempt_count >= message.max_attempts:
+                    new_status = OutboxStatus.FAILED
+                    next_attempt_at = None
+                else:
+                    new_status = OutboxStatus.PENDING
+                    delay = min(2 ** (message.attempt_count - 1), 300)
+                    next_attempt_at = timestamp + timedelta(seconds=delay)
+                updated = message.model_copy(
+                    update={
+                        "status": new_status,
+                        "next_attempt_at": next_attempt_at,
+                        "lease_id": None,
+                        "lease_owner": None,
+                        "lease_expires_at": None,
+                        "state_revision": message.state_revision + 1,
+                        "updated_at": timestamp,
+                    }
+                )
+                updated = OutboxMessage.model_validate(
+                    updated.model_dump(mode="json")
+                )
+                self._update_outbox_message(
+                    connection,
+                    updated,
+                    previous_state_revision=message.state_revision,
+                    previous_digest=row["message_digest"],
+                )
+                receipt_data = validated.model_dump(mode="json")
+                connection.execute(
+                    """INSERT INTO outbox_receipts
+                       (tenant_id, message_id, receipt_id, lease_id,
+                        attempt_count, receipt_type, received_at,
+                        receipt_digest, receipt_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        validated.tenant_id,
+                        str(validated.message_id),
+                        str(validated.receipt_id),
+                        str(validated.lease_id),
+                        validated.attempt_count,
+                        validated.receipt_type.value,
+                        validated.received_at.isoformat(),
+                        canonical_json_digest(receipt_data),
+                        _canonical_json(receipt_data),
+                    ),
+                )
+                return updated
+        except (
+            OutboxCorruptionError,
+            OutboxLeaseError,
+            OutboxReceiptConflictError,
+        ):
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def read_outbox_message(
+        self, tenant_id: str, message_id: UUID
+    ) -> OutboxMessage | None:
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(message_id, UUID):
+            raise ValueError("message_id must be a UUID")
+        try:
+            with self._connect() as connection:
+                return self._select_outbox_message(connection, tenant, message_id)
+        except OutboxCorruptionError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def read_outbox_receipts(
+        self, tenant_id: str, message_id: UUID
+    ) -> tuple[DeliveryReceipt, ...]:
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(message_id, UUID):
+            raise ValueError("message_id must be a UUID")
+        try:
+            with self._connect() as connection:
+                if self._select_outbox_message(connection, tenant, message_id) is None:
+                    return ()
+                rows = connection.execute(
+                    """SELECT tenant_id, message_id, receipt_id, lease_id,
+                              attempt_count, receipt_type, received_at,
+                              receipt_digest, receipt_json
+                       FROM outbox_receipts
+                       WHERE tenant_id = ? AND message_id = ?
+                       ORDER BY received_at, receipt_id""",
+                    (tenant, str(message_id)),
+                ).fetchall()
+                receipts: list[DeliveryReceipt] = []
+                for row in rows:
+                    try:
+                        receipt = DeliveryReceipt.model_validate_json(
+                            row["receipt_json"]
+                        )
+                        digest = canonical_json_digest(
+                            receipt.model_dump(mode="json")
+                        )
+                    except (ValueError, TypeError):
+                        raise OutboxCorruptionError(
+                            "outbox receipt is invalid"
+                        ) from None
+                    if (
+                        row["tenant_id"] != tenant
+                        or row["message_id"] != str(message_id)
+                        or row["receipt_id"] != str(receipt.receipt_id)
+                        or row["lease_id"] != str(receipt.lease_id)
+                        or row["attempt_count"] != receipt.attempt_count
+                        or row["receipt_type"] != receipt.receipt_type.value
+                        or row["received_at"] != receipt.received_at.isoformat()
+                        or row["receipt_digest"] != digest
+                        or receipt.tenant_id != tenant
+                        or receipt.message_id != message_id
+                    ):
+                        raise OutboxCorruptionError(
+                            "outbox receipt binding mismatch"
+                        )
+                    receipts.append(receipt)
+                return tuple(receipts)
+        except OutboxCorruptionError:
+            raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None

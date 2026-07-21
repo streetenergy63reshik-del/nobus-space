@@ -210,7 +210,13 @@ def test_schema_init_is_idempotent_and_configures_safety_pragmas(tmp_path: Path)
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         assert connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        ).fetchall() == [("audit_events",), ("ingress_claims",), ("task_snapshots",)]
+        ).fetchall() == [
+            ("audit_events",),
+            ("ingress_claims",),
+            ("outbox_messages",),
+            ("outbox_receipts",),
+            ("task_snapshots",),
+        ]
 
 
 def test_atomic_claim_restart_replay_returns_original_projection(tmp_path: Path) -> None:

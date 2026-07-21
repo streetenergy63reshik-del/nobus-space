@@ -1,10 +1,21 @@
 """Durable local storage boundaries."""
 
+from src.storage.outbox import (
+    DeliveryReceipt,
+    OutboxEnqueueResult,
+    OutboxMessage,
+    OutboxStatus,
+    ReceiptType,
+)
 from src.storage.sqlite_store import (
     AuditEventConflictError,
     AuditEventOrderError,
     DurableTaskProjection,
     IngressClaimConflictError,
+    OutboxConflictError,
+    OutboxCorruptionError,
+    OutboxLeaseError,
+    OutboxReceiptConflictError,
     SQLiteStore,
     SnapshotConflictError,
     StoreCorruptionError,
@@ -14,8 +25,17 @@ from src.storage.sqlite_store import (
 __all__ = [
     "AuditEventConflictError",
     "AuditEventOrderError",
+    "DeliveryReceipt",
     "DurableTaskProjection",
     "IngressClaimConflictError",
+    "OutboxConflictError",
+    "OutboxCorruptionError",
+    "OutboxEnqueueResult",
+    "OutboxLeaseError",
+    "OutboxMessage",
+    "OutboxReceiptConflictError",
+    "OutboxStatus",
+    "ReceiptType",
     "SQLiteStore",
     "SnapshotConflictError",
     "StoreCorruptionError",
