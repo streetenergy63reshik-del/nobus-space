@@ -7,13 +7,19 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from src.contracts import HumanApprovalRecord, RiskLevel, VerificationBundle
+from src.contracts import (
+    HumanApprovalRecord,
+    RiskLevel,
+    TaskContract,
+    VerificationBundle,
+)
 from src.core.policy import (
     PolicyViolation,
     TrustedVerifierRegistry,
     VERIFICATION_STAGE_LEVELS,
     canonical_json_digest,
     ensure_transition,
+    task_contract_digest,
     validate_verification_stage,
 )
 from src.models.task import Task, TaskSource, TaskStatus
@@ -79,6 +85,30 @@ class StateManager:
             intent=intent,
             payload=deepcopy(payload),
             risk=risk,
+            status=TaskStatus.PENDING,
+        )
+        self._tasks[task.id] = task
+        return task.model_copy(deep=True)
+
+    async def create_from_contract(self, contract: TaskContract) -> Task:
+        """Create one runtime task with the exact accepted contract binding."""
+        validated = TaskContract.model_validate(contract.model_dump())
+        if validated.task_id in self._tasks:
+            raise PolicyViolation("task is already registered")
+        task = Task(
+            id=validated.task_id,
+            tenant_id=validated.tenant_id,
+            contract_digest=task_contract_digest(validated),
+            source=TaskSource(validated.source),
+            intent=validated.instruction,
+            payload={
+                "acceptance_criteria": list(validated.acceptance_criteria),
+                "allowed_paths": list(validated.allowed_paths),
+                "permissions": list(validated.permissions),
+                "quality_profile": validated.quality_profile,
+                "timeout_seconds": validated.timeout_seconds,
+            },
+            risk=validated.risk,
             status=TaskStatus.PENDING,
         )
         self._tasks[task.id] = task
