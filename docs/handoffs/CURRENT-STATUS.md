@@ -8,11 +8,11 @@
 
 ## Короткий итог
 
-Каноническая документация, Core contracts/policy, Telegram ingress, bytes-only voice preview, actor-bound single-use voice confirmation, fake-only Codex CLI boundary, local text fake E2E, trusted ingress envelope и изолированное SQLite checkpoint-хранилище приняты независимыми L1/L2/L3 и локально зафиксированы в `main`.
+Каноническая документация, Core contracts/policy, Telegram ingress, voice preview/confirmation, fake-only Codex CLI boundary, trusted ingress, SQLite checkpoints/events/outbox и локальный durable text/voice E2E приняты независимыми L1/L2/L3 и зафиксированы в `main`.
 
-Локальный durable status outbox также принят L1/L2/L3 в `afb6859` и интегрирован в `main`; runtime wiring и реальная отправка в Telegram отсутствуют.
+Gate 4F принят в `a56bdf3`: Task transitions атомарно связаны с WorkerEvents/outbox, restart не повторяет worker вслепую, а delivery выполняется только через injected fake boundary.
 
-Компоненты ещё не образуют рабочий сетевой Telegram-оркестратор: SQLite и voice confirmation пока не wired в runtime. Следующий автономный блок — Gate 4F: runtime wiring и restart/recovery E2E без внешней сети. Реальные Telegram credentials, polling/webhook, Codex process, deployment и внешние записи не запускались.
+Компоненты образуют проверенный локальный pre-live контур, но ещё не рабочий сетевой Telegram-оркестратор. Реальные Telegram credentials, polling/webhook, live Codex process, deployment и внешние записи не запускались; следующий live Gate требует отдельного L4.
 
 ## Gate status
 
@@ -26,9 +26,10 @@
 | Gate 3B — live process + OS sandbox | файлов нет | real process и sandbox не проверялись | **NOT STARTED; REQUIRES SEPARATE GATE** |
 | Gate 4A — local fake vertical E2E | `dfc2e66` | 10 target; 262 full; independent result/evidence/replay/leakage review | **ACCEPTED** |
 | Gate 4B — trusted ingress envelope | `2afd880` | 176 target; 354 full; 20 independent regression | **ACCEPTED** |
-| Gate 4C — durable SQLite checkpoints | `d775699` | 61 target; 365 full; restart/tamper/policy recovery review | **ACCEPTED; NOT WIRED** |
-| Gate 4D — actor-bound voice confirmation | `438233c` | 46 target; 192 relevant; 460 full; independent replay/race/tenant review | **ACCEPTED; IN-MEMORY; NOT WIRED** |
-| Gate 4E — durable status outbox | `afb6859` | 110 target; 414 full; independent replay/time/receipt review | **ACCEPTED; NOT WIRED** |
+| Gate 4C — durable SQLite checkpoints | `d775699` | 61 target; 365 full; restart/tamper/policy recovery review | **ACCEPTED; WIRED IN 4F** |
+| Gate 4D — actor-bound voice confirmation | `438233c` | 46 target; 192 relevant; 460 full; independent replay/race/tenant review | **ACCEPTED; IN-MEMORY; WIRED IN 4F** |
+| Gate 4E — durable status outbox | `afb6859` | 110 target; 414 full; independent replay/time/receipt review | **ACCEPTED; WIRED IN 4F** |
+| Gate 4F — durable local runtime E2E | `a56bdf3` | 14 target; 135 relevant; 475 full; independent crash/replay/tenant/delivery review | **ACCEPTED; LOCAL FAKE** |
 | Gate 5A — authenticated real Telegram boundary | файлов нет | token/network/callback authentication отсутствуют | **BLOCKED UNTIL L4** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
@@ -43,7 +44,7 @@
 - L4 record для HIGH/CRITICAL и отдельный `EXECUTING` для внешнего эффекта;
 - безопасные public error codes вместо текста внутренних исключений.
 
-Runtime Core остаётся in-memory, а принятый SQLite-модуль пока изолирован. Identity/evidence пока являются утверждениями локальной server configuration, а не результатом authenticated network boundary.
+StateManager и PolicyStore остаются process-memory, но recovery-safe Task projection, ingress claims, WorkerEvents и status outbox сохраняются в SQLite. Identity/evidence пока являются утверждениями локальной server configuration, а не результатом authenticated network boundary.
 
 ### Telegram и voice
 
@@ -61,15 +62,15 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 - Codex CLI adapter существует только как fake-first boundary с injected spawner;
 - executable/path/permission/argv/env/JSONL/size/timeout/cancellation guards проверены;
 - live subprocess implementation, реальный `codex` и OS sandbox отсутствуют;
-- worker ещё не связан с Core attempt/lease/WorkerEvent.
+- fake worker связан с Core attempt и атомарными `STARTED`/`RESULT_READY`/`FAILED` WorkerEvents; live process lease отсутствует.
 
 ## Git-снимок
 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний принятый implementation commit: `438233c feat: add actor-bound voice confirmation`.
-- Предыдущие принятые commits: `afb6859`, `d775699`, `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
+- Последний принятый implementation commit: `a56bdf3 feat: wire durable local orchestrator runtime`.
+- Предыдущие принятые commits: `438233c`, `afb6859`, `d775699`, `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
 - Remote отсутствует; push не выполнялся.
 - Канонические docs синхронизированы отдельным локальным docs commit после независимой проверки этого снимка.
 - `.nobus-quality/cases.ndjson` содержит append-only обезличенные case records принятых и отклонённых итераций.
@@ -109,21 +110,21 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 | Core contracts, state/policy и L1–L4 | 15% | ACCEPTED | 15% |
 | Локальный Telegram ingress и trusted binding | 12% | ACCEPTED, без сети | 12% |
 | Bytes-only voice preview | 8% | ACCEPTED, без live provider | 8% |
-| SQLite checkpoints, events и status outbox | 15% | Gate 4C/4E ACCEPTED, not wired | 15% |
+| SQLite checkpoints, events и status outbox | 15% | ACCEPTED и wired локально | 15% |
 | Fake worker boundary и локальный fake vertical | 10% | PARTIAL: fake принят, live process отсутствует | 5% |
-| Actor-bound voice confirmation | 8% | ACCEPTED, in-memory, not wired | 8% |
-| Runtime wiring и restart/recovery E2E | 12% | NOT STARTED | 0% |
+| Actor-bound voice confirmation | 8% | ACCEPTED, wired локально; store in-memory | 8% |
+| Runtime wiring и restart/recovery E2E | 12% | ACCEPTED; local fake | 12% |
 | Authenticated Telegram receive/send | 10% | NOT STARTED; REQUIRES L4 | 0% |
 | Deployment, monitoring и restore drill | 5% | NOT STARTED; REQUIRES L4 | 0% |
-| **Итого** | **100%** | **инженерная готовность MVP** | **68%** |
+| **Итого** | **100%** | **инженерная готовность MVP** | **80%** |
 
-`68%` означает готовность проверенного локального фундамента. Рабочий пользовательский Telegram E2E пока `0%`: bot token, polling/webhook, реальная отправка и live Codex process не подключались.
+`80%` означает готовность проверенного локального pre-live контура. Рабочий пользовательский Telegram E2E пока `0%`: bot token, polling/webhook, реальная отправка и live Codex process не подключались.
 
 Материалы Kimi D1–D4 сохранены только как `REWORK`-черновик в `ОРКЕСТРАТОР/Backups/2026-07-21 Kimi Web drafts`; исходная `Kimi handoffs/2026-07-21 Web tasks` удалена после проверки ZIP `ADBFAA13F435567E4221A806452331FDDF66714B56753A965A628EA6BFE2D218`. E1–E4 не архивировались, поскольку полностью заменены принятым Gate 4E.
 
-## Следующая автономная очередь без L4
+## Следующая очередь
 
-1. Gate 4F: runtime wiring и restart/recovery E2E.
+Gate 4F закрывает запланированную автономную pre-live очередь. Gate 3B/5A с live process, credentials, сетью и реальной Telegram-доставкой начинается только после отдельного L4.
 
 ## Обязательная остановка и L4
 
@@ -138,7 +139,10 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 
 ## Среда и известные ограничения
 
-- Текущие проверки используют bundled Python Codex с пакетами существующей `.venv`; локальная `.venv` ссылается на отсутствующий системный Python 3.12.
+- Проверки Gate 4F воспроизведены локальной `.venv` на Python 3.12; перед release среду всё равно требуется пересоздать из manifest.
 - В ограниченной среде `tmp_path` требует разрешённый локальный TEMP; это не runtime-дефект voice service.
+- Gate 4F остаётся local fake: update/callback claims, confirmation challenges, StateManager и PolicyStore process-memory.
+- Pre-durable transient failure требует restart либо нового voice preview/confirm; незавершённый durable Task возвращает `RECOVERY_REQUIRED`, без автоматического resume.
+- Injected delivery имеет at-least-once semantics; stale destination получает NACK и требует reconciliation, live adapter обязан поддерживать idempotency.
 - Ожидаемое предупреждение FastAPI tests: `StarletteDeprecationWarning` о будущем переходе TestClient на `httpx2`.
 - Перед release окружение нужно создать заново из `requirements.txt`, выполнить полный suite, dependency audit и restore drill.

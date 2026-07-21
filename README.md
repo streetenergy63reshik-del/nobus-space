@@ -13,9 +13,10 @@
 - Gate 3A: fake-only Codex CLI boundary принят в `294047c`; live process не подключён.
 - Gate 4A: локальный text-only fake E2E принят в `dfc2e66`.
 - Gate 4B: trusted ingress envelope и обязательная привязка к `TaskContract` приняты в `2afd880`.
-- Gate 4C: изолированные durable SQLite checkpoints и append-only events приняты в `d775699`; runtime wiring ещё не выполнен.
-- Gate 4D: actor-bound single-use подтверждение voice preview принято в `438233c`; store пока in-memory и не wired в runtime.
-- Gate 4E: локальный durable status outbox принят в `afb6859`; runtime/Telegram wiring ещё не выполнен.
+- Gate 4C: durable SQLite checkpoints и append-only events приняты в `d775699` и подключены к локальному runtime в Gate 4F.
+- Gate 4D: actor-bound single-use подтверждение voice preview принято в `438233c` и подключено к локальному runtime; challenge store остаётся in-memory.
+- Gate 4E: локальный durable status outbox принят в `afb6859` и подключён к injected delivery boundary.
+- Gate 4F: локальный durable text/voice runtime, restart/recovery и fake delivery приняты в `a56bdf3`; сеть и live worker не подключены.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 
@@ -47,6 +48,7 @@ authenticated Telegram ingress
 
 ```text
 src/
+├── application/     # local fake и durable pre-live compositions
 ├── agents/          # replaceable workers; сейчас только прототип AuditAgent
 ├── contracts/       # локальные versioned Core contracts
 ├── core/            # deterministic policy guards
@@ -54,7 +56,7 @@ src/
 ├── models/          # текущая runtime Task model
 ├── orchestrator/    # parsing, routing, graph and state manager
 ├── skills/          # rule-based helpers
-├── storage/         # локальные durable SQLite checkpoints/outbox; пока не wired в runtime
+├── storage/         # durable SQLite checkpoints/events/outbox, wired локально
 ├── transport/       # Telegram normalization, без сетевого клиента
 ├── voice/           # bytes-only preview и actor-bound single-use confirmation
 └── workers/         # fake-only Codex CLI boundary
@@ -62,7 +64,7 @@ docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Text-компоненты Gate 1–4B соединены только в локальный fake-сценарий. Gate 4C/4E добавляют проверенные SQLite-модули, а Gate 4D — изолированный in-memory confirmation boundary; они ещё не подключены к runtime. Это не означает authenticated Telegram API, live Codex process или production-доступа.
+Gate 4F соединяет text/voice ingress, actor-bound confirmation, Core, durable SQLite Task/WorkerEvents, fake worker, L1/L2/L3 и status outbox в локальный restart/recovery E2E. Незавершённая задача после restart не запускается повторно автоматически, а возвращает `RECOVERY_REQUIRED`; delivery остаётся at-least-once через injected sender. Это не означает authenticated Telegram API, live Codex process или production-доступа.
 
 ## Локальная проверка
 

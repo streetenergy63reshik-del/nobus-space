@@ -2,13 +2,13 @@
 
 **Статус документа:** CANONICAL
 **Состояние реализации:** TARGET; production-среда не создана
-**Дата актуализации:** 20 июля 2026
+**Дата актуализации:** 21 июля 2026
 
 Этот документ не подтверждает наличие описанных механизмов. До реализации, проверки и L4-разрешения платформа работает только локально с fake adapters и обезличенными данными.
 
 ## CURRENT и TARGET
 
-**CURRENT:** существует только локальный прототип без deployment pipeline, production-хранилища, monitoring, secret store и recovery automation. Ни один раздел ниже нельзя трактовать как доказательство работающей эксплуатации.
+**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и injected delivery, но без deployment pipeline, production-хранилища, monitoring, secret store и recovery automation. Ни один раздел ниже нельзя трактовать как доказательство работающей эксплуатации.
 
 **TARGET:** три изолированные среды, воспроизводимые релизы, наблюдаемость, независимые оповещения, проверяемые backup/restore, kill switch и процедурно подтверждённое восстановление.
 
@@ -122,6 +122,15 @@ Telegram не может быть единственным каналом опо
 - reconcile `UNKNOWN` по idempotency/receipt;
 - не считать просроченные approvals действующими;
 - включать adapters только после health и policy checks.
+
+### Локальная семантика Gate 4F
+
+- завершённая durable задача после restart возвращается без повторного запуска worker;
+- незавершённая задача возвращает `RECOVERY_REQUIRED` и требует явного reconciliation; автоматический resume запрещён;
+- незавершённый voice challenge и pre-durable update/callback claims остаются process-memory: после transient failure нужен restart либо новый preview/confirm;
+- injected status sender имеет at-least-once семантику; после успешной внешней отправки и crash до ACK возможен повтор, поэтому live adapter обязан иметь idempotency key;
+- несовпадение сохранённого `destination_ref` с текущей tenant-конфигурацией не вызывает sender, фиксируется NACK и требует operator reconciliation;
+- эти правила не являются production recovery automation и не разрешают сеть, credentials или live worker.
 
 ## 6. Rollback
 
