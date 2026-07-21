@@ -11,7 +11,9 @@
 - Gate 1: contracts/state/completion policy принят в `7b92978`.
 - Gate 2: Telegram ingress и безопасный bytes-only voice preview приняты в `5df4ccd`.
 - Gate 3A: fake-only Codex CLI boundary принят в `294047c`; live process не подключён.
-- Gate 4A: локальный text-only fake E2E принят в `dfc2e66`; voice confirm, persistence и реальный Telegram bot ещё не подключены.
+- Gate 4A: локальный text-only fake E2E принят в `dfc2e66`.
+- Gate 4B: trusted ingress envelope и обязательная привязка к `TaskContract` приняты в `2afd880`.
+- Gate 4C: изолированные durable SQLite checkpoints и append-only events приняты в `d775699`; runtime wiring ещё не выполнен.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 
@@ -50,6 +52,7 @@ src/
 ├── models/          # текущая runtime Task model
 ├── orchestrator/    # parsing, routing, graph and state manager
 ├── skills/          # rule-based helpers
+├── storage/         # локальные durable SQLite checkpoints; пока не wired в runtime
 ├── transport/       # Telegram normalization, без сетевого клиента
 ├── voice/           # bytes-only preview и provider boundary
 └── workers/         # fake-only Codex CLI boundary
@@ -57,7 +60,7 @@ docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Text-компоненты Gate 1–3 соединены только в локальный fake-сценарий. Наличие этой композиции не означает authenticated Telegram API, persistence, live Codex process или production-доступа.
+Text-компоненты Gate 1–4B соединены только в локальный fake-сценарий. Gate 4C добавляет проверенное SQLite-хранилище как отдельный модуль, но ещё не подключает его к runtime. Это не означает authenticated Telegram API, live Codex process или production-доступа.
 
 ## Локальная проверка
 
