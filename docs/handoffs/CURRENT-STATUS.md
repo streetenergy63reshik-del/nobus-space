@@ -10,7 +10,7 @@
 
 Каноническая документация, Core contracts/policy, Telegram ingress, bytes-only voice preview, fake-only Codex CLI boundary, local text fake E2E, trusted ingress envelope и изолированное SQLite checkpoint-хранилище приняты независимыми L1/L2/L3 и локально зафиксированы в `main`.
 
-Локальный durable status outbox также принят L1/L2/L3 в `6258ffb`, но остаётся в изолированной ветке до контролируемой интеграции в `main`; реальная отправка в Telegram отсутствует.
+Локальный durable status outbox также принят L1/L2/L3 в `afb6859` и интегрирован в `main`; runtime wiring и реальная отправка в Telegram отсутствуют.
 
 Компоненты ещё не образуют рабочий сетевой Telegram-оркестратор: SQLite-модуль пока не wired в runtime. Следующий автономный блок — Gate 4D: actor-bound single-use подтверждение voice preview без downloader/network. Реальные Telegram credentials, polling/webhook, Codex process, deployment и внешние записи не запускались.
 
@@ -27,7 +27,7 @@
 | Gate 4A — local fake vertical E2E | `dfc2e66` | 10 target; 262 full; independent result/evidence/replay/leakage review | **ACCEPTED** |
 | Gate 4B — trusted ingress envelope | `2afd880` | 176 target; 354 full; 20 independent regression | **ACCEPTED** |
 | Gate 4C — durable SQLite checkpoints | `d775699` | 61 target; 365 full; restart/tamper/policy recovery review | **ACCEPTED; NOT WIRED** |
-| Gate 4E — durable status outbox | `6258ffb` | 110 target; 414 full; independent replay/time/receipt review | **ACCEPTED; NOT WIRED** |
+| Gate 4E — durable status outbox | `afb6859` | 110 target; 414 full; independent replay/time/receipt review | **ACCEPTED; NOT WIRED** |
 | Gate 5A — authenticated real Telegram boundary | файлов нет | token/network/callback authentication отсутствуют | **BLOCKED UNTIL L4** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
@@ -66,7 +66,7 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 ### Main worktree
 
 - Ветка: `main`.
-- Последний принятый implementation commit: `6258ffb feat: add durable local status outbox`.
+- Последний принятый implementation commit: `afb6859 feat: add durable local status outbox`.
 - Предыдущие принятые commits: `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
 - Remote отсутствует; push не выполнялся.
 - Канонические docs синхронизированы отдельным локальным docs commit после независимой проверки этого снимка.
@@ -96,6 +96,28 @@ Runtime Core остаётся in-memory, а принятый SQLite-модуль
 | архив черновой LLM-платформы до канонической миграции | `66BC6D282BDAB14777A97845030B052029D6562FAD03BD01DC0F4CCB8B03C457` |
 | `Устаревшие материалы корня Code.zip` | `6AE9AEB25D5B5DB53375A56E0DAB64F8E06236A8CE3777D4E28B591DCDB9DA1B` |
 | `space-nobus legacy source.zip` | `4351C6433CDE933176F0999D9E9D467A41402B4A312D827E2185BA73A09374D0` |
+
+## Оценка готовности Telegram MVP
+
+Расчёт ведётся по фиксированным весам обязательных блоков, а не по числу файлов или тестов.
+
+| Блок | Вес | Фактический статус | Зачтено |
+|---|---:|---|---:|
+| Baseline и каноническая документация | 5% | ACCEPTED | 5% |
+| Core contracts, state/policy и L1–L4 | 15% | ACCEPTED | 15% |
+| Локальный Telegram ingress и trusted binding | 12% | ACCEPTED, без сети | 12% |
+| Bytes-only voice preview | 8% | ACCEPTED, без live provider | 8% |
+| SQLite checkpoints, events и status outbox | 15% | Gate 4C/4E ACCEPTED, not wired | 15% |
+| Fake worker boundary и локальный fake vertical | 10% | PARTIAL: fake принят, live process отсутствует | 5% |
+| Actor-bound voice confirmation | 8% | NOT ACCEPTED; web draft REWORK | 0% |
+| Runtime wiring и restart/recovery E2E | 12% | NOT STARTED | 0% |
+| Authenticated Telegram receive/send | 10% | NOT STARTED; REQUIRES L4 | 0% |
+| Deployment, monitoring и restore drill | 5% | NOT STARTED; REQUIRES L4 | 0% |
+| **Итого** | **100%** | **инженерная готовность MVP** | **60%** |
+
+`60%` означает готовность проверенного локального фундамента. Рабочий пользовательский Telegram E2E пока `0%`: bot token, polling/webhook, реальная отправка и live Codex process не подключались.
+
+Материалы Kimi D1–D4 сохранены только как `REWORK`-черновик в `ОРКЕСТРАТОР/Backups/2026-07-21 Kimi Web drafts`; исходная `Kimi handoffs/2026-07-21 Web tasks` удалена после проверки ZIP `ADBFAA13F435567E4221A806452331FDDF66714B56753A965A628EA6BFE2D218`. E1–E4 не архивировались, поскольку полностью заменены принятым Gate 4E.
 
 ## Следующая автономная очередь без L4
 

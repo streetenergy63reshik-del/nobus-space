@@ -14,7 +14,7 @@
 - Gate 4A: локальный text-only fake E2E принят в `dfc2e66`.
 - Gate 4B: trusted ingress envelope и обязательная привязка к `TaskContract` приняты в `2afd880`.
 - Gate 4C: изолированные durable SQLite checkpoints и append-only events приняты в `d775699`; runtime wiring ещё не выполнен.
-- Gate 4E: локальный durable status outbox принят в `6258ffb`; runtime/Telegram wiring ещё не выполнен.
+- Gate 4E: локальный durable status outbox принят в `afb6859`; runtime/Telegram wiring ещё не выполнен.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 
