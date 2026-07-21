@@ -14,6 +14,7 @@
 - Gate 4A: локальный text-only fake E2E принят в `dfc2e66`.
 - Gate 4B: trusted ingress envelope и обязательная привязка к `TaskContract` приняты в `2afd880`.
 - Gate 4C: изолированные durable SQLite checkpoints и append-only events приняты в `d775699`; runtime wiring ещё не выполнен.
+- Gate 4D: actor-bound single-use подтверждение voice preview принято в `438233c`; store пока in-memory и не wired в runtime.
 - Gate 4E: локальный durable status outbox принят в `afb6859`; runtime/Telegram wiring ещё не выполнен.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
@@ -53,15 +54,15 @@ src/
 ├── models/          # текущая runtime Task model
 ├── orchestrator/    # parsing, routing, graph and state manager
 ├── skills/          # rule-based helpers
-├── storage/         # локальные durable SQLite checkpoints; пока не wired в runtime
+├── storage/         # локальные durable SQLite checkpoints/outbox; пока не wired в runtime
 ├── transport/       # Telegram normalization, без сетевого клиента
-├── voice/           # bytes-only preview и provider boundary
+├── voice/           # bytes-only preview и actor-bound single-use confirmation
 └── workers/         # fake-only Codex CLI boundary
 docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Text-компоненты Gate 1–4B соединены только в локальный fake-сценарий. Gate 4C добавляет проверенное SQLite-хранилище как отдельный модуль, но ещё не подключает его к runtime. Это не означает authenticated Telegram API, live Codex process или production-доступа.
+Text-компоненты Gate 1–4B соединены только в локальный fake-сценарий. Gate 4C/4E добавляют проверенные SQLite-модули, а Gate 4D — изолированный in-memory confirmation boundary; они ещё не подключены к runtime. Это не означает authenticated Telegram API, live Codex process или production-доступа.
 
 ## Локальная проверка
 
