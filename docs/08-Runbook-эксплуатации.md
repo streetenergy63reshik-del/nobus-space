@@ -2,13 +2,13 @@
 
 **Статус документа:** CANONICAL
 **Состояние реализации:** TARGET; production-среда не создана
-**Дата актуализации:** 21 июля 2026
+**Дата актуализации:** 22 июля 2026
 
-Этот документ не подтверждает наличие описанных механизмов. До реализации, проверки и L4-разрешения платформа работает только локально с fake adapters и обезличенными данными.
+Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram control plane работает live в ограниченном режиме, а task/voice/live-worker adapters остаются локальными fake/injected.
 
 ## CURRENT и TARGET
 
-**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и injected delivery, но без deployment pipeline, production-хранилища, monitoring, secret store и recovery automation. Ни один раздел ниже нельзя трактовать как доказательство работающей эксплуатации.
+**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и injected delivery. Owner-bound Telegram polling читает credential из Windows Credential Manager и отвечает только на безопасные control-команды; на момент проверки runner работал в текущей desktop-сессии с bounded network backoff. OS supervisor/autostart, health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
 
 **TARGET:** три изолированные среды, воспроизводимые релизы, наблюдаемость, независимые оповещения, проверяемые backup/restore, kill switch и процедурно подтверждённое восстановление.
 
@@ -130,7 +130,7 @@ Telegram не может быть единственным каналом опо
 - незавершённый voice challenge и pre-durable update/callback claims остаются process-memory: после transient failure нужен restart либо новый preview/confirm;
 - injected status sender имеет at-least-once семантику; после успешной внешней отправки и crash до ACK возможен повтор, поэтому live adapter обязан иметь idempotency key;
 - несовпадение сохранённого `destination_ref` с текущей tenant-конфигурацией не вызывает sender, фиксируется NACK и требует operator reconciliation;
-- эти правила не являются production recovery automation и не разрешают сеть, credentials или live worker.
+- эти правила не являются production recovery automation и не расширяют уже разрешённый owner-bound Telegram control plane на task execution, voice network path или live worker.
 
 ### Локальная проверка Windows Job guard
 
@@ -216,7 +216,7 @@ Restore drill выполняется регулярно с частотой, к�
 Production запрещён, пока отсутствует хотя бы один пункт:
 
 - постоянное транзакционное хранилище и миграции;
-- tenant isolation, authenticated Telegram boundary и replay protection;
+- production-grade tenant isolation, Telegram credential rotation/supervision и полная replay protection;
 - L1–L4 enforcement и immutable audit trail;
 - secret store, network/tool/filesystem allowlists;
 - мониторинг и независимый канал оповещений;
