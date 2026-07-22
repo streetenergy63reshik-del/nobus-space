@@ -4,11 +4,11 @@
 **Состояние реализации:** TARGET; production-среда не создана
 **Дата актуализации:** 22 июля 2026
 
-Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram control plane работает live в ограниченном режиме, а task/voice/live-worker adapters остаются локальными fake/injected.
+Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram status control работает live; confirmed `/task` принят code-wired/offline только с локальным fake-worker, а owner network task E2E ещё не воспроизведён. Voice/live-worker adapters остаются fake/injected.
 
 ## CURRENT и TARGET
 
-**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и injected delivery. Owner-bound Telegram polling читает credential из Windows Credential Manager и отвечает только на безопасные control-команды; на момент проверки runner работал в текущей desktop-сессии с bounded network backoff. OS supervisor/autostart, health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
+**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и Telegram status delivery. Owner-bound polling читает credential из Windows Credential Manager и обслуживает безопасные status-команды. Confirmed fake `/task` принят code-wired/offline и runner активирован, но owner network task E2E ещё не воспроизведён; raw instruction/token не сохраняются в SQLite. Runner зависит от текущей desktop-сессии и использует bounded network backoff. OS supervisor/autostart, health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
 
 **TARGET:** три изолированные среды, воспроизводимые релизы, наблюдаемость, независимые оповещения, проверяемые backup/restore, kill switch и процедурно подтверждённое восстановление.
 
@@ -130,7 +130,8 @@ Telegram не может быть единственным каналом опо
 - незавершённый voice challenge и pre-durable update/callback claims остаются process-memory: после transient failure нужен restart либо новый preview/confirm;
 - injected status sender имеет at-least-once семантику; после успешной внешней отправки и crash до ACK возможен повтор, поэтому live adapter обязан иметь idempotency key;
 - несовпадение сохранённого `destination_ref` с текущей tenant-конфигурацией не вызывает sender, фиксируется NACK и требует operator reconciliation;
-- эти правила не являются production recovery automation и не расширяют уже разрешённый owner-bound Telegram control plane на task execution, voice network path или live worker.
+- consume-before-execute намеренно fail-closed: crash/cancellation может оставить stranded `PENDING/PARSING` без capability и автоматического resume; повторный worker start запрещён;
+- эти правила не являются production recovery automation и не расширяют owner-bound Telegram control plane на live Codex execution, voice network path или новые внешние эффекты.
 
 ### Локальная проверка Windows Job guard
 
