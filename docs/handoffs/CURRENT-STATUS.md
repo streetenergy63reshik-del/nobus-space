@@ -1,6 +1,6 @@
 # Nobus Space MVP — текущий статус разработки
 
-**Снимок:** 2026-07-21, Europe/Moscow
+**Снимок:** 2026-07-22, Europe/Moscow
 
 **Канонический репозиторий:** `nobus-orchestrator-dev`
 
@@ -12,7 +12,9 @@
 
 Gate 4F принят в `a56bdf3`: Task transitions атомарно связаны с WorkerEvents/outbox, restart не повторяет worker вслепую, а delivery выполняется только через injected fake boundary.
 
-Компоненты образуют проверенный локальный pre-live контур, но ещё не рабочий сетевой Telegram-оркестратор. Реальные Telegram credentials, polling/webhook, live Codex process, deployment и внешние записи не запускались; следующий live Gate требует отдельного L4.
+PRE-LIVE Gate 3B.1/5A.1 принят в `cde0bd5`: добавлены cancellation-safe process adapter и ограниченный Telegram Bot API/polling/status boundary с generation-bound checkpoint contract. На Windows default live launcher намеренно fail-closed без отдельно проверенного Job Object guard.
+
+Компоненты образуют проверенный локальный pre-live контур, но ещё не рабочий сетевой Telegram-оркестратор. Реальные Telegram credentials, network polling, live Codex process, deployment и внешние записи не запускались; Gate 3B.2/5A.2 требует отдельного L4.
 
 ## Gate status
 
@@ -23,14 +25,14 @@ Gate 4F принят в `a56bdf3`: Task transitions атомарно связа�
 | Gate 1 — Core contracts/policy | `7b92978` | 91 target; 119 full на момент Gate; adversarial bindings/replay/state | **ACCEPTED** |
 | Gate 2 — Telegram/voice | `5df4ccd` | 100 target; 252 full main; independent cancellation/replay/leakage review | **ACCEPTED** |
 | Gate 3A — fake-only Codex CLI boundary | `294047c` | 33 target; 152 full на момент Gate; timeout/cancellation/protocol review | **ACCEPTED** |
-| Gate 3B — live process + OS sandbox | файлов нет | real process и sandbox не проверялись | **NOT STARTED; REQUIRES SEPARATE GATE** |
+| Gate 3B.1 — PRE-LIVE process adapter | `cde0bd5` | 10 target process tests; cancellation/overflow/tree-guard review | **ACCEPTED PRE-LIVE; 3B.2 REQUIRES L4** |
 | Gate 4A — local fake vertical E2E | `dfc2e66` | 10 target; 262 full; independent result/evidence/replay/leakage review | **ACCEPTED** |
 | Gate 4B — trusted ingress envelope | `2afd880` | 176 target; 354 full; 20 independent regression | **ACCEPTED** |
 | Gate 4C — durable SQLite checkpoints | `d775699` | 61 target; 365 full; restart/tamper/policy recovery review | **ACCEPTED; WIRED IN 4F** |
 | Gate 4D — actor-bound voice confirmation | `438233c` | 46 target; 192 relevant; 460 full; independent replay/race/tenant review | **ACCEPTED; IN-MEMORY; WIRED IN 4F** |
 | Gate 4E — durable status outbox | `afb6859` | 110 target; 414 full; independent replay/time/receipt review | **ACCEPTED; WIRED IN 4F** |
 | Gate 4F — durable local runtime E2E | `a56bdf3` | 14 target; 135 relevant; 475 full; independent crash/replay/tenant/delivery review | **ACCEPTED; LOCAL FAKE** |
-| Gate 5A — authenticated real Telegram boundary | файлов нет | token/network/callback authentication отсутствуют | **BLOCKED UNTIL L4** |
+| Gate 5A.1 — PRE-LIVE Telegram API/polling boundary | `cde0bd5` | 24 target Telegram tests; lease/offset/leakage/limit review | **ACCEPTED PRE-LIVE; 5A.2 REQUIRES L4** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -49,6 +51,8 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Telegram и voice
 
 - Telegram update нормализуется без сети и SDK;
+- PRE-LIVE Bot API client владеет injected transport, запрещает ambient HTTP authority/redirect/compression и ограничивает response/download;
+- polling требует generation-bound owner/lease/TTL contract, сохраняет offset после каждого ACK и блокирует parallel consumer; concrete durable store ещё не реализован;
 - accepted update получает self-validating `TrustedIngressEnvelope` с server-owned actor/time и точной payload binding;
 - exact actor/chat binding, atomic update replay claim и opaque callback token claim;
 - voice preview подтверждается единожды тем же tenant/actor/role/auth context/user/chat; callback capability имеет TTL, хранится только в виде digest и после success заменяется минимальным replay tombstone;
@@ -59,9 +63,9 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 
 ### Worker
 
-- Codex CLI adapter существует только как fake-first boundary с injected spawner;
-- executable/path/permission/argv/env/JSONL/size/timeout/cancellation guards проверены;
-- live subprocess implementation, реальный `codex` и OS sandbox отсутствуют;
+- Codex CLI adapter остаётся fake-first, но PRE-LIVE asyncio spawner проверяет executable/cwd/argv/env/pipes, bounded drain и retained cancellation cleanup;
+- POSIX process-group cleanup реализован; Windows default live launcher fail-closed без injected Job Object-aware capability;
+- реальный `codex`, Windows Job Object reproduction и OS sandbox не запускались;
 - fake worker связан с Core attempt и атомарными `STARTED`/`RESULT_READY`/`FAILED` WorkerEvents; live process lease отсутствует.
 
 ## Git-снимок
@@ -69,8 +73,8 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний принятый implementation commit: `a56bdf3 feat: wire durable local orchestrator runtime`.
-- Предыдущие принятые commits: `438233c`, `afb6859`, `d775699`, `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
+- Последний принятый implementation commit: `cde0bd5 feat: add pre-live process and Telegram boundaries`.
+- Предыдущие принятые commits: `a56bdf3`, `438233c`, `afb6859`, `d775699`, `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
 - Remote отсутствует; push не выполнялся.
 - Канонические docs синхронизированы отдельным локальным docs commit после независимой проверки этого снимка.
 - `.nobus-quality/cases.ndjson` содержит append-only обезличенные case records принятых и отклонённых итераций.
@@ -111,20 +115,20 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 | Локальный Telegram ingress и trusted binding | 12% | ACCEPTED, без сети | 12% |
 | Bytes-only voice preview | 8% | ACCEPTED, без live provider | 8% |
 | SQLite checkpoints, events и status outbox | 15% | ACCEPTED и wired локально | 15% |
-| Fake worker boundary и локальный fake vertical | 10% | PARTIAL: fake принят, live process отсутствует | 5% |
+| Worker boundary и локальный fake vertical | 10% | PRE-LIVE spawner принят; Windows Job Object/live process отсутствуют | 7% |
 | Actor-bound voice confirmation | 8% | ACCEPTED, wired локально; store in-memory | 8% |
 | Runtime wiring и restart/recovery E2E | 12% | ACCEPTED; local fake | 12% |
-| Authenticated Telegram receive/send | 10% | NOT STARTED; REQUIRES L4 | 0% |
+| Authenticated Telegram receive/send | 10% | PRE-LIVE API/polling contract принят; token/network отсутствуют | 4% |
 | Deployment, monitoring и restore drill | 5% | NOT STARTED; REQUIRES L4 | 0% |
-| **Итого** | **100%** | **инженерная готовность MVP** | **80%** |
+| **Итого** | **100%** | **инженерная готовность MVP** | **86%** |
 
-`80%` означает готовность проверенного локального pre-live контура. Рабочий пользовательский Telegram E2E пока `0%`: bot token, polling/webhook, реальная отправка и live Codex process не подключались.
+`86%` означает готовность проверенного локального pre-live контура и контрактов будущих live adapters. Рабочий пользовательский Telegram E2E пока `0%`: bot token, network polling, реальная отправка и live Codex process не подключались.
 
 Материалы Kimi D1–D4 сохранены только как `REWORK`-черновик в `ОРКЕСТРАТОР/Backups/2026-07-21 Kimi Web drafts`; исходная `Kimi handoffs/2026-07-21 Web tasks` удалена после проверки ZIP `ADBFAA13F435567E4221A806452331FDDF66714B56753A965A628EA6BFE2D218`. E1–E4 не архивировались, поскольку полностью заменены принятым Gate 4E.
 
 ## Следующая очередь
 
-Gate 4F закрывает запланированную автономную pre-live очередь. Gate 3B/5A с live process, credentials, сетью и реальной Telegram-доставкой начинается только после отдельного L4.
+Gate 3B.1/5A.1 закрыли автономную offline-часть process и Telegram adapters. Следующая очередь — Gate 3B.2/5A.2: Windows Job Object launcher, concrete durable polling checkpoint, credentials, bot identity и ограниченный live E2E; она начинается только после отдельного L4.
 
 ## Обязательная остановка и L4
 
@@ -142,6 +146,9 @@ Gate 4F закрывает запланированную автономную p
 - Проверки Gate 4F воспроизведены локальной `.venv` на Python 3.12; перед release среду всё равно требуется пересоздать из manifest.
 - В ограниченной среде `tmp_path` требует разрешённый локальный TEMP; это не runtime-дефект voice service.
 - Gate 4F остаётся local fake: update/callback claims, confirmation challenges, StateManager и PolicyStore process-memory.
+- Gate 3B.1 не доказывает Windows process isolation: injected callable должен быть заменён и независимо проверен как Job Object-aware launcher.
+- Gate 5A.1 содержит только durable checkpoint Protocol; concrete SQLite expiry reclaim/restart CAS ещё не реализованы.
+- Production polling handler обязан быть cancellation-cooperative и идемпотентным; live transport до L4 не активируется.
 - Pre-durable transient failure требует restart либо нового voice preview/confirm; незавершённый durable Task возвращает `RECOVERY_REQUIRED`, без автоматического resume.
 - Injected delivery имеет at-least-once semantics; stale destination получает NACK и требует reconciliation, live adapter обязан поддерживать idempotency.
 - Ожидаемое предупреждение FastAPI tests: `StarletteDeprecationWarning` о будущем переходе TestClient на `httpx2`.
