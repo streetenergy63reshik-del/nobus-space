@@ -9,12 +9,45 @@ from typing import Any
 
 import pytest
 
+from src.workers.codex_cli import (
+    _READ_ARGV as ADAPTER_READ_ARGV,
+    _WRITE_ARGV as ADAPTER_WRITE_ARGV,
+)
 from src.workers.windows_job import WindowsJobLauncher, _CREATE_FLAGS
-from src.workers.windows_job_helper import _validated
+from src.workers.windows_job_helper import (
+    _READ_ARGV as HELPER_READ_ARGV,
+    _WRITE_ARGV as HELPER_WRITE_ARGV,
+    _validated,
+)
 
 
-READ_ARGV = ("exec", "--json", "--sandbox", "read-only", "-")
+READ_ARGV = (
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--config",
+    'web_search="disabled"',
+    "--config",
+    "mcp_servers={}",
+    "--config",
+    'shell_environment_policy.inherit="all"',
+    "--config",
+    'shell_environment_policy.include_only=["PATH","SYSTEMROOT","TEMP","TMP","LANG","NO_COLOR","PYTHONUTF8","TERM"]',
+    "--config",
+    "shell_environment_policy.experimental_use_profile=false",
+    "--sandbox",
+    "read-only",
+    "-",
+)
+WRITE_ARGV = (*READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
 SAFE_ENV = {"LANG": "C.UTF-8", "NO_COLOR": "1", "PYTHONUTF8": "1", "TERM": "dumb"}
+
+
+def test_parent_and_helper_fixed_profiles_match() -> None:
+    assert READ_ARGV == ADAPTER_READ_ARGV == HELPER_READ_ARGV
+    assert WRITE_ARGV == ADAPTER_WRITE_ARGV == HELPER_WRITE_ARGV
 
 
 @dataclass(eq=False)
@@ -275,6 +308,10 @@ def test_helper_validation_rejects_profile_and_gate_tampering(
     assert _validated([gate, "--", str(target.resolve()), *READ_ARGV]) == (
         gate,
         (str(target.resolve()), *READ_ARGV),
+    )
+    assert _validated([gate, "--", str(target.resolve()), *WRITE_ARGV]) == (
+        gate,
+        (str(target.resolve()), *WRITE_ARGV),
     )
     for argv in (
         ["Global\\NobusOrchestrator-" + "a" * 32, "--", str(target), *READ_ARGV],

@@ -17,7 +17,27 @@ from src.workers.asyncio_spawner import (
 )
 
 
-READ_ARGV = ("exec", "--json", "--sandbox", "read-only", "-")
+READ_ARGV = (
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--config",
+    'web_search="disabled"',
+    "--config",
+    "mcp_servers={}",
+    "--config",
+    'shell_environment_policy.inherit="all"',
+    "--config",
+    'shell_environment_policy.include_only=["PATH","SYSTEMROOT","TEMP","TMP","LANG","NO_COLOR","PYTHONUTF8","TERM"]',
+    "--config",
+    "shell_environment_policy.experimental_use_profile=false",
+    "--sandbox",
+    "read-only",
+    "-",
+)
+WRITE_ARGV = (*READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
 SAFE_ENV = {"LANG": "C.UTF-8", "NO_COLOR": "1", "PYTHONUTF8": "1", "TERM": "dumb"}
 
 
@@ -48,7 +68,14 @@ def reader(data: bytes) -> asyncio.StreamReader:
 
 @dataclass
 class FakeChild:
-    stdout_bytes: bytes = b'{"type":"agent_message","status":"success","message":"done"}\n'
+    stdout_bytes: bytes = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"message-1",'
+        b'"type":"agent_message","text":"done"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":1,'
+        b'"output_tokens":1}}\n'
+    )
     stderr_bytes: bytes = b""
     code: int = 0
     pid: int = 2_000_000_000
@@ -86,11 +113,13 @@ async def fake_tree_killer(process: Any) -> None:
     process.kill()
 
 
-def allowed_call(paths: tuple[Path, Path, Path]) -> dict[str, Any]:
+def allowed_call(
+    paths: tuple[Path, Path, Path], argv: tuple[str, ...] = READ_ARGV
+) -> dict[str, Any]:
     _, cwd, executable = paths
     return {
         "executable": str(executable.resolve()),
-        "argv": READ_ARGV,
+        "argv": argv,
         "cwd": str(cwd.resolve()),
         "env": SAFE_ENV,
     }
@@ -120,7 +149,7 @@ async def test_spawns_only_fixed_profile_without_shell_or_ambient_env(
     process = await spawner(**allowed_call(worker_paths))
     output = await process.communicate(stdin=b"prompt", stdout_limit=1024, stderr_limit=64)
 
-    assert output.stdout.endswith(b'"done"}\n')
+    assert output.stdout == child.stdout_bytes
     assert child.stdin.data == b"prompt"
     assert child.stdin.closed
     args, options = calls[0]
@@ -133,6 +162,27 @@ async def test_spawns_only_fixed_profile_without_shell_or_ambient_env(
         assert "start_new_session" not in options
     else:
         assert options["start_new_session"] is True
+
+
+@pytest.mark.asyncio
+async def test_workspace_write_profile_is_exactly_allowlisted(
+    worker_paths: tuple[Path, Path, Path],
+) -> None:
+    calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    async def spawn(*args: Any, **kwargs: Any) -> Any:
+        calls.append((args, kwargs))
+        return FakeChild()
+
+    workspace, _, executable = worker_paths
+    spawner = AsyncioProcessSpawner(
+        workspace_root=workspace,
+        executable=executable,
+        spawn=spawn,
+        tree_killer=fake_tree_killer,
+    )
+    await spawner(**allowed_call(worker_paths, WRITE_ARGV))
+    assert calls[0][0] == (str(executable.resolve()), *WRITE_ARGV)
 
 
 @pytest.mark.asyncio

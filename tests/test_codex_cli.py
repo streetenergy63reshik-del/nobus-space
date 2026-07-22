@@ -14,15 +14,21 @@ import pytest
 
 from src.contracts import TaskContract
 from src.workers import CodexCliAdapter, CodexCliError, ProcessOutput
+from src.workers.codex_cli import build_worker_env
+
+
+_SUCCESS_STDOUT = (
+    b'{"type":"thread.started","thread_id":"0199a213-81c0-7800-8aa1-bbab2a035a53"}\n'
+    b'{"type":"turn.started"}\n'
+    b'{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"done"}}\n'
+    b'{"type":"turn.completed","usage":{"input_tokens":10,"cached_input_tokens":0,'
+    b'"output_tokens":2,"reasoning_output_tokens":0}}\n'
+)
 
 
 @dataclass
 class FakeProcess:
-    output: ProcessOutput = ProcessOutput(
-        b'{"type":"agent_message","status":"success","message":"done"}\n',
-        b"",
-        0,
-    )
+    output: ProcessOutput = ProcessOutput(_SUCCESS_STDOUT, b"", 0)
     delay: float = 0
     failure: BaseException | None = None
     killed: bool = False
@@ -142,8 +148,8 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
     result = await adapter.execute(
         make_contract(
             allowed,
-            instruction="Проверь; --danger && calc.exe",
-            acceptance_criteria=["Критерий один"],
+            instruction="Р В РЎСџР РЋР вЂљР В РЎвЂўР В Р вЂ Р В Р’ВµР РЋР вЂљР РЋР Р‰; --danger && calc.exe",
+            acceptance_criteria=["Р В РЎв„ўР РЋР вЂљР В РЎвЂР РЋРІР‚С™Р В Р’ВµР РЋР вЂљР В РЎвЂР В РІвЂћвЂ“ Р В РЎвЂўР В РўвЂР В РЎвЂР В Р вЂ¦"],
         )
     )
 
@@ -152,6 +158,19 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
     assert spawner.call["argv"] == (
         "exec",
         "--json",
+        "--ephemeral",
+        "--ignore-user-config",
+    "--ignore-rules",
+        "--config",
+        'web_search="disabled"',
+        "--config",
+        "mcp_servers={}",
+        "--config",
+        'shell_environment_policy.inherit="all"',
+        "--config",
+        'shell_environment_policy.include_only=["PATH","SYSTEMROOT","TEMP","TMP","LANG","NO_COLOR","PYTHONUTF8","TERM"]',
+        "--config",
+        "shell_environment_policy.experimental_use_profile=false",
         "--sandbox",
         "read-only",
         "-",
@@ -165,36 +184,44 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
     }
     assert "TOP_SECRET_TOKEN" not in spawner.call["env"]
     assert json.loads(spawner.process.stdin.decode("utf-8")) == {
-        "instruction": "Проверь; --danger && calc.exe",
-        "acceptance_criteria": ["Критерий один"],
+        "instruction": "Р В РЎСџР РЋР вЂљР В РЎвЂўР В Р вЂ Р В Р’ВµР РЋР вЂљР РЋР Р‰; --danger && calc.exe",
+        "acceptance_criteria": ["Р В РЎв„ўР РЋР вЂљР В РЎвЂР РЋРІР‚С™Р В Р’ВµР РЋР вЂљР В РЎвЂР В РІвЂћвЂ“ Р В РЎвЂўР В РўвЂР В РЎвЂР В Р вЂ¦"],
     }
 
 
 @pytest.mark.asyncio
-async def test_write_permission_selects_only_fixed_workspace_profile(
+async def test_exact_write_permission_selects_workspace_write_profile(
     worker_files: tuple[Path, Path, Path]
 ) -> None:
     _, allowed, _ = worker_files
     adapter, spawner = adapter_for(worker_files)
 
-    await adapter.execute(
+    result = await adapter.execute(
         make_contract(
             allowed,
-            permissions=[
-                "repo.read",
-                "repo.write_allowlisted",
-                "process.run_allowlisted",
-            ],
+            permissions=["repo.read", "repo.write", "process.run_allowlisted"],
         )
     )
 
-    assert spawner.call["argv"] == (
-        "exec",
-        "--json",
-        "--sandbox",
-        "workspace-write",
-        "-",
+    assert result.message == "done"
+    assert spawner.call["argv"][-3:] == ("--sandbox", "workspace-write", "-")
+
+@pytest.mark.asyncio
+async def test_project_codex_config_fails_closed_before_spawn(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    config_dir = allowed / ".codex"
+    config_dir.mkdir()
+    (config_dir / "config.toml").write_text(
+        "[mcp_servers.ambient]\nurl = 'https://example.invalid'\n",
+        encoding="utf-8",
     )
+    adapter, spawner = adapter_for(worker_files)
+    with pytest.raises(CodexCliError) as caught:
+        await adapter.execute(make_contract(allowed))
+    assert caught.value.code == "worker_forbidden"
+    assert not spawner.call
 
 
 @pytest.mark.asyncio
@@ -418,21 +445,152 @@ async def test_nonzero_exit_and_stderr_never_leak(
 
 
 @pytest.mark.asyncio
+async def test_official_stream_preserves_unicode_line_separators(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    message = "one\u2028two\u2029three"
+    stdout = _SUCCESS_STDOUT.replace(b"done", message.encode("utf-8"))
+    process = FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    adapter, _ = adapter_for(worker_files, process)
+    result = await adapter.execute(make_contract(allowed))
+    assert result.message == message
+
+
+@pytest.mark.asyncio
+async def test_official_stream_accepts_safe_command_events(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.started","item":{"id":"cmd-1","type":"command_execution","status":"in_progress"}}\n'
+        b'{"type":"item.completed","item":{"id":"cmd-1","type":"command_execution","status":"completed","exit_code":0}}\n'
+        b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    process = FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    adapter, _ = adapter_for(worker_files, process)
+
+    result = await adapter.execute(make_contract(allowed))
+
+    assert result.message == "safe"
+
+
+@pytest.mark.asyncio
+async def test_official_stream_accepts_bounded_todo_list_events(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.started","item":{"id":"todo-1","type":"todo_list","items":[{"text":"Inspect","completed":false}]}}\n'
+        b'{"type":"item.updated","item":{"id":"todo-1","type":"todo_list","items":[{"text":"Inspect","completed":true}]}}\n'
+        b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        b'{"type":"item.completed","item":{"id":"todo-1","type":"todo_list","items":[{"text":"Inspect","completed":true}]}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    result = await adapter.execute(make_contract(allowed))
+
+    assert result.message == "safe"
+
+
+@pytest.mark.asyncio
+async def test_workspace_write_accepts_strict_file_change_event(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"file-1","type":"file_change","changes":[{"path":"safe.txt","kind":"add"}],"status":"completed"}}\n'
+        b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    result = await adapter.execute(
+        make_contract(
+            allowed,
+            permissions=["repo.read", "repo.write", "process.run_allowlisted"],
+        )
+    )
+
+    assert result.message == "safe"
+
+
+@pytest.mark.asyncio
+async def test_workspace_write_rejects_file_change_outside_working_directory(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"file-1","type":"file_change","changes":[{"path":"../escape.txt","kind":"add"}],"status":"completed"}}\n'
+        b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    with pytest.raises(CodexCliError) as caught:
+        await adapter.execute(
+            make_contract(
+                allowed,
+                permissions=["repo.read", "repo.write", "process.run_allowlisted"],
+            )
+        )
+
+    assert caught.value.code == "worker_protocol_error"
+
+
+@pytest.mark.asyncio
+async def test_read_only_rejects_file_change_event(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"file-1","type":"file_change","changes":[{"path":"safe.txt","kind":"add"}],"status":"completed"}}\n'
+        b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    with pytest.raises(CodexCliError) as caught:
+        await adapter.execute(make_contract(allowed))
+
+    assert caught.value.code == "worker_protocol_error"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "stdout",
     [
         b"not-json\n",
         b'{"type":"unknown"}\n',
-        b'{"type":"agent_message","status":"success","message":"one"}\n'
-        b'{"type":"agent_message","status":"success","message":"two"}\n',
-        b'{"type":"started"}\n',
-        b'{"type":"agent_message","status":"failed","message":"no"}\n',
-        b'{"type":"agent_message","status":"success","message":"ok","extra":1}\n',
-        b'{"type":"agent_message","status":"failed","status":"success","message":"no"}\n',
-        b'{"type":"agent_message","status":"success","message":"ok"}\n'
-        b'{"type":"started"}\n',
-        b'{"type":"started"}\n{"type":"started"}\n'
-        b'{"type":"agent_message","status":"success","message":"ok"}\n',
+        b'{"type":"agent_message","status":"success","message":"old fake"}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"one"}}\n' b'{"type":"item.completed","item":{"id":"msg-2","type":"agent_message","text":"two"}}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"file-1","type":"file_change"}}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"error","message":"private detail"}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"ok","extra":1}}\n',
+        b'{"type":"thread.started","type":"turn.started"}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"ok"}}\n' b'{"type":"turn.completed","usage":{"input_tokens":true,"output_tokens":1}}\n',
+        _SUCCESS_STDOUT + b'{"type":"turn.started"}\n',
         b"\xff\n",
     ],
 )
@@ -526,4 +684,64 @@ def test_server_timeout_configuration_cannot_exceed_900(
             spawner=FakeSpawner(FakeProcess()),
             max_timeout_seconds=901,
         )
+    assert caught.value.code == "worker_configuration_invalid"
+
+def test_live_worker_env_is_exact_and_rejects_extra_keys(tmp_path: Path) -> None:
+    codex_home = tmp_path / "codex-home"
+    system_root = tmp_path / "windows"
+    workspace = tmp_path / "workspace"
+    temp_root = workspace / "temp"
+    path_entry = system_root / "System32"
+    for path in (codex_home, path_entry, temp_root):
+        path.mkdir(parents=True)
+    environment = build_worker_env(
+        codex_home=codex_home,
+        system_root=system_root,
+        temp_root=temp_root,
+        workspace_root=workspace,
+        path_entries=(path_entry,),
+    )
+    assert set(environment) == {
+        "LANG",
+        "NO_COLOR",
+        "PYTHONUTF8",
+        "TERM",
+        "CODEX_HOME",
+        "PATH",
+        "SYSTEMROOT",
+        "TEMP",
+        "TMP",
+    }
+    assert environment["PATH"] == str(path_entry.resolve())
+
+    executable = tmp_path / "codex.exe"
+    executable.touch()
+    with pytest.raises(CodexCliError) as caught:
+        CodexCliAdapter(
+            workspace_root=workspace,
+            executable=executable,
+            spawner=FakeSpawner(FakeProcess()),
+            worker_env={**environment, "TOKEN": "forbidden"},
+        )
+    assert caught.value.code == "worker_configuration_invalid"
+
+
+def test_live_worker_env_rejects_temp_outside_workspace(tmp_path: Path) -> None:
+    codex_home = tmp_path / "codex-home"
+    system_root = tmp_path / "windows"
+    workspace = tmp_path / "workspace"
+    outside_temp = tmp_path / "outside-temp"
+    path_entry = system_root / "System32"
+    for path in (codex_home, workspace, outside_temp, path_entry):
+        path.mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(CodexCliError) as caught:
+        build_worker_env(
+            codex_home=codex_home,
+            system_root=system_root,
+            temp_root=outside_temp,
+            workspace_root=workspace,
+            path_entries=(path_entry,),
+        )
+
     assert caught.value.code == "worker_configuration_invalid"

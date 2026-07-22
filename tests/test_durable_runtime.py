@@ -195,12 +195,24 @@ def build_runtime(
     process = FakeProcess(
         output=ProcessOutput(
             (
-                json.dumps(
-                    {
-                        "type": "agent_message",
-                        "status": "success",
-                        "message": "safe local result",
-                    }
+                "\n".join(
+                    json.dumps(event)
+                    for event in (
+                        {"type": "thread.started", "thread_id": "thread-1"},
+                        {"type": "turn.started"},
+                        {
+                            "type": "item.completed",
+                            "item": {
+                                "id": "message-1",
+                                "type": "agent_message",
+                                "text": "safe local result",
+                            },
+                        },
+                        {
+                            "type": "turn.completed",
+                            "usage": {"input_tokens": 1, "output_tokens": 1},
+                        },
+                    )
                 )
                 + "\n"
             ).encode(),

@@ -10,7 +10,13 @@ from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from src.workers.codex_cli import ProcessOutput, _READ_ARGV, _SAFE_ENV, _WRITE_ARGV
+from src.workers.codex_cli import (
+    ProcessOutput,
+    _READ_ARGV,
+    _SAFE_ENV,
+    _WRITE_ARGV,
+    _validated_worker_env,
+)
 
 
 _ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV})
@@ -96,6 +102,7 @@ class AsyncioProcessSpawner:
         executable: str | Path,
         spawn: Callable[..., Awaitable[asyncio.subprocess.Process]] | None = None,
         tree_killer: TreeKiller | None = None,
+        worker_env: Mapping[str, str] = _SAFE_ENV,
     ) -> None:
         try:
             configured_executable = Path(executable)
@@ -108,6 +115,7 @@ class AsyncioProcessSpawner:
                 and resolved_executable.is_file()
                 and (tree_killer is None or callable(tree_killer))
             )
+            normalized_env = _validated_worker_env(worker_env)
         except (OSError, RuntimeError, TypeError):
             valid = False
         if not valid or (
@@ -118,6 +126,7 @@ class AsyncioProcessSpawner:
         self._executable = resolved_executable
         self._spawn = spawn or asyncio.create_subprocess_exec
         self._tree_killer = tree_killer or _kill_posix_process_group
+        self._worker_env = normalized_env
         self._start_lock = asyncio.Lock()
         self._start_task: asyncio.Task[asyncio.subprocess.Process] | None = None
         self._cleanup_task: asyncio.Task[None] | None = None
@@ -133,7 +142,7 @@ class AsyncioProcessSpawner:
         resolved_cwd = self._validate_call(executable, argv, cwd, env)
         options: dict[str, Any] = {
             "cwd": str(resolved_cwd),
-            "env": dict(_SAFE_ENV),
+            "env": dict(self._worker_env),
             "stdin": asyncio.subprocess.PIPE,
             "stdout": asyncio.subprocess.PIPE,
             "stderr": asyncio.subprocess.PIPE,
@@ -197,7 +206,7 @@ class AsyncioProcessSpawner:
                 and resolved_cwd.is_dir()
                 and type(argv) is tuple
                 and argv in _ARGV_PROFILES
-                and dict(env) == dict(_SAFE_ENV)
+                and dict(env) == dict(self._worker_env)
             )
         except (OSError, RuntimeError, TypeError, ValueError):
             valid = False

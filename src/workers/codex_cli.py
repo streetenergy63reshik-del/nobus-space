@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from collections.abc import Coroutine, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,18 +16,39 @@ from pydantic import BaseModel, ConfigDict
 from src.contracts import TaskContract
 
 
-_READ_ARGV = ("exec", "--json", "--sandbox", "read-only", "-")
-_WRITE_ARGV = ("exec", "--json", "--sandbox", "workspace-write", "-")
+_READ_ARGV = (
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--config",
+    'web_search="disabled"',
+    "--config",
+    "mcp_servers={}",
+    "--config",
+    'shell_environment_policy.inherit="all"',
+    "--config",
+    'shell_environment_policy.include_only=["PATH","SYSTEMROOT","TEMP","TMP","LANG","NO_COLOR","PYTHONUTF8","TERM"]',
+    "--config",
+    "shell_environment_policy.experimental_use_profile=false",
+    "--sandbox",
+    "read-only",
+    "-",
+)
+_WRITE_ARGV = (*_READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
 _KNOWN_PERMISSIONS = frozenset(
     {
         "repo.read",
-        "repo.write_allowlisted",
+        "repo.write",
         "process.run_allowlisted",
     }
 )
-_WRITE_PERMISSIONS = frozenset({"repo.write_allowlisted"})
 _SAFE_ENV = MappingProxyType(
     {"LANG": "C.UTF-8", "NO_COLOR": "1", "PYTHONUTF8": "1", "TERM": "dumb"}
+)
+_RUNTIME_ENV_KEYS = frozenset(
+    {*_SAFE_ENV, "CODEX_HOME", "PATH", "SYSTEMROOT", "TEMP", "TMP"}
 )
 _ERROR_MESSAGES = {
     "worker_configuration_invalid": "Codex worker configuration is invalid.",
@@ -107,6 +129,7 @@ class CodexCliAdapter:
         stderr_limit: int = 16 * 1024,
         max_timeout_seconds: int = 900,
         cleanup_timeout: float = 1.0,
+        worker_env: Mapping[str, str] = _SAFE_ENV,
     ) -> None:
         try:
             configured_executable = Path(executable)
@@ -130,6 +153,7 @@ class CodexCliAdapter:
                 and not isinstance(cleanup_timeout, bool)
                 and cleanup_timeout > 0
             )
+            normalized_env = _validated_worker_env(worker_env)
         except (OSError, RuntimeError, TypeError):
             valid = False
         if not valid:
@@ -143,6 +167,7 @@ class CodexCliAdapter:
         self._stderr_limit = stderr_limit
         self._max_timeout_seconds = max_timeout_seconds
         self._cleanup_timeout = float(cleanup_timeout)
+        self._worker_env = normalized_env
 
     async def execute(self, contract: TaskContract) -> CodexCliResult:
         """Execute a validated contract without inheriting ambient authority."""
@@ -156,9 +181,10 @@ class CodexCliAdapter:
 
         cwd = self._resolve_working_directory(contract.allowed_paths)
         prompt = self._build_prompt(contract)
-        argv = _WRITE_ARGV if permissions & _WRITE_PERMISSIONS else _READ_ARGV
+
         deadline = asyncio.get_running_loop().time() + contract.timeout_seconds
 
+        argv = _WRITE_ARGV if "repo.write" in permissions else _READ_ARGV
         process: SpawnedProcess | None = None
         start_failed = False
         start_timed_out = False
@@ -168,7 +194,7 @@ class CodexCliAdapter:
                     executable=str(self._executable),
                     argv=argv,
                     cwd=str(cwd),
-                    env=dict(_SAFE_ENV),
+                    env=dict(self._worker_env),
                 ),
                 timeout=contract.timeout_seconds,
             )
@@ -226,7 +252,11 @@ class CodexCliAdapter:
             raise CodexCliError("worker_output_too_large")
         if output.returncode != 0:
             raise CodexCliError("worker_failed")
-        return self._parse_stdout(output.stdout)
+        return self._parse_stdout(
+            output.stdout,
+            allow_file_changes="repo.write" in permissions,
+            working_directory=cwd,
+        )
 
     def _resolve_working_directory(self, allowed_paths: tuple[str, ...]) -> Path:
         resolved: list[Path] = []
@@ -244,7 +274,19 @@ class CodexCliAdapter:
             resolved = []
         if not resolved:
             raise CodexCliError("worker_forbidden")
-        return resolved[0]
+        selected = resolved[0]
+        try:
+            current = selected
+            while True:
+                config = current / ".codex" / "config.toml"
+                if config.exists() or config.is_symlink():
+                    raise ValueError
+                if current == self._workspace:
+                    break
+                current = current.parent
+        except (OSError, RuntimeError, ValueError):
+            raise CodexCliError("worker_forbidden") from None
+        return selected
 
     def _build_prompt(self, contract: TaskContract) -> bytes:
         values = (contract.instruction, *contract.acceptance_criteria)
@@ -262,45 +304,216 @@ class CodexCliAdapter:
             raise CodexCliError("worker_forbidden")
         return prompt
 
-    def _parse_stdout(self, raw: bytes) -> CodexCliResult:
+    def _parse_stdout(
+        self,
+        raw: bytes,
+        *,
+        allow_file_changes: bool,
+        working_directory: Path,
+    ) -> CodexCliResult:
         invalid = False
         terminal: CodexCliResult | None = None
-        started = False
+        thread_started = False
+        turn_started = False
+        turn_completed = False
+        todo_id: str | None = None
+        todo_completed = False
+        safe_item_types = {
+            "agent_message",
+            "command_execution",
+            "reasoning",
+        }
+
         try:
             text = raw.decode("utf-8", errors="strict")
-            for line in text.splitlines():
+            for line in text.split("\n"):
                 if not line:
                     continue
-                if terminal is not None:
-                    raise ValueError
                 value = json.loads(line, object_pairs_hook=self._unique_object)
-                if not isinstance(value, dict):
-                    raise ValueError
-                if value == {"type": "started"}:
-                    if started:
-                        raise ValueError
-                    started = True
-                    continue
-                if set(value) != {"type", "status", "message"}:
-                    raise ValueError
-                if value["type"] != "agent_message" or value["status"] != "success":
-                    raise ValueError
-                message = value["message"]
-                if (
-                    not isinstance(message, str)
-                    or not message.strip()
-                    or "\x00" in message
-                    or terminal is not None
+                if not isinstance(value, dict) or not isinstance(
+                    value.get("type"), str
                 ):
                     raise ValueError
-                terminal = CodexCliResult(message=message.strip())
-            if terminal is None:
+                event_type = value["type"]
+                if turn_completed:
+                    raise ValueError
+                if event_type == "thread.started":
+                    thread_id = value.get("thread_id")
+                    if (
+                        thread_started
+                        or set(value) != {"type", "thread_id"}
+                        or not isinstance(thread_id, str)
+                        or not thread_id.strip()
+                        or len(thread_id) > 128
+                        or "\x00" in thread_id
+                    ):
+                        raise ValueError
+                    thread_started = True
+                    continue
+                if event_type == "turn.started":
+                    if (
+                        not thread_started
+                        or turn_started
+                        or set(value) != {"type"}
+                    ):
+                        raise ValueError
+                    turn_started = True
+                    continue
+                if event_type in {"item.started", "item.updated", "item.completed"}:
+                    if not thread_started or not turn_started:
+                        raise ValueError
+                    item = value.get("item")
+                    if set(value) != {"type", "item"} or not isinstance(item, dict):
+                        raise ValueError
+                    item_id = item.get("id")
+                    item_type = item.get("type")
+                    if (
+                        not isinstance(item_id, str)
+                        or not item_id
+                        or not isinstance(item_type, str)
+                    ):
+                        raise ValueError
+                    if terminal is not None and not (
+                        item_type == "todo_list" and event_type == "item.completed"
+                    ):
+                        raise ValueError
+                    if item_type == "file_change":
+                        self._validate_file_change(
+                            item,
+                            event_type=event_type,
+                            allowed=allow_file_changes,
+                            working_directory=working_directory,
+                        )
+                        continue
+                    if item_type == "todo_list":
+                        self._validate_todo_list(item)
+                        if event_type == "item.started":
+                            if todo_id is not None or terminal is not None:
+                                raise ValueError
+                            todo_id = item_id
+                        elif event_type == "item.updated":
+                            if (
+                                todo_id != item_id
+                                or todo_completed
+                                or terminal is not None
+                            ):
+                                raise ValueError
+                        elif event_type == "item.completed":
+                            if todo_id != item_id or todo_completed:
+                                raise ValueError
+                            todo_completed = True
+                        else:
+                            raise ValueError
+                        continue
+                    if item_type not in safe_item_types:
+                        raise ValueError
+                    if item_type == "agent_message":
+                        message = item.get("text")
+                        if (
+                            terminal is not None
+                            or event_type != "item.completed"
+                            or set(item) != {"id", "type", "text"}
+                            or not isinstance(message, str)
+                            or not message.strip()
+                            or "\x00" in message
+                        ):
+                            raise ValueError
+                        terminal = CodexCliResult(message=message.strip())
+                    continue
+                if event_type == "turn.completed":
+                    usage = value.get("usage")
+                    if (
+                        not thread_started
+                        or not turn_started
+                        or terminal is None
+                        or (todo_id is not None and not todo_completed)
+                        or set(value) != {"type", "usage"}
+                        or not isinstance(usage, dict)
+                        or not {"input_tokens", "output_tokens"}.issubset(usage)
+                        or any(
+                            not isinstance(key, str)
+                            or type(amount) is not int
+                            or amount < 0
+                            for key, amount in usage.items()
+                        )
+                    ):
+                        raise ValueError
+                    turn_completed = True
+                    continue
+                raise ValueError
+            if (
+                not thread_started
+                or not turn_started
+                or not turn_completed
+                or terminal is None
+            ):
                 raise ValueError
         except Exception:
             invalid = True
         if invalid or terminal is None:
             raise CodexCliError("worker_protocol_error")
         return terminal
+
+    @staticmethod
+    def _validate_file_change(
+        item: dict[str, object],
+        *,
+        event_type: str,
+        allowed: bool,
+        working_directory: Path,
+    ) -> None:
+        if not allowed or event_type != "item.completed":
+            raise ValueError
+        if set(item) != {"id", "type", "changes", "status"}:
+            raise ValueError
+        changes = item.get("changes")
+        if (
+            item.get("status") != "completed"
+            or not isinstance(changes, list)
+            or not changes
+            or len(changes) > 1_000
+        ):
+            raise ValueError
+        for change in changes:
+            if not isinstance(change, dict) or set(change) != {"path", "kind"}:
+                raise ValueError
+            path = change.get("path")
+            kind = change.get("kind")
+            if (
+                not isinstance(path, str)
+                or not path
+                or "\x00" in path
+                or len(path) > 4_096
+                or kind not in {"add", "delete", "update"}
+            ):
+                raise ValueError
+            candidate = Path(path)
+            if not candidate.is_absolute():
+                candidate = working_directory / candidate
+            try:
+                candidate.resolve(strict=False).relative_to(working_directory)
+            except (OSError, RuntimeError, ValueError):
+                raise ValueError from None
+
+    @staticmethod
+    def _validate_todo_list(item: dict[str, object]) -> None:
+        if set(item) != {"id", "type", "items"}:
+            raise ValueError
+        entries = item.get("items")
+        if not isinstance(entries, list) or len(entries) > 1_000:
+            raise ValueError
+        for entry in entries:
+            if not isinstance(entry, dict) or set(entry) != {"text", "completed"}:
+                raise ValueError
+            text = entry.get("text")
+            if (
+                not isinstance(text, str)
+                or not text
+                or "\x00" in text
+                or len(text) > 4_096
+                or type(entry.get("completed")) is not bool
+            ):
+                raise ValueError
 
     @staticmethod
     def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -355,3 +568,64 @@ class CodexCliAdapter:
             task.result()
         except BaseException:
             pass
+
+def build_worker_env(
+    *,
+    codex_home: str | Path,
+    system_root: str | Path,
+    temp_root: str | Path,
+    workspace_root: str | Path,
+    path_entries: tuple[str | Path, ...],
+) -> Mapping[str, str]:
+    """Build the smallest live environment needed for Codex auth and temp I/O."""
+    try:
+        workspace = Path(workspace_root).resolve(strict=True)
+        temp = Path(temp_root).resolve(strict=True)
+        temp.relative_to(workspace)
+        if temp == workspace or not temp.is_dir() or not path_entries:
+            raise ValueError
+        resolved_path_entries = tuple(
+            str(Path(entry).resolve(strict=True)) for entry in path_entries
+        )
+        if any(not Path(entry).is_dir() for entry in resolved_path_entries):
+            raise ValueError
+    except (OSError, RuntimeError, TypeError, ValueError):
+        raise CodexCliError("worker_configuration_invalid") from None
+    values = {
+        **_SAFE_ENV,
+        "CODEX_HOME": str(Path(codex_home).resolve(strict=True)),
+        "PATH": os.pathsep.join(dict.fromkeys(resolved_path_entries)),
+        "SYSTEMROOT": str(Path(system_root).resolve(strict=True)),
+        "TEMP": str(temp),
+        "TMP": str(temp),
+    }
+    return _validated_worker_env(values)
+
+
+def _validated_worker_env(value: Mapping[str, str]) -> Mapping[str, str]:
+    try:
+        normalized = dict(value)
+        if set(normalized) == set(_SAFE_ENV):
+            if normalized != dict(_SAFE_ENV):
+                raise ValueError
+            return MappingProxyType(normalized)
+        if set(normalized) != _RUNTIME_ENV_KEYS:
+            raise ValueError
+        if any(normalized[key] != expected for key, expected in _SAFE_ENV.items()):
+            raise ValueError
+        for key in ("CODEX_HOME", "SYSTEMROOT", "TEMP", "TMP"):
+            path = Path(normalized[key])
+            if not path.is_absolute() or not path.resolve(strict=True).is_dir():
+                raise ValueError
+        entries = normalized["PATH"].split(os.pathsep)
+        if not entries or any(
+            not Path(entry).is_absolute()
+            or not Path(entry).resolve(strict=True).is_dir()
+            for entry in entries
+        ):
+            raise ValueError
+        if Path(normalized["TEMP"]).resolve() != Path(normalized["TMP"]).resolve():
+            raise ValueError
+    except (KeyError, OSError, RuntimeError, TypeError, ValueError):
+        raise CodexCliError("worker_configuration_invalid") from None
+    return MappingProxyType(normalized)

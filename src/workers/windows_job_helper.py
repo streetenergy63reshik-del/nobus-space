@@ -10,8 +10,27 @@ import sys
 from pathlib import Path
 
 
-_READ_ARGV = ("exec", "--json", "--sandbox", "read-only", "-")
-_WRITE_ARGV = ("exec", "--json", "--sandbox", "workspace-write", "-")
+_READ_ARGV = (
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--config",
+    'web_search="disabled"',
+    "--config",
+    "mcp_servers={}",
+    "--config",
+    'shell_environment_policy.inherit="all"',
+    "--config",
+    'shell_environment_policy.include_only=["PATH","SYSTEMROOT","TEMP","TMP","LANG","NO_COLOR","PYTHONUTF8","TERM"]',
+    "--config",
+    "shell_environment_policy.experimental_use_profile=false",
+    "--sandbox",
+    "read-only",
+    "-",
+)
+_WRITE_ARGV = (*_READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
 _ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV})
 _GATE_RE = re.compile(r"^Local\\NobusOrchestrator-[0-9a-f]{32}$")
 _SYNCHRONIZE = 0x00100000

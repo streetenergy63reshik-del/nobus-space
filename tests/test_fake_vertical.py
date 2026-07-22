@@ -180,12 +180,24 @@ def build_vertical(
     process = FakeProcess(
         ProcessOutput(
             (
-                json.dumps(
-                    {
-                        "type": "agent_message",
-                        "status": "success",
-                        "message": worker_message,
-                    }
+                "\n".join(
+                    json.dumps(event)
+                    for event in (
+                        {"type": "thread.started", "thread_id": "thread-1"},
+                        {"type": "turn.started"},
+                        {
+                            "type": "item.completed",
+                            "item": {
+                                "id": "message-1",
+                                "type": "agent_message",
+                                "text": worker_message,
+                            },
+                        },
+                        {
+                            "type": "turn.completed",
+                            "usage": {"input_tokens": 1, "output_tokens": 1},
+                        },
+                    )
                 )
                 + "\n"
             ).encode(),
@@ -285,6 +297,19 @@ async def test_text_vertical_completes_with_server_owned_contract_and_exact_bind
     assert spawner.calls[0]["argv"] == (
         "exec",
         "--json",
+        "--ephemeral",
+        "--ignore-user-config",
+    "--ignore-rules",
+        "--config",
+        'web_search="disabled"',
+        "--config",
+        "mcp_servers={}",
+        "--config",
+        'shell_environment_policy.inherit="all"',
+        "--config",
+        'shell_environment_policy.include_only=["PATH","SYSTEMROOT","TEMP","TMP","LANG","NO_COLOR","PYTHONUTF8","TERM"]',
+        "--config",
+        "shell_environment_policy.experimental_use_profile=false",
         "--sandbox",
         "read-only",
         "-",

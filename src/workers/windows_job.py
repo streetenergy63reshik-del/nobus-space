@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import Any, Protocol
 from uuid import uuid4
 
-from src.workers.codex_cli import _READ_ARGV, _SAFE_ENV, _WRITE_ARGV
+from src.workers.codex_cli import (
+    _READ_ARGV,
+    _SAFE_ENV,
+    _WRITE_ARGV,
+    _validated_worker_env,
+)
 
 
 _ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV})
@@ -48,6 +53,7 @@ class WindowsJobLauncher:
         helper_script: str | Path | None = None,
         spawn: Callable[..., Awaitable[asyncio.subprocess.Process]] | None = None,
         api: WindowsJobApi | None = None,
+        worker_env: Mapping[str, str] = _SAFE_ENV,
     ) -> None:
         helper = Path(helper_script or Path(__file__).with_name("windows_job_helper.py"))
         try:
@@ -62,6 +68,7 @@ class WindowsJobLauncher:
                 and helper.is_file()
                 and (spawn is None or callable(spawn))
             )
+            normalized_env = _validated_worker_env(worker_env)
         except (OSError, RuntimeError, TypeError):
             valid = False
         if not valid or (api is None and os.name != "nt"):
@@ -72,6 +79,7 @@ class WindowsJobLauncher:
         self._helper = helper
         self._spawn = spawn or asyncio.create_subprocess_exec
         self._api = api or _Kernel32JobApi()
+        self._worker_env = normalized_env
         self._jobs: dict[asyncio.subprocess.Process, tuple[int, int]] = {}
         self._reapers: set[asyncio.Task[None]] = set()
 
@@ -93,7 +101,7 @@ class WindowsJobLauncher:
                 str(self._target),
                 *argv,
                 cwd=str(cwd),
-                env=dict(_SAFE_ENV),
+                env=dict(self._worker_env),
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -160,7 +168,7 @@ class WindowsJobLauncher:
                 target == self._target
                 and cwd.is_dir()
                 and argv in _ARGV_PROFILES
-                and options.get("env") == dict(_SAFE_ENV)
+                and options.get("env") == dict(self._worker_env)
                 and options.get("stdin") == asyncio.subprocess.PIPE
                 and options.get("stdout") == asyncio.subprocess.PIPE
                 and options.get("stderr") == asyncio.subprocess.PIPE
