@@ -72,7 +72,7 @@ class WindowsJobLauncher:
         self._helper = helper
         self._spawn = spawn or asyncio.create_subprocess_exec
         self._api = api or _Kernel32JobApi()
-        self._jobs: dict[asyncio.subprocess.Process, int] = {}
+        self._jobs: dict[asyncio.subprocess.Process, tuple[int, int]] = {}
         self._reapers: set[asyncio.Task[None]] = set()
 
     async def __call__(self, executable: str, *argv: str, **options: Any) -> asyncio.subprocess.Process:
@@ -103,13 +103,11 @@ class WindowsJobLauncher:
                 raise RuntimeError("created process is invalid")
             self._api.assign(job, process.pid)
             self._api.signal(gate)
-            self._api.close(gate)
-            gate = None
-            self._jobs[process] = job
+            self._jobs[process] = (job, gate)
             reaper = asyncio.create_task(self._reap(process))
             self._reapers.add(reaper)
             reaper.add_done_callback(
-                lambda task: self._reaper_finished(process, job, task)
+                lambda task: self._reaper_finished(process, job, gate, task)
             )
             return process
         except asyncio.CancelledError:
@@ -123,9 +121,10 @@ class WindowsJobLauncher:
         raise AssertionError("unreachable")
 
     async def kill_tree(self, process: asyncio.subprocess.Process) -> None:
-        job = self._jobs.pop(process, None)
-        if job is None:
+        ownership = self._jobs.pop(process, None)
+        if ownership is None:
             return
+        job, gate = ownership
         failed = False
         try:
             self._api.terminate(job)
@@ -137,6 +136,10 @@ class WindowsJobLauncher:
                 pass
         try:
             self._api.close(job)
+        except BaseException:
+            failed = True
+        try:
+            self._api.close(gate)
         except BaseException:
             failed = True
         try:
@@ -194,7 +197,8 @@ class WindowsJobLauncher:
     @staticmethod
     async def _reap(process: asyncio.subprocess.Process) -> None:
         try:
-            await process.wait()
+            while process.returncode is None:
+                await asyncio.sleep(0.01)
         except BaseException:
             pass
 
@@ -202,6 +206,7 @@ class WindowsJobLauncher:
         self,
         process: asyncio.subprocess.Process,
         job: int,
+        gate: int,
         task: asyncio.Task[None],
     ) -> None:
         self._reapers.discard(task)
@@ -209,9 +214,10 @@ class WindowsJobLauncher:
             task.result()
         except BaseException:
             pass
-        if self._jobs.get(process) == job:
+        if self._jobs.get(process) == (job, gate):
             self._jobs.pop(process, None)
             self._quiet(self._api.close, job)
+            self._quiet(self._api.close, gate)
 
     @staticmethod
     def _quiet(operation: Callable[[int], None], handle: int) -> None:

@@ -122,9 +122,10 @@ async def test_helper_is_bound_before_gate_signal(
     _, cwd, target, python, helper = paths
     returned = await boundary(str(target.resolve()), *READ_ARGV, **options(cwd))
     assert returned is process
-    assert [call[0] for call in api.calls[:6]] == [
-        "create_job", "create_gate", "spawn", "assign", "signal", "close"
+    assert [call[0] for call in api.calls[:5]] == [
+        "create_job", "create_gate", "spawn", "assign", "signal"
     ]
+    assert ("close", 20) not in api.calls
     args, passed = spawn_calls[0]
     assert args == (
         str(python.resolve()), "-I", str(helper.resolve()),
@@ -138,6 +139,7 @@ async def test_helper_is_bound_before_gate_signal(
     await boundary.kill_tree(process)  # type: ignore[arg-type]
     assert ("terminate", 10) in api.calls
     assert ("close", 10) in api.calls
+    assert ("close", 20) in api.calls
 
 
 @pytest.mark.asyncio
@@ -154,17 +156,19 @@ async def test_normal_exit_closes_job_and_kills_inherited_descendants(
     _, cwd, target, _, _ = paths
     await boundary(str(target.resolve()), *READ_ARGV, **options(cwd))
     process.returncode = 0
-    process.completed.set()
+    assert not process.completed.is_set()
     for _ in range(20):
         if ("close", 10) in api.calls:
             break
         await asyncio.sleep(0)
     assert ("close", 10) in api.calls
+    assert ("close", 20) in api.calls
     for _ in range(20):
         if not boundary._reapers:
             break
         await asyncio.sleep(0)
     assert boundary._reapers == set()
+    process.completed.set()
 
 
 @pytest.mark.asyncio
@@ -188,6 +192,7 @@ async def test_cancelled_reaper_still_closes_owned_job(
     assert boundary._jobs == {}
     assert boundary._reapers == set()
     assert ("close", 10) in api.calls
+    assert ("close", 20) in api.calls
 
 
 @pytest.mark.asyncio
@@ -255,7 +260,7 @@ async def test_same_pid_cannot_replace_existing_job_identity(
     first.returncode = 125
     first.completed.set()
     await boundary.kill_tree(first)  # type: ignore[arg-type]
-    assert boundary._jobs.get(second) == 11  # type: ignore[arg-type]
+    assert boundary._jobs.get(second) == (11, 20)  # type: ignore[arg-type]
     second.returncode = 125
     second.completed.set()
     await boundary.kill_tree(second)  # type: ignore[arg-type]
