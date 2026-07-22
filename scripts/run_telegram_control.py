@@ -10,7 +10,7 @@ import argparse
 import asyncio
 import json
 import sys
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -111,16 +111,24 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         )
         control = TelegramControlPlane(gateway, api)
         polling = TelegramPollingBoundary(api, control.handle, checkpoint)
-        acknowledged = await _poll_once_and_announce(
-            polling,
-            api,
-            bindings,
-            timeout=values.timeout,
-            announce=values.announce,
-        )
-        if values.serve:
+        if values.once:
+            acknowledged = await _poll_once_and_announce(
+                polling,
+                api,
+                bindings,
+                timeout=values.timeout,
+                announce=values.announce,
+            )
+        else:
+            acknowledged = await _poll_with_unavailable_backoff(
+                polling,
+                api,
+                bindings,
+                timeout=values.timeout,
+                announce=values.announce,
+            )
             while True:
-                acknowledged += await _poll_once_and_announce(
+                acknowledged += await _poll_with_unavailable_backoff(
                     polling,
                     api,
                     bindings,
@@ -153,6 +161,32 @@ async def _poll_once_and_announce(
             raise TelegramBindingError("telegram_binding_configuration_invalid")
         await api.send_message(next(iter(bindings))[1], _ANNOUNCEMENT)
     return result.acknowledged
+
+
+async def _poll_with_unavailable_backoff(
+    polling: TelegramPollingBoundary,
+    api: TelegramBotApi,
+    bindings: Mapping[tuple[int, int], object],
+    *,
+    timeout: int,
+    announce: bool,
+    sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
+) -> int:
+    failures = 0
+    while True:
+        try:
+            return await _poll_once_and_announce(
+                polling,
+                api,
+                bindings,
+                timeout=timeout,
+                announce=announce,
+            )
+        except TelegramBotApiError as error:
+            if error.code != "telegram_unavailable":
+                raise
+            failures += 1
+            await sleeper(min(30.0, float(2 ** min(failures - 1, 5))))
 
 
 def _bootstrap_checkpoint(
