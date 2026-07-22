@@ -20,9 +20,9 @@ PRE-LIVE substrate Gate 3B.2a/5A.2a принят в `1d4029f`: добавлен�
 
 Live Telegram owner control plane принят в `b17f650`, `96fa634` и `17ac081`: bot identity проверена через Telegram API, один owner binding хранится только в Git-игнорируемой локальной конфигурации, а `/start`, `/status` и `/help` принимаются и получают ограниченные ответы в том же связанном чате. Serve-runner использует cancellation-safe backoff `1/2/4/8/16/30` секунд.
 
-Gate 5A.3 принят в `70941d8`: `/task` атомарно создаёт content-free durable `PENDING`, выдаёт owner-bound one-shot preview и только после `/confirm` запускает локальный fake-worker с L1/L2/L3 и terminal status outbox; `/cancel`, expiry, retry, restart и malformed token fail-closed. Raw instruction/token не попадают в SQLite. Live Codex, voice network path и filesystem/network effects fake-worker не использует. Обновлённый serve-runner активирован в текущей desktop-сессии 2026-07-22 18:37 Europe/Moscow; owner live `/task` reproduction ещё не выполнено.
+Gate 5A.3 принят в `70941d8`: `/task` атомарно создаёт content-free durable `PENDING`, выдаёт owner-bound one-shot preview и только после `/confirm` запускает локальный fake-worker с L1/L2/L3 и terminal status outbox; `/cancel`, expiry, retry, restart и malformed token fail-closed. Raw instruction/token не попадают в SQLite. Live Codex, voice network path и filesystem/network effects fake-worker не использует. Обновлённый serve-runner активирован в текущей desktop-сессии 2026-07-22 18:37 Europe/Moscow. В 18:49 owner live `/task` → `/confirm` → terminal `completed` воспроизведён; SQLite projection имеет revision 7, outbox `acked`, attempt count 1.
 
-Компоненты образуют рабочий live Telegram status-control E2E. Confirmed fake-task E2E принят code-wired/offline; owner network `/task` → `/confirm` → terminal status ещё не воспроизведён. Live Codex worker, voice download/transcription, OS service/autostart, deployment, monitoring и restore drill не подключены.
+Компоненты образуют рабочий live Telegram status-control и confirmed fake-task E2E: owner network `/task` → `/confirm` → terminal `completed` воспроизведён. Live Codex worker, voice download/transcription, OS service/autostart, deployment, monitoring и restore drill не подключены.
 
 ## Gate status
 
@@ -45,7 +45,7 @@ Gate 5A.3 принят в `70941d8`: `/task` атомарно создаёт con
 | Gate 5A.1 — PRE-LIVE Telegram API/polling boundary | `cde0bd5` | 24 target Telegram tests; lease/offset/leakage/limit review | **ACCEPTED PRE-LIVE** |
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
-| Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; bounded churn/replay/cancel/restart/non-persistence review; runner active | **ACCEPTED; OWNER LIVE TASK REPRODUCTION PENDING; LIVE CODEX EXCLUDED** |
+| Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -133,17 +133,17 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 | Worker boundary и локальный fake vertical | 10% | Job Object live probe принят; real Codex отсутствует | 9.5% |
 | Actor-bound voice confirmation | 8% | ACCEPTED, wired локально; store in-memory | 8% |
 | Runtime wiring и restart/recovery E2E | 12% | ACCEPTED; local fake | 12% |
-| Authenticated Telegram receive/send | 10% | owner-bound polling live; confirmed task flow code-wired/offline accepted; owner network task E2E pending; live Codex отсутствует | 10% |
+| Authenticated Telegram receive/send | 10% | owner-bound polling и confirmed fake-task E2E live; terminal outbox ACKed; live Codex отсутствует | 10% |
 | Deployment, monitoring и restore drill | 5% | NOT STARTED; REQUIRES L4 | 0% |
 | **Итого** | **100%** | **инженерная готовность MVP** | **94.5%** |
 
-`94.5%` означает инженерную code-wired/offline готовность owner-bound text flow: durable Task, one-shot confirmation, local fake-worker и status outbox. Live Telegram task E2E ещё требует owner-воспроизведения. Live Codex и voice network path не активированы, runner не установлен как OS service.
+`94.5%` включает live owner-воспроизведение text flow: durable Task, one-shot confirmation, local fake-worker и ACKed status outbox. Live Codex и voice network path не активированы, runner не установлен как OS service.
 
 Материалы Kimi D1–D4 сохранены только как `REWORK`-черновик в `ОРКЕСТРАТОР/Backups/2026-07-21 Kimi Web drafts`; исходная `Kimi handoffs/2026-07-21 Web tasks` удалена после проверки ZIP `ADBFAA13F435567E4221A806452331FDDF66714B56753A965A628EA6BFE2D218`. E1–E4 не архивировались, поскольку полностью заменены принятым Gate 4E.
 
 ## Следующая очередь
 
-Следующая очередь: провести owner live-воспроизведение `/task` → `/confirm` → terminal status на активированном runner, затем отдельным L4 подключить строго ограниченный Codex worker. После этого активировать voice download/transcription/confirmation. Отдельно требуется Gate 5B: supervised startup, health/monitoring и restore drill.
+Следующая очередь: отдельным L4 подключить строго ограниченный Codex worker вместо fake-worker. После этого активировать voice download/transcription/confirmation. Отдельно требуется Gate 5B: supervised startup, health/monitoring и restore drill.
 
 ## Обязательная остановка и L4
 

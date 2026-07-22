@@ -4,11 +4,11 @@
 **Состояние реализации:** TARGET; production-среда не создана
 **Дата актуализации:** 22 июля 2026
 
-Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram status control работает live; confirmed `/task` принят code-wired/offline только с локальным fake-worker, а owner network task E2E ещё не воспроизведён. Voice/live-worker adapters остаются fake/injected.
+Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram status control работает live; confirmed `/task` воспроизведён live до terminal `completed` только с локальным fake-worker. Voice/live-worker adapters остаются fake/injected.
 
 ## CURRENT и TARGET
 
-**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и Telegram status delivery. Owner-bound polling читает credential из Windows Credential Manager и обслуживает безопасные status-команды. Confirmed fake `/task` принят code-wired/offline и runner активирован, но owner network task E2E ещё не воспроизведён; raw instruction/token не сохраняются в SQLite. Runner зависит от текущей desktop-сессии и использует bounded network backoff. OS supervisor/autostart, health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
+**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и Telegram status delivery. Owner-bound polling читает credential из Windows Credential Manager и обслуживает безопасные status-команды. Confirmed fake `/task` воспроизведён live через owner chat до ACKed terminal `completed`; raw instruction/token не сохраняются в SQLite. Runner зависит от текущей desktop-сессии и использует bounded network backoff. OS supervisor/autostart, health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
 
 **TARGET:** три изолированные среды, воспроизводимые релизы, наблюдаемость, независимые оповещения, проверяемые backup/restore, kill switch и процедурно подтверждённое восстановление.
 

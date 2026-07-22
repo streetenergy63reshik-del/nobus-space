@@ -65,4 +65,4 @@ Consume выполняется до execution. Поэтому crash/cancellation
 
 ## Локальная активация
 
-Serve-runner с кодом Gate 5A.3 активирован в существующем owner-bound Telegram-контуре 2026-07-22 18:37 Europe/Moscow. Процесс использует Git-ignored `nobus-runtime.local.sqlite3`. Это подтверждает startup/identity/checkpoint composition, но не заменяет owner live-воспроизведение `/task` → `/confirm` → terminal status; оно остаётся следующим шагом. Live Codex не запускался.
+Serve-runner с кодом Gate 5A.3 активирован в существующем owner-bound Telegram-контуре 2026-07-22 18:37 Europe/Moscow. Процесс использует Git-ignored `nobus-runtime.local.sqlite3`. Owner live-воспроизведение выполнено 2026-07-22 18:48–18:49 Europe/Moscow: `/task` создал preview, exact one-shot `/confirm` дал terminal `completed`; content-free SQLite projection подтверждена как revision 7, outbox `acked`, attempt count 1. Live Codex не запускался.
