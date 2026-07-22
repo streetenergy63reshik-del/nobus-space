@@ -28,6 +28,8 @@ __pycache__/
 .pytest_cache/
 
 # Local runtime artifacts
+*.local.sqlite3
+*.local.sqlite3-*
 logs/
 *.log
 tmp/
