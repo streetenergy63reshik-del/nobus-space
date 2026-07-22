@@ -50,6 +50,13 @@ class TelegramBotApiError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class TelegramBotIdentity:
+    bot_id: int
+    username: str
+    first_name: str
+
+
+@dataclass(frozen=True)
 class PollingLease:
     lease_id: UUID
     owner_id: UUID
@@ -111,6 +118,22 @@ class TelegramBotApi:
     async def aclose(self) -> None:
         await self._client.aclose()
 
+    async def get_me(self) -> TelegramBotIdentity:
+        result = await self._call("getMe", {})
+        if (
+            type(result) is not dict
+            or not _positive_int(result.get("id"))
+            or result.get("is_bot") is not True
+            or not _bounded_text(result.get("username"), 64)
+            or not _bounded_text(result.get("first_name"), 128)
+        ):
+            raise TelegramBotApiError("telegram_protocol_error")
+        return TelegramBotIdentity(
+            bot_id=result["id"],
+            username=result["username"].strip(),
+            first_name=result["first_name"].strip(),
+        )
+
     async def get_updates(
         self,
         *,
@@ -133,6 +156,24 @@ class TelegramBotApi:
         }
         if offset is not None:
             payload["offset"] = offset
+        return await self._receive_updates(payload, offset=offset, limit=limit)
+
+    async def peek_updates(self, *, limit: int = 100) -> tuple[dict[str, Any], ...]:
+        """Read pending updates without changing offset or allowed_updates."""
+
+        if not _positive_int(limit) or limit > 100:
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        return await self._receive_updates(
+            {"limit": limit, "timeout": 0}, offset=None, limit=limit
+        )
+
+    async def _receive_updates(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        offset: int | None,
+        limit: int,
+    ) -> tuple[dict[str, Any], ...]:
         result = await self._call("getUpdates", payload)
         if type(result) is not list or len(result) > limit:
             raise TelegramBotApiError("telegram_protocol_error")
@@ -270,7 +311,13 @@ class TelegramBotApi:
         return data
 
     def _method_url(self, method: str) -> str:
-        if method not in {"answerCallbackQuery", "getFile", "getUpdates", "sendMessage"}:
+        if method not in {
+            "answerCallbackQuery",
+            "getFile",
+            "getMe",
+            "getUpdates",
+            "sendMessage",
+        }:
             raise TelegramBotApiError("telegram_configuration_invalid")
         return f"{_API_ROOT}/bot{self._token.get_secret_value()}/{method}"
 

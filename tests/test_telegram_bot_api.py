@@ -16,6 +16,7 @@ from src.storage.outbox import OutboxMessage, OutboxStatus, message_fingerprint,
 from src.transport.telegram.bot_api import (
     TelegramBotApi,
     TelegramBotApiError,
+    TelegramBotIdentity,
     PollingLease,
     TelegramPollingBoundary,
     TelegramStatusSender,
@@ -79,6 +80,51 @@ def response(result: Any, **options: Any) -> httpx.Response:
 
 
 @pytest.mark.asyncio
+async def test_get_me_returns_strict_bot_identity() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response(
+            {
+                "id": 123,
+                "is_bot": True,
+                "username": "Nobusspacebot",
+                "first_name": "Nobus",
+            }
+        )
+
+    api = api_for(handler)
+    try:
+        identity = await api.get_me()
+    finally:
+        await api.aclose()
+    assert identity == TelegramBotIdentity(123, "Nobusspacebot", "Nobus")
+    assert str(calls[0].url) == f"https://api.telegram.org/bot{TOKEN}/getMe"
+    assert json.loads(calls[0].content) == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"id": True, "is_bot": True, "username": "bot", "first_name": "Nobus"},
+        {"id": 1, "is_bot": False, "username": "bot", "first_name": "Nobus"},
+        {"id": 1, "is_bot": True, "username": "", "first_name": "Nobus"},
+        {"id": 1, "is_bot": True, "username": "bot", "first_name": ""},
+    ],
+)
+async def test_get_me_rejects_malformed_identity(result: Any) -> None:
+    api = api_for(lambda request: response(result))
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            await api.get_me()
+    finally:
+        await api.aclose()
+    assert caught.value.code == "telegram_protocol_error"
+
+
+@pytest.mark.asyncio
 async def test_get_updates_uses_fixed_endpoint_and_bounded_payload() -> None:
     calls: list[httpx.Request] = []
 
@@ -102,6 +148,24 @@ async def test_get_updates_uses_fixed_endpoint_and_bounded_payload() -> None:
         "offset": 10,
         "timeout": 20,
     }
+
+
+@pytest.mark.asyncio
+async def test_peek_updates_has_no_server_side_filter_or_ack() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response([{"update_id": 10}])
+
+    api = api_for(handler)
+    try:
+        updates = await api.peek_updates(limit=7)
+    finally:
+        await api.aclose()
+    assert updates == ({"update_id": 10},)
+    assert str(calls[0].url) == f"https://api.telegram.org/bot{TOKEN}/getUpdates"
+    assert json.loads(calls[0].content) == {"limit": 7, "timeout": 0}
 
 
 @pytest.mark.asyncio
