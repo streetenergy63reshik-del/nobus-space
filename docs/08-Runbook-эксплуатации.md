@@ -132,6 +132,16 @@ Telegram не может быть единственным каналом опо
 - несовпадение сохранённого `destination_ref` с текущей tenant-конфигурацией не вызывает sender, фиксируется NACK и требует operator reconciliation;
 - эти правила не являются production recovery automation и не разрешают сеть, credentials или live worker.
 
+### Локальная проверка Windows Job guard
+
+Runner разрешено запускать только после отдельного L4 на локальные child processes:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\live_windows_job_probe.py --json
+```
+
+Приёмка требует `status=PASS` для normal exit, explicit tree kill и adapter cancellation, затем отдельную проверку: процессов `windows-job-probe.exe` и `windows_job_helper.py` нет, каталог `tmp` отсутствует. Runner не запускает сеть, credentials или Codex и не доказывает безопасность реального Codex sandbox.
+
 ## 6. Rollback
 
 Rollback не обещает нулевой потери данных. Он возвращает код/конфигурацию к совместимой версии; уже выполненные внешние действия требуют отдельной компенсации и L4.
