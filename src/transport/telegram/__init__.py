@@ -1,5 +1,6 @@
 """Isolated Telegram ingress transport for Nobus Space."""
 
+from .checkpoint_update_store import PollingCheckpointUpdateIdStore
 from .gateway import (
     CallbackTokenStore,
     InMemoryCallbackTokenStore,
@@ -27,6 +28,7 @@ __all__ = [
     "InMemoryUpdateIdStore",
     "IngressResult",
     "IngressStatus",
+    "PollingCheckpointUpdateIdStore",
     "TrustedIngressResult",
     "TelegramGateway",
     "TelegramPayload",

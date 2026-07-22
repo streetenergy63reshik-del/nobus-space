@@ -66,7 +66,7 @@ class TrustedVerifierRegistry:
 
 
 ALLOWED_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
-    TaskStatus.PENDING: frozenset({TaskStatus.PARSING}),
+    TaskStatus.PENDING: frozenset({TaskStatus.PARSING, TaskStatus.REJECTED}),
     TaskStatus.PARSING: frozenset(
         {TaskStatus.ROUTING, TaskStatus.DRAFT, TaskStatus.FAILED}
     ),

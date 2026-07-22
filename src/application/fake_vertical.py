@@ -154,7 +154,12 @@ class FakeVertical:
             )
         except Exception:
             return self._response(FakeVerticalStatus.FAILED, "Task could not be created.")
+        return await self._execute_task(contract, task)
 
+    async def _execute_task(
+        self, contract: TaskContract, task: Task
+    ) -> FakeVerticalResponse:
+        """Execute one Core-registered PENDING task exactly once."""
         try:
             task = await self._start_worker(contract, task)
             worker_result = await self._worker.execute(contract)

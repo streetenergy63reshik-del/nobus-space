@@ -1,7 +1,7 @@
 """Run the authenticated Nobus Space Telegram control-plane.
 
-Delivery is intentionally at-least-once and restricted to safe idempotent
-control replies: a crash after send but before checkpoint may duplicate one.
+Delivery is intentionally at-least-once. The durable polling checkpoint owns
+update replay; task creation and confirmation are separately idempotent.
 """
 
 from __future__ import annotations
@@ -22,14 +22,18 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.application.gate5a3 import build_gate5a3_runtime  # noqa: E402
+from src.application.task_confirmation import InMemoryTaskConfirmationStore  # noqa: E402
 from src.application.telegram_control import TelegramControlPlane  # noqa: E402
+from src.contracts.models import canonical_json_digest  # noqa: E402
 from src.security.windows_credentials import (  # noqa: E402
     CredentialStoreError,
     read_generic_credential,
 )
 from src.transport.telegram import (  # noqa: E402
+    ActorBinding,
     InMemoryCallbackTokenStore,
-    InMemoryUpdateIdStore,
+    PollingCheckpointUpdateIdStore,
     TelegramGateway,
 )
 from src.transport.telegram.bindings import (  # noqa: E402
@@ -40,6 +44,7 @@ from src.transport.telegram.bot_api import (  # noqa: E402
     TelegramBotApi,
     TelegramBotApiError,
     TelegramPollingBoundary,
+    TelegramStatusSender,
 )
 from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointError,
@@ -51,11 +56,12 @@ _CREDENTIAL_TARGET = "NobusSpace/TelegramBot/MVP1"
 _EXPECTED_USERNAME = "Nobusspacebot"
 _BINDING_PATH = ROOT / "telegram-bindings.local.json"
 _CHECKPOINT_PATH = ROOT / "telegram-runtime.local.sqlite3"
+_TASK_RUNTIME_PATH = ROOT / "nobus-runtime.local.sqlite3"
 _ANNOUNCEMENT = (
     "Nobus Space MVP-1: первый polling cycle пройден.\n"
     "Telegram identity: verified\n"
     "Owner binding: active\n"
-    "Команды: /status, /help"
+    "Команды: /status, /task, /confirm, /cancel, /help"
 )
 
 
@@ -106,16 +112,31 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             _bootstrap_checkpoint(checkpoint, values.bootstrap_next_offset)
         gateway = TelegramGateway(
             actor_bindings=bindings,
-            update_id_store=InMemoryUpdateIdStore(),
+            update_id_store=PollingCheckpointUpdateIdStore(),
             callback_token_store=InMemoryCallbackTokenStore({}),
         )
-        control = TelegramControlPlane(gateway, api)
+        destination_refs, sender_destinations = _task_destinations(bindings)
+        runtime = build_gate5a3_runtime(
+            gateway=gateway,
+            sqlite_path=_TASK_RUNTIME_PATH,
+            destination_refs=destination_refs,
+            allowed_path=ROOT,
+        )
+        control = TelegramControlPlane(
+            gateway,
+            api,
+            task_runtime=runtime,
+            task_confirmations=InMemoryTaskConfirmationStore(),
+            task_tenants=destination_refs,
+            task_status_sender=TelegramStatusSender(api, sender_destinations),
+        )
         polling = TelegramPollingBoundary(api, control.handle, checkpoint)
         if values.once:
             acknowledged = await _poll_once_and_announce(
                 polling,
                 api,
                 bindings,
+                control=control,
                 timeout=values.timeout,
                 announce=values.announce,
             )
@@ -124,6 +145,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 polling,
                 api,
                 bindings,
+                control=control,
                 timeout=values.timeout,
                 announce=values.announce,
             )
@@ -132,6 +154,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                     polling,
                     api,
                     bindings,
+                    control=control,
                     timeout=values.timeout,
                     announce=False,
                 )
@@ -145,17 +168,44 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         await api.aclose()
 
 
+def _task_destinations(
+    bindings: Mapping[tuple[int, int], ActorBinding],
+) -> tuple[dict[str, str], dict[str, tuple[str, int]]]:
+    refs: dict[str, str] = {}
+    destinations: dict[str, tuple[str, int]] = {}
+    for (_, chat_id), binding in bindings.items():
+        tenant_id = binding.tenant_id
+        existing = destinations.get(tenant_id)
+        if existing is not None and existing[1] != chat_id:
+            raise TelegramBindingError("telegram_binding_configuration_invalid")
+        destination_ref = canonical_json_digest(
+            {
+                "channel": "telegram",
+                "chat_id": chat_id,
+                "tenant_id": tenant_id,
+            }
+        )
+        refs[tenant_id] = destination_ref
+        destinations[tenant_id] = (destination_ref, chat_id)
+    if not destinations:
+        raise TelegramBindingError("telegram_binding_configuration_invalid")
+    return refs, destinations
+
+
 async def _poll_once_and_announce(
     polling: TelegramPollingBoundary,
     api: TelegramBotApi,
     bindings: Mapping[tuple[int, int], object],
     *,
+    control: TelegramControlPlane | None = None,
     timeout: int,
     announce: bool,
 ) -> int:
     result = await polling.poll_once(timeout=timeout, limit=20)
     if result.retry_required:
         raise TelegramBotApiError("telegram_handler_failed")
+    if control is not None:
+        await control.deliver_pending()
     if announce:
         if len(bindings) != 1:
             raise TelegramBindingError("telegram_binding_configuration_invalid")
@@ -168,6 +218,7 @@ async def _poll_with_unavailable_backoff(
     api: TelegramBotApi,
     bindings: Mapping[tuple[int, int], object],
     *,
+    control: TelegramControlPlane | None = None,
     timeout: int,
     announce: bool,
     sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
@@ -179,6 +230,7 @@ async def _poll_with_unavailable_backoff(
                 polling,
                 api,
                 bindings,
+                control=control,
                 timeout=timeout,
                 announce=announce,
             )

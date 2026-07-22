@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
 from uuid import UUID, uuid4
@@ -20,7 +21,7 @@ from src.contracts import (
     WorkerEventType,
 )
 from src.contracts.models import canonical_json_digest
-from src.core.policy import DuplicateIdempotencyKeyError
+from src.core.policy import DuplicateIdempotencyKeyError, task_contract_digest
 from src.models.task import Task, TaskStatus
 from src.storage import (
     DeliveryReceipt,
@@ -41,6 +42,30 @@ class StatusDeliveryBoundary(Protocol):
     """Injected fake sender; a live network adapter is outside Gate 4F."""
 
     async def __call__(self, message: OutboxMessage) -> bool: ...
+
+
+@dataclass(frozen=True, repr=False)
+class PreparedTask:
+    """In-memory instruction binding for a durable content-free PENDING task."""
+
+    contract: TaskContract
+    envelope_revision: str
+
+    @classmethod
+    def validate(cls, value: "PreparedTask") -> "PreparedTask":
+        if not isinstance(value, cls):
+            raise ValueError("prepared task is invalid")
+        contract = TaskContract.model_validate(value.contract.model_dump(mode="json"))
+        revision = value.envelope_revision
+        if (
+            not isinstance(revision, str)
+            or not revision.startswith("sha256:")
+            or len(revision) != 71
+            or any(character not in "0123456789abcdef" for character in revision[7:])
+            or contract.ingress_digest != revision
+        ):
+            raise ValueError("prepared task binding is invalid")
+        return cls(contract=contract, envelope_revision=revision)
 
 
 class DurableFakeRuntime(FakeVertical):
@@ -218,7 +243,76 @@ class DurableFakeRuntime(FakeVertical):
             )
         if existing is not None:
             return self._recovery_response(existing)
-        return await self._run_instruction(instruction, envelope)
+        try:
+            prepared = await self.prepare_instruction(instruction, envelope)
+        except DuplicateIdempotencyKeyError:
+            return self._response(
+                FakeVerticalStatus.DUPLICATE, "Update was already processed."
+            )
+        except Exception:
+            return self._response(FakeVerticalStatus.FAILED, "Task could not be created.")
+        return await self.execute_prepared(prepared)
+
+    async def prepare_instruction(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> PreparedTask:
+        """Persist a content-free PENDING task without starting the worker."""
+        trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump(mode="json"))
+        if trusted.tenant_id not in self._destination_refs:
+            raise ValueError("tenant delivery is not configured")
+        if self._store.read_ingress_claim(trusted) is not None:
+            raise DuplicateIdempotencyKeyError("durable ingress already claimed")
+        contract = self._contract(instruction, trusted)
+        task = await self._begin_task(contract, trusted)
+        if task.status is not TaskStatus.PENDING:
+            raise RuntimeError("prepared task is not pending")
+        return PreparedTask(contract=contract, envelope_revision=trusted.envelope_revision)
+
+    async def execute_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
+        """Execute only the exact in-memory contract bound to the durable draft."""
+        try:
+            prepared = PreparedTask.validate(prepared)
+            contract = prepared.contract
+            task = await self._state.get(contract.task_id)
+            snapshot = self._store.read_task(contract.tenant_id, contract.task_id)
+            if (
+                task is None
+                or snapshot is None
+                or task.status is not TaskStatus.PENDING
+                or snapshot.projection.status is not TaskStatus.PENDING
+                or task.contract_digest != task_contract_digest(contract)
+                or snapshot.projection.contract_digest != task.contract_digest
+                or self._revisions.get(task.id) != snapshot.revision
+            ):
+                raise ValueError("prepared task binding mismatch")
+        except Exception:
+            return self._response(FakeVerticalStatus.FAILED, "Prepared task is unavailable.")
+        return await self._execute_task(contract, task)
+
+    async def cancel_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
+        """Reject one exact PENDING draft and enqueue its content-free status."""
+        try:
+            prepared = PreparedTask.validate(prepared)
+            contract = prepared.contract
+            task = await self._state.get(contract.task_id)
+            if (
+                task is None
+                or task.status is not TaskStatus.PENDING
+                or task.contract_digest != task_contract_digest(contract)
+            ):
+                raise ValueError("prepared task binding mismatch")
+            task = await self._required_update(
+                task.id,
+                status=TaskStatus.REJECTED,
+                error_message="cancelled_before_execution",
+            )
+        except Exception:
+            return self._response(FakeVerticalStatus.FAILED, "Prepared task is unavailable.")
+        return self._response(
+            FakeVerticalStatus.REJECTED,
+            "Task was cancelled before execution.",
+            task_id=task.id,
+        )
 
     async def _begin_task(
         self,
