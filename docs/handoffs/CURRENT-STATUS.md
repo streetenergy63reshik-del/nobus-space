@@ -14,7 +14,7 @@
 
 Продуктовый Telegram-интерфейс больше не показывает UUID задач, Event/Revision, capability-коды и другие служебные идентификаторы. Обычный текст сразу берётся в read-only работу; голос сначала транскрибируется и подтверждается кнопками; patch показывается с кнопками применения/отклонения.
 
-Независимое L2/L3 review: `ACCEPT`, P0/P1/P2 отсутствуют. Целевой независимый прогон: `230 passed`; полный suite: `710 passed, 2 skipped, 1 warning`. Долгоживущий runner запущен на этой версии; owner post-fix Telegram smoke остаётся последним пользовательским подтверждением.
+Независимое L2/L3 review: `ACCEPT`, P0/P1/P2 отсутствуют. Целевой независимый прогон: `230 passed`; полный suite: `710 passed, 2 skipped, 1 warning`. Долгоживущий runner запущен на этой версии. Owner post-fix text-answer smoke пройден: задача завершилась `ANSWERED`, verification bundle имеет статус `APPROVED`, ответ доставлен через outbox со статусом `ACKED` с первой попытки. Одноразовый probe из пустого временного Git-репозитория независимо подтвердил исправность CLI/auth/network/config и был полностью удалён.
 ## Короткий итог
 
 MVP-1 реализован и усилен в `27f9cd9`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`.
@@ -49,7 +49,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex execution flow | `007640b`, `c35d6e9`, `27f9cd9` | 230 independent target; 710 full; independent crash/CAS/replay/path/permission/outbox/product-UX review | **IMPLEMENTATION ACCEPTED; RUNNER ACTIVE; OWNER POST-FIX SMOKE PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `007640b`, `c35d6e9`, `27f9cd9` | 230 independent target; 710 full; owner live text answer `ANSWERED` + bundle `APPROVED` + outbox `ACKED`; isolated CLI probe PASS | **ACCEPTED LIVE TEXT ANSWER E2E; RUNNER ACTIVE; OWNER VOICE/PATCH SMOKES PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
