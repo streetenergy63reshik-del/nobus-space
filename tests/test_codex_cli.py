@@ -223,6 +223,81 @@ async def test_exact_write_permission_selects_workspace_write_profile(
     assert spawner.call["argv"][-3:] == ("--sandbox", "workspace-write", "-")
 
 @pytest.mark.asyncio
+async def test_owner_library_is_explicit_read_only_scope(
+    worker_files: tuple[Path, Path, Path],
+) -> None:
+    workspace, allowed, executable = worker_files
+    owner_root = workspace.parent / "owner-library"
+    owner_root.mkdir()
+    process = FakeProcess()
+    spawner = FakeSpawner(process)
+    adapter = CodexCliAdapter(
+        workspace_root=workspace,
+        executable=executable,
+        spawner=spawner,
+        owner_read_root=owner_root,
+    )
+
+    result = await adapter.execute(
+        make_contract(
+            allowed,
+            permissions=[
+                "repo.read",
+                "process.run_allowlisted",
+                "owner.library.read",
+            ],
+        )
+    )
+
+    assert result.message == "done"
+    assert "read-only" in spawner.call["argv"]
+    assert "workspace-write" not in spawner.call["argv"]
+    prompt = json.loads(process.stdin.decode("utf-8"))
+    assert prompt["owner_library"] == {
+        "root": str(owner_root.resolve()),
+        "mode": "read-only",
+        "return_paths": "relative-to-owner-library-root",
+        "forbidden_names": [
+            ".cache",
+            ".codex",
+            ".env",
+            ".git",
+            ".runtime",
+            ".venv",
+            "credentials",
+            "secrets",
+        ],
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("configured,write", [(False, False), (True, True)])
+async def test_owner_library_permission_fails_closed(
+    worker_files: tuple[Path, Path, Path],
+    configured: bool,
+    write: bool,
+) -> None:
+    workspace, allowed, executable = worker_files
+    owner_root = workspace.parent / "owner-library"
+    owner_root.mkdir()
+    spawner = FakeSpawner(FakeProcess())
+    adapter = CodexCliAdapter(
+        workspace_root=workspace,
+        executable=executable,
+        spawner=spawner,
+        owner_read_root=owner_root if configured else None,
+    )
+    permissions = ["repo.read", "process.run_allowlisted", "owner.library.read"]
+    if write:
+        permissions.append("repo.write")
+
+    with pytest.raises(CodexCliError) as caught:
+        await adapter.execute(make_contract(allowed, permissions=permissions))
+
+    assert caught.value.code == "worker_forbidden"
+    assert not spawner.call
+
+@pytest.mark.asyncio
 async def test_project_codex_config_fails_closed_before_spawn(
     worker_files: tuple[Path, Path, Path]
 ) -> None:
@@ -769,20 +844,60 @@ async def test_gate5a4_contract_is_accepted_as_read_only(
     from src.application.gate5a4 import Gate5A4Runtime
     from tests.test_contracts import make_envelope
 
-    _, allowed, _ = worker_files
+    workspace, allowed, executable = worker_files
+    owner_root = workspace.parent / "owner-library"
+    owner_root.mkdir()
     runtime = object.__new__(Gate5A4Runtime)
     runtime._allowed_path = str(allowed)  # type: ignore[attr-defined]
+    runtime._owner_read_root = owner_root  # type: ignore[attr-defined]
     contract = runtime._contract("Prepare a bounded patch.", make_envelope())
-    adapter, spawner = adapter_for(worker_files, max_timeout_seconds=10_800)
+    spawner = FakeSpawner(FakeProcess())
+    adapter = CodexCliAdapter(
+        workspace_root=workspace,
+        executable=executable,
+        spawner=spawner,
+        owner_read_root=owner_root,
+        max_timeout_seconds=10_800,
+    )
 
     result = await adapter.execute(contract)
 
     assert result.message == "done"
-    assert contract.permissions == ("repo.read", "process.run_allowlisted")
+    assert contract.permissions == (
+        "repo.read",
+        "process.run_allowlisted",
+        "owner.library.read",
+    )
     assert contract.timeout_seconds == 10_800
     assert contract.risk.value == "medium"
+    assert (
+        "Read the configured owner library only as read-only input; "
+        "return its paths relative to the configured root."
+    ) in contract.acceptance_criteria
     assert "read-only" in spawner.call["argv"]
     assert "workspace-write" not in spawner.call["argv"]
+
+
+def test_gate5a4_contract_without_owner_root_remains_repo_bounded(
+    tmp_path: Path,
+) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+    from tests.test_contracts import make_envelope
+
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = str(tmp_path)  # type: ignore[attr-defined]
+
+    contract = runtime._contract("Prepare a bounded patch.", make_envelope())
+
+    assert contract.permissions == ("repo.read", "process.run_allowlisted")
+    assert (
+        "Do not access paths outside the repository."
+        in contract.acceptance_criteria
+    )
+    assert all(
+        "configured owner library" not in criterion
+        for criterion in contract.acceptance_criteria
+    )
 
 
 @pytest.mark.asyncio

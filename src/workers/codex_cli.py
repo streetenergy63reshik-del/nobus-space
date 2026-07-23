@@ -55,11 +55,13 @@ _RATE_LIMIT_ARGV = (
 )
 _KNOWN_PERMISSIONS = frozenset(
     {
+        "owner.library.read",
         "repo.read",
         "repo.write",
         "process.run_allowlisted",
     }
 )
+_OWNER_READ_PERMISSION = "owner.library.read"
 _SAFE_ENV = MappingProxyType(
     {"LANG": "C.UTF-8", "NO_COLOR": "1", "PYTHONUTF8": "1", "TERM": "dumb"}
 )
@@ -140,6 +142,7 @@ class CodexCliAdapter:
         workspace_root: str | Path,
         executable: str | Path,
         spawner: ProcessSpawner,
+        owner_read_root: str | Path | None = None,
         prompt_limit: int = 64 * 1024,
         stdout_limit: int = 128 * 1024,
         stderr_limit: int = 16 * 1024,
@@ -151,8 +154,14 @@ class CodexCliAdapter:
             configured_executable = Path(executable)
             workspace = Path(workspace_root).resolve(strict=True)
             resolved_executable = configured_executable.resolve(strict=True)
+            owner_root = (
+                None
+                if owner_read_root is None
+                else Path(owner_read_root).resolve(strict=True)
+            )
             valid = (
                 workspace.is_dir()
+                and (owner_root is None or owner_root.is_dir())
                 and configured_executable.is_absolute()
                 and resolved_executable.is_file()
                 and resolved_executable.is_absolute()
@@ -170,7 +179,7 @@ class CodexCliAdapter:
                 and cleanup_timeout > 0
             )
             normalized_env = _validated_worker_env(worker_env)
-        except (OSError, RuntimeError, TypeError):
+        except (OSError, RuntimeError, TypeError, ValueError):
             valid = False
         if not valid:
             raise CodexCliError("worker_configuration_invalid")
@@ -185,13 +194,20 @@ class CodexCliAdapter:
         self._cleanup_timeout = float(cleanup_timeout)
         self._worker_env = normalized_env
 
+        self._owner_read_root = owner_root
+
     async def execute(self, contract: TaskContract) -> CodexCliResult:
         """Execute a validated contract without inheriting ambient authority."""
         permissions = frozenset(contract.permissions)
+        owner_read = _OWNER_READ_PERMISSION in permissions
         if (
             not permissions.issubset(_KNOWN_PERMISSIONS)
             or not {"repo.read", "process.run_allowlisted"}.issubset(permissions)
             or contract.timeout_seconds > self._max_timeout_seconds
+            or (
+                owner_read
+                and (self._owner_read_root is None or "repo.write" in permissions)
+            )
         ):
             raise CodexCliError("worker_forbidden")
 
@@ -308,21 +324,40 @@ class CodexCliAdapter:
         values = (contract.instruction, *contract.acceptance_criteria)
         if any("\x00" in value for value in values):
             raise CodexCliError("worker_forbidden")
+        payload: dict[str, object] = {
+            "instruction": contract.instruction,
+            "acceptance_criteria": list(contract.acceptance_criteria),
+            "response_protocol": (
+                "Return exactly one JSON object and no markdown or prose. "
+                "For an informational/read-only result use {\"answer\":\"...\"}. "
+                "Write the answer in the instruction's language, concise and "
+                "user-facing; omit internal identifiers, local paths and "
+                "implementation metadata unless explicitly requested. "
+                "Only when repository changes are needed use "
+                "{\"summary\":\"...\",\"patch\":\"<unified git diff>\","
+                "\"paths\":[\"relative/path\"]}. Never modify files."
+            ),
+        }
+        if _OWNER_READ_PERMISSION in contract.permissions:
+            if self._owner_read_root is None:
+                raise CodexCliError("worker_forbidden")
+            payload["owner_library"] = {
+                "root": str(self._owner_read_root),
+                "mode": "read-only",
+                "return_paths": "relative-to-owner-library-root",
+                "forbidden_names": [
+                    ".cache",
+                    ".codex",
+                    ".env",
+                    ".git",
+                    ".runtime",
+                    ".venv",
+                    "credentials",
+                    "secrets",
+                ],
+            }
         prompt = json.dumps(
-            {
-                "instruction": contract.instruction,
-                "acceptance_criteria": list(contract.acceptance_criteria),
-                "response_protocol": (
-                    "Return exactly one JSON object and no markdown or prose. "
-                    "For an informational/read-only result use {\"answer\":\"...\"}. "
-                    "Write the answer in the instruction's language, concise and "
-                    "user-facing; omit internal identifiers, local paths and "
-                    "implementation metadata unless explicitly requested. "
-                    "Only when repository changes are needed use "
-                    "{\"summary\":\"...\",\"patch\":\"<unified git diff>\","
-                    "\"paths\":[\"relative/path\"]}. Never modify files."
-                ),
-            },
+            payload,
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode("utf-8")

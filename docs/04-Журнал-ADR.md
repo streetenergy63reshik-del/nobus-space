@@ -15,6 +15,7 @@
 | [0007](adr/0007-reglament-rezervnogo-kopirovaniya.md) | Проверяемое резервное копирование и восстановление | ACCEPTED | TARGET |
 | [0008](adr/0008-pravila-vneshney-zapisi.md) | Любое внешнее изменение требует связанного L4-подтверждения | ACCEPTED | PARTIAL |
 | [0009](adr/0009-telegram-queue-sol-fast-timeouts.md) | Telegram intake отделён от длительного Codex execution; два read-only workers, Sol/High/Fast и отдельный двухчасовой deadline | ACCEPTED | PARTIAL |
+| [0010](adr/0010-owner-library-read-scope.md) | Owner-bound worker читает библиотеку владельца отдельным permission без расширения write boundary | ACCEPTED | PARTIAL |
 
 ## Правила статусов ADR
 

@@ -87,6 +87,7 @@ class VoiceMessage(ActorBoundIngress):
 class CallbackQuery(ActorBoundIngress):
     """Normalized callback containing only an opaque single-use token."""
 
+    message_id: int
     query_id: str
     callback_token: str
 
@@ -120,7 +121,10 @@ def _telegram_payload_facts(payload: TelegramPayload) -> dict[str, object]:
             f"update:{payload.update_id}:user:{payload.user_id}:"
             f"chat:{payload.chat_id}:callback:{payload.query_id}"
         )
-        content = {"callback_token": payload.callback_token}
+        content = {
+            "callback_token": payload.callback_token,
+            "message_id": payload.message_id,
+        }
     else:
         raise TypeError("unsupported Telegram payload")
 

@@ -111,7 +111,7 @@ def make_callback_update(
         "callback_query": {
             "id": query_id,
             "from": {"id": USER_A},
-            "message": {"chat": {"id": CHAT_A}},
+            "message": {"message_id": 102, "chat": {"id": CHAT_A}},
             "data": data,
         },
     }
@@ -221,6 +221,7 @@ def test_callback_exposes_only_one_time_opaque_token() -> None:
     assert result.status == IngressStatus.ACCEPTED
     assert isinstance(result.payload, CallbackQuery)
     assert result.payload.callback_token == CALLBACK_TOKEN
+    assert result.payload.message_id == 102
     assert not hasattr(result.payload, "action")
     assert not hasattr(result.payload, "task_reference")
     assert not hasattr(result.payload, "idempotency_key")
@@ -228,6 +229,19 @@ def test_callback_exposes_only_one_time_opaque_token() -> None:
     replay = gateway.process_update(make_callback_update(update_id=4))
     assert replay.status == IngressStatus.REJECTED
     assert replay.reason == "invalid or used callback token"
+
+
+def test_callback_requires_message_id_without_consuming_callback_token() -> None:
+    gateway = make_gateway()
+    update = make_callback_update(update_id=29)
+    del update["callback_query"]["message"]["message_id"]
+
+    rejected = gateway.process_update(update)
+    accepted = gateway.process_update(make_callback_update(update_id=30))
+
+    assert rejected.status == IngressStatus.REJECTED
+    assert rejected.reason == "missing or invalid user_id/chat_id/message_id"
+    assert accepted.status == IngressStatus.ACCEPTED
 
 
 def test_oversized_callback_query_does_not_consume_claims() -> None:

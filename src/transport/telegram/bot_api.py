@@ -320,6 +320,16 @@ class TelegramBotApi:
         if result is not True:
             raise TelegramBotApiError("telegram_protocol_error")
 
+    async def delete_message(self, chat_id: int, message_id: int) -> None:
+        if type(chat_id) is not int or not _non_negative_int(message_id):
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        result = await self._call(
+            "deleteMessage",
+            {"chat_id": chat_id, "message_id": message_id},
+        )
+        if result is not True:
+            raise TelegramBotApiError("telegram_protocol_error")
+
     async def _call(self, method: str, payload: Mapping[str, Any]) -> Any:
         failure: str | None = None
         raw: bytes | None = None
@@ -394,6 +404,7 @@ class TelegramBotApi:
     def _method_url(self, method: str) -> str:
         if method not in {
             "answerCallbackQuery",
+            "deleteMessage",
             "getFile",
             "getMe",
             "getUpdates",

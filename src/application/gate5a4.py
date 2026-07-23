@@ -73,7 +73,8 @@ _CRITERIA = (
     "For an informational result use only key answer; for a repository "
     "change use summary, patch, paths.",
     "patch is a UTF-8 unified Git diff for text files only; paths exactly list changed files.",
-    "Do not modify files, use network, inspect credentials, or access paths outside the repository.",
+    "Do not modify files, use network, inspect credentials, secrets, caches, "
+    "runtime metadata or hidden control directories.",
     "Keep any change minimal and include or update tests where behavior changes.",
 )
 
@@ -107,10 +108,15 @@ class Gate5A4Runtime(DurableFakeRuntime):
     _EXECUTOR_IDENTITY = "worker:codex-cli-readonly-patch"
 
     def __init__(
-        self, *, pipeline: "GitPatchVerificationPipeline", **values: object
+        self,
+        *,
+        pipeline: "GitPatchVerificationPipeline",
+        owner_read_root: str | Path | None = None,
+        **values: object,
     ) -> None:
         super().__init__(**values)
         self._pipeline = pipeline
+        self._owner_read_root = owner_read_root
         self._worker_slots = asyncio.Semaphore(GATE5A4_EXECUTION_CONCURRENCY)
         self._exclusive_lock = asyncio.Lock()
 
@@ -133,10 +139,21 @@ class Gate5A4Runtime(DurableFakeRuntime):
     ) -> TaskContract:
         base = super()._contract(instruction, envelope)
         values = base.model_dump(mode="python")
+        permissions = ["repo.read", "process.run_allowlisted"]
+        owner_root = getattr(self, "_owner_read_root", None)
+        criteria = _CRITERIA
+        if owner_root is not None:
+            permissions.append("owner.library.read")
+            criteria += (
+                "Read the configured owner library only as read-only input; "
+                "return its paths relative to the configured root.",
+            )
+        else:
+            criteria += ("Do not access paths outside the repository.",)
         values.update(
-            permissions=("repo.read", "process.run_allowlisted"),
+            acceptance_criteria=criteria,
+            permissions=tuple(permissions),
             risk=RiskLevel.MEDIUM,
-            acceptance_criteria=_CRITERIA,
             timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
             quality_profile="gate5a4-two-phase-patch@1",
         )
@@ -1311,10 +1328,18 @@ def build_gate5a4_runtime(
     system_root: str | Path,
     temp_root: str | Path,
     path_entries: tuple[str | Path, ...],
+    owner_read_root: str | Path | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> Gate5A4Runtime:
     """Build the live worker using the accepted process and durable boundaries."""
     root = Path(worktree).resolve(strict=True)
+    owner_root = (
+        None
+        if owner_read_root is None
+        else Path(owner_read_root).resolve(strict=True)
+    )
+    if owner_root is not None and not owner_root.is_dir():
+        raise ValueError("owner read root must be an existing directory")
     worker_env = build_worker_env(
         codex_home=codex_home,
         system_root=system_root,
@@ -1338,6 +1363,7 @@ def build_gate5a4_runtime(
         workspace_root=root,
         executable=codex_executable,
         spawner=spawner,
+        owner_read_root=owner_root,
         max_timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
         cleanup_timeout=15,
         stdout_limit=512 * 1024,
@@ -1363,6 +1389,7 @@ def build_gate5a4_runtime(
         worker=worker,
         verifiers=(pipeline.l1, pipeline.l2, pipeline.l3),
         pipeline=pipeline,
+        owner_read_root=owner_root,
         allowed_path=root,
         clock=clock,
     )

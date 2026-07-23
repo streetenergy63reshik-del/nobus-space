@@ -1,5 +1,21 @@
 # Nobus Space MVP — текущий статус разработки
 
+## Итерация 2026-07-23: owner library и callback cleanup
+
+Локальная реализация в `main` завершена, live runner ещё не обновлён:
+
+- trusted-ingress content digest валидного Telegram callback включает source `message_id`;
+- после надёжной постановки действия `answerCallbackQuery` и `deleteMessage` выполняются параллельно; live-очередь не ждёт завершения Codex;
+- ошибка `deleteMessage` не блокирует и не теряет подтверждённую задачу;
+- owner-bound Gate 5A.4 получает отдельное `owner.library.read` для `C:\Хранилище\АГЕНТ`;
+- permission fail-closed без server root и несовместим с `repo.write`;
+- worktree остаётся единственной областью diff/apply/commit, web и MCP выключены;
+- фактический HTML найден по адресу `PROстранство\Browser-worker MVP-1\Browser-agent MVP-1 — актуализированная дорожная карта.html` относительно owner root;
+- Telegram attachment/sendDocument не реализован: доступно чтение и возврат относительного пути.
+
+L1: `766 passed, 2 skipped, 1 warning`; `git diff --check` PASS. L2/L3: `ACCEPT`, P0/P1/P2 нет. Live smoke ожидается. Активация требует отдельного L4, поскольку расширяет read-scope работающего Codex worker.
+
+
 **Снимок:** 2026-07-23, Europe/Moscow
 
 **Канонический репозиторий:** `nobus-orchestrator-dev`

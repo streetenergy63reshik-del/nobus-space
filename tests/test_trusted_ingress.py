@@ -192,7 +192,7 @@ def _callback_update() -> dict[str, object]:
         "callback_query": {
             "id": "query-8",
             "from": {"id": USER_ID},
-            "message": {"chat": {"id": CHAT_ID}},
+            "message": {"message_id": 108, "chat": {"id": CHAT_ID}},
             "data": "AbcdEFgh_12345678",
         },
     }

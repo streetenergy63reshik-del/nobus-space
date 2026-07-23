@@ -94,7 +94,7 @@ def callback_update(
         "callback_query": {
             "id": f"query-{update_id}",
             "from": {"id": user_id},
-            "message": {"chat": {"id": chat_id}},
+            "message": {"message_id": 100 + update_id, "chat": {"id": chat_id}},
             "data": token,
         },
     }

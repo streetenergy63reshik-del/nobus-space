@@ -39,6 +39,7 @@ class InMemoryTelegramActionStore:
     def __init__(self) -> None:
         self._issued: dict[str, _Binding] = {}
         self._claimed: set[str] = set()
+        self._reserved: set[str] = set()
         self._lock = threading.Lock()
 
     def issue(
@@ -99,19 +100,58 @@ class InMemoryTelegramActionStore:
             if (
                 binding is None
                 or token not in self._claimed
+                or token in self._reserved
                 or binding.user_id != callback.user_id
                 or binding.chat_id != callback.chat_id
             ):
                 return None
+            self._reserved.add(token)
+            return ClaimedTelegramAction(binding.action, binding.capability_token)
+
+    def commit(self, callback: CallbackQuery) -> bool:
+        """Permanently consume an action after its effect is durable."""
+        if type(callback) is not CallbackQuery:
+            return False
+        with self._lock:
+            token = callback.callback_token
+            binding = self._issued.get(token)
+            if (
+                binding is None
+                or token not in self._reserved
+                or binding.user_id != callback.user_id
+                or binding.chat_id != callback.chat_id
+            ):
+                return False
             self._issued.pop(token, None)
             self._claimed.discard(token)
-            return ClaimedTelegramAction(binding.action, binding.capability_token)
+            self._reserved.discard(token)
+            return True
+
+    def release(self, callback: CallbackQuery) -> bool:
+        """Allow a fresh gateway claim after a pre-durable failure."""
+        if type(callback) is not CallbackQuery:
+            return False
+        with self._lock:
+            token = callback.callback_token
+            binding = self._issued.get(token)
+            if (
+                binding is None
+                or token not in self._reserved
+                or binding.user_id != callback.user_id
+                or binding.chat_id != callback.chat_id
+            ):
+                return False
+            self._reserved.discard(token)
+            self._claimed.discard(token)
+            return True
 
     def _expire(self, now: datetime) -> None:
         expired = [
-            token for token, binding in self._issued.items()
-            if binding.expires_at <= now
+            token
+            for token, binding in self._issued.items()
+            if binding.expires_at <= now and token not in self._reserved
         ]
         for token in expired:
             self._issued.pop(token, None)
             self._claimed.discard(token)
+            self._reserved.discard(token)

@@ -42,6 +42,8 @@ class FakeProductApi:
         self.callback_texts: list[str | None] = []
         self.callback_failure = False
         self.callback_gate: asyncio.Event | None = None
+        self.deleted: list[tuple[int, int]] = []
+        self.delete_failure = False
 
     async def send_message(
         self,
@@ -62,6 +64,11 @@ class FakeProductApi:
             raise RuntimeError("transient callback failure")
         self.answered.append(query_id)
         self.callback_texts.append(text)
+
+    async def delete_message(self, chat_id: int, message_id: int) -> None:
+        if self.delete_failure:
+            raise RuntimeError("transient delete failure")
+        self.deleted.append((chat_id, message_id))
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes:
         assert file_id == "voice-file" and size_limit > 0
@@ -293,6 +300,7 @@ async def test_plain_text_immediately_creates_read_only_draft_then_button_applie
     assert harness.runtime.applied[0][2].startswith("telegram-owner-confirmation:sha256:")
     assert harness.api.answered == ["query-2"]
     assert "Точный diff подтверждён" in harness.api.sent[-1][1]
+    assert harness.api.deleted == [(USER_ID, 102)]
     assert "Task:" not in harness.api.sent[-1][1]
     assert "Event:" not in harness.api.sent[-1][1]
 
@@ -355,6 +363,18 @@ async def test_callback_answer_failure_does_not_lose_owner_apply(tmp_path: Path)
 
 
 @pytest.mark.asyncio
+async def test_callback_delete_failure_does_not_lose_owner_apply(tmp_path: Path) -> None:
+    harness = _product(tmp_path)
+    await harness.control.handle(text_update("safe change", 1))
+    apply_token = harness.api.sent[-1][2][0][1]
+    harness.api.delete_failure = True
+
+    assert await harness.control.handle(callback_update(apply_token, 2))
+
+    assert len(harness.runtime.applied) == 1
+
+
+@pytest.mark.asyncio
 async def test_slow_callback_ack_does_not_delay_voice_worker(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -371,6 +391,105 @@ async def test_slow_callback_ack_does_not_delay_voice_worker(
 
     assert len(harness.runtime.drafted) == 1
     assert harness.api.answered == []
+    assert harness.api.deleted == [(USER_ID, 102)]
+
+
+@pytest.mark.asyncio
+async def test_cancellation_after_callback_claim_cannot_lose_owner_action(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    harness = _product(tmp_path)
+    await harness.control.handle(text_update("safe change", 1))
+    apply_token = harness.api.sent[-1][2][0][1]
+    started = asyncio.Event()
+    release = asyncio.Event()
+    completed: list[str] = []
+
+    async def delayed_resolution(*args: object, **kwargs: object) -> None:
+        started.set()
+        await release.wait()
+        completed.append("applied")
+
+    monkeypatch.setattr(harness.control, "_resolve_patch", delayed_resolution)
+    handler = asyncio.create_task(
+        harness.control.handle(callback_update(apply_token, 2))
+    )
+    await started.wait()
+    handler.cancel()
+    await asyncio.sleep(0)
+    handler.cancel()
+    release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await handler
+
+    assert completed == ["applied"]
+    assert harness.api.deleted == [(USER_ID, 102)]
+    sent_before_replay = len(harness.api.sent)
+    replay = callback_update(apply_token, 3)
+    replay["callback_query"]["message"]["message_id"] = 102
+    assert await harness.control.handle(replay)
+    assert len(harness.api.sent) == sent_before_replay
+
+
+@pytest.mark.asyncio
+async def test_ordinary_pre_durable_failure_releases_callback_for_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    harness = _product(tmp_path)
+    await harness.control.handle(text_update("safe change", 1))
+    apply_token = harness.api.sent[-1][2][0][1]
+    attempts = 0
+
+    async def flaky_resolution(*args: object, **kwargs: object) -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise RuntimeError("pre-durable failure")
+
+    monkeypatch.setattr(harness.control, "_resolve_patch", flaky_resolution)
+
+    with pytest.raises(RuntimeError, match="pre-durable failure"):
+        await harness.control.handle(callback_update(apply_token, 2))
+    assert harness.api.deleted == []
+
+    retry = callback_update(apply_token, 3)
+    retry["callback_query"]["message"]["message_id"] = 102
+    assert await harness.control.handle(retry)
+
+    assert attempts == 2
+    assert harness.api.deleted == [(USER_ID, 102)]
+
+
+@pytest.mark.asyncio
+async def test_child_cancellation_releases_callback_for_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    harness = _product(tmp_path)
+    await harness.control.handle(text_update("safe change", 1))
+    apply_token = harness.api.sent[-1][2][0][1]
+    attempts = 0
+
+    async def cancelled_then_succeeds(*args: object, **kwargs: object) -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(
+        harness.control, "_resolve_patch", cancelled_then_succeeds
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await harness.control.handle(callback_update(apply_token, 2))
+    assert harness.api.deleted == []
+
+    retry = callback_update(apply_token, 3)
+    retry["callback_query"]["message"]["message_id"] = 102
+    assert await harness.control.handle(retry)
+
+    assert attempts == 2
+    assert harness.api.deleted == [(USER_ID, 102)]
 
 
 @pytest.mark.asyncio

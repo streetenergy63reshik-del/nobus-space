@@ -425,8 +425,15 @@ class TelegramGateway:
             return _rejected(update_id, "malformed callback_query")
         user_id = from_obj.get("id")
         chat_id = chat_obj.get("id")
-        if not _is_int(user_id) or not _is_int(chat_id):
-            return _rejected(update_id, "missing or invalid user_id/chat_id")
+        message_id = message_obj.get("message_id")
+        if (
+            not _is_int(user_id)
+            or not _is_int(chat_id)
+            or not _is_int(message_id)
+        ):
+            return _rejected(
+                update_id, "missing or invalid user_id/chat_id/message_id"
+            )
         binding = self._binding(user_id, chat_id)
         if binding is None:
             return _rejected(update_id, "user/chat pair not in allowlist")
@@ -449,6 +456,7 @@ class TelegramGateway:
                 auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
                 chat_id=chat_id,
+                message_id=message_id,
                 query_id=query_id.strip(),
                 callback_token=token,
             ),

@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Protocol
+from typing import Any, Awaitable, Protocol
 from uuid import UUID
 
 from src.application.durable_runtime import PreparedTask
@@ -40,6 +40,7 @@ from src.workers.codex_limits import WeeklyLimitSnapshot
 _VOICE_LIMIT = 10 * 1024 * 1024
 _MESSAGE_CHUNK = 3_400
 _CALLBACK_ACK_TIMEOUT_SECONDS = 2.0
+_CALLBACK_CLEANUP_TIMEOUT_SECONDS = 2.0
 _DRAFT_QUEUE_LIMIT = 32
 _EXECUTION_QUEUE_MAXSIZE = 40
 _TERMINALIZE_ATTEMPTS = 3
@@ -76,6 +77,8 @@ class ProductTelegramApi(Protocol):
     async def answer_callback_query(
         self, query_id: str, *, text: str | None = None
     ) -> None: ...
+
+    async def delete_message(self, chat_id: int, message_id: int) -> None: ...
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes: ...
 
@@ -122,6 +125,36 @@ class _QueuedPatch:
 
 
 _QueuedJob = _QueuedDraft | _QueuedPatch
+
+
+async def _optional_callback_call(
+    operation: Awaitable[object], timeout_seconds: float
+) -> None:
+    try:
+        await asyncio.wait_for(operation, timeout=timeout_seconds)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        pass
+
+
+async def _complete_claimed_action(operation: Awaitable[object]) -> bool:
+    """Finish a consumed one-shot action before propagating outer cancellation."""
+    task = asyncio.create_task(operation)
+    was_cancelled = False
+    try:
+        await asyncio.shield(task)
+    except asyncio.CancelledError:
+        if task.done():
+            task.result()
+        was_cancelled = True
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                continue
+    task.result()
+    return was_cancelled
 
 
 class ProductTelegramControlPlane(TelegramControlPlane):
@@ -573,51 +606,69 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self, callback: CallbackQuery, envelope: TrustedIngressEnvelope
     ) -> None:
         claimed = self._action_store.consume(callback)
-        try:
-            await asyncio.wait_for(
-                self._api.answer_callback_query(
-                    callback.query_id,
-                    text=(
-                        "Обрабатываю…"
-                        if claimed is not None
-                        and claimed.action is TelegramAction.CONFIRM_VOICE
-                        else None
-                    ),
-                ),
-                timeout=_CALLBACK_ACK_TIMEOUT_SECONDS,
-            )
-        except Exception:
-            pass
         if claimed is None:
+            await _optional_callback_call(
+                self._api.answer_callback_query(callback.query_id),
+                _CALLBACK_ACK_TIMEOUT_SECONDS,
+            )
             await self._api.send_message(
                 callback.chat_id, "Кнопка недействительна, уже использована или истекла."
             )
             return
-        if claimed.action in {
-            TelegramAction.CONFIRM_VOICE,
-            TelegramAction.CANCEL_VOICE,
-        }:
-            await self._confirm_voice(
-                callback,
-                envelope,
-                claimed.capability_token,
-                (
-                    TaskConfirmationStatus.CONFIRMED
-                    if claimed.action is TelegramAction.CONFIRM_VOICE
-                    else TaskConfirmationStatus.CANCELLED
+
+        async def execute_claimed_action() -> None:
+            if claimed.action in {
+                TelegramAction.CONFIRM_VOICE,
+                TelegramAction.CANCEL_VOICE,
+            }:
+                await self._confirm_voice(
+                    callback,
+                    envelope,
+                    claimed.capability_token,
+                    (
+                        TaskConfirmationStatus.CONFIRMED
+                        if claimed.action is TelegramAction.CONFIRM_VOICE
+                        else TaskConfirmationStatus.CANCELLED
+                    ),
+                )
+            else:
+                await self._resolve_patch(
+                    callback,
+                    envelope,
+                    claimed.capability_token,
+                    (
+                        PatchConfirmationStatus.CONFIRMED
+                        if claimed.action is TelegramAction.APPLY_PATCH
+                        else PatchConfirmationStatus.CANCELLED
+                    ),
+                )
+
+        try:
+            was_cancelled = await _complete_claimed_action(execute_claimed_action())
+        except (asyncio.CancelledError, Exception):
+            self._action_store.release(callback)
+            raise
+        if not self._action_store.commit(callback):
+            raise RuntimeError("Telegram action commit failed")
+        await asyncio.gather(
+            _optional_callback_call(
+                self._api.answer_callback_query(
+                    callback.query_id,
+                    text=(
+                        "Обрабатываю…"
+                        if claimed.action is TelegramAction.CONFIRM_VOICE
+                        else None
+                    ),
                 ),
-            )
-        else:
-            await self._resolve_patch(
-                callback,
-                envelope,
-                claimed.capability_token,
-                (
-                    PatchConfirmationStatus.CONFIRMED
-                    if claimed.action is TelegramAction.APPLY_PATCH
-                    else PatchConfirmationStatus.CANCELLED
-                ),
-            )
+                _CALLBACK_ACK_TIMEOUT_SECONDS,
+            ),
+            _optional_callback_call(
+                self._api.delete_message(callback.chat_id, callback.message_id),
+                _CALLBACK_CLEANUP_TIMEOUT_SECONDS,
+            ),
+        )
+        if was_cancelled:
+            raise asyncio.CancelledError
 
     async def _confirm_voice(
         self,

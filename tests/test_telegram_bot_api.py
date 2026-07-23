@@ -147,6 +147,29 @@ async def test_answer_callback_query_can_show_ephemeral_progress() -> None:
     }
 
 @pytest.mark.asyncio
+async def test_delete_message_uses_exact_source_message() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response(True)
+
+    api = api_for(handler)
+    try:
+        await api.delete_message(42, 101)
+    finally:
+        await api.aclose()
+
+    assert str(calls[0].url) == (
+        f"https://api.telegram.org/bot{TOKEN}/deleteMessage"
+    )
+    assert json.loads(calls[0].content) == {
+        "chat_id": 42,
+        "message_id": 101,
+    }
+
+
+@pytest.mark.asyncio
 async def test_get_updates_uses_fixed_endpoint_and_bounded_payload() -> None:
     calls: list[httpx.Request] = []
 

@@ -172,7 +172,7 @@ def callback_update(token: str, update_id: int = 3) -> dict[str, Any]:
         "callback_query": {
             "id": "voice-confirm",
             "from": {"id": USER_ID},
-            "message": {"chat": {"id": CHAT_ID}},
+            "message": {"message_id": 103, "chat": {"id": CHAT_ID}},
             "data": token,
         },
     }

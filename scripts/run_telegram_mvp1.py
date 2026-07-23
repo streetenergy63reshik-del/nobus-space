@@ -66,6 +66,7 @@ from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
 
 _WORKTREE = ROOT.parent / "worktrees" / "telegram-live"
+_OWNER_READ_ROOT = ROOT.parents[3]
 _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
@@ -121,6 +122,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             sqlite_path=_TASK_RUNTIME_PATH,
             destination_refs=destination_refs,
             worktree=worktree,
+            owner_read_root=_OWNER_READ_ROOT,
             codex_executable=executable,
             git_executable=git,
             python_executable=python,
