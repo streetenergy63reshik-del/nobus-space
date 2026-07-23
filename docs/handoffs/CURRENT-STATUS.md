@@ -6,15 +6,24 @@
 
 **Назначение:** единственная обновляемая точка передачи фактического состояния между итерациями
 
+## Обновление 2026-07-23 — product execution hardening
+
+Исправление `27f9cd9` завершило продуктовый контур выполнения задач: рабочий Codex CLI выбирается самопроверкой, информационный ответ и code patch разделены строгим JSON-протоколом, а проверенный ответ доставляется через существующий tamper-evident SQLite outbox до ACK.
+
+Для информационных задач введён терминальный статус `ANSWERED`; для изменений кода сохранён полный L4-путь до `COMPLETED`. Тип результата (`answer`/`patch`) фиксируется в audit trail и проверяется одновременно policy, StateManager и SQLite projection.
+
+Продуктовый Telegram-интерфейс больше не показывает UUID задач, Event/Revision, capability-коды и другие служебные идентификаторы. Обычный текст сразу берётся в read-only работу; голос сначала транскрибируется и подтверждается кнопками; patch показывается с кнопками применения/отклонения.
+
+Независимое L2/L3 review: `ACCEPT`, P0/P1/P2 отсутствуют. Целевой независимый прогон: `230 passed`; полный suite: `710 passed, 2 skipped, 1 warning`. Долгоживущий runner запущен на этой версии; owner post-fix Telegram smoke остаётся последним пользовательским подтверждением.
 ## Короткий итог
 
-MVP-1 реализован в `c35d6e9`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`.
+MVP-1 реализован и усилен в `27f9cd9`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`.
 
 Обычное текстовое сообщение по умолчанию сразу становится задачей и создаёт только read-only черновик. Если черновик содержит изменение кода, бот показывает полный diff и кнопки `✅ Применить` / `❌ Отклонить`; без L4 рабочее дерево не изменяется.
 
 Голосовое сообщение скачивается с ограничением размера, транскрибируется локальной `faster-whisper base` на CPU и сначала показывается владельцу с кнопками `✅ Подтверждаю` / `❌ Отмена`. Модель загружена в Git-игнорируемый runtime cache; временное аудио очищается.
 
-Crash consistency защищена pre-apply journal, exact-path restore, `commit-tree → persisted journal → CAS update-ref` и restart reconciliation. Независимый L2/L3 verdict: `ACCEPT`; P0/P1 отсутствуют. Полный suite: `682 passed, 2 skipped, 1 warning`.
+Crash consistency защищена pre-apply journal, exact-path restore, `commit-tree → persisted journal → CAS update-ref` и restart reconciliation. Независимый L2/L3 verdict: `ACCEPT`; P0/P1 отсутствуют. Полный suite: `710 passed, 2 skipped, 1 warning`.
 
 Продуктовый runner активирован 2026-07-23 в текущей desktop-сессии; профиль и меню `@Nobusspacebot` проверены через Telegram API. OS service/autostart, внешний deploy, monitoring и restore drill остаются отдельным Gate 5B и не входят в функциональную готовность MVP-1.
 
@@ -40,7 +49,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex patch flow | `007640b`, `c35d6e9` | 81 target + adversarial; 682 full; independent crash/CAS/replay/path/permission review | **IMPLEMENTATION ACCEPTED; RUNNER ACTIVE; OWNER SMOKE PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `007640b`, `c35d6e9`, `27f9cd9` | 230 independent target; 710 full; independent crash/CAS/replay/path/permission/outbox/product-UX review | **IMPLEMENTATION ACCEPTED; RUNNER ACTIVE; OWNER POST-FIX SMOKE PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -85,7 +94,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний принятый implementation commit: `c35d6e9 feat: complete Telegram orchestrator MVP-1 product flow`.
+- Последний принятый implementation commit: `27f9cd9 fix: complete Telegram task execution UX`.
 - Hardening live Codex boundary: `007640b`.
 - Предыдущие live Telegram commits: `70941d8`, `17ac081`, `96fa634`, `b17f650`.
 - Remote отсутствует; push не выполнялся.
@@ -95,7 +104,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Live worktree
 
 - Ветка: `agent/telegram-live`.
-- Исходный HEAD: `c35d6e9`.
+- Исходный HEAD: `27f9cd9`.
 - Telegram может создавать локальные commits только в этой ветке после exact owner L4; merge/rebase/push отсутствуют.
 
 ### Kimi worktree
