@@ -622,6 +622,34 @@ async def test_stale_destination_is_nacked_without_calling_sender(tmp_path: Path
     assert len(receipts) == 1
     assert receipts[0].receipt_type is ReceiptType.NACK
 @pytest.mark.asyncio
+async def test_specific_worker_failure_code_is_preserved_in_durable_audit(
+    tmp_path: Path,
+) -> None:
+    clock = MutableClock()
+    parts = build_runtime(tmp_path, tmp_path / "state.sqlite3", clock=clock)
+    ingress = parts.runtime._gateway.process_update(text_update())
+    assert ingress.envelope is not None
+    prepared = await parts.runtime.prepare_instruction(
+        "проверить локальный проект", ingress.envelope
+    )
+    task = await parts.manager.get(prepared.contract.task_id)
+    assert task is not None
+    parsing = await parts.runtime._start_worker(prepared.contract, task)
+
+    await parts.runtime._escalate(parsing, error_code="worker_timeout")
+
+    snapshot = parts.store.read_task("tenant-a", prepared.contract.task_id)
+    assert snapshot is not None
+    assert snapshot.projection.status is TaskStatus.FAILED
+    stored_task = await parts.manager.get(prepared.contract.task_id)
+    assert stored_task is not None
+    assert stored_task.error_message == "worker_timeout"
+    attempt_id = parts.runtime._attempts[prepared.contract.task_id]
+    events = parts.store.read_events("tenant-a", prepared.contract.task_id, attempt_id)
+    assert events[-1].payload["error_code"] == "worker_timeout"
+    assert events[-1].payload["safe_message"] == "Worker timed out."
+
+@pytest.mark.asyncio
 async def test_worker_failure_persists_failed_event_and_outbox_atomically(
     tmp_path: Path,
 ) -> None:

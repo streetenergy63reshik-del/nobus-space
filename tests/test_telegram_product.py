@@ -247,6 +247,7 @@ async def test_plain_text_immediately_creates_read_only_draft_then_button_applie
     harness = _product(tmp_path)
 
     assert await harness.control.handle(text_update("Исправь безопасный файл", 1))
+    assert all("Задача принята" not in text for _, text, _ in harness.api.sent)
     assert len(harness.runtime.drafted) == 1
     assert harness.runtime.applied == []
     labels = [label for label, _ in harness.api.sent[-1][2]]
@@ -269,11 +270,14 @@ async def test_voice_requires_button_before_read_only_draft(tmp_path: Path) -> N
 
     assert await harness.control.handle(voice_update(1))
     assert harness.runtime.drafted == []
+    assert len(harness.api.sent) == 1
+    assert "Распознаю" not in harness.api.sent[0][1]
     assert "Я распознал задачу" in harness.api.sent[-1][1]
     confirm_token = harness.api.sent[-1][2][0][1]
 
     assert await harness.control.handle(callback_update(confirm_token, 2))
     assert len(harness.runtime.drafted) == 1
+    assert all("Текст подтверждён" not in text for _, text, _ in harness.api.sent)
     assert harness.api.sent[-1][2][0][0] == "✅ Применить"
 
 
@@ -299,8 +303,8 @@ async def test_menu_commands_are_separate_from_default_task_text(tmp_path: Path)
     await harness.control.handle(text_update("/help", 2))
     await harness.control.handle(text_update("/unknown", 3))
 
-    assert "Текст: сразу в read-only работу" in harness.api.sent[0][1]
-    assert "Отправьте обычное текстовое сообщение" in harness.api.sent[1][1]
+    assert "Голос:" in harness.api.sent[0][1]
+    assert "Напишите задачу обычным сообщением" in harness.api.sent[1][1]
     assert "Неизвестная команда" in harness.api.sent[2][1]
     assert harness.runtime.drafted == []
 
@@ -423,7 +427,7 @@ async def test_durable_failure_is_not_duplicated_by_product_fallback(
     async def deliver() -> int:
         await harness.api.send_message(
             USER_ID,
-            "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены.",
+            "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз.",
         )
         return 1
 
@@ -434,8 +438,8 @@ async def test_durable_failure_is_not_duplicated_by_product_fallback(
     failures = [
         text
         for _, text, _ in harness.api.sent
-        if text.startswith("⚠️ Не удалось безопасно")
+        if text.startswith("⚠️ Не удалось выполнить")
     ]
     assert failures == [
-        "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены."
+        "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
     ]

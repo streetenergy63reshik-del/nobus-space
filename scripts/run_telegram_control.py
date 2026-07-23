@@ -58,11 +58,10 @@ _BINDING_PATH = ROOT / "telegram-bindings.local.json"
 _CHECKPOINT_PATH = ROOT / "telegram-runtime.local.sqlite3"
 _TASK_RUNTIME_PATH = ROOT / "nobus-runtime.local.sqlite3"
 _ANNOUNCEMENT = (
-    "Nobus Space MVP-1 запущен.\n\n"
-    "Напишите задачу обычным сообщением — я сразу подготовлю решение.\n"
+    "Nobus Space готов к работе.\n\n"
+    "Напишите задачу обычным сообщением — готовый результат придёт ответом.\n"
     "Голосовую задачу сначала покажу текстом для подтверждения.\n"
-    "Изменения кода применяются только после кнопки «✅ Применить».\n\n"
-    "Служебные функции доступны в меню: /start, /status, /help."
+    "Служебные функции доступны в меню."
 )
 
 

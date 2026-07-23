@@ -631,11 +631,10 @@ def _status_text(
         )
     if message.task_status is TaskStatus.REJECTED:
         return (
-            "⚠️ Результат не применён: задача отклонена или безопасная проверка "
-            "не пройдена."
+            "⚠️ Не удалось подтвердить качество результата. Уточните задачу."
         )
     if message.task_status is TaskStatus.FAILED:
-        return "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены."
+        return "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
     if message.task_status is TaskStatus.ESCALATE:
         return "⚠️ Задача остановлена безопасно и требует проверки в Codex."
     return "Статус задачи обновлён."

@@ -13,7 +13,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -64,6 +64,7 @@ _VERIFIER_IDENTITIES = {
     2: "verifier:gate5a4:test-suite",
     3: "verifier:gate5a4:staged-audit",
 }
+_WORKER_PROBE_SENTINEL = "NOBUS_CODEX_WORKER_READY"
 _CRITERIA = (
     "Return exactly one JSON object and no markdown fences or surrounding prose.",
     "For an informational result use only key answer; for a repository "
@@ -116,12 +117,37 @@ class Gate5A4Runtime(DurableFakeRuntime):
         values = base.model_dump(mode="python")
         values.update(
             permissions=("repo.read", "process.run_allowlisted"),
-            risk=RiskLevel.HIGH,
+            risk=RiskLevel.MEDIUM,
             acceptance_criteria=_CRITERIA,
             timeout_seconds=120,
             quality_profile="gate5a4-two-phase-patch@1",
         )
         return TaskContract.model_validate(values)
+
+    async def probe_worker(self) -> None:
+        """Verify real CLI/auth/protocol readiness before Telegram announces ready."""
+        contract = TaskContract(
+            task_id=uuid4(),
+            idempotency_key=f"startup-probe-{uuid4().hex}",
+            ingress_digest="sha256:" + "0" * 64,
+            tenant_id="system",
+            source="system_job",
+            instruction=(
+                "Do not use tools, browse, read files, or modify files. "
+                f"Return exactly {_WORKER_PROBE_SENTINEL} and nothing else."
+            ),
+            allowed_paths=(self._allowed_path,),
+            permissions=("repo.read", "process.run_allowlisted"),
+            risk=RiskLevel.LOW,
+            acceptance_criteria=(
+                f"The final answer is exactly {_WORKER_PROBE_SENTINEL}.",
+            ),
+            timeout_seconds=45,
+            quality_profile="gate5a4-worker-readiness@1",
+        )
+        result = await self._execute_worker(contract)
+        if result.message != _WORKER_PROBE_SENTINEL:
+            raise CodexCliError("worker_protocol_error")
 
     async def execute_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
         """Fail closed: a single task confirmation can never apply a patch."""
@@ -248,6 +274,15 @@ class Gate5A4Runtime(DurableFakeRuntime):
                     await self._pipeline.discard(task.id)
                     await self._escalate(task)
                 raise
+            except CodexCliError as error:
+                if task is not None:
+                    await self._pipeline.discard(task.id)
+                    await self._escalate(task, error_code=error.code)
+                return Gate5A4DraftOutcome(
+                    status=FakeVerticalStatus.FAILED,
+                    task_id=task.id if task is not None else None,
+                    message="Read-only worker failed.",
+                )
             except Exception:
                 if task is not None:
                     await self._pipeline.discard(task.id)

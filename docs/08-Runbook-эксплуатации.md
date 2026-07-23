@@ -132,9 +132,11 @@ $env:DEBUG='false'
 .\.venv\Scripts\python.exe scripts\run_telegram_mvp1.py --serve --timeout 30 --announce
 ```
 
-Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12, доступный Codex CLI и две SQLite с `quick_check=ok`. Runner сверяет bot identity, использует один generation-bound polling lease и отвечает `telegram_consumer_busy`, если уже существует активный consumer; удалять checkpoint для обхода блокировки запрещено.
+Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12 и две SQLite с `quick_check=ok`. Runner сверяет bot identity, выбирает CLI только после успешного `codex --version`, затем до объявления «готов к работе» выполняет через production `CodexCliAdapter` сетевой read-only sentinel: тот же Windows Job, auth, sandbox, environment и JSONL parser, но без durable Task. Prompt запрещает tools и чтение файлов; технически процесс сохраняет тот же `repo.read` boundary, что и обычный worker, тогда как `workspace-write` запрещён. Любой start/timeout/protocol/output failure останавливает запуск; ложный online-статус не публикуется.
 
-После перезагрузки Windows runner запускается вручную той же командой. Текущий MVP не устанавливает service/autostart и не обещает работу без desktop-сессии. Штатная остановка прекращает процесс; новый запуск выполняется после истечения lease TTL без удаления SQLite. `/status` подтверждает только Telegram control plane, а не production readiness.
+Deadline budget одной polling-итерации: Telegram long poll до 30 секунд, worker contract 120 секунд, Telegram request timeout до 60 секунд и 30 секунд запаса внутри lease 240 секунд. Один retry разрешён только для раннего `worker_start_failed`, `worker_failed` или `worker_protocol_error` и делит исходный 120-секундный deadline; timeout, policy error и внешний эффект не повторяются. Safe error code сохраняется в audit без stderr/prompt/path.
+
+После перезагрузки Windows runner запускается вручную той же командой. Текущий MVP не устанавливает service/autostart и не обещает работу без desktop-сессии. Штатная остановка прекращает процесс; новый запуск выполняется после истечения lease TTL без удаления SQLite. `/status` подтверждает только Telegram control plane и активность voice, а не production readiness; task UUID, event/revision и внутренние error details владельцу по умолчанию не показываются.
 ### Локальная семантика Gate 4F
 
 - завершённая durable задача после restart возвращается без повторного запуска worker;
@@ -207,9 +209,10 @@ Restore drill выполняется регулярно с частотой, к�
 
 ### LLM или tool provider недоступен
 
-- не подменять модель без явно разрешённой policy/version;
-- ограниченный retry с backoff применяется только к идемпотентным операциям;
-- после лимита задача получает `FAILED` либо `ESCALATE`;
+- startup sentinel не позволяет объявить Telegram-бота готовым, если CLI/auth/network/JSONL boundary не прошли;
+- во время задачи различаются безопасные `worker_start_failed`, `worker_timeout`, `worker_protocol_error`, `worker_output_too_large`, policy/configuration и общий `worker_failed`;
+- ограниченный retry применяется только к идемпотентному read-only запуску и только внутри исходного deadline;
+- после лимита задача получает `FAILED` либо `ESCALATE`; пользователю отправляется одно короткое сообщение без технических ID и утверждений про L4;
 - внешний вызов с неизвестным исходом не повторяется вслепую.
 
 ### Хранилище недоступно

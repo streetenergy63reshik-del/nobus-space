@@ -38,6 +38,17 @@ from src.voice import (
 )
 
 
+_WORKER_FAILURE_MESSAGES = {
+    "worker_configuration_invalid": "Worker configuration is invalid.",
+    "worker_forbidden": "Worker request is not allowed.",
+    "worker_start_failed": "Worker could not be started.",
+    "worker_timeout": "Worker timed out.",
+    "worker_failed": "Worker execution failed.",
+    "worker_protocol_error": "Worker returned invalid output.",
+    "worker_output_too_large": "Worker output is too large.",
+}
+
+
 class StatusDeliveryBoundary(Protocol):
     """Injected fake sender; a live network adapter is outside Gate 4F."""
 
@@ -496,16 +507,23 @@ class DurableFakeRuntime(FakeVertical):
         self._revisions[task.id] = captured[0].revision
         return recorded
 
-    async def _escalate(self, task: Task) -> None:
+    async def _escalate(
+        self, task: Task, *, error_code: str = "worker_failed"
+    ) -> None:
         if task.status is not TaskStatus.PARSING:
             await super()._escalate(task)
             return
         try:
-            await self._record_worker_failure(task)
+            await self._record_worker_failure(task, error_code=error_code)
         except Exception:
             return
 
-    async def _record_worker_failure(self, task: Task) -> None:
+    async def _record_worker_failure(
+        self, task: Task, *, error_code: str = "worker_failed"
+    ) -> None:
+        safe_message = _WORKER_FAILURE_MESSAGES.get(error_code)
+        if safe_message is None:
+            raise ValueError("worker failure code is invalid")
         revision = self._revisions.get(task.id)
         attempt_id = self._attempts.get(task.id)
         if revision is None or attempt_id is None:
@@ -521,8 +539,8 @@ class DurableFakeRuntime(FakeVertical):
             event_type=WorkerEventType.FAILED,
             emitted_at=self._now(),
             payload={
-                "error_code": "worker_failed",
-                "safe_message": "Worker execution failed.",
+                "error_code": error_code,
+                "safe_message": safe_message,
                 "retryable": False,
             },
         )
@@ -542,7 +560,7 @@ class DurableFakeRuntime(FakeVertical):
         failed = await self._state.update(
             task.id,
             status=TaskStatus.FAILED,
-            error_message="worker_failed",
+            error_message=error_code,
             before_commit=persist,
         )
         if failed is None or len(captured) != 1:

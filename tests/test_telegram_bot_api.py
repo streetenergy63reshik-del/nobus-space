@@ -606,7 +606,7 @@ async def test_product_status_sender_never_exposes_internal_identifiers() -> Non
     assert len(sent) == 3
     visible = "\n".join(item["text"] for item in sent)
     assert "Изменение проверено" in visible
-    assert "Не удалось безопасно выполнить задачу" in visible
+    assert "Не удалось выполнить задачу" in visible
     assert "Проверенный пользовательский ответ." in visible
     for marker in ("Task:", "Event:", "Revision:", str(failed.task_id)):
         assert marker not in visible
@@ -634,7 +634,7 @@ def test_product_rejected_status_does_not_claim_owner_cancelled() -> None:
         technical_details=False,
     )
 
-    assert "задача отклонена или безопасная проверка не пройдена" in visible
+    assert "Не удалось подтвердить качество результата" in visible
     assert "Задача отменена" not in visible
 
 

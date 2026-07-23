@@ -771,9 +771,75 @@ async def test_gate5a4_contract_is_accepted_as_read_only(
 
     assert result.message == "done"
     assert contract.permissions == ("repo.read", "process.run_allowlisted")
+    assert contract.risk.value == "medium"
     assert "read-only" in spawner.call["argv"]
     assert "workspace-write" not in spawner.call["argv"]
 
+
+@pytest.mark.asyncio
+async def test_gate5a4_worker_probe_validates_live_protocol(tmp_path: Path) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+
+    class ProbeWorker:
+        def __init__(self, message: str) -> None:
+            self.message = message
+            self.contract: object | None = None
+
+        async def execute(self, contract: object) -> CodexCliResult:
+            self.contract = contract
+            return CodexCliResult(message=self.message)
+
+    worker = ProbeWorker("NOBUS_CODEX_WORKER_READY")
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = str(tmp_path)  # type: ignore[attr-defined]
+    runtime._worker = worker  # type: ignore[attr-defined]
+
+    await runtime.probe_worker()
+
+    assert worker.contract is not None
+    assert worker.contract.timeout_seconds == 45  # type: ignore[attr-defined]
+    assert worker.contract.permissions == (  # type: ignore[attr-defined]
+        "repo.read",
+        "process.run_allowlisted",
+    )
+
+
+@pytest.mark.asyncio
+async def test_gate5a4_worker_probe_fails_closed_on_wrong_sentinel(
+    tmp_path: Path,
+) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+
+    class WrongWorker:
+        async def execute(self, contract: object) -> CodexCliResult:
+            return CodexCliResult(message="unexpected")
+
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = str(tmp_path)  # type: ignore[attr-defined]
+    runtime._worker = WrongWorker()  # type: ignore[attr-defined]
+
+    with pytest.raises(CodexCliError) as caught:
+        await runtime.probe_worker()
+
+    assert caught.value.code == "worker_protocol_error"
+
+
+@pytest.mark.asyncio
+async def test_gate5a4_worker_probe_preserves_timeout_code(tmp_path: Path) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+
+    class TimeoutWorker:
+        async def execute(self, contract: object) -> CodexCliResult:
+            raise CodexCliError("worker_timeout")
+
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = str(tmp_path)  # type: ignore[attr-defined]
+    runtime._worker = TimeoutWorker()  # type: ignore[attr-defined]
+
+    with pytest.raises(CodexCliError) as caught:
+        await runtime.probe_worker()
+
+    assert caught.value.code == "worker_timeout"
 
 @pytest.mark.asyncio
 async def test_gate5a4_retries_one_transient_read_only_worker_failure() -> None:

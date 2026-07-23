@@ -129,6 +129,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git.parent,
             ),
         )
+        await runtime.probe_worker()
         control = ProductTelegramControlPlane(
             gateway,
             api,

@@ -187,21 +187,16 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     def _status_text(self) -> str:
         voice = "активен" if self._voice_service is not None else "не активирован"
         return (
-            "Nobus Space · MVP-1\n"
+            "Nobus Space\n"
             "Telegram: online\n"
-            "Владелец: подтверждён\n"
-            "Текст: сразу в read-only работу\n"
-            "Изменение кода: только после кнопки «Применить»\n"
             f"Голос: {voice}"
         )
 
     def _help_text(self) -> str:
         return (
-            "Отправьте обычное текстовое сообщение — оно сразу станет задачей.\n"
+            "Напишите задачу обычным сообщением — готовый результат придёт ответом.\n"
             "Голосовое сообщение сначала будет расшифровано и показано вам "
             "с кнопками «Подтверждаю» и «Отмена».\n\n"
-            "Если задача создаёт изменение, бот покажет полный diff. Только "
-            "кнопка «Применить» разрешает проверку и локальный commit.\n\n"
             "Меню:\n"
             "/status — состояние системы\n"
             "/help — эта справка\n\n"
@@ -221,10 +216,6 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
             )
             return
-        await self._api.send_message(
-            message.chat_id,
-            "✅ Задача принята. Готовлю решение; файлы пока не меняются.",
-        )
         prepared: PreparedTask | None = None
         try:
             prepared = await self._product_runtime.prepare_instruction(
@@ -238,7 +229,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 await self._product_runtime.cancel_prepared(prepared)
             await self._api.send_message(
                 message.chat_id,
-                "⚠️ Не удалось безопасно подготовить задачу. Изменения не применены.",
+                "⚠️ Не удалось обработать задачу. Попробуйте ещё раз.",
             )
 
     async def _create_voice_preview(
@@ -250,7 +241,6 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Голосовой ввод пока не активирован. Отправьте задачу текстом.",
             )
             return
-        await self._api.send_message(message.chat_id, "🎙 Распознаю голосовое сообщение…")
         prepared: PreparedTask | None = None
         try:
             audio = await self._api.download_file(
@@ -289,7 +279,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 await self._product_runtime.cancel_prepared(prepared)
             await self._api.send_message(
                 message.chat_id,
-                "⚠️ Не удалось безопасно распознать голосовое сообщение.",
+                "⚠️ Не удалось распознать голосовое сообщение. "
+                "Отправьте его ещё раз или напишите задачу текстом.",
             )
 
     async def _handle_callback(
@@ -353,10 +344,6 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._product_runtime.cancel_prepared(result.prepared)
             await self.deliver_pending()
             return
-        await self._api.send_message(
-            message.chat_id,
-            "✅ Текст подтверждён. Готовлю решение.",
-        )
         await self._draft_and_present(result.prepared, message, envelope)
 
     async def _draft_and_present(
@@ -373,8 +360,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             if outcome.task_id is None:
                 await self._api.send_message(
                     message.chat_id,
-                    "⚠️ Не удалось безопасно подготовить результат. "
-                    "Изменения не применены.",
+                    "⚠️ Не удалось подготовить результат. Попробуйте ещё раз.",
                 )
             await self.deliver_pending()
             return

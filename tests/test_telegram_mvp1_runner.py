@@ -68,3 +68,101 @@ def test_live_polling_lease_covers_network_and_long_handler() -> None:
     assert runner._POLLING_LEASE_SECONDS == 240
     assert runner._POLLING_LEASE_SECONDS > 30 + 120
     assert runner._POLLING_LEASE_SECONDS < 300
+
+@pytest.mark.asyncio
+async def test_failed_worker_probe_prevents_control_polling_and_announcement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.workers.codex_cli import CodexCliError
+
+    class Secret:
+        def get_secret_value(self) -> str:
+            return "test-token"
+
+    class Api:
+        closed = False
+
+        def __init__(self, **values: object) -> None:
+            pass
+
+        async def get_me(self) -> SimpleNamespace:
+            return SimpleNamespace(bot_id=1, username="Nobusspacebot")
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    class Runtime:
+        async def probe_worker(self) -> None:
+            raise CodexCliError("worker_timeout")
+
+    executable = tmp_path / "codex.exe"
+    executable.touch()
+    worktree = tmp_path / "worktree"
+    worktree.mkdir()
+    api_instances: list[Api] = []
+    control_constructed = False
+    polling_constructed = False
+
+    def api_factory(**values: object) -> Api:
+        instance = Api(**values)
+        api_instances.append(instance)
+        return instance
+
+    def forbidden_control(*args: object, **kwargs: object) -> object:
+        nonlocal control_constructed
+        control_constructed = True
+        raise AssertionError("control must not be constructed after failed probe")
+
+    def forbidden_polling(*args: object, **kwargs: object) -> object:
+        nonlocal polling_constructed
+        polling_constructed = True
+        raise AssertionError("polling must not start after failed probe")
+
+    monkeypatch.setattr(
+        runner,
+        "read_generic_credential",
+        lambda target: SimpleNamespace(username="@Nobusspacebot", secret=Secret()),
+    )
+    monkeypatch.setattr(runner, "_required_codex_executable", lambda: executable)
+    monkeypatch.setattr(runner, "_required_executable", lambda name: executable)
+    monkeypatch.setattr(runner, "_validated_worktree", lambda: worktree)
+    monkeypatch.setattr(runner, "_CODEX_TEMP", tmp_path / "codex-temp")
+    monkeypatch.setattr(runner, "TelegramBotApi", api_factory)
+    monkeypatch.setattr(runner.httpx, "AsyncHTTPTransport", lambda **values: object())
+    monkeypatch.setattr(
+        runner,
+        "load_telegram_bindings",
+        lambda *args, **kwargs: {(1, 1): object()},
+    )
+    monkeypatch.setattr(
+        runner, "SQLitePollingCheckpointStore", lambda *args, **kwargs: object()
+    )
+    monkeypatch.setattr(runner, "InMemoryTelegramActionStore", lambda: object())
+    monkeypatch.setattr(runner, "PollingCheckpointUpdateIdStore", lambda: object())
+    monkeypatch.setattr(runner, "TelegramGateway", lambda **values: object())
+    monkeypatch.setattr(
+        runner,
+        "_task_destinations",
+        lambda bindings: ({"owner": "sha256:" + "d" * 64}, {}),
+    )
+    monkeypatch.setattr(
+        runner, "build_gate5a4_runtime", lambda **values: Runtime()
+    )
+    monkeypatch.setattr(runner, "ProductTelegramControlPlane", forbidden_control)
+    monkeypatch.setattr(runner, "TelegramPollingBoundary", forbidden_polling)
+
+    with pytest.raises(CodexCliError) as caught:
+        await runner._run(
+            SimpleNamespace(
+                bootstrap_next_offset=None,
+                once=False,
+                timeout=30,
+                announce=True,
+            )
+        )
+
+    assert caught.value.code == "worker_timeout"
+    assert not control_constructed
+    assert not polling_constructed
+    assert len(api_instances) == 1
+    assert api_instances[0].closed
