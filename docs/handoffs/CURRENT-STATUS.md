@@ -6,6 +6,14 @@
 
 **Назначение:** единственная обновляемая точка передачи фактического состояния между итерациями
 
+## Обновление 2026-07-23 — callback/worker timeout hardening
+
+Owner smoke воспроизвёл последовательную задержку: `answerCallbackQuery` занял около 60 секунд, затем worker работал ровно 120 секунд и завершился `worker_timeout`; безопасная ошибка была доставлена через durable outbox примерно через три минуты после нажатия.
+
+Исправление `496e891` ограничивает optional callback acknowledgement двумя секундами и фиксирует Telegram Codex worker на `gpt-5.6-terra` с `model_reasoning_effort=medium`. Capability остаётся одноразовой; timeout/API failure acknowledgement не задерживает worker, а cancellation не поглощается. Exact argv синхронизирован с Windows Job helper и сохраняет read-only sandbox, web disabled, empty MCP и allowlisted environment.
+
+Проверки: `99 passed` target; `731 passed, 2 skipped, 1 warning` full; независимое L2/L3 — `ACCEPT`, P0/P1/P2 отсутствуют. Текущий live runner остаётся на `e5405f7`; `496e891` проверен и закоммичен, но потребует нового owner L4, startup probe и перезапуска.
+
 ## Обновление 2026-07-23 — voice latency hardening
 
 По безопасным серверным меткам текстовая задача заняла около 10 секунд. Первый voice preview появился примерно через 82 секунды; после подтверждения callback был принят, но Codex worker выполнялся ещё около 68 секунд без видимого промежуточного отклика. Это разделило проблему на первый запуск локальной voice-модели и продуктовую обратную связь callback, а не общий отказ Telegram polling.
@@ -25,7 +33,7 @@
 Независимое L2/L3 review: `ACCEPT`, P0/P1/P2 отсутствуют. Reliability-релиз добавляет fail-fast startup probe того же production worker, сохраняет безопасные причины отказов и убирает служебные подтверждения из обычного продуктового диалога. Проверки: `127` target; `190 passed, 1 skipped` adversarial; `727 passed, 2 skipped, 1 warning` full. Одноразовый изолированный probe подтвердил CLI/auth/network/config. Live runner `36c17e4` затем прошёл встроенный startup probe, получил новую generation-bound polling lease и остаётся активным.
 ## Короткий итог
 
-MVP-1 реализован и последовательно усилен до `36c17e4`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`. Reliability-релиз активирован после успешного startup probe.
+MVP-1 реализован и live-активирован до `e5405f7`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`. Callback/worker fix `496e891` независимо принят, но ещё не активирован.
 
 Обычное текстовое сообщение по умолчанию сразу становится задачей и создаёт только read-only черновик. Если черновик содержит изменение кода, бот показывает полный diff и кнопки `✅ Применить` / `❌ Отклонить`; без L4 рабочее дерево не изменяется.
 
@@ -33,7 +41,7 @@ MVP-1 реализован и последовательно усилен до `
 
 Crash consistency защищена pre-apply journal, exact-path restore, `commit-tree → persisted journal → CAS update-ref` и restart reconciliation. Независимый L2/L3 verdict: `ACCEPT`; P0/P1/P2 отсутствуют. Reliability suite: `727 passed, 2 skipped, 1 warning`.
 
-Продуктовый runner `36c17e4` активен в текущей desktop-сессии. Startup read-only OpenAI probe прошёл до начала polling; свежая SQLite lease подтверждает единственного активного потребителя. OS service/autostart, внешний deploy, monitoring и restore drill остаются отдельным Gate 5B.
+Продуктовый runner `e5405f7` активен в текущей desktop-сессии. Startup read-only OpenAI probe прошёл до начала polling; свежая SQLite lease подтверждает единственного активного потребителя. OS service/autostart, внешний deploy, monitoring и restore drill остаются отдельным Gate 5B.
 
 ## Gate status
 
@@ -57,7 +65,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7` | 107 voice/callback target; 730 full; independent ACCEPT; startup probe PASS; local-only warmup PASS; polling lease active | **ACCEPTED; VOICE-LATENCY FIX LIVE; OWNER VOICE SMOKE PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7`, `496e891` | 99 callback/worker target; 731 full; independent ACCEPT; current polling lease active | **VOICE WARMUP LIVE; CALLBACK/WORKER FIX ACCEPTED, ACTIVATION PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -102,7 +110,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний проверенный implementation commit: `e5405f7 fix: reduce Telegram voice startup latency`.
+- Последний проверенный implementation commit: `496e891 fix: bound Telegram callback and worker latency`.
 - Hardening live Codex boundary: `007640b`.
 - Предыдущие live Telegram commits: `70941d8`, `17ac081`, `96fa634`, `b17f650`.
 - Remote отсутствует; push не выполнялся.
@@ -162,8 +170,8 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 ## Следующая очередь
 
-1. Завершить owner smoke: короткий голос → быстрый transcript/confirmation → немедленный callback toast → результат.
-2. Реализовать product response renderer и удаление использованного voice/patch preview; затем отдельно проверить patch → diff и L4-кнопки.
+1. После отдельного owner L4 fast-forward обновить live-ветку до `496e891`, выполнить startup probe и перезапустить runner.
+2. Повторить owner voice smoke; затем реализовать product response renderer и удаление использованного voice/patch preview.
 3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
