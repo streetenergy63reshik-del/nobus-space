@@ -65,5 +65,6 @@ def test_selector_skips_cli_that_cannot_start(
 
 
 def test_live_polling_lease_covers_network_and_long_handler() -> None:
-    assert runner._POLLING_LEASE_SECONDS == 300
+    assert runner._POLLING_LEASE_SECONDS == 240
     assert runner._POLLING_LEASE_SECONDS > 30 + 120
+    assert runner._POLLING_LEASE_SECONDS < 300

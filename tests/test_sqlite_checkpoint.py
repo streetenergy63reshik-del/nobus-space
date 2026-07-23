@@ -270,3 +270,37 @@ async def test_cancellation_releases_durable_lease_for_restart(
     assert lease is not None
     assert restarted.load(lease) is None
     assert restarted.release(lease)
+
+
+@pytest.mark.asyncio
+async def test_runner_lease_margin_tolerates_independent_store_clock(
+    tmp_path: Path,
+) -> None:
+    checkpoint = SQLitePollingCheckpointStore(
+        tmp_path / "state.sqlite3",
+        consumer_id="telegram-mvp-1",
+        lease_duration_seconds=240,
+        clock=Clock(NOW + timedelta(milliseconds=1)),
+    )
+    api = TelegramBotApi(
+        token=TOKEN,
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={"ok": True, "result": []},
+            )
+        ),
+    )
+    boundary = TelegramPollingBoundary(
+        api,
+        lambda update: asyncio.sleep(0, result=True),
+        checkpoint,
+        clock=Clock(NOW),
+    )
+    try:
+        result = await boundary.poll_once(timeout=0)
+    finally:
+        await api.aclose()
+
+    assert result.next_offset is None
+    assert result.acknowledged == 0

@@ -66,7 +66,7 @@ _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
-_POLLING_LEASE_SECONDS = 300
+_POLLING_LEASE_SECONDS = 240
 
 
 async def _run(values: argparse.Namespace) -> dict[str, object]:
