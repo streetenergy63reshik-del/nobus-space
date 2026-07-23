@@ -636,3 +636,40 @@ def test_product_rejected_status_does_not_claim_owner_cancelled() -> None:
 
     assert "задача отклонена или безопасная проверка не пройдена" in visible
     assert "Задача отменена" not in visible
+
+
+@pytest.mark.asyncio
+async def test_polling_accepts_long_handler_with_bounded_300_second_lease() -> None:
+    now = datetime(2026, 7, 23, tzinfo=UTC)
+    clock_values = iter(
+        (now, now + timedelta(seconds=120), now + timedelta(seconds=121))
+    )
+
+    class LongHandlerCheckpoint(Checkpoint):
+        def acquire(
+            self, owner_id: UUID, acquired_at: datetime
+        ) -> PollingLease | None:
+            if self.lease is not None:
+                return None
+            self.lease = PollingLease(
+                lease_id=uuid4(),
+                owner_id=owner_id,
+                expires_at=acquired_at + timedelta(seconds=300),
+            )
+            return self.lease
+
+    api = api_for(lambda request: response([{"update_id": 1}]))
+    checkpoint = LongHandlerCheckpoint()
+    boundary = TelegramPollingBoundary(
+        api,
+        lambda update: asyncio.sleep(0, result=True),
+        checkpoint,
+        clock=lambda: next(clock_values),
+    )
+    try:
+        result = await boundary.poll_once(timeout=30)
+    finally:
+        await api.aclose()
+
+    assert result.next_offset == 2
+    assert checkpoint.advances == [(None, 2)]

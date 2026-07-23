@@ -66,6 +66,7 @@ _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
+_POLLING_LEASE_SECONDS = 300
 
 
 async def _run(values: argparse.Namespace) -> dict[str, object]:
@@ -99,6 +100,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         checkpoint = SQLitePollingCheckpointStore(
             _CHECKPOINT_PATH,
             consumer_id="nobusspacebot-owner",
+            lease_duration_seconds=_POLLING_LEASE_SECONDS,
         )
         if values.bootstrap_next_offset is not None:
             _bootstrap_checkpoint(checkpoint, values.bootstrap_next_offset)
