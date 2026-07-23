@@ -134,6 +134,53 @@ class TelegramBotApi:
             first_name=result["first_name"].strip(),
         )
 
+    async def configure_profile(
+        self,
+        *,
+        name: str,
+        description: str,
+        short_description: str,
+        commands: tuple[tuple[str, str], ...],
+    ) -> None:
+        """Apply one validated, idempotent default-language bot profile."""
+        valid_commands: list[dict[str, str]] = []
+        seen: set[str] = set()
+        valid = (
+            _bounded_text(name, 64)
+            and _bounded_text(description, 512)
+            and _bounded_text(short_description, 120)
+            and type(commands) is tuple
+            and 1 <= len(commands) <= 100
+        )
+        for item in commands if type(commands) is tuple else ():
+            if (
+                type(item) is not tuple
+                or len(item) != 2
+                or not isinstance(item[0], str)
+                or re.fullmatch(r"[a-z0-9_]{1,32}", item[0]) is None
+                or item[0] in seen
+                or not _bounded_text(item[1], 256)
+            ):
+                valid = False
+                break
+            seen.add(item[0])
+            valid_commands.append(
+                {"command": item[0], "description": item[1].strip()}
+            )
+        if not valid:
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        operations = (
+            ("setMyName", {"name": name.strip()}),
+            ("setMyDescription", {"description": description.strip()}),
+            (
+                "setMyShortDescription",
+                {"short_description": short_description.strip()},
+            ),
+            ("setMyCommands", {"commands": valid_commands}),
+        )
+        for method, payload in operations:
+            if await self._call(method, payload) is not True:
+                raise TelegramBotApiError("telegram_protocol_error")
     async def get_updates(
         self,
         *,
@@ -213,12 +260,40 @@ class TelegramBotApi:
         assert isinstance(file_path, str)
         return await self._download(file_path, size_limit)
 
-    async def send_message(self, chat_id: int, text: str) -> int:
-        if type(chat_id) is not int or not _bounded_text(text, 4096):
-            raise TelegramBotApiError("telegram_configuration_invalid")
-        result = await self._call(
-            "sendMessage", {"chat_id": chat_id, "text": text.strip()}
+    async def send_message(
+        self,
+        chat_id: int,
+        text: str,
+        *,
+        buttons: tuple[tuple[str, str], ...] = (),
+    ) -> int:
+        valid_buttons = (
+            type(buttons) is tuple
+            and len(buttons) <= 8
+            and all(
+                type(button) is tuple
+                and len(button) == 2
+                and _bounded_text(button[0], 64)
+                and _bounded_text(button[1], 64)
+                and len(button[1].encode("utf-8")) <= 64
+                for button in buttons
+            )
         )
+        if (
+            type(chat_id) is not int
+            or not _bounded_text(text, 4096)
+            or not valid_buttons
+        ):
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        payload: dict[str, Any] = {"chat_id": chat_id, "text": text.strip()}
+        if buttons:
+            payload["reply_markup"] = {
+                "inline_keyboard": [[
+                    {"text": label.strip(), "callback_data": token.strip()}
+                    for label, token in buttons
+                ]]
+            }
+        result = await self._call("sendMessage", payload)
         if type(result) is not dict or not _non_negative_int(result.get("message_id")):
             raise TelegramBotApiError("telegram_protocol_error")
         chat = result.get("chat")
@@ -317,6 +392,10 @@ class TelegramBotApi:
             "getMe",
             "getUpdates",
             "sendMessage",
+            "setMyCommands",
+            "setMyDescription",
+            "setMyName",
+            "setMyShortDescription",
         }:
             raise TelegramBotApiError("telegram_configuration_invalid")
         return f"{_API_ROOT}/bot{self._token.get_secret_value()}/{method}"

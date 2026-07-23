@@ -18,7 +18,18 @@ from src.application.durable_runtime import PreparedTask
 from src.contracts import TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
-from src.transport.telegram import IngressStatus, TextMessage, TrustedIngressResult
+from src.transport.telegram import (
+    CallbackQuery,
+    IngressStatus,
+    TextMessage,
+    TrustedIngressResult,
+    VoiceMessage,
+)
+
+
+TaskRequestMessage = TextMessage | VoiceMessage
+TaskActionMessage = TextMessage | CallbackQuery
+TaskBoundMessage = TaskRequestMessage | CallbackQuery
 
 
 DEFAULT_TASK_CONFIRMATION_TTL_SECONDS = 300
@@ -132,7 +143,7 @@ class InMemoryTaskConfirmationStore:
         self._lock = threading.Lock()
 
     def challenge_for(
-        self, message: TextMessage, envelope: TrustedIngressEnvelope
+        self, message: TaskRequestMessage, envelope: TrustedIngressEnvelope
     ) -> TaskConfirmationChallenge | None:
         trusted = self._trusted(message, envelope)
         if trusted is None:
@@ -151,7 +162,7 @@ class InMemoryTaskConfirmationStore:
     def issue(
         self,
         *,
-        message: TextMessage,
+        message: TaskRequestMessage,
         envelope: TrustedIngressEnvelope,
         prepared: PreparedTask,
         ttl_seconds: int = DEFAULT_TASK_CONFIRMATION_TTL_SECONDS,
@@ -247,7 +258,7 @@ class InMemoryTaskConfirmationStore:
         *,
         token: str,
         action: TaskConfirmationStatus,
-        message: TextMessage,
+        message: TaskActionMessage,
         envelope: TrustedIngressEnvelope,
     ) -> TaskConfirmationResult:
         if (
@@ -339,13 +350,21 @@ class InMemoryTaskConfirmationStore:
 
     @staticmethod
     def _trusted(
-        message: TextMessage, envelope: TrustedIngressEnvelope
+        message: TaskBoundMessage, envelope: TrustedIngressEnvelope
     ) -> TrustedIngressResult | None:
         try:
+            if type(message) is TextMessage:
+                payload = TextMessage.model_validate(message.model_dump(mode="json"))
+            elif type(message) is VoiceMessage:
+                payload = VoiceMessage.model_validate(message.model_dump(mode="json"))
+            elif type(message) is CallbackQuery:
+                payload = CallbackQuery.model_validate(message.model_dump(mode="json"))
+            else:
+                return None
             return TrustedIngressResult(
                 status=IngressStatus.ACCEPTED,
                 update_id=message.update_id,
-                payload=TextMessage.model_validate(message.model_dump(mode="json")),
+                payload=payload,
                 envelope=TrustedIngressEnvelope.model_validate(
                     envelope.model_dump(mode="json")
                 ),
@@ -356,7 +375,7 @@ class InMemoryTaskConfirmationStore:
     @staticmethod
     def _actor_matches(
         binding: _Binding | _Tombstone,
-        message: TextMessage,
+        message: TaskActionMessage,
         envelope: TrustedIngressEnvelope,
     ) -> bool:
         return (

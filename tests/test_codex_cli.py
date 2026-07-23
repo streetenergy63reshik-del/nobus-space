@@ -745,3 +745,23 @@ def test_live_worker_env_rejects_temp_outside_workspace(tmp_path: Path) -> None:
         )
 
     assert caught.value.code == "worker_configuration_invalid"
+
+@pytest.mark.asyncio
+async def test_gate5a4_contract_is_accepted_as_read_only(
+    worker_files: tuple[Path, Path, Path],
+) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+    from tests.test_contracts import make_envelope
+
+    _, allowed, _ = worker_files
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = str(allowed)  # type: ignore[attr-defined]
+    contract = runtime._contract("Prepare a bounded patch.", make_envelope())
+    adapter, spawner = adapter_for(worker_files)
+
+    result = await adapter.execute(contract)
+
+    assert result.message == "done"
+    assert contract.permissions == ("repo.read", "process.run_allowlisted")
+    assert "read-only" in spawner.call["argv"]
+    assert "workspace-write" not in spawner.call["argv"]

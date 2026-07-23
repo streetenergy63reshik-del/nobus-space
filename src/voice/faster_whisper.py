@@ -27,10 +27,14 @@ class FasterWhisperTranscriber:
         model_size: str = "base",
         device: str = "cpu",
         compute_type: str = "int8",
+        download_root: str | Path | None = None,
     ) -> None:
         self._model_size = model_size
         self._device = device
         self._compute_type = compute_type
+        self._download_root = (
+            str(Path(download_root).resolve()) if download_root is not None else None
+        )
         self._model: Any | None = None
         self._model_lock = threading.Lock()
 
@@ -45,11 +49,13 @@ class FasterWhisperTranscriber:
                 "faster-whisper is not available; "
                 "install it to use FasterWhisperTranscriber"
             ) from None
-        self._model = faster_whisper.WhisperModel(
-            self._model_size,
-            device=self._device,
-            compute_type=self._compute_type,
-        )
+        options: dict[str, object] = {
+            "device": self._device,
+            "compute_type": self._compute_type,
+        }
+        if self._download_root is not None:
+            options["download_root"] = self._download_root
+        self._model = faster_whisper.WhisperModel(self._model_size, **options)
 
     def _transcribe_sync(self, path: Path, max_chars: int) -> TranscriptResult:
         """Synchronous transcription pipeline; runs entirely in a worker thread."""
