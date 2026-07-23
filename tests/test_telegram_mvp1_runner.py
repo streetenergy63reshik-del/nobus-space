@@ -69,11 +69,16 @@ def test_live_polling_lease_covers_network_and_long_handler() -> None:
     assert runner._POLLING_LEASE_SECONDS > 30 + 120
     assert runner._POLLING_LEASE_SECONDS < 300
 
+
 @pytest.mark.asyncio
-async def test_failed_worker_probe_prevents_control_polling_and_announcement(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("failure_stage", ["worker", "voice"] )
+async def test_failed_startup_probe_prevents_control_polling_and_announcement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_stage: str
 ) -> None:
+    from src.voice import VoiceTranscriptionError
     from src.workers.codex_cli import CodexCliError
+
+    startup_events: list[str] = []
 
     class Secret:
         def get_secret_value(self) -> str:
@@ -93,7 +98,18 @@ async def test_failed_worker_probe_prevents_control_polling_and_announcement(
 
     class Runtime:
         async def probe_worker(self) -> None:
-            raise CodexCliError("worker_timeout")
+            startup_events.append("worker_probe")
+            if failure_stage == "worker":
+                raise CodexCliError("worker_timeout")
+
+    class Transcriber:
+        def __init__(self, **values: object) -> None:
+            assert values["local_files_only"] is True
+            startup_events.append("voice_constructed")
+
+        async def warmup(self) -> None:
+            startup_events.append("voice_warmup")
+            raise VoiceTranscriptionError("voice model unavailable")
 
     executable = tmp_path / "codex.exe"
     executable.touch()
@@ -148,10 +164,12 @@ async def test_failed_worker_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(
         runner, "build_gate5a4_runtime", lambda **values: Runtime()
     )
+    monkeypatch.setattr(runner, "FasterWhisperTranscriber", Transcriber)
     monkeypatch.setattr(runner, "ProductTelegramControlPlane", forbidden_control)
     monkeypatch.setattr(runner, "TelegramPollingBoundary", forbidden_polling)
 
-    with pytest.raises(CodexCliError) as caught:
+    expected = CodexCliError if failure_stage == "worker" else VoiceTranscriptionError
+    with pytest.raises(expected) as caught:
         await runner._run(
             SimpleNamespace(
                 bootstrap_next_offset=None,
@@ -161,7 +179,15 @@ async def test_failed_worker_probe_prevents_control_polling_and_announcement(
             )
         )
 
-    assert caught.value.code == "worker_timeout"
+    if failure_stage == "worker":
+        assert caught.value.code == "worker_timeout"
+        assert startup_events == ["worker_probe"]
+    else:
+        assert startup_events == [
+            "worker_probe",
+            "voice_constructed",
+            "voice_warmup",
+        ]
     assert not control_constructed
     assert not polling_constructed
     assert len(api_instances) == 1

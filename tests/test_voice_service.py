@@ -388,9 +388,10 @@ class _FakeFasterWhisperModel:
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.load_thread = threading.current_thread()
+        self.load_options = kwargs
         self.instances.append(self)
 
-    def transcribe(self, path: str) -> tuple[Any, Any]:
+    def transcribe(self, path: str, **kwargs: Any) -> tuple[Any, Any]:
         self.transcribe_thread = threading.current_thread()
 
         def _segments() -> Any:
@@ -416,7 +417,7 @@ def _fake_faster_whisper_import(
                     def __init__(self, *args: Any, **kwargs: Any) -> None:
                         pass
 
-                    def transcribe(self, path: str) -> tuple[Any, Any]:
+                    def transcribe(self, path: str, **kwargs: Any) -> tuple[Any, Any]:
                         def _segments() -> Any:
                             yield type("Segment", (), {"text": "ok"})()
 
@@ -481,6 +482,25 @@ async def test_parallel_first_call_loads_model_once(
         transcriber.transcribe(tmp_voice / "b.ogg", max_chars=100),
     )
     assert len(_FakeFasterWhisperModel.instances) == 1
+
+
+@pytest.mark.asyncio
+async def test_warmup_loads_offline_model_once_before_transcription(
+    tmp_voice: Path, monkeypatch: Any
+) -> None:
+    _FakeFasterWhisperModel.reset()
+    original_import = builtins.__import__
+    monkeypatch.setattr(
+        builtins, "__import__", _fake_faster_whisper_import(original_import)
+    )
+    transcriber = FasterWhisperTranscriber(local_files_only=True)
+
+    await transcriber.warmup()
+    result = await transcriber.transcribe(tmp_voice / "dummy.ogg", max_chars=100)
+
+    assert result.text == "hello world"
+    assert len(_FakeFasterWhisperModel.instances) == 1
+    assert _FakeFasterWhisperModel.instances[0].load_options["local_files_only"] is True
 
 
 @pytest.mark.asyncio
@@ -873,7 +893,7 @@ async def test_faster_whisper_stops_segment_iteration_at_limit(tmp_voice: Path) 
         def __init__(self) -> None:
             self.yielded = 0
 
-        def transcribe(self, path: str) -> tuple[Any, Any]:
+        def transcribe(self, path: str, **kwargs: Any) -> tuple[Any, Any]:
             def segments() -> Any:
                 for _ in range(1000):
                     self.yielded += 1

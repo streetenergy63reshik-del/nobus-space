@@ -125,6 +125,28 @@ async def test_get_me_rejects_malformed_identity(result: Any) -> None:
 
 
 @pytest.mark.asyncio
+async def test_answer_callback_query_can_show_ephemeral_progress() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response(True)
+
+    api = api_for(handler)
+    try:
+        await api.answer_callback_query("query-1", text="Обрабатываю…")
+    finally:
+        await api.aclose()
+
+    assert str(calls[0].url) == (
+        f"https://api.telegram.org/bot{TOKEN}/answerCallbackQuery"
+    )
+    assert json.loads(calls[0].content) == {
+        "callback_query_id": "query-1",
+        "text": "Обрабатываю…",
+    }
+
+@pytest.mark.asyncio
 async def test_get_updates_uses_fixed_endpoint_and_bounded_payload() -> None:
     calls: list[httpx.Request] = []
 

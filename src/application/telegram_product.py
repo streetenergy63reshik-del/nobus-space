@@ -46,7 +46,9 @@ class ProductTelegramApi(Protocol):
         buttons: tuple[tuple[str, str], ...] = (),
     ) -> int: ...
 
-    async def answer_callback_query(self, query_id: str) -> None: ...
+    async def answer_callback_query(
+        self, query_id: str, *, text: str | None = None
+    ) -> None: ...
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes: ...
 
@@ -288,7 +290,15 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     ) -> None:
         claimed = self._action_store.consume(callback)
         try:
-            await self._api.answer_callback_query(callback.query_id)
+            await self._api.answer_callback_query(
+                callback.query_id,
+                text=(
+                    "Обрабатываю…"
+                    if claimed is not None
+                    and claimed.action is TelegramAction.CONFIRM_VOICE
+                    else None
+                ),
+            )
         except Exception:
             pass
         if claimed is None:

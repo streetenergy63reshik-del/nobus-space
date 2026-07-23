@@ -38,6 +38,7 @@ class FakeProductApi:
     def __init__(self) -> None:
         self.sent: list[tuple[int, str, tuple[tuple[str, str], ...]]] = []
         self.answered: list[str] = []
+        self.callback_texts: list[str | None] = []
         self.callback_failure = False
 
     async def send_message(
@@ -50,10 +51,13 @@ class FakeProductApi:
         self.sent.append((chat_id, text, buttons))
         return len(self.sent)
 
-    async def answer_callback_query(self, query_id: str) -> None:
+    async def answer_callback_query(
+        self, query_id: str, *, text: str | None = None
+    ) -> None:
         if self.callback_failure:
             raise RuntimeError("transient callback failure")
         self.answered.append(query_id)
+        self.callback_texts.append(text)
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes:
         assert file_id == "voice-file" and size_limit > 0
@@ -278,6 +282,7 @@ async def test_voice_requires_button_before_read_only_draft(tmp_path: Path) -> N
     assert await harness.control.handle(callback_update(confirm_token, 2))
     assert len(harness.runtime.drafted) == 1
     assert all("Текст подтверждён" not in text for _, text, _ in harness.api.sent)
+    assert harness.api.callback_texts == ["Обрабатываю…"]
     assert harness.api.sent[-1][2][0][0] == "✅ Применить"
 
 

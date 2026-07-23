@@ -130,6 +130,14 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             ),
         )
         await runtime.probe_worker()
+        voice_transcriber = FasterWhisperTranscriber(
+            model_size="base",
+            device="cpu",
+            compute_type="int8",
+            download_root=_VOICE_MODEL_ROOT,
+            local_files_only=True,
+        )
+        await voice_transcriber.warmup()
         control = ProductTelegramControlPlane(
             gateway,
             api,
@@ -138,12 +146,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             patch_confirmations=InMemoryPatchConfirmationStore(),
             action_store=action_store,
             voice_service=VoicePreviewService(
-                FasterWhisperTranscriber(
-                    model_size="base",
-                    device="cpu",
-                    compute_type="int8",
-                    download_root=_VOICE_MODEL_ROOT,
-                ),
+                voice_transcriber,
                 temp_root=_VOICE_TEMP_ROOT,
                 max_bytes=10 * 1024 * 1024,
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,

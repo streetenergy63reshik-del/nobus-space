@@ -306,12 +306,17 @@ class TelegramBotApi:
             raise TelegramBotApiError("telegram_protocol_error")
         return result["message_id"]
 
-    async def answer_callback_query(self, query_id: str) -> None:
-        if not _bounded_text(query_id, 256):
+    async def answer_callback_query(
+        self, query_id: str, *, text: str | None = None
+    ) -> None:
+        if not _bounded_text(query_id, 256) or (
+            text is not None and not _bounded_text(text, 200)
+        ):
             raise TelegramBotApiError("telegram_configuration_invalid")
-        result = await self._call(
-            "answerCallbackQuery", {"callback_query_id": query_id.strip()}
-        )
+        payload = {"callback_query_id": query_id.strip()}
+        if text is not None:
+            payload["text"] = text.strip()
+        result = await self._call("answerCallbackQuery", payload)
         if result is not True:
             raise TelegramBotApiError("telegram_protocol_error")
 

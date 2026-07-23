@@ -28,6 +28,7 @@ class FasterWhisperTranscriber:
         device: str = "cpu",
         compute_type: str = "int8",
         download_root: str | Path | None = None,
+        local_files_only: bool = False,
     ) -> None:
         self._model_size = model_size
         self._device = device
@@ -35,6 +36,9 @@ class FasterWhisperTranscriber:
         self._download_root = (
             str(Path(download_root).resolve()) if download_root is not None else None
         )
+        if not isinstance(local_files_only, bool):
+            raise ValueError("local_files_only must be a boolean")
+        self._local_files_only = local_files_only
         self._model: Any | None = None
         self._model_lock = threading.Lock()
 
@@ -52,17 +56,21 @@ class FasterWhisperTranscriber:
         options: dict[str, object] = {
             "device": self._device,
             "compute_type": self._compute_type,
+            "local_files_only": self._local_files_only,
         }
         if self._download_root is not None:
             options["download_root"] = self._download_root
         self._model = faster_whisper.WhisperModel(self._model_size, **options)
 
-    def _transcribe_sync(self, path: Path, max_chars: int) -> TranscriptResult:
-        """Synchronous transcription pipeline; runs entirely in a worker thread."""
+    def _model_instance(self) -> Any:
         with self._model_lock:
             if self._model is None:
                 self._load_model()
-            model = self._model
+            return self._model
+
+    def _transcribe_sync(self, path: Path, max_chars: int) -> TranscriptResult:
+        """Synchronous transcription pipeline; runs entirely in a worker thread."""
+        model = self._model_instance()
 
         segments, info = model.transcribe(str(path))
         parts: list[str] = []
@@ -93,3 +101,7 @@ class FasterWhisperTranscriber:
         if isinstance(max_chars, bool) or not isinstance(max_chars, int) or max_chars <= 0:
             raise VoiceTranscriptionError("transcription limit is invalid")
         return await asyncio.to_thread(self._transcribe_sync, path, max_chars)
+
+    async def warmup(self) -> None:
+        """Load the local model before the bot announces readiness."""
+        await asyncio.to_thread(self._model_instance)
