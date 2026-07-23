@@ -2,7 +2,7 @@
 
 **Статус решения:** ACCEPTED
 
-**Статус реализации:** PARTIAL — реализовано в `main`, live-активация ожидает L4
+**Статус реализации:** PARTIAL — безопасный path-only index локально принят L1/L2/L3; live-активация ожидает нового L4
 
 **Дата:** 2026-07-23
 
@@ -19,10 +19,12 @@ Owner-bound Telegram-оркестратор должен находить и ч�
 3. Permission принимается только если adapter сконфигурирован существующим корнем и контракт не содержит `repo.write`.
 4. Codex CLI продолжает работать с `--sandbox read-only`; web, MCP и ambient secrets выключены.
 5. Рабочей директорией остаётся изолированный Git worktree. Дополнительный корень не становится `allowed_path` для diff, apply, tests или commit.
-6. Worker получает корень как server-owned policy, а не из текста Telegram. В ответах пути возвращаются относительно корня библиотеки.
-7. Запрещено читать `.git`, `.codex`, `.cache`, `.venv`, `.runtime`, `.env`, каталоги credentials/secrets и иные данные аутентификации.
-8. Startup sentinel не получает `owner.library.read` и по-прежнему не читает файлы.
-9. Активация расширенного read-scope в работающем runner требует отдельного L4.
+6. Только при явном запросе поиска server-side path index сканирует корень без перехода по symlink/junction и передаёт worker относительные пути; абсолютный корень и содержимое файлов в prompt не включаются.
+7. Один запрос ограничен 50 000 directory entries и 8 совпадениями.
+8. Запрещены hidden/control names, `.git`, `.codex`, `.cache`, `.venv`, `.runtime`, `.env`, а также sensitive names с markers auth, cookie, credential, login, password, secret, session, token и vpn.
+9. Path index входит в общий deadline контракта и получает cooperative stop при timeout/cancel. До безопасного content adapter capability означает поиск пути, а не чтение содержимого.
+10. Startup sentinel не получает `owner.library.read` и по-прежнему не читает owner-library.
+11. Активация новой ревизии в работающем runner требует отдельного L4.
 
 ## Инварианты
 
@@ -32,16 +34,18 @@ Owner-bound Telegram-оркестратор должен находить и ч�
 - Любой code effect остаётся exact diff внутри `agent/telegram-live` и требует owner-bound L4.
 - Внешняя сеть, merge, rebase, push и remote отсутствуют.
 - Секреты не включаются в prompt, ответ, audit или `.nobus-quality`.
+- Codex CLI не получает filesystem authority на owner root и не получает абсолютный owner path в prompt.
 
 ## Остаточный риск
 
-В CURRENT Windows desktop deployment read-only sandbox и server-owned prompt policy не являются отдельной OS ACL на каждый файл. Процесс технически может иметь право чтения других локальных путей, доступных Windows account. Поэтому решение допустимо только для локального owner-bound MVP.
+Path-only index устраняет передачу file content и зависимость от внешнего filesystem scope Codex CLI, но Python runner всё ещё работает под owner Windows account без отдельной OS identity. Ошибка denylist теоретически может раскрыть лишнее имя файла; без handle-level ACL остаётся минимальное race-window между повторной проверкой directory и `scandir`. Поэтому решение допустимо только для локального owner-bound MVP.
 
 До production требуется один из вариантов:
 
 - отдельная Windows identity с ACL только на утверждённую проекцию;
 - read-only projection/staging area с deterministic manifest;
-- специализированный file adapter, который сам проверяет корень, denylist, размер, тип и digest и передаёт worker только разрешённое содержимое.
+- усиление текущего path index: signed manifest, per-project allowlist и audit digest;
+- отдельный content adapter с явным выбором файла, secret-scan и изоляцией untrusted content.
 
 ## Последствия
 
@@ -54,5 +58,5 @@ Owner-bound Telegram-оркестратор должен находить и ч�
 
 Отрицательные:
 
-- текущая изоляция чтения policy-based, а не OS-enforced;
+- server-side reader не заменяет отдельную OS identity и per-project ACL;
 - Telegram пока возвращает текст и относительный путь, но не отправляет локальный файл как document;

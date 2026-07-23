@@ -140,9 +140,11 @@ Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, cr
 
 Валидный callback привязан также к source `message_id`. `answerCallbackQuery` и `deleteMessage` запускаются параллельно с независимыми двухсекундными deadline. После нажатия исходная карточка preview/patch удаляется целиком; временная ошибка удаления не отменяет и не теряет уже принятую задачу. Невалидная или повторная кнопка карточку не удаляет.
 
-Owner-bound task contract может получить `owner.library.read` для точного server-owned корня `C:\Хранилище\АГЕНТ`. Это permission разрешено только вместе с CLI `read-only` и запрещено при `repo.write`; web/MCP выключены, рабочей директорией остаётся `agent/telegram-live`. Worker возвращает пути относительно owner root и не должен читать `.git`, `.codex`, `.cache`, `.venv`, `.runtime`, `.env`, credentials или secrets.
+Owner-bound task contract может получить `owner.library.read` для точного server-owned корня `C:\Хранилище\АГЕНТ`. Это permission разрешено только вместе с CLI `read-only` и запрещено при `repo.write`; web/MCP выключены, рабочей директорией остаётся `agent/telegram-live`.
 
-CURRENT caveat: это policy boundary поверх read-only Codex sandbox, а не отдельная Windows ACL. Процесс под desktop account технически может иметь read-доступ к другим локальным файлам. До production требуется отдельная OS identity, read-only projection либо deterministic file adapter. Не использовать `--add-dir`: он расширяет write access. Live-активация owner library требует отдельного L4 и read-only smoke известного несекретного файла.
+Прямой CLI-доступ к owner root не используется: live smoke подтвердил, что prompt policy не создаёт filesystem scope. По явному запросу поиска server-side path index без symlink/junction просматривает не более 50 000 entries и передаёт Codex до 8 относительных путей. Содержимое файлов и абсолютный owner root в prompt не включаются; hidden/control и sensitive names исключаются.
+
+CURRENT caveat: Python runner работает под desktop account без отдельной Windows ACL. Queued directory повторно проверяется непосредственно перед `scandir`, но без handle-level ACL остаётся минимальное race-window замены пути. Текущая ревизия умеет находить относительный путь, но не читать содержимое owner-library. До production нужны отдельная OS identity, signed path manifest и per-project allowlist. Не использовать `--add-dir`: он расширяет write access. Live-активация новой path-index revision требует отдельного L4 и smoke известного несекретного файла.
 
 Telegram document upload пока не реализован: worker может найти материал и вернуть относительный путь, но не отправляет локальный файл как attachment.
 

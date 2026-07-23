@@ -2,18 +2,22 @@
 
 ## Итерация 2026-07-23: owner library и callback cleanup
 
-Локальная реализация в `main` завершена, live runner ещё не обновлён:
+Live runner обновлён до `8574f22`: startup Sol/high/Fast probe, локальный Whisper warmup и свежий polling lease прошли; callback cleanup активирован. Owner smoke выявил P1: передача server root в prompt не даёт Codex CLI фактического внешнего filesystem scope, поэтому прямой owner-library read признан `REWORK`.
+
+Новая локальная ревизия в `main` заменяет прямой CLI access безопасным path-only index:
 
 - trusted-ingress content digest валидного Telegram callback включает source `message_id`;
 - после надёжной постановки действия `answerCallbackQuery` и `deleteMessage` выполняются параллельно; live-очередь не ждёт завершения Codex;
 - ошибка `deleteMessage` не блокирует и не теряет подтверждённую задачу;
 - owner-bound Gate 5A.4 получает отдельное `owner.library.read` для `C:\Хранилище\АГЕНТ`;
 - permission fail-closed без server root и несовместим с `repo.write`;
+- только при явном запросе поиска index отбирает до 8 совпадений в пределах 50 000 entries и передаёт Codex только относительные пути;
+- содержимое, абсолютный owner root, hidden/control/sensitive names, symlink и junction в prompt не попадают; path scan входит в deadline;
 - worktree остаётся единственной областью diff/apply/commit, web и MCP выключены;
 - фактический HTML найден по адресу `PROстранство\Browser-worker MVP-1\Browser-agent MVP-1 — актуализированная дорожная карта.html` относительно owner root;
-- Telegram attachment/sendDocument не реализован: доступно чтение и возврат относительного пути.
+- Telegram attachment/sendDocument не реализован: доступен поиск и возврат относительного пути; чтение содержимого owner-library отложено до изолированного content adapter.
 
-L1: `766 passed, 2 skipped, 1 warning`; `git diff --check` PASS. L2/L3: `ACCEPT`, P0/P1/P2 нет. Live smoke ожидается. Активация требует отдельного L4, поскольку расширяет read-scope работающего Codex worker.
+Текущий rework: owner target `66 passed`, full suite `775 passed, 2 skipped, 1 warning`; exact path-only smoke нашёл требуемый HTML первым совпадением. Cooperative timeout/cancel завершает scan thread; generic status не запускает scan, короткие `ТЗ`/`MVP`/`ИИ` находятся. Независимые L2/L3: `ACCEPT`, P0/P1/P2 нет. Live runner остаётся на `8574f22`; path-index revision ещё не активирована и потребует нового точного L4.
 
 
 **Снимок:** 2026-07-23, Europe/Moscow
