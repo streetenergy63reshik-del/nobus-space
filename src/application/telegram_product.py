@@ -35,6 +35,7 @@ from src.voice import VoicePreviewService
 
 _VOICE_LIMIT = 10 * 1024 * 1024
 _MESSAGE_CHUNK = 3_400
+_CALLBACK_ACK_TIMEOUT_SECONDS = 2.0
 
 
 class ProductTelegramApi(Protocol):
@@ -290,14 +291,17 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     ) -> None:
         claimed = self._action_store.consume(callback)
         try:
-            await self._api.answer_callback_query(
-                callback.query_id,
-                text=(
-                    "Обрабатываю…"
-                    if claimed is not None
-                    and claimed.action is TelegramAction.CONFIRM_VOICE
-                    else None
+            await asyncio.wait_for(
+                self._api.answer_callback_query(
+                    callback.query_id,
+                    text=(
+                        "Обрабатываю…"
+                        if claimed is not None
+                        and claimed.action is TelegramAction.CONFIRM_VOICE
+                        else None
+                    ),
                 ),
+                timeout=_CALLBACK_ACK_TIMEOUT_SECONDS,
             )
         except Exception:
             pass

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,7 @@ class FakeProductApi:
         self.answered: list[str] = []
         self.callback_texts: list[str | None] = []
         self.callback_failure = False
+        self.callback_gate: asyncio.Event | None = None
 
     async def send_message(
         self,
@@ -54,6 +56,8 @@ class FakeProductApi:
     async def answer_callback_query(
         self, query_id: str, *, text: str | None = None
     ) -> None:
+        if self.callback_gate is not None:
+            await self.callback_gate.wait()
         if self.callback_failure:
             raise RuntimeError("transient callback failure")
         self.answered.append(query_id)
@@ -323,6 +327,25 @@ async def test_callback_answer_failure_does_not_lose_owner_apply(tmp_path: Path)
     assert await harness.control.handle(callback_update(apply_token, 2))
 
     assert len(harness.runtime.applied) == 1
+
+
+@pytest.mark.asyncio
+async def test_slow_callback_ack_does_not_delay_voice_worker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    harness = _product(tmp_path, voice=True)
+    await harness.control.handle(voice_update(1))
+    confirm_token = harness.api.sent[-1][2][0][1]
+    harness.api.callback_gate = asyncio.Event()
+    monkeypatch.setattr(
+        "src.application.telegram_product._CALLBACK_ACK_TIMEOUT_SECONDS",
+        0.01,
+    )
+
+    await harness.control.handle(callback_update(confirm_token, 2))
+
+    assert len(harness.runtime.drafted) == 1
+    assert harness.api.answered == []
 
 
 @pytest.mark.asyncio
