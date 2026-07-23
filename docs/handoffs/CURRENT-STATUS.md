@@ -6,6 +6,14 @@
 
 **Назначение:** единственная обновляемая точка передачи фактического состояния между итерациями
 
+## Обновление 2026-07-23 — недельный лимит Codex (ACCEPT — ACTIVATION PENDING)
+
+В main commit `4ab837c` добавлена продуктовая команда `/limit` и пункт `Лимит` в Bot Menu. Команда выполняет отдельный bounded read-only запрос `account/rateLimits/read` через официальный Codex app-server, выбирает exact `codex` window длительностью 10 080 минут и показывает владельцу использованный/оставшийся процент и время сброса по Москве. Model turn, tools, web и MCP не запускаются; абсолютное число токенов OpenAI не сообщает.
+
+Fail-closed границы: exact argv allowlist синхронизирован в adapter, Windows Job launcher и helper; JSONL ограничен по числу сообщений и размеру; дублирующиеся JSON keys, неверный bucket/window/type/процент и provider error отвергаются; timeout 15 секунд; process tree завершается при success, error и cancellation. Ошибка даёт одно безопасное сообщение и не создаёт Task. Startup-order сохранён: limit provider создаётся только после успешных Codex worker probe и локального Whisper warmup.
+
+Проверки: `56 passed` target; `754 passed, 2 skipped, 1 known warning` full; `pip check` и `compileall` — PASS; production-path smoke через тот же sanitized environment и Windows Job — PASS (`15%` использовано, `85%` осталось, reset `2026-07-30 10:00 MSK` на момент проверки). Live runner остаётся на `e5405f7`; публикация Bot Menu и перезапуск требуют отдельного owner L4.
+
 ## Обновление 2026-07-23 — concurrent Telegram execution (ACCEPT — ACTIVATION PENDING)
 
 В main реализован ADR 0009: production CLI profile `gpt-5.6-sol` + `high` reasoning + Fast mode; Gate 5A.4 execution deadline 10 800 секунд при абсолютном ceiling 14 400 секунд; Telegram polling отделён от worker execution. Два read-only workers выполняют независимые задачи параллельно. Admission допускает 32 ожидающих drafts в общей очереди maxsize 40 с резервом для L4. Overflow и controlled close считают job завершённым только после exact durable terminal proof; persistent failure запрещает polling ACK или clean close. Exact owner-approved patch сохраняет эксклюзивный Git/L2/L3/apply/commit boundary.
@@ -72,6 +80,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
 | Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7`, `496e891` | 99 callback/worker target; 731 full; independent ACCEPT; current polling lease active | **VOICE WARMUP LIVE; CALLBACK/WORKER FIX ACCEPTED, ACTIVATION PENDING** |
+| Gate 5A.5 — weekly Codex usage visibility | `4ab837c` | 56 target; 754 full; exact 7-day bucket production smoke | **ACCEPTED LOCAL; ACTIVATION PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -98,7 +107,8 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 - voice preview подтверждается единожды тем же tenant/actor/role/auth context/user/chat через inline-кнопки; capability имеет TTL, хранится только в виде digest и после success заменяется replay tombstone;
 - callback/replay/confirmation stores остаются in-memory и после restart безопасно теряют незавершённые challenge без применения эффекта;
 - voice download ограничен 10 MiB, транскрипция выполняется локальной `faster-whisper base`, temp file очищается после success/error/cancellation;
-- bot profile публикует в меню `/start`, `/status` и `/help`; технические подтверждения скрыты за inline-кнопками;
+- bot profile публикует в меню `/start`, `/status`, `/limit` и `/help`; технические подтверждения скрыты за inline-кнопками;
+- `/limit` читает exact семидневный Codex rate-limit bucket без model turn и показывает только процент и время сброса; отказ не создаёт Task;
 - stream API удалён после независимого L3 resource-exhaustion finding;
 - `faster-whisper==1.2.1` является точной обязательной зависимостью live voice path.
 
@@ -116,7 +126,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний проверенный implementation commit: `496e891 fix: bound Telegram callback and worker latency`.
+- Последний проверенный implementation commit: `4ab837c feat: report weekly Codex limit in Telegram`.
 - Hardening live Codex boundary: `007640b`.
 - Предыдущие live Telegram commits: `70941d8`, `17ac081`, `96fa634`, `b17f650`.
 - Remote отсутствует; push не выполнялся.
@@ -176,8 +186,8 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 ## Следующая очередь
 
-1. После отдельного owner L4 fast-forward обновить live-ветку до `496e891`, выполнить startup probe и перезапустить runner.
-2. Повторить owner voice smoke; затем реализовать product response renderer и удаление использованного voice/patch preview.
+1. После отдельного owner L4 fast-forward обновить live-ветку до `4ab837c`, опубликовать Bot Menu с `/limit`, выполнить startup probe и перезапустить runner.
+2. Выполнить owner smoke `/limit`, затем повторить text/voice/queue smoke и owner-approved diff/apply.
 3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
