@@ -698,3 +698,49 @@ def test_verification_contract_rejects_bool_revision_and_bad_digest() -> None:
             evidence_refs=("evidence",),
             evidence_digest="not-a-digest",
         )
+
+
+@pytest.mark.asyncio
+async def test_high_risk_read_only_answer_is_distinct_from_effect_completion() -> None:
+    manager = StateManager(REGISTRY)
+    task = await advance_to(
+        manager,
+        await create_draft(
+            manager,
+            risk=RiskLevel.HIGH,
+            result={"value": "A", "result_kind": "answer"},
+        ),
+        2,
+    )
+
+    answered = await manager.update(
+        task.id,
+        status=TaskStatus.ANSWERED,
+        verification_bundle=make_bundle(task, 3),
+    )
+
+    assert answered is not None
+    assert answered.status is TaskStatus.ANSWERED
+    with pytest.raises(PolicyViolation, match="terminal task"):
+        await manager.update(task.id, error_message="tamper")
+
+
+@pytest.mark.asyncio
+async def test_high_risk_patch_can_never_terminalize_as_answered() -> None:
+    manager = StateManager(REGISTRY)
+    task = await advance_to(
+        manager,
+        await create_draft(
+            manager,
+            risk=RiskLevel.HIGH,
+            result={"value": "A", "result_kind": "patch"},
+        ),
+        2,
+    )
+
+    with pytest.raises(PolicyViolation, match="answer result"):
+        await manager.update(
+            task.id,
+            status=TaskStatus.ANSWERED,
+            verification_bundle=make_bundle(task, 3),
+        )

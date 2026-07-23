@@ -79,8 +79,10 @@ class FakeProductRuntime:
     applied: list[tuple[PatchProposal, str, str]]
     rejected: list[PatchProposal]
     reject_failures: int = 0
+    deliveries: int = 0
 
     async def deliver_pending(self, tenant_id: str, sender: object) -> tuple[object, ...]:
+        self.deliveries += 1
         return await self.base.deliver_pending(tenant_id, sender)
 
     async def prepare_instruction(self, instruction: str, envelope: object) -> PreparedTask:
@@ -256,7 +258,9 @@ async def test_plain_text_immediately_creates_read_only_draft_then_button_applie
     assert harness.runtime.applied[0][1] == "telegram:owner"
     assert harness.runtime.applied[0][2].startswith("telegram-owner-confirmation:sha256:")
     assert harness.api.answered == ["query-2"]
-    assert "Merge / push не выполнялись" in harness.api.sent[-1][1]
+    assert "Точный diff подтверждён" in harness.api.sent[-1][1]
+    assert "Task:" not in harness.api.sent[-1][1]
+    assert "Event:" not in harness.api.sent[-1][1]
 
 
 @pytest.mark.asyncio
@@ -278,12 +282,14 @@ async def test_cancelled_voice_never_reaches_codex(tmp_path: Path) -> None:
     harness = _product(tmp_path, voice=True)
     await harness.control.handle(voice_update(1))
     cancel_token = harness.api.sent[-1][2][1][1]
+    sent_before_cancel = len(harness.api.sent)
 
     await harness.control.handle(callback_update(cancel_token, 2))
 
     assert harness.runtime.drafted == []
     assert harness.runtime.applied == []
-    assert harness.api.sent[-1][1] == "Задача отменена."
+    assert harness.api.answered == ["query-2"]
+    assert len(harness.api.sent) == sent_before_cancel
 
 
 @pytest.mark.asyncio
@@ -334,3 +340,69 @@ async def test_expiry_cleanup_retries_after_transient_reject_failure(tmp_path: P
     await harness.control.handle(text_update("/status", 3))
     assert len(harness.runtime.rejected) == 1
     assert harness.patches.sweep_expired() == ()
+
+
+@pytest.mark.asyncio
+async def test_verified_informational_answer_is_sent_without_technical_metadata(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path)
+
+    async def answer(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        return Gate5A4DraftOutcome(
+            status=FakeVerticalStatus.COMPLETED,
+            task_id=prepared.contract.task_id,
+            answer="Готовность подтверждена. Работаю в безопасном read-only режиме.",
+            message="ready",
+        )
+
+    harness.runtime.draft_prepared = answer  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Представь свой текущий статус", 1))
+
+    visible = "\n".join(text for _, text, _ in harness.api.sent)
+    assert harness.runtime.deliveries == 1
+    assert "Готовность подтверждена" not in visible
+    for marker in ("Task:", "Event:", "Revision:", "Digest:", "/confirm ", "/cancel "):
+        assert marker not in visible
+
+
+@pytest.mark.asyncio
+async def test_patch_and_voice_product_messages_hide_ids_and_backup_codes(
+    tmp_path: Path,
+) -> None:
+    text_harness = _product(tmp_path)
+    await text_harness.control.handle(text_update("Исправь безопасный файл", 1))
+    text_visible = "\n".join(text for _, text, _ in text_harness.api.sent)
+
+    voice_harness = _product(tmp_path, voice=True)
+    await voice_harness.control.handle(voice_update(1))
+    voice_visible = "\n".join(text for _, text, _ in voice_harness.api.sent)
+
+    for visible in (text_visible, voice_visible):
+        for marker in ("Task:", "Event:", "Revision:", "Digest:", "/confirm ", "/cancel "):
+            assert marker not in visible
+    assert "agent/telegram-live" not in text_harness.control._status_text()
+    assert [label for label, _ in voice_harness.api.sent[-1][2]] == [
+        "✅ Подтверждаю",
+        "❌ Отмена",
+    ]
+
+@pytest.mark.asyncio
+async def test_informational_answer_uses_only_durable_delivery_boundary(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path)
+
+    async def answer(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        return Gate5A4DraftOutcome(
+            status=FakeVerticalStatus.COMPLETED,
+            task_id=prepared.contract.task_id,
+            answer="Проверенный ответ.",
+            message="ready",
+        )
+
+    harness.runtime.draft_prepared = answer  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Дай статус", 1))
+
+    assert harness.runtime.deliveries == 1
+    assert all(text != "Проверенный ответ." for _, text, _ in harness.api.sent)

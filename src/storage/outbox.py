@@ -1,4 +1,4 @@
-"""Strict, content-free contracts for the local SQLite notification outbox."""
+"""Strict contracts for the local SQLite notification outbox."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ class ReceiptType(str, Enum):
 
 
 class OutboxMessage(BaseModel):
-    """Tamper-evident metadata for one safe task-status notification."""
+    """Tamper-evident safe task notification with optional verified answer."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -47,6 +47,7 @@ class OutboxMessage(BaseModel):
     destination_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     template_id: str = Field(pattern=r"^task_status$")
     task_status: TaskStatus
+    user_message: str | None = Field(default=None, min_length=1, max_length=3_400)
     status: OutboxStatus
     attempt_count: StrictInt = Field(ge=0)
     max_attempts: StrictInt = Field(ge=1, le=10)
@@ -88,6 +89,18 @@ class OutboxMessage(BaseModel):
             raise ValueError("result revision zero cannot have a digest")
         if self.result_revision > 0 and self.result_digest is None:
             raise ValueError("positive result revision requires a digest")
+        if self.task_status is TaskStatus.ANSWERED:
+            if (
+                self.user_message is None
+                or self.user_message != self.user_message.strip()
+                or any(
+                    ord(character) < 32 and character not in "\n\t"
+                    for character in self.user_message
+                )
+            ):
+                raise ValueError("answered notification requires a safe message")
+        elif self.user_message is not None:
+            raise ValueError("only answered notifications may carry a message")
         expected_fingerprint = message_fingerprint(
             tenant_id=self.tenant_id,
             task_id=self.task_id,
@@ -98,6 +111,7 @@ class OutboxMessage(BaseModel):
             result_digest=self.result_digest,
             destination_ref=self.destination_ref,
             task_status=self.task_status,
+            user_message=self.user_message,
         )
         if self.message_fingerprint != expected_fingerprint:
             raise ValueError("message fingerprint does not match its binding")
@@ -174,9 +188,9 @@ def message_fingerprint(
     result_digest: str | None,
     destination_ref: str,
     task_status: TaskStatus,
+    user_message: str | None = None,
 ) -> str:
-    return canonical_json_digest(
-        {
+    binding = {
             "contract_digest": contract_digest,
             "destination_ref": destination_ref,
             "result_digest": result_digest,
@@ -188,7 +202,11 @@ def message_fingerprint(
             "template_id": "task_status",
             "tenant_id": tenant_id,
         }
-    )
+    if user_message is not None:
+        binding["user_message_digest"] = canonical_json_digest(
+            {"user_message": user_message}
+        )
+    return canonical_json_digest(binding)
 
 
 def message_id_for(fingerprint: str) -> UUID:

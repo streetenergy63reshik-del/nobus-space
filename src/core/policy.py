@@ -97,6 +97,7 @@ ALLOWED_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
     TaskStatus.L2_VERIFIED: frozenset(
         {
             TaskStatus.L3_APPROVED,
+            TaskStatus.ANSWERED,
             TaskStatus.REJECTED,
             TaskStatus.REWORK,
             TaskStatus.ESCALATE,
@@ -124,6 +125,7 @@ ALLOWED_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
     TaskStatus.DEFERRED: frozenset({TaskStatus.IN_PROGRESS}),
     TaskStatus.ESCALATE: frozenset(),
     TaskStatus.COMPLETED: frozenset(),
+    TaskStatus.ANSWERED: frozenset(),
     TaskStatus.FAILED: frozenset(),
 }
 
@@ -134,6 +136,7 @@ VERIFICATION_STAGE_LEVELS: dict[TaskStatus, int] = {
     TaskStatus.WAITING_HUMAN: 3,
     TaskStatus.HUMAN_APPROVED: 3,
     TaskStatus.COMPLETED: 3,
+    TaskStatus.ANSWERED: 3,
 }
 
 _FAILED_STAGE_BY_SOURCE: dict[TaskStatus, int] = {

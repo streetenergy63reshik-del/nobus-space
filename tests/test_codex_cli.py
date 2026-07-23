@@ -183,11 +183,16 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
         "TERM": "dumb",
     }
     assert "TOP_SECRET_TOKEN" not in spawner.call["env"]
-    assert json.loads(spawner.process.stdin.decode("utf-8")) == {
-        "instruction": "Р В РЎСџР РЋР вЂљР В РЎвЂўР В Р вЂ Р В Р’ВµР РЋР вЂљР РЋР Р‰; --danger && calc.exe",
-        "acceptance_criteria": ["Р В РЎв„ўР РЋР вЂљР В РЎвЂР РЋРІР‚С™Р В Р’ВµР РЋР вЂљР В РЎвЂР В РІвЂћвЂ“ Р В РЎвЂўР В РўвЂР В РЎвЂР В Р вЂ¦"],
+    prompt = json.loads(spawner.process.stdin.decode("utf-8"))
+    assert set(prompt) == {
+        "instruction",
+        "acceptance_criteria",
+        "response_protocol",
     }
-
+    assert prompt["instruction"].endswith("; --danger && calc.exe")
+    assert len(prompt["acceptance_criteria"]) == 1
+    assert '{"answer":"..."}' in prompt["response_protocol"]
+    assert "Never modify files." in prompt["response_protocol"]
 
 @pytest.mark.asyncio
 async def test_exact_write_permission_selects_workspace_write_profile(

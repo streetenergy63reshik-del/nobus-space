@@ -32,6 +32,7 @@ class TaskStatus(str, Enum):
     DEFERRED = "deferred"
     ESCALATE = "escalate"
     COMPLETED = "completed"
+    ANSWERED = "answered"
     FAILED = "failed"
 
 

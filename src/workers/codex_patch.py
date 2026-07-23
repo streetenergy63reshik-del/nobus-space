@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -14,6 +14,32 @@ _DIFF_HEADER_RE = re.compile(
     r"^diff --git a/([A-Za-z0-9._/-]{1,512}) b/([A-Za-z0-9._/-]{1,512})$"
 )
 _FILE_HEADER_RE = re.compile(r"^(---|\+\+\+) (?:[ab]/([A-Za-z0-9._/-]{1,512})|/dev/null)$")
+_SECRET_VALUE_RE = re.compile(
+    r"(?:\b[1-9][0-9]{4,15}:[A-Za-z0-9_-]{20,128}\b|"
+    r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b|"
+    r"\b(?:AKIA|ASIA|AIDA|AROA|AIPA|ANPA|ANVA)[A-Z0-9]{16}\b|"
+    r"\bAIza[A-Za-z0-9_-]{30,}\b|"
+    r"\bgh[pousr]_[A-Za-z0-9]{20,}\b|"
+    r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b|"
+    r"\bsk_live_[A-Za-z0-9]{16,}\b|"
+    r"\b(?:api[_-]?key|token|password|secret)\s*[:=]\s*\S+|"
+    r"\b[A-Za-z0-9_-]{40,}\b)",
+    re.IGNORECASE,
+)
+_MIXED_SECRET_RE = re.compile(
+    r"\b(?=[A-Za-z0-9_-]{24,39}\b)(?=[A-Za-z0-9_-]*[a-z])"
+    r"(?=[A-Za-z0-9_-]*[A-Z])(?=[A-Za-z0-9_-]*[0-9])[A-Za-z0-9_-]+\b"
+)
+_LOCAL_PATH_RE = re.compile(
+    r"(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]+[\\/]|"
+    r"(?:^|\s)/(?:home|users|root|etc|var|tmp|opt)/|/\.ssh/)",
+    re.IGNORECASE,
+)
+_UUID_RE = re.compile(
+    r"\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-"
+    r"[89ab][0-9a-f]{3}-[0-9a-f]{12}\b",
+    re.IGNORECASE,
+)
 _FORBIDDEN_LINES = (
     "GIT binary patch",
     "Binary files ",
@@ -64,10 +90,45 @@ class CodexPatchDraft(BaseModel):
         return tuple(value)
 
 
-def parse_codex_patch(message: str, workspace_root: str | Path) -> CodexPatchDraft:
-    """Parse exact JSON and reject patches outside the selected worktree."""
+class CodexAnswerDraft(BaseModel):
+    """Bounded informational answer from the read-only worker."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    answer: str = Field(min_length=1, max_length=3_400)
+
+    @field_validator("answer")
+    @classmethod
+    def _safe_answer(cls, value: str) -> str:
+        normalized = value.strip()
+        if (
+            not normalized
+            or "\x00" in normalized
+            or _SECRET_VALUE_RE.search(normalized) is not None
+            or _MIXED_SECRET_RE.search(normalized) is not None
+            or _LOCAL_PATH_RE.search(normalized) is not None
+            or _UUID_RE.search(normalized) is not None
+        ):
+            raise ValueError
+        if any(
+            ord(character) < 32 and character not in "\n\t"
+            for character in normalized
+        ):
+            raise ValueError
+        return normalized
+
+
+CodexDraft: TypeAlias = CodexPatchDraft | CodexAnswerDraft
+
+
+def parse_codex_draft(message: str, workspace_root: str | Path) -> CodexDraft:
+    """Parse one exact answer or patch object from the read-only worker."""
     try:
         value = json.loads(message, object_pairs_hook=_unique_object)
+        if not isinstance(value, dict):
+            raise ValueError
+        if set(value) == {"answer"}:
+            return CodexAnswerDraft.model_validate(value)
         draft = CodexPatchDraft.model_validate(value)
         workspace = Path(workspace_root).resolve(strict=True)
         if not workspace.is_dir() or "\x00" in draft.summary:
@@ -75,7 +136,15 @@ def parse_codex_patch(message: str, workspace_root: str | Path) -> CodexPatchDra
         paths = _patch_paths(draft.patch, workspace)
         if paths != draft.paths:
             raise ValueError
+        return draft
     except (OSError, RuntimeError, TypeError, ValueError):
+        raise CodexPatchError("codex_patch_invalid") from None
+
+
+def parse_codex_patch(message: str, workspace_root: str | Path) -> CodexPatchDraft:
+    """Parse exact JSON and reject patches outside the selected worktree."""
+    draft = parse_codex_draft(message, workspace_root)
+    if not isinstance(draft, CodexPatchDraft):
         raise CodexPatchError("codex_patch_invalid") from None
     return draft
 

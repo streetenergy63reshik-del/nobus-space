@@ -43,7 +43,14 @@ from src.storage import SQLiteStore
 from src.transport.telegram import TelegramGateway
 from src.workers.asyncio_spawner import AsyncioProcessSpawner
 from src.workers.codex_cli import CodexCliAdapter, build_worker_env
-from src.workers.codex_patch import CodexPatchDraft, CodexPatchError, parse_codex_patch, validate_codex_patch_path
+from src.workers.codex_patch import (
+    CodexAnswerDraft,
+    CodexPatchDraft,
+    CodexPatchError,
+    parse_codex_draft,
+    parse_codex_patch,
+    validate_codex_patch_path,
+)
 from src.workers.windows_job import WindowsJobLauncher
 
 
@@ -53,10 +60,12 @@ _VERIFIER_IDENTITIES = {
     3: "verifier:gate5a4:staged-audit",
 }
 _CRITERIA = (
-    "Return exactly one JSON object with keys summary, patch, paths and no markdown fences.",
+    "Return exactly one JSON object and no markdown fences or surrounding prose.",
+    "For an informational result use only key answer; for a repository "
+    "change use summary, patch, paths.",
     "patch is a UTF-8 unified Git diff for text files only; paths exactly list changed files.",
     "Do not modify files, use network, inspect credentials, or access paths outside the repository.",
-    "Keep the change minimal and include or update tests where behavior changes.",
+    "Keep any change minimal and include or update tests where behavior changes.",
 )
 
 
@@ -68,6 +77,7 @@ class Gate5A4DraftOutcome(BaseModel):
     status: FakeVerticalStatus
     task_id: UUID | None = None
     proposal: PatchProposal | None = None
+    answer: str | None = None
     message: str
 
 
@@ -117,7 +127,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
         )
 
     async def draft_prepared(self, prepared: PreparedTask) -> Gate5A4DraftOutcome:
-        """Run Codex read-only and persist only the L1/content-free task state."""
+        """Run Codex read-only and return a verified answer or exact patch proposal."""
         async with self._execution_lock:
             task: Task | None = None
             try:
@@ -126,8 +136,14 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 task = await self._prepared_task(contract)
                 task = await self._start_worker(contract, task)
                 worker_result = await self._worker.execute(contract)
+                draft = parse_codex_draft(worker_result.message, self._pipeline.root)
                 task = await self._record_worker_result(
-                    contract, task, worker_result.message
+                    contract,
+                    task,
+                    worker_result.message,
+                    result_kind=(
+                        "answer" if isinstance(draft, CodexAnswerDraft) else "patch"
+                    ),
                 )
                 candidate = self._candidate(task, worker_result.message)
                 l1 = VerificationLevel.model_validate(
@@ -152,28 +168,90 @@ class Gate5A4Runtime(DurableFakeRuntime):
                     return Gate5A4DraftOutcome(
                         status=FakeVerticalStatus.FAILED,
                         task_id=task.id,
-                        message="Patch preflight rejected.",
+                        message="Read-only result preflight rejected.",
                     )
-                proposal = self._proposal(candidate)
+                if isinstance(draft, CodexPatchDraft):
+                    return Gate5A4DraftOutcome(
+                        status=FakeVerticalStatus.COMPLETED,
+                        task_id=task.id,
+                        proposal=self._proposal(candidate),
+                        message="Read-only patch draft is ready for exact confirmation.",
+                    )
+
+                l2 = VerificationLevel.model_validate(
+                    (await self._pipeline.l2(candidate)).model_dump()
+                )
+                passed = l2.status is VerificationLevelStatus.PASSED
+                task = await self._required_update(
+                    task.id,
+                    status=TaskStatus.L2_VERIFIED if passed else TaskStatus.REJECTED,
+                    verification_bundle=self._bundle(
+                        task,
+                        l1=l1,
+                        l2=l2,
+                        status=(
+                            VerificationBundleStatus.DRAFT
+                            if passed
+                            else VerificationBundleStatus.REJECTED
+                        ),
+                    ),
+                    error_message=None if passed else "l2_failed",
+                )
+                if not passed:
+                    return Gate5A4DraftOutcome(
+                        status=FakeVerticalStatus.FAILED,
+                        task_id=task.id,
+                        message="Read-only answer verification failed.",
+                    )
+
+                l3 = VerificationLevel.model_validate(
+                    (await self._pipeline.l3(candidate)).model_dump()
+                )
+                passed = l3.status is VerificationLevelStatus.PASSED
+                task = await self._required_update(
+                    task.id,
+                    status=TaskStatus.ANSWERED if passed else TaskStatus.REJECTED,
+                    user_message=draft.answer if passed else None,
+                    verification_bundle=self._bundle(
+                        task,
+                        l1=l1,
+                        l2=l2,
+                        l3=l3,
+                        status=(
+                            VerificationBundleStatus.APPROVED
+                            if passed
+                            else VerificationBundleStatus.REJECTED
+                        ),
+                    ),
+                    error_message=None if passed else "l3_failed",
+                )
+                if not passed:
+                    return Gate5A4DraftOutcome(
+                        status=FakeVerticalStatus.FAILED,
+                        task_id=task.id,
+                        message="Read-only answer audit failed.",
+                    )
+                await self._pipeline.finalize(task.id)
                 return Gate5A4DraftOutcome(
                     status=FakeVerticalStatus.COMPLETED,
                     task_id=task.id,
-                    proposal=proposal,
-                    message="Read-only patch draft is ready for exact confirmation.",
+                    answer=draft.answer,
+                    message="Verified read-only answer is ready for delivery.",
                 )
             except asyncio.CancelledError:
                 if task is not None:
+                    await self._pipeline.discard(task.id)
                     await self._escalate(task)
                 raise
             except Exception:
                 if task is not None:
+                    await self._pipeline.discard(task.id)
                     await self._escalate(task)
                 return Gate5A4DraftOutcome(
                     status=FakeVerticalStatus.FAILED,
                     task_id=task.id if task is not None else None,
-                    message="Read-only patch draft failed.",
+                    message="Read-only result failed.",
                 )
-
     async def apply_proposal(
         self,
         proposal: PatchProposal,
@@ -431,6 +509,12 @@ class _DraftState:
 
 
 @dataclass(frozen=True)
+class _AnswerState:
+    draft: CodexAnswerDraft
+    baseline: str
+
+
+@dataclass(frozen=True)
 class _CommitState:
     baseline: str
     commit: str
@@ -470,6 +554,7 @@ class GitPatchVerificationPipeline:
         self._clock = clock
         self._timeout = command_timeout
         self._drafts: dict[UUID, _DraftState] = {}
+        self._answers: dict[UUID, _AnswerState] = {}
         self._commits: dict[UUID, _CommitState] = {}
         self._journal_path = root.parent / ".runtime" / f"{root.name}-gate5a4-commit.json"
 
@@ -479,23 +564,44 @@ class GitPatchVerificationPipeline:
 
     async def l1(self, candidate: VerificationInput) -> VerificationLevel:
         try:
-            draft = parse_codex_patch(candidate.worker_message, self._root)
+            draft = parse_codex_draft(candidate.worker_message, self._root)
             await self._require_clean_branch()
-            await self._run_git(
-                "apply", "--check", "--whitespace=error-all", "-", stdin=draft.patch
-            )
             baseline = (await self._run_git("rev-parse", "--verify", "HEAD")).strip()
             if not 40 <= len(baseline) <= 64 or any(
                 character not in "0123456789abcdef" for character in baseline
             ):
                 raise RuntimeError("invalid baseline")
-            self._drafts[candidate.task_id] = _DraftState(draft, baseline)
-            return self._level(candidate, 1, True, "patch schema and git apply-check")
+            if isinstance(draft, CodexPatchDraft):
+                await self._run_git(
+                    "apply", "--check", "--whitespace=error-all", "-", stdin=draft.patch
+                )
+                self._drafts[candidate.task_id] = _DraftState(draft, baseline)
+                self._answers.pop(candidate.task_id, None)
+                method = "patch schema and git apply-check"
+            else:
+                self._answers[candidate.task_id] = _AnswerState(draft, baseline)
+                self._drafts.pop(candidate.task_id, None)
+                method = "answer schema and clean worktree baseline"
+            return self._level(candidate, 1, True, method)
         except (CodexPatchError, RuntimeError):
             self._drafts.pop(candidate.task_id, None)
-            return self._level(candidate, 1, False, "patch preflight rejected")
+            self._answers.pop(candidate.task_id, None)
+            return self._level(candidate, 1, False, "read-only preflight rejected")
 
     async def l2(self, candidate: VerificationInput) -> VerificationLevel:
+        answer = self._matching_answer(candidate)
+        if answer is not None:
+            try:
+                await self._require_exact_baseline(answer.baseline)
+                return self._level(
+                    candidate, 2, True, "independent read-only worktree invariant"
+                )
+            except RuntimeError:
+                self._answers.pop(candidate.task_id, None)
+                return self._level(
+                    candidate, 2, False, "read-only worktree changed"
+                )
+
         state = self._matching_draft(candidate)
         if state is None:
             return self._level(candidate, 2, False, "patch binding unavailable")
@@ -529,6 +635,20 @@ class GitPatchVerificationPipeline:
             return self._level(candidate, 2, False, "tests or patch application failed")
 
     async def l3(self, candidate: VerificationInput) -> VerificationLevel:
+        answer = self._matching_answer(candidate)
+        if answer is not None:
+            try:
+                await self._require_exact_baseline(answer.baseline)
+
+                return self._level(
+                    candidate, 3, True, "independent bounded answer safety audit"
+                )
+            except RuntimeError:
+                self._answers.pop(candidate.task_id, None)
+                return self._level(
+                    candidate, 3, False, "answer safety audit failed"
+                )
+
         state = self._matching_draft(candidate)
         if state is None:
             return self._level(candidate, 3, False, "patch binding unavailable")
@@ -609,6 +729,7 @@ class GitPatchVerificationPipeline:
 
     async def finalize(self, task_id: UUID) -> None:
         self._drafts.pop(task_id, None)
+        self._answers.pop(task_id, None)
         self._commits.pop(task_id, None)
         self._clear_journal(task_id)
 
@@ -622,7 +743,29 @@ class GitPatchVerificationPipeline:
             return None
         return state if parsed == state.draft else None
 
+    def _matching_answer(self, candidate: VerificationInput) -> _AnswerState | None:
+        state = self._answers.get(candidate.task_id)
+        if state is None:
+            return None
+        try:
+            parsed = parse_codex_draft(candidate.worker_message, self._root)
+        except CodexPatchError:
+            return None
+        return (
+            state
+            if isinstance(parsed, CodexAnswerDraft) and parsed == state.draft
+            else None
+        )
+
+    def answer_matches(self, task_id: UUID, answer: str) -> bool:
+        state = self._answers.get(task_id)
+        return (
+            state is not None
+            and isinstance(answer, str)
+            and state.draft.answer == answer
+        )
     async def discard(self, task_id: UUID) -> None:
+        self._answers.pop(task_id, None)
         state = self._drafts.pop(task_id, None)
         if state is not None:
             await self._restore_paths(state, task_id)

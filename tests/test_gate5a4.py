@@ -354,3 +354,44 @@ async def test_restart_restores_exact_paths_after_crash_during_l2(
         (_git(), "status", "--porcelain"), cwd=tmp_path, check=True,
         capture_output=True, text=True,
     ).stdout == ""
+
+
+@pytest.mark.asyncio
+async def test_informational_answer_passes_three_read_only_levels(
+    tmp_path: Path,
+) -> None:
+    _repo(tmp_path)
+    pipeline = GitPatchVerificationPipeline(
+        worktree=tmp_path,
+        git_executable=_git(),
+        python_executable=Path(__import__("sys").executable),
+    )
+    candidate = _candidate(
+        json.dumps({"answer": "Система готова к безопасной работе."}, ensure_ascii=False)
+    )
+
+    assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.PASSED
+    assert (await pipeline.l2(candidate)).status is VerificationLevelStatus.PASSED
+    assert (await pipeline.l3(candidate)).status is VerificationLevelStatus.PASSED
+    await pipeline.finalize(candidate.task_id)
+
+    assert subprocess.run(
+        (_git(), "status", "--porcelain"), cwd=tmp_path, check=True,
+        capture_output=True, text=True,
+    ).stdout == ""
+    assert candidate.task_id not in pipeline._answers
+
+
+@pytest.mark.asyncio
+async def test_informational_answer_l1_rejects_local_path_disclosure(
+    tmp_path: Path,
+) -> None:
+    _repo(tmp_path)
+    pipeline = GitPatchVerificationPipeline(
+        worktree=tmp_path,
+        git_executable=_git(),
+        python_executable=Path(__import__("sys").executable),
+    )
+    candidate = _candidate('{"answer":"Read C:\\\\Users\\\\owner\\\\secret.txt"}')
+
+    assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.FAILED

@@ -6,7 +6,9 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -70,7 +72,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
     credential = read_generic_credential(_CREDENTIAL_TARGET)
     if credential.username.casefold() != f"@{_EXPECTED_USERNAME}".casefold():
         raise CredentialStoreError("credential_unavailable")
-    executable = _required_executable("codex")
+    executable = _required_codex_executable()
     git = _required_executable("git")
     python = (ROOT / ".venv" / "Scripts" / "python.exe").resolve(strict=True)
     worktree = _validated_worktree()
@@ -144,7 +146,9 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
             ),
             task_tenants=destination_refs,
-            task_status_sender=TelegramStatusSender(api, sender_destinations),
+            task_status_sender=TelegramStatusSender(
+                api, sender_destinations, technical_details=False
+            ),
         )
         polling = TelegramPollingBoundary(api, control.handle, checkpoint)
         if values.once:
@@ -170,6 +174,69 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         }
     finally:
         await api.aclose()
+
+
+def _extension_version(executable: Path) -> tuple[int, ...]:
+    match = re.fullmatch(
+        r"openai\.chatgpt-(.+)-win32-x64",
+        executable.parents[2].name,
+    )
+    return tuple(int(value) for value in re.findall(r"\d+", match.group(1))) if match else ()
+
+def _required_codex_executable(home: Path | None = None) -> Path:
+    """Select an installed CLI that can actually start, preferring VS Code bundles."""
+    candidates: list[Path] = []
+    extension_root = (home or Path.home()) / ".vscode" / "extensions"
+    try:
+        candidates.extend(
+            sorted(
+                extension_root.glob(
+                    "openai.chatgpt-*-win32-x64/bin/windows-x86_64/codex.exe"
+                ),
+                key=_extension_version,
+                reverse=True,
+            )
+        )
+    except OSError:
+        pass
+    discovered = shutil.which("codex.exe") or shutil.which("codex")
+    if discovered is not None:
+        candidates.append(Path(discovered))
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve(strict=True)
+            key = str(resolved).casefold()
+            if key in seen or not resolved.is_file():
+                continue
+            seen.add(key)
+            options: dict[str, object] = {
+                "stdin": subprocess.DEVNULL,
+                "stdout": subprocess.PIPE,
+                "stderr": subprocess.PIPE,
+                "timeout": 10,
+                "check": False,
+                "shell": False,
+                "env": {
+                    "PATH": os.environ.get("PATH", ""),
+                    "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+                },
+            }
+            if os.name == "nt":
+                options["creationflags"] = subprocess.CREATE_NO_WINDOW
+            result = subprocess.run((str(resolved), "--version"), **options)
+            if (
+                result.returncode == 0
+                and isinstance(result.stdout, bytes)
+                and b"codex-cli" in result.stdout.lower()
+                and len(result.stdout) <= 4096
+                and len(result.stderr) <= 4096
+            ):
+                return resolved
+        except (OSError, RuntimeError, subprocess.SubprocessError):
+            continue
+    raise RuntimeError("working Codex CLI is unavailable")
 
 
 def _required_executable(name: str) -> Path:

@@ -18,6 +18,7 @@ from uuid import UUID, uuid4
 import httpx
 from pydantic import SecretStr
 
+from src.models.task import TaskStatus
 from src.storage.outbox import OutboxMessage, OutboxStatus
 
 
@@ -559,10 +560,14 @@ class TelegramStatusSender:
         self,
         api: TelegramBotApi,
         destinations: Mapping[str, tuple[str, int]],
+        *,
+        technical_details: bool = True,
     ) -> None:
         normalized: dict[str, tuple[str, int]] = {}
-        valid = isinstance(api, TelegramBotApi) and isinstance(
-            destinations, Mapping
+        valid = (
+            isinstance(api, TelegramBotApi)
+            and isinstance(destinations, Mapping)
+            and type(technical_details) is bool
         )
         entries = destinations.items() if isinstance(destinations, Mapping) else ()
         for tenant_id, binding in entries:
@@ -583,6 +588,7 @@ class TelegramStatusSender:
             raise TelegramBotApiError("telegram_configuration_invalid")
         self._api = api
         self._destinations = MappingProxyType(normalized)
+        self._technical_details = technical_details
 
     async def __call__(self, message: OutboxMessage) -> bool:
         invalid = False
@@ -600,17 +606,36 @@ class TelegramStatusSender:
             or binding[0] != validated.destination_ref
         ):
             return False
-        await self._api.send_message(binding[1], _status_text(validated))
+        text = _status_text(validated, technical_details=self._technical_details)
+        await self._api.send_message(binding[1], text)
         return True
 
 
-def _status_text(message: OutboxMessage) -> str:
-    return (
-        f"Task: {message.task_id}\n"
-        f"Status: {message.task_status.value}\n"
-        f"Revision: {message.task_revision}\n"
-        f"Event: {message.message_id}"
-    )
+def _status_text(
+    message: OutboxMessage, *, technical_details: bool = True
+) -> str:
+    if technical_details:
+        return (
+            f"Task: {message.task_id}\n"
+            f"Status: {message.task_status.value}\n"
+            f"Revision: {message.task_revision}\n"
+            f"Event: {message.message_id}"
+        )
+    if message.task_status is TaskStatus.ANSWERED:
+        assert message.user_message is not None
+        return message.user_message
+    if message.task_status is TaskStatus.COMPLETED:
+        return (
+            "✅ Изменение проверено и сохранено в рабочей ветке. "
+            "Merge и push не выполнялись."
+        )
+    if message.task_status is TaskStatus.REJECTED:
+        return "Задача отменена. Изменения не применены."
+    if message.task_status is TaskStatus.FAILED:
+        return "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены."
+    if message.task_status is TaskStatus.ESCALATE:
+        return "⚠️ Задача остановлена безопасно и требует проверки в Codex."
+    return "Статус задачи обновлён."
 
 
 def _utc_now() -> datetime:

@@ -356,11 +356,12 @@ async def test_polling_is_single_flight_and_checkpoint_lease_is_released() -> No
     await api.aclose()
 
 
-def outbox_message() -> OutboxMessage:
+def outbox_message(status: TaskStatus = TaskStatus.COMPLETED) -> OutboxMessage:
     task_id = uuid4()
     projection_digest = "sha256:" + "a" * 64
     contract_digest = "sha256:" + "b" * 64
     result_digest = "sha256:" + "c" * 64
+    user_message = "Проверенный пользовательский ответ." if status is TaskStatus.ANSWERED else None
     fingerprint = message_fingerprint(
         tenant_id="tenant-a",
         task_id=task_id,
@@ -370,7 +371,8 @@ def outbox_message() -> OutboxMessage:
         result_revision=1,
         result_digest=result_digest,
         destination_ref=DESTINATION_REF,
-        task_status=TaskStatus.COMPLETED,
+        task_status=status,
+        user_message=user_message,
     )
     now = datetime(2026, 7, 22, tzinfo=UTC)
     return OutboxMessage(
@@ -385,7 +387,8 @@ def outbox_message() -> OutboxMessage:
         result_digest=result_digest,
         destination_ref=DESTINATION_REF,
         template_id="task_status",
-        task_status=TaskStatus.COMPLETED,
+        task_status=status,
+        user_message=user_message,
         status=OutboxStatus.LEASED,
         attempt_count=1,
         max_attempts=3,
@@ -574,3 +577,50 @@ def test_configuration_rejects_ambiguous_or_unbounded_values(options: dict[str, 
     with pytest.raises(TelegramBotApiError) as caught:
         TelegramBotApi(**values)
     assert caught.value.code == "telegram_configuration_invalid"
+
+
+@pytest.mark.asyncio
+async def test_product_status_sender_never_exposes_internal_identifiers() -> None:
+    sent: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return response({"message_id": 1, "chat": {"id": 42}})
+
+    api = api_for(handler)
+    sender = TelegramStatusSender(
+        api,
+        {"tenant-a": (DESTINATION_REF, 42)},
+        technical_details=False,
+    )
+    completed = outbox_message()
+    failed = outbox_message(TaskStatus.FAILED)
+    answered = outbox_message(TaskStatus.ANSWERED)
+    try:
+        assert await sender(completed)
+        assert await sender(failed)
+        assert await sender(answered)
+    finally:
+        await api.aclose()
+
+    assert len(sent) == 3
+    visible = "\n".join(item["text"] for item in sent)
+    assert "Изменение проверено" in visible
+    assert "Не удалось безопасно выполнить задачу" in visible
+    assert "Проверенный пользовательский ответ." in visible
+    for marker in ("Task:", "Event:", "Revision:", str(failed.task_id)):
+        assert marker not in visible
+
+
+@pytest.mark.asyncio
+async def test_product_status_sender_requires_strict_mode_flag() -> None:
+    api = api_for(lambda request: response({"message_id": 1, "chat": {"id": 42}}))
+    try:
+        with pytest.raises(TelegramBotApiError):
+            TelegramStatusSender(
+                api,
+                {"tenant-a": (DESTINATION_REF, 42)},
+                technical_details=1,  # type: ignore[arg-type]
+            )
+    finally:
+        await api.aclose()

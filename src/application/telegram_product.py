@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from typing import Any, Protocol
+from uuid import UUID
 
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
@@ -191,8 +192,6 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             "Владелец: подтверждён\n"
             "Текст: сразу в read-only работу\n"
             "Изменение кода: только после кнопки «Применить»\n"
-            "Ветка: agent/telegram-live\n"
-            "Merge / push: отключены\n"
             f"Голос: {voice}"
         )
 
@@ -224,7 +223,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return
         await self._api.send_message(
             message.chat_id,
-            "✅ Задача принята. Codex готовит read-only черновик; файлы пока не меняются.",
+            "✅ Задача принята. Готовлю решение; файлы пока не меняются.",
         )
         prepared: PreparedTask | None = None
         try:
@@ -352,12 +351,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return
         if action is TaskConfirmationStatus.CANCELLED:
             await self._product_runtime.cancel_prepared(result.prepared)
-            await self._api.send_message(message.chat_id, "Задача отменена.")
             await self.deliver_pending()
             return
         await self._api.send_message(
             message.chat_id,
-            "✅ Текст подтверждён. Codex готовит read-only черновик.",
+            "✅ Текст подтверждён. Готовлю решение.",
         )
         await self._draft_and_present(result.prepared, message, envelope)
 
@@ -368,10 +366,13 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         envelope: TrustedIngressEnvelope,
     ) -> None:
         outcome = await self._product_runtime.draft_prepared(prepared)
+        if outcome.answer is not None:
+            await self.deliver_pending()
+            return
         if outcome.proposal is None:
             await self._api.send_message(
                 message.chat_id,
-                f"⚠️ Безопасный черновик не получен. Task: {outcome.task_id}",
+                "⚠️ Не удалось безопасно подготовить результат. Изменения не применены.",
             )
             await self.deliver_pending()
             return
@@ -401,8 +402,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             )
             return
         if action is PatchConfirmationStatus.CANCELLED:
-            outcome = await self._product_runtime.reject_proposal(result.proposal)
-            text = "Diff отклонён; рабочая ветка не изменена."
+            await self._product_runtime.reject_proposal(result.proposal)
         else:
             await self._api.send_message(
                 message.chat_id,
@@ -421,20 +421,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     "task_id": str(result.proposal.task_id),
                 }
             )
-            outcome = await self._product_runtime.apply_proposal(
+            await self._product_runtime.apply_proposal(
                 result.proposal,
                 approver_identity=envelope.actor_identity,
                 approval_evidence_ref=f"telegram-owner-confirmation:{approval_digest}",
             )
-            text = (
-                "✅ Изменение проверено и сохранено в agent/telegram-live. "
-                "Merge / push не выполнялись."
-                if outcome.status is FakeVerticalStatus.COMPLETED
-                else "⚠️ Изменение не принято; автоматический повтор отключён."
-            )
-        await self._api.send_message(
-            message.chat_id, f"{text}\nTask: {outcome.task_id}"
-        )
         await self.deliver_pending()
 
     async def _send_patch_challenge(
@@ -445,11 +436,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         proposal = challenge.proposal
         await self._api.send_message(
             message.chat_id,
-            "📄 Готово изменение — файлы ещё не изменены.\n"
-            f"Task: {proposal.task_id}\n"
+            "📄 Подготовлено изменение — файлы ещё не изменены.\n"
             f"Кратко: {proposal.summary}\n"
-            f"Файлы: {', '.join(proposal.paths)}\n"
-            f"Digest: {proposal.patch_digest}",
+            f"Файлы: {', '.join(proposal.paths)}",
         )
         chunks = [
             proposal.patch[index : index + _MESSAGE_CHUNK]
@@ -471,7 +460,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         await self._api.send_message(
             message.chat_id,
             "Проверьте весь diff выше. Применение запустит тесты и локальный commit; "
-            "merge и push отключены. Код действует 10 минут.",
+            "merge и push отключены. Кнопки действуют 10 минут.",
             buttons=buttons,
         )
 
@@ -511,10 +500,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
 
 def _voice_preview(challenge: TaskConfirmationChallenge) -> str:
-    token = challenge.confirmation_token.get_secret_value()
     return (
         "🎙 Я распознал задачу:\n\n"
         f"{challenge.instruction_preview}\n\n"
-        "Проверьте текст и выберите действие. Код действует 5 минут.\n"
-        f"Резервные команды: /confirm {token} · /cancel {token}"
+        "Проверьте текст и выберите действие. Кнопки действуют 5 минут."
     )

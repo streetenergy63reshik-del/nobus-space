@@ -74,6 +74,7 @@ class DurableFakeRuntime(FakeVertical):
     _OUTBOX_STATUSES = frozenset(
         {
             TaskStatus.COMPLETED,
+            TaskStatus.ANSWERED,
             TaskStatus.REJECTED,
             TaskStatus.FAILED,
             TaskStatus.ESCALATE,
@@ -341,7 +342,9 @@ class DurableFakeRuntime(FakeVertical):
         self._revisions[task.id] = captured[0].revision
         return task
 
-    async def _required_update(self, task_id: UUID, **values: Any) -> Task:
+    async def _required_update(
+        self, task_id: UUID, *, user_message: str | None = None, **values: Any
+    ) -> Task:
         revision = self._revisions.get(task_id)
         if revision is None:
             raise RuntimeError("durable task revision is unavailable")
@@ -353,10 +356,13 @@ class DurableFakeRuntime(FakeVertical):
                     candidate,
                     expected_revision=revision,
                     destination_ref=self._destination_refs[candidate.tenant_id],
+                    user_message=user_message,
                     now=self._now(),
                 )
                 captured.append(result.task_revision)
             else:
+                if user_message is not None:
+                    raise RuntimeError("only terminal outbox updates may carry a message")
                 snapshot = self._store.save_task(
                     candidate,
                     expected_revision=revision,
@@ -432,7 +438,11 @@ class DurableFakeRuntime(FakeVertical):
         contract: TaskContract,
         task: Task,
         message: str,
+        *,
+        result_kind: str | None = None,
     ) -> Task:
+        if result_kind not in {None, "answer", "patch"}:
+            raise RuntimeError("durable worker result kind is invalid")
         revision = self._revisions.get(task.id)
         attempt_id = self._attempts.get(task.id)
         if revision is None or attempt_id is None:
@@ -477,6 +487,7 @@ class DurableFakeRuntime(FakeVertical):
             result={
                 "output_digest": canonical_json_digest({"message": message}),
                 "summary": "Worker completed.",
+                **({"result_kind": result_kind} if result_kind is not None else {}),
             },
             before_commit=persist,
         )
@@ -594,7 +605,7 @@ class DurableFakeRuntime(FakeVertical):
     @staticmethod
     def _recovery_response(snapshot: StoredTaskSnapshot) -> FakeVerticalResponse:
         projection = snapshot.projection
-        if projection.status is TaskStatus.COMPLETED:
+        if projection.status in {TaskStatus.COMPLETED, TaskStatus.ANSWERED}:
             return FakeVerticalResponse(
                 status=FakeVerticalStatus.RECOVERED,
                 task_id=projection.task_id,

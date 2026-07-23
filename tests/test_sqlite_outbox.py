@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta, timezone
@@ -12,6 +14,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.contracts import RiskLevel
+from src.contracts.models import canonical_json_digest
 from src.models.task import Task, TaskSource, TaskStatus
 from src.storage import (
     DeliveryReceipt,
@@ -26,7 +29,12 @@ from src.storage import (
     SnapshotConflictError,
     StoreCorruptionError,
 )
-from tests.test_sqlite_store import bound_values, persist
+from tests.test_sqlite_store import (
+    bound_values,
+    persist,
+    persisted_draft,
+    verification_bundle,
+)
 
 
 DESTINATION = "sha256:" + "d" * 64
@@ -102,6 +110,99 @@ def test_save_and_enqueue_is_one_atomic_transition(tmp_path: Path) -> None:
     assert snapshot.revision == 2
     assert snapshot.projection.status is TaskStatus.PARSING
 
+
+def test_legacy_outbox_row_without_user_message_remains_readable(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "state.sqlite3"
+    store = SQLiteStore(path)
+    _, _, _, result = enqueue(store)
+    with sqlite3.connect(path) as connection:
+        row = connection.execute(
+            "SELECT message_json FROM outbox_messages WHERE message_id = ?",
+            (str(result.message.message_id),),
+        ).fetchone()
+        assert row is not None
+        legacy = json.loads(row[0])
+        assert legacy.pop("user_message") is None
+        legacy_json = json.dumps(
+            legacy,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        connection.execute(
+            "UPDATE outbox_messages SET message_json = ?, message_digest = ? "
+            "WHERE message_id = ?",
+            (
+                legacy_json,
+                canonical_json_digest(legacy),
+                str(result.message.message_id),
+            ),
+        )
+
+    restored = SQLiteStore(path).read_outbox_message(
+        result.message.tenant_id,
+        result.message.message_id,
+    )
+
+    assert restored is not None
+    assert restored.user_message is None
+    assert restored.message_fingerprint == result.message.message_fingerprint
+
+def test_verified_answer_survives_restart_in_durable_outbox(tmp_path: Path) -> None:
+    path = tmp_path / "state.sqlite3"
+    store, manager, task, revision = persisted_draft(
+        path,
+        result={
+            "output_digest": canonical_json_digest({"output": "answer"}),
+            "summary": "not stored",
+            "result_kind": "answer",
+        },
+    )
+    for status, level_count in (
+        (TaskStatus.L1_VALIDATED, 1),
+        (TaskStatus.L2_VERIFIED, 2),
+    ):
+        task = asyncio.run(
+            manager.update(
+                task.id,
+                status=status,
+                verification_bundle=verification_bundle(task, level_count),
+            )
+        )
+        assert task is not None
+        store.save_task(task, expected_revision=revision)
+        revision += 1
+
+    answer = "Проверенный ответ после перезапуска."
+    task = asyncio.run(
+        manager.update(
+            task.id,
+            status=TaskStatus.ANSWERED,
+            verification_bundle=verification_bundle(task, 3),
+        )
+    )
+    assert task is not None
+    enqueued = store.save_task_and_enqueue_status(
+        task,
+        expected_revision=revision,
+        destination_ref=DESTINATION,
+        user_message=answer,
+    )
+
+    restarted = SQLiteStore(path)
+    claimed = restarted.claim_outbox_messages(
+        task.tenant_id,
+        lease_owner=uuid4(),
+        lease_duration_seconds=60,
+    )
+
+    assert len(claimed) == 1
+    assert claimed[0].message_id == enqueued.message.message_id
+    assert claimed[0].task_status is TaskStatus.ANSWERED
+    assert claimed[0].user_message == answer
 
 def test_enqueue_rollback_leaves_task_and_outbox_unchanged(tmp_path: Path) -> None:
     path = tmp_path / "state.sqlite3"

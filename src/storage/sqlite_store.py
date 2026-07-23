@@ -179,6 +179,14 @@ def _validate_task_projection(
 ) -> tuple[DurableTaskProjection, str, str]:
     """Create a strict allowlist projection; raw Task content is discarded."""
     validated = Task.model_validate(task.model_dump(mode="json"))
+    if (
+        validated.status is TaskStatus.ANSWERED
+        and (
+            not isinstance(validated.result, dict)
+            or validated.result.get("result_kind") != "answer"
+        )
+    ):
+        raise ValueError("answered projection requires an answer result")
     output_digest: object | None = None
     if validated.result_digest is not None:
         if not isinstance(validated.result, dict) or not validated.result:
@@ -1062,8 +1070,14 @@ class SQLiteStore:
         row: sqlite3.Row, *, tenant_id: str, message_id: UUID
     ) -> OutboxMessage:
         try:
-            message = OutboxMessage.model_validate_json(row["message_json"])
-            digest = canonical_json_digest(message.model_dump(mode="json"))
+            raw_message = json.loads(row["message_json"])
+            if not isinstance(raw_message, dict):
+                raise ValueError
+            legacy = "user_message" not in raw_message
+            message = OutboxMessage.model_validate(raw_message)
+            digest = canonical_json_digest(
+                raw_message if legacy else message.model_dump(mode="json")
+            )
         except (ValueError, TypeError):
             raise OutboxCorruptionError("outbox message is invalid") from None
         bindings = (
@@ -1183,6 +1197,7 @@ class SQLiteStore:
         *,
         expected_revision: int,
         destination_ref: str,
+        user_message: str | None = None,
         event: WorkerEvent | None = None,
         max_attempts: int = 3,
         now: datetime | None = None,
@@ -1239,6 +1254,7 @@ class SQLiteStore:
             result_digest=projection.result_digest,
             destination_ref=destination_ref,
             task_status=projection.status,
+            user_message=user_message,
         )
         message_id = message_id_for(fingerprint)
         pending = OutboxMessage(
@@ -1254,6 +1270,7 @@ class SQLiteStore:
             destination_ref=destination_ref,
             template_id="task_status",
             task_status=projection.status,
+            user_message=user_message,
             status=OutboxStatus.PENDING,
             attempt_count=0,
             max_attempts=max_attempts,
@@ -1277,6 +1294,7 @@ class SQLiteStore:
                         or existing.result_digest != projection.result_digest
                         or existing.destination_ref != destination_ref
                         or existing.task_status != projection.status
+                        or existing.user_message != user_message
                         or existing.max_attempts != max_attempts
                     ):
                         raise OutboxConflictError(

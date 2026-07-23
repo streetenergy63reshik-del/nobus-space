@@ -296,6 +296,13 @@ class CodexCliAdapter:
             {
                 "instruction": contract.instruction,
                 "acceptance_criteria": list(contract.acceptance_criteria),
+                "response_protocol": (
+                    "Return exactly one JSON object and no markdown or prose. "
+                    "For an informational/read-only result use {\"answer\":\"...\"}. "
+                    "Only when repository changes are needed use "
+                    "{\"summary\":\"...\",\"patch\":\"<unified git diff>\","
+                    "\"paths\":[\"relative/path\"]}. Never modify files."
+                ),
             },
             ensure_ascii=False,
             separators=(",", ":"),

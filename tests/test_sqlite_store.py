@@ -176,6 +176,8 @@ def verification_bundle(
 
 def persisted_draft(
     path: Path,
+    *,
+    result: dict[str, object] | None = None,
 ) -> tuple[SQLiteStore, StateManager, Task, int]:
     incoming = envelope()
     contract = contract_for(incoming)
@@ -191,7 +193,8 @@ def persisted_draft(
             task.id,
             status=TaskStatus.DRAFT,
             agent_id="worker:local",
-            result={
+            result=result
+            or {
                 "output_digest": canonical_json_digest({"output": "ok"}),
                 "summary": "not stored",
             },

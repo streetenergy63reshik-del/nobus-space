@@ -152,6 +152,7 @@ class StateManager:
         )
         if task.status in {
             TaskStatus.COMPLETED,
+            TaskStatus.ANSWERED,
             TaskStatus.FAILED,
             TaskStatus.ESCALATE,
         }:
@@ -240,6 +241,15 @@ class StateManager:
         ):
             raise PolicyViolation("executor is locked after DRAFT")
 
+        if (
+            candidate.status is TaskStatus.ANSWERED
+            and (
+                not isinstance(candidate.result, dict)
+                or candidate.result.get("result_kind") != "answer"
+            )
+        ):
+            raise PolicyViolation("ANSWERED requires a sealed answer result")
+
         bundle = candidate.verification_bundle
         if bundle is not None:
             if bundle.task_id != task.id or bundle.tenant_id != task.tenant_id:
@@ -264,7 +274,10 @@ class StateManager:
             and candidate.verification_bundle != task.verification_bundle
         ):
             raise PolicyViolation("VerificationBundle is audit-locked after L3")
-        if candidate.status == TaskStatus.COMPLETED and task.verification_bundle is None:
+        if (
+            candidate.status in {TaskStatus.COMPLETED, TaskStatus.ANSWERED}
+            and task.verification_bundle is None
+        ):
             raise PolicyViolation("VerificationBundle must be stored before completion")
 
         previous_bundle = task.verification_bundle
