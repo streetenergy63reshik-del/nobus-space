@@ -161,7 +161,7 @@ def test_task_contract_requires_exact_ingress_digest(
         make_contract(ingress_digest=ingress_digest)
 
 
-@pytest.mark.parametrize("timeout", [0, 3601, True, 1.0])
+@pytest.mark.parametrize("timeout", [0, 14_401, True, 1.0])
 def test_timeout_requires_a_real_bounded_integer(timeout: object) -> None:
     with pytest.raises(ValidationError):
         make_contract(timeout_seconds=timeout)

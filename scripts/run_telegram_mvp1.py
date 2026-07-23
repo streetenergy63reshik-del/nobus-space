@@ -31,7 +31,10 @@ from scripts.run_telegram_control import (  # noqa: E402
     _poll_with_unavailable_backoff,
     _task_destinations,
 )
-from src.application.gate5a4 import build_gate5a4_runtime  # noqa: E402
+from src.application.gate5a4 import (  # noqa: E402
+    GATE5A4_EXECUTION_CONCURRENCY,
+    build_gate5a4_runtime,
+)
 from src.application.patch_confirmation import InMemoryPatchConfirmationStore  # noqa: E402
 from src.application.task_confirmation import (  # noqa: E402
     MAX_TASK_INSTRUCTION_LENGTH,
@@ -80,6 +83,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
     _CODEX_TEMP.mkdir(parents=True, exist_ok=True)
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
 
+    control: ProductTelegramControlPlane | None = None
     api = TelegramBotApi(
         token=credential.secret.get_secret_value(),
         transport=httpx.AsyncHTTPTransport(retries=0, trust_env=False),
@@ -151,11 +155,13 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 max_bytes=10 * 1024 * 1024,
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
             ),
+            execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             task_tenants=destination_refs,
             task_status_sender=TelegramStatusSender(
                 api, sender_destinations, technical_details=False
             ),
         )
+        await control.start()
         polling = TelegramPollingBoundary(api, control.handle, checkpoint)
         if values.once:
             acknowledged = await _poll_once_and_announce(
@@ -179,7 +185,11 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             "acknowledged": acknowledged,
         }
     finally:
-        await api.aclose()
+        try:
+            if control is not None:
+                await control.close()
+        finally:
+            await api.aclose()
 
 
 def _extension_version(executable: Path) -> tuple[int, ...]:

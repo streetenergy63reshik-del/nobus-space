@@ -64,9 +64,9 @@ def test_selector_skips_cli_that_cannot_start(
     assert runner._required_codex_executable(tmp_path) == working.resolve()
 
 
-def test_live_polling_lease_covers_network_and_long_handler() -> None:
+def test_live_polling_lease_covers_only_telegram_processing() -> None:
     assert runner._POLLING_LEASE_SECONDS == 240
-    assert runner._POLLING_LEASE_SECONDS > 30 + 120
+    assert runner._POLLING_LEASE_SECONDS > 30
     assert runner._POLLING_LEASE_SECONDS < 300
 
 

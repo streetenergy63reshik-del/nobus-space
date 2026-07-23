@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
 import subprocess
@@ -11,9 +12,12 @@ from uuid import uuid4
 
 import pytest
 
+from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import VerificationInput
-from src.application.gate5a4 import GitPatchVerificationPipeline
-from src.contracts import VerificationLevelStatus
+from src.application.gate5a4 import Gate5A4Runtime, GitPatchVerificationPipeline
+from src.application.patch_confirmation import PatchProposal, patch_proposal_digest
+from src.contracts import TaskContract, VerificationLevelStatus
+from src.core.policy import task_contract_digest
 from src.models.task import TaskStatus
 from src.contracts.models import canonical_json_digest
 
@@ -448,3 +452,200 @@ async def test_l1_remains_failed_after_one_transient_retry(
     assert calls == 2
     assert candidate.task_id not in pipeline._answers
     assert candidate.task_id not in pipeline._drafts
+
+def _lock_only_runtime() -> Gate5A4Runtime:
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._worker_slots = asyncio.Semaphore(2)  # type: ignore[attr-defined]
+    runtime._exclusive_lock = asyncio.Lock()  # type: ignore[attr-defined]
+    return runtime
+
+
+@pytest.mark.asyncio
+async def test_exclusive_l4_waits_for_both_drafts_and_blocks_new_draft() -> None:
+    runtime = _lock_only_runtime()
+    release_drafts = asyncio.Event()
+    release_exclusive = asyncio.Event()
+    both_drafts_started = asyncio.Event()
+    exclusive_started = asyncio.Event()
+    later_draft_started = asyncio.Event()
+    draft_count = 0
+
+    async def draft(started: asyncio.Event | None = None) -> None:
+        nonlocal draft_count
+        async with runtime._worker_slots:  # type: ignore[attr-defined]
+            draft_count += 1
+            if draft_count == 2:
+                both_drafts_started.set()
+            if started is not None:
+                started.set()
+            await release_drafts.wait()
+
+    async def exclusive() -> None:
+        async with runtime._exclusive_worker_slots():
+            exclusive_started.set()
+            await release_exclusive.wait()
+
+    first = asyncio.create_task(draft())
+    second = asyncio.create_task(draft())
+    await asyncio.wait_for(both_drafts_started.wait(), timeout=1)
+    owner_apply = asyncio.create_task(exclusive())
+    await asyncio.sleep(0)
+    assert not exclusive_started.is_set()
+
+    release_drafts.set()
+    await asyncio.gather(first, second)
+    await asyncio.wait_for(exclusive_started.wait(), timeout=1)
+    later = asyncio.create_task(draft(later_draft_started))
+    await asyncio.sleep(0)
+    assert not later_draft_started.is_set()
+
+    release_exclusive.set()
+    await owner_apply
+    await asyncio.wait_for(later_draft_started.wait(), timeout=1)
+    await later
+
+
+@pytest.mark.asyncio
+async def test_two_exclusive_l4_operations_are_serialized() -> None:
+    runtime = _lock_only_runtime()
+    active = 0
+    maximum = 0
+
+    async def exclusive() -> None:
+        nonlocal active, maximum
+        async with runtime._exclusive_worker_slots():
+            active += 1
+            maximum = max(maximum, active)
+            await asyncio.sleep(0.01)
+            active -= 1
+
+    await asyncio.gather(exclusive(), exclusive())
+
+    assert maximum == 1
+
+
+@pytest.mark.asyncio
+async def test_cancelled_partial_exclusive_acquire_releases_every_permit() -> None:
+    runtime = _lock_only_runtime()
+    await runtime._worker_slots.acquire()  # type: ignore[attr-defined]
+
+    async def exclusive() -> None:
+        async with runtime._exclusive_worker_slots():
+            raise AssertionError("must remain blocked")
+
+    owner_apply = asyncio.create_task(exclusive())
+    for _ in range(10):
+        await asyncio.sleep(0)
+        if runtime._worker_slots._value == 0:  # type: ignore[attr-defined]
+            break
+    assert runtime._worker_slots._value == 0  # type: ignore[attr-defined]
+
+    owner_apply.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await owner_apply
+    runtime._worker_slots.release()  # type: ignore[attr-defined]
+
+    await asyncio.wait_for(runtime._worker_slots.acquire(), timeout=1)  # type: ignore[attr-defined]
+    await asyncio.wait_for(runtime._worker_slots.acquire(), timeout=1)  # type: ignore[attr-defined]
+    runtime._worker_slots.release()  # type: ignore[attr-defined]
+    runtime._worker_slots.release()  # type: ignore[attr-defined]
+
+
+def _bound_gate_inputs() -> tuple[PreparedTask, PatchProposal]:
+    task_id = uuid4()
+    ingress_digest = "sha256:" + "1" * 64
+    contract = TaskContract(
+        task_id=task_id,
+        idempotency_key=f"owner:gate-wrapper:{task_id}",
+        ingress_digest=ingress_digest,
+        tenant_id="owner",
+        source="api",
+        instruction="Prepare one bounded read-only result.",
+        allowed_paths=(str(Path.cwd()),),
+        permissions=("repo.read", "process.run_allowlisted"),
+        risk="medium",
+        acceptance_criteria=("Return one safe result.",),
+        timeout_seconds=7_200,
+        quality_profile="gate5a4-two-phase-patch@1",
+    )
+    prepared = PreparedTask(contract=contract, envelope_revision=ingress_digest)
+    patch = (
+        "diff --git a/safe.txt b/safe.txt\n"
+        "--- a/safe.txt\n"
+        "+++ b/safe.txt\n"
+        "@@ -1 +1 @@\n"
+        "-before\n"
+        "+after\n"
+    )
+    values: dict[str, object] = {
+        "tenant_id": contract.tenant_id,
+        "task_id": task_id,
+        "contract_digest": task_contract_digest(contract),
+        "result_revision": 1,
+        "result_digest": canonical_json_digest({"result": "draft"}),
+        "output_digest": canonical_json_digest({"output": "draft"}),
+        "summary": "Update safe.txt",
+        "patch": patch,
+        "paths": ("safe.txt",),
+    }
+    proposal = PatchProposal(
+        **values,
+        patch_digest=patch_proposal_digest({**values, "task_id": str(task_id)}),
+    )
+    return prepared, proposal
+
+
+@pytest.mark.asyncio
+async def test_real_gate_methods_enforce_draft_and_l4_slot_wrappers() -> None:
+    runtime = _lock_only_runtime()
+    prepared, proposal = _bound_gate_inputs()
+    release_drafts = asyncio.Event()
+    release_apply = asyncio.Event()
+    two_drafts_started = asyncio.Event()
+    apply_started = asyncio.Event()
+    later_draft_started = asyncio.Event()
+    draft_calls = 0
+
+    async def blocked_prepared_task(contract: TaskContract) -> object:
+        nonlocal draft_calls
+        draft_calls += 1
+        if draft_calls == 2:
+            two_drafts_started.set()
+        if draft_calls == 3:
+            later_draft_started.set()
+        await release_drafts.wait()
+        raise RuntimeError("synthetic prepared lookup stop")
+
+    async def blocked_proposal_task(candidate: PatchProposal) -> object:
+        apply_started.set()
+        await release_apply.wait()
+        raise RuntimeError("synthetic proposal lookup stop")
+
+    runtime._prepared_task = blocked_prepared_task  # type: ignore[method-assign]
+    runtime._proposal_task = blocked_proposal_task  # type: ignore[method-assign]
+    first = asyncio.create_task(runtime.draft_prepared(prepared))
+    second = asyncio.create_task(runtime.draft_prepared(prepared))
+    await asyncio.wait_for(two_drafts_started.wait(), timeout=1)
+    owner_apply = asyncio.create_task(
+        runtime.apply_proposal(
+            proposal,
+            approver_identity="telegram:owner",
+            approval_evidence_ref="telegram-owner-confirmation:" + "a" * 64,
+        )
+    )
+    await asyncio.sleep(0)
+    assert not apply_started.is_set()
+
+    release_drafts.set()
+    await asyncio.gather(first, second)
+    await asyncio.wait_for(apply_started.wait(), timeout=1)
+    later = asyncio.create_task(runtime.draft_prepared(prepared))
+    await asyncio.sleep(0)
+    assert not later_draft_started.is_set()
+
+    release_apply.set()
+    assert (await owner_apply).status.value == "failed"
+    await asyncio.wait_for(later_draft_started.wait(), timeout=1)
+    await later
+
+    assert (await runtime.reject_proposal(proposal)).status.value == "failed"

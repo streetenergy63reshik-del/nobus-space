@@ -23,9 +23,13 @@ _READ_ARGV = (
     "--ignore-user-config",
     "--ignore-rules",
     "--model",
-    "gpt-5.6-terra",
+    "gpt-5.6-sol",
     "--config",
-    'model_reasoning_effort="medium"',
+    'model_reasoning_effort="high"',
+    "--config",
+    'service_tier="fast"',
+    "--config",
+    "features.fast_mode=true",
     "--config",
     'web_search="disabled"',
     "--config",
@@ -131,7 +135,7 @@ class CodexCliAdapter:
         prompt_limit: int = 64 * 1024,
         stdout_limit: int = 128 * 1024,
         stderr_limit: int = 16 * 1024,
-        max_timeout_seconds: int = 900,
+        max_timeout_seconds: int = 14_400,
         cleanup_timeout: float = 1.0,
         worker_env: Mapping[str, str] = _SAFE_ENV,
     ) -> None:
@@ -152,7 +156,7 @@ class CodexCliAdapter:
                 )
                 and isinstance(max_timeout_seconds, int)
                 and not isinstance(max_timeout_seconds, bool)
-                and 1 <= max_timeout_seconds <= 900
+                and 1 <= max_timeout_seconds <= 14_400
                 and isinstance(cleanup_timeout, (int, float))
                 and not isinstance(cleanup_timeout, bool)
                 and cleanup_timeout > 0

@@ -198,7 +198,7 @@ class TaskContract(ContractModel):
     permissions: tuple[str, ...]
     risk: RiskLevel
     acceptance_criteria: tuple[str, ...] = Field(min_length=1)
-    timeout_seconds: StrictInt = Field(ge=1, le=3600)
+    timeout_seconds: StrictInt = Field(ge=1, le=14_400)
     quality_profile: str
 
     @field_validator(

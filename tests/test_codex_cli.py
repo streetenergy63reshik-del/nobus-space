@@ -163,9 +163,13 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
         "--ignore-user-config",
         "--ignore-rules",
         "--model",
-        "gpt-5.6-terra",
+        "gpt-5.6-sol",
         "--config",
-        'model_reasoning_effort="medium"',
+        'model_reasoning_effort="high"',
+        "--config",
+        'service_tier="fast"',
+        "--config",
+        "features.fast_mode=true",
         "--config",
         'web_search="disabled"',
         "--config",
@@ -676,16 +680,16 @@ async def test_server_timeout_cap_is_fail_closed(
     worker_files: tuple[Path, Path, Path]
 ) -> None:
     _, allowed, _ = worker_files
-    adapter, spawner = adapter_for(worker_files)
+    adapter, spawner = adapter_for(worker_files, max_timeout_seconds=7_200)
 
     with pytest.raises(CodexCliError) as caught:
-        await adapter.execute(make_contract(allowed, timeout_seconds=901))
+        await adapter.execute(make_contract(allowed, timeout_seconds=7_201))
 
     assert caught.value.code == "worker_forbidden"
     assert not spawner.call
 
 
-def test_server_timeout_configuration_cannot_exceed_900(
+def test_server_timeout_configuration_cannot_exceed_four_hours(
     worker_files: tuple[Path, Path, Path]
 ) -> None:
     workspace, _, executable = worker_files
@@ -694,7 +698,7 @@ def test_server_timeout_configuration_cannot_exceed_900(
             workspace_root=workspace,
             executable=executable,
             spawner=FakeSpawner(FakeProcess()),
-            max_timeout_seconds=901,
+            max_timeout_seconds=14_401,
         )
     assert caught.value.code == "worker_configuration_invalid"
 
@@ -769,12 +773,13 @@ async def test_gate5a4_contract_is_accepted_as_read_only(
     runtime = object.__new__(Gate5A4Runtime)
     runtime._allowed_path = str(allowed)  # type: ignore[attr-defined]
     contract = runtime._contract("Prepare a bounded patch.", make_envelope())
-    adapter, spawner = adapter_for(worker_files)
+    adapter, spawner = adapter_for(worker_files, max_timeout_seconds=10_800)
 
     result = await adapter.execute(contract)
 
     assert result.message == "done"
     assert contract.permissions == ("repo.read", "process.run_allowlisted")
+    assert contract.timeout_seconds == 10_800
     assert contract.risk.value == "medium"
     assert "read-only" in spawner.call["argv"]
     assert "workspace-write" not in spawner.call["argv"]

@@ -6,6 +6,12 @@
 
 **Назначение:** единственная обновляемая точка передачи фактического состояния между итерациями
 
+## Обновление 2026-07-23 — concurrent Telegram execution (ACCEPT — ACTIVATION PENDING)
+
+В main реализован ADR 0009: production CLI profile `gpt-5.6-sol` + `high` reasoning + Fast mode; Gate 5A.4 execution deadline 10 800 секунд при абсолютном ceiling 14 400 секунд; Telegram polling отделён от worker execution. Два read-only workers выполняют независимые задачи параллельно. Admission допускает 32 ожидающих drafts в общей очереди maxsize 40 с резервом для L4. Overflow и controlled close считают job завершённым только после exact durable terminal proof; persistent failure запрещает polling ACK или clean close. Exact owner-approved patch сохраняет эксклюзивный Git/L2/L3/apply/commit boundary.
+
+Локальный regression подтверждает быстрый приём пяти задач: две активны, три находятся в очереди; `/status` показывает оба счётчика. False `REJECTED` без SQLite-write, persistent overflow, active cancellation, concurrent close и реальные Gate wrappers проверены adversarial tests. Полный suite: `745 passed, 2 skipped, 1 known warning`; независимое L2/L3: `ACCEPT`, P0/P1/P2 отсутствуют. Очередь process-memory и не обещает crash replay raw instruction. Изменение не активировано в live runner `e5405f7`; отдельный owner L4 для принятия residual crash-risk, startup probe и контролируемого перезапуска ещё требуется.
+
 ## Обновление 2026-07-23 — callback/worker timeout hardening
 
 Owner smoke воспроизвёл последовательную задержку: `answerCallbackQuery` занял около 60 секунд, затем worker работал ровно 120 секунд и завершился `worker_timeout`; безопасная ошибка была доставлена через durable outbox примерно через три минуты после нажатия.

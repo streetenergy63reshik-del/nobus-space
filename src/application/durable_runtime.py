@@ -326,6 +326,31 @@ class DurableFakeRuntime(FakeVertical):
             task_id=task.id,
         )
 
+    async def is_task_terminal(
+        self, tenant_id: str, task_id: UUID, contract_digest: str
+    ) -> bool:
+        """Verify one exact durable task binding reached an outbox terminal state."""
+        if (
+            not isinstance(tenant_id, str)
+            or not tenant_id.strip()
+            or not isinstance(task_id, UUID)
+            or not isinstance(contract_digest, str)
+        ):
+            return False
+        tenant_id = tenant_id.strip()
+        task = await self._state.get(task_id)
+        snapshot = self._store.read_task(tenant_id, task_id)
+        return bool(
+            task is not None
+            and snapshot is not None
+            and task.tenant_id == tenant_id
+            and task.contract_digest == contract_digest
+            and snapshot.projection.contract_digest == contract_digest
+            and task.status in self._OUTBOX_STATUSES
+            and snapshot.projection.status is task.status
+            and self._revisions.get(task.id) == snapshot.revision
+        )
+
     async def _begin_task(
         self,
         contract: TaskContract,

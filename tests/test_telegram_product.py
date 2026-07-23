@@ -99,6 +99,11 @@ class FakeProductRuntime:
     async def cancel_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
         return await self.base.cancel_prepared(prepared)
 
+    async def is_task_terminal(
+        self, tenant_id: str, task_id: object, contract_digest: str
+    ) -> bool:
+        return await self.base.is_task_terminal(tenant_id, task_id, contract_digest)
+
     async def draft_prepared(self, prepared: PreparedTask) -> Gate5A4DraftOutcome:
         self.drafted.append(prepared)
         patch = (
@@ -156,6 +161,23 @@ class FakeProductRuntime:
                 task_id=proposal.task_id,
                 message="transient failure",
             )
+        prepared = next(
+            (
+                candidate
+                for candidate in self.drafted
+                if candidate.contract.task_id == proposal.task_id
+            ),
+            None,
+        )
+        if prepared is None:
+            return FakeVerticalResponse(
+                status=FakeVerticalStatus.FAILED,
+                task_id=proposal.task_id,
+                message="prepared binding unavailable",
+            )
+        durable = await self.base.cancel_prepared(prepared)
+        if durable.status is not FakeVerticalStatus.REJECTED:
+            return durable
         self.rejected.append(proposal)
         return FakeVerticalResponse(
             status=FakeVerticalStatus.REJECTED,
@@ -173,7 +195,9 @@ class ProductHarness:
     patches: InMemoryPatchConfirmationStore
 
 
-def _product(tmp_path: Path, *, voice: bool = False) -> ProductHarness:
+def _product(
+    tmp_path: Path, *, voice: bool = False, execution_concurrency: int = 0
+) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
     actions = InMemoryTelegramActionStore()
@@ -201,6 +225,7 @@ def _product(tmp_path: Path, *, voice: bool = False) -> ProductHarness:
         patch_confirmations=patches,
         action_store=actions,
         voice_service=FakeVoiceService() if voice else None,
+        execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
     )
@@ -471,3 +496,396 @@ async def test_durable_failure_is_not_duplicated_by_product_fallback(
     assert failures == [
         "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
     ]
+
+@pytest.mark.asyncio
+async def test_background_queue_accepts_five_tasks_while_two_workers_are_busy(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=2)
+    release = asyncio.Event()
+    two_started = asyncio.Event()
+    started: list[PreparedTask] = []
+    original_draft = harness.runtime.draft_prepared
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        started.append(prepared)
+        if len(started) == 2:
+            two_started.set()
+        await release.wait()
+        return await original_draft(prepared)
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(
+                *(
+                    harness.control.handle(text_update(f"Task {index}", index))
+                    for index in range(1, 6)
+                )
+            ),
+            timeout=1,
+        )
+        await asyncio.wait_for(two_started.wait(), timeout=1)
+
+        assert harness.control._active_jobs == 2
+        assert harness.control._execution_queue is not None
+        assert harness.control._execution_queue.qsize() == 3
+        status = harness.control._status_text()
+        assert "\u0412 \u0440\u0430\u0431\u043e\u0442\u0435: 2" in status
+        assert "\u0412 \u043e\u0447\u0435\u0440\u0435\u0434\u0438: 3" in status
+
+        release.set()
+        await asyncio.wait_for(harness.control.wait_idle(), timeout=2)
+        assert len(harness.runtime.drafted) == 5
+    finally:
+        release.set()
+        await harness.control.close()
+
+@pytest.mark.asyncio
+async def test_voice_confirmation_is_queued_while_previous_task_runs(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, voice=True, execution_concurrency=1)
+    release = asyncio.Event()
+    started = asyncio.Event()
+    original_draft = harness.runtime.draft_prepared
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        started.set()
+        await release.wait()
+        return await original_draft(prepared)
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    try:
+        await harness.control.handle(text_update("First task", 1))
+        await asyncio.wait_for(started.wait(), timeout=1)
+        await harness.control.handle(voice_update(2))
+        confirm_token = harness.api.sent[-1][2][0][1]
+
+        await asyncio.wait_for(
+            harness.control.handle(callback_update(confirm_token, 3)), timeout=1
+        )
+
+        assert harness.api.answered == ["query-3"]
+        assert harness.control._execution_queue is not None
+        assert harness.control._execution_queue.qsize() == 1
+
+        release.set()
+        await asyncio.wait_for(harness.control.wait_idle(), timeout=2)
+        assert len(harness.runtime.drafted) == 2
+    finally:
+        release.set()
+        await harness.control.close()
+
+@pytest.mark.asyncio
+async def test_bounded_queue_rejects_overflow_and_close_drains_pending_jobs(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    release = asyncio.Event()
+    started = asyncio.Event()
+    cancelled: list[PreparedTask] = []
+    original_draft = harness.runtime.draft_prepared
+    original_cancel = harness.runtime.cancel_prepared
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        started.set()
+        await release.wait()
+        return await original_draft(prepared)
+
+    async def track_cancel(prepared: PreparedTask) -> FakeVerticalResponse:
+        cancelled.append(prepared)
+        return await original_cancel(prepared)
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    harness.runtime.cancel_prepared = track_cancel  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Active task", 1))
+    await asyncio.wait_for(started.wait(), timeout=1)
+    for index in range(2, 34):
+        await harness.control.handle(text_update(f"Queued task {index}", index))
+
+    assert harness.control._execution_queue is not None
+    assert harness.control._execution_queue.qsize() == 32
+    assert cancelled == []
+
+    await harness.control.handle(text_update("Overflow task", 34))
+
+    assert harness.control._execution_queue.qsize() == 32
+    assert len(cancelled) == 1
+
+    await harness.control.close()
+
+    assert len(cancelled) == 34
+    assert harness.control._execution_queue.empty()
+
+
+@pytest.mark.asyncio
+async def test_unexpected_job_failure_does_not_stop_queue_worker(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    cancelled: list[PreparedTask] = []
+    calls = 0
+    original_draft = harness.runtime.draft_prepared
+    original_cancel = harness.runtime.cancel_prepared
+
+    async def fail_once(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("synthetic worker failure")
+        return await original_draft(prepared)
+
+    async def track_cancel(prepared: PreparedTask) -> FakeVerticalResponse:
+        cancelled.append(prepared)
+        return await original_cancel(prepared)
+
+    harness.runtime.draft_prepared = fail_once  # type: ignore[method-assign]
+    harness.runtime.cancel_prepared = track_cancel  # type: ignore[method-assign]
+    try:
+        await harness.control.handle(text_update("Fail once", 1))
+        await harness.control.handle(text_update("Continue", 2))
+        await asyncio.wait_for(harness.control.wait_idle(), timeout=2)
+
+        assert calls == 2
+        assert len(cancelled) == 1
+        assert len(harness.runtime.drafted) == 1
+        assert all(not worker.done() for worker in harness.control._execution_workers)
+    finally:
+        await harness.control.close()
+
+
+@pytest.mark.asyncio
+async def test_active_job_terminalization_retries_exception_and_failed_response(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    started = asyncio.Event()
+    original_cancel = harness.runtime.cancel_prepared
+    attempts = 0
+    active: PreparedTask | None = None
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        nonlocal active
+        active = prepared
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    async def flaky_cancel(prepared: PreparedTask) -> FakeVerticalResponse:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise RuntimeError("transient persistence failure")
+        if attempts == 2:
+            return FakeVerticalResponse(
+                status=FakeVerticalStatus.FAILED,
+                task_id=prepared.contract.task_id,
+                message="transient failure",
+            )
+        return await original_cancel(prepared)
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    harness.runtime.cancel_prepared = flaky_cancel  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Active retry", 1))
+    await asyncio.wait_for(started.wait(), timeout=1)
+
+    await harness.control.close()
+
+    assert attempts == 3
+    assert harness.control._closed is True
+    assert active is not None
+    assert await harness.runtime.is_task_terminal(
+        TENANT_ID,
+        active.contract.task_id,
+        task_contract_digest(active.contract),
+    ) is True
+
+
+@pytest.mark.asyncio
+async def test_persistent_terminalization_failure_is_not_silently_closed(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    started = asyncio.Event()
+    attempts = 0
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    async def always_failed(prepared: PreparedTask) -> FakeVerticalResponse:
+        nonlocal attempts
+        attempts += 1
+        return FakeVerticalResponse(
+            status=FakeVerticalStatus.FAILED,
+            task_id=prepared.contract.task_id,
+            message="persistent failure",
+        )
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    harness.runtime.cancel_prepared = always_failed  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Cannot close silently", 1))
+    await asyncio.wait_for(started.wait(), timeout=1)
+
+    with pytest.raises(RuntimeError, match="did not close safely"):
+        await harness.control.close()
+    with pytest.raises(RuntimeError, match="did not close safely"):
+        await harness.control.close()
+    await harness.control.start()
+
+    assert attempts == 3
+    assert harness.control._execution_workers == ()
+
+
+@pytest.mark.asyncio
+async def test_parallel_close_waits_for_first_close_and_start_cannot_resurrect(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    draft_started = asyncio.Event()
+    cancel_started = asyncio.Event()
+    release_cancel = asyncio.Event()
+    original_cancel = harness.runtime.cancel_prepared
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        draft_started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    async def blocked_cancel(prepared: PreparedTask) -> FakeVerticalResponse:
+        cancel_started.set()
+        await release_cancel.wait()
+        return await original_cancel(prepared)
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    harness.runtime.cancel_prepared = blocked_cancel  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Concurrent close", 1))
+    await asyncio.wait_for(draft_started.wait(), timeout=1)
+    first = asyncio.create_task(harness.control.close())
+    await asyncio.wait_for(cancel_started.wait(), timeout=1)
+    second = asyncio.create_task(harness.control.close())
+    await asyncio.sleep(0)
+
+    assert not second.done()
+    release_cancel.set()
+    await asyncio.gather(first, second)
+    await harness.control.start()
+
+    assert harness.control._execution_workers == ()
+
+
+@pytest.mark.asyncio
+async def test_confirmed_patch_rejection_retries_before_queue_ack(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    ingress = harness.runtime.base._gateway.process_update(text_update("Patch task", 1))
+    assert ingress.envelope is not None
+    prepared = await harness.runtime.prepare_instruction("Patch task", ingress.envelope)
+    proposal = (await harness.runtime.draft_prepared(prepared)).proposal
+    assert proposal is not None
+    harness.runtime.reject_failures = 2
+    harness.control._closing = True
+
+    await harness.control._submit_patch(
+        proposal,
+        approver_identity="telegram:owner",
+        approval_evidence_ref="telegram-owner-confirmation:" + "a" * 64,
+    )
+
+    assert harness.runtime.reject_failures == 0
+    assert harness.runtime.rejected == [proposal]
+    await harness.control.close()
+
+
+@pytest.mark.asyncio
+async def test_rejected_response_without_durable_write_does_not_close_safely(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    started = asyncio.Event()
+    active: PreparedTask | None = None
+    attempts = 0
+    original_cancel = harness.runtime.cancel_prepared
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        nonlocal active
+        active = prepared
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    async def false_rejected(prepared: PreparedTask) -> FakeVerticalResponse:
+        nonlocal attempts
+        attempts += 1
+        return FakeVerticalResponse(
+            status=FakeVerticalStatus.REJECTED,
+            task_id=prepared.contract.task_id,
+            message="claimed without persistence",
+        )
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    harness.runtime.cancel_prepared = false_rejected  # type: ignore[method-assign]
+    await harness.control.handle(text_update("False terminal", 1))
+    await asyncio.wait_for(started.wait(), timeout=1)
+
+    with pytest.raises(RuntimeError, match="did not close safely"):
+        await harness.control.close()
+
+    assert active is not None
+    assert attempts == 3
+    assert not await harness.runtime.is_task_terminal(
+        TENANT_ID,
+        active.contract.task_id,
+        task_contract_digest(active.contract),
+    )
+    await original_cancel(active)
+
+
+@pytest.mark.asyncio
+async def test_public_text_overflow_does_not_ack_without_durable_terminal_proof(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, execution_concurrency=1)
+    started = asyncio.Event()
+    attempts = 0
+    overflow: PreparedTask | None = None
+    original_cancel = harness.runtime.cancel_prepared
+
+    async def blocked_draft(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    async def persistence_failed(prepared: PreparedTask) -> FakeVerticalResponse:
+        nonlocal attempts, overflow
+        attempts += 1
+        overflow = prepared
+        return FakeVerticalResponse(
+            status=FakeVerticalStatus.FAILED,
+            task_id=prepared.contract.task_id,
+            message="persistent failure",
+        )
+
+    harness.runtime.draft_prepared = blocked_draft  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Active", 1))
+    await asyncio.wait_for(started.wait(), timeout=1)
+    for update_id in range(2, 34):
+        await harness.control.handle(text_update(f"Queued {update_id}", update_id))
+    harness.runtime.cancel_prepared = persistence_failed  # type: ignore[method-assign]
+
+    with pytest.raises(RuntimeError, match="could not be terminalized"):
+        await harness.control.handle(text_update("Overflow", 34))
+
+    assert attempts == 6
+    assert overflow is not None
+    assert not await harness.runtime.is_task_terminal(
+        TENANT_ID,
+        overflow.contract.task_id,
+        task_contract_digest(overflow.contract),
+    )
+    harness.runtime.cancel_prepared = original_cancel  # type: ignore[method-assign]
+    await original_cancel(overflow)
+    await harness.control.close()

@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import subprocess
+from contextlib import asynccontextmanager
 import threading
 from dataclasses import dataclass
 from collections.abc import Callable, Mapping, Sequence
@@ -59,6 +60,8 @@ from src.workers.codex_patch import (
 from src.workers.windows_job import WindowsJobLauncher
 
 
+GATE5A4_EXECUTION_CONCURRENCY = 2
+GATE5A4_TIMEOUT_SECONDS = 10_800
 _VERIFIER_IDENTITIES = {
     1: "verifier:gate5a4:patch-preflight",
     2: "verifier:gate5a4:test-suite",
@@ -108,7 +111,22 @@ class Gate5A4Runtime(DurableFakeRuntime):
     ) -> None:
         super().__init__(**values)
         self._pipeline = pipeline
-        self._execution_lock = asyncio.Lock()
+        self._worker_slots = asyncio.Semaphore(GATE5A4_EXECUTION_CONCURRENCY)
+        self._exclusive_lock = asyncio.Lock()
+
+    @asynccontextmanager
+    async def _exclusive_worker_slots(self):
+        """Pause both read-only workers while an approved patch owns Git state."""
+        async with self._exclusive_lock:
+            acquired = 0
+            try:
+                for _ in range(GATE5A4_EXECUTION_CONCURRENCY):
+                    await self._worker_slots.acquire()
+                    acquired += 1
+                yield
+            finally:
+                for _ in range(acquired):
+                    self._worker_slots.release()
 
     def _contract(
         self, instruction: str, envelope: TrustedIngressEnvelope
@@ -119,7 +137,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             permissions=("repo.read", "process.run_allowlisted"),
             risk=RiskLevel.MEDIUM,
             acceptance_criteria=_CRITERIA,
-            timeout_seconds=120,
+            timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
             quality_profile="gate5a4-two-phase-patch@1",
         )
         return TaskContract.model_validate(values)
@@ -159,7 +177,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
 
     async def draft_prepared(self, prepared: PreparedTask) -> Gate5A4DraftOutcome:
         """Run Codex read-only and return a verified answer or exact patch proposal."""
-        async with self._execution_lock:
+        async with self._worker_slots:
             task: Task | None = None
             try:
                 prepared = PreparedTask.validate(prepared)
@@ -325,7 +343,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
         approval_evidence_ref: str,
     ) -> FakeVerticalResponse:
         """Apply only an exact owner-approved proposal through L2/L3/L4."""
-        async with self._execution_lock:
+        async with self._exclusive_worker_slots():
             task: Task | None = None
             try:
                 proposal = PatchProposal.model_validate(
@@ -447,7 +465,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 )
 
     async def reject_proposal(self, proposal: PatchProposal) -> FakeVerticalResponse:
-        async with self._execution_lock:
+        async with self._exclusive_worker_slots():
             try:
                 proposal = PatchProposal.model_validate(
                     proposal.model_dump(mode="python")
@@ -1320,7 +1338,7 @@ def build_gate5a4_runtime(
         workspace_root=root,
         executable=codex_executable,
         spawner=spawner,
-        max_timeout_seconds=300,
+        max_timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
         cleanup_timeout=15,
         stdout_limit=512 * 1024,
         worker_env=worker_env,

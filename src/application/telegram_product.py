@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+from dataclasses import dataclass
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -29,6 +30,7 @@ from src.application.telegram_actions import (
 from src.application.telegram_control import TelegramControlPlane, _argument, _command
 from src.contracts import TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
+from src.core.policy import task_contract_digest
 from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, VoiceMessage
 from src.voice import VoicePreviewService
 
@@ -36,6 +38,9 @@ from src.voice import VoicePreviewService
 _VOICE_LIMIT = 10 * 1024 * 1024
 _MESSAGE_CHUNK = 3_400
 _CALLBACK_ACK_TIMEOUT_SECONDS = 2.0
+_DRAFT_QUEUE_LIMIT = 32
+_EXECUTION_QUEUE_MAXSIZE = 40
+_TERMINALIZE_ATTEMPTS = 3
 
 
 class ProductTelegramApi(Protocol):
@@ -61,6 +66,10 @@ class ProductTaskRuntime(Protocol):
 
     async def cancel_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse: ...
 
+    async def is_task_terminal(
+        self, tenant_id: str, task_id: UUID, contract_digest: str
+    ) -> bool: ...
+
     async def draft_prepared(self, prepared: PreparedTask) -> Gate5A4DraftOutcome: ...
 
     async def apply_proposal(
@@ -72,6 +81,22 @@ class ProductTaskRuntime(Protocol):
     ) -> FakeVerticalResponse: ...
 
     async def reject_proposal(self, proposal: PatchProposal) -> FakeVerticalResponse: ...
+
+@dataclass(frozen=True, slots=True)
+class _QueuedDraft:
+    prepared: PreparedTask
+    message: TextMessage | CallbackQuery
+    envelope: TrustedIngressEnvelope
+
+
+@dataclass(frozen=True, slots=True)
+class _QueuedPatch:
+    proposal: PatchProposal
+    approver_identity: str
+    approval_evidence_ref: str
+
+
+_QueuedJob = _QueuedDraft | _QueuedPatch
 
 
 class ProductTelegramControlPlane(TelegramControlPlane):
@@ -87,11 +112,13 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         patch_confirmations: InMemoryPatchConfirmationStore,
         action_store: InMemoryTelegramActionStore,
         voice_service: VoicePreviewService | None = None,
+        execution_concurrency: int = 0,
         **values: object,
     ) -> None:
         required = (
             "prepare_instruction",
             "cancel_prepared",
+            "is_task_terminal",
             "draft_prepared",
             "apply_proposal",
             "reject_proposal",
@@ -105,6 +132,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 voice_service is not None
                 and not callable(getattr(voice_service, "preview_from_bytes", None))
             )
+            or not isinstance(execution_concurrency, int)
+            or isinstance(execution_concurrency, bool)
+            or not 0 <= execution_concurrency <= 8
         ):
             raise ValueError("product Telegram configuration is invalid")
         super().__init__(
@@ -118,6 +148,205 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._patch_confirmations = patch_confirmations
         self._action_store = action_store
         self._voice_service = voice_service
+        self._execution_concurrency = execution_concurrency
+        self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
+            asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
+            if execution_concurrency
+            else None
+        )
+        self._execution_workers: tuple[asyncio.Task[None], ...] = ()
+        self._active_jobs = 0
+        self._closing = False
+        self._closed = False
+        self._close_failed = False
+        self._close_lock = asyncio.Lock()
+
+    async def start(self) -> None:
+        """Start background executors without coupling them to Telegram polling."""
+        if (
+            self._execution_queue is None
+            or self._execution_workers
+            or self._closing
+            or self._closed
+        ):
+            return
+        self._execution_workers = tuple(
+            asyncio.create_task(
+                self._execution_worker(), name=f"telegram-executor-{index + 1}"
+            )
+            for index in range(self._execution_concurrency)
+        )
+
+    async def close(self) -> None:
+        """Stop intake and prove every accepted job terminal before returning."""
+        async with self._close_lock:
+            if self._closed:
+                if self._close_failed:
+                    raise RuntimeError("Telegram execution queue did not close safely")
+                return
+            self._closing = True
+            failures: list[BaseException] = []
+            workers, self._execution_workers = self._execution_workers, ()
+            for worker in workers:
+                worker.cancel()
+            if workers:
+                results = await asyncio.gather(*workers, return_exceptions=True)
+                failures.extend(
+                    result
+                    for result in results
+                    if isinstance(result, BaseException)
+                    and not isinstance(result, asyncio.CancelledError)
+                )
+            queue = self._execution_queue
+            if queue is not None:
+                while True:
+                    try:
+                        job = queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    try:
+                        await self._terminalize_job(job)
+                    except Exception as error:
+                        failures.append(error)
+                    finally:
+                        queue.task_done()
+            try:
+                await self.deliver_pending()
+            except Exception:
+                pass
+            self._closed = True
+            self._close_failed = bool(failures)
+            if failures:
+                raise RuntimeError(
+                    "Telegram execution queue did not close safely"
+                ) from failures[0]
+
+    async def wait_idle(self) -> None:
+        """Wait until all currently queued work completes."""
+        if self._execution_queue is not None:
+            await self._execution_queue.join()
+
+    async def _execution_worker(self) -> None:
+        queue = self._execution_queue
+        if queue is None:
+            return
+        while True:
+            job = await queue.get()
+            self._active_jobs += 1
+            try:
+                if isinstance(job, _QueuedDraft):
+                    await self._draft_and_present(
+                        job.prepared, job.message, job.envelope
+                    )
+                else:
+                    await self._product_runtime.apply_proposal(
+                        job.proposal,
+                        approver_identity=job.approver_identity,
+                        approval_evidence_ref=job.approval_evidence_ref,
+                    )
+                    await self.deliver_pending()
+            except asyncio.CancelledError:
+                await asyncio.shield(self._terminalize_job(job))
+                raise
+            except Exception:
+                await self._terminalize_job(job)
+                try:
+                    await self.deliver_pending()
+                except Exception:
+                    pass
+            finally:
+                self._active_jobs -= 1
+                queue.task_done()
+
+    async def _reject_job(self, job: _QueuedJob) -> None:
+        try:
+            await self._terminalize_job(job)
+        finally:
+            await self.deliver_pending()
+
+    async def _terminalize_job(self, job: _QueuedJob) -> None:
+        prepared = job.prepared if isinstance(job, _QueuedDraft) else None
+        proposal = job.proposal if isinstance(job, _QueuedPatch) else None
+        binding = prepared.contract if prepared is not None else proposal
+        if binding is None:
+            raise RuntimeError("queued task binding is unavailable")
+        last_error: Exception | None = None
+        for _ in range(_TERMINALIZE_ATTEMPTS):
+            try:
+                outcome = (
+                    await self._product_runtime.cancel_prepared(prepared)
+                    if prepared is not None
+                    else await self._product_runtime.reject_proposal(proposal)
+                )
+                digest = (
+                    task_contract_digest(prepared.contract)
+                    if prepared is not None
+                    else proposal.contract_digest
+                )
+                response_matches = (
+                    outcome.status is FakeVerticalStatus.REJECTED
+                    and outcome.task_id == binding.task_id
+                )
+                if await self._product_runtime.is_task_terminal(
+                    binding.tenant_id, binding.task_id, digest
+                ):
+                    return
+                if response_matches:
+                    last_error = RuntimeError(
+                        "terminal response has no durable task proof"
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                last_error = error
+            await asyncio.sleep(0)
+        raise RuntimeError("queued task could not be terminalized") from last_error
+
+    async def _submit_draft(
+        self,
+        prepared: PreparedTask,
+        message: TextMessage | CallbackQuery,
+        envelope: TrustedIngressEnvelope,
+    ) -> None:
+        queue = self._execution_queue
+        if queue is None:
+            await self._draft_and_present(prepared, message, envelope)
+            return
+        job = _QueuedDraft(prepared, message, envelope)
+        if self._closing or queue.qsize() >= _DRAFT_QUEUE_LIMIT:
+            await self._reject_job(job)
+            return
+        await self.start()
+        try:
+            queue.put_nowait(job)
+        except asyncio.QueueFull:
+            await self._reject_job(job)
+
+    async def _submit_patch(
+        self,
+        proposal: PatchProposal,
+        *,
+        approver_identity: str,
+        approval_evidence_ref: str,
+    ) -> None:
+        queue = self._execution_queue
+        if queue is None:
+            await self._product_runtime.apply_proposal(
+                proposal,
+                approver_identity=approver_identity,
+                approval_evidence_ref=approval_evidence_ref,
+            )
+            return
+        job = _QueuedPatch(proposal, approver_identity, approval_evidence_ref)
+        if self._closing or queue.full():
+            await self._reject_job(job)
+            return
+        await self.start()
+        try:
+            queue.put_nowait(job)
+        except asyncio.QueueFull:
+            await self._reject_job(job)
+
     async def _expire_task_drafts(self) -> None:
         await super()._expire_task_drafts()
         for proposal in self._patch_confirmations.sweep_expired():
@@ -189,10 +418,17 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     def _status_text(self) -> str:
         voice = "активен" if self._voice_service is not None else "не активирован"
+        queue_status = ""
+        if self._execution_queue is not None:
+            queue_status = (
+                f"\n\u0412 \u0440\u0430\u0431\u043e\u0442\u0435: {self._active_jobs}"
+                f"\n\u0412 \u043e\u0447\u0435\u0440\u0435\u0434\u0438: {self._execution_queue.qsize()}"
+            )
         return (
             "Nobus Space\n"
             "Telegram: online\n"
             f"Голос: {voice}"
+            f"{queue_status}"
         )
 
     def _help_text(self) -> str:
@@ -224,12 +460,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             prepared = await self._product_runtime.prepare_instruction(
                 instruction, envelope
             )
-            await self._draft_and_present(prepared, message, envelope)
+            await self._submit_draft(prepared, message, envelope)
         except asyncio.CancelledError:
             raise
         except Exception:
             if prepared is not None:
-                await self._product_runtime.cancel_prepared(prepared)
+                await self._terminalize_job(_QueuedDraft(prepared, message, envelope))
             await self._api.send_message(
                 message.chat_id,
                 "⚠️ Не удалось обработать задачу. Попробуйте ещё раз.",
@@ -358,7 +594,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._product_runtime.cancel_prepared(result.prepared)
             await self.deliver_pending()
             return
-        await self._draft_and_present(result.prepared, message, envelope)
+        await self._submit_draft(result.prepared, message, envelope)
 
     async def _draft_and_present(
         self,
@@ -423,7 +659,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     "task_id": str(result.proposal.task_id),
                 }
             )
-            await self._product_runtime.apply_proposal(
+            await self._submit_patch(
                 result.proposal,
                 approver_identity=envelope.actor_identity,
                 approval_evidence_ref=f"telegram-owner-confirmation:{approval_digest}",
