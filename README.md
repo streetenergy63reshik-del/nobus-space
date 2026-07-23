@@ -2,7 +2,7 @@
 
 `nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
 
-Реализация MVP-1 завершена и независимо принята. Reliability-релиз с обязательным startup probe реального Codex CLI, безопасными диагностическими кодами и тихим продуктовым UX подготовлен, но ещё не активирован в live worktree: текущий desktop-runner продолжает обслуживать Telegram на предыдущей принятой версии до контролируемого перезапуска. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B после функционального MVP-1.
+Реализация MVP-1 завершена и независимо принята. Reliability-релиз `36c17e4` с обязательным startup probe реального Codex CLI, безопасными диагностическими кодами и тихим продуктовым UX активирован в `agent/telegram-live`: startup probe прошёл, polling lease получена, desktop-runner работает. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B после функционального MVP-1.
 
 ## Текущее состояние
 

@@ -14,10 +14,10 @@
 
 Продуктовый Telegram-интерфейс больше не показывает UUID задач, Event/Revision, capability-коды и другие служебные идентификаторы. Обычный текст сразу берётся в read-only работу; голос сначала транскрибируется и подтверждается кнопками; patch показывается с кнопками применения/отклонения.
 
-Независимое L2/L3 review: `ACCEPT`, P0/P1/P2 отсутствуют. Reliability-релиз добавляет fail-fast startup probe того же production worker, сохраняет безопасные причины отказов и убирает служебные подтверждения из обычного продуктового диалога. Проверки: `127` target; `190 passed, 1 skipped` adversarial; `727 passed, 2 skipped, 1 warning` full. Одноразовый probe из пустого временного Git-репозитория подтвердил исправность CLI/auth/network/config и был полностью удалён. Текущий долгоживущий runner пока работает на предыдущем принятом HEAD `53f4b7c`; новая версия не считается live до контролируемого перезапуска и успешного startup probe.
+Независимое L2/L3 review: `ACCEPT`, P0/P1/P2 отсутствуют. Reliability-релиз добавляет fail-fast startup probe того же production worker, сохраняет безопасные причины отказов и убирает служебные подтверждения из обычного продуктового диалога. Проверки: `127` target; `190 passed, 1 skipped` adversarial; `727 passed, 2 skipped, 1 warning` full. Одноразовый изолированный probe подтвердил CLI/auth/network/config. Live runner `36c17e4` затем прошёл встроенный startup probe, получил новую generation-bound polling lease и остаётся активным.
 ## Короткий итог
 
-MVP-1 реализован и последовательно усилен до `53f4b7c`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`. Reliability-релиз поверх этого состояния подготовлен и независимо принят, но ещё не активирован в live worktree.
+MVP-1 реализован и последовательно усилен до `36c17e4`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`. Reliability-релиз активирован после успешного startup probe.
 
 Обычное текстовое сообщение по умолчанию сразу становится задачей и создаёт только read-only черновик. Если черновик содержит изменение кода, бот показывает полный diff и кнопки `✅ Применить` / `❌ Отклонить`; без L4 рабочее дерево не изменяется.
 
@@ -25,7 +25,7 @@ MVP-1 реализован и последовательно усилен до `
 
 Crash consistency защищена pre-apply journal, exact-path restore, `commit-tree → persisted journal → CAS update-ref` и restart reconciliation. Независимый L2/L3 verdict: `ACCEPT`; P0/P1/P2 отсутствуют. Reliability suite: `727 passed, 2 skipped, 1 warning`.
 
-Продуктовый runner активен в текущей desktop-сессии на предыдущей принятой версии. Reliability-релиз подготовлен, но требует контролируемого fast-forward live worktree и перезапуска; startup probe выполняет дополнительный read-only OpenAI-запрос перед началом polling. OS service/autostart, внешний deploy, monitoring и restore drill остаются отдельным Gate 5B.
+Продуктовый runner `36c17e4` активен в текущей desktop-сессии. Startup read-only OpenAI probe прошёл до начала polling; свежая SQLite lease подтверждает единственного активного потребителя. OS service/autostart, внешний deploy, monitoring и restore drill остаются отдельным Gate 5B.
 
 ## Gate status
 
@@ -49,7 +49,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex execution flow | through `53f4b7c`; reliability release pending commit | 127 target; 190 adversarial; 727 full; independent ACCEPT; isolated production-adapter probe PASS | **IMPLEMENTATION ACCEPTED; CURRENT RUNNER OLD; CONTROLLED RESTART PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `36c17e4` | 127 target; 190 adversarial; 727 full; independent ACCEPT; startup production-worker probe PASS; polling lease active | **ACCEPTED; RELIABILITY RUNNER ACTIVE; OWNER PRODUCT SMOKE PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -94,7 +94,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний активный implementation commit: `53f4b7c fix: leave polling lease clock margin`; reliability-релиз пока находится в проверенном рабочем дереве.
+- Последний активный implementation commit: `36c17e4 fix: verify Codex readiness and simplify Telegram UX`.
 - Hardening live Codex boundary: `007640b`.
 - Предыдущие live Telegram commits: `70941d8`, `17ac081`, `96fa634`, `b17f650`.
 - Remote отсутствует; push не выполнялся.
@@ -104,7 +104,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Live worktree
 
 - Ветка: `agent/telegram-live`.
-- Текущий HEAD работающего runner: `53f4b7c`.
+- Текущий HEAD работающего runner: `36c17e4`.
 - Telegram может создавать локальные commits только в этой ветке после exact owner L4; merge/rebase/push отсутствуют.
 
 ### Kimi worktree
@@ -145,17 +145,17 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 | SQLite checkpoints, events и status outbox | 15% | ACCEPTED LIVE | 15% |
 | Read-only Codex worker и exact patch boundary | 20% | IMPLEMENTATION ACCEPTED; OWNER SMOKE PENDING | 20% |
 | Crash recovery, L1–L3 и owner-bound L4 | 10% | ACCEPTED | 10% |
-| Product text/voice flow в изолированной Git-ветке | 10% | IMPLEMENTATION ACCEPTED; OLD RUNNER ACTIVE; RELIABILITY RESTART PENDING | 10% |
+| Product text/voice flow в изолированной Git-ветке | 10% | IMPLEMENTATION ACCEPTED; RELIABILITY RUNNER ACTIVE; OWNER PRODUCT SMOKE PENDING | 10% |
 | **Итого implementation scope** | **100%** | **реализация независимо принята** | **100%** |
 
-Implementation scope завершён на 100%; owner text smoke — `PASS`, live acceptance остаётся `PENDING` только до owner voice и diff/apply smoke. Это не production-readiness: supervised startup, health alert, backup/restore drill и внешний deployment вынесены в Gate 5B.
+Implementation scope завершён на 100%; reliability startup и polling — `PASS`. Итоговая live product acceptance остаётся `PENDING` до owner smoke обычной задачи, voice и diff/apply. Это не production-readiness: supervised startup, health alert, backup/restore drill и внешний deployment вынесены в Gate 5B.
 
 Материалы Kimi D1–D4 сохранены только как `REWORK`-черновик в `ОРКЕСТРАТОР/Backups/2026-07-21 Kimi Web drafts`; исходная `Kimi handoffs/2026-07-21 Web tasks` удалена после проверки ZIP `ADBFAA13F435567E4221A806452331FDDF66714B56753A965A628EA6BFE2D218`. E1–E4 не архивировались, поскольку полностью заменены принятым Gate 4E.
 
 ## Следующая очередь
 
-1. После отдельного разрешения остановить старый runner, fast-forward `agent/telegram-live`, запустить новую версию и принять startup probe.
-2. Выполнить owner smoke без служебного шума: обычный текст → только результат; голос → transcript/confirmation → результат; patch → diff и L4-кнопки.
+1. Владелец отправляет обычную задачу и проверяет, что бот возвращает только результат без служебного acknowledgement.
+2. Завершить owner smoke: голос → transcript/confirmation → результат; patch → diff и L4-кнопки.
 3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
