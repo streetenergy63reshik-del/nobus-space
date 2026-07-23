@@ -102,7 +102,10 @@ async def test_announcement_follows_successful_poll_and_uses_bound_chat() -> Non
     assert acknowledged == 2
     assert len(api.sent) == 1
     assert api.sent[0][0] == 42
-    assert "polling cycle" in api.sent[0][1]
+    assert "Nobus Space MVP-1 запущен" in api.sent[0][1]
+    assert "✅ Применить" in api.sent[0][1]
+    assert "/task" not in api.sent[0][1]
+    assert "/start" in api.sent[0][1]
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(

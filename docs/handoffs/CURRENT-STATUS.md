@@ -1,6 +1,6 @@
 # Nobus Space MVP — текущий статус разработки
 
-**Снимок:** 2026-07-22, Europe/Moscow
+**Снимок:** 2026-07-23, Europe/Moscow
 
 **Канонический репозиторий:** `nobus-orchestrator-dev`
 
@@ -8,21 +8,15 @@
 
 ## Короткий итог
 
-Каноническая документация, Core contracts/policy, Telegram ingress, voice preview/confirmation, fake-only Codex CLI boundary, trusted ingress, SQLite checkpoints/events/outbox и локальный durable text/voice E2E приняты независимыми L1/L2/L3 и зафиксированы в `main`.
+MVP-1 реализован в `c35d6e9`: owner-bound Telegram polling соединён с реальным Codex CLI в режиме `read-only`, безопасным exact-diff parser, последовательными L1/L2/L3, отдельным L4 и CAS-commit в изолированной ветке `agent/telegram-live`.
 
-Gate 4F принят в `a56bdf3`: Task transitions атомарно связаны с WorkerEvents/outbox, restart не повторяет worker вслепую, а delivery выполняется только через injected fake boundary.
+Обычное текстовое сообщение по умолчанию сразу становится задачей и создаёт только read-only черновик. Если черновик содержит изменение кода, бот показывает полный diff и кнопки `✅ Применить` / `❌ Отклонить`; без L4 рабочее дерево не изменяется.
 
-PRE-LIVE Gate 3B.1/5A.1 принят в `cde0bd5`: добавлены cancellation-safe process adapter и ограниченный Telegram Bot API/polling/status boundary с generation-bound checkpoint contract.
+Голосовое сообщение скачивается с ограничением размера, транскрибируется локальной `faster-whisper base` на CPU и сначала показывается владельцу с кнопками `✅ Подтверждаю` / `❌ Отмена`. Модель загружена в Git-игнорируемый runtime cache; временное аудио очищается.
 
-PRE-LIVE substrate Gate 3B.2a/5A.2a принят в `1d4029f`: добавлены concrete SQLite polling lease/checkpoint с restart CAS и gated Windows Job Object launcher.
+Crash consistency защищена pre-apply journal, exact-path restore, `commit-tree → persisted journal → CAS update-ref` и restart reconciliation. Независимый L2/L3 verdict: `ACCEPT`; P0/P1 отсутствуют. Полный suite: `682 passed, 2 skipped, 1 warning`.
 
-Ограниченный Windows Job live probe Gate 3B.2b принят в `6b0f923`: два успешных запуска, включая независимое воспроизведение, подтвердили stdio, Job inheritance, normal kill-on-close, explicit tree kill и cancellation cleanup без orphan-процессов. Реальный Codex при этом не запускался.
-
-Live Telegram owner control plane принят в `b17f650`, `96fa634` и `17ac081`: bot identity проверена через Telegram API, один owner binding хранится только в Git-игнорируемой локальной конфигурации, а `/start`, `/status` и `/help` принимаются и получают ограниченные ответы в том же связанном чате. Serve-runner использует cancellation-safe backoff `1/2/4/8/16/30` секунд.
-
-Gate 5A.3 принят в `70941d8`: `/task` атомарно создаёт content-free durable `PENDING`, выдаёт owner-bound one-shot preview и только после `/confirm` запускает локальный fake-worker с L1/L2/L3 и terminal status outbox; `/cancel`, expiry, retry, restart и malformed token fail-closed. Raw instruction/token не попадают в SQLite. Live Codex, voice network path и filesystem/network effects fake-worker не использует. Обновлённый serve-runner активирован в текущей desktop-сессии 2026-07-22 18:37 Europe/Moscow. В 18:49 owner live `/task` → `/confirm` → terminal `completed` воспроизведён; SQLite projection имеет revision 7, outbox `acked`, attempt count 1.
-
-Компоненты образуют рабочий live Telegram status-control и confirmed fake-task E2E: owner network `/task` → `/confirm` → terminal `completed` воспроизведён. Live Codex worker, voice download/transcription, OS service/autostart, deployment, monitoring и restore drill не подключены.
+Продуктовый runner активирован 2026-07-23 в текущей desktop-сессии; профиль и меню `@Nobusspacebot` проверены через Telegram API. OS service/autostart, внешний deploy, monitoring и restore drill остаются отдельным Gate 5B и не входят в функциональную готовность MVP-1.
 
 ## Gate status
 
@@ -46,6 +40,7 @@ Gate 5A.3 принят в `70941d8`: `/task` атомарно создаёт con
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
+| Gate 5A.4 — product text/voice + live Codex patch flow | `007640b`, `c35d6e9` | 81 target + adversarial; 682 full; independent crash/CAS/replay/path/permission review | **IMPLEMENTATION ACCEPTED; RUNNER ACTIVE; OWNER SMOKE PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -68,31 +63,40 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 - polling использует concrete SQLite generation-bound lease/checkpoint: store-owned clock, expiry reclaim, exact-generation CAS, restart resume и parallel-consumer exclusion;
 - accepted update получает self-validating `TrustedIngressEnvelope` с server-owned actor/time и точной payload binding;
 - exact actor/chat binding, atomic update replay claim и opaque callback token claim;
-- voice preview подтверждается единожды тем же tenant/actor/role/auth context/user/chat; callback capability имеет TTL, хранится только в виде digest и после success заменяется минимальным replay tombstone;
-- callback/replay/confirmation stores пока in-memory и после restart безопасно теряют незавершённые challenge;
-- text `/task` подтверждение связано с exact tenant/actor/role/auth context/user/chat, делит bounded capacity между active challenge и tombstone и не сохраняет raw instruction/token в SQLite;
-- voice preview принимает только ограниченные bytes, очищает temp file после success/error, а при cancellation ждёт bounded drain и откладывает cleanup до фактической остановки provider;
+- обычный текст без команды сразу становится read-only задачей; `/task` оставлен только как обратная совместимость;
+- voice preview подтверждается единожды тем же tenant/actor/role/auth context/user/chat через inline-кнопки; capability имеет TTL, хранится только в виде digest и после success заменяется replay tombstone;
+- callback/replay/confirmation stores остаются in-memory и после restart безопасно теряют незавершённые challenge без применения эффекта;
+- voice download ограничен 10 MiB, транскрипция выполняется локальной `faster-whisper base`, temp file очищается после success/error/cancellation;
+- bot profile публикует в меню `/start`, `/status` и `/help`; технические подтверждения скрыты за inline-кнопками;
 - stream API удалён после независимого L3 resource-exhaustion finding;
-- optional `faster-whisper` не установлен и не является текущей обязательной зависимостью.
+- `faster-whisper==1.2.1` является точной обязательной зависимостью live voice path.
 
 ### Worker
 
-- Codex CLI adapter остаётся fake-first, но PRE-LIVE asyncio spawner проверяет executable/cwd/argv/env/pipes, bounded drain и retained cancellation cleanup;
-- POSIX process-group cleanup реализован; Windows launcher создаёт kill-on-close Job Object, назначает gated helper до target start и удерживает gate до завершения ownership;
-- Windows Job inheritance, stdio, normal kill-on-close, explicit tree kill и adapter cancellation независимо воспроизведены на локальном probe-child; реальный `codex` и его OS sandbox не запускались;
-- fake worker связан с Core attempt и атомарными `STARTED`/`RESULT_READY`/`FAILED` WorkerEvents; live process lease отсутствует.
+- реальный Codex CLI запускается только с `repo.read` и `process.run_allowlisted`; `workspace-write`, web и MCP отсутствуют;
+- stdout/stderr ограничены, процесс и дерево потомков завершаются при timeout/cancellation; Windows boundary использует Job Object;
+- ответ принимается только как exact unified diff с allowlist путей; `.git`, `.runtime`, secrets, symlink и выход за worktree запрещены;
+- L1 проверяет patch/apply-check, L2 применяет diff и выполняет полный suite, L3 stage/audit не создаёт commit;
+- после owner-bound L4 создаются immutable approval evidence и локальный commit через `commit-tree` + CAS `update-ref`;
+- merge, rebase, push, remote и изменение `main` через Telegram отсутствуют.
 
 ## Git-снимок
 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний принятый implementation commit: `70941d8 feat: add confirmed Telegram fake tasks`.
-- Предыдущие live Telegram commits: `17ac081`, `96fa634`, `b17f650`.
-- Предыдущие принятые commits: `6b0f923`, `1d4029f`, `cde0bd5`, `a56bdf3`, `438233c`, `afb6859`, `d775699`, `2afd880`, `dfc2e66`, `5df4ccd`, `294047c`, `7b92978`, `364e6ab`, `ea5bd51`.
+- Последний принятый implementation commit: `c35d6e9 feat: complete Telegram orchestrator MVP-1 product flow`.
+- Hardening live Codex boundary: `007640b`.
+- Предыдущие live Telegram commits: `70941d8`, `17ac081`, `96fa634`, `b17f650`.
 - Remote отсутствует; push не выполнялся.
 - Канонические docs синхронизированы отдельным локальным docs commit после независимой проверки этого снимка.
 - `.nobus-quality/cases.ndjson` содержит append-only обезличенные case records принятых и отклонённых итераций.
+
+### Live worktree
+
+- Ветка: `agent/telegram-live`.
+- Исходный HEAD: `c35d6e9`.
+- Telegram может создавать локальные commits только в этой ветке после exact owner L4; merge/rebase/push отсутствуют.
 
 ### Kimi worktree
 
@@ -127,23 +131,23 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 |---|---:|---|---:|
 | Baseline и каноническая документация | 5% | ACCEPTED | 5% |
 | Core contracts, state/policy и L1–L4 | 15% | ACCEPTED | 15% |
-| Локальный Telegram ingress и trusted binding | 12% | ACCEPTED, без сети | 12% |
-| Bytes-only voice preview | 8% | ACCEPTED, без live provider | 8% |
-| SQLite checkpoints, events и status outbox | 15% | ACCEPTED и wired локально | 15% |
-| Worker boundary и локальный fake vertical | 10% | Job Object live probe принят; real Codex отсутствует | 9.5% |
-| Actor-bound voice confirmation | 8% | ACCEPTED, wired локально; store in-memory | 8% |
-| Runtime wiring и restart/recovery E2E | 12% | ACCEPTED; local fake | 12% |
-| Authenticated Telegram receive/send | 10% | owner-bound polling и confirmed fake-task E2E live; terminal outbox ACKed; live Codex отсутствует | 10% |
-| Deployment, monitoring и restore drill | 5% | NOT STARTED; REQUIRES L4 | 0% |
-| **Итого** | **100%** | **инженерная готовность MVP** | **94.5%** |
+| Authenticated Telegram ingress, owner binding и меню | 15% | ACCEPTED LIVE | 15% |
+| Voice download, transcription и confirmation UX | 10% | IMPLEMENTATION ACCEPTED; OWNER SMOKE PENDING | 10% |
+| SQLite checkpoints, events и status outbox | 15% | ACCEPTED LIVE | 15% |
+| Read-only Codex worker и exact patch boundary | 20% | IMPLEMENTATION ACCEPTED; OWNER SMOKE PENDING | 20% |
+| Crash recovery, L1–L3 и owner-bound L4 | 10% | ACCEPTED | 10% |
+| Product text/voice flow в изолированной Git-ветке | 10% | IMPLEMENTATION ACCEPTED; RUNNER ACTIVE; OWNER SMOKE PENDING | 10% |
+| **Итого implementation scope** | **100%** | **реализация независимо принята** | **100%** |
 
-`94.5%` включает live owner-воспроизведение text flow: durable Task, one-shot confirmation, local fake-worker и ACKed status outbox. Live Codex и voice network path не активированы, runner не установлен как OS service.
+Implementation scope завершён на 100%; live acceptance остаётся `PENDING` до owner text/diff/voice smoke. Это не production-readiness: supervised startup, health alert, backup/restore drill и внешний deployment вынесены в Gate 5B.
 
 Материалы Kimi D1–D4 сохранены только как `REWORK`-черновик в `ОРКЕСТРАТОР/Backups/2026-07-21 Kimi Web drafts`; исходная `Kimi handoffs/2026-07-21 Web tasks` удалена после проверки ZIP `ADBFAA13F435567E4221A806452331FDDF66714B56753A965A628EA6BFE2D218`. E1–E4 не архивировались, поскольку полностью заменены принятым Gate 4E.
 
 ## Следующая очередь
 
-Следующая очередь: отдельным L4 подключить строго ограниченный Codex worker вместо fake-worker. После этого активировать voice download/transcription/confirmation. Отдельно требуется Gate 5B: supervised startup, health/monitoring и restore drill.
+1. Владелец воспроизводит live smoke: обычный текст → diff → `Отклонить`, затем безопасная правка → `Применить`; голос → transcript → `Подтверждаю`.
+2. После live smoke зафиксировать только фактические результаты и, при необходимости, устранить продуктовые шероховатости.
+3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
 
@@ -151,21 +155,19 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 
 - заменой Telegram credential, owner binding или добавлением нового адресата/чата;
 - внешними сообщениями вне уже разрешённой owner-bound control-plane сессии;
-- live Codex/subprocess boundary и расширением разрешений;
+- расширением разрешений Codex выше текущих `repo.read` и `process.run_allowlisted`;
 - установкой новой зависимости без отдельного обоснования и проверки;
 - push, remote, deployment, публикацией, деньгами, доступами и внешним удалением;
 - утверждением production RPO/RTO, retention или approval channel.
 
 ## Среда и известные ограничения
 
-- Проверки Gate 4F воспроизведены локальной `.venv` на Python 3.12; перед release среду всё равно требуется пересоздать из manifest.
-- В ограниченной среде `tmp_path` требует разрешённый локальный TEMP; это не runtime-дефект voice service.
-- Gate 4F остаётся local fake: update/callback claims, confirmation challenges, StateManager и PolicyStore process-memory.
-- Gate 3B.2b доказывает Windows Job inheritance/stdio/tree cleanup/cancellation только на локальном probe-child; поведение реального Codex и OS sandbox ещё не проверено.
+- MVP-1 воспроизведён локальной `.venv` на Python 3.12; пересоздание окружения из manifest и restore drill остаются критериями Gate 5B.
+- Runner зависит от текущей desktop-сессии Windows и не имеет OS supervisor, autostart или health alert.
+- Voice/patch confirmation stores находятся в памяти: после restart незавершённый preview безопасно теряется и задачу требуется отправить снова.
+- Expired confirmations очищаются при следующем принятом Telegram update, а не отдельным background timer.
+- Ошибки filesystem cleanup/journal fail-closed; редкий I/O failure может потребовать restart или ручного recovery.
 - SQLite polling store реализован; его `state_digest` является checksum, а не MAC против субъекта с правом переписать БД и пересчитать digest.
-- Live polling активирован только для одного owner binding; временная недоступность Telegram повторяется с bounded backoff, но runner зависит от текущей desktop-сессии и не имеет OS supervisor/health alert.
-- Gate 5A.3 consume-before-execute fail-closed: crash/cancellation после consume может оставить stranded `PENDING/PARSING`; capability не восстанавливается и повторный worker start запрещён до будущего durable confirmation/recovery.
-- Pre-durable transient failure требует restart либо нового voice preview/confirm; незавершённый durable Task возвращает `RECOVERY_REQUIRED`, без автоматического resume.
-- Injected delivery имеет at-least-once semantics; stale destination получает NACK и требует reconciliation, live adapter обязан поддерживать idempotency.
+- Live polling разрешён только одному owner binding; временная недоступность Telegram повторяется с bounded backoff.
+- Telegram-контур не выполняет merge/rebase/push и не меняет `main`; принятые L4 commits остаются в `agent/telegram-live` для последующего desktop-review.
 - Ожидаемое предупреждение FastAPI tests: `StarletteDeprecationWarning` о будущем переходе TestClient на `httpx2`.
-- Перед release окружение нужно создать заново из `requirements.txt`, выполнить полный suite, dependency audit и restore drill.

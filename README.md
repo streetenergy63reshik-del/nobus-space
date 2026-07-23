@@ -2,21 +2,18 @@
 
 `nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
 
-Проект находится в разработке и не готов к автономной production-эксплуатации.
+Реализация MVP-1 завершена, независимо принята и запущена в текущей desktop-сессии; live acceptance ожидает owner product smoke. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B.
 
 ## Текущее состояние
 
-- Gate 0: локальный baseline `ea5bd51` принят.
-- Documentation baseline: канонический комплект 01–10 и ADR 0001–0008 принят в `364e6ab`.
-- Gate 1: contracts/state/completion policy принят в `7b92978`.
-- Gate 2: Telegram ingress и безопасный bytes-only voice preview приняты в `5df4ccd`.
-- Gate 3A: fake-only Codex CLI boundary принят в `294047c`; live process не подключён.
-- Gate 4A: локальный text-only fake E2E принят в `dfc2e66`.
-- Gate 4B: trusted ingress envelope и обязательная привязка к `TaskContract` приняты в `2afd880`.
-- Gate 4C: durable SQLite checkpoints и append-only events приняты в `d775699` и подключены к локальному runtime в Gate 4F.
-- Gate 4D: actor-bound single-use подтверждение voice preview принято в `438233c` и подключено к локальному runtime; challenge store остаётся in-memory.
-- Gate 4E: локальный durable status outbox принят в `afb6859` и подключён к injected delivery boundary.
-- Gate 4F: локальный durable text/voice runtime, restart/recovery и fake delivery приняты в `a56bdf3`; сеть и live worker не подключены.
+- Gate 0 и Documentation baseline приняты: `ea5bd51`, `364e6ab`.
+- Gate 1–2: Core contracts/policy, Telegram ingress и безопасный voice preview приняты.
+- Gate 3A/3B: Codex CLI boundary и Windows process-tree hardening приняты, включая `007640b`.
+- Gate 4A–4F: trusted ingress, SQLite tasks/events/outbox, voice confirmation и durable recovery E2E приняты.
+- Gate 5A.1–5A.3: authenticated owner-bound Telegram receive/send и live fake-task smoke приняты.
+- Gate 5A.4: product text/voice UX, read-only Codex, exact diff, L1/L2/L3, owner L4 и CAS commit приняты в `c35d6e9`; runner активен, owner live product smoke ожидается.
+- Полный suite: `682 passed, 2 skipped, 1 warning`; независимый verdict: `ACCEPT`, P0/P1 отсутствуют.
+- Gate 5B: OS service/autostart, monitoring и restore drill не входят в функциональный MVP-1 и ещё не реализованы.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 
@@ -42,13 +39,13 @@ authenticated Telegram ingress
   -> concise Telegram response
 ```
 
-Сначала собирается полностью локальный сценарий на fake adapters. Токены, сетевые вызовы, публикация, deploy, деньги, удаление и изменение внешних систем не входят в автономные ночные работы.
+Текстовые задачи запускают read-only подготовку сразу. Голосовые задачи требуют подтверждения транскрипта. Любое изменение кода дополнительно требует owner-bound L4 и фиксируется только в `agent/telegram-live`; merge, push и внешние эффекты не выполняются.
 
 ## Структура
 
 ```text
 src/
-├── application/     # local fake и durable pre-live compositions
+├── application/     # durable runtime, Telegram product UX и Gate 5A.4
 ├── agents/          # replaceable workers; сейчас только прототип AuditAgent
 ├── contracts/       # локальные versioned Core contracts
 ├── core/            # deterministic policy guards
@@ -56,15 +53,15 @@ src/
 ├── models/          # текущая runtime Task model
 ├── orchestrator/    # parsing, routing, graph and state manager
 ├── skills/          # rule-based helpers
-├── storage/         # durable SQLite checkpoints/events/outbox, wired локально
-├── transport/       # Telegram normalization, без сетевого клиента
-├── voice/           # bytes-only preview и actor-bound single-use confirmation
-└── workers/         # fake-only Codex CLI boundary
+├── storage/         # durable SQLite checkpoints/events/outbox
+├── transport/       # Telegram normalization и ограниченный Bot API client
+├── voice/           # bounded download, faster-whisper и confirmation
+└── workers/         # read-only Codex CLI и exact patch parser
 docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Gate 4F соединяет text/voice ingress, actor-bound confirmation, Core, durable SQLite Task/WorkerEvents, fake worker, L1/L2/L3 и status outbox в локальный restart/recovery E2E. Незавершённая задача после restart не запускается повторно автоматически, а возвращает `RECOVERY_REQUIRED`; delivery остаётся at-least-once через injected sender. Это не означает authenticated Telegram API, live Codex process или production-доступа.
+Gate 5A.4 соединяет authenticated Telegram ingress, обычный текст как задачу, voice transcription/confirmation, read-only Codex draft, exact diff, L1/L2/L3, owner-bound L4 и локальный CAS commit в изолированной ветке. Pre-apply journal и restart reconciliation предотвращают тихую потерю или дублирование эффекта. Runner остаётся desktop-процессом, а не production service.
 
 ## Локальная проверка
 
