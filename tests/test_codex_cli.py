@@ -192,6 +192,8 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
     assert prompt["instruction"].endswith("; --danger && calc.exe")
     assert len(prompt["acceptance_criteria"]) == 1
     assert '{"answer":"..."}' in prompt["response_protocol"]
+    assert "instruction's language" in prompt["response_protocol"]
+    assert "omit internal identifiers" in prompt["response_protocol"]
     assert "Never modify files." in prompt["response_protocol"]
 
 @pytest.mark.asyncio

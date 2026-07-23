@@ -370,10 +370,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self.deliver_pending()
             return
         if outcome.proposal is None:
-            await self._api.send_message(
-                message.chat_id,
-                "⚠️ Не удалось безопасно подготовить результат. Изменения не применены.",
-            )
+            if outcome.task_id is None:
+                await self._api.send_message(
+                    message.chat_id,
+                    "⚠️ Не удалось безопасно подготовить результат. "
+                    "Изменения не применены.",
+                )
             await self.deliver_pending()
             return
         challenge = self._patch_confirmations.issue(

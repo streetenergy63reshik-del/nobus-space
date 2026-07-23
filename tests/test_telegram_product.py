@@ -406,3 +406,36 @@ async def test_informational_answer_uses_only_durable_delivery_boundary(
 
     assert harness.runtime.deliveries == 1
     assert all(text != "Проверенный ответ." for _, text, _ in harness.api.sent)
+
+@pytest.mark.asyncio
+async def test_durable_failure_is_not_duplicated_by_product_fallback(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path)
+
+    async def failed(prepared: PreparedTask) -> Gate5A4DraftOutcome:
+        return Gate5A4DraftOutcome(
+            status=FakeVerticalStatus.FAILED,
+            task_id=prepared.contract.task_id,
+            message="failed",
+        )
+
+    async def deliver() -> int:
+        await harness.api.send_message(
+            USER_ID,
+            "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены.",
+        )
+        return 1
+
+    harness.runtime.draft_prepared = failed  # type: ignore[method-assign]
+    harness.control.deliver_pending = deliver  # type: ignore[method-assign]
+    await harness.control.handle(text_update("Дай статус", 1))
+
+    failures = [
+        text
+        for _, text, _ in harness.api.sent
+        if text.startswith("⚠️ Не удалось безопасно")
+    ]
+    assert failures == [
+        "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены."
+    ]

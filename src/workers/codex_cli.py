@@ -299,6 +299,9 @@ class CodexCliAdapter:
                 "response_protocol": (
                     "Return exactly one JSON object and no markdown or prose. "
                     "For an informational/read-only result use {\"answer\":\"...\"}. "
+                    "Write the answer in the instruction's language, concise and "
+                    "user-facing; omit internal identifiers, local paths and "
+                    "implementation metadata unless explicitly requested. "
                     "Only when repository changes are needed use "
                     "{\"summary\":\"...\",\"patch\":\"<unified git diff>\","
                     "\"paths\":[\"relative/path\"]}. Never modify files."
