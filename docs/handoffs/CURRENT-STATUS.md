@@ -6,6 +6,14 @@
 
 **Назначение:** единственная обновляемая точка передачи фактического состояния между итерациями
 
+## Обновление 2026-07-23 — voice latency hardening
+
+По безопасным серверным меткам текстовая задача заняла около 10 секунд. Первый voice preview появился примерно через 82 секунды; после подтверждения callback был принят, но Codex worker выполнялся ещё около 68 секунд без видимого промежуточного отклика. Это разделило проблему на первый запуск локальной voice-модели и продуктовую обратную связь callback, а не общий отказ Telegram polling.
+
+Исправление `e5405f7` прогревает `faster-whisper base/int8` из существующего локального cache с `local_files_only=True` до начала polling и добавляет только ephemeral callback toast `Обрабатываю…`, без нового сообщения в чат. Порядок запуска fail-closed: production Codex probe → local Whisper warmup → control plane → polling/announcement.
+
+Проверки: `107 passed` target; `730 passed, 2 skipped, 1 warning` full; offline production warmup `1.693 s`; независимое L2/L3 — `ACCEPT`, P0/P1/P2 отсутствуют. На момент снимка runner `36c17e4` остаётся активным, поэтому исправление `e5405f7` проверено и закоммичено, но ещё не активировано в Telegram.
+
 ## Обновление 2026-07-23 — product execution hardening
 
 Исправление `27f9cd9` завершило продуктовый контур выполнения задач: рабочий Codex CLI выбирается самопроверкой, информационный ответ и code patch разделены строгим JSON-протоколом, а проверенный ответ доставляется через существующий tamper-evident SQLite outbox до ACK.
@@ -49,7 +57,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex execution flow | `36c17e4` | 127 target; 190 adversarial; 727 full; independent ACCEPT; startup production-worker probe PASS; polling lease active | **ACCEPTED; RELIABILITY RUNNER ACTIVE; OWNER PRODUCT SMOKE PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7` | 107 voice/callback target; 730 full; independent ACCEPT; local-only startup warmup; live activation pending | **IMPLEMENTATION ACCEPTED; CURRENT RUNNER REMAINS 36c17e4; OWNER VOICE SMOKE PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -94,7 +102,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Main worktree
 
 - Ветка: `main`.
-- Последний активный implementation commit: `36c17e4 fix: verify Codex readiness and simplify Telegram UX`.
+- Последний проверенный implementation commit: `e5405f7 fix: reduce Telegram voice startup latency`.
 - Hardening live Codex boundary: `007640b`.
 - Предыдущие live Telegram commits: `70941d8`, `17ac081`, `96fa634`, `b17f650`.
 - Remote отсутствует; push не выполнялся.
@@ -154,8 +162,8 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 ## Следующая очередь
 
-1. Владелец отправляет обычную задачу и проверяет, что бот возвращает только результат без служебного acknowledgement.
-2. Завершить owner smoke: голос → transcript/confirmation → результат; patch → diff и L4-кнопки.
+1. После отдельного L4 остановить runner `36c17e4`, fast-forward live-ветку до `e5405f7` и запустить с production startup probe и local-only Whisper warmup.
+2. Завершить owner smoke: короткий голос → быстрый transcript/confirmation → немедленный callback toast → результат; отдельно patch → diff и L4-кнопки.
 3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
