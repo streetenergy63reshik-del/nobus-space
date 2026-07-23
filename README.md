@@ -2,7 +2,7 @@
 
 `nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
 
-Реализация MVP-1 завершена, независимо принята и запущена в текущей desktop-сессии; live acceptance ожидает owner product smoke. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B.
+Реализация MVP-1 завершена, независимо принята и запущена в текущей desktop-сессии. Live text-answer E2E принят; owner voice и code-diff/L4 smoke завершают продуктовую приёмку. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B после функционального MVP-1.
 
 ## Текущее состояние
 
@@ -11,8 +11,8 @@
 - Gate 3A/3B: Codex CLI boundary и Windows process-tree hardening приняты, включая `007640b`.
 - Gate 4A–4F: trusted ingress, SQLite tasks/events/outbox, voice confirmation и durable recovery E2E приняты.
 - Gate 5A.1–5A.3: authenticated owner-bound Telegram receive/send и live fake-task smoke приняты.
-- Gate 5A.4: product text/voice UX, read-only Codex, exact diff, L1/L2/L3, owner L4 и CAS commit приняты в `c35d6e9`; runner активен, owner live product smoke ожидается.
-- Полный suite: `682 passed, 2 skipped, 1 warning`; независимый verdict: `ACCEPT`, P0/P1 отсутствуют.
+- Gate 5A.4: product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit приняты в `fb49e66`; runner активен, live text-answer принят, voice и code-diff/L4 smoke ожидаются.
+- Полный suite: `711 passed, 2 skipped, 1 warning`; независимый verdict: `ACCEPT`, P0/P1/P2 отсутствуют.
 - Gate 5B: OS service/autostart, monitoring и restore drill не входят в функциональный MVP-1 и ещё не реализованы.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).

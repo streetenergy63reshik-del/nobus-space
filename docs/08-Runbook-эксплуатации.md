@@ -1,14 +1,14 @@
 # 08. Runbook эксплуатации
 
 **Статус документа:** CANONICAL
-**Состояние реализации:** TARGET; production-среда не создана
-**Дата актуализации:** 22 июля 2026
+**Состояние реализации:** CURRENT local MVP / TARGET production; production-среда не создана
+**Дата актуализации:** 23 июля 2026
 
-Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram status control работает live; confirmed `/task` воспроизведён live до terminal `completed` только с локальным fake-worker. Voice/live-worker adapters остаются fake/injected.
+Этот документ не подтверждает наличие TARGET-механизмов. Проверенный owner-bound Telegram product runner работает live в текущей Windows desktop-сессии: text-answer E2E принят, локальная voice transcription/confirmation и read-only Codex/exact-patch boundaries активны. Production supervisor, независимый monitoring и backup/restore drill отсутствуют.
 
 ## CURRENT и TARGET
 
-**CURRENT:** существует локальный durable fake runtime с SQLite restart/recovery и Telegram status delivery. Owner-bound polling читает credential из Windows Credential Manager и обслуживает безопасные status-команды. Confirmed fake `/task` воспроизведён live через owner chat до ACKed terminal `completed`; raw instruction/token не сохраняются в SQLite. Runner зависит от текущей desktop-сессии и использует bounded network backoff. OS supervisor/autostart, health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
+**CURRENT:** локальный durable runtime использует SQLite restart/recovery, owner-bound polling и status outbox. Credential читается из Windows Credential Manager; обычный text запускает read-only Codex, voice транскрибируется локально и подтверждается кнопкой, code diff требует отдельного owner L4. Live text-answer достиг `ANSWERED`, bundle `APPROVED`, outbox `ACKED`. Runner зависит от текущей desktop-сессии и использует bounded network backoff. OS supervisor/autostart, независимые health alerts, deployment pipeline, production-хранилище и recovery automation отсутствуют. Ни один TARGET-раздел ниже нельзя трактовать как доказательство production-эксплуатации.
 
 **TARGET:** три изолированные среды, воспроизводимые релизы, наблюдаемость, независимые оповещения, проверяемые backup/restore, kill switch и процедурно подтверждённое восстановление.
 
@@ -123,6 +123,18 @@ Telegram не может быть единственным каналом опо
 - не считать просроченные approvals действующими;
 - включать adapters только после health и policy checks.
 
+### Локальный Telegram runner MVP-1 (CURRENT)
+
+Запуск выполняется из корня канонического репозитория под owner Windows account:
+
+```powershell
+$env:DEBUG='false'
+.\.venv\Scripts\python.exe scripts\run_telegram_mvp1.py --serve --timeout 30 --announce
+```
+
+Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12, доступный Codex CLI и две SQLite с `quick_check=ok`. Runner сверяет bot identity, использует один generation-bound polling lease и отвечает `telegram_consumer_busy`, если уже существует активный consumer; удалять checkpoint для обхода блокировки запрещено.
+
+После перезагрузки Windows runner запускается вручную той же командой. Текущий MVP не устанавливает service/autostart и не обещает работу без desktop-сессии. Штатная остановка прекращает процесс; новый запуск выполняется после истечения lease TTL без удаления SQLite. `/status` подтверждает только Telegram control plane, а не production readiness.
 ### Локальная семантика Gate 4F
 
 - завершённая durable задача после restart возвращается без повторного запуска worker;
@@ -131,7 +143,7 @@ Telegram не может быть единственным каналом опо
 - injected status sender имеет at-least-once семантику; после успешной внешней отправки и crash до ACK возможен повтор, поэтому live adapter обязан иметь idempotency key;
 - несовпадение сохранённого `destination_ref` с текущей tenant-конфигурацией не вызывает sender, фиксируется NACK и требует operator reconciliation;
 - consume-before-execute намеренно fail-closed: crash/cancellation может оставить stranded `PENDING/PARSING` без capability и автоматического resume; повторный worker start запрещён;
-- эти правила не являются production recovery automation и не расширяют owner-bound Telegram control plane на live Codex execution, voice network path или новые внешние эффекты.
+- эти правила не являются production recovery automation; live Codex и voice path активны только в owner-bound локальном MVP, а новые внешние эффекты по-прежнему запрещены без отдельного adapter policy и L4.
 
 ### Локальная проверка Windows Job guard
 
