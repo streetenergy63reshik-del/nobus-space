@@ -6,19 +6,19 @@
 
 **Назначение:** единственная обновляемая точка передачи фактического состояния между итерациями
 
-## Обновление 2026-07-23 — недельный лимит Codex (ACCEPT — ACTIVATION PENDING)
+## Обновление 2026-07-23 — недельный лимит Codex (ACCEPTED LIVE)
 
 В main commit `4ab837c` добавлена продуктовая команда `/limit` и пункт `Лимит` в Bot Menu. Команда выполняет отдельный bounded read-only запрос `account/rateLimits/read` через официальный Codex app-server, выбирает exact `codex` window длительностью 10 080 минут и показывает владельцу использованный/оставшийся процент и время сброса по Москве. Model turn, tools, web и MCP не запускаются; абсолютное число токенов OpenAI не сообщает.
 
 Fail-closed границы: exact argv allowlist синхронизирован в adapter, Windows Job launcher и helper; JSONL ограничен по числу сообщений и размеру; дублирующиеся JSON keys, неверный bucket/window/type/процент и provider error отвергаются; timeout 15 секунд; process tree завершается при success, error и cancellation. Ошибка даёт одно безопасное сообщение и не создаёт Task. Startup-order сохранён: limit provider создаётся только после успешных Codex worker probe и локального Whisper warmup.
 
-Проверки: `56 passed` target; `754 passed, 2 skipped, 1 known warning` full; `pip check` и `compileall` — PASS; production-path smoke через тот же sanitized environment и Windows Job — PASS (`15%` использовано, `85%` осталось, reset `2026-07-30 10:00 MSK` на момент проверки). Live runner остаётся на `e5405f7`; публикация Bot Menu и перезапуск требуют отдельного owner L4.
+Проверки: `56 passed` target; `754 passed, 2 skipped, 1 known warning` full; `pip check` и `compileall` — PASS; production-path smoke через тот же sanitized environment и Windows Job — PASS (`15%` использовано, `85%` осталось, reset `2026-07-30 10:00 MSK` на момент проверки). По exact owner L4 Bot Menu опубликован, live-ветка fast-forward обновлена до `08e8917`, startup Sol/high/Fast probe и локальный Whisper warmup прошли до получения новой generation-bound polling lease; runner активен.
 
-## Обновление 2026-07-23 — concurrent Telegram execution (ACCEPT — ACTIVATION PENDING)
+## Обновление 2026-07-23 — concurrent Telegram execution (ACCEPTED LIVE)
 
 В main реализован ADR 0009: production CLI profile `gpt-5.6-sol` + `high` reasoning + Fast mode; Gate 5A.4 execution deadline 10 800 секунд при абсолютном ceiling 14 400 секунд; Telegram polling отделён от worker execution. Два read-only workers выполняют независимые задачи параллельно. Admission допускает 32 ожидающих drafts в общей очереди maxsize 40 с резервом для L4. Overflow и controlled close считают job завершённым только после exact durable terminal proof; persistent failure запрещает polling ACK или clean close. Exact owner-approved patch сохраняет эксклюзивный Git/L2/L3/apply/commit boundary.
 
-Локальный regression подтверждает быстрый приём пяти задач: две активны, три находятся в очереди; `/status` показывает оба счётчика. False `REJECTED` без SQLite-write, persistent overflow, active cancellation, concurrent close и реальные Gate wrappers проверены adversarial tests. Полный suite: `745 passed, 2 skipped, 1 known warning`; независимое L2/L3: `ACCEPT`, P0/P1/P2 отсутствуют. Очередь process-memory и не обещает crash replay raw instruction. Изменение не активировано в live runner `e5405f7`; отдельный owner L4 для принятия residual crash-risk, startup probe и контролируемого перезапуска ещё требуется.
+Локальный regression подтверждает быстрый приём пяти задач: две активны, три находятся в очереди; `/status` показывает оба счётчика. False `REJECTED` без SQLite-write, persistent overflow, active cancellation, concurrent close и реальные Gate wrappers проверены adversarial tests. Полный suite: `745 passed, 2 skipped, 1 known warning`; независимое L2/L3: `ACCEPT`, P0/P1/P2 отсутствуют. Очередь process-memory и не обещает crash replay raw instruction. По exact owner L4 residual crash-risk принят; live runner `08e8917` прошёл startup probe, warmup и получил свежую polling lease. Owner queue smoke остаётся `PENDING`.
 
 ## Обновление 2026-07-23 — callback/worker timeout hardening
 
@@ -79,8 +79,8 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7`, `496e891` | 99 callback/worker target; 731 full; independent ACCEPT; current polling lease active | **VOICE WARMUP LIVE; CALLBACK/WORKER FIX ACCEPTED, ACTIVATION PENDING** |
-| Gate 5A.5 — weekly Codex usage visibility | `4ab837c` | 56 target; 754 full; exact 7-day bucket production smoke | **ACCEPTED LOCAL; ACTIVATION PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `42f093a`, `08e8917` | 745 full; independent ACCEPT; owner L4 activation; current polling lease active | **ACCEPTED LIVE; OWNER QUEUE/DIFF SMOKE PENDING** |
+| Gate 5A.5 — weekly Codex usage visibility | `4ab837c`, `08e8917` | 56 target; 754 full; exact 7-day bucket production smoke; owner L4 live activation | **ACCEPTED LIVE; OWNER `/limit` SMOKE PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -136,7 +136,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Live worktree
 
 - Ветка: `agent/telegram-live`.
-- Текущий HEAD работающего runner: `e5405f7`.
+- Текущий HEAD работающего runner: `08e8917`.
 - Telegram может создавать локальные commits только в этой ветке после exact owner L4; merge/rebase/push отсутствуют.
 
 ### Kimi worktree
@@ -186,9 +186,8 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 ## Следующая очередь
 
-1. После отдельного owner L4 fast-forward обновить live-ветку до `4ab837c`, опубликовать Bot Menu с `/limit`, выполнить startup probe и перезапустить runner.
-2. Выполнить owner smoke `/limit`, затем повторить text/voice/queue smoke и owner-approved diff/apply.
-3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
+1. Выполнить owner smoke `/limit`, затем повторить text/voice/queue smoke и owner-approved diff/apply.
+2. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
 
