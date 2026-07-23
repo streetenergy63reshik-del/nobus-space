@@ -62,6 +62,7 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointStore,
 )
 from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
+from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
 
 _WORKTREE = ROOT.parent / "worktrees" / "telegram-live"
@@ -142,6 +143,19 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             local_files_only=True,
         )
         await voice_transcriber.warmup()
+        limit_provider = build_codex_rate_limit_client(
+            workspace_root=worktree,
+            executable=executable,
+            codex_home=Path.home() / ".codex",
+            system_root=system_root,
+            temp_root=_CODEX_TEMP,
+            path_entries=(
+                system_root / "System32",
+                system_root / "System32" / "WindowsPowerShell" / "v1.0",
+                executable.parent,
+                git.parent,
+            ),
+        )
         control = ProductTelegramControlPlane(
             gateway,
             api,
@@ -155,6 +169,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 max_bytes=10 * 1024 * 1024,
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
             ),
+            limit_provider=limit_provider,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             task_tenants=destination_refs,
             task_status_sender=TelegramStatusSender(

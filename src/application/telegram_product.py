@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -33,6 +34,7 @@ from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
 from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, VoiceMessage
 from src.voice import VoicePreviewService
+from src.workers.codex_limits import WeeklyLimitSnapshot
 
 
 _VOICE_LIMIT = 10 * 1024 * 1024
@@ -41,6 +43,25 @@ _CALLBACK_ACK_TIMEOUT_SECONDS = 2.0
 _DRAFT_QUEUE_LIMIT = 32
 _EXECUTION_QUEUE_MAXSIZE = 40
 _TERMINALIZE_ATTEMPTS = 3
+_MOSCOW = timezone(timedelta(hours=3), "MSK")
+_MONTHS = (
+    "", "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+)
+
+
+def _weekly_limit_text(snapshot: WeeklyLimitSnapshot) -> str:
+    reset = "не сообщён OpenAI"
+    if snapshot.resets_at is not None:
+        moment = datetime.fromtimestamp(snapshot.resets_at, UTC).astimezone(_MOSCOW)
+        reset = f"{moment.day} {_MONTHS[moment.month]} в {moment:%H:%M} по Москве"
+    return (
+        "Лимит Codex на неделю\n\n"
+        f"Осталось: {100 - snapshot.used_percent}%\n"
+        f"Использовано: {snapshot.used_percent}%\n"
+        f"Сброс: {reset}\n\n"
+        "OpenAI сообщает квоту в процентах, без абсолютного числа токенов."
+    )
 
 
 class ProductTelegramApi(Protocol):
@@ -82,6 +103,10 @@ class ProductTaskRuntime(Protocol):
 
     async def reject_proposal(self, proposal: PatchProposal) -> FakeVerticalResponse: ...
 
+
+class WeeklyLimitProvider(Protocol):
+    async def fetch_weekly(self) -> WeeklyLimitSnapshot: ...
+
 @dataclass(frozen=True, slots=True)
 class _QueuedDraft:
     prepared: PreparedTask
@@ -112,6 +137,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         patch_confirmations: InMemoryPatchConfirmationStore,
         action_store: InMemoryTelegramActionStore,
         voice_service: VoicePreviewService | None = None,
+        limit_provider: WeeklyLimitProvider | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -132,6 +158,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 voice_service is not None
                 and not callable(getattr(voice_service, "preview_from_bytes", None))
             )
+            or (
+                limit_provider is not None
+                and not callable(getattr(limit_provider, "fetch_weekly", None))
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -148,6 +178,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._patch_confirmations = patch_confirmations
         self._action_store = action_store
         self._voice_service = voice_service
+        self._limit_provider = limit_provider
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -376,6 +407,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         command = _command(payload.text)
         if command == "/status":
             await self._api.send_message(payload.chat_id, self._status_text())
+        elif command == "/limit":
+            await self._send_limit(payload.chat_id)
         elif command in {"/help", "/start"}:
             await self._api.send_message(payload.chat_id, self._help_text())
         elif command == "/task":
@@ -438,9 +471,23 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             "с кнопками «Подтверждаю» и «Отмена».\n\n"
             "Меню:\n"
             "/status — состояние системы\n"
+            "/limit — недельный лимит Codex\n"
             "/help — эта справка\n\n"
             "Не отправляйте пароли, токены и клиентские персональные данные."
         )
+
+    async def _send_limit(self, chat_id: int) -> None:
+        if self._limit_provider is None:
+            text = "Лимит Codex сейчас недоступен. Попробуйте позже."
+        else:
+            try:
+                snapshot = await self._limit_provider.fetch_weekly()
+                text = _weekly_limit_text(snapshot)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                text = "Лимит Codex сейчас недоступен. Попробуйте позже."
+        await self._api.send_message(chat_id, text)
 
     async def _start_text_task(
         self,

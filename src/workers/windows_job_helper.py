@@ -39,7 +39,15 @@ _READ_ARGV = (
     "-",
 )
 _WRITE_ARGV = (*_READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
-_ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV})
+_RATE_LIMIT_ARGV = (
+    "app-server",
+    "--stdio",
+    "--config",
+    'web_search="disabled"',
+    "--config",
+    "mcp_servers={}",
+)
+_ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV, _RATE_LIMIT_ARGV})
 _GATE_RE = re.compile(r"^Local\\NobusOrchestrator-[0-9a-f]{32}$")
 _SYNCHRONIZE = 0x00100000
 _WAIT_OBJECT_0 = 0

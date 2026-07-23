@@ -45,6 +45,14 @@ _READ_ARGV = (
     "-",
 )
 _WRITE_ARGV = (*_READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
+_RATE_LIMIT_ARGV = (
+    "app-server",
+    "--stdio",
+    "--config",
+    'web_search="disabled"',
+    "--config",
+    "mcp_servers={}",
+)
 _KNOWN_PERMISSIONS = frozenset(
     {
         "repo.read",
