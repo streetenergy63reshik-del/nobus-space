@@ -624,3 +624,15 @@ async def test_product_status_sender_requires_strict_mode_flag() -> None:
             )
     finally:
         await api.aclose()
+
+
+def test_product_rejected_status_does_not_claim_owner_cancelled() -> None:
+    from src.transport.telegram.bot_api import _status_text
+
+    visible = _status_text(
+        outbox_message(TaskStatus.REJECTED),
+        technical_details=False,
+    )
+
+    assert "задача отклонена или безопасная проверка не пройдена" in visible
+    assert "Задача отменена" not in visible

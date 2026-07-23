@@ -630,7 +630,10 @@ def _status_text(
             "Merge и push не выполнялись."
         )
     if message.task_status is TaskStatus.REJECTED:
-        return "Задача отменена. Изменения не применены."
+        return (
+            "⚠️ Результат не применён: задача отклонена или безопасная проверка "
+            "не пройдена."
+        )
     if message.task_status is TaskStatus.FAILED:
         return "⚠️ Не удалось безопасно выполнить задачу. Изменения не применены."
     if message.task_status is TaskStatus.ESCALATE:

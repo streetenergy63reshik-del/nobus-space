@@ -7,13 +7,14 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from uuid import uuid4
 
 import pytest
 
 from src.contracts import TaskContract
-from src.workers import CodexCliAdapter, CodexCliError, ProcessOutput
+from src.workers import CodexCliAdapter, CodexCliError, CodexCliResult, ProcessOutput
 from src.workers.codex_cli import build_worker_env
 
 
@@ -772,3 +773,88 @@ async def test_gate5a4_contract_is_accepted_as_read_only(
     assert contract.permissions == ("repo.read", "process.run_allowlisted")
     assert "read-only" in spawner.call["argv"]
     assert "workspace-write" not in spawner.call["argv"]
+
+
+@pytest.mark.asyncio
+async def test_gate5a4_retries_one_transient_read_only_worker_failure() -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+
+    class FlakyWorker:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(self, contract: object) -> CodexCliResult:
+            self.calls += 1
+            if self.calls == 1:
+                raise CodexCliError("worker_failed")
+            return CodexCliResult(message='{"answer":"Работает."}')
+
+    worker = FlakyWorker()
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._worker = worker  # type: ignore[attr-defined]
+
+    result = await runtime._execute_worker(SimpleNamespace(timeout_seconds=1))  # type: ignore[arg-type]
+
+    assert result.message == '{"answer":"Работает."}'
+    assert worker.calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("code", "expected_calls"),
+    (("worker_failed", 2), ("worker_timeout", 1), ("worker_forbidden", 1)),
+)
+async def test_gate5a4_worker_retry_is_bounded_and_policy_aware(
+    code: str, expected_calls: int
+) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+
+    class FailingWorker:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(self, contract: object) -> CodexCliResult:
+            self.calls += 1
+            raise CodexCliError(code)
+
+    worker = FailingWorker()
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._worker = worker  # type: ignore[attr-defined]
+
+    with pytest.raises(CodexCliError) as caught:
+        await runtime._execute_worker(SimpleNamespace(timeout_seconds=1))  # type: ignore[arg-type]
+
+    assert caught.value.code == code
+    assert worker.calls == expected_calls
+
+
+@pytest.mark.asyncio
+async def test_gate5a4_retry_shares_the_original_worker_deadline() -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+
+    class LateFailureWorker:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(self, contract: object) -> CodexCliResult:
+            self.calls += 1
+            if self.calls == 1:
+                await asyncio.sleep(0.04)
+                raise CodexCliError("worker_failed")
+            await asyncio.sleep(1)
+            return CodexCliResult(message='{"answer":"too late"}')
+
+    worker = LateFailureWorker()
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._worker = worker  # type: ignore[attr-defined]
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+
+    with pytest.raises(CodexCliError) as caught:
+        await runtime._execute_worker(  # type: ignore[arg-type]
+            SimpleNamespace(timeout_seconds=0.08)
+        )
+
+    assert caught.value.code == "worker_timeout"
+    assert worker.calls == 2
+    assert loop.time() - started < 0.3

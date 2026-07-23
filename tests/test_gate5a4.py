@@ -395,3 +395,56 @@ async def test_informational_answer_l1_rejects_local_path_disclosure(
     candidate = _candidate('{"answer":"Read C:\\\\Users\\\\owner\\\\secret.txt"}')
 
     assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_l1_retries_one_transient_git_preflight_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _repo(tmp_path)
+    pipeline = GitPatchVerificationPipeline(
+        worktree=tmp_path,
+        git_executable=_git(),
+        python_executable=Path(__import__("sys").executable),
+    )
+    original = pipeline._require_clean_branch
+    calls = 0
+
+    async def flaky_preflight() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("transient process failure")
+        await original()
+
+    monkeypatch.setattr(pipeline, "_require_clean_branch", flaky_preflight)
+    candidate = _candidate(json.dumps({"answer": "Голосовой контур работает."}))
+
+    assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.PASSED
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_l1_remains_failed_after_one_transient_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _repo(tmp_path)
+    pipeline = GitPatchVerificationPipeline(
+        worktree=tmp_path,
+        git_executable=_git(),
+        python_executable=Path(__import__("sys").executable),
+    )
+    calls = 0
+
+    async def unavailable_preflight() -> None:
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("persistent process failure")
+
+    monkeypatch.setattr(pipeline, "_require_clean_branch", unavailable_preflight)
+    candidate = _candidate(json.dumps({"answer": "Safe answer."}))
+
+    assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.FAILED
+    assert calls == 2
+    assert candidate.task_id not in pipeline._answers
+    assert candidate.task_id not in pipeline._drafts

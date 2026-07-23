@@ -42,7 +42,12 @@ from src.orchestrator.state_manager import StateManager
 from src.storage import SQLiteStore
 from src.transport.telegram import TelegramGateway
 from src.workers.asyncio_spawner import AsyncioProcessSpawner
-from src.workers.codex_cli import CodexCliAdapter, build_worker_env
+from src.workers.codex_cli import (
+    CodexCliAdapter,
+    CodexCliError,
+    CodexCliResult,
+    build_worker_env,
+)
 from src.workers.codex_patch import (
     CodexAnswerDraft,
     CodexPatchDraft,
@@ -135,7 +140,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 contract = prepared.contract
                 task = await self._prepared_task(contract)
                 task = await self._start_worker(contract, task)
-                worker_result = await self._worker.execute(contract)
+                worker_result = await self._execute_worker(contract)
                 draft = parse_codex_draft(worker_result.message, self._pipeline.root)
                 task = await self._record_worker_result(
                     contract,
@@ -252,6 +257,31 @@ class Gate5A4Runtime(DurableFakeRuntime):
                     task_id=task.id if task is not None else None,
                     message="Read-only result failed.",
                 )
+
+    async def _execute_worker(self, contract: TaskContract) -> CodexCliResult:
+        """Retry one transient read-only failure within the original deadline."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + contract.timeout_seconds
+        for attempt in range(2):
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise CodexCliError("worker_timeout")
+            try:
+                return await asyncio.wait_for(
+                    self._worker.execute(contract),
+                    timeout=remaining,
+                )
+            except TimeoutError:
+                raise CodexCliError("worker_timeout") from None
+            except CodexCliError as error:
+                if attempt == 1 or error.code not in {
+                    "worker_start_failed",
+                    "worker_failed",
+                    "worker_protocol_error",
+                }:
+                    raise
+        raise CodexCliError("worker_failed")
+
     async def apply_proposal(
         self,
         proposal: PatchProposal,
@@ -565,28 +595,38 @@ class GitPatchVerificationPipeline:
     async def l1(self, candidate: VerificationInput) -> VerificationLevel:
         try:
             draft = parse_codex_draft(candidate.worker_message, self._root)
-            await self._require_clean_branch()
-            baseline = (await self._run_git("rev-parse", "--verify", "HEAD")).strip()
-            if not 40 <= len(baseline) <= 64 or any(
-                character not in "0123456789abcdef" for character in baseline
-            ):
-                raise RuntimeError("invalid baseline")
-            if isinstance(draft, CodexPatchDraft):
-                await self._run_git(
-                    "apply", "--check", "--whitespace=error-all", "-", stdin=draft.patch
-                )
-                self._drafts[candidate.task_id] = _DraftState(draft, baseline)
-                self._answers.pop(candidate.task_id, None)
-                method = "patch schema and git apply-check"
-            else:
-                self._answers[candidate.task_id] = _AnswerState(draft, baseline)
-                self._drafts.pop(candidate.task_id, None)
-                method = "answer schema and clean worktree baseline"
-            return self._level(candidate, 1, True, method)
-        except (CodexPatchError, RuntimeError):
+        except CodexPatchError:
             self._drafts.pop(candidate.task_id, None)
             self._answers.pop(candidate.task_id, None)
             return self._level(candidate, 1, False, "read-only preflight rejected")
+        for attempt in range(2):
+            try:
+                await self._require_clean_branch()
+                baseline = (
+                    await self._run_git("rev-parse", "--verify", "HEAD")
+                ).strip()
+                if not 40 <= len(baseline) <= 64 or any(
+                    character not in "0123456789abcdef" for character in baseline
+                ):
+                    raise RuntimeError("invalid baseline")
+                if isinstance(draft, CodexPatchDraft):
+                    await self._run_git(
+                        "apply", "--check", "--whitespace=error-all", "-", stdin=draft.patch
+                    )
+                    self._drafts[candidate.task_id] = _DraftState(draft, baseline)
+                    self._answers.pop(candidate.task_id, None)
+                    method = "patch schema and git apply-check"
+                else:
+                    self._answers[candidate.task_id] = _AnswerState(draft, baseline)
+                    self._drafts.pop(candidate.task_id, None)
+                    method = "answer schema and clean worktree baseline"
+                return self._level(candidate, 1, True, method)
+            except RuntimeError:
+                if attempt == 0:
+                    continue
+        self._drafts.pop(candidate.task_id, None)
+        self._answers.pop(candidate.task_id, None)
+        return self._level(candidate, 1, False, "read-only preflight rejected")
 
     async def l2(self, candidate: VerificationInput) -> VerificationLevel:
         answer = self._matching_answer(candidate)
