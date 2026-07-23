@@ -12,7 +12,7 @@
 
 Исправление `e5405f7` прогревает `faster-whisper base/int8` из существующего локального cache с `local_files_only=True` до начала polling и добавляет только ephemeral callback toast `Обрабатываю…`, без нового сообщения в чат. Порядок запуска fail-closed: production Codex probe → local Whisper warmup → control plane → polling/announcement.
 
-Проверки: `107 passed` target; `730 passed, 2 skipped, 1 warning` full; offline production warmup `1.693 s`; независимое L2/L3 — `ACCEPT`, P0/P1/P2 отсутствуют. На момент снимка runner `36c17e4` остаётся активным, поэтому исправление `e5405f7` проверено и закоммичено, но ещё не активировано в Telegram.
+Проверки: `107 passed` target; `730 passed, 2 skipped, 1 warning` full; offline production warmup `1.693 s`; независимое L2/L3 — `ACCEPT`, P0/P1/P2 отсутствуют. После owner L4 live-ветка fast-forward обновлена до `e5405f7`; startup probe и local-only Whisper warmup завершились до polling, а свежая generation-bound lease подтверждает активный runner.
 
 ## Обновление 2026-07-23 — product execution hardening
 
@@ -57,7 +57,7 @@ Crash consistency защищена pre-apply journal, exact-path restore, `commi
 | Gate 5A.2a — durable polling checkpoint | `1d4029f` | 18 SQLite tests; restart/CAS/expiry/clock/tamper review | **ACCEPTED PRE-LIVE; LIVE ACTIVATED IN 5A.2b** |
 | Gate 5A.2b — live owner control plane | `b17f650`, `96fa634`, `17ac081` | verified identity/binding; live poll/send; 11 retry tests; 609 full; independent retry review | **ACCEPTED LIVE TEXT CONTROL** |
 | Gate 5A.3 — confirmed Telegram fake tasks | `70941d8` | 36 target; 630 full; independent review; owner live terminal `completed`; SQLite/outbox ACK evidence | **ACCEPTED LIVE FAKE E2E; LIVE CODEX EXCLUDED** |
-| Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7` | 107 voice/callback target; 730 full; independent ACCEPT; local-only startup warmup; live activation pending | **IMPLEMENTATION ACCEPTED; CURRENT RUNNER REMAINS 36c17e4; OWNER VOICE SMOKE PENDING** |
+| Gate 5A.4 — product text/voice + live Codex execution flow | `e5405f7` | 107 voice/callback target; 730 full; independent ACCEPT; startup probe PASS; local-only warmup PASS; polling lease active | **ACCEPTED; VOICE-LATENCY FIX LIVE; OWNER VOICE SMOKE PENDING** |
 | Gate 5B — production readiness | только TARGET runbook | нет deploy/monitoring/restore evidence | **BLOCKED BY DESIGN** |
 
 ## Реализованные границы
@@ -112,7 +112,7 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 ### Live worktree
 
 - Ветка: `agent/telegram-live`.
-- Текущий HEAD работающего runner: `36c17e4`.
+- Текущий HEAD работающего runner: `e5405f7`.
 - Telegram может создавать локальные commits только в этой ветке после exact owner L4; merge/rebase/push отсутствуют.
 
 ### Kimi worktree
@@ -162,8 +162,8 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 ## Следующая очередь
 
-1. После отдельного L4 остановить runner `36c17e4`, fast-forward live-ветку до `e5405f7` и запустить с production startup probe и local-only Whisper warmup.
-2. Завершить owner smoke: короткий голос → быстрый transcript/confirmation → немедленный callback toast → результат; отдельно patch → diff и L4-кнопки.
+1. Завершить owner smoke: короткий голос → быстрый transcript/confirmation → немедленный callback toast → результат.
+2. Реализовать product response renderer и удаление использованного voice/patch preview; затем отдельно проверить patch → diff и L4-кнопки.
 3. Gate 5B выполнять отдельно: supervised startup/autostart, health/alerting, backup/restore drill и эксплуатационный runbook. Эти действия требуют отдельной проверки риска и L4.
 
 ## Обязательная остановка и L4
