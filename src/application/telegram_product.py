@@ -40,7 +40,7 @@ from src.application.telegram_control import TelegramControlPlane, _argument, _c
 from src.contracts import TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
-from src.integrations import CalendarActionKind
+from src.integrations import CalendarActionKind, GoogleTaskActionKind
 from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, VoiceMessage
 from src.voice import VoicePreviewService
 from src.workers.codex_limits import WeeklyLimitSnapshot
@@ -63,6 +63,11 @@ _FILE_REQUEST_RE = re.compile(
 )
 _CALENDAR_HINT_RE = re.compile(
     r"\b(?:календар\w*|встреч\w*|созвон\w*|событи\w*|calendar|meeting|appointment)\b",
+    re.IGNORECASE,
+)
+_GOOGLE_TASKS_HINT_RE = re.compile(
+    r"\b(?:google\s+tasks?|гугл[е]?\s+(?:задач\w*|таск\w*)|"
+    r"задач\w*\s+в\s+google|список\s+google\s+tasks?)\b",
     re.IGNORECASE,
 )
 _MONTHS = (
@@ -216,6 +221,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         product_effects: ProductEffectService | None = None,
         calendar_planner: Any | None = None,
         calendar_service: Any | None = None,
+        google_tasks_planner: Any | None = None,
+        google_tasks_service: Any | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -275,6 +282,30 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             or (
                 calendar_service is not None and product_effects is None
             )
+            or (
+                google_tasks_planner is not None
+                and not callable(
+                    getattr(google_tasks_planner, "plan_google_task_action", None)
+                )
+            )
+            or (
+                google_tasks_service is not None
+                and not all(
+                    callable(getattr(google_tasks_service, name, None))
+                    for name in (
+                        "execute",
+                        "resolve_delete",
+                        "delete_task",
+                    )
+                )
+            )
+            or (
+                (google_tasks_planner is None)
+                is not (google_tasks_service is None)
+            )
+            or (
+                google_tasks_service is not None and product_effects is None
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -296,6 +327,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._product_effects = product_effects
         self._calendar_planner = calendar_planner
         self._calendar_service = calendar_service
+        self._google_tasks_planner = google_tasks_planner
+        self._google_tasks_service = google_tasks_service
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -706,6 +739,76 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             )
             return
         if (
+            self._google_tasks_planner is not None
+            and self._google_tasks_service is not None
+            and _GOOGLE_TASKS_HINT_RE.search(normalized)
+        ):
+            try:
+                action = await self._google_tasks_planner.plan_google_task_action(
+                    normalized, envelope
+                )
+                if action.kind is GoogleTaskActionKind.DELETE:
+                    if self._product_effects is None:
+                        raise RuntimeError("Google Tasks deletion is unavailable")
+                    challenge = (
+                        await self._product_effects.prepare_google_task_delete(
+                            action,
+                            tenant_id=message.tenant_id,
+                            user_id=message.user_id,
+                            chat_id=message.chat_id,
+                            idempotency_key=envelope.idempotency_key,
+                        )
+                    )
+                    buttons = self._action_buttons(
+                        message,
+                        (
+                            (
+                                TelegramAction.DELETE_GOOGLE_TASK,
+                                challenge.token,
+                                "🗑️ Удалить",
+                            ),
+                            (
+                                TelegramAction.REJECT_GOOGLE_TASK_DELETE,
+                                challenge.token,
+                                "Отмена",
+                            ),
+                        ),
+                        ttl_seconds=300,
+                    )
+                    await self._api.send_message(
+                        message.chat_id, challenge.preview, buttons=buttons
+                    )
+                    return
+                if action.kind is not GoogleTaskActionKind.NONE:
+                    if self._product_effects is None:
+                        raise RuntimeError("Google Tasks integration is unavailable")
+                    challenge = self._product_effects.prepare_google_task(
+                        action,
+                        tenant_id=message.tenant_id,
+                        user_id=message.user_id,
+                        chat_id=message.chat_id,
+                        idempotency_key=envelope.idempotency_key,
+                    )
+                    if not await self._submit_effect(
+                        message,
+                        envelope,
+                        TelegramAction.RUN_GOOGLE_TASK,
+                        challenge.token,
+                    ):
+                        raise RuntimeError(
+                            "Google Task action was not durably enqueued"
+                        )
+                    return
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await self._api.send_message(
+                    message.chat_id,
+                    "Не удалось выполнить команду Google Tasks. "
+                    "Уточните список, задачу и срок.",
+                )
+                return
+        if (
             self._calendar_planner is not None
             and self._calendar_service is not None
             and _CALENDAR_HINT_RE.search(normalized)
@@ -1029,6 +1132,15 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             TelegramAction.RUN_NETWORK: (ProductEffectKind.NETWORK, True),
             TelegramAction.REJECT_NETWORK: (ProductEffectKind.NETWORK, False),
             TelegramAction.RUN_CALENDAR: (ProductEffectKind.CALENDAR, True),
+            TelegramAction.RUN_GOOGLE_TASK: (
+                ProductEffectKind.GOOGLE_TASK, True
+            ),
+            TelegramAction.DELETE_GOOGLE_TASK: (
+                ProductEffectKind.GOOGLE_TASK_DELETE, True
+            ),
+            TelegramAction.REJECT_GOOGLE_TASK_DELETE: (
+                ProductEffectKind.GOOGLE_TASK_DELETE, False
+            ),
             TelegramAction.DELETE_CALENDAR: (
                 ProductEffectKind.CALENDAR_DELETE, True
             ),

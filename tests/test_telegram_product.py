@@ -31,6 +31,9 @@ from src.integrations import (
     CalendarAction,
     CalendarActionKind,
     CalendarResult,
+    GoogleTaskAction,
+    GoogleTaskActionKind,
+    GoogleTaskResult,
 )
 from src.application.product_effects import ProductEffectChallenge, ProductEffectKind, ProductEffectResult
 from src.transport.telegram import (
@@ -245,6 +248,8 @@ def _product(
     product_effects: object | None = None,
     calendar_planner: object | None = None,
     calendar_service: object | None = None,
+    google_tasks_planner: object | None = None,
+    google_tasks_service: object | None = None,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -277,6 +282,8 @@ def _product(
         product_effects=product_effects,
         calendar_planner=calendar_planner,
         calendar_service=calendar_service,
+        google_tasks_planner=google_tasks_planner,
+        google_tasks_service=google_tasks_service,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
@@ -463,6 +470,125 @@ async def test_calendar_delete_requires_exact_button(tmp_path: Path) -> None:
         callback_update(harness.api.sent[-1][2][0][1], 2)
     )
     assert effects.resolved == [(ProductEffectKind.CALENDAR_DELETE, True)]
+    assert harness.api.deleted == [(USER_ID, 102)]
+
+
+class FakeGoogleTasksPlanner:
+    def __init__(self, action: GoogleTaskAction) -> None:
+        self.action = action
+        self.instructions: list[str] = []
+
+    async def plan_google_task_action(
+        self, instruction: str, envelope: object
+    ) -> GoogleTaskAction:
+        self.instructions.append(instruction)
+        return self.action
+
+
+class FakeGoogleTasksService:
+    async def execute(
+        self, action: GoogleTaskAction, *, idempotency_key: str
+    ) -> GoogleTaskResult:
+        return GoogleTaskResult(message="Задача создана.")
+
+    async def resolve_delete(self, action: GoogleTaskAction) -> object:
+        raise AssertionError("effect boundary resolves deletion")
+
+    async def delete_task(self, tasklist_id: str, task_id: str) -> None:
+        raise AssertionError("effect boundary performs deletion")
+
+
+class FakeGoogleTaskEffects(FakeCalendarDeleteEffects):
+    def prepare_google_task(
+        self, action: GoogleTaskAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind is GoogleTaskActionKind.CREATE
+        return ProductEffectChallenge(
+            "google-task-direct-token",
+            ProductEffectKind.GOOGLE_TASK,
+            "",
+        )
+
+    async def prepare_google_task_delete(
+        self, action: GoogleTaskAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind is GoogleTaskActionKind.DELETE
+        return ProductEffectChallenge(
+            "google-task-delete-token",
+            ProductEffectKind.GOOGLE_TASK_DELETE,
+            "Удалить задачу «Позвонить»?",
+        )
+
+    async def resolve(self, *args, **kwargs) -> ProductEffectResult:
+        self.resolved.append((kwargs["expected_kind"], kwargs["approve"]))
+        if kwargs["expected_kind"] is ProductEffectKind.GOOGLE_TASK:
+            return ProductEffectResult("Задача создана.")
+        return ProductEffectResult(
+            "Задача удалена."
+            if kwargs["approve"]
+            else "Действие отменено."
+        )
+
+
+@pytest.mark.asyncio
+async def test_google_task_create_executes_without_confirmation(
+    tmp_path: Path,
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Подготовить отчёт",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Добавь задачу в Google Tasks: подготовить отчёт", 1)
+    )
+
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][1] == "Задача создана."
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_google_task_delete_requires_exact_button(tmp_path: Path) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.DELETE,
+            target="Позвонить",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Удали задачу Позвонить из Google Tasks", 1)
+    )
+    assert effects.resolved == []
+    assert [label for label, _ in harness.api.sent[-1][2]] == [
+        "🗑️ Удалить",
+        "Отмена",
+    ]
+
+    await harness.control.handle(
+        callback_update(harness.api.sent[-1][2][0][1], 2)
+    )
+    assert effects.resolved == [
+        (ProductEffectKind.GOOGLE_TASK_DELETE, True)
+    ]
     assert harness.api.deleted == [(USER_ID, 102)]
 
 

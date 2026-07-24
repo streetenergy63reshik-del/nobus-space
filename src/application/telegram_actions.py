@@ -25,6 +25,9 @@ class TelegramAction(str, Enum):
     DELETE_CALENDAR = "delete_calendar"
     REJECT_CALENDAR_DELETE = "reject_calendar_delete"
     RUN_CALENDAR = "run_calendar"
+    RUN_GOOGLE_TASK = "run_google_task"
+    DELETE_GOOGLE_TASK = "delete_google_task"
+    REJECT_GOOGLE_TASK_DELETE = "reject_google_task_delete"
 
 
 @dataclass(frozen=True)

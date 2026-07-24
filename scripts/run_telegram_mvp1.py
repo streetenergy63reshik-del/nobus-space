@@ -81,7 +81,7 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointError,
     SQLitePollingCheckpointStore,
 )
-from src.integrations import GoogleCalendarClient  # noqa: E402
+from src.integrations import GoogleCalendarClient, GoogleTasksClient  # noqa: E402
 from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
@@ -202,6 +202,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             ),
         )
         calendar = GoogleCalendarClient(_GOOGLE_CALENDAR_TOKEN)
+        google_tasks = GoogleTasksClient(_GOOGLE_CALENDAR_TOKEN)
         product_effects = ProductEffectService(
             vault=DurableProductEffectVault(telegram_state),
             workspace=OwnerWorkspace(
@@ -219,6 +220,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 python_executable=python,
             ),
             calendar=calendar,
+            google_tasks=google_tasks,
         )
         control = DurableProductTelegramControlPlane(
             gateway,
@@ -238,6 +240,8 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             product_effects=product_effects,
             calendar_planner=runtime,
             calendar_service=calendar,
+            google_tasks_planner=runtime,
+            google_tasks_service=google_tasks,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
             task_tenants=destination_refs,

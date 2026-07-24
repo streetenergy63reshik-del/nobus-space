@@ -36,7 +36,7 @@ from src.contracts import (
     WorkerEventType,
 )
 from src.contracts.models import canonical_json_digest
-from src.integrations import CalendarAction
+from src.integrations import CalendarAction, GoogleTaskAction
 from src.core.policy import (
     InMemoryPolicyStore,
     TrustedVerifierRegistry,
@@ -260,6 +260,54 @@ class Gate5A4Runtime(DurableFakeRuntime):
             raise CodexCliError("worker_protocol_error")
         try:
             return CalendarAction.model_validate_json(draft.answer)
+        except Exception:
+            raise CodexCliError("worker_protocol_error") from None
+
+    async def plan_google_task_action(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> GoogleTaskAction:
+        """Convert an owner request to one closed Google Tasks action."""
+        trusted = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
+        today = datetime.now(timezone(timedelta(hours=3))).date().isoformat()
+        planner_instruction = (
+            "You are a strict Google Tasks intent parser. Do not use tools, "
+            "browse, or read files. Convert owner_request into one compact JSON "
+            "object with exactly these keys: kind,title,target,list_name,notes,due. "
+            "kind is none, list, create, update, complete, or delete. due is an "
+            "ISO date or null. Current Moscow date is "
+            f"{today}. Resolve relative dates. target is the exact current title "
+            "for update, complete, and delete. Delete only when the owner explicitly "
+            "asks to delete a Google task. If this is not a Google Tasks request, "
+            "return kind none and null for every other field. Return the action JSON "
+            "as the string value of the outer answer protocol. "
+            f"owner_request={json.dumps(instruction, ensure_ascii=False)}"
+        )
+        contract = TaskContract(
+            task_id=uuid4(),
+            idempotency_key=trusted.idempotency_key,
+            ingress_digest=trusted.envelope_revision,
+            tenant_id=trusted.tenant_id,
+            source="telegram",
+            instruction=planner_instruction,
+            allowed_paths=(self._allowed_path,),
+            permissions=("repo.read", "process.run_allowlisted"),
+            risk=RiskLevel.LOW,
+            acceptance_criteria=(
+                "Return only the outer answer JSON protocol.",
+                "The answer value is one strict Google Tasks action JSON object.",
+                "Do not use tools or perform the Google Tasks action.",
+            ),
+            timeout_seconds=120,
+            quality_profile="google-tasks-intent-v1",
+        )
+        result = await self._execute_worker(contract)
+        draft = parse_codex_draft(result.message, self._pipeline.root)
+        if not isinstance(draft, CodexAnswerDraft):
+            raise CodexCliError("worker_protocol_error")
+        try:
+            return GoogleTaskAction.model_validate_json(draft.answer)
         except Exception:
             raise CodexCliError("worker_protocol_error") from None
 

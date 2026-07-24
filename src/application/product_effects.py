@@ -21,7 +21,14 @@ from src.application.network_commands import (
 from src.application.network_tools import DownloadProposal, Quarantine, SafeDownloader
 from src.application.owner_workspace import ArtifactProposal, OwnerWorkspace
 from src.contracts.models import canonical_json_digest
-from src.integrations import CalendarAction, CalendarActionKind, CalendarEvent
+from src.integrations import (
+    CalendarAction,
+    CalendarActionKind,
+    CalendarEvent,
+    GoogleTaskAction,
+    GoogleTaskActionKind,
+    GoogleTaskItem,
+)
 
 
 class ProductEffectKind(str, Enum):
@@ -30,6 +37,8 @@ class ProductEffectKind(str, Enum):
     NETWORK = "network"
     CALENDAR_DELETE = "calendar_delete"
     CALENDAR = "calendar"
+    GOOGLE_TASK = "google_task"
+    GOOGLE_TASK_DELETE = "google_task_delete"
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,6 +280,7 @@ class ProductEffectService:
         quarantine: Quarantine,
         network_runner: NetworkCommandRunner,
         calendar: Any | None = None,
+        google_tasks: Any | None = None,
     ) -> None:
         self._vault = vault
         self._workspace = workspace
@@ -278,6 +288,7 @@ class ProductEffectService:
         self._quarantine = quarantine
         self._network = network_runner
         self._calendar = calendar
+        self._google_tasks = google_tasks
 
     async def close(self) -> None:
         await self._downloader.aclose()
@@ -399,6 +410,64 @@ class ProductEffectService:
                 f"Аргументы: {' '.join(proposal.argv)}"
             ),
         )
+
+    async def prepare_google_task_delete(
+        self,
+        action: GoogleTaskAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._google_tasks is None:
+            raise RuntimeError("Google Tasks integration is unavailable")
+        item = await self._google_tasks.resolve_delete(action)
+        token = self._vault.issue(
+            kind=ProductEffectKind.GOOGLE_TASK_DELETE,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=item.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(
+            token,
+            ProductEffectKind.GOOGLE_TASK_DELETE,
+            (
+                "Удалить задачу из Google Tasks?\n\n"
+                f"Задача: {item.title}\n"
+                f"Список: {item.tasklist_title}\n\n"
+                "Удаление необратимо и будет выполнено только после нажатия кнопки."
+            ),
+        )
+
+    def prepare_google_task(
+        self,
+        action: GoogleTaskAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._google_tasks is None:
+            raise RuntimeError("Google Tasks integration is unavailable")
+        action = GoogleTaskAction.model_validate(action.model_dump())
+        if action.kind in {
+            GoogleTaskActionKind.NONE,
+            GoogleTaskActionKind.DELETE,
+        }:
+            raise ValueError("Google Task action is not directly executable")
+        token = self._vault.issue(
+            kind=ProductEffectKind.GOOGLE_TASK,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=action.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(token, ProductEffectKind.GOOGLE_TASK, "")
 
     async def prepare_calendar_delete(
         self,
@@ -537,7 +606,7 @@ class ProductEffectService:
             event = _calendar_event(binding.payload)
             await self._calendar.delete_event(event.event_id)
             result = ProductEffectResult(f"Событие «{event.title}» удалено.")
-        else:
+        elif binding.kind is ProductEffectKind.CALENDAR:
             if self._calendar is None:
                 raise RuntimeError("calendar integration is unavailable")
             action = CalendarAction.model_validate(binding.payload)
@@ -551,6 +620,30 @@ class ProductEffectService:
                 ),
             )
             result = ProductEffectResult(calendar_result.message)
+        elif binding.kind is ProductEffectKind.GOOGLE_TASK_DELETE:
+            if self._google_tasks is None:
+                raise RuntimeError("Google Tasks integration is unavailable")
+            item = GoogleTaskItem.model_validate(binding.payload)
+            await self._google_tasks.delete_task(
+                item.tasklist_id, item.task_id
+            )
+            result = ProductEffectResult(f"Задача «{item.title}» удалена.")
+        elif binding.kind is ProductEffectKind.GOOGLE_TASK:
+            if self._google_tasks is None:
+                raise RuntimeError("Google Tasks integration is unavailable")
+            action = GoogleTaskAction.model_validate(binding.payload)
+            task_result = await self._google_tasks.execute(
+                action,
+                idempotency_key=canonical_json_digest(
+                    {
+                        "effect_digest": binding.effect_digest,
+                        "tenant_id": binding.tenant_id,
+                    }
+                ),
+            )
+            result = ProductEffectResult(task_result.message)
+        else:
+            raise RuntimeError("product effect kind is unsupported")
         binding = self._vault.transition(
             binding,
             state="completed",
