@@ -1,5 +1,16 @@
 # 08. Runbook эксплуатации
 
+## Operational update 2026-07-24: current-user autostart
+
+This section supersedes the older statement that the MVP has no autostart.
+
+The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges, ignores duplicate starts, has no execution-time limit, starts when available, and is configured to retry after one minute on failure. Its launcher is Git-ignored in the live worktree and runs the canonical repository `scripts/run_telegram_mvp1.py --serve --timeout 30 --announce`. Logs are local, bounded, and stored under live `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
+
+The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
+
+Revision `670ce88` adds local owner document delivery, but it is not active in the live runner until a separate exact L4 fast-forward/restart. The adapter supports only `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx` up to 50 MiB. It never sends hidden/sensitive-name matches, absolute paths, linked paths, or content outside the configured owner root. Google Drive remains a separate future connector.
+
+
 **Статус документа:** CANONICAL
 **Состояние реализации:** CURRENT local MVP / TARGET production; production-среда не создана
 **Дата актуализации:** 23 июля 2026
