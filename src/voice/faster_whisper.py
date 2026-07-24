@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import threading
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from pydantic import ValidationError
 
 from .base import TranscriptResult, VoiceTranscriptionError
@@ -31,6 +33,7 @@ class FasterWhisperTranscriber:
         local_files_only: bool = False,
         language: str | None = None,
         beam_size: int = 5,
+        patience: float = 1.0,
         vad_filter: bool = False,
         condition_on_previous_text: bool = True,
         initial_prompt: str | None = None,
@@ -55,6 +58,13 @@ class FasterWhisperTranscriber:
             or beam_size <= 0
         ):
             raise ValueError("beam_size must be a positive integer")
+        if (
+            isinstance(patience, bool)
+            or not isinstance(patience, (int, float))
+            or not math.isfinite(patience)
+            or not 1.0 <= patience <= 2.0
+        ):
+            raise ValueError("patience must be between 1.0 and 2.0")
         if not isinstance(vad_filter, bool):
             raise ValueError("vad_filter must be a boolean")
         if not isinstance(condition_on_previous_text, bool):
@@ -69,6 +79,7 @@ class FasterWhisperTranscriber:
                 raise ValueError(f"{name} must be a non-empty string or None")
         self._language = language.strip().lower() if language is not None else None
         self._beam_size = beam_size
+        self._patience = float(patience)
         self._vad_filter = vad_filter
         self._condition_on_previous_text = condition_on_previous_text
         self._initial_prompt = (
@@ -112,6 +123,7 @@ class FasterWhisperTranscriber:
             str(path),
             language=self._language,
             beam_size=self._beam_size,
+            patience=self._patience,
             vad_filter=self._vad_filter,
             condition_on_previous_text=self._condition_on_previous_text,
             initial_prompt=self._initial_prompt,
@@ -146,6 +158,19 @@ class FasterWhisperTranscriber:
             raise VoiceTranscriptionError("transcription limit is invalid")
         return await asyncio.to_thread(self._transcribe_sync, path, max_chars)
 
+    def _warmup_sync(self) -> None:
+        """Load the model and execute one in-memory encoder inference."""
+        failed = False
+        try:
+            model = self._model_instance()
+            samples = np.zeros(16_000, dtype=np.float32)
+            features = model.feature_extractor(samples)
+            model.encode(features)
+        except Exception:
+            failed = True
+        if failed:
+            raise VoiceTranscriptionError("voice model warmup failed") from None
+
     async def warmup(self) -> None:
-        """Load the local model before the bot announces readiness."""
-        await asyncio.to_thread(self._model_instance)
+        """Prove local model inference before the bot announces readiness."""
+        await asyncio.to_thread(self._warmup_sync)

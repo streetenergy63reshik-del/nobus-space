@@ -1,3 +1,25 @@
+# Orchestrator v2 — voice quality hardening
+
+**Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; live unchanged.
+
+**Evidence:** 975 passed, 2 skipped, 1 known warning; `pip check`, `compileall` and `git diff --check` PASS; real cached CPU encoder warmup PASS; independent L2/L3 ACCEPT with no open P0/P1/P2.
+
+- Exact owner voice already executes reversible commands without a second button;
+  deletion and irreversible effects still require action-bound L4.
+- Local `base/int8` remains the only cached model. The candidate profile uses
+  Russian, beam 8, patience 1.2, VAD, cross-segment context and separate Nobus
+  context/hotwords.
+- One-off local Russian TTS observation retained “на завтра”, which the previous
+  profile dropped; candidate decoding was about 0.6 seconds slower on that
+  10-second sample. This is not a reusable accuracy benchmark.
+- RTX 3050 Ti model load alone passed, but real inference exposed missing
+  `cublas64_12.dll`; v2 startup now proves an in-memory encoder inference and
+  remains on CPU instead of publishing a false GPU-ready state.
+- A larger local/off-device speech model still requires a separately allowed
+  model source or existing OpenAI speech credential; neither is assumed.
+
+---
+
 # Nobus Space Orchestrator v2 — owner command and Calendar RC
 
 **Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; live not published.

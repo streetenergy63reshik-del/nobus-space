@@ -100,10 +100,16 @@ _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
-_VOICE_PROMPT = (
-    "Nobus Space, Нобус Спейс, PROстранство, Codex, Telegram, "
-    "Wildberries, Ozon, Google Drive, Google Calendar, Google Tasks, "
-    "MCP, idempotency key."
+_VOICE_INITIAL_PROMPT = (
+    "Нобус Спейс — личный оркестратор. Компания называется PROстранство, "
+    "про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, "
+    "Telegram, Google Drive, Google Calendar и Google Tasks. "
+    "Термины: MCP, idempotency key, L1, L2, L3, L4, субагент."
+)
+_VOICE_HOTWORDS = (
+    "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon "
+    "Google Drive Google Calendar Google Tasks MCP idempotency оркестратор "
+    "субагент"
 )
 _POLLING_LEASE_SECONDS = 240
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
@@ -190,11 +196,12 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             download_root=_VOICE_MODEL_ROOT,
             local_files_only=True,
             language="ru",
-            beam_size=5,
+            beam_size=8,
+            patience=1.2,
             vad_filter=True,
-            condition_on_previous_text=False,
-            initial_prompt=_VOICE_PROMPT,
-            hotwords=_VOICE_PROMPT,
+            condition_on_previous_text=True,
+            initial_prompt=_VOICE_INITIAL_PROMPT,
+            hotwords=_VOICE_HOTWORDS,
         )
         await voice_transcriber.warmup()
         limit_provider = build_codex_rate_limit_client(

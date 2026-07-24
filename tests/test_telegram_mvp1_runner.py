@@ -123,6 +123,11 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     class Transcriber:
         def __init__(self, **values: object) -> None:
             assert values["local_files_only"] is True
+            assert values["beam_size"] == 8
+            assert values["patience"] == 1.2
+            assert values["condition_on_previous_text"] is True
+            assert "PROстранство" in str(values["initial_prompt"])
+            assert "Nobus Space" in str(values["hotwords"])
             startup_events.append("voice_constructed")
 
         async def warmup(self) -> None:
