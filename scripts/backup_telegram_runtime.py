@@ -32,6 +32,7 @@ _SOURCES = (
     ROOT / ".runtime" / "telegram-checkpoint.sqlite3",
     ROOT / ".runtime" / "task-runtime.sqlite3",
     ROOT / ".runtime" / "telegram-state.sqlite3",
+    ROOT / ".runtime" / "business-notes.sqlite3",
 )
 
 
@@ -64,7 +65,7 @@ def _backup_quiescent(
         raise ValueError("backup sources must share one runtime directory")
     destination.mkdir(parents=True)
     manifest: dict[str, object] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at": datetime.now(UTC).isoformat(),
         "quiescent": True,
         "files": [],

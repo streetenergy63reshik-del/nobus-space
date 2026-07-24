@@ -12,6 +12,26 @@ This section supersedes older process-memory/restart instructions below.
   at-least-once crash window because Telegram exposes no idempotency key.
 - Confirmation capabilities expire after seven days.
 
+### Business Notes live binding preflight
+
+1. Keep the operator-owned binding file outside Git and migrate it atomically to
+   schema version 2.
+2. Preserve exactly one `owner_private` binding and add one separate
+   `business_notes` binding for the exact owner user and negative forum chat ID.
+   Recalculate the proof with the local configuration helper; never paste IDs,
+   proofs or note contents into Markdown or logs.
+3. Make the bot an administrator of the forum or disable BotFather privacy mode,
+   otherwise Telegram will not deliver ordinary topic messages. Grant only the
+   permissions needed to read incoming messages and reply in topics.
+4. Verify a health `PASS`, then run an owner-only smoke in a dedicated test topic:
+   one text note, one voice note, `/summary` and `/tasks`. Confirm that replies
+   carry the same `message_thread_id` and that no note becomes a Codex task.
+5. Restart the runner and repeat `/summary`; then execute backup/restore in a
+   disposable runtime copy and verify that the encrypted note survives.
+
+Do not activate the group binding when privacy/admin delivery is unresolved.
+Business-note payloads must never be printed by smoke scripts.
+
 ### Read-only checks
 
 ```powershell
@@ -20,7 +40,7 @@ $env:DEBUG='false'
 .\.venv\Scripts\python.exe -m pytest -q --disable-warnings
 ```
 
-The health command requires all three databases, exact DDL fingerprints and valid
+The health command requires all four databases, exact DDL fingerprints and valid
 application digests. `PASS` means healthy, `DEGRADED` means operator reconciliation
 (for example a dead letter), and `FAIL` means corruption/unavailability. The health
 task only records an alert; it never restarts the runner. Task Scheduler owns the
@@ -69,7 +89,7 @@ The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It star
 
 The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
 
-Revision `74b182a` is active in the live runner under exact owner L4. `/file` is published in Bot Menu; startup Codex probe, offline Whisper warmup and fresh polling lease revision `6868` passed before service readiness. A product-route owner smoke sent one known non-secret HTML successfully. The adapter supports only `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx` up to 50 MiB. It never sends hidden/sensitive-name matches, absolute paths, linked paths, or content outside the configured owner root. Google Drive remains a separate future connector.
+Revision `74b182a` is active in the live runner under exact owner L4. `/file` is published in Bot Menu; startup Codex probe, offline Whisper warmup and fresh polling lease revision `6868` passed before service readiness. A product-route owner smoke sent one known non-secret HTML successfully. The adapter supports only `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx` up to 50 MiB. It never sends hidden/sensitive-name matches, absolute paths, linked paths, or content outside the configured owner root. Google Drive read/download and owner-bound Google Tasks actions are present in the v2 local RC. Business Notes adds the fourth encrypted runtime database; its live group binding remains pending.
 
 
 **Статус документа:** CANONICAL
@@ -209,7 +229,7 @@ $env:DEBUG='false'
 .\.venv\Scripts\python.exe scripts\run_telegram_mvp1.py --serve --timeout 30 --announce
 ```
 
-Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12 и точные три SQLite runtime-БД с ожидаемыми DDL fingerprints, application digests и `quick_check=ok`. Runner сверяет bot identity, выбирает CLI только после успешного `codex --version`, затем до объявления «готов к работе» выполняет через production `CodexCliAdapter` сетевой read-only sentinel: тот же Windows Job, auth, sandbox, environment и JSONL parser, но без durable Task. Prompt запрещает tools и чтение файлов; технически процесс сохраняет тот же `repo.read` boundary, что и обычный worker, тогда как `workspace-write` запрещён. Любой start/timeout/protocol/output failure останавливает запуск; ложный online-статус не публикуется.
+Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12 и точные четыре SQLite runtime-БД с ожидаемыми DDL fingerprints, application digests и `quick_check=ok`. Runner сверяет bot identity, выбирает CLI только после успешного `codex --version`, затем до объявления «готов к работе» выполняет через production `CodexCliAdapter` сетевой read-only sentinel: тот же Windows Job, auth, sandbox, environment и JSONL parser, но без durable Task. Prompt запрещает tools и чтение файлов; технически процесс сохраняет тот же `repo.read` boundary, что и обычный worker, тогда как `workspace-write` запрещён. Любой start/timeout/protocol/output failure останавливает запуск; ложный online-статус не публикуется.
 
 До начала polling runner также прогревает `faster-whisper base/int8` из локального runtime cache с `local_files_only=True`. Порядок fail-closed: Codex startup probe → локальный warmup Whisper → создание control plane → polling и объявление готовности. Если локального snapshot нет или warmup завершается ошибкой, бот не публикует ложную готовность и не пытается разрешать или скачивать модель из сети при первом голосовом сообщении.
 

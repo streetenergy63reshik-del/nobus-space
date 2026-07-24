@@ -1,8 +1,8 @@
 # Nobus Space Orchestrator v2 — owner command and Calendar RC
 
-**Status:** LOCAL RC — L1 PASS; independent L2/L3 in progress; live not published.
+**Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; live not published.
 **Commits:** `4861439`, `9447832`.
-**Evidence:** 905 passed, 2 skipped, 1 known warning; Calendar API read-only smoke
+**Evidence:** 973 passed, 2 skipped, 1 known warning; Calendar API read-only smoke
 PASS; Google token contents were not logged or copied; `pip check` PASS;
 `git diff --check` PASS.
 
@@ -24,15 +24,15 @@ Implemented:
   120-second boundary is only the tool-free Calendar intent parser;
 - `/calendar` is prepared for Bot Menu but has not been externally published.
 
-Not yet included in this RC:
+Additional v2 blocks in the current local branch:
 
-- Google Tasks and Drive adapters;
-- Business Notes topic binding, indexing, summaries and task extraction;
-- larger/off-device speech model evaluation;
-- v2 live activation, owner smoke, crash/restart and rollback drill.
+- Google Tasks and Drive adapters are implemented and independently accepted in commit `4a73145`;
+- Business Notes v2 binding, encrypted topic index, local summaries/task extraction and four-database backup/restore are implemented; L1 is `973 passed, 2 skipped`, and independent L2/L3 are `ACCEPT` with no open P0/P1/P2;
+- larger/off-device speech model evaluation remains pending;
+- v2 live activation, Business Notes group binding, owner smoke and final crash/restart/rollback drill remain pending.
 
-The accepted live runner remains on the previous revision until L2/L3 and the
-release preflight complete. Remote and push remain disabled.
+The accepted live runner remains on the previous revision until the final
+release preflight completes. Remote and push remain disabled.
 
 ---
 

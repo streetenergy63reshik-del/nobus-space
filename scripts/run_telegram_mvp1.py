@@ -33,6 +33,10 @@ from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
 )
+from src.application.business_notes import (
+    BusinessNotesService,
+    SQLiteBusinessNotes,
+)
 from src.application.durable_confirmations import (  # noqa: E402
     DurablePatchConfirmationStore,
     DurableTaskConfirmationStore,
@@ -105,6 +109,7 @@ _POLLING_LEASE_SECONDS = 240
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
 _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
+_BUSINESS_NOTES_PATH = _RUNTIME_ROOT / "business-notes.sqlite3"
 _OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
 _GOOGLE_CALENDAR_TOKEN = (
@@ -250,6 +255,9 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             google_tasks_service=google_tasks,
             google_drive_planner=runtime,
             google_drive_service=google_drive,
+            business_notes=BusinessNotesService(
+                SQLiteBusinessNotes(_BUSINESS_NOTES_PATH)
+            ),
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
             task_tenants=destination_refs,

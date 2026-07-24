@@ -14,6 +14,7 @@ from scripts.run_telegram_control import (
     _poll_once_and_announce,
     _poll_with_unavailable_backoff,
 )
+from src.transport.telegram import ActorBinding
 from src.transport.telegram.bot_api import (
     PollBatchResult,
     TelegramBotApiError,
@@ -81,6 +82,17 @@ class SequencedPolling:
         return outcome
 
 
+def owner_bindings() -> dict[tuple[int, int], ActorBinding]:
+    return {
+        (42, 42): ActorBinding(
+            tenant_id="owner",
+            actor_identity="telegram:owner",
+            role="owner",
+            auth_context_ref="sha256:" + "a" * 64,
+        )
+    }
+
+
 class FakeApi:
     def __init__(self) -> None:
         self.sent: list[tuple[int, str]] = []
@@ -95,7 +107,21 @@ async def test_announcement_follows_successful_poll_and_uses_bound_chat() -> Non
     acknowledged = await _poll_once_and_announce(
         FakePolling(result=PollBatchResult(12, 2, False)),  # type: ignore[arg-type]
         api,  # type: ignore[arg-type]
-        {(42, 42): object()},
+        {
+            (42, 42): ActorBinding(
+                tenant_id="owner",
+                actor_identity="telegram:owner",
+                role="owner",
+                auth_context_ref="sha256:" + "a" * 64,
+            ),
+            (42, -1001): ActorBinding(
+                tenant_id="owner",
+                actor_identity="telegram:owner",
+                role="owner",
+                auth_context_ref="sha256:" + "a" * 64,
+                purpose="business_notes",
+            ),
+        },
         timeout=0,
         announce=True,
     )
@@ -121,7 +147,7 @@ async def test_poll_failure_never_sends_success_announcement(polling: Any) -> No
         await _poll_once_and_announce(
             polling,
             api,  # type: ignore[arg-type]
-            {(42, 42): object()},
+            owner_bindings(),
             timeout=0,
             announce=True,
         )
@@ -139,7 +165,7 @@ async def test_unavailable_poll_retries_with_capped_backoff() -> None:
     acknowledged = await _poll_with_unavailable_backoff(
         SequencedPolling([*unavailable, PollBatchResult(12, 1, False)]),  # type: ignore[arg-type]
         api,  # type: ignore[arg-type]
-        {(42, 42): object()},
+        owner_bindings(),
         timeout=30,
         announce=True,
         sleeper=sleep,
@@ -169,7 +195,7 @@ async def test_non_network_poll_failure_is_not_retried(code: str) -> None:
         await _poll_with_unavailable_backoff(
             SequencedPolling([TelegramBotApiError(code)]),  # type: ignore[arg-type]
             api,  # type: ignore[arg-type]
-            {(42, 42): object()},
+            owner_bindings(),
             timeout=30,
             announce=True,
             sleeper=sleep,
@@ -188,7 +214,7 @@ async def test_poll_cancellation_is_not_retried_or_announced() -> None:
         await _poll_with_unavailable_backoff(
             FakePolling(failure=asyncio.CancelledError()),  # type: ignore[arg-type]
             api,  # type: ignore[arg-type]
-            {(42, 42): object()},
+            owner_bindings(),
             timeout=30,
             announce=True,
         )
@@ -209,7 +235,7 @@ async def test_backoff_cancellation_is_not_swallowed_or_announced() -> None:
         await _poll_with_unavailable_backoff(
             FakePolling(failure=TelegramBotApiError("telegram_unavailable")),  # type: ignore[arg-type]
             api,  # type: ignore[arg-type]
-            {(42, 42): object()},
+            owner_bindings(),
             timeout=30,
             announce=True,
             sleeper=cancel,

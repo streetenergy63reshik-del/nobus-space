@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -10,6 +11,11 @@ from typing import Any
 
 import pytest
 
+from src.application.business_notes import (
+    BusinessNotesError,
+    BusinessNotesService,
+    SQLiteBusinessNotes,
+)
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
@@ -64,6 +70,7 @@ class FakeProductApi:
         self.deleted: list[tuple[int, int]] = []
         self.delete_failure = False
         self.documents: list[tuple[int, str, bytes]] = []
+        self.threads: list[int | None] = []
 
     async def send_message(
         self,
@@ -71,8 +78,10 @@ class FakeProductApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        message_thread_id: int | None = None,
     ) -> int:
         self.sent.append((chat_id, text, buttons))
+        self.threads.append(message_thread_id)
         return len(self.sent)
 
     async def answer_callback_query(
@@ -252,6 +261,7 @@ def _product(
     google_tasks_service: object | None = None,
     google_drive_planner: object | None = None,
     google_drive_service: object | None = None,
+    business_notes: BusinessNotesService | None = None,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -263,7 +273,14 @@ def _product(
                 actor_identity="telegram:owner",
                 role="owner",
                 auth_context_ref=AUTH_REF,
-            )
+            ),
+            (USER_ID, -1001): ActorBinding(
+                tenant_id=TENANT_ID,
+                actor_identity="telegram:owner",
+                role="owner",
+                auth_context_ref=AUTH_REF,
+                purpose="business_notes",
+            ),
         },
         update_id_store=PollingCheckpointUpdateIdStore(),
         callback_token_store=actions,
@@ -288,6 +305,7 @@ def _product(
         google_tasks_service=google_tasks_service,
         google_drive_planner=google_drive_planner,
         google_drive_service=google_drive_service,
+        business_notes=business_notes,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
@@ -306,6 +324,19 @@ def text_update(text: str, update_id: int) -> dict[str, Any]:
         },
     }
 
+
+
+def notes_update(text: str, update_id: int) -> dict[str, Any]:
+    return {
+        "update_id": update_id,
+        "message": {
+            "message_id": update_id,
+            "message_thread_id": 77,
+            "from": {"id": USER_ID},
+            "chat": {"id": -1001},
+            "text": text,
+        },
+    }
 
 def voice_update(update_id: int) -> dict[str, Any]:
     return {
@@ -1383,3 +1414,64 @@ async def test_ambiguous_file_language_remains_a_regular_task(
 
     assert provider.queries == []
     assert len(harness.runtime.drafted) == 1
+
+
+@pytest.mark.asyncio
+async def test_business_notes_are_indexed_without_becoming_codex_tasks(
+    tmp_path: Path,
+) -> None:
+    def encode(value: dict[str, object]) -> bytes:
+        return json.dumps(value, ensure_ascii=False).encode("utf-8")
+
+    def decode(value: bytes) -> dict[str, object]:
+        result = json.loads(value)
+        assert isinstance(result, dict)
+        return result
+
+    store = SQLiteBusinessNotes(
+        tmp_path / "business-notes.sqlite3",
+        encode=encode,
+        decode=decode,
+    )
+    harness = _product(
+        tmp_path,
+        business_notes=BusinessNotesService(store),
+    )
+
+    assert await harness.control.handle(
+        notes_update("Нужно позвонить поставщику.", 900)
+    )
+    assert harness.runtime.drafted == []
+    assert harness.api.sent == []
+
+    assert await harness.control.handle(
+        notes_update("/summary", 901)
+    )
+    assert harness.runtime.drafted == []
+    assert len(harness.api.sent) == 1
+    assert "Нужно позвонить поставщику" in harness.api.sent[0][1]
+    assert harness.api.threads == [77]
+
+
+@pytest.mark.asyncio
+async def test_business_notes_store_failure_is_not_acknowledged(
+    tmp_path: Path,
+) -> None:
+    class FailingNotes(BusinessNotesService):
+        def handle_text(self, message):
+            raise BusinessNotesError("business_notes_store_unavailable")
+
+    store = SQLiteBusinessNotes(
+        tmp_path / "business-notes.sqlite3",
+        encode=lambda value: json.dumps(value).encode(),
+        decode=lambda value: json.loads(value),
+    )
+    harness = _product(
+        tmp_path,
+        business_notes=FailingNotes(store),
+    )
+
+    with pytest.raises(BusinessNotesError, match="store_unavailable"):
+        await harness.control.handle(notes_update("Заметка.", 902))
+    assert harness.runtime.drafted == []
+    assert harness.api.sent == []

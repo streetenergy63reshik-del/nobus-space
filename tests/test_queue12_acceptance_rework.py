@@ -215,6 +215,8 @@ def test_health_rejects_known_database_with_unrelated_schema(tmp_path: Path) -> 
     checkpoint = tmp_path / "telegram-checkpoint.sqlite3"
     database = tmp_path / "task-runtime.sqlite3"
     telegram_state = tmp_path / "telegram-state.sqlite3"
+    business_notes = tmp_path / "business-notes.sqlite3"
+    from src.application.business_notes import SQLiteBusinessNotes
     from src.storage.sqlite_store import SQLiteStore
     from src.transport.telegram.sqlite_checkpoint import (
         SQLitePollingCheckpointStore,
@@ -223,10 +225,11 @@ def test_health_rejects_known_database_with_unrelated_schema(tmp_path: Path) -> 
     SQLitePollingCheckpointStore(checkpoint, consumer_id="nobus-space-bot")
     SQLiteStore(database)
     SQLiteTelegramState(telegram_state)
+    SQLiteBusinessNotes(business_notes)
     database.unlink()
     with closing(sqlite3.connect(database)) as connection:
         connection.execute("CREATE TABLE marker(value INTEGER)")
-    result = check((checkpoint, database, telegram_state))
+    result = check((checkpoint, database, telegram_state, business_notes))
     assert result["status"] == "FAIL"
     assert result["databases"][database.name] == "unavailable"
 
@@ -259,7 +262,9 @@ def test_real_runtime_schema_backup_restore_roundtrip(
     from scripts import restore_telegram_runtime
     from scripts.backup_telegram_runtime import backup
     from scripts.check_telegram_health import check
+    from src.application.business_notes import SQLiteBusinessNotes
     from src.storage.sqlite_store import SQLiteStore
+    from src.transport.telegram import TextMessage
     from src.transport.telegram.sqlite_checkpoint import (
         SQLitePollingCheckpointStore,
     )
@@ -269,19 +274,49 @@ def test_real_runtime_schema_backup_restore_roundtrip(
     checkpoint = runtime / "telegram-checkpoint.sqlite3"
     task_runtime = runtime / "task-runtime.sqlite3"
     telegram_state = runtime / "telegram-state.sqlite3"
+    business_notes = runtime / "business-notes.sqlite3"
     SQLitePollingCheckpointStore(checkpoint, consumer_id="nobus-space-bot")
     SQLiteStore(task_runtime)
     SQLiteTelegramState(telegram_state)
+    notes_store = SQLiteBusinessNotes(business_notes)
+    notes_store.append(
+        TextMessage(
+            update_id=1,
+            tenant_id="synthetic-test",
+            actor_identity="telegram:test",
+            actor_role="owner",
+            auth_context_ref="sha256:" + "b" * 64,
+            user_id=1,
+            chat_id=-1001,
+            message_thread_id=7,
+            binding_purpose="business_notes",
+            message_id=1,
+            text="Synthetic restore marker.",
+        )
+    )
 
     manifest = backup(
-        (checkpoint, task_runtime, telegram_state),
+        (checkpoint, task_runtime, telegram_state, business_notes),
         tmp_path / "backup",
     )
-    for database in (checkpoint, task_runtime, telegram_state):
+    for database in (
+        checkpoint,
+        task_runtime,
+        telegram_state,
+        business_notes,
+    ):
         database.unlink()
     monkeypatch.setattr(restore_telegram_runtime, "RUNTIME", runtime)
     restore_telegram_runtime.restore(manifest, approval_ref=APPROVAL)
-    assert check((checkpoint, task_runtime, telegram_state))["status"] == "PASS"
+    assert check(
+        (checkpoint, task_runtime, telegram_state, business_notes)
+    )["status"] == "PASS"
+    restored = SQLiteBusinessNotes(business_notes).recent(
+        tenant_id="synthetic-test",
+        chat_id=-1001,
+        thread_id=7,
+    )
+    assert [note.text for note in restored] == ["Synthetic restore marker."]
 
 
 def test_network_rejects_credential_proxy_and_header_config(

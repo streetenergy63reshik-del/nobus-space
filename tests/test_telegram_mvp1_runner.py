@@ -76,6 +76,7 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         runner._CHECKPOINT_PATH,
         runner._TASK_RUNTIME_PATH,
         runner._TELEGRAM_STATE_PATH,
+        runner._BUSINESS_NOTES_PATH,
     )
 
     assert {path.parent for path in paths} == {runner._RUNTIME_ROOT}
@@ -83,6 +84,7 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         "telegram-checkpoint.sqlite3",
         "task-runtime.sqlite3",
         "telegram-state.sqlite3",
+        "business-notes.sqlite3",
     }
 
 

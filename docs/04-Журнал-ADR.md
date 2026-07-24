@@ -18,6 +18,7 @@
 | [0010](adr/0010-owner-library-read-scope.md) | Owner-bound worker читает библиотеку владельца отдельным permission без расширения write boundary | ACCEPTED | PARTIAL |
 | [0011](adr/0011-durable-owner-effects-and-web-profiles.md) | Durable Telegram admission, explicit owner effects и закрытые web/network profiles | PROPOSED | PARTIAL |
 | [0012](adr/0012-owner-command-authority-and-calendar.md) | Точная owner-команда разрешает обратимые действия; удаление и иные необратимые эффекты сохраняют exact L4 | ACCEPTED | PARTIAL |
+| [0013](adr/0013-business-notes-memory.md) | Telegram «Заметки бизнеса» хранятся локально зашифрованно, изолируются по tenant/chat/topic и не передаются внешней LLM | ACCEPTED | PARTIAL |
 
 ## Правила статусов ADR
 

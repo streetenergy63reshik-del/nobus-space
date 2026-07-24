@@ -19,6 +19,7 @@ from src.application.product_effects import (
     ProductEffectService,
     approval_reference,
 )
+from src.application.business_notes import BusinessNotesService
 from src.application.patch_confirmation import (
     InMemoryPatchConfirmationStore,
     PatchConfirmationChallenge,
@@ -106,6 +107,7 @@ class ProductTelegramApi(Protocol):
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        message_thread_id: int | None = None,
     ) -> int: ...
 
     async def answer_callback_query(
@@ -234,6 +236,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         google_tasks_service: Any | None = None,
         google_drive_planner: Any | None = None,
         google_drive_service: Any | None = None,
+        business_notes: BusinessNotesService | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -334,6 +337,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             or (
                 google_drive_service is not None and product_effects is None
             )
+            or (
+                business_notes is not None
+                and not callable(getattr(business_notes, "handle_text", None))
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -359,6 +366,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._google_tasks_service = google_tasks_service
         self._google_drive_planner = google_drive_planner
         self._google_drive_service = google_drive_service
+        self._business_notes = business_notes
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -582,8 +590,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             or ingress.envelope is None
         ):
             return True
-        await self._expire_task_drafts()
         payload = ingress.payload
+        if payload.binding_purpose == "business_notes":
+            return await self._handle_business_notes(payload)
+        await self._expire_task_drafts()
         if isinstance(payload, CallbackQuery):
             await self._handle_callback(payload, ingress.envelope)
             return True
@@ -990,6 +1000,51 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "⚠️ Не удалось распознать голосовое сообщение. "
                 "Отправьте его ещё раз или напишите задачу текстом.",
             )
+
+    async def _handle_business_notes(
+        self, message: TextMessage | VoiceMessage | CallbackQuery
+    ) -> bool:
+        if self._business_notes is None or isinstance(message, CallbackQuery):
+            return False
+        note = message
+        if isinstance(message, VoiceMessage):
+            try:
+                if self._voice_service is None:
+                    raise RuntimeError("voice service unavailable")
+                audio = await self._api.download_file(
+                    message.file_id, size_limit=_VOICE_LIMIT
+                )
+                preview = await self._voice_service.preview_from_bytes(audio)
+                instruction = self._instruction(preview.transcript)
+                if instruction is None:
+                    raise RuntimeError("voice transcript invalid")
+                note = TextMessage(
+                    **message.model_dump(
+                        exclude={"file_id", "duration", "metadata"}
+                    ),
+                    text=instruction,
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await self._api.send_message(
+                    message.chat_id,
+                    "Не удалось распознать голосовую заметку. "
+                    "Отправьте её ещё раз.",
+                    message_thread_id=message.message_thread_id,
+                )
+                return True
+        assert isinstance(note, TextMessage)
+        result = await asyncio.to_thread(
+            self._business_notes.handle_text, note
+        )
+        if result is not None:
+            await self._api.send_message(
+                note.chat_id,
+                result,
+                message_thread_id=note.message_thread_id,
+            )
+        return True
 
     async def _handle_callback(
         self, callback: CallbackQuery, envelope: TrustedIngressEnvelope
