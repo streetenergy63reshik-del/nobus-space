@@ -63,7 +63,7 @@ _INTENT_ARGV = (
 )
 _WEB_ARGV = tuple(
     'web_search="live"' if value == 'web_search="disabled"' else value
-    for value in _READ_ARGV
+    for value in _INTENT_ARGV
 )
 _RATE_LIMIT_ARGV = (
     "app-server",

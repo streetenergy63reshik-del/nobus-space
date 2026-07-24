@@ -272,7 +272,7 @@ class DurableProductEffectVault:
 
 
 class ProductEffectService:
-    """Prepare effects without authority and execute only an exact L4 binding."""
+    """Execute reversible owner effects directly and destructive effects via L4."""
 
     def __init__(
         self,

@@ -1,3 +1,19 @@
+# Orchestrator v2 — safe owner and research boundary
+
+## Итерация 2026-07-24: безопасная owner library boundary
+
+- Реальный native-Windows probe опроверг безопасность прямого owner-read: permission profile блокировал запись, но shell мог читать соседний каталог и deny-файл. Прямой filesystem scope LLM отвергнут.
+- Owner library реализована как trusted server-side bounded path index/file-transfer: обычные ответы не получают owner permission автоматически; answer, startup probe и explicit owner index работают tool-less; public research получает только model inference и строго валидированные web-search events, без shell/local-file/apps/MCP. Owner root не попадает в CLI argv или prompt, содержимое не пересылается; анализ содержимого требует отдельного data-handling gate.
+- Worktree остаётся единственной областью diff/apply. `C:\Хранилище\WORK` не входит в owner root.
+- Изолированный OpenAI/Codex probe использовал только синтетические файлы в `C:\tmp`: разрешённый sentinel прочитан и запись заблокирована, но соседний и deny-файл также оказались читаемыми. Поэтому direct-read дизайн отвергнут.
+- Реальные документы, секреты и бизнес-данные в probe не читались. Новая ревизия ещё не опубликована в live и ожидает общий L1/L2/L3 release cycle.
+
+**Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; live unchanged.
+
+**Evidence:** 993 passed, 2 skipped, 1 known warning; targeted boundary/product suite 162 passed; Windows/web regression 35 passed; independent L2 focused 12 passed; independent L2/L3 ACCEPT with no open P0/P1/P2; `pip check`, `compileall` and `git diff --check` PASS.
+
+---
+
 # Orchestrator v2 — voice quality hardening
 
 **Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; live unchanged.
@@ -277,19 +293,20 @@ StateManager и PolicyStore остаются process-memory, но recovery-safe 
 - accepted update получает self-validating `TrustedIngressEnvelope` с server-owned actor/time и точной payload binding;
 - exact actor/chat binding, atomic update replay claim и opaque callback token claim;
 - обычный текст без команды сразу становится read-only задачей; `/task` оставлен только как обратная совместимость;
-- voice preview подтверждается единожды тем же tenant/actor/role/auth context/user/chat через inline-кнопки; capability имеет TTL, хранится только в виде digest и после success заменяется replay tombstone;
-- callback/replay/confirmation stores остаются in-memory и после restart безопасно теряют незавершённые challenge без применения эффекта;
+- точная локально распознанная owner voice-команда сразу авторизует обратимое действие; дополнительная inline-кнопка создаётся только для удаления, patch и иных L4-эффектов;
+- callback/replay/confirmation stores сохраняют action-bound L4 capability; capability имеет TTL, хранится только в виде digest и после success заменяется replay tombstone;
 - voice download ограничен 10 MiB, транскрипция выполняется локальной `faster-whisper base`, temp file очищается после success/error/cancellation;
-- bot profile публикует в меню `/start`, `/status`, `/limit` и `/help`; технические подтверждения скрыты за inline-кнопками;
+- bot profile публикует в меню `/start`, `/status`, `/limit` и `/help`; action-bound L4 показывается inline-кнопкой только когда он действительно нужен;
 - `/limit` читает exact семидневный Codex rate-limit bucket без model turn и показывает только процент и время сброса; отказ не создаёт Task;
 - stream API удалён после независимого L3 resource-exhaustion finding;
 - `faster-whisper==1.2.1` является точной обязательной зависимостью live voice path.
 
 ### Worker
 
-- реальный Codex CLI запускается только с `repo.read` и `process.run_allowlisted`; `workspace-write`, web и MCP отсутствуют;
+- answer и startup probe используют только `model.inference`; public research использует `model.inference + web.search`; shell, shell snapshot, apps и MCP для этих профилей выключены;
+- owner path index строится trusted server-side и передаётся tool-less как bounded относительные пути без root и содержимого; LLM не получает local-file scope;
 - stdout/stderr ограничены, процесс и дерево потомков завершаются при timeout/cancellation; Windows boundary использует Job Object;
-- ответ принимается только как exact unified diff с allowlist путей; `.git`, `.runtime`, secrets, symlink и выход за worktree запрещены;
+- протокол принимает strict informational `answer` JSON либо exact unified diff в отдельном patch-профиле; `.git`, `.runtime`, secrets, symlink и выход за worktree запрещены;
 - L1 проверяет patch/apply-check, L2 применяет diff и выполняет полный suite, L3 stage/audit не создаёт commit;
 - после owner-bound L4 создаются immutable approval evidence и локальный commit через `commit-tree` + CAS `update-ref`;
 - merge, rebase, push, remote и изменение `main` через Telegram отсутствуют.
@@ -368,7 +385,7 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 - заменой Telegram credential, owner binding или добавлением нового адресата/чата;
 - внешними сообщениями вне уже разрешённой owner-bound control-plane сессии;
-- расширением разрешений Codex выше текущих `repo.read` и `process.run_allowlisted`;
+- расширением tool-less answer/startup выше `model.inference`, research выше `model.inference + web.search` или выдачей LLM прямого local-file scope;
 - установкой новой зависимости без отдельного обоснования и проверки;
 - push, remote, deployment, публикацией, деньгами, доступами и внешним удалением;
 - утверждением production RPO/RTO, retention или approval channel.
@@ -377,8 +394,8 @@ Implementation scope завершён на 100%; reliability startup и polling 
 
 - MVP-1 воспроизведён локальной `.venv` на Python 3.12; пересоздание окружения из manifest и restore drill остаются критериями Gate 5B.
 - Runner зависит от текущей desktop-сессии Windows и не имеет OS supervisor, autostart или health alert.
-- Voice/patch confirmation stores находятся в памяти: после restart незавершённый preview безопасно теряется и задачу требуется отправить снова.
-- Expired confirmations очищаются при следующем принятом Telegram update, а не отдельным background timer.
+- Legacy voice-preview confirmation store не используется новым direct-voice flow. Patch/delete L4 capabilities сохраняются tenant-bound durable stores и восстанавливаются после restart без автоматического применения эффекта.
+- Expired patch/delete L4 capabilities очищаются bounded recovery-процессом; истёкшая capability не авторизует эффект.
 - Ошибки filesystem cleanup/journal fail-closed; редкий I/O failure может потребовать restart или ручного recovery.
 - SQLite polling store реализован; его `state_digest` является checksum, а не MAC против субъекта с правом переписать БД и пересчитать digest.
 - Live polling разрешён только одному owner binding; временная недоступность Telegram повторяется с bounded backoff.

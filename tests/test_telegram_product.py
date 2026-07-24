@@ -111,10 +111,13 @@ class FakeProductApi:
 
 
 class FakeVoiceService:
+    def __init__(self, transcript: str = "Проверь голосовую задачу") -> None:
+        self.transcript = transcript
+
     async def preview_from_bytes(self, audio: bytes) -> VoicePreview:
         assert audio == b"voice"
         return VoicePreview(
-            transcript="Проверь голосовую задачу",
+            transcript=self.transcript,
             language="ru",
             confidence=0.99,
             sha256="0" * 64,
@@ -252,6 +255,7 @@ def _product(
     tmp_path: Path,
     *,
     voice: bool = False,
+    voice_text: str = "Проверь голосовую задачу",
     execution_concurrency: int = 0,
     owner_files: object | None = None,
     product_effects: object | None = None,
@@ -296,7 +300,7 @@ def _product(
         task_confirmations=InMemoryTaskConfirmationStore(clock=clock),
         patch_confirmations=patches,
         action_store=actions,
-        voice_service=FakeVoiceService() if voice else None,
+        voice_service=FakeVoiceService(voice_text) if voice else None,
         owner_files=owner_files,
         product_effects=product_effects,
         calendar_planner=calendar_planner,
@@ -412,7 +416,11 @@ class FakeCalendarDeleteEffects:
     def prepare_calendar(
         self, action: CalendarAction, **kwargs: object
     ) -> ProductEffectChallenge:
-        assert action.kind is CalendarActionKind.CREATE
+        assert action.kind in {
+            CalendarActionKind.LIST,
+            CalendarActionKind.CREATE,
+            CalendarActionKind.UPDATE,
+        }
         return ProductEffectChallenge(
             "calendar-direct-token",
             ProductEffectKind.CALENDAR,
@@ -479,6 +487,71 @@ async def test_calendar_create_executes_without_second_confirmation(
     assert harness.api.sent[-1][2] == ()
 
 
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action",
+    [
+        CalendarAction(
+            kind=CalendarActionKind.LIST,
+            start=datetime(2026, 7, 27, 0, 0, tzinfo=timezone.utc),
+            end=datetime(2026, 7, 28, 0, 0, tzinfo=timezone.utc),
+        ),
+        CalendarAction(
+            kind=CalendarActionKind.UPDATE,
+            target="Планёрка",
+            title="Планёрка команды",
+        ),
+    ],
+)
+async def test_calendar_list_and_update_execute_without_confirmation(
+    tmp_path: Path, action: CalendarAction
+) -> None:
+    planner = FakeCalendarPlanner(action)
+    effects = FakeCalendarDeleteEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        calendar_planner=planner,
+        calendar_service=FakeCalendarService(),
+    )
+
+    await harness.control.handle(text_update("Покажи или обнови календарь", 1))
+
+    assert effects.resolved == [(ProductEffectKind.CALENDAR, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_voice_calendar_update_executes_without_confirmation(
+    tmp_path: Path,
+) -> None:
+    instruction = "Перенеси планёрку в календаре"
+    planner = FakeCalendarPlanner(
+        CalendarAction(
+            kind=CalendarActionKind.UPDATE,
+            target="Планёрка",
+            title="Планёрка команды",
+        )
+    )
+    effects = FakeCalendarDeleteEffects()
+    harness = _product(
+        tmp_path,
+        voice=True,
+        voice_text=instruction,
+        product_effects=effects,
+        calendar_planner=planner,
+        calendar_service=FakeCalendarService(),
+    )
+
+    await harness.control.handle(voice_update(1))
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.CALENDAR, True)]
+    assert harness.api.sent[-1][2] == ()
+
+
 @pytest.mark.asyncio
 async def test_calendar_delete_requires_exact_button(tmp_path: Path) -> None:
     planner = FakeCalendarPlanner(
@@ -537,7 +610,12 @@ class FakeGoogleTaskEffects(FakeCalendarDeleteEffects):
     def prepare_google_task(
         self, action: GoogleTaskAction, **kwargs: object
     ) -> ProductEffectChallenge:
-        assert action.kind is GoogleTaskActionKind.CREATE
+        assert action.kind in {
+            GoogleTaskActionKind.LIST,
+            GoogleTaskActionKind.CREATE,
+            GoogleTaskActionKind.UPDATE,
+            GoogleTaskActionKind.COMPLETE,
+        }
         return ProductEffectChallenge(
             "google-task-direct-token",
             ProductEffectKind.GOOGLE_TASK,
@@ -590,6 +668,67 @@ async def test_google_task_create_executes_without_confirmation(
     assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
     assert harness.runtime.drafted == []
     assert harness.api.sent[-1][1] == "Задача создана."
+    assert harness.api.sent[-1][2] == ()
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action",
+    [
+        GoogleTaskAction(kind=GoogleTaskActionKind.LIST),
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.UPDATE,
+            target="Подготовить отчёт",
+            title="Подготовить итоговый отчёт",
+        ),
+    ],
+)
+async def test_google_task_list_and_update_execute_without_confirmation(
+    tmp_path: Path, action: GoogleTaskAction
+) -> None:
+    planner = FakeGoogleTasksPlanner(action)
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(text_update("Покажи или обнови Google Tasks", 1))
+
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_voice_google_task_update_executes_without_confirmation(
+    tmp_path: Path,
+) -> None:
+    instruction = "Обнови задачу в Google Tasks"
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.UPDATE,
+            target="Подготовить отчёт",
+            title="Подготовить итоговый отчёт",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=True,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(voice_update(1))
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
     assert harness.api.sent[-1][2] == ()
 
 

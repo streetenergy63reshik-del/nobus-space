@@ -12,12 +12,14 @@ import pytest
 from src.workers.codex_cli import (
     _INTENT_ARGV as ADAPTER_INTENT_ARGV,
     _READ_ARGV as ADAPTER_READ_ARGV,
+    _WEB_ARGV as ADAPTER_WEB_ARGV,
     _WRITE_ARGV as ADAPTER_WRITE_ARGV,
 )
 from src.workers.windows_job import WindowsJobLauncher, _CREATE_FLAGS
 from src.workers.windows_job_helper import (
     _INTENT_ARGV as HELPER_INTENT_ARGV,
     _READ_ARGV as HELPER_READ_ARGV,
+    _WEB_ARGV as HELPER_WEB_ARGV,
     _WRITE_ARGV as HELPER_WRITE_ARGV,
     _validated,
 )
@@ -59,6 +61,9 @@ def test_parent_and_helper_fixed_profiles_match() -> None:
     assert READ_ARGV == ADAPTER_READ_ARGV == HELPER_READ_ARGV
     assert WRITE_ARGV == ADAPTER_WRITE_ARGV == HELPER_WRITE_ARGV
     assert ADAPTER_INTENT_ARGV == HELPER_INTENT_ARGV
+    assert ADAPTER_WEB_ARGV == HELPER_WEB_ARGV
+    assert "features.shell_tool=false" in HELPER_WEB_ARGV
+    assert "features.shell_snapshot=false" in HELPER_WEB_ARGV
 
 
 @dataclass(eq=False)

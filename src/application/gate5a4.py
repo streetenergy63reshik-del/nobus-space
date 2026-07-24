@@ -55,6 +55,7 @@ from src.workers.codex_cli import (
     CodexCliAdapter,
     CodexCliError,
     CodexCliResult,
+    _directory_identity,
     build_worker_env,
 )
 from src.workers.codex_patch import (
@@ -159,7 +160,6 @@ class Gate5A4Runtime(DurableFakeRuntime):
         if policy.requires_l4:
             raise RuntimeError("read-only worker profile unexpectedly requires L4")
         permissions = list(policy.permissions)
-        owner_root = getattr(self, "_owner_read_root", None)
         criteria = (
             tuple(
                 item.replace(
@@ -171,14 +171,9 @@ class Gate5A4Runtime(DurableFakeRuntime):
             if research_web
             else _CRITERIA
         )
-        if owner_root is not None:
-            permissions.append("owner.library.read")
-            criteria += (
-                "Read the configured owner library only as read-only input; "
-                "return its paths relative to the configured root.",
-            )
-        else:
-            criteria += ("Do not access paths outside the repository.",)
+        criteria += (
+            "Do not access local files or paths; use only the supplied task data.",
+        )
         values.update(
             acceptance_criteria=criteria,
             permissions=tuple(permissions),
@@ -205,7 +200,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 f"Return exactly {_WORKER_PROBE_SENTINEL} and nothing else."
             ),
             allowed_paths=(self._allowed_path,),
-            permissions=("repo.read", "process.run_allowlisted"),
+            permissions=("model.inference",),
             risk=RiskLevel.LOW,
             acceptance_criteria=(
                 f"The final answer is exactly {_WORKER_PROBE_SENTINEL}.",
@@ -1789,6 +1784,23 @@ class GitPatchVerificationPipeline:
         )
 
 
+def _validated_owner_read_root(
+    owner_read_root: str | Path | None,
+) -> Path | None:
+    if owner_read_root is None:
+        return None
+    configured = Path(owner_read_root)
+    if not configured.is_absolute():
+        raise ValueError("owner read root must be absolute")
+    try:
+        _directory_identity(configured)
+    except (OSError, RuntimeError, TypeError, ValueError):
+        raise ValueError(
+            "owner read root must be an existing non-linked directory"
+        ) from None
+    return configured
+
+
 def build_gate5a4_runtime(
     *,
     gateway: TelegramGateway,
@@ -1807,13 +1819,7 @@ def build_gate5a4_runtime(
 ) -> Gate5A4Runtime:
     """Build the live worker using the accepted process and durable boundaries."""
     root = Path(worktree).resolve(strict=True)
-    owner_root = (
-        None
-        if owner_read_root is None
-        else Path(owner_read_root).resolve(strict=True)
-    )
-    if owner_root is not None and not owner_root.is_dir():
-        raise ValueError("owner read root must be an existing directory")
+    owner_root = _validated_owner_read_root(owner_read_root)
     worker_env = build_worker_env(
         codex_home=codex_home,
         system_root=system_root,
@@ -1832,6 +1838,7 @@ def build_gate5a4_runtime(
         spawn=launcher,
         tree_killer=launcher.kill_tree,
         worker_env=worker_env,
+        owner_read_root=owner_root,
     )
     worker = CodexCliAdapter(
         workspace_root=root,

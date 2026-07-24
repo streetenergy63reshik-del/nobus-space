@@ -10,7 +10,6 @@ from tests.test_codex_cli import (
     worker_files,
 )
 
-
 @pytest.mark.asyncio
 async def test_intent_profile_disables_every_available_tool_family(
     worker_files,
@@ -40,7 +39,6 @@ async def test_intent_profile_disables_every_available_tool_family(
     assert 'approval_policy="never"' in argv
     assert argv[-3:] == ("--sandbox", "read-only", "-")
 
-
 @pytest.mark.asyncio
 async def test_intent_profile_rejects_any_reported_tool_event(
     worker_files,
@@ -67,5 +65,35 @@ async def test_intent_profile_rejects_any_reported_tool_event(
             make_contract(
                 allowed,
                 permissions=["model.inference"],
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_web_profile_rejects_any_reported_shell_event(
+    worker_files,
+) -> None:
+    _, allowed, _ = worker_files
+    output = (
+        b'{"type":"thread.started","thread_id":"thread"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"tool","type":'
+        b'"command_execution","command":"dir","aggregated_output":"",'
+        b'"exit_code":0,"status":"completed"}}\n'
+        b'{"type":"item.completed","item":{"id":"answer","type":'
+        b'"agent_message","text":"done"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":1,'
+        b'"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files,
+        FakeProcess(output=ProcessOutput(output, b"", 0)),
+    )
+
+    with pytest.raises(CodexCliError, match="invalid output"):
+        await adapter.execute(
+            make_contract(
+                allowed,
+                permissions=["model.inference", "web.search"],
             )
         )
