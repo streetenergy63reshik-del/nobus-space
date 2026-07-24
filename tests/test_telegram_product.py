@@ -367,6 +367,16 @@ class FakeCalendarDeleteEffects:
     def prepare_network(self, *args, **kwargs):
         raise AssertionError
 
+    def prepare_calendar(
+        self, action: CalendarAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind is CalendarActionKind.CREATE
+        return ProductEffectChallenge(
+            "calendar-direct-token",
+            ProductEffectKind.CALENDAR,
+            "",
+        )
+
     async def prepare_calendar_delete(
         self, action: CalendarAction, **kwargs: object
     ) -> ProductEffectChallenge:
@@ -379,8 +389,12 @@ class FakeCalendarDeleteEffects:
 
     async def resolve(self, *args, **kwargs) -> ProductEffectResult:
         self.resolved.append((kwargs["expected_kind"], kwargs["approve"]))
+        if kwargs["expected_kind"] is ProductEffectKind.CALENDAR:
+            return ProductEffectResult("Событие записано.")
         return ProductEffectResult(
-            "Событие удалено." if kwargs["approve"] else "Действие отменено."
+            "Событие удалено."
+            if kwargs["approve"]
+            else "Действие отменено."
         )
 
     def acknowledge_delivery(self, *args, **kwargs) -> bool:
@@ -416,7 +430,8 @@ async def test_calendar_create_executes_without_second_confirmation(
         text_update("Запиши планёрку в календарь на понедельник", 1)
     )
 
-    assert len(service.executed) == 1
+    assert service.executed == []
+    assert effects.resolved == [(ProductEffectKind.CALENDAR, True)]
     assert harness.runtime.drafted == []
     assert harness.api.sent[-1][1] == "Событие записано."
     assert harness.api.sent[-1][2] == ()

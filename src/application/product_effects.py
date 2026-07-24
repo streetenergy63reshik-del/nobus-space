@@ -21,7 +21,7 @@ from src.application.network_commands import (
 from src.application.network_tools import DownloadProposal, Quarantine, SafeDownloader
 from src.application.owner_workspace import ArtifactProposal, OwnerWorkspace
 from src.contracts.models import canonical_json_digest
-from src.integrations import CalendarAction, CalendarEvent
+from src.integrations import CalendarAction, CalendarActionKind, CalendarEvent
 
 
 class ProductEffectKind(str, Enum):
@@ -29,6 +29,7 @@ class ProductEffectKind(str, Enum):
     DOWNLOAD = "download"
     NETWORK = "network"
     CALENDAR_DELETE = "calendar_delete"
+    CALENDAR = "calendar"
 
 
 @dataclass(frozen=True, slots=True)
@@ -430,6 +431,30 @@ class ProductEffectService:
             ),
         )
 
+    def prepare_calendar(
+        self,
+        action: CalendarAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._calendar is None:
+            raise RuntimeError("calendar integration is unavailable")
+        action = CalendarAction.model_validate(action.model_dump())
+        if action.kind in {CalendarActionKind.NONE, CalendarActionKind.DELETE}:
+            raise ValueError("calendar action is not directly executable")
+        token = self._vault.issue(
+            kind=ProductEffectKind.CALENDAR,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=action.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(token, ProductEffectKind.CALENDAR, "")
+
     async def resolve(
         self,
         token: str,
@@ -506,12 +531,26 @@ class ProductEffectService:
                 if completed.returncode == 0
                 else "Сетевая команда завершилась с ошибкой."
             )
-        else:
+        elif binding.kind is ProductEffectKind.CALENDAR_DELETE:
             if self._calendar is None:
                 raise RuntimeError("calendar integration is unavailable")
             event = _calendar_event(binding.payload)
             await self._calendar.delete_event(event.event_id)
             result = ProductEffectResult(f"Событие «{event.title}» удалено.")
+        else:
+            if self._calendar is None:
+                raise RuntimeError("calendar integration is unavailable")
+            action = CalendarAction.model_validate(binding.payload)
+            calendar_result = await self._calendar.execute(
+                action,
+                idempotency_key=canonical_json_digest(
+                    {
+                        "effect_digest": binding.effect_digest,
+                        "tenant_id": binding.tenant_id,
+                    }
+                ),
+            )
+            result = ProductEffectResult(calendar_result.message)
         binding = self._vault.transition(
             binding,
             state="completed",
@@ -522,6 +561,25 @@ class ProductEffectService:
             },
         )
         return self._completed_result(binding)
+
+    def delivery_pending(
+        self,
+        token: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+    ) -> bool:
+        binding = self._vault.read(
+            token,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+        )
+        return binding is not None and binding.state in {
+            "completed",
+            "unknown",
+        }
 
     def acknowledge_delivery(
         self,

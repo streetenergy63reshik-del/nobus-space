@@ -170,6 +170,20 @@ def test_list_and_update_unique_event() -> None:
             idempotency_key="sha256:" + "b" * 64,
         )
     )
+    replayed = asyncio.run(
+        client.execute(
+            CalendarAction(
+                kind=CalendarActionKind.UPDATE,
+                target="Планёрка",
+                title="Планёрка новая",
+                start=start,
+                end=start + timedelta(minutes=30),
+            ),
+            idempotency_key="sha256:" + "b" * 64,
+        )
+    )
+    assert replayed.event is not None
+    assert replayed.event.event_id == updated.event.event_id
     listed = asyncio.run(
         client.execute(
             CalendarAction(

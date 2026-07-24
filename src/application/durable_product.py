@@ -235,7 +235,25 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     if isinstance(job, _QueuedEffect)
                     else "runtime_job_failed"
                 )
-                if durable.attempt_count < _MAX_JOB_ATTEMPTS:
+                delivery_pending = (
+                    isinstance(job, _QueuedEffect)
+                    and self._product_effects is not None
+                    and self._product_effects.delivery_pending(
+                        job.capability_token,
+                        tenant_id=job.callback.tenant_id,
+                        user_id=job.callback.user_id,
+                        chat_id=job.callback.chat_id,
+                    )
+                )
+                if delivery_pending:
+                    try:
+                        self._telegram_state.retry_effect_delivery(
+                            durable, lease_owner=self._lease_owner
+                        )
+                    except Exception:
+                        pass
+                    await asyncio.sleep(1)
+                elif durable.attempt_count < _MAX_JOB_ATTEMPTS:
                     try:
                         self._telegram_state.release(
                             durable, lease_owner=self._lease_owner
@@ -455,7 +473,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     async def _submit_effect(
         self,
-        callback: CallbackQuery,
+        callback: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         action: object,
         token: str,
@@ -464,6 +482,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             return False
         payload = {
             "callback": callback.model_dump(mode="json"),
+            "message_type": (
+                "text" if isinstance(callback, TextMessage) else "callback"
+            ),
             "envelope": envelope.model_dump(mode="json"),
             "action": getattr(action, "value", None),
             "capability_token": token,
@@ -494,7 +515,14 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
             if canonical_json_digest(payload) != durable.binding_digest:
                 raise RuntimeError("durable effect binding mismatch")
-            callback = CallbackQuery.model_validate(payload["callback"])
+            message_type = payload.get("message_type", "callback")
+            if message_type not in {"text", "callback"}:
+                raise RuntimeError("durable effect message type is invalid")
+            callback = (
+                TextMessage.model_validate(payload["callback"])
+                if message_type == "text"
+                else CallbackQuery.model_validate(payload["callback"])
+            )
             envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])
             action = TelegramAction(payload["action"])
             token = payload["capability_token"]

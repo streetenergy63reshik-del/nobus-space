@@ -183,10 +183,12 @@ class GoogleCalendarClient:
             from google.auth.transport.requests import Request
             from googleapiclient.discovery import build
 
-            scopes = ("https://www.googleapis.com/auth/calendar",)
+            scopes = ("https://www.googleapis.com/auth/calendar.events",)
             credentials = Credentials.from_authorized_user_file(
                 str(self._token_path), scopes
             )
+            if not credentials.has_scopes(scopes):
+                raise RuntimeError
             if credentials.expired and credentials.refresh_token:
                 credentials.refresh(Request())
             if not credentials.valid:
@@ -256,8 +258,20 @@ class GoogleCalendarClient:
                 event=event,
             )
         if action.kind is CalendarActionKind.UPDATE:
+            marker = hashlib.sha256(idempotency_key.encode()).hexdigest()
+            replay = self._find_marker_sync(marker)
+            if replay is not None:
+                return CalendarResult(
+                    message=(
+                        f"Событие «{replay.title}» обновлено: "
+                        f"{replay.start.astimezone(self._timezone):%d.%m.%Y %H:%M}."
+                    ),
+                    event=replay,
+                )
             current = self._resolve_unique_sync(action.target or "")
-            body: dict[str, object] = {}
+            body: dict[str, object] = {
+                "extendedProperties": {"private": {"nobusKey": marker}}
+            }
             if action.title is not None:
                 body["summary"] = action.title
             if action.description is not None:
@@ -287,6 +301,34 @@ class GoogleCalendarClient:
                 event=event,
             )
         raise ValueError("calendar action requires another boundary")
+
+    def _find_marker_sync(self, marker: str) -> CalendarEvent | None:
+        try:
+            values = self._service().events().list(
+                calendarId=self._calendar_id,
+                privateExtendedProperty=f"nobusKey={marker}",
+                singleEvents=True,
+                maxResults=2,
+            ).execute()
+            items = values.get("items", [])
+            if not isinstance(items, list):
+                raise ValueError
+            matched = [
+                item
+                for item in items
+                if isinstance(item, dict)
+                and item.get("extendedProperties", {})
+                .get("private", {})
+                .get("nobusKey")
+                == marker
+            ]
+            if len(matched) > 1:
+                raise ValueError
+            return None if not matched else self._event(matched[0])
+        except (RuntimeError, ValueError):
+            raise
+        except Exception:
+            raise RuntimeError("google_calendar_read_failed") from None
 
     def _resolve_unique_sync(self, target: str) -> CalendarEvent:
         normalized = target.strip()

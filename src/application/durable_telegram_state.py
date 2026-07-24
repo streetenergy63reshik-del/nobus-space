@@ -329,6 +329,39 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def retry_effect_delivery(
+        self, job: DurableJob, *, lease_owner: UUID
+    ) -> None:
+        """Requeue only a completed effect whose Telegram delivery is pending."""
+        job = self._validated_job(job, require_lease=True)
+        if job.kind != "effect":
+            raise ValueError("only effect delivery can be requeued")
+        now = self._now()
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE telegram_jobs
+                       SET status='pending',attempt_count=0,failure_code=NULL,
+                           lease_id=NULL,lease_owner=NULL,
+                           lease_expires_at=NULL,updated_at=?
+                       WHERE job_id=? AND status='leased'
+                         AND lease_id=? AND lease_owner=?
+                         AND lease_expires_at>?""",
+                    (
+                        now.isoformat(),
+                        str(job.job_id),
+                        str(job.lease_id),
+                        str(lease_owner),
+                        now.isoformat(),
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise DurableTelegramStateError("runtime_job_lease_lost")
+        except DurableTelegramStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
     def fail(
         self,
         job: DurableJob,

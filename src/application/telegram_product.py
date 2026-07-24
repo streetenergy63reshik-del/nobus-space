@@ -159,7 +159,7 @@ class _QueuedPatch:
 
 @dataclass(frozen=True, slots=True)
 class _QueuedEffect:
-    callback: CallbackQuery
+    callback: TextMessage | CallbackQuery
     envelope: TrustedIngressEnvelope
     action: TelegramAction
     capability_token: str
@@ -737,10 +737,22 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     )
                     return
                 if action.kind is not CalendarActionKind.NONE:
-                    result = await self._calendar_service.execute(
-                        action, idempotency_key=envelope.idempotency_key
+                    if self._product_effects is None:
+                        raise RuntimeError("calendar integration is unavailable")
+                    challenge = self._product_effects.prepare_calendar(
+                        action,
+                        tenant_id=message.tenant_id,
+                        user_id=message.user_id,
+                        chat_id=message.chat_id,
+                        idempotency_key=envelope.idempotency_key,
                     )
-                    await self._api.send_message(message.chat_id, result.message)
+                    if not await self._submit_effect(
+                        message,
+                        envelope,
+                        TelegramAction.RUN_CALENDAR,
+                        challenge.token,
+                    ):
+                        raise RuntimeError("calendar action was not durably enqueued")
                     return
             except asyncio.CancelledError:
                 raise
@@ -944,28 +956,15 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     chat_id=message.chat_id,
                     idempotency_key=envelope.idempotency_key,
                 )
-            result = await self._product_effects.resolve(
-                challenge.token,
-                expected_kind=challenge.kind,
-                approve=True,
-                tenant_id=message.tenant_id,
-                user_id=message.user_id,
-                chat_id=message.chat_id,
-                approval_ref=approval_reference(
-                    actor_identity=envelope.actor_identity,
-                    query_id=f"message:{message.message_id}",
-                    effect_token=challenge.token,
-                ),
-            )
-            if result.delivery_required:
-                await self._deliver_effect_result(message.chat_id, result)
-            if not self._product_effects.acknowledge_delivery(
-                challenge.token,
-                tenant_id=message.tenant_id,
-                user_id=message.user_id,
-                chat_id=message.chat_id,
+            action = {
+                ProductEffectKind.ARTIFACT: TelegramAction.APPLY_ARTIFACT,
+                ProductEffectKind.DOWNLOAD: TelegramAction.APPLY_DOWNLOAD,
+                ProductEffectKind.NETWORK: TelegramAction.RUN_NETWORK,
+            }[challenge.kind]
+            if not await self._submit_effect(
+                message, envelope, action, challenge.token
             ):
-                raise RuntimeError("product effect delivery commit failed")
+                raise RuntimeError("product effect was not durably enqueued")
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -996,7 +995,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     async def _submit_effect(
         self,
-        callback: CallbackQuery,
+        callback: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         action: TelegramAction,
         token: str,
@@ -1015,7 +1014,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     async def _resolve_product_effect(
         self,
-        message: CallbackQuery,
+        message: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         action: TelegramAction,
         token: str,
@@ -1029,6 +1028,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             TelegramAction.REJECT_DOWNLOAD: (ProductEffectKind.DOWNLOAD, False),
             TelegramAction.RUN_NETWORK: (ProductEffectKind.NETWORK, True),
             TelegramAction.REJECT_NETWORK: (ProductEffectKind.NETWORK, False),
+            TelegramAction.RUN_CALENDAR: (ProductEffectKind.CALENDAR, True),
             TelegramAction.DELETE_CALENDAR: (
                 ProductEffectKind.CALENDAR_DELETE, True
             ),
@@ -1049,17 +1049,16 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             chat_id=message.chat_id,
             approval_ref=approval_reference(
                 actor_identity=envelope.actor_identity,
-                query_id=message.query_id,
+                query_id=(
+                    message.query_id
+                    if isinstance(message, CallbackQuery)
+                    else f"message:{message.message_id}"
+                ),
                 effect_token=token,
             ),
         )
         if result.delivery_required:
-            if result.filename is not None and result.content is not None:
-                await self._api.send_document(
-                    message.chat_id, result.filename, result.content
-                )
-            else:
-                await self._api.send_message(message.chat_id, result.message)
+            await self._deliver_effect_result(message.chat_id, result)
         if not self._product_effects.acknowledge_delivery(
             token,
             tenant_id=message.tenant_id,

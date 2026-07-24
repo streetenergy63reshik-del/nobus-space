@@ -24,6 +24,7 @@ class TelegramAction(str, Enum):
     REJECT_NETWORK = "reject_network"
     DELETE_CALENDAR = "delete_calendar"
     REJECT_CALENDAR_DELETE = "reject_calendar_delete"
+    RUN_CALENDAR = "run_calendar"
 
 
 @dataclass(frozen=True)

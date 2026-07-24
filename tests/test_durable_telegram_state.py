@@ -245,3 +245,42 @@ def test_dpapi_roundtrip_and_wrong_entropy_fail_closed():
     )
     with pytest.raises(Exception):
         unprotect_current_user(protected, entropy=b"nobus-other-entropy")
+
+
+def test_completed_effect_delivery_can_be_requeued_after_attempt_limit(tmp_path):
+    store = _store(tmp_path)
+    task_id = uuid4()
+    store.enqueue(
+        kind="effect",
+        tenant_id="owner",
+        task_id=task_id,
+        binding_digest=canonical_json_digest({"effect": str(task_id)}),
+        payload={"capability_token": "safe-token"},
+    )
+    lease_owner = uuid4()
+    first = store.claim(lease_owner=lease_owner)
+    assert first is not None
+    store.release(first, lease_owner=lease_owner)
+    second = store.claim(lease_owner=lease_owner)
+    assert second is not None
+    store.release(second, lease_owner=lease_owner)
+    exhausted = store.claim(lease_owner=lease_owner)
+    assert exhausted is not None and exhausted.attempt_count == 3
+
+    store.retry_effect_delivery(exhausted, lease_owner=lease_owner)
+
+    assert store.queue_counts() == (0, 1)
+    replay = store.claim(lease_owner=lease_owner)
+    assert replay is not None
+    assert replay.job_id == exhausted.job_id
+    assert replay.attempt_count == 1
+
+    draft_id = uuid4()
+    draft = store.enqueue(
+        kind="draft",
+        tenant_id="owner",
+        task_id=draft_id,
+        binding_digest=canonical_json_digest({"draft": str(draft_id)}),
+        payload={"instruction": "safe"},
+    )
+    assert draft.kind == "draft"
