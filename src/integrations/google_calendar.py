@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from enum import Enum
 from pathlib import Path
@@ -185,7 +186,7 @@ class GoogleCalendarClient:
 
             scopes = ("https://www.googleapis.com/auth/calendar.events",)
             credentials = Credentials.from_authorized_user_file(
-                str(self._token_path), scopes
+                str(self._token_path)
             )
             if not credentials.has_scopes(scopes):
                 raise RuntimeError
@@ -259,7 +260,16 @@ class GoogleCalendarClient:
             )
         if action.kind is CalendarActionKind.UPDATE:
             marker = hashlib.sha256(idempotency_key.encode()).hexdigest()
-            replay = self._find_marker_sync(marker)
+            action_digest = hashlib.sha256(
+                json.dumps(
+                    action.model_dump(mode="json"),
+                    allow_nan=False,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest()
+            replay = self._find_marker_sync(marker, action_digest)
             if replay is not None:
                 return CalendarResult(
                     message=(
@@ -270,7 +280,12 @@ class GoogleCalendarClient:
                 )
             current = self._resolve_unique_sync(action.target or "")
             body: dict[str, object] = {
-                "extendedProperties": {"private": {"nobusKey": marker}}
+                "extendedProperties": {
+                    "private": {
+                        "nobusKey": marker,
+                        "nobusActionDigest": action_digest,
+                    }
+                }
             }
             if action.title is not None:
                 body["summary"] = action.title
@@ -302,7 +317,9 @@ class GoogleCalendarClient:
             )
         raise ValueError("calendar action requires another boundary")
 
-    def _find_marker_sync(self, marker: str) -> CalendarEvent | None:
+    def _find_marker_sync(
+        self, marker: str, action_digest: str
+    ) -> CalendarEvent | None:
         try:
             values = self._service().events().list(
                 calendarId=self._calendar_id,
@@ -324,7 +341,16 @@ class GoogleCalendarClient:
             ]
             if len(matched) > 1:
                 raise ValueError
-            return None if not matched else self._event(matched[0])
+            if not matched:
+                return None
+            stored_digest = (
+                matched[0].get("extendedProperties", {})
+                .get("private", {})
+                .get("nobusActionDigest")
+            )
+            if stored_digest != action_digest:
+                raise RuntimeError("google_calendar_idempotency_conflict")
+            return self._event(matched[0])
         except (RuntimeError, ValueError):
             raise
         except Exception:

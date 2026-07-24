@@ -340,3 +340,40 @@ async def test_delivery_receipt_prevents_resend_before_durable_job_ack(
         is None
     )
     await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_terminal_effect_failure_is_durable_and_owner_visible(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    challenge = service.prepare_document(
+        "report.html|Отчёт|Текст",
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+    )
+
+    assert service.record_terminal_failure(
+        challenge.token,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+    )
+    result = await service.resolve(
+        challenge.token,
+        expected_kind=ProductEffectKind.ARTIFACT,
+        approve=True,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        approval_ref="system:test",
+    )
+
+    assert "Не удалось завершить действие" in result.message
+    assert result.delivery_required
+    assert not (service._workspace.root / "report.html").exists()
+    await client.aclose()

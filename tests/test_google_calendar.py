@@ -175,7 +175,7 @@ def test_list_and_update_unique_event() -> None:
             CalendarAction(
                 kind=CalendarActionKind.UPDATE,
                 target="Планёрка",
-                title="Планёрка новая",
+                title="Планёрка команды",
                 start=start,
                 end=start + timedelta(minutes=30),
             ),
@@ -198,6 +198,41 @@ def test_list_and_update_unique_event() -> None:
     assert updated.event is not None
     assert updated.event.title == "Планёрка команды"
     assert "Планёрка команды" in listed.message
+
+
+def test_update_rejects_same_key_with_different_payload() -> None:
+    service = _Service()
+    client = _client(service)
+    asyncio.run(client.execute(_create(), idempotency_key=KEY))
+    start = datetime(2026, 7, 27, 12, 0, tzinfo=MSK)
+    key = "sha256:" + "b" * 64
+    asyncio.run(
+        client.execute(
+            CalendarAction(
+                kind=CalendarActionKind.UPDATE,
+                target="Планёрка",
+                title="Планёрка команды",
+                start=start,
+                end=start + timedelta(minutes=30),
+            ),
+            idempotency_key=key,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="idempotency_conflict"):
+        asyncio.run(
+            client.execute(
+                CalendarAction(
+                    kind=CalendarActionKind.UPDATE,
+                    target="Планёрка",
+                    title="Другое название",
+                    start=start,
+                    end=start + timedelta(minutes=30),
+                ),
+                idempotency_key=key,
+            )
+        )
+
 
 
 def test_resolve_delete_rejects_ambiguous_and_delete_is_idempotent() -> None:

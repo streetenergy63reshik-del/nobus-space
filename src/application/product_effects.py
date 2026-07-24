@@ -581,6 +581,39 @@ class ProductEffectService:
             "unknown",
         }
 
+    def record_terminal_failure(
+        self,
+        token: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+    ) -> bool:
+        """Persist a safe owner-visible result after deterministic retries end."""
+        binding = self._vault.read(
+            token,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+        )
+        if binding is None:
+            return False
+        if binding.state in {"completed", "unknown", "delivered"}:
+            return True
+        self._vault.transition(
+            binding,
+            state="completed",
+            result={
+                "message": (
+                    "Не удалось завершить действие после нескольких попыток. "
+                    "Внешняя система не подтвердила результат; повторите команду позже."
+                ),
+                "filename": None,
+                "approval_ref": "system:terminal-failure",
+            },
+        )
+        return True
+
     def acknowledge_delivery(
         self,
         token: str,

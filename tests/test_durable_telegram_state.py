@@ -247,8 +247,10 @@ def test_dpapi_roundtrip_and_wrong_entropy_fail_closed():
         unprotect_current_user(protected, entropy=b"nobus-other-entropy")
 
 
-def test_completed_effect_delivery_can_be_requeued_after_attempt_limit(tmp_path):
-    store = _store(tmp_path)
+def test_completed_effect_delivery_uses_persisted_backoff(tmp_path):
+    now = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    clock = [now]
+    store = _store(tmp_path, clock=lambda: clock[0])
     task_id = uuid4()
     store.enqueue(
         kind="effect",
@@ -267,10 +269,14 @@ def test_completed_effect_delivery_can_be_requeued_after_attempt_limit(tmp_path)
     exhausted = store.claim(lease_owner=lease_owner)
     assert exhausted is not None and exhausted.attempt_count == 3
 
-    store.retry_effect_delivery(exhausted, lease_owner=lease_owner)
+    store.retry_effect_delivery(
+        exhausted, lease_owner=lease_owner, delay_seconds=30
+    )
 
-    assert store.queue_counts() == (0, 1)
-    replay = store.claim(lease_owner=lease_owner)
+    assert store.queue_counts() == (1, 0)
+    assert store.claim(lease_owner=uuid4()) is None
+    clock[0] += timedelta(seconds=31)
+    replay = store.claim(lease_owner=uuid4())
     assert replay is not None
     assert replay.job_id == exhausted.job_id
     assert replay.attempt_count == 1

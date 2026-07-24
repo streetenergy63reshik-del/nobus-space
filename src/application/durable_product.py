@@ -180,7 +180,6 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     self._telegram_state.release(
                         durable, lease_owner=self._lease_owner
                     )
-                    await asyncio.sleep(1)
                 else:
                     self._telegram_state.fail(
                         durable,
@@ -248,7 +247,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 if delivery_pending:
                     try:
                         self._telegram_state.retry_effect_delivery(
-                            durable, lease_owner=self._lease_owner
+                            durable,
+                            lease_owner=self._lease_owner,
+                            delay_seconds=30,
                         )
                     except Exception:
                         pass
@@ -261,7 +262,47 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     except Exception:
                         pass
                 else:
-                    if not isinstance(job, _QueuedEffect):
+                    if isinstance(job, _QueuedEffect):
+                        recorded = (
+                            self._product_effects is not None
+                            and self._product_effects.record_terminal_failure(
+                                job.capability_token,
+                                tenant_id=job.callback.tenant_id,
+                                user_id=job.callback.user_id,
+                                chat_id=job.callback.chat_id,
+                            )
+                        )
+                        if recorded:
+                            try:
+                                await self._resolve_product_effect(
+                                    job.callback,
+                                    job.envelope,
+                                    job.action,
+                                    job.capability_token,
+                                )
+                                self._telegram_state.ack(
+                                    durable, lease_owner=self._lease_owner
+                                )
+                                self._product_effects.finalize_delivery(
+                                    job.capability_token,
+                                    tenant_id=job.callback.tenant_id,
+                                    user_id=job.callback.user_id,
+                                    chat_id=job.callback.chat_id,
+                                )
+                                await self._clear_progress(job)
+                                continue
+                            except Exception:
+                                try:
+                                    self._telegram_state.retry_effect_delivery(
+                                        durable,
+                                        lease_owner=self._lease_owner,
+                                        delay_seconds=30,
+                                    )
+                                except Exception:
+                                    pass
+                                await self._clear_progress(job)
+                                continue
+                    else:
                         await self._terminalize_job(job)
                     try:
                         self._telegram_state.fail(
