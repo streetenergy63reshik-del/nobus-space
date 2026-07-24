@@ -846,6 +846,33 @@ class SQLiteStore:
             projection=projection,
         )
 
+    def read_latest_event(
+        self, tenant_id: str, task_id: UUID
+    ) -> WorkerEvent | None:
+        if not isinstance(tenant_id, str) or not tenant_id.strip() or not isinstance(task_id, UUID):
+            raise ValueError("audit event binding is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT event_json,event_digest FROM audit_events
+                       WHERE tenant_id=? AND task_id=?
+                       ORDER BY rowid DESC LIMIT 1""",
+                    (tenant_id.strip(), str(task_id)),
+                ).fetchone()
+                if row is None:
+                    return None
+                event = WorkerEvent.model_validate_json(row["event_json"])
+                if (
+                    event.tenant_id != tenant_id.strip()
+                    or event.task_id != task_id
+                    or canonical_json_digest(event.model_dump(mode="json"))
+                    != row["event_digest"]
+                ):
+                    raise ValueError("audit event binding mismatch")
+                return event
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
     def save_task(self, task: Task, *, expected_revision: int) -> StoredTaskSnapshot:
         """Compare-and-swap an existing recovery-safe task projection."""
         expected = _strict_revision(expected_revision)

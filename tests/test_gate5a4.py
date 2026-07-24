@@ -584,6 +584,7 @@ def _bound_gate_inputs() -> tuple[PreparedTask, PatchProposal]:
         "result_revision": 1,
         "result_digest": canonical_json_digest({"result": "draft"}),
         "output_digest": canonical_json_digest({"output": "draft"}),
+        "base_revision": "a" * 40,
         "summary": "Update safe.txt",
         "patch": patch,
         "paths": ("safe.txt",),

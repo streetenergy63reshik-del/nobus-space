@@ -14,12 +14,18 @@ from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
 from src.application.owner_files import OwnerFileSelection
+from src.application.product_effects import (
+    ProductEffectKind,
+    ProductEffectService,
+    approval_reference,
+)
 from src.application.patch_confirmation import (
     InMemoryPatchConfirmationStore,
     PatchConfirmationChallenge,
     PatchConfirmationStatus,
     PatchProposal,
 )
+from src.application.task_profiles import PROFILE_POLICIES, TaskProfile, profile_for_command
 from src.application.task_confirmation import (
     MAX_TASK_INSTRUCTION_LENGTH,
     InMemoryTaskConfirmationStore,
@@ -86,6 +92,11 @@ class ProductTelegramApi(Protocol):
         self, query_id: str, *, text: str | None = None
     ) -> None: ...
 
+    async def edit_message_text(
+        self, chat_id: int, message_id: int, text: str
+    ) -> None: ...
+
+
     async def delete_message(self, chat_id: int, message_id: int) -> None: ...
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes: ...
@@ -140,7 +151,15 @@ class _QueuedPatch:
     approval_evidence_ref: str
 
 
-_QueuedJob = _QueuedDraft | _QueuedPatch
+@dataclass(frozen=True, slots=True)
+class _QueuedEffect:
+    callback: CallbackQuery
+    envelope: TrustedIngressEnvelope
+    action: TelegramAction
+    capability_token: str
+
+
+_QueuedJob = _QueuedDraft | _QueuedPatch | _QueuedEffect
 
 
 async def _optional_callback_call(
@@ -188,6 +207,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         voice_service: VoicePreviewService | None = None,
         limit_provider: WeeklyLimitProvider | None = None,
         owner_files: OwnerFileProvider | None = None,
+        product_effects: ProductEffectService | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -216,6 +236,18 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 owner_files is not None
                 and not callable(getattr(owner_files, "select", None))
             )
+            or (
+                product_effects is not None
+                and not all(
+                    callable(getattr(product_effects, name, None))
+                    for name in (
+                        "prepare_document",
+                        "prepare_download",
+                        "prepare_network",
+                        "resolve",
+                    )
+                )
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -234,6 +266,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._voice_service = voice_service
         self._limit_provider = limit_provider
         self._owner_files = owner_files
+        self._product_effects = product_effects
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -353,6 +386,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     async def _terminalize_job(self, job: _QueuedJob) -> None:
         prepared = job.prepared if isinstance(job, _QueuedDraft) else None
         proposal = job.proposal if isinstance(job, _QueuedPatch) else None
+        if isinstance(job, _QueuedEffect):
+            raise RuntimeError("product effect cannot be terminalized as a task")
         binding = prepared.contract if prepared is not None else proposal
         if binding is None:
             raise RuntimeError("queued task binding is unavailable")
@@ -393,20 +428,22 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         prepared: PreparedTask,
         message: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
-    ) -> None:
+    ) -> bool:
         queue = self._execution_queue
         if queue is None:
             await self._draft_and_present(prepared, message, envelope)
-            return
+            return True
         job = _QueuedDraft(prepared, message, envelope)
         if self._closing or queue.qsize() >= _DRAFT_QUEUE_LIMIT:
             await self._reject_job(job)
-            return
+            return False
         await self.start()
         try:
             queue.put_nowait(job)
         except asyncio.QueueFull:
             await self._reject_job(job)
+            return False
+        return True
 
     async def _submit_patch(
         self,
@@ -414,7 +451,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         *,
         approver_identity: str,
         approval_evidence_ref: str,
-    ) -> None:
+    ) -> bool:
         queue = self._execution_queue
         if queue is None:
             await self._product_runtime.apply_proposal(
@@ -422,16 +459,19 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 approver_identity=approver_identity,
                 approval_evidence_ref=approval_evidence_ref,
             )
-            return
+            await self.deliver_pending()
+            return True
         job = _QueuedPatch(proposal, approver_identity, approval_evidence_ref)
         if self._closing or queue.full():
             await self._reject_job(job)
-            return
+            return False
         await self.start()
         try:
             queue.put_nowait(job)
         except asyncio.QueueFull:
             await self._reject_job(job)
+            return False
+        return True
 
     async def _expire_task_drafts(self) -> None:
         await super()._expire_task_drafts()
@@ -460,6 +500,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return True
 
         command = _command(payload.text)
+        profile = profile_for_command(command)
         if command == "/status":
             await self._api.send_message(payload.chat_id, self._status_text())
         elif command == "/limit":
@@ -471,6 +512,26 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         elif command == "/task":
             await self._start_text_task(
                 payload, ingress.envelope, _argument(payload.text)
+            )
+        elif profile is TaskProfile.RESEARCH_WEB:
+            query = _argument(payload.text)
+            await self._start_text_task(
+                payload,
+                ingress.envelope,
+                f"[profile:research.web]\n{query}" if query else "",
+            )
+        elif profile in {
+            TaskProfile.ARTIFACT_CREATE,
+            TaskProfile.DOWNLOAD_QUARANTINE,
+            TaskProfile.NETWORK_COMMAND,
+        }:
+            if not PROFILE_POLICIES[profile].requires_l4:
+                raise RuntimeError("product effect profile must require L4")
+            await self._prepare_product_effect(
+                payload,
+                ingress.envelope,
+                command,
+                _argument(payload.text),
             )
         elif command == "/confirm":
             await self._confirm_voice(
@@ -534,6 +595,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             "/status — состояние системы\n"
             "/limit — недельный лимит Codex\n"
             "/file <\u0438\u043c\u044f> \u2014 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0441 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0430\n"
+            "/research <запрос> — исследование интернета со ссылками\n"
+            "/document <путь>|<заголовок>|<текст> — создать документ\n"
+            "/download <https-url> — скачать и отправить файл\n"
+            "/network <тип>|... — подтверждаемая сетевая команда\n"
             "/help — эта справка\n\n"
             "Не отправляйте пароли, токены и клиентские персональные данные."
         )
@@ -703,7 +768,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                         else TaskConfirmationStatus.CANCELLED
                     ),
                 )
-            else:
+            elif claimed.action in {
+                TelegramAction.APPLY_PATCH,
+                TelegramAction.REJECT_PATCH,
+            }:
                 await self._resolve_patch(
                     callback,
                     envelope,
@@ -714,6 +782,33 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                         else PatchConfirmationStatus.CANCELLED
                     ),
                 )
+            else:
+                await _optional_callback_call(
+                    self._api.answer_callback_query(
+                        callback.query_id,
+                        text=(
+                            "Выполняю…"
+                            if claimed.action
+                            in {
+                                TelegramAction.APPLY_ARTIFACT,
+                                TelegramAction.APPLY_DOWNLOAD,
+                                TelegramAction.RUN_NETWORK,
+                            }
+                            else None
+                        ),
+                    ),
+                    _CALLBACK_ACK_TIMEOUT_SECONDS,
+                )
+                queued = await self._submit_effect(
+                    callback,
+                    envelope,
+                    claimed.action,
+                    claimed.capability_token,
+                )
+                if not queued:
+                    raise RuntimeError(
+                        "confirmed effect was not durably enqueued"
+                    )
 
         try:
             was_cancelled = await _complete_claimed_action(execute_claimed_action())
@@ -742,6 +837,139 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         if was_cancelled:
             raise asyncio.CancelledError
 
+    async def _prepare_product_effect(
+        self,
+        message: TextMessage,
+        envelope: TrustedIngressEnvelope,
+        command: str,
+        argument: str,
+    ) -> None:
+        if self._product_effects is None:
+            await self._api.send_message(
+                message.chat_id, "Эта функция пока не активирована."
+            )
+            return
+        try:
+            if command == "/document":
+                challenge = self._product_effects.prepare_document(
+                    argument,
+                    tenant_id=message.tenant_id,
+                    user_id=message.user_id,
+                    chat_id=message.chat_id,
+                )
+                actions = (
+                    TelegramAction.APPLY_ARTIFACT,
+                    TelegramAction.REJECT_ARTIFACT,
+                )
+            elif command == "/download":
+                challenge = await self._product_effects.prepare_download(
+                    argument,
+                    tenant_id=message.tenant_id,
+                    user_id=message.user_id,
+                    chat_id=message.chat_id,
+                )
+                actions = (
+                    TelegramAction.APPLY_DOWNLOAD,
+                    TelegramAction.REJECT_DOWNLOAD,
+                )
+            else:
+                challenge = self._product_effects.prepare_network(
+                    argument,
+                    tenant_id=message.tenant_id,
+                    user_id=message.user_id,
+                    chat_id=message.chat_id,
+                )
+                actions = (
+                    TelegramAction.RUN_NETWORK,
+                    TelegramAction.REJECT_NETWORK,
+                )
+            buttons = self._action_buttons(
+                message,
+                (
+                    (actions[0], challenge.token, "✅ Подтверждаю"),
+                    (actions[1], challenge.token, "❌ Отмена"),
+                ),
+                ttl_seconds=600,
+            )
+            await self._api.send_message(
+                message.chat_id, challenge.preview, buttons=buttons
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            await self._api.send_message(
+                message.chat_id,
+                "Не удалось безопасно подготовить действие. Проверьте формат.",
+            )
+
+    async def _submit_effect(
+        self,
+        callback: CallbackQuery,
+        envelope: TrustedIngressEnvelope,
+        action: TelegramAction,
+        token: str,
+    ) -> bool:
+        await self._resolve_product_effect(
+            callback, envelope, action, token
+        )
+        if self._product_effects is None or not self._product_effects.finalize_delivery(
+            token,
+            tenant_id=callback.tenant_id,
+            user_id=callback.user_id,
+            chat_id=callback.chat_id,
+        ):
+            raise RuntimeError("product effect delivery finalize failed")
+        return True
+
+    async def _resolve_product_effect(
+        self,
+        message: CallbackQuery,
+        envelope: TrustedIngressEnvelope,
+        action: TelegramAction,
+        token: str,
+    ) -> None:
+        if self._product_effects is None:
+            raise RuntimeError("product effects are unavailable")
+        mapping = {
+            TelegramAction.APPLY_ARTIFACT: (ProductEffectKind.ARTIFACT, True),
+            TelegramAction.REJECT_ARTIFACT: (ProductEffectKind.ARTIFACT, False),
+            TelegramAction.APPLY_DOWNLOAD: (ProductEffectKind.DOWNLOAD, True),
+            TelegramAction.REJECT_DOWNLOAD: (ProductEffectKind.DOWNLOAD, False),
+            TelegramAction.RUN_NETWORK: (ProductEffectKind.NETWORK, True),
+            TelegramAction.REJECT_NETWORK: (ProductEffectKind.NETWORK, False),
+        }
+        selected = mapping.get(action)
+        if selected is None:
+            raise ValueError("product effect action is invalid")
+        kind, approve = selected
+        result = await self._product_effects.resolve(
+            token,
+            expected_kind=kind,
+            approve=approve,
+            tenant_id=message.tenant_id,
+            user_id=message.user_id,
+            chat_id=message.chat_id,
+            approval_ref=approval_reference(
+                actor_identity=envelope.actor_identity,
+                query_id=message.query_id,
+                effect_token=token,
+            ),
+        )
+        if result.delivery_required:
+            if result.filename is not None and result.content is not None:
+                await self._api.send_document(
+                    message.chat_id, result.filename, result.content
+                )
+            else:
+                await self._api.send_message(message.chat_id, result.message)
+        if not self._product_effects.acknowledge_delivery(
+            token,
+            tenant_id=message.tenant_id,
+            user_id=message.user_id,
+            chat_id=message.chat_id,
+        ):
+            raise RuntimeError("product effect delivery commit failed")
+
     async def _confirm_voice(
         self,
         message: TextMessage | CallbackQuery,
@@ -763,8 +991,19 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         if action is TaskConfirmationStatus.CANCELLED:
             await self._product_runtime.cancel_prepared(result.prepared)
             await self.deliver_pending()
+            self._ack_confirmation(
+                self._task_confirmations, token, message.tenant_id
+            )
             return
-        await self._submit_draft(result.prepared, message, envelope)
+        queued = await self._submit_draft(result.prepared, message, envelope)
+        if not queued:
+            self._release_confirmation(
+                self._task_confirmations, token, message.tenant_id
+            )
+            raise RuntimeError("confirmed task was not durably enqueued")
+        self._ack_confirmation(
+            self._task_confirmations, token, message.tenant_id
+        )
 
     async def _draft_and_present(
         self,
@@ -829,12 +1068,32 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     "task_id": str(result.proposal.task_id),
                 }
             )
-            await self._submit_patch(
+            queued = await self._submit_patch(
                 result.proposal,
                 approver_identity=envelope.actor_identity,
                 approval_evidence_ref=f"telegram-owner-confirmation:{approval_digest}",
             )
+            if not queued:
+                self._release_confirmation(
+                    self._patch_confirmations, token, message.tenant_id
+                )
+                raise RuntimeError("confirmed patch was not durably enqueued")
+        self._ack_confirmation(
+            self._patch_confirmations, token, message.tenant_id
+        )
         await self.deliver_pending()
+
+    @staticmethod
+    def _ack_confirmation(store: object, token: str, tenant_id: str) -> None:
+        operation = getattr(store, "acknowledge", None)
+        if callable(operation) and not operation(token, tenant_id):
+            raise RuntimeError("durable confirmation commit failed")
+
+    @staticmethod
+    def _release_confirmation(store: object, token: str, tenant_id: str) -> None:
+        operation = getattr(store, "release", None)
+        if callable(operation):
+            operation(token, tenant_id)
 
     async def _send_patch_challenge(
         self,

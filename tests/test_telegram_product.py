@@ -136,6 +136,7 @@ class FakeProductRuntime:
             "result_revision": 1,
             "result_digest": canonical_json_digest({"result": "draft"}),
             "output_digest": canonical_json_digest({"output": "draft"}),
+        "base_revision": "a" * 40,
             "summary": "Обновить safe.txt",
             "patch": patch,
             "paths": ("safe.txt",),

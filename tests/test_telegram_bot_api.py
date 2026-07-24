@@ -170,6 +170,30 @@ async def test_delete_message_uses_exact_source_message() -> None:
 
 
 @pytest.mark.asyncio
+async def test_edit_message_text_keeps_exact_progress_identity() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response({"message_id": 101, "chat": {"id": 42}})
+
+    api = api_for(handler)
+    try:
+        await api.edit_message_text(42, 101, "Выполняю…")
+    finally:
+        await api.aclose()
+
+    assert str(calls[0].url) == (
+        f"https://api.telegram.org/bot{TOKEN}/editMessageText"
+    )
+    assert json.loads(calls[0].content) == {
+        "chat_id": 42,
+        "message_id": 101,
+        "text": "Выполняю…",
+    }
+
+
+@pytest.mark.asyncio
 async def test_send_document_uses_bounded_multipart_and_validates_binding() -> None:
     calls: list[httpx.Request] = []
 
@@ -802,3 +826,22 @@ async def test_polling_accepts_long_handler_with_bounded_240_second_lease() -> N
 
     assert result.next_offset == 2
     assert checkpoint.advances == [(None, 2)]
+
+
+@pytest.mark.asyncio
+async def test_delete_message_treats_exact_not_found_as_idempotent_success() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "ok": False,
+                "error_code": 400,
+                "description": "Bad Request: message to delete not found",
+            },
+        )
+
+    api = api_for(handler)
+    try:
+        await api.delete_message(42, 101)
+    finally:
+        await api.aclose()

@@ -1,3 +1,13 @@
+# Queue 1/2 — accepted local release candidate
+
+The local branch contains the restart-safe Telegram queue, confirmations, supervised
+runner, strict backup/restore, public-web research and owner-bound document/download/
+network effects. Local L1/L2/L3 are `ACCEPT`; it is not live and awaits one exact owner
+L4 release package. Active semantics:
+[docs/adr/0011-durable-owner-effects-and-web-profiles.md](docs/adr/0011-durable-owner-effects-and-web-profiles.md).
+
+The readiness statements and test counts below this release-candidate header are historical snapshots. Where they conflict, this header, ADR 0011 and the leading section of `docs/handoffs/CURRENT-STATUS.md` are authoritative.
+
 # Nobus Space — Telegram Orchestrator MVP
 
 `nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
@@ -13,7 +23,7 @@
 - Gate 5A.1–5A.3: authenticated owner-bound Telegram receive/send и live fake-task smoke приняты.
 - Gate 5A.4: product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit приняты; reliability-релиз добавляет fail-fast startup probe и не показывает служебные подтверждения для обычных задач.
 - Reliability verification: `127` target, `190 passed, 1 skipped` adversarial, `727 passed, 2 skipped, 1 warning` full; независимый verdict: `ACCEPT`, P0/P1/P2 отсутствуют.
-- Gate 5B: OS service/autostart, monitoring и restore drill не входят в функциональный MVP-1 и ещё не реализованы.
+- Gate 5B / Queue 1–2: локальный supervisor, health alerts, строгие backup/restore и durable effects реализованы в текущем unreleased release candidate; live-активация ожидает L2/L3 ACCEPT и exact L4.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 

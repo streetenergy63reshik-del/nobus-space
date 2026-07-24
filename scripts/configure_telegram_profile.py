@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import sys
@@ -24,6 +25,10 @@ _COMMANDS = (
     ("status", "Состояние оркестратора"),
     ("limit", "Недельный лимит Codex"),
     ("file", "\u041f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0441 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0430"),
+    ("research", "Исследование интернета со ссылками"),
+    ("document", "Создать Word, Excel, PDF или HTML"),
+    ("download", "Скачать и отправить безопасный файл"),
+    ("network", "Подтверждаемая сетевая команда"),
     ("help", "Помощь и безопасность"),
 )
 
@@ -54,7 +59,18 @@ async def _run() -> None:
         await api.aclose()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Apply the Nobus Space Telegram product profile."
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="perform the external Telegram write",
+    )
+    args = parser.parse_args(argv)
+    if not args.apply:
+        parser.error("external profile write requires explicit --apply")
     try:
         asyncio.run(_run())
     except (CredentialStoreError, TelegramBotApiError):

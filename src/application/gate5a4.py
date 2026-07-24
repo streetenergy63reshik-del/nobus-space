@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import subprocess
 from contextlib import asynccontextmanager
 import threading
@@ -19,6 +20,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.application.durable_runtime import DurableFakeRuntime, PreparedTask
+from src.application.task_profiles import PROFILE_POLICIES, TaskProfile
 from src.application.patch_confirmation import PatchProposal, patch_proposal_digest
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.fake_vertical import VerificationInput
@@ -31,6 +33,7 @@ from src.contracts import (
     VerificationLevelStatus,
     VerificationBundle,
     VerificationBundleStatus,
+    WorkerEventType,
 )
 from src.contracts.models import canonical_json_digest
 from src.core.policy import (
@@ -137,11 +140,32 @@ class Gate5A4Runtime(DurableFakeRuntime):
     def _contract(
         self, instruction: str, envelope: TrustedIngressEnvelope
     ) -> TaskContract:
+        research_web = instruction.startswith("[profile:research.web]\n")
+        if research_web:
+            instruction = instruction.removeprefix("[profile:research.web]\n").strip()
+            if not instruction:
+                raise ValueError("research instruction is empty")
         base = super()._contract(instruction, envelope)
         values = base.model_dump(mode="python")
-        permissions = ["repo.read", "process.run_allowlisted"]
+        profile = (
+            TaskProfile.RESEARCH_WEB if research_web else TaskProfile.ANSWER_READ
+        )
+        policy = PROFILE_POLICIES[profile]
+        if policy.requires_l4:
+            raise RuntimeError("read-only worker profile unexpectedly requires L4")
+        permissions = list(policy.permissions)
         owner_root = getattr(self, "_owner_read_root", None)
-        criteria = _CRITERIA
+        criteria = (
+            tuple(
+                item.replace(
+                    "Do not modify files, use network, inspect credentials, secrets, caches, ",
+                    "Do not modify files, inspect credentials, secrets, caches, ",
+                )
+                for item in _CRITERIA
+            )
+            if research_web
+            else _CRITERIA
+        )
         if owner_root is not None:
             permissions.append("owner.library.read")
             criteria += (
@@ -155,7 +179,11 @@ class Gate5A4Runtime(DurableFakeRuntime):
             permissions=tuple(permissions),
             risk=RiskLevel.MEDIUM,
             timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
-            quality_profile="gate5a4-two-phase-patch@1",
+            quality_profile=(
+                "gate5a4-web-research@1"
+                if research_web
+                else "gate5a4-two-phase-patch@1"
+            ),
         )
         return TaskContract.model_validate(values)
 
@@ -184,6 +212,239 @@ class Gate5A4Runtime(DurableFakeRuntime):
         if result.message != _WORKER_PROBE_SENTINEL:
             raise CodexCliError("worker_protocol_error")
 
+    async def recover_prepared(
+        self,
+        prepared: PreparedTask,
+        envelope: TrustedIngressEnvelope,
+    ) -> bool:
+        """Rehydrate pending work or fail an interrupted active attempt once."""
+        prepared = PreparedTask.validate(prepared)
+        trusted = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
+        contract = prepared.contract
+        if (
+            contract.tenant_id != trusted.tenant_id
+            or contract.idempotency_key != trusted.idempotency_key
+            or contract.ingress_digest != trusted.envelope_revision
+        ):
+            raise ValueError("durable admission binding mismatch")
+        existing = await self._state.get(contract.task_id)
+        contract_digest = task_contract_digest(contract)
+        terminal = {
+            TaskStatus.COMPLETED,
+            TaskStatus.ANSWERED,
+            TaskStatus.REJECTED,
+            TaskStatus.FAILED,
+            TaskStatus.ESCALATE,
+        }
+        if existing is not None:
+            if existing.contract_digest != contract_digest:
+                raise RuntimeError("durable admission is not recoverable")
+            if existing.status in terminal:
+                return False
+            if existing.status is not TaskStatus.PENDING:
+                raise RuntimeError("durable admission is not recoverable")
+            return True
+        snapshot = self._store.read_task(contract.tenant_id, contract.task_id)
+        if (
+            snapshot is None
+            or snapshot.projection.contract_digest != contract_digest
+        ):
+            raise RuntimeError("durable admission is not recoverable")
+        if snapshot.projection.status in terminal:
+            return False
+        if snapshot.projection.status not in {
+            TaskStatus.PENDING,
+            TaskStatus.PARSING,
+        }:
+            raise RuntimeError("durable admission is not recoverable")
+        self._policy_store.register_contract(contract, trusted)
+        projection = snapshot.projection
+        if projection.status is TaskStatus.PENDING:
+            restored = await self._state.create_from_contract(contract)
+            if restored.contract_digest != projection.contract_digest:
+                raise RuntimeError("durable admission recovery failed")
+            self._revisions[contract.task_id] = snapshot.revision
+            return True
+        task = Task(
+            id=contract.task_id,
+            tenant_id=contract.tenant_id,
+            contract_digest=task_contract_digest(contract),
+            source=contract.source,
+            intent=contract.instruction,
+            payload={
+                "acceptance_criteria": list(contract.acceptance_criteria),
+                "allowed_paths": list(contract.allowed_paths),
+                "ingress_digest": contract.ingress_digest,
+                "ingress_idempotency_key": contract.idempotency_key,
+                "permissions": list(contract.permissions),
+                "quality_profile": contract.quality_profile,
+                "timeout_seconds": contract.timeout_seconds,
+            },
+            risk=contract.risk,
+            status=TaskStatus.PENDING,
+            created_at=projection.created_at,
+            updated_at=self._now(),
+        )
+        task = await self._state.restore_interrupted(task)
+        started = self._store.read_latest_event(
+            contract.tenant_id, contract.task_id
+        )
+        if (
+            started is None
+            or started.event_type is not WorkerEventType.STARTED
+            or started.sequence != 1
+            or started.contract_digest != task.contract_digest
+        ):
+            raise RuntimeError("interrupted worker evidence is unavailable")
+        self._policy_store.bind_worker(
+            task.id,
+            task.tenant_id,
+            started.attempt_id,
+            task.contract_digest,
+            self._EXECUTOR_IDENTITY,
+        )
+        self._policy_store.accept_event(started)
+        interrupted = WorkerEvent(
+            event_id=uuid4(),
+            tenant_id=task.tenant_id,
+            task_id=task.id,
+            attempt_id=started.attempt_id,
+            contract_digest=task.contract_digest,
+            worker_identity=self._EXECUTOR_IDENTITY,
+            sequence=2,
+            event_type=WorkerEventType.FAILED,
+            emitted_at=self._now(),
+            payload={
+                "error_code": "worker_interrupted",
+                "safe_message": "Worker interrupted before producing a result.",
+                "retryable": True,
+            },
+        )
+        self._policy_store.accept_event(interrupted)
+        recovered = self._store.save_task_and_append_event(
+            task,
+            interrupted,
+            expected_revision=snapshot.revision,
+        )
+        self._revisions[task.id] = recovered.revision
+        return True
+
+    async def recover_proposal(self, proposal: PatchProposal) -> bool:
+        proposal = PatchProposal.model_validate(
+            proposal.model_dump(mode="python")
+        )
+        terminal = {
+            TaskStatus.COMPLETED,
+            TaskStatus.ANSWERED,
+            TaskStatus.REJECTED,
+            TaskStatus.FAILED,
+            TaskStatus.ESCALATE,
+        }
+        existing = await self._state.get(proposal.task_id)
+        if existing is not None:
+            if (
+                existing.tenant_id != proposal.tenant_id
+                or existing.contract_digest != proposal.contract_digest
+                or existing.result_digest != proposal.result_digest
+            ):
+                raise RuntimeError("durable patch binding mismatch")
+            if existing.status in terminal:
+                return False
+            return existing.status is TaskStatus.L1_VALIDATED
+        snapshot = self._store.read_task(
+            proposal.tenant_id, proposal.task_id
+        )
+        if (
+            snapshot is None
+            or snapshot.projection.contract_digest
+            != proposal.contract_digest
+            or snapshot.projection.result_revision
+            != proposal.result_revision
+            or snapshot.projection.result_digest
+            != proposal.result_digest
+            or snapshot.projection.output_digest
+            != proposal.output_digest
+        ):
+            raise RuntimeError("durable patch binding mismatch")
+        if snapshot.projection.status in terminal:
+            return False
+        result = {
+            "output_digest": proposal.output_digest,
+            "summary": "Worker completed.",
+            "result_kind": "patch",
+        }
+        if canonical_json_digest({"context": {}, "result": result}) != proposal.result_digest:
+            raise RuntimeError("durable patch result binding mismatch")
+        projection = snapshot.projection
+        task = Task(
+            id=proposal.task_id,
+            tenant_id=proposal.tenant_id,
+            contract_digest=proposal.contract_digest,
+            source=projection.source,
+            intent="Restart-bound exact patch proposal.",
+            risk=projection.risk,
+            status=projection.status,
+            agent_id=projection.agent_id,
+            result=result,
+            result_revision=projection.result_revision,
+            result_digest=projection.result_digest,
+            verification_bundle=projection.verification_bundle,
+            verification_history=projection.verification_history,
+            human_approval=projection.human_approval,
+            approval_history=projection.approval_history,
+            created_at=projection.created_at,
+            updated_at=projection.updated_at,
+        )
+        task = await self._state.restore_recovery_snapshot(task)
+        self._revisions[task.id] = snapshot.revision
+        if task.status is not TaskStatus.L1_VALIDATED:
+            target = (
+                TaskStatus.REJECTED
+                if task.status is TaskStatus.HUMAN_APPROVED
+                else TaskStatus.FAILED
+                if task.status is TaskStatus.EXECUTING
+                else TaskStatus.ESCALATE
+            )
+            await self._required_update(
+                task.id,
+                status=target,
+                error_message="interrupted_patch_requires_new_confirmation",
+            )
+            return False
+        message = json.dumps(
+            {
+                "summary": proposal.summary,
+                "patch": proposal.patch,
+                "paths": list(proposal.paths),
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        candidate = self._candidate(task, message)
+        recovered_l1 = await self._pipeline.recover_l1(
+            candidate, base_revision=proposal.base_revision
+        )
+        stored_l1 = (
+            task.verification_bundle.l1
+            if task.verification_bundle is not None
+            else None
+        )
+        if (
+            recovered_l1.status is not VerificationLevelStatus.PASSED
+            or stored_l1 is None
+            or recovered_l1.evidence_digest != stored_l1.evidence_digest
+        ):
+            await self._pipeline.discard(task.id)
+            await self._required_update(
+                task.id,
+                status=TaskStatus.ESCALATE,
+                error_message="patch_baseline_changed",
+            )
+            return False
+        return True
+
     async def execute_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
         """Fail closed: a single task confirmation can never apply a patch."""
         return self._response(
@@ -203,6 +464,11 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 task = await self._start_worker(contract, task)
                 worker_result = await self._execute_worker(contract)
                 draft = parse_codex_draft(worker_result.message, self._pipeline.root)
+                if "web.search" in contract.permissions and (
+                    not isinstance(draft, CodexAnswerDraft)
+                    or re.search(r"https://[^\s)\]>]+", draft.answer) is None
+                ):
+                    raise CodexCliError("worker_protocol_error")
                 task = await self._record_worker_result(
                     contract,
                     task,
@@ -307,7 +573,6 @@ class Gate5A4Runtime(DurableFakeRuntime):
             except asyncio.CancelledError:
                 if task is not None:
                     await self._pipeline.discard(task.id)
-                    await self._escalate(task)
                 raise
             except CodexCliError as error:
                 if task is not None:
@@ -570,6 +835,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             "result_revision": candidate.result_revision,
             "result_digest": candidate.result_digest,
             "output_digest": candidate.output_digest,
+            "base_revision": self._pipeline.baseline_for(candidate.task_id),
             "summary": draft.summary,
             "patch": draft.patch,
             "paths": draft.paths,
@@ -866,6 +1132,37 @@ class GitPatchVerificationPipeline:
             if isinstance(parsed, CodexAnswerDraft) and parsed == state.draft
             else None
         )
+
+    def baseline_for(self, task_id: UUID) -> str:
+        state = self._drafts.get(task_id)
+        if state is None:
+            raise RuntimeError("patch baseline is unavailable")
+        return state.baseline
+
+    async def recover_l1(
+        self,
+        candidate: VerificationInput,
+        *,
+        base_revision: str,
+    ) -> VerificationLevel:
+        draft = parse_codex_patch(candidate.worker_message, self._root)
+        try:
+            await self._require_exact_baseline(base_revision)
+            await self._run_git(
+                "apply", "--check", "--whitespace=error-all", "-",
+                stdin=draft.patch,
+            )
+            self._drafts[candidate.task_id] = _DraftState(
+                draft, base_revision
+            )
+            return self._level(
+                candidate, 1, True, "restart-bound patch preflight"
+            )
+        except RuntimeError:
+            self._drafts.pop(candidate.task_id, None)
+            return self._level(
+                candidate, 1, False, "restart-bound patch preflight rejected"
+            )
 
     def answer_matches(self, task_id: UUID, answer: str) -> bool:
         state = self._answers.get(task_id)

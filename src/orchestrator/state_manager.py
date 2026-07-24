@@ -124,6 +124,45 @@ class StateManager:
         self._tasks[task.id] = task
         return task.model_copy(deep=True)
 
+    async def restore_interrupted(self, task: Task) -> Task:
+        """Restore only a content-bound PENDING/PARSING task after process loss."""
+        validated = Task.model_validate(task.model_dump(mode="json"))
+        if (
+            validated.id in self._tasks
+            or validated.status not in {TaskStatus.PENDING, TaskStatus.PARSING}
+            or validated.result is not None
+            or validated.result_revision != 0
+            or validated.result_digest is not None
+            or validated.verification_bundle is not None
+            or validated.human_approval is not None
+        ):
+            raise PolicyViolation("interrupted task cannot be restored")
+        self._tasks[validated.id] = validated.model_copy(deep=True)
+        return validated.model_copy(deep=True)
+
+    async def restore_recovery_snapshot(self, task: Task) -> Task:
+        validated = Task.model_validate(task.model_dump(mode="json"))
+        recoverable = {
+            TaskStatus.L1_VALIDATED,
+            TaskStatus.L2_VERIFIED,
+            TaskStatus.L3_APPROVED,
+            TaskStatus.WAITING_HUMAN,
+            TaskStatus.HUMAN_APPROVED,
+            TaskStatus.EXECUTING,
+        }
+        if (
+            validated.id in self._tasks
+            or validated.status not in recoverable
+            or validated.result is None
+            or validated.result_revision < 1
+            or validated.result_digest is None
+            or validated.verification_bundle is None
+            or validated.verification_bundle.l1 is None
+        ):
+            raise PolicyViolation("verified task snapshot cannot be restored")
+        self._tasks[validated.id] = validated.model_copy(deep=True)
+        return validated.model_copy(deep=True)
+
     async def update(
         self,
         task_id: UUID,

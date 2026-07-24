@@ -42,6 +42,7 @@ class PatchProposal(BaseModel):
     result_revision: int = Field(ge=1)
     result_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     output_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    base_revision: str = Field(pattern=r"^[0-9a-f]{40,64}$")
     summary: str = Field(min_length=1, max_length=1_500)
     patch: str = Field(min_length=1, max_length=16 * 1024)
     paths: tuple[str, ...] = Field(min_length=1, max_length=20)
@@ -51,6 +52,7 @@ class PatchProposal(BaseModel):
     def validate_digest(self) -> "PatchProposal":
         expected = canonical_json_digest(
             {
+                "base_revision": self.base_revision,
                 "contract_digest": self.contract_digest,
                 "output_digest": self.output_digest,
                 "patch": self.patch,

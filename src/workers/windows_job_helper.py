@@ -39,6 +39,10 @@ _READ_ARGV = (
     "-",
 )
 _WRITE_ARGV = (*_READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
+_WEB_ARGV = tuple(
+    'web_search="live"' if value == 'web_search="disabled"' else value
+    for value in _READ_ARGV
+)
 _RATE_LIMIT_ARGV = (
     "app-server",
     "--stdio",
@@ -47,7 +51,9 @@ _RATE_LIMIT_ARGV = (
     "--config",
     "mcp_servers={}",
 )
-_ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV, _RATE_LIMIT_ARGV})
+_ARGV_PROFILES = frozenset(
+    {_READ_ARGV, _WEB_ARGV, _WRITE_ARGV, _RATE_LIMIT_ARGV}
+)
 _GATE_RE = re.compile(r"^Local\\NobusOrchestrator-[0-9a-f]{32}$")
 _SYNCHRONIZE = 0x00100000
 _WAIT_OBJECT_0 = 0

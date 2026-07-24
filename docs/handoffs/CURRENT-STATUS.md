@@ -1,3 +1,40 @@
+# QUEUE-1-2-2026-07-24 — release candidate before live L4
+
+**Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; exact owner L4 live release pending.
+**Verification:** 886 passed, 2 skipped, 1 known warning; compileall, pip check,
+PowerShell parse, quality-memory validation and diff-check PASS. Independent L2 and
+L3: ACCEPT, P0/P1/P2 absent.
+**Live state:** runner, Task Scheduler, workspace and live branch are intentionally not
+updated by this release cycle; live remains clean at `74b182a`.
+
+The active semantics are defined by
+`docs/adr/0011-durable-owner-effects-and-web-profiles.md` and supersede contradictory
+historical restart/process-memory notes later in this handoff.
+
+Implemented rework:
+
+- concrete `/research` argv is wired into the production asyncio process allowlist;
+- operational CLIs run directly from the repository; Telegram profile publication
+  requires explicit `--apply`;
+- exact HTTPS Git destination and allowlisted inert local config are approval-bound; credentials, proxy, headers, includes and URL rewrites are rejected;
+- pip is isolated from config/environment, binds exact PyPI index, rejects nested/constraint/editable/local/direct inputs and requires hashed binary distributions;
+- effect capability lifetime is seven days; durable delivery receipt prevents replay
+  after local delivery commit;
+- a job gets at most three durable claims, then moves to a non-blocking dead letter;
+- health/backup/restore validate exact DDL fingerprints and all application digests; dead letters are DEGRADED operator alerts, not restart signals;
+- restore staging, rollback and replacement use fsync/write-through;
+- runner mutex is cross-session; Task Scheduler alone performs up to ten bounded liveness restarts, while health never restarts persistent degraded state;
+- owner artifact write revalidates parent identity immediately before replacement.
+
+Residual accepted-for-review limitation: `sendDocument` can duplicate once if Telegram
+accepted the upload and the process crashed before persisting its delivery receipt.
+
+The earlier reviewer incident remains recorded: a profile script was accidentally run
+with `--help` before it required `--apply`, so Queue-2 menu commands may already be
+visible in Telegram. No compensating external write is performed without a new L4.
+
+---
+
 # Nobus Space MVP — текущий статус разработки
 
 ## Iteration 2026-07-24: Windows autostart and owner document delivery

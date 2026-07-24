@@ -308,6 +308,29 @@ class TelegramBotApi:
             raise TelegramBotApiError("telegram_protocol_error")
         return result["message_id"]
 
+    async def edit_message_text(
+        self, chat_id: int, message_id: int, text: str
+    ) -> None:
+        if (
+            type(chat_id) is not int
+            or not _non_negative_int(message_id)
+            or not _bounded_text(text, 4096)
+        ):
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        result = await self._call(
+            "editMessageText",
+            {
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "text": text.strip(),
+            },
+        )
+        if type(result) is not dict or result.get("message_id") != message_id:
+            raise TelegramBotApiError("telegram_protocol_error")
+        chat = result.get("chat")
+        if type(chat) is not dict or chat.get("id") != chat_id:
+            raise TelegramBotApiError("telegram_protocol_error")
+
     async def send_document(
         self, chat_id: int, filename: str, content: bytes
     ) -> int:
@@ -388,11 +411,18 @@ class TelegramBotApi:
         result = await self._call(
             "deleteMessage",
             {"chat_id": chat_id, "message_id": message_id},
+            allow_message_missing=True,
         )
         if result is not True:
             raise TelegramBotApiError("telegram_protocol_error")
 
-    async def _call(self, method: str, payload: Mapping[str, Any]) -> Any:
+    async def _call(
+        self,
+        method: str,
+        payload: Mapping[str, Any],
+        *,
+        allow_message_missing: bool = False,
+    ) -> Any:
         failure: str | None = None
         raw: bytes | None = None
         try:
@@ -416,7 +446,10 @@ class TelegramBotApi:
         if failure is not None or raw is None:
             raise TelegramBotApiError(failure or "telegram_unavailable")
 
-        return _decode_result(raw)
+        return _decode_result(
+            raw,
+            allow_message_missing=allow_message_missing,
+        )
 
     async def _download(self, file_path: str, size_limit: int) -> bytes:
         failure: str | None = None
@@ -450,6 +483,7 @@ class TelegramBotApi:
         if method not in {
             "answerCallbackQuery",
             "deleteMessage",
+            "editMessageText",
             "getFile",
             "getMe",
             "getUpdates",
@@ -754,7 +788,11 @@ def _safe_upload_filename(value: object) -> bool:
     )
 
 
-def _decode_result(raw: bytes) -> Any:
+def _decode_result(
+    raw: bytes,
+    *,
+    allow_message_missing: bool = False,
+) -> Any:
     failure: str | None = None
     value: Any = None
     try:
@@ -772,6 +810,13 @@ def _decode_result(raw: bytes) -> Any:
     }:
         raise TelegramBotApiError("telegram_protocol_error")
     if value.get("ok") is not True or "result" not in value:
+        if (
+            allow_message_missing
+            and value.get("error_code") == 400
+            and value.get("description")
+            == "Bad Request: message to delete not found"
+        ):
+            return True
         raise TelegramBotApiError("telegram_unavailable")
     return value["result"]
 

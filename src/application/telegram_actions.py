@@ -16,6 +16,12 @@ class TelegramAction(str, Enum):
     CANCEL_VOICE = "cancel_voice"
     APPLY_PATCH = "apply_patch"
     REJECT_PATCH = "reject_patch"
+    APPLY_ARTIFACT = "apply_artifact"
+    REJECT_ARTIFACT = "reject_artifact"
+    APPLY_DOWNLOAD = "apply_download"
+    REJECT_DOWNLOAD = "reject_download"
+    RUN_NETWORK = "run_network"
+    REJECT_NETWORK = "reject_network"
 
 
 @dataclass(frozen=True)

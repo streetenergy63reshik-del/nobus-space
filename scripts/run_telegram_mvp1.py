@@ -35,14 +35,35 @@ from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
 )
+from src.application.durable_confirmations import (  # noqa: E402
+    DurablePatchConfirmationStore,
+    DurableTaskConfirmationStore,
+    DurableTelegramActionStore,
+)
+from src.application.durable_product import DurableProductTelegramControlPlane  # noqa: E402
+from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
 from src.application.owner_files import OwnerFileService  # noqa: E402
-from src.application.patch_confirmation import InMemoryPatchConfirmationStore  # noqa: E402
+from src.application.runtime_maintenance import (  # noqa: E402
+    recover_interrupted_restore,
+)
+from src.application.owner_workspace import EdgePdfRenderer, OwnerWorkspace  # noqa: E402
+from src.application.network_commands import NetworkCommandRunner  # noqa: E402
+from src.application.network_tools import Quarantine, SafeDownloader  # noqa: E402
+from src.application.product_effects import (  # noqa: E402
+    DurableProductEffectVault,
+    ProductEffectService,
+)
 from src.application.task_confirmation import (  # noqa: E402
     MAX_TASK_INSTRUCTION_LENGTH,
     InMemoryTaskConfirmationStore,
 )
+from src.application.patch_confirmation import InMemoryPatchConfirmationStore  # noqa: E402
 from src.application.telegram_actions import InMemoryTelegramActionStore  # noqa: E402
 from src.application.telegram_product import ProductTelegramControlPlane  # noqa: E402
+from src.application.windows_singleton import (  # noqa: E402
+    RunnerAlreadyActive,
+    WindowsNamedMutex,
+)
 from src.security.windows_credentials import (  # noqa: E402
     CredentialStoreError,
     read_generic_credential,
@@ -73,6 +94,9 @@ _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
 _POLLING_LEASE_SECONDS = 240
+_TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
+_OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
+_QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
 
 
 async def _run(values: argparse.Namespace) -> dict[str, object]:
@@ -87,6 +111,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
 
     control: ProductTelegramControlPlane | None = None
+    product_effects: ProductEffectService | None = None
     api = TelegramBotApi(
         token=credential.secret.get_secret_value(),
         transport=httpx.AsyncHTTPTransport(retries=0, trust_env=False),
@@ -111,7 +136,8 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         )
         if values.bootstrap_next_offset is not None:
             _bootstrap_checkpoint(checkpoint, values.bootstrap_next_offset)
-        action_store = InMemoryTelegramActionStore()
+        telegram_state = SQLiteTelegramState(_TELEGRAM_STATE_PATH)
+        action_store = DurableTelegramActionStore(telegram_state)
         gateway = TelegramGateway(
             actor_bindings=bindings,
             update_id_store=PollingCheckpointUpdateIdStore(),
@@ -159,12 +185,29 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git.parent,
             ),
         )
-        control = ProductTelegramControlPlane(
+        product_effects = ProductEffectService(
+            vault=DurableProductEffectVault(telegram_state),
+            workspace=OwnerWorkspace(
+                _OWNER_WRITE_ROOT,
+                pdf_renderer=EdgePdfRenderer(
+                    _required_edge_executable(),
+                    temp_root=_CODEX_TEMP,
+                ),
+            ),
+            downloader=SafeDownloader(),
+            quarantine=Quarantine(_QUARANTINE_ROOT),
+            network_runner=NetworkCommandRunner(
+                workspace_root=_OWNER_READ_ROOT,
+                git_executable=git,
+                python_executable=python,
+            ),
+        )
+        control = DurableProductTelegramControlPlane(
             gateway,
             api,
             task_runtime=runtime,
-            task_confirmations=InMemoryTaskConfirmationStore(),
-            patch_confirmations=InMemoryPatchConfirmationStore(),
+            task_confirmations=DurableTaskConfirmationStore(telegram_state),
+            patch_confirmations=DurablePatchConfirmationStore(telegram_state),
             action_store=action_store,
             voice_service=VoicePreviewService(
                 voice_transcriber,
@@ -174,7 +217,9 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             ),
             limit_provider=limit_provider,
             owner_files=OwnerFileService(_OWNER_READ_ROOT),
+            product_effects=product_effects,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
+            telegram_state=telegram_state,
             task_tenants=destination_refs,
             task_status_sender=TelegramStatusSender(
                 api, sender_destinations, technical_details=False
@@ -192,11 +237,14 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 polling, api, bindings, control=control,
                 timeout=values.timeout, announce=values.announce,
             )
+            control.assert_healthy()
             while True:
                 acknowledged += await _poll_with_unavailable_backoff(
                     polling, api, bindings, control=control,
                     timeout=values.timeout, announce=False,
                 )
+                control.assert_healthy()
+        control.assert_healthy()
         return {
             "status": "PASS",
             "mode": "once" if values.once else "serve",
@@ -207,6 +255,8 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         try:
             if control is not None:
                 await control.close()
+            elif product_effects is not None:
+                await product_effects.close()
         finally:
             await api.aclose()
 
@@ -274,6 +324,21 @@ def _required_codex_executable(home: Path | None = None) -> Path:
     raise RuntimeError("working Codex CLI is unavailable")
 
 
+def _required_edge_executable() -> Path:
+    candidates = (
+        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    )
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve(strict=True)
+            if resolved.is_file():
+                return resolved
+        except OSError:
+            continue
+    raise RuntimeError("local PDF renderer is unavailable")
+
+
 def _required_executable(name: str) -> Path:
     value = shutil.which(name)
     if value is None:
@@ -292,7 +357,11 @@ def main() -> int:
     result: dict[str, object] | None = None
     failure = ""
     try:
-        result = asyncio.run(_run(_arguments()))
+        with WindowsNamedMutex():
+            recover_interrupted_restore(_RUNTIME_ROOT)
+            result = asyncio.run(_run(_arguments()))
+    except RunnerAlreadyActive:
+        result = {"status": "ALREADY_RUNNING"}
     except KeyboardInterrupt:
         result = {"status": "STOPPED"}
     except CredentialStoreError as error:
@@ -308,7 +377,7 @@ def main() -> int:
     if result is None:
         result = {"status": "FAIL", "code": failure or "telegram_mvp1_failed"}
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
-    return 0 if result["status"] in {"PASS", "STOPPED"} else 1
+    return 0 if result["status"] in {"PASS", "STOPPED", "ALREADY_RUNNING"} else 1
 
 
 if __name__ == "__main__":
