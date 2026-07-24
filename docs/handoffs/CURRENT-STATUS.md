@@ -3,14 +3,16 @@
 ## Iteration 2026-07-24: Windows autostart and owner document delivery
 
 - Owner L4 activated clean live revision `ffee156`.
-- Windows Task Scheduler task `NobusSpaceBot` is installed for current-user logon. It uses interactive limited privileges, `StartWhenAvailable`, one-minute restart policy, unlimited execution time, and ignored parallel instances.
+- Windows Task Scheduler task `NobusSpaceBot` is installed for current-user logon. It uses interactive limited privileges, `StartWhenAvailable`, ten one-minute restart attempts, unlimited execution time, and ignored parallel instances.
 - The scheduled task launches the canonical repository runner and writes bounded local logs under the Git-ignored live `.runtime/logs` directory. Scheduler execution and the expected Python wrapper-child process tree are running.
 - Main revision `670ce88` adds owner-bound local document delivery through Telegram `sendDocument`. Supported initial types are `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx`, with a 50 MiB ceiling.
 - Selection reuses the bounded 50,000-entry/8-result sensitive-name-filtered index. The content adapter rejects linked roots, traversal, symlinks and junctions, binds validation to the opened OS handle before reading, and checks stable file identity before returning bytes.
 - Product routing supports explicit `/file <name-or-relative-path>` and only the exact natural form `пришли/отправь мне файл/документ <name>.<allowed-extension>`. Ambiguous instructions remain ordinary tasks.
 - L1: `796 passed, 2 skipped, 1 known warning`; target adversarial sets: `156 passed` locally and `148 passed` independently. L2/L3: `ACCEPT`, no P0/P1/P2.
 - Owner-only production smoke sent one known non-secret HTML successfully (`message_id=165`, `74231` bytes). Token, chat ID, absolute path and content were not logged.
-- Live runner intentionally remains on `ffee156`; revision `670ce88`, `/file` menu publication, and normal conversational file delivery require a new exact owner L4 activation. Google Drive delivery is not part of this revision.
+- Exact owner L4 activated clean live revision `74b182a`, published `/file` in Bot Menu, passed the startup Codex probe and offline Whisper warmup, and acquired fresh polling lease revision `6868`.
+- Product-route owner smoke `/file` sent the known non-secret HTML successfully (`message_id=167`, `74231` bytes). Scheduled Task `NobusSpaceBot` is running with the expected Python wrapper-child process chain.
+- Google Drive delivery is not part of this revision. Ten one-minute restart attempts are configured; a destructive crash/reboot restart drill remains independently unverified.
 
 
 ## Итерация 2026-07-23: owner library и callback cleanup
