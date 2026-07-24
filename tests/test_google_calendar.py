@@ -138,6 +138,19 @@ def test_create_is_idempotent_for_same_key() -> None:
     assert first.message.startswith("Событие «Планёрка» записано")
 
 
+def test_create_rejects_same_key_with_different_payload() -> None:
+    service = _Service()
+    client = _client(service)
+    asyncio.run(client.execute(_create("Планёрка"), idempotency_key=KEY))
+
+    with pytest.raises(RuntimeError, match="idempotency_conflict"):
+        asyncio.run(
+            client.execute(_create("Другая встреча"), idempotency_key=KEY)
+        )
+
+    assert len(service.boundary.values) == 1
+
+
 def test_list_and_update_unique_event() -> None:
     service = _Service()
     client = _client(service)

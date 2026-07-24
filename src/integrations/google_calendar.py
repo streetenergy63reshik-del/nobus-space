@@ -245,6 +245,8 @@ class GoogleCalendarClient:
                 raw = service.events().get(
                     calendarId=self._calendar_id, eventId=event_id
                 ).execute()
+                if not self._matches_create(raw, action):
+                    raise RuntimeError("google_calendar_idempotency_conflict")
             event = self._event(raw)
             return CalendarResult(
                 message=(
@@ -377,3 +379,18 @@ class GoogleCalendarClient:
             parsed_date = date.fromisoformat(value["date"])
             return datetime.combine(parsed_date, time.min, self._timezone)
         raise ValueError
+
+    def _matches_create(self, raw: object, action: CalendarAction) -> bool:
+        if not isinstance(raw, dict):
+            return False
+        try:
+            return (
+                raw.get("summary") == action.title
+                and (raw.get("description") or "") == (action.description or "")
+                and self._event_time(raw["start"]).astimezone(UTC)
+                == action.start.astimezone(UTC)
+                and self._event_time(raw["end"]).astimezone(UTC)
+                == action.end.astimezone(UTC)
+            )
+        except (KeyError, TypeError, ValueError):
+            return False
