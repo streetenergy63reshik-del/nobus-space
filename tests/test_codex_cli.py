@@ -15,7 +15,13 @@ from uuid import uuid4
 import pytest
 
 from src.contracts import TaskContract
-from src.workers import CodexCliAdapter, CodexCliError, CodexCliResult, ProcessOutput
+from src.workers import (
+    CodexCliAdapter,
+    CodexCliError,
+    CodexCliResult,
+    ProcessOutput,
+    find_owner_file_paths,
+)
 from src.workers.codex_cli import build_worker_env
 
 
@@ -1339,3 +1345,30 @@ async def test_gate5a4_retry_shares_the_original_worker_deadline() -> None:
     assert caught.value.code == "worker_timeout"
     assert worker.calls == 2
     assert loop.time() - started < 0.3
+
+
+def test_public_owner_file_helper_rejects_linked_root_before_resolve(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configured = tmp_path / "configured"
+    configured.mkdir()
+    resolved = tmp_path / "resolved"
+    resolved.mkdir()
+    original_resolve = Path.resolve
+    original_is_symlink = Path.is_symlink
+
+    def fake_resolve(self: Path, strict: bool = False) -> Path:
+        if self == configured:
+            return resolved
+        return original_resolve(self, strict=strict)
+
+    def fake_is_symlink(self: Path) -> bool:
+        if self == configured:
+            return True
+        return original_is_symlink(self)
+
+    monkeypatch.setattr(Path, "resolve", fake_resolve)
+    monkeypatch.setattr(Path, "is_symlink", fake_is_symlink)
+
+    with pytest.raises(ValueError, match="owner file root is invalid"):
+        find_owner_file_paths(configured, "report.pdf")

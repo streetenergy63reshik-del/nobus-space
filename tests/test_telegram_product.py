@@ -12,6 +12,7 @@ import pytest
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
+from src.application.owner_files import OwnerDocument, OwnerFileSelection
 from src.application.patch_confirmation import (
     InMemoryPatchConfirmationStore,
     PatchProposal,
@@ -44,6 +45,7 @@ class FakeProductApi:
         self.callback_gate: asyncio.Event | None = None
         self.deleted: list[tuple[int, int]] = []
         self.delete_failure = False
+        self.documents: list[tuple[int, str, bytes]] = []
 
     async def send_message(
         self,
@@ -73,6 +75,12 @@ class FakeProductApi:
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes:
         assert file_id == "voice-file" and size_limit > 0
         return b"voice"
+
+    async def send_document(
+        self, chat_id: int, filename: str, content: bytes
+    ) -> int:
+        self.documents.append((chat_id, filename, content))
+        return len(self.documents)
 
 
 class FakeVoiceService:
@@ -202,8 +210,22 @@ class ProductHarness:
     patches: InMemoryPatchConfirmationStore
 
 
+class FakeOwnerFiles:
+    def __init__(self, selection: OwnerFileSelection) -> None:
+        self.selection = selection
+        self.queries: list[str] = []
+
+    async def select(self, query: str) -> OwnerFileSelection:
+        self.queries.append(query)
+        return self.selection
+
+
 def _product(
-    tmp_path: Path, *, voice: bool = False, execution_concurrency: int = 0
+    tmp_path: Path,
+    *,
+    voice: bool = False,
+    execution_concurrency: int = 0,
+    owner_files: object | None = None,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -232,6 +254,7 @@ def _product(
         patch_confirmations=patches,
         action_store=actions,
         voice_service=FakeVoiceService() if voice else None,
+        owner_files=owner_files,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
@@ -1008,3 +1031,69 @@ async def test_public_text_overflow_does_not_ack_without_durable_terminal_proof(
     harness.runtime.cancel_prepared = original_cancel  # type: ignore[method-assign]
     await original_cancel(overflow)
     await harness.control.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("text", "query"),
+    [
+        ("/file roadmap.html", "roadmap.html"),
+        ("\u041f\u0440\u0438\u0448\u043b\u0438 \u043c\u043d\u0435 \u0444\u0430\u0439\u043b roadmap.html", "roadmap.html"),
+    ],
+)
+async def test_owner_file_request_sends_only_selected_document(
+    tmp_path: Path, text: str, query: str
+) -> None:
+    provider = FakeOwnerFiles(
+        OwnerFileSelection(
+            document=OwnerDocument(
+                "docs/roadmap.html", "roadmap.html", b"safe"
+            )
+        )
+    )
+    harness = _product(tmp_path, owner_files=provider)
+
+    await harness.control.handle(text_update(text, 90))
+
+    assert provider.queries == [query]
+    assert harness.api.documents == [(USER_ID, "roadmap.html", b"safe")]
+    assert harness.api.sent == []
+
+
+@pytest.mark.asyncio
+async def test_owner_file_request_lists_only_relative_choices(
+    tmp_path: Path,
+) -> None:
+    provider = FakeOwnerFiles(
+        OwnerFileSelection(choices=("docs/a.pdf", "reports/a.pdf"))
+    )
+    harness = _product(tmp_path, owner_files=provider)
+
+    await harness.control.handle(text_update("/file a.pdf", 91))
+
+    assert harness.api.documents == []
+    assert "docs/a.pdf" in harness.api.sent[-1][1]
+    assert "reports/a.pdf" in harness.api.sent[-1][1]
+    assert "C:\\" not in harness.api.sent[-1][1]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "text",
+    [
+        "\u041e\u0442\u043f\u0440\u0430\u0432\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u043a\u043b\u0438\u0435\u043d\u0442\u0443 \u043f\u043e\u0441\u043b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438",
+        "\u041f\u0440\u0438\u0448\u043b\u0438 \u0444\u0430\u0439\u043b \u043e\u0442\u0447\u0451\u0442 \u0438 \u0437\u0430\u0442\u0435\u043c \u043f\u0440\u043e\u0430\u043d\u0430\u043b\u0438\u0437\u0438\u0440\u0443\u0439 \u0435\u0433\u043e",
+        "\u041e\u0442\u043f\u0440\u0430\u0432\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 roadmap.html \u043a\u043b\u0438\u0435\u043d\u0442\u0443",
+        "\u041f\u0440\u0438\u0448\u043b\u0438 \u043c\u043d\u0435 \u0444\u0430\u0439\u043b roadmap.html \u0438 \u043f\u0440\u043e\u0430\u043d\u0430\u043b\u0438\u0437\u0438\u0440\u0443\u0439",
+    ],
+)
+async def test_ambiguous_file_language_remains_a_regular_task(
+    tmp_path: Path, text: str
+) -> None:
+    provider = FakeOwnerFiles(OwnerFileSelection())
+    harness = _product(tmp_path, owner_files=provider)
+
+    await harness.control.handle(text_update(text, 92))
+
+    assert provider.queries == []
+    assert len(harness.runtime.drafted) == 1

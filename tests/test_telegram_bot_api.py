@@ -170,6 +170,90 @@ async def test_delete_message_uses_exact_source_message() -> None:
 
 
 @pytest.mark.asyncio
+async def test_send_document_uses_bounded_multipart_and_validates_binding() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request.read()
+        calls.append(request)
+        return response(
+            {
+                "message_id": 12,
+                "chat": {"id": 42},
+                "document": {
+                    "file_id": "telegram-file-id",
+                    "file_unique_id": "telegram-unique-id",
+                },
+            }
+        )
+
+    api = api_for(handler)
+    try:
+        message_id = await api.send_document(
+            42, "roadmap.html", b"<html>safe</html>"
+        )
+    finally:
+        await api.aclose()
+
+    assert message_id == 12
+    request = calls[0]
+    assert str(request.url) == f"https://api.telegram.org/bot{TOKEN}/sendDocument"
+    assert request.method == "POST"
+    assert request.headers["content-type"].startswith(
+        "multipart/form-data; boundary="
+    )
+    assert b'name="chat_id"' in request.content
+    assert b"\r\n\r\n42\r\n" in request.content
+    assert b'filename="roadmap.html"' in request.content
+    assert b"<html>safe</html>" in request.content
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("filename", "content", "code"),
+    [
+        ("../secret.pdf", b"safe", "telegram_configuration_invalid"),
+        ("folder\\secret.pdf", b"safe", "telegram_configuration_invalid"),
+        ("safe.pdf", b"", "telegram_configuration_invalid"),
+    ],
+)
+async def test_send_document_rejects_unsafe_input_without_network(
+    filename: str, content: bytes, code: str
+) -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return response({})
+
+    api = api_for(handler)
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            await api.send_document(42, filename, content)
+    finally:
+        await api.aclose()
+    assert caught.value.code == code
+    assert calls == 0
+
+
+@pytest.mark.asyncio
+async def test_send_document_enforces_upload_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.transport.telegram.bot_api._MAX_UPLOAD_LIMIT", 4
+    )
+    api = api_for(lambda request: response({}))
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            await api.send_document(42, "safe.pdf", b"12345")
+    finally:
+        await api.aclose()
+    assert caught.value.code == "telegram_upload_too_large"
+
+
+@pytest.mark.asyncio
 async def test_get_updates_uses_fixed_endpoint_and_bounded_payload() -> None:
     calls: list[httpx.Request] = []
 

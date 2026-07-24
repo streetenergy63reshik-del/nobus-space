@@ -273,6 +273,35 @@ def _empty_owner_projection() -> dict[str, object]:
     }
 
 
+def find_owner_file_paths(root: str | Path, query: str) -> tuple[str, ...]:
+    """Return the existing bounded, link-safe owner path projection."""
+    if not isinstance(query, str) or not query.strip() or len(query) > 512:
+        raise ValueError("owner file query is invalid")
+    configured = Path(root)
+    if (
+        configured.is_symlink()
+        or (
+            hasattr(configured, "is_junction")
+            and configured.is_junction()
+        )
+    ):
+        raise ValueError("owner file root is invalid")
+    resolved = configured.resolve(strict=True)
+    if not resolved.is_dir():
+        raise ValueError("owner file root is invalid")
+    projection = _project_owner_library(
+        resolved, f"find file {query.strip()}"
+    )
+    matches = projection.get("matches")
+    if not isinstance(matches, list):
+        raise RuntimeError("owner file projection is invalid")
+    return tuple(
+        item["path"]
+        for item in matches
+        if isinstance(item, dict) and isinstance(item.get("path"), str)
+    )
+
+
 class CodexCliAdapter:
     """Validate one TaskContract and run it through an injected fake process."""
 

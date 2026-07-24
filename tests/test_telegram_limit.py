@@ -60,3 +60,7 @@ async def test_limit_provider_failure_is_safe_and_not_a_task(tmp_path: Path) -> 
         (USER_ID, "Лимит Codex сейчас недоступен. Попробуйте позже.", ())
     ]
     assert harness.runtime.drafted == []
+
+
+def test_product_profile_includes_file_menu_command() -> None:
+    assert any(command == "file" for command, _ in _COMMANDS)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Awaitable, Protocol
@@ -12,6 +13,7 @@ from uuid import UUID
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
+from src.application.owner_files import OwnerFileSelection
 from src.application.patch_confirmation import (
     InMemoryPatchConfirmationStore,
     PatchConfirmationChallenge,
@@ -45,6 +47,12 @@ _DRAFT_QUEUE_LIMIT = 32
 _EXECUTION_QUEUE_MAXSIZE = 40
 _TERMINALIZE_ATTEMPTS = 3
 _MOSCOW = timezone(timedelta(hours=3), "MSK")
+_FILE_REQUEST_RE = re.compile(
+    r"^\s*(?:\u043f\u0440\u0438\u0448\u043b\u0438|\u043e\u0442\u043f\u0440\u0430\u0432\u044c)\s+"
+    r"\u043c\u043d\u0435\s+(?:\u0444\u0430\u0439\u043b|\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442)\s+"
+    r"(.+\.(?:docx|html?|pdf|xlsx))\s*$",
+    re.IGNORECASE,
+)
 _MONTHS = (
     "", "января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря",
@@ -82,6 +90,10 @@ class ProductTelegramApi(Protocol):
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes: ...
 
+    async def send_document(
+        self, chat_id: int, filename: str, content: bytes
+    ) -> int: ...
+
 
 class ProductTaskRuntime(Protocol):
     async def prepare_instruction(
@@ -109,6 +121,10 @@ class ProductTaskRuntime(Protocol):
 
 class WeeklyLimitProvider(Protocol):
     async def fetch_weekly(self) -> WeeklyLimitSnapshot: ...
+
+
+class OwnerFileProvider(Protocol):
+    async def select(self, query: str) -> OwnerFileSelection: ...
 
 @dataclass(frozen=True, slots=True)
 class _QueuedDraft:
@@ -171,6 +187,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         action_store: InMemoryTelegramActionStore,
         voice_service: VoicePreviewService | None = None,
         limit_provider: WeeklyLimitProvider | None = None,
+        owner_files: OwnerFileProvider | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -195,6 +212,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 limit_provider is not None
                 and not callable(getattr(limit_provider, "fetch_weekly", None))
             )
+            or (
+                owner_files is not None
+                and not callable(getattr(owner_files, "select", None))
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -212,6 +233,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._action_store = action_store
         self._voice_service = voice_service
         self._limit_provider = limit_provider
+        self._owner_files = owner_files
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -442,6 +464,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._api.send_message(payload.chat_id, self._status_text())
         elif command == "/limit":
             await self._send_limit(payload.chat_id)
+        elif command == "/file":
+            await self._send_owner_file(payload.chat_id, _argument(payload.text))
         elif command in {"/help", "/start"}:
             await self._api.send_message(payload.chat_id, self._help_text())
         elif command == "/task":
@@ -479,7 +503,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Неизвестная команда. Откройте меню или используйте /help.",
             )
         else:
-            await self._start_text_task(payload, ingress.envelope, payload.text)
+            match = _FILE_REQUEST_RE.fullmatch(payload.text)
+            if match is not None:
+                await self._send_owner_file(payload.chat_id, match.group(1))
+            else:
+                await self._start_text_task(payload, ingress.envelope, payload.text)
         return True
 
     def _status_text(self) -> str:
@@ -505,6 +533,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             "Меню:\n"
             "/status — состояние системы\n"
             "/limit — недельный лимит Codex\n"
+            "/file <\u0438\u043c\u044f> \u2014 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0441 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0430\n"
             "/help — эта справка\n\n"
             "Не отправляйте пароли, токены и клиентские персональные данные."
         )
@@ -521,6 +550,49 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             except Exception:
                 text = "Лимит Codex сейчас недоступен. Попробуйте позже."
         await self._api.send_message(chat_id, text)
+
+    async def _send_owner_file(self, chat_id: int, query: str) -> None:
+        if self._owner_files is None:
+            await self._api.send_message(
+                chat_id,
+                "\u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u0444\u0430\u0439\u043b\u043e\u0432 \u0441\u0435\u0439\u0447\u0430\u0441 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e.",
+            )
+            return
+        if not isinstance(query, str) or not query.strip():
+            await self._api.send_message(
+                chat_id,
+                "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0438\u043c\u044f: /file <\u0438\u043c\u044f \u0444\u0430\u0439\u043b\u0430>.",
+            )
+            return
+        try:
+            selection = await self._owner_files.select(query)
+            if selection.document is not None:
+                document = selection.document
+                await self._api.send_document(
+                    chat_id, document.filename, document.content
+                )
+                return
+            if selection.choices:
+                choices = "\n".join(
+                    f"\u2022 {path}" for path in selection.choices
+                )
+                await self._api.send_message(
+                    chat_id,
+                    "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0444\u0430\u0439\u043b\u043e\u0432:\n\n"
+                    f"{choices}\n\n"
+                    "\u0423\u0442\u043e\u0447\u043d\u0438\u0442\u0435: /file <\u0442\u043e\u0447\u043d\u043e\u0435 \u0438\u043c\u044f \u0438\u043b\u0438 \u043f\u0443\u0442\u044c>.",
+                )
+                return
+            await self._api.send_message(
+                chat_id, "\u0424\u0430\u0439\u043b \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d."
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            await self._api.send_message(
+                chat_id,
+                "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0444\u0430\u0439\u043b.",
+            )
 
     async def _start_text_task(
         self,

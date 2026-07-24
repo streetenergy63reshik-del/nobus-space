@@ -35,6 +35,7 @@ from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
 )
+from src.application.owner_files import OwnerFileService  # noqa: E402
 from src.application.patch_confirmation import InMemoryPatchConfirmationStore  # noqa: E402
 from src.application.task_confirmation import (  # noqa: E402
     MAX_TASK_INSTRUCTION_LENGTH,
@@ -172,6 +173,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
             ),
             limit_provider=limit_provider,
+            owner_files=OwnerFileService(_OWNER_READ_ROOT),
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             task_tenants=destination_refs,
             task_status_sender=TelegramStatusSender(

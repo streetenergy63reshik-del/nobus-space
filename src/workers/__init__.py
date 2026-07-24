@@ -7,6 +7,7 @@ from src.workers.codex_cli import (
     ProcessOutput,
     ProcessSpawner,
     SpawnedProcess,
+    find_owner_file_paths,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "ProcessOutput",
     "ProcessSpawner",
     "SpawnedProcess",
+    "find_owner_file_paths",
 ]

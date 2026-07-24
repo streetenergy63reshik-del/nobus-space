@@ -29,6 +29,7 @@ _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _MAX_REQUEST_TIMEOUT = 60.0
 _MAX_RESPONSE_LIMIT = 8 * 1024 * 1024
 _MAX_DOWNLOAD_LIMIT = 20 * 1024 * 1024
+_MAX_UPLOAD_LIMIT = 50 * 1024 * 1024
 _MAX_POLL_LEASE_SECONDS = 300
 _ERROR_MESSAGES = {
     "telegram_configuration_invalid": "Telegram configuration is invalid.",
@@ -36,6 +37,7 @@ _ERROR_MESSAGES = {
     "telegram_protocol_error": "Telegram returned an invalid response.",
     "telegram_response_too_large": "Telegram response is too large.",
     "telegram_download_too_large": "Telegram file is too large.",
+    "telegram_upload_too_large": "Telegram upload is too large.",
     "telegram_handler_failed": "Telegram update handling failed.",
     "telegram_checkpoint_failed": "Telegram checkpoint operation failed.",
     "telegram_consumer_busy": "Telegram polling consumer is already active.",
@@ -306,6 +308,66 @@ class TelegramBotApi:
             raise TelegramBotApiError("telegram_protocol_error")
         return result["message_id"]
 
+    async def send_document(
+        self, chat_id: int, filename: str, content: bytes
+    ) -> int:
+        """Upload one bounded in-memory document to one exact chat."""
+        if (
+            type(chat_id) is not int
+            or not _safe_upload_filename(filename)
+            or type(content) is not bytes
+            or not content
+        ):
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        if len(content) > _MAX_UPLOAD_LIMIT:
+            raise TelegramBotApiError("telegram_upload_too_large")
+
+        failure: str | None = None
+        raw: bytes | None = None
+        try:
+            async with self._client.stream(
+                "POST",
+                self._method_url("sendDocument"),
+                data={"chat_id": str(chat_id)},
+                files={
+                    "document": (
+                        filename,
+                        content,
+                        "application/octet-stream",
+                    )
+                },
+                timeout=self._request_timeout,
+                follow_redirects=False,
+            ) as response:
+                if response.status_code != 200:
+                    failure = "telegram_unavailable"
+                else:
+                    raw = await _read_response(response, self._response_limit)
+        except asyncio.CancelledError:
+            raise
+        except TelegramBotApiError as error:
+            failure = error.code
+        except BaseException:
+            failure = "telegram_unavailable"
+        if failure is not None or raw is None:
+            raise TelegramBotApiError(failure or "telegram_unavailable")
+
+        result = _decode_result(raw)
+        document = result.get("document") if type(result) is dict else None
+        chat = result.get("chat") if type(result) is dict else None
+        if (
+            type(result) is not dict
+            or not _non_negative_int(result.get("message_id"))
+            or type(chat) is not dict
+            or type(chat.get("id")) is not int
+            or chat["id"] != chat_id
+            or type(document) is not dict
+            or not _bounded_text(document.get("file_id"), 512)
+            or not _bounded_text(document.get("file_unique_id"), 512)
+        ):
+            raise TelegramBotApiError("telegram_protocol_error")
+        return result["message_id"]
+
     async def answer_callback_query(
         self, query_id: str, *, text: str | None = None
     ) -> None:
@@ -354,24 +416,7 @@ class TelegramBotApi:
         if failure is not None or raw is None:
             raise TelegramBotApiError(failure or "telegram_unavailable")
 
-        value: Any = None
-        try:
-            value = json.loads(raw, object_pairs_hook=_unique_object)
-        except BaseException:
-            failure = "telegram_protocol_error"
-        if failure is not None:
-            raise TelegramBotApiError(failure)
-        if type(value) is not dict or set(value) - {
-            "ok",
-            "result",
-            "description",
-            "error_code",
-            "parameters",
-        }:
-            raise TelegramBotApiError("telegram_protocol_error")
-        if value.get("ok") is not True or "result" not in value:
-            raise TelegramBotApiError("telegram_unavailable")
-        return value["result"]
+        return _decode_result(raw)
 
     async def _download(self, file_path: str, size_limit: int) -> bytes:
         failure: str | None = None
@@ -409,6 +454,7 @@ class TelegramBotApi:
             "getMe",
             "getUpdates",
             "sendMessage",
+            "sendDocument",
             "setMyCommands",
             "setMyDescription",
             "setMyName",
@@ -696,6 +742,38 @@ def _safe_file_path(value: object) -> bool:
         and str(path) == value
         and all(part not in {"", ".", ".."} for part in path.parts)
     )
+
+
+def _safe_upload_filename(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and value == value.strip()
+        and value not in {".", ".."}
+        and 0 < len(value.encode("utf-8")) <= 255
+        and re.fullmatch(r"[^\x00-\x1f\x7f/\\]+", value) is not None
+    )
+
+
+def _decode_result(raw: bytes) -> Any:
+    failure: str | None = None
+    value: Any = None
+    try:
+        value = json.loads(raw, object_pairs_hook=_unique_object)
+    except BaseException:
+        failure = "telegram_protocol_error"
+    if failure is not None:
+        raise TelegramBotApiError(failure)
+    if type(value) is not dict or set(value) - {
+        "ok",
+        "result",
+        "description",
+        "error_code",
+        "parameters",
+    }:
+        raise TelegramBotApiError("telegram_protocol_error")
+    if value.get("ok") is not True or "result" not in value:
+        raise TelegramBotApiError("telegram_unavailable")
+    return value["result"]
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
