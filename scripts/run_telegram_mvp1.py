@@ -81,6 +81,7 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointError,
     SQLitePollingCheckpointStore,
 )
+from src.integrations import GoogleCalendarClient  # noqa: E402
 from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
@@ -91,12 +92,21 @@ _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
+_VOICE_PROMPT = (
+    "Nobus Space, Нобус Спейс, PROстранство, Codex, Telegram, "
+    "Wildberries, Ozon, Google Drive, Google Calendar, Google Tasks, "
+    "MCP, idempotency key."
+)
 _POLLING_LEASE_SECONDS = 240
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
 _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
 _OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
+_GOOGLE_CALENDAR_TOKEN = (
+    ROOT.parents[1] / "Интеграции/google_api_integration/token.json"
+)
+
 
 
 async def _run(values: argparse.Namespace) -> dict[str, object]:
@@ -170,6 +180,12 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             compute_type="int8",
             download_root=_VOICE_MODEL_ROOT,
             local_files_only=True,
+            language="ru",
+            beam_size=5,
+            vad_filter=True,
+            condition_on_previous_text=False,
+            initial_prompt=_VOICE_PROMPT,
+            hotwords=_VOICE_PROMPT,
         )
         await voice_transcriber.warmup()
         limit_provider = build_codex_rate_limit_client(
@@ -185,6 +201,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git.parent,
             ),
         )
+        calendar = GoogleCalendarClient(_GOOGLE_CALENDAR_TOKEN)
         product_effects = ProductEffectService(
             vault=DurableProductEffectVault(telegram_state),
             workspace=OwnerWorkspace(
@@ -201,6 +218,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git_executable=git,
                 python_executable=python,
             ),
+            calendar=calendar,
         )
         control = DurableProductTelegramControlPlane(
             gateway,
@@ -218,6 +236,8 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             limit_provider=limit_provider,
             owner_files=OwnerFileService(_OWNER_READ_ROOT),
             product_effects=product_effects,
+            calendar_planner=runtime,
+            calendar_service=calendar,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
             task_tenants=destination_refs,

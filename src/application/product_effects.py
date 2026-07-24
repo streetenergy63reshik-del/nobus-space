@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import json
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -20,12 +21,14 @@ from src.application.network_commands import (
 from src.application.network_tools import DownloadProposal, Quarantine, SafeDownloader
 from src.application.owner_workspace import ArtifactProposal, OwnerWorkspace
 from src.contracts.models import canonical_json_digest
+from src.integrations import CalendarAction, CalendarEvent
 
 
 class ProductEffectKind(str, Enum):
     ARTIFACT = "artifact"
     DOWNLOAD = "download"
     NETWORK = "network"
+    CALENDAR_DELETE = "calendar_delete"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +75,7 @@ class DurableProductEffectVault:
         user_id: int,
         chat_id: int,
         payload: dict[str, Any],
+        idempotency_key: str | None = None,
         ttl_seconds: int = 604_800,
     ) -> str:
         if (
@@ -84,10 +88,32 @@ class DurableProductEffectVault:
             or not 60 <= ttl_seconds <= 604_800
         ):
             raise ValueError("product effect binding is invalid")
+        if idempotency_key is not None and (
+            not isinstance(idempotency_key, str)
+            or not idempotency_key.startswith("sha256:")
+            or len(idempotency_key) != 71
+        ):
+            raise ValueError("product effect idempotency key is invalid")
         effect_digest = canonical_json_digest(payload)
         expires_at = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
-        for _ in range(8):
-            token = secrets.token_urlsafe(32)
+        deterministic_token = (
+            None
+            if idempotency_key is None
+            else hashlib.sha256(
+                canonical_json_digest(
+                    {
+                        "idempotency_key": idempotency_key,
+                        "kind": kind.value,
+                        "tenant_id": tenant_id.strip(),
+                    }
+                ).encode()
+            ).hexdigest()
+        )
+        for token in (
+            (deterministic_token,)
+            if deterministic_token is not None
+            else tuple(secrets.token_urlsafe(32) for _ in range(8))
+        ):
             token_digest = _digest(token)
             values = {
                 "token": token,
@@ -110,7 +136,22 @@ class DurableProductEffectVault:
                 )
                 return token
             except Exception:
-                continue
+                if deterministic_token is None:
+                    continue
+                existing = self.read(
+                    token,
+                    tenant_id=tenant_id.strip(),
+                    user_id=user_id,
+                    chat_id=chat_id,
+                )
+                if (
+                    existing is not None
+                    and existing.kind is kind
+                    and existing.payload == payload
+                    and existing.effect_digest == effect_digest
+                ):
+                    return token
+                break
         raise RuntimeError("product effect capability is unavailable")
 
     def read(
@@ -228,18 +269,26 @@ class ProductEffectService:
         downloader: SafeDownloader,
         quarantine: Quarantine,
         network_runner: NetworkCommandRunner,
+        calendar: Any | None = None,
     ) -> None:
         self._vault = vault
         self._workspace = workspace
         self._downloader = downloader
         self._quarantine = quarantine
         self._network = network_runner
+        self._calendar = calendar
 
     async def close(self) -> None:
         await self._downloader.aclose()
 
     def prepare_document(
-        self, argument: str, *, tenant_id: str, user_id: int, chat_id: int
+        self,
+        argument: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str | None = None,
     ) -> ProductEffectChallenge:
         parts = tuple(part.strip() for part in argument.split("|", 2))
         if len(parts) != 3 or not all(parts):
@@ -266,6 +315,7 @@ class ProductEffectService:
             user_id=user_id,
             chat_id=chat_id,
             payload=_artifact_payload(proposal),
+            idempotency_key=idempotency_key,
         )
         return ProductEffectChallenge(
             token,
@@ -279,7 +329,13 @@ class ProductEffectService:
         )
 
     async def prepare_download(
-        self, argument: str, *, tenant_id: str, user_id: int, chat_id: int
+        self,
+        argument: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str | None = None,
     ) -> ProductEffectChallenge:
         proposal = await self._downloader.preview(argument.strip())
         token = self._vault.issue(
@@ -288,6 +344,7 @@ class ProductEffectService:
             user_id=user_id,
             chat_id=chat_id,
             payload=_download_payload(proposal),
+            idempotency_key=idempotency_key,
         )
         return ProductEffectChallenge(
             token,
@@ -301,7 +358,13 @@ class ProductEffectService:
         )
 
     def prepare_network(
-        self, argument: str, *, tenant_id: str, user_id: int, chat_id: int
+        self,
+        argument: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str | None = None,
     ) -> ProductEffectChallenge:
         parts = tuple(part.strip() for part in argument.split("|"))
         if len(parts) == 4 and parts[0] == "git-fetch":
@@ -323,6 +386,7 @@ class ProductEffectService:
             user_id=user_id,
             chat_id=chat_id,
             payload=_network_payload(proposal),
+            idempotency_key=idempotency_key,
         )
         return ProductEffectChallenge(
             token,
@@ -332,6 +396,37 @@ class ProductEffectService:
                 f"Инструмент: {proposal.tool}\n"
                 f"Каталог: {proposal.working_directory}\n"
                 f"Аргументы: {' '.join(proposal.argv)}"
+            ),
+        )
+
+    async def prepare_calendar_delete(
+        self,
+        action: CalendarAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._calendar is None:
+            raise RuntimeError("calendar integration is unavailable")
+        event = await self._calendar.resolve_delete(action)
+        token = self._vault.issue(
+            kind=ProductEffectKind.CALENDAR_DELETE,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=_calendar_payload(event),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(
+            token,
+            ProductEffectKind.CALENDAR_DELETE,
+            (
+                "Удалить событие из календаря?\n\n"
+                f"Событие: {event.title}\n"
+                f"Начало: {event.start.astimezone():%d.%m.%Y %H:%M}\n\n"
+                "Удаление необратимо и будет выполнено только после нажатия кнопки."
             ),
         )
 
@@ -399,7 +494,7 @@ class ProductEffectService:
             result = ProductEffectResult(
                 "Файл сохранён.", target.name, target.read_bytes()
             )
-        else:
+        elif binding.kind is ProductEffectKind.NETWORK:
             proposal = _network(binding.payload)
             completed = await asyncio.to_thread(
                 self._network.run,
@@ -411,10 +506,20 @@ class ProductEffectService:
                 if completed.returncode == 0
                 else "Сетевая команда завершилась с ошибкой."
             )
+        else:
+            if self._calendar is None:
+                raise RuntimeError("calendar integration is unavailable")
+            event = _calendar_event(binding.payload)
+            await self._calendar.delete_event(event.event_id)
+            result = ProductEffectResult(f"Событие «{event.title}» удалено.")
         binding = self._vault.transition(
             binding,
             state="completed",
-            result={"message": result.message, "filename": result.filename},
+            result={
+                "message": result.message,
+                "filename": result.filename,
+                "approval_ref": approval_ref,
+            },
         )
         return self._completed_result(binding)
 
@@ -572,3 +677,13 @@ def _network(value: dict[str, Any]) -> NetworkCommandProposal:
 
 def _digest(value: str) -> str:
     return f"sha256:{hashlib.sha256(value.encode()).hexdigest()}"
+
+
+def _calendar_payload(value: CalendarEvent) -> dict[str, Any]:
+    return value.model_dump(mode="json")
+
+
+def _calendar_event(value: dict[str, Any]) -> CalendarEvent:
+    return CalendarEvent.model_validate_json(
+        json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    )

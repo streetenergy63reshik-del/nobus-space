@@ -29,13 +29,13 @@ PROFILE_POLICIES = {
         ("repo.read", "process.run_allowlisted", "web.search"), False, "network-read"
     ),
     TaskProfile.ARTIFACT_CREATE: ProfilePolicy(
-        ("artifact.write",), True, "filesystem-write"
+        ("artifact.write",), False, "owner-command-filesystem-write"
     ),
     TaskProfile.DOWNLOAD_QUARANTINE: ProfilePolicy(
-        ("network.download", "artifact.write"), True, "network-and-filesystem-write"
+        ("network.download", "artifact.write"), False, "owner-command-download"
     ),
     TaskProfile.NETWORK_COMMAND: ProfilePolicy(
-        ("network.command",), True, "process-and-network-effect"
+        ("network.command",), False, "owner-command-network-effect"
     ),
 }
 

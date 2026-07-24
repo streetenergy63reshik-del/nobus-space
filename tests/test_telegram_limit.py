@@ -26,6 +26,7 @@ class FakeLimitProvider:
 
 def test_product_profile_includes_limit_menu_command() -> None:
     assert ("limit", "Недельный лимит Codex") in _COMMANDS
+    assert ("calendar", "Прочитать или изменить календарь") in _COMMANDS
 
 
 @pytest.mark.asyncio

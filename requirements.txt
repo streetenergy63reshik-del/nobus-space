@@ -8,3 +8,5 @@ langgraph==1.2.9
 typing-extensions==4.16.0
 pytest==9.1.1
 pytest-asyncio==1.4.0
+google-api-python-client==2.131.0
+google-auth==2.29.0

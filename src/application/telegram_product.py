@@ -40,12 +40,14 @@ from src.application.telegram_control import TelegramControlPlane, _argument, _c
 from src.contracts import TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
+from src.integrations import CalendarActionKind
 from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, VoiceMessage
 from src.voice import VoicePreviewService
 from src.workers.codex_limits import WeeklyLimitSnapshot
 
 
 _VOICE_LIMIT = 10 * 1024 * 1024
+_EFFECT_DELIVERY_ATTEMPTS = 3
 _MESSAGE_CHUNK = 3_400
 _CALLBACK_ACK_TIMEOUT_SECONDS = 2.0
 _CALLBACK_CLEANUP_TIMEOUT_SECONDS = 2.0
@@ -57,6 +59,10 @@ _FILE_REQUEST_RE = re.compile(
     r"^\s*(?:\u043f\u0440\u0438\u0448\u043b\u0438|\u043e\u0442\u043f\u0440\u0430\u0432\u044c)\s+"
     r"\u043c\u043d\u0435\s+(?:\u0444\u0430\u0439\u043b|\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442)\s+"
     r"(.+\.(?:docx|html?|pdf|xlsx))\s*$",
+    re.IGNORECASE,
+)
+_CALENDAR_HINT_RE = re.compile(
+    r"\b(?:календар\w*|встреч\w*|созвон\w*|событи\w*|calendar|meeting|appointment)\b",
     re.IGNORECASE,
 )
 _MONTHS = (
@@ -193,7 +199,7 @@ async def _complete_claimed_action(operation: Awaitable[object]) -> bool:
 
 
 class ProductTelegramControlPlane(TelegramControlPlane):
-    """Text starts immediately; voice and exact code effects use owner buttons."""
+    """Owner text and voice run directly; only destructive effects use buttons."""
 
     def __init__(
         self,
@@ -208,6 +214,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         limit_provider: WeeklyLimitProvider | None = None,
         owner_files: OwnerFileProvider | None = None,
         product_effects: ProductEffectService | None = None,
+        calendar_planner: Any | None = None,
+        calendar_service: Any | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -248,6 +256,25 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     )
                 )
             )
+            or (
+                calendar_planner is not None
+                and not callable(
+                    getattr(calendar_planner, "plan_calendar_action", None)
+                )
+            )
+            or (
+                calendar_service is not None
+                and not all(
+                    callable(getattr(calendar_service, name, None))
+                    for name in ("execute", "resolve_delete", "delete_event")
+                )
+            )
+            or (
+                (calendar_planner is None) is not (calendar_service is None)
+            )
+            or (
+                calendar_service is not None and product_effects is None
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -267,6 +294,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._limit_provider = limit_provider
         self._owner_files = owner_files
         self._product_effects = product_effects
+        self._calendar_planner = calendar_planner
+        self._calendar_service = calendar_service
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -511,8 +540,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._send_owner_file(payload.chat_id, _argument(payload.text))
         elif command in {"/help", "/start"}:
             await self._api.send_message(payload.chat_id, self._help_text())
-        elif command == "/task":
-            await self._start_text_task(
+        elif command in {"/task", "/calendar"}:
+            await self._start_owner_instruction(
                 payload, ingress.envelope, _argument(payload.text)
             )
         elif profile is TaskProfile.RESEARCH_WEB:
@@ -527,8 +556,6 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             TaskProfile.DOWNLOAD_QUARANTINE,
             TaskProfile.NETWORK_COMMAND,
         }:
-            if not PROFILE_POLICIES[profile].requires_l4:
-                raise RuntimeError("product effect profile must require L4")
             await self._prepare_product_effect(
                 payload,
                 ingress.envelope,
@@ -570,7 +597,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             if match is not None:
                 await self._send_owner_file(payload.chat_id, match.group(1))
             else:
-                await self._start_text_task(payload, ingress.envelope, payload.text)
+                await self._start_owner_instruction(
+                    payload, ingress.envelope, payload.text
+                )
         return True
 
     def _status_text(self) -> str:
@@ -591,16 +620,18 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     def _help_text(self) -> str:
         return (
             "Напишите задачу обычным сообщением — готовый результат придёт ответом.\n"
-            "Голосовое сообщение сначала будет расшифровано и показано вам "
-            "с кнопками «Подтверждаю» и «Отмена».\n\n"
+            "Голосовое сообщение распознаётся и сразу выполняется как команда владельца.\n"
+            "Просмотр, создание и перенос событий календаря не требуют второй кнопки; "
+            "удаление всегда подтверждается отдельно.\n\n"
             "Меню:\n"
             "/status — состояние системы\n"
             "/limit — недельный лимит Codex\n"
             "/file <\u0438\u043c\u044f> \u2014 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0441 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0430\n"
+            "/calendar <задача> — прочитать или изменить календарь\n"
             "/research <запрос> — исследование интернета со ссылками\n"
             "/document <путь>|<заголовок>|<текст> — создать документ\n"
             "/download <https-url> — скачать и отправить файл\n"
-            "/network <тип>|... — подтверждаемая сетевая команда\n"
+            "/network <тип>|... — выполнить разрешённую сетевую команду\n"
             "/help — эта справка\n\n"
             "Не отправляйте пароли, токены и клиентские персональные данные."
         )
@@ -661,9 +692,69 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0444\u0430\u0439\u043b.",
             )
 
+    async def _start_owner_instruction(
+        self,
+        message: TextMessage | VoiceMessage,
+        envelope: TrustedIngressEnvelope,
+        instruction: str,
+    ) -> None:
+        normalized = self._instruction(instruction)
+        if normalized is None:
+            await self._api.send_message(
+                message.chat_id,
+                f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
+            )
+            return
+        if (
+            self._calendar_planner is not None
+            and self._calendar_service is not None
+            and _CALENDAR_HINT_RE.search(normalized)
+        ):
+            try:
+                action = await self._calendar_planner.plan_calendar_action(
+                    normalized, envelope
+                )
+                if action.kind is CalendarActionKind.DELETE:
+                    if self._product_effects is None:
+                        raise RuntimeError("calendar deletion is unavailable")
+                    challenge = await self._product_effects.prepare_calendar_delete(
+                        action,
+                        tenant_id=message.tenant_id,
+                        user_id=message.user_id,
+                        chat_id=message.chat_id,
+                        idempotency_key=envelope.idempotency_key,
+                    )
+                    buttons = self._action_buttons(
+                        message,
+                        (
+                            (TelegramAction.DELETE_CALENDAR, challenge.token, "🗑️ Удалить"),
+                            (TelegramAction.REJECT_CALENDAR_DELETE, challenge.token, "Отмена"),
+                        ),
+                        ttl_seconds=300,
+                    )
+                    await self._api.send_message(
+                        message.chat_id, challenge.preview, buttons=buttons
+                    )
+                    return
+                if action.kind is not CalendarActionKind.NONE:
+                    result = await self._calendar_service.execute(
+                        action, idempotency_key=envelope.idempotency_key
+                    )
+                    await self._api.send_message(message.chat_id, result.message)
+                    return
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await self._api.send_message(
+                    message.chat_id,
+                    "Не удалось выполнить команду календаря. Уточните событие и время.",
+                )
+                return
+        await self._start_text_task(message, envelope, normalized)
+
     async def _start_text_task(
         self,
-        message: TextMessage,
+        message: TextMessage | VoiceMessage,
         envelope: TrustedIngressEnvelope,
         instruction: str,
     ) -> None:
@@ -699,7 +790,6 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Голосовой ввод пока не активирован. Отправьте задачу текстом.",
             )
             return
-        prepared: PreparedTask | None = None
         try:
             audio = await self._api.download_file(
                 message.file_id, size_limit=_VOICE_LIMIT
@@ -708,33 +798,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             instruction = self._instruction(preview.transcript)
             if instruction is None:
                 raise ValueError("voice transcript is invalid")
-            prepared = await self._product_runtime.prepare_instruction(
-                instruction, envelope
-            )
-            challenge = self._task_confirmations.issue(
-                message=message,
-                envelope=envelope,
-                prepared=prepared,
-            )
-            token = challenge.confirmation_token.get_secret_value()
-            buttons = self._action_buttons(
-                message,
-                (
-                    (TelegramAction.CONFIRM_VOICE, token, "✅ Подтверждаю"),
-                    (TelegramAction.CANCEL_VOICE, token, "❌ Отмена"),
-                ),
-                ttl_seconds=300,
-            )
-            await self._api.send_message(
-                message.chat_id,
-                _voice_preview(challenge),
-                buttons=buttons,
-            )
+            await self._start_owner_instruction(message, envelope, instruction)
         except asyncio.CancelledError:
             raise
         except Exception:
-            if prepared is not None:
-                await self._product_runtime.cancel_prepared(prepared)
             await self._api.send_message(
                 message.chat_id,
                 "⚠️ Не удалось распознать голосовое сообщение. "
@@ -795,6 +862,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                                 TelegramAction.APPLY_ARTIFACT,
                                 TelegramAction.APPLY_DOWNLOAD,
                                 TelegramAction.RUN_NETWORK,
+                                TelegramAction.DELETE_CALENDAR,
                             }
                             else None
                         ),
@@ -858,10 +926,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     tenant_id=message.tenant_id,
                     user_id=message.user_id,
                     chat_id=message.chat_id,
-                )
-                actions = (
-                    TelegramAction.APPLY_ARTIFACT,
-                    TelegramAction.REJECT_ARTIFACT,
+                    idempotency_key=envelope.idempotency_key,
                 )
             elif command == "/download":
                 challenge = await self._product_effects.prepare_download(
@@ -869,10 +934,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     tenant_id=message.tenant_id,
                     user_id=message.user_id,
                     chat_id=message.chat_id,
-                )
-                actions = (
-                    TelegramAction.APPLY_DOWNLOAD,
-                    TelegramAction.REJECT_DOWNLOAD,
+                    idempotency_key=envelope.idempotency_key,
                 )
             else:
                 challenge = self._product_effects.prepare_network(
@@ -880,29 +942,57 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     tenant_id=message.tenant_id,
                     user_id=message.user_id,
                     chat_id=message.chat_id,
+                    idempotency_key=envelope.idempotency_key,
                 )
-                actions = (
-                    TelegramAction.RUN_NETWORK,
-                    TelegramAction.REJECT_NETWORK,
-                )
-            buttons = self._action_buttons(
-                message,
-                (
-                    (actions[0], challenge.token, "✅ Подтверждаю"),
-                    (actions[1], challenge.token, "❌ Отмена"),
+            result = await self._product_effects.resolve(
+                challenge.token,
+                expected_kind=challenge.kind,
+                approve=True,
+                tenant_id=message.tenant_id,
+                user_id=message.user_id,
+                chat_id=message.chat_id,
+                approval_ref=approval_reference(
+                    actor_identity=envelope.actor_identity,
+                    query_id=f"message:{message.message_id}",
+                    effect_token=challenge.token,
                 ),
-                ttl_seconds=600,
             )
-            await self._api.send_message(
-                message.chat_id, challenge.preview, buttons=buttons
-            )
+            if result.delivery_required:
+                await self._deliver_effect_result(message.chat_id, result)
+            if not self._product_effects.acknowledge_delivery(
+                challenge.token,
+                tenant_id=message.tenant_id,
+                user_id=message.user_id,
+                chat_id=message.chat_id,
+            ):
+                raise RuntimeError("product effect delivery commit failed")
         except asyncio.CancelledError:
             raise
         except Exception:
             await self._api.send_message(
                 message.chat_id,
-                "Не удалось безопасно подготовить действие. Проверьте формат.",
+                "Не удалось выполнить действие. Проверьте формат и попробуйте ещё раз.",
             )
+
+
+    async def _deliver_effect_result(self, chat_id: int, result: Any) -> None:
+        last_error: Exception | None = None
+        for attempt in range(_EFFECT_DELIVERY_ATTEMPTS):
+            try:
+                if result.filename is not None and result.content is not None:
+                    await self._api.send_document(
+                        chat_id, result.filename, result.content
+                    )
+                else:
+                    await self._api.send_message(chat_id, result.message)
+                return
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                last_error = error
+                if attempt + 1 < _EFFECT_DELIVERY_ATTEMPTS:
+                    await asyncio.sleep(0)
+        raise RuntimeError("product effect delivery failed") from last_error
 
     async def _submit_effect(
         self,
@@ -939,6 +1029,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             TelegramAction.REJECT_DOWNLOAD: (ProductEffectKind.DOWNLOAD, False),
             TelegramAction.RUN_NETWORK: (ProductEffectKind.NETWORK, True),
             TelegramAction.REJECT_NETWORK: (ProductEffectKind.NETWORK, False),
+            TelegramAction.DELETE_CALENDAR: (
+                ProductEffectKind.CALENDAR_DELETE, True
+            ),
+            TelegramAction.REJECT_CALENDAR_DELETE: (
+                ProductEffectKind.CALENDAR_DELETE, False
+            ),
         }
         selected = mapping.get(action)
         if selected is None:

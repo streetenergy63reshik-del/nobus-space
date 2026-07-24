@@ -143,10 +143,6 @@ async def test_completed_document_survives_send_failure_and_retries(
         ),
     )
     harness.control._product_effects = service
-    await harness.control.handle(
-        text_update("/document report.html|Отчёт|Готово", 1)
-    )
-    action_token = harness.api.sent[-1][2][0][1]
     original = harness.api.send_document
     attempts = 0
 
@@ -158,13 +154,15 @@ async def test_completed_document_survives_send_failure_and_retries(
         return await original(*args, **kwargs)
 
     harness.api.send_document = flaky
-    with pytest.raises(RuntimeError, match="temporary"):
-        await harness.control.handle(callback_update(action_token, 2))
-    assert (root / "report.html").is_file()
+    await harness.control.handle(
+        text_update("/document report.html|Отчёт|Готово", 1)
+    )
 
-    await harness.control.handle(callback_update(action_token, 3))
+    assert (root / "report.html").is_file()
     assert attempts == 2
     assert len(harness.api.documents) == 1
+    assert harness.api.sent == []
+    assert harness.api.deleted == []
     await client.aclose()
 
 
