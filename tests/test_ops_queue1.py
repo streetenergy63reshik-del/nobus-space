@@ -185,6 +185,8 @@ def test_health_reports_dead_letter_as_degraded_without_runner_restart(
         / "ops/windows/Install-NobusSpaceBot.ps1"
     ).read_text(encoding="utf-8")
     assert "-RestartCount 10" in installer
+    assert installer.count("-AllowStartIfOnBatteries") == 2
+    assert installer.count("-DontStopIfGoingOnBatteries") == 2
     assert "-RestartCount 999" not in installer
     assert "Stop-ScheduledTask" not in installer
     assert "Start-ScheduledTask" not in installer

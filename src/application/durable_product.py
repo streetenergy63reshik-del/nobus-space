@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from contextlib import suppress
-from typing import Any
+from typing import Any, Callable
 from uuid import UUID, uuid4
 
 from src.application.durable_runtime import PreparedTask
@@ -21,12 +21,25 @@ from src.application.telegram_product import (
 from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
-from src.transport.telegram import CallbackQuery, TextMessage
+from src.transport.telegram import (
+    CallbackQuery,
+    IngressStatus,
+    TextMessage,
+    TrustedIngressResult,
+)
 
 
 _LEASE_SECONDS = 60
 _QUEUE_MAXSIZE = 40
 _MAX_JOB_ATTEMPTS = 3
+_PROGRESS_INTERVAL_SECONDS = 30
+
+
+def _effect_task_id(tenant_id: str, token: str) -> UUID:
+    return UUID(
+        bytes=hashlib.sha256(f"{tenant_id}:{token}".encode()).digest()[:16],
+        version=4,
+    )
 
 
 class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
@@ -174,7 +187,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                         lease_owner=self._lease_owner,
                         failure_code=self._worker_error,
                     )
-                    await self._clear_durable_progress(durable)
+                    await self._finalize_recovery_failure(durable)
                 if marker:
                     self._execution_queue.task_done()
                 continue
@@ -253,10 +266,23 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     async def _execute_with_lease(
         self, durable: DurableJob, job: _QueuedJob
     ) -> None:
+        started_at = asyncio.get_running_loop().time()
+        stage = "Проверяю контекст и границы доступа"
+
+        async def report(value: str) -> None:
+            nonlocal stage
+            stage = value
+            elapsed = asyncio.get_running_loop().time() - started_at
+            await self._set_progress(job, self._progress_text(stage, elapsed))
+
         async def operation() -> None:
             if isinstance(job, _QueuedDraft):
+                await report(stage)
                 await self._draft_and_present(
-                    job.prepared, job.message, job.envelope
+                    job.prepared,
+                    job.message,
+                    job.envelope,
+                    progress=report,
                 )
             elif isinstance(job, _QueuedPatch):
                 await self._product_runtime.apply_proposal(
@@ -274,21 +300,29 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 )
 
         execution = asyncio.create_task(operation())
-        heartbeat = asyncio.create_task(self._renew(durable))
+        lease_heartbeat = asyncio.create_task(self._renew(durable))
+        progress_heartbeat = asyncio.create_task(
+            self._refresh_progress(job, lambda: stage, started_at)
+        )
         try:
             done, _ = await asyncio.wait(
-                {execution, heartbeat},
+                {execution, lease_heartbeat},
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if heartbeat in done:
-                heartbeat.result()
+            if lease_heartbeat in done:
+                lease_heartbeat.result()
                 raise RuntimeError("runtime lease heartbeat stopped")
             await execution
         finally:
-            for task in (execution, heartbeat):
+            for task in (execution, lease_heartbeat, progress_heartbeat):
                 if not task.done():
                     task.cancel()
-            await asyncio.gather(execution, heartbeat, return_exceptions=True)
+            await asyncio.gather(
+                execution,
+                lease_heartbeat,
+                progress_heartbeat,
+                return_exceptions=True,
+            )
 
     async def _renew(self, job: DurableJob) -> None:
         while True:
@@ -299,15 +333,55 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 lease_seconds=_LEASE_SECONDS,
             )
 
+    async def _refresh_progress(
+        self,
+        job: _QueuedJob,
+        stage: Callable[[], str],
+        started_at: float,
+    ) -> None:
+        while True:
+            await asyncio.sleep(_PROGRESS_INTERVAL_SECONDS)
+            elapsed = asyncio.get_running_loop().time() - started_at
+            await self._set_progress(
+                job, self._progress_text(stage(), elapsed)
+            )
+
+    @staticmethod
+    def _progress_text(stage: str, elapsed: float) -> str:
+        minutes = max(1, int(max(0.0, elapsed) // 60))
+        return f"⏳ {stage}…\n\nВ работе: {minutes} мин."
+
     async def _submit_draft(
         self,
         prepared: PreparedTask,
         message: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
+        *,
+        recovery_envelope: TrustedIngressEnvelope | None = None,
     ) -> bool:
         if self._closing:
             return False
         prepared = PreparedTask.validate(prepared)
+        recovery_envelope = TrustedIngressEnvelope.model_validate(
+            (recovery_envelope or envelope).model_dump(mode="json")
+        )
+        try:
+            TrustedIngressResult(
+                status=IngressStatus.ACCEPTED,
+                update_id=message.update_id,
+                payload=message,
+                envelope=envelope,
+            )
+        except Exception:
+            return False
+        if (
+            recovery_envelope.tenant_id != prepared.contract.tenant_id
+            or recovery_envelope.idempotency_key
+            != prepared.contract.idempotency_key
+            or recovery_envelope.envelope_revision
+            != prepared.envelope_revision
+        ):
+            return False
         payload = {
             "prepared": {
                 "contract": prepared.contract.model_dump(mode="json"),
@@ -318,6 +392,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             ),
             "message": message.model_dump(mode="json"),
             "envelope": envelope.model_dump(mode="json"),
+            "recovery_envelope": recovery_envelope.model_dump(mode="json"),
         }
         try:
             self._telegram_state.enqueue(
@@ -393,12 +468,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             "action": getattr(action, "value", None),
             "capability_token": token,
         }
-        task_id = UUID(
-            bytes=hashlib.sha256(
-                f"{callback.tenant_id}:{token}".encode()
-            ).digest()[:16],
-            version=4,
-        )
+        task_id = _effect_task_id(callback.tenant_id, token)
         try:
             self._telegram_state.enqueue(
                 kind="effect",
@@ -424,12 +494,28 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
             if canonical_json_digest(payload) != durable.binding_digest:
                 raise RuntimeError("durable effect binding mismatch")
-            return _QueuedEffect(
-                CallbackQuery.model_validate(payload["callback"]),
-                TrustedIngressEnvelope.model_validate(payload["envelope"]),
-                TelegramAction(payload["action"]),
-                str(payload["capability_token"]),
-            )
+            callback = CallbackQuery.model_validate(payload["callback"])
+            envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])
+            action = TelegramAction(payload["action"])
+            token = payload["capability_token"]
+            if not isinstance(token, str) or not token:
+                raise RuntimeError("durable effect capability is invalid")
+            try:
+                TrustedIngressResult(
+                    status=IngressStatus.ACCEPTED,
+                    update_id=callback.update_id,
+                    payload=callback,
+                    envelope=envelope,
+                )
+            except Exception:
+                raise RuntimeError("durable effect ingress mismatch") from None
+            if (
+                callback.tenant_id != durable.tenant_id
+                or envelope.tenant_id != durable.tenant_id
+                or _effect_task_id(durable.tenant_id, token) != durable.task_id
+            ):
+                raise RuntimeError("durable effect binding mismatch")
+            return _QueuedEffect(callback, envelope, action, token)
         if durable.kind == "patch":
             proposal = PatchProposal.model_validate(payload["proposal"])
             if proposal.task_id != durable.task_id or proposal.patch_digest != durable.binding_digest:
@@ -442,28 +528,94 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 str(payload["approver_identity"]),
                 str(payload["approval_evidence_ref"]),
             )
+        job, recovery_envelope = self._draft_binding(durable)
+        recover = getattr(self._product_runtime, "recover_prepared", None)
+        if callable(recover) and not await recover(
+            job.prepared, recovery_envelope
+        ):
+            return None
+        return job
+
+    @staticmethod
+    def _draft_binding(
+        durable: DurableJob,
+    ) -> tuple[_QueuedDraft, TrustedIngressEnvelope]:
+        payload = durable.payload
         prepared_data = payload["prepared"]
-        prepared = PreparedTask(
-            contract=TaskContract.model_validate(prepared_data["contract"]),
-            envelope_revision=str(prepared_data["envelope_revision"]),
+        prepared = PreparedTask.validate(
+            PreparedTask(
+                contract=TaskContract.model_validate(prepared_data["contract"]),
+                envelope_revision=str(prepared_data["envelope_revision"]),
+            )
         )
         message_type = payload["message_type"]
+        if message_type not in {"text", "callback"}:
+            raise RuntimeError("durable draft message type is invalid")
         message = (
             TextMessage.model_validate(payload["message"])
             if message_type == "text"
             else CallbackQuery.model_validate(payload["message"])
         )
         envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])
+        recovery_envelope = TrustedIngressEnvelope.model_validate(
+            payload.get("recovery_envelope", payload["envelope"])
+        )
+        try:
+            TrustedIngressResult(
+                status=IngressStatus.ACCEPTED,
+                update_id=message.update_id,
+                payload=message,
+                envelope=envelope,
+            )
+        except Exception:
+            raise RuntimeError("durable draft ingress mismatch") from None
         if (
             prepared.contract.task_id != durable.task_id
             or task_contract_digest(prepared.contract) != durable.binding_digest
             or prepared.contract.tenant_id != durable.tenant_id
+            or message.tenant_id != durable.tenant_id
+            or envelope.tenant_id != durable.tenant_id
+            or recovery_envelope.tenant_id != durable.tenant_id
+            or recovery_envelope.idempotency_key
+            != prepared.contract.idempotency_key
+            or recovery_envelope.envelope_revision
+            != prepared.envelope_revision
         ):
             raise RuntimeError("durable draft binding mismatch")
-        recover = getattr(self._product_runtime, "recover_prepared", None)
-        if callable(recover) and not await recover(prepared, envelope):
-            return None
-        return _QueuedDraft(prepared, message, envelope)
+        return _QueuedDraft(prepared, message, envelope), recovery_envelope
+
+    async def _finalize_recovery_failure(self, durable: DurableJob) -> None:
+        if durable.kind != "draft":
+            await self._clear_durable_progress(durable)
+            return
+        try:
+            job, _ = self._draft_binding(durable)
+            await self._terminalize_job(job)
+            await self.deliver_pending()
+        except Exception:
+            await self._finish_progress_with_error(durable)
+            return
+        with suppress(Exception):
+            await self._clear_progress(job)
+
+    async def _finish_progress_with_error(self, durable: DurableJob) -> None:
+        ref = self._telegram_state.read_progress(
+            tenant_id=durable.tenant_id,
+            task_id=durable.task_id,
+        )
+        if ref is None:
+            return
+        text = "⚠️ Задачу не удалось восстановить. Отправьте её повторно."
+        edit = getattr(self._api, "edit_message_text", None)
+        try:
+            if callable(edit):
+                await edit(ref.chat_id, ref.message_id, text)
+            else:
+                await self._api.send_message(ref.chat_id, text)
+            if not self._telegram_state.delete_progress(ref):
+                raise RuntimeError("progress message commit failed")
+        except Exception:
+            pass
 
     async def _set_progress(self, job: _QueuedJob, text: str) -> None:
         if not isinstance(job, _QueuedDraft):
@@ -509,9 +661,10 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             "активен" if self._voice_service is not None else "не активирован"
         )
         active, pending = self._telegram_state.queue_counts()
+        failed = self._telegram_state.dead_letter_count()
         health = (
             "\nСостояние очереди: требует проверки"
-            if self._worker_error is not None
+            if self._worker_error is not None or failed
             else ""
         )
         return (
@@ -519,6 +672,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             "Telegram: online\n"
             f"Голос: {voice}\n"
             f"В работе: {active}\n"
-            f"В очереди: {pending}"
+            f"В очереди: {pending}\n"
+            f"Сбойных задач: {failed}"
             f"{health}"
         )

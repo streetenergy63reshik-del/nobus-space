@@ -12,7 +12,7 @@ from src.application import task_confirmation as task_state
 from src.application import telegram_actions as action_state
 from src.application.durable_telegram_state import SQLiteTelegramState
 from src.application.durable_runtime import PreparedTask
-from src.contracts import TaskContract
+from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.transport.telegram import CallbackQuery
 
 
@@ -40,6 +40,7 @@ class DurableTaskConfirmationStore(task_state.InMemoryTaskConfirmationStore):
                     "contract": binding.prepared.contract.model_dump(mode="json"),
                     "envelope_revision": binding.prepared.envelope_revision,
                 },
+                "envelope": binding.envelope.model_dump(mode="json"),
                 "tenant_id": binding.tenant_id,
                 "actor_identity": binding.actor_identity,
                 "actor_role": binding.actor_role,
@@ -59,7 +60,7 @@ class DurableTaskConfirmationStore(task_state.InMemoryTaskConfirmationStore):
                 token_digest=digest,
                 tenant_id=binding.tenant_id,
                 payload=payload,
-                expires_at=binding.expires_at,
+                expires_at=binding.expires_at + self._retention,
             )
         except Exception:
             with self._lock:
@@ -75,18 +76,7 @@ class DurableTaskConfirmationStore(task_state.InMemoryTaskConfirmationStore):
             message, (task_state.TextMessage, task_state.CallbackQuery)
         ):
             self._hydrate(token, message.tenant_id)
-        result = super().consume(**values)  # type: ignore[arg-type]
-        if (
-            isinstance(token, str)
-            and isinstance(message, (task_state.TextMessage, task_state.CallbackQuery))
-            and result.status is task_state.TaskConfirmationStatus.EXPIRED
-        ):
-            self._durable_state.delete_capability(
-                kind="task",
-                token_digest=_digest(token),
-                tenant_id=message.tenant_id,
-            )
-        return result
+        return super().consume(**values)  # type: ignore[arg-type]
 
     def acknowledge(self, token: str, tenant_id: str) -> bool:
         return self._durable_state.delete_capability(
@@ -122,6 +112,7 @@ class DurableTaskConfirmationStore(task_state.InMemoryTaskConfirmationStore):
                 raise ValueError
             binding = task_state._Binding(
                 prepared=PreparedTask.validate(prepared),
+                envelope=TrustedIngressEnvelope.model_validate(payload["envelope"]),
                 tenant_id=payload["tenant_id"],
                 actor_identity=payload["actor_identity"],
                 actor_role=payload["actor_role"],
@@ -135,7 +126,18 @@ class DurableTaskConfirmationStore(task_state.InMemoryTaskConfirmationStore):
                 issued_at=datetime.fromisoformat(payload["issued_at"]),
                 expires_at=datetime.fromisoformat(payload["expires_at"]),
             )
-            if binding.tenant_id != tenant_id or payload["token"] != token:
+            if (
+                binding.tenant_id != tenant_id
+                or payload["token"] != token
+                or binding.envelope.tenant_id != binding.tenant_id
+                or binding.envelope.actor_identity != binding.actor_identity
+                or binding.envelope.auth_context_ref != binding.auth_context_ref
+                or binding.prepared.contract.tenant_id != binding.tenant_id
+                or binding.prepared.contract.idempotency_key
+                != binding.envelope.idempotency_key
+                or binding.prepared.envelope_revision
+                != binding.envelope.envelope_revision
+            ):
                 raise ValueError
         except Exception:
             raise ValueError("durable task confirmation is invalid") from None

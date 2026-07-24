@@ -1,3 +1,42 @@
+# Queue 1/2 reliability hotfix — voice recovery and runner continuity
+
+**Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; exact owner L4 live release pending.
+**Evidence:** 893 passed, 2 skipped, 1 known warning; independent Queue 1/2
+reproduction 84 passed; restart/retention probe PASS; P0/P1/P2 = 0. Compileall,
+pip check, PowerShell parse, documentation links, diff-check, secret-pattern scan
+and quality-memory validation PASS.
+
+- Root cause локального owner smoke: voice TaskContract был связан с исходным
+  voice envelope, но durable job ошибочно сохранял callback envelope. Строгий
+  `recover_prepared` корректно отклонял несовпадение после трёх claims.
+- Confirmation binding теперь DPAPI-durable хранит исходный envelope. Durable job
+  раздельно хранит recovery envelope и action/UI envelope; Core guards не ослаблены.
+  UX TTL кнопки отделён от bounded recovery-retention: после истечения действие не
+  запускается, но доказанная отмена Core может безопасно повториться после restart.
+- Exhausted recovery больше не исчезает молча: Task terminalization/outbox
+  выполняются при валидном binding, иначе одна progress-card превращается в
+  безопасную финальную ошибку. `/status` показывает dead-letter count.
+- Одна карточка прогресса обновляется по безопасным стадиям Core и heartbeat
+  каждые 30 секунд, затем удаляется после результата. Hidden reasoning, prompt,
+  пути, секреты и технические IDs не показываются.
+- Windows Task Scheduler runner/health явно разрешены при питании от батареи;
+  execution deadline Gate 5A.4 остаётся 10 800 секунд (3 часа), lease 60 секунд
+  продлевается отдельно и не обрезает долгую задачу.
+- Локальный L1: 893 passed, 2 skipped, 1 known warning. Целевой Queue 1/2
+  regression-suite: 69 passed. Compileall, pip check, PowerShell parse,
+  documentation links, diff-check и quality-memory validation также прошли.
+- Исправлены замечания первого независимого ревью: durable confirmation теперь
+  удаляется только после доказанной отмены Core, а восстановление effect требует
+  точной callback/envelope, tenant и deterministic task-id binding.
+- Повторное независимое L2/L3: ACCEPT, P0/P1/P2 отсутствуют. Temp-DB probe
+  воспроизвёл 3 transient cancel failures → restart → 1 successful cancel →
+  terminal Core proof → capability deletion; retention upper bound также PASS.
+- Live worktree остаётся clean на `0856603`; Scheduled Task сейчас `Ready`, не
+  запущена. Публикация и reconciliation одной старой failed voice-задачи требуют
+  exact owner L4 на новый commit hash.
+
+---
+
 # QUEUE-1-2-2026-07-24 — release candidate before live L4
 
 **Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; exact owner L4 live release pending.

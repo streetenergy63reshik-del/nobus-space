@@ -12,6 +12,7 @@ import pytest
 from scripts.check_telegram_health import check
 from src.application.durable_product import DurableProductTelegramControlPlane
 from src.application.durable_telegram_state import (
+    DurableJob,
     DurableTelegramStateError,
     SQLiteTelegramState,
 )
@@ -168,7 +169,9 @@ async def test_completed_document_survives_send_failure_and_retries(
 
 
 @pytest.mark.asyncio
-async def test_effect_callback_is_durably_enqueued_without_execution(tmp_path: Path) -> None:
+async def test_effect_callback_is_durably_enqueued_and_strictly_restored(
+    tmp_path: Path,
+) -> None:
     calls = []
 
     class State:
@@ -186,27 +189,78 @@ async def test_effect_callback_is_durably_enqueued_without_execution(tmp_path: P
     control.start = start
     control._wake = lambda: None
     harness = _product(tmp_path)
-    ingress = harness.control._gateway.process_update(text_update("safe", 1))
-    assert ingress.payload is not None and ingress.envelope is not None
-    callback = CallbackQuery(
-        update_id=2,
-        tenant_id=ingress.payload.tenant_id,
-        actor_identity=ingress.payload.actor_identity,
-        actor_role=ingress.payload.actor_role,
-        auth_context_ref=ingress.payload.auth_context_ref,
-        user_id=ingress.payload.user_id,
-        chat_id=ingress.payload.chat_id,
-        message_id=102,
-        query_id="query-2",
-        callback_token="A" * 32,
+    text_ingress = harness.control._gateway.process_update(text_update("safe", 1))
+    action_token = harness.control._action_store.issue(
+        action=TelegramAction.RUN_NETWORK,
+        capability_token="effect-token",
+        user_id=text_ingress.payload.user_id,
+        chat_id=text_ingress.payload.chat_id,
+        ttl_seconds=300,
     )
+    ingress = harness.control._gateway.process_update(
+        callback_update(action_token, 2)
+    )
+    assert isinstance(ingress.payload, CallbackQuery)
+    assert ingress.envelope is not None
 
     queued = await control._submit_effect(
-        callback,
+        ingress.payload,
         ingress.envelope,
         TelegramAction.RUN_NETWORK,
         "effect-token",
     )
 
     assert queued
-    assert calls[0]["kind"] == "effect"
+    values = calls[0]
+    assert values["kind"] == "effect"
+    durable = DurableJob(
+        uuid4(),
+        values["kind"],
+        values["tenant_id"],
+        values["task_id"],
+        values["binding_digest"],
+        values["payload"],
+        1,
+    )
+    restored = await control._restore(durable)
+    assert restored is not None
+    assert restored.callback == ingress.payload
+    assert restored.envelope == ingress.envelope
+
+    wrong_tenant = DurableJob(
+        uuid4(),
+        durable.kind,
+        "foreign",
+        durable.task_id,
+        durable.binding_digest,
+        durable.payload,
+        1,
+    )
+    with pytest.raises(RuntimeError, match="binding mismatch"):
+        await control._restore(wrong_tenant)
+
+    wrong_task = DurableJob(
+        uuid4(),
+        durable.kind,
+        durable.tenant_id,
+        uuid4(),
+        durable.binding_digest,
+        durable.payload,
+        1,
+    )
+    with pytest.raises(RuntimeError, match="binding mismatch"):
+        await control._restore(wrong_task)
+
+    unbound_payload = dict(durable.payload)
+    unbound_payload["envelope"] = text_ingress.envelope.model_dump(mode="json")
+    unbound = DurableJob(
+        uuid4(),
+        durable.kind,
+        durable.tenant_id,
+        durable.task_id,
+        canonical_json_digest(unbound_payload),
+        unbound_payload,
+        1,
+    )
+    with pytest.raises(RuntimeError, match="ingress mismatch"):
+        await control._restore(unbound)

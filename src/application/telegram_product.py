@@ -7,7 +7,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Awaitable, Protocol
+from typing import Any, Awaitable, Callable, Protocol
 from uuid import UUID
 
 from src.application.durable_runtime import PreparedTask
@@ -428,6 +428,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         prepared: PreparedTask,
         message: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
+        *,
+        recovery_envelope: TrustedIngressEnvelope | None = None,
     ) -> bool:
         queue = self._execution_queue
         if queue is None:
@@ -983,19 +985,52 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             message=message,
             envelope=envelope,
         )
-        if result.prepared is None:
+        if result.status is not action or result.prepared is None:
+            if (
+                result.status is TaskConfirmationStatus.EXPIRED
+                and result.prepared is not None
+            ):
+                try:
+                    await self._terminalize_job(
+                        _QueuedDraft(result.prepared, message, envelope)
+                    )
+                    await self.deliver_pending()
+                    self._ack_confirmation(
+                        self._task_confirmations, token, message.tenant_id
+                    )
+                except Exception:
+                    self._release_confirmation(
+                        self._task_confirmations, token, message.tenant_id
+                    )
+                    raise
+                return
             await self._api.send_message(
                 message.chat_id, "Подтверждение задачи недействительно или уже использовано."
             )
             return
         if action is TaskConfirmationStatus.CANCELLED:
-            await self._product_runtime.cancel_prepared(result.prepared)
-            await self.deliver_pending()
-            self._ack_confirmation(
-                self._task_confirmations, token, message.tenant_id
-            )
+            try:
+                await self._terminalize_job(
+                    _QueuedDraft(result.prepared, message, envelope)
+                )
+                await self.deliver_pending()
+                self._ack_confirmation(
+                    self._task_confirmations, token, message.tenant_id
+                )
+            except Exception:
+                self._release_confirmation(
+                    self._task_confirmations, token, message.tenant_id
+                )
+                raise
             return
-        queued = await self._submit_draft(result.prepared, message, envelope)
+        if result.envelope is None:
+            raise RuntimeError("confirmed task envelope is unavailable")
+        queued = await self._submit_draft(
+            result.prepared,
+            message,
+            envelope,
+            recovery_envelope=result.envelope,
+        )
         if not queued:
             self._release_confirmation(
                 self._task_confirmations, token, message.tenant_id
@@ -1010,8 +1045,17 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         prepared: PreparedTask,
         message: TextMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
+        *,
+        progress: Callable[[str], Awaitable[None]] | None = None,
     ) -> None:
-        outcome = await self._product_runtime.draft_prepared(prepared)
+        draft_with_progress = getattr(
+            self._product_runtime, "draft_prepared_with_progress", None
+        )
+        outcome = (
+            await draft_with_progress(prepared, progress)
+            if progress is not None and callable(draft_with_progress)
+            else await self._product_runtime.draft_prepared(prepared)
+        )
         if outcome.answer is not None:
             await self.deliver_pending()
             return

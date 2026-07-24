@@ -11,7 +11,7 @@ import subprocess
 from contextlib import asynccontextmanager
 import threading
 from dataclasses import dataclass
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
@@ -455,13 +455,39 @@ class Gate5A4Runtime(DurableFakeRuntime):
 
     async def draft_prepared(self, prepared: PreparedTask) -> Gate5A4DraftOutcome:
         """Run Codex read-only and return a verified answer or exact patch proposal."""
+        return await self._draft_prepared(prepared)
+
+    async def draft_prepared_with_progress(
+        self,
+        prepared: PreparedTask,
+        progress: Callable[[str], Awaitable[None]],
+    ) -> Gate5A4DraftOutcome:
+        """Run the same draft path with bounded product-safe stage updates."""
+        if not callable(progress):
+            raise ValueError("progress reporter is invalid")
+        return await self._draft_prepared(prepared, progress)
+
+    async def _draft_prepared(
+        self,
+        prepared: PreparedTask,
+        progress: Callable[[str], Awaitable[None]] | None = None,
+    ) -> Gate5A4DraftOutcome:
+        async def report(stage: str) -> None:
+            if progress is not None:
+                try:
+                    await progress(stage)
+                except Exception:
+                    pass
+
         async with self._worker_slots:
             task: Task | None = None
             try:
+                await report("Проверяю контекст и границы доступа")
                 prepared = PreparedTask.validate(prepared)
                 contract = prepared.contract
                 task = await self._prepared_task(contract)
                 task = await self._start_worker(contract, task)
+                await report("Codex выполняет задачу")
                 worker_result = await self._execute_worker(contract)
                 draft = parse_codex_draft(worker_result.message, self._pipeline.root)
                 if "web.search" in contract.permissions and (
@@ -478,6 +504,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                     ),
                 )
                 candidate = self._candidate(task, worker_result.message)
+                await report("Проверяю результат")
                 l1 = VerificationLevel.model_validate(
                     (await self._pipeline.l1(candidate)).model_dump()
                 )
@@ -510,6 +537,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                         message="Read-only patch draft is ready for exact confirmation.",
                     )
 
+                await report("Независимо перепроверяю результат")
                 l2 = VerificationLevel.model_validate(
                     (await self._pipeline.l2(candidate)).model_dump()
                 )
@@ -536,6 +564,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                         message="Read-only answer verification failed.",
                     )
 
+                await report("Провожу финальную проверку")
                 l3 = VerificationLevel.model_validate(
                     (await self._pipeline.l3(candidate)).model_dump()
                 )

@@ -78,12 +78,16 @@ $healthTrigger = New-ScheduledTaskTrigger `
     -RepetitionDuration (New-TimeSpan -Days 3650)
 $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
+    -AllowStartIfOnBatteries `
+    -DontStopIfGoingOnBatteries `
     -RestartCount 10 `
     -RestartInterval (New-TimeSpan -Minutes 1) `
     -ExecutionTimeLimit ([TimeSpan]::Zero) `
     -MultipleInstances IgnoreNew
 $healthSettings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
+    -AllowStartIfOnBatteries `
+    -DontStopIfGoingOnBatteries `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 2) `
     -MultipleInstances IgnoreNew
 $principal = New-ScheduledTaskPrincipal `

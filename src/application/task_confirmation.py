@@ -80,11 +80,13 @@ class TaskConfirmationStatus(str, Enum):
 class TaskConfirmationResult:
     status: TaskConfirmationStatus
     prepared: PreparedTask | None
+    envelope: TrustedIngressEnvelope | None
 
 
 @dataclass(frozen=True, repr=False)
 class _Binding:
     prepared: PreparedTask
+    envelope: TrustedIngressEnvelope
     tenant_id: str
     actor_identity: str
     actor_role: str
@@ -235,6 +237,9 @@ class InMemoryTaskConfirmationStore:
                     continue
                 binding = _Binding(
                     prepared=prepared,
+                    envelope=TrustedIngressEnvelope.model_validate(
+                        envelope.model_dump(mode="json")
+                    ),
                     tenant_id=message.tenant_id,
                     actor_identity=message.actor_identity,
                     actor_role=message.actor_role,
@@ -294,9 +299,12 @@ class InMemoryTaskConfirmationStore:
                 return TaskConfirmationResult(
                     TaskConfirmationStatus.EXPIRED,
                     binding.prepared,
+                    binding.envelope,
                 )
             self._consume_locked(digest, binding, now)
-            return TaskConfirmationResult(action, binding.prepared)
+            return TaskConfirmationResult(
+                action, binding.prepared, binding.envelope
+            )
 
     def sweep_expired(self) -> tuple[PreparedTask, ...]:
         with self._lock:
@@ -400,4 +408,4 @@ class InMemoryTaskConfirmationStore:
 
     @staticmethod
     def _result(status: TaskConfirmationStatus) -> TaskConfirmationResult:
-        return TaskConfirmationResult(status, None)
+        return TaskConfirmationResult(status, None, None)
