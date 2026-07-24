@@ -40,7 +40,11 @@ from src.application.telegram_control import TelegramControlPlane, _argument, _c
 from src.contracts import TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
-from src.integrations import CalendarActionKind, GoogleTaskActionKind
+from src.integrations import (
+    CalendarActionKind,
+    GoogleDriveActionKind,
+    GoogleTaskActionKind,
+)
 from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, VoiceMessage
 from src.voice import VoicePreviewService
 from src.workers.codex_limits import WeeklyLimitSnapshot
@@ -68,6 +72,11 @@ _CALENDAR_HINT_RE = re.compile(
 _GOOGLE_TASKS_HINT_RE = re.compile(
     r"\b(?:google\s+tasks?|гугл[е]?\s+(?:задач\w*|таск\w*)|"
     r"задач\w*\s+в\s+google|список\s+google\s+tasks?)\b",
+    re.IGNORECASE,
+)
+_GOOGLE_DRIVE_HINT_RE = re.compile(
+    r"\b(?:google\s+drive|гугл[е]?\s+диск\w*|google\s+диск\w*|"
+    r"(?:файл|документ)\w*\s+(?:из|на)\s+(?:google|гугл))\b",
     re.IGNORECASE,
 )
 _MONTHS = (
@@ -164,7 +173,7 @@ class _QueuedPatch:
 
 @dataclass(frozen=True, slots=True)
 class _QueuedEffect:
-    callback: TextMessage | CallbackQuery
+    callback: TextMessage | VoiceMessage | CallbackQuery
     envelope: TrustedIngressEnvelope
     action: TelegramAction
     capability_token: str
@@ -223,6 +232,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         calendar_service: Any | None = None,
         google_tasks_planner: Any | None = None,
         google_tasks_service: Any | None = None,
+        google_drive_planner: Any | None = None,
+        google_drive_service: Any | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -306,6 +317,23 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             or (
                 google_tasks_service is not None and product_effects is None
             )
+            or (
+                google_drive_planner is not None
+                and not callable(
+                    getattr(google_drive_planner, "plan_google_drive_action", None)
+                )
+            )
+            or (
+                google_drive_service is not None
+                and not callable(getattr(google_drive_service, "execute", None))
+            )
+            or (
+                (google_drive_planner is None)
+                is not (google_drive_service is None)
+            )
+            or (
+                google_drive_service is not None and product_effects is None
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -329,6 +357,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._calendar_service = calendar_service
         self._google_tasks_planner = google_tasks_planner
         self._google_tasks_service = google_tasks_service
+        self._google_drive_planner = google_drive_planner
+        self._google_drive_service = google_drive_service
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -739,6 +769,44 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             )
             return
         if (
+            self._google_drive_planner is not None
+            and self._google_drive_service is not None
+            and _GOOGLE_DRIVE_HINT_RE.search(normalized)
+        ):
+            try:
+                action = await self._google_drive_planner.plan_google_drive_action(
+                    normalized, envelope
+                )
+                if action.kind is not GoogleDriveActionKind.NONE:
+                    if self._product_effects is None:
+                        raise RuntimeError("Google Drive integration is unavailable")
+                    challenge = self._product_effects.prepare_google_drive(
+                        action,
+                        tenant_id=message.tenant_id,
+                        user_id=message.user_id,
+                        chat_id=message.chat_id,
+                        idempotency_key=envelope.idempotency_key,
+                    )
+                    if not await self._submit_effect(
+                        message,
+                        envelope,
+                        TelegramAction.RUN_GOOGLE_DRIVE,
+                        challenge.token,
+                    ):
+                        raise RuntimeError(
+                            "Google Drive action was not durably enqueued"
+                        )
+                    return
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await self._api.send_message(
+                    message.chat_id,
+                    "Не удалось получить файл из Google Drive. "
+                    "Уточните точное имя файла.",
+                )
+                return
+        if (
             self._google_tasks_planner is not None
             and self._google_tasks_service is not None
             and _GOOGLE_TASKS_HINT_RE.search(normalized)
@@ -1134,6 +1202,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             TelegramAction.RUN_CALENDAR: (ProductEffectKind.CALENDAR, True),
             TelegramAction.RUN_GOOGLE_TASK: (
                 ProductEffectKind.GOOGLE_TASK, True
+            ),
+            TelegramAction.RUN_GOOGLE_DRIVE: (
+                ProductEffectKind.GOOGLE_DRIVE, True
             ),
             TelegramAction.DELETE_GOOGLE_TASK: (
                 ProductEffectKind.GOOGLE_TASK_DELETE, True

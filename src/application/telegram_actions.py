@@ -28,6 +28,7 @@ class TelegramAction(str, Enum):
     RUN_GOOGLE_TASK = "run_google_task"
     DELETE_GOOGLE_TASK = "delete_google_task"
     REJECT_GOOGLE_TASK_DELETE = "reject_google_task_delete"
+    RUN_GOOGLE_DRIVE = "run_google_drive"
 
 
 @dataclass(frozen=True)

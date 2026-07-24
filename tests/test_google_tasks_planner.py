@@ -49,10 +49,7 @@ async def test_google_tasks_planner_uses_closed_read_only_contract(
     assert result.kind is GoogleTaskActionKind.CREATE
     assert result.title == "Подготовить отчёт"
     assert worker.contract is not None
-    assert worker.contract.permissions == (
-        "repo.read",
-        "process.run_allowlisted",
-    )
+    assert worker.contract.permissions == ("model.inference",)
     assert worker.contract.risk.value == "low"
     assert worker.contract.timeout_seconds == 120
     assert "Do not use tools" in worker.contract.instruction

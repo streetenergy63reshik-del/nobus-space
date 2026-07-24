@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from src.workers.codex_cli import _INTENT_ARGV
 from src.workers.asyncio_spawner import (
     AsyncioProcessSpawner,
     AsyncioSpawnedProcess,
@@ -170,6 +171,27 @@ async def test_spawns_only_fixed_profile_without_shell_or_ambient_env(
         assert "start_new_session" not in options
     else:
         assert options["start_new_session"] is True
+
+
+@pytest.mark.asyncio
+async def test_intent_profile_crosses_real_spawner_allowlist(
+    worker_paths: tuple[Path, Path, Path],
+) -> None:
+    calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    async def spawn(*args: Any, **kwargs: Any) -> Any:
+        calls.append((args, kwargs))
+        return FakeChild()
+
+    workspace, _, executable = worker_paths
+    spawner = AsyncioProcessSpawner(
+        workspace_root=workspace,
+        executable=executable,
+        spawn=spawn,
+        tree_killer=fake_tree_killer,
+    )
+    await spawner(**allowed_call(worker_paths, _INTENT_ARGV))
+    assert calls[0][0] == (str(executable.resolve()), *_INTENT_ARGV)
 
 
 @pytest.mark.asyncio

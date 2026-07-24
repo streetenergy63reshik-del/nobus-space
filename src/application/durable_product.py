@@ -26,6 +26,7 @@ from src.transport.telegram import (
     IngressStatus,
     TextMessage,
     TrustedIngressResult,
+    VoiceMessage,
 )
 
 
@@ -207,19 +208,19 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             try:
                 await self._execute_with_lease(durable, job)
                 await self._clear_progress(job)
-                self._telegram_state.ack(
-                    durable, lease_owner=self._lease_owner
-                )
-                if isinstance(job, _QueuedEffect) and self._product_effects is not None:
-                    try:
-                        self._product_effects.finalize_delivery(
-                            job.capability_token,
-                            tenant_id=job.callback.tenant_id,
-                            user_id=job.callback.user_id,
-                            chat_id=job.callback.chat_id,
-                        )
-                    except Exception:
-                        pass
+                if isinstance(job, _QueuedEffect):
+                    self._telegram_state.ack_effect_delivery(
+                        durable,
+                        lease_owner=self._lease_owner,
+                        capability_token=job.capability_token,
+                        tenant_id=job.callback.tenant_id,
+                        user_id=job.callback.user_id,
+                        chat_id=job.callback.chat_id,
+                    )
+                else:
+                    self._telegram_state.ack(
+                        durable, lease_owner=self._lease_owner
+                    )
                 self._worker_error = None
                 self._worker_error_count = 0
             except asyncio.CancelledError:
@@ -280,11 +281,10 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                                     job.action,
                                     job.capability_token,
                                 )
-                                self._telegram_state.ack(
-                                    durable, lease_owner=self._lease_owner
-                                )
-                                self._product_effects.finalize_delivery(
-                                    job.capability_token,
+                                self._telegram_state.ack_effect_delivery(
+                                    durable,
+                                    lease_owner=self._lease_owner,
+                                    capability_token=job.capability_token,
                                     tenant_id=job.callback.tenant_id,
                                     user_id=job.callback.user_id,
                                     chat_id=job.callback.chat_id,
@@ -514,7 +514,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     async def _submit_effect(
         self,
-        callback: TextMessage | CallbackQuery,
+        callback: TextMessage | VoiceMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         action: object,
         token: str,
@@ -524,7 +524,11 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         payload = {
             "callback": callback.model_dump(mode="json"),
             "message_type": (
-                "text" if isinstance(callback, TextMessage) else "callback"
+                "text"
+                if isinstance(callback, TextMessage)
+                else "voice"
+                if isinstance(callback, VoiceMessage)
+                else "callback"
             ),
             "envelope": envelope.model_dump(mode="json"),
             "action": getattr(action, "value", None),
@@ -557,11 +561,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             if canonical_json_digest(payload) != durable.binding_digest:
                 raise RuntimeError("durable effect binding mismatch")
             message_type = payload.get("message_type", "callback")
-            if message_type not in {"text", "callback"}:
+            if message_type not in {"text", "voice", "callback"}:
                 raise RuntimeError("durable effect message type is invalid")
             callback = (
                 TextMessage.model_validate(payload["callback"])
                 if message_type == "text"
+                else VoiceMessage.model_validate(payload["callback"])
+                if message_type == "voice"
                 else CallbackQuery.model_validate(payload["callback"])
             )
             envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])

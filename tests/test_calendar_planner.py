@@ -48,10 +48,7 @@ async def test_calendar_planner_uses_closed_read_only_contract(tmp_path) -> None
     assert result.kind is CalendarActionKind.CREATE
     assert result.title == "Планёрка"
     assert worker.contract is not None
-    assert worker.contract.permissions == (
-        "repo.read",
-        "process.run_allowlisted",
-    )
+    assert worker.contract.permissions == ("model.inference",)
     assert worker.contract.risk.value == "low"
     assert worker.contract.timeout_seconds == 120
     assert "Do not use tools" in worker.contract.instruction

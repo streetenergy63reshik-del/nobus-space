@@ -25,6 +25,8 @@ from src.integrations import (
     CalendarAction,
     CalendarActionKind,
     CalendarEvent,
+    GoogleDriveAction,
+    GoogleDriveActionKind,
     GoogleTaskAction,
     GoogleTaskActionKind,
     GoogleTaskItem,
@@ -39,6 +41,7 @@ class ProductEffectKind(str, Enum):
     CALENDAR = "calendar"
     GOOGLE_TASK = "google_task"
     GOOGLE_TASK_DELETE = "google_task_delete"
+    GOOGLE_DRIVE = "google_drive"
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,6 +284,7 @@ class ProductEffectService:
         network_runner: NetworkCommandRunner,
         calendar: Any | None = None,
         google_tasks: Any | None = None,
+        google_drive: Any | None = None,
     ) -> None:
         self._vault = vault
         self._workspace = workspace
@@ -289,6 +293,7 @@ class ProductEffectService:
         self._network = network_runner
         self._calendar = calendar
         self._google_tasks = google_tasks
+        self._google_drive = google_drive
 
     async def close(self) -> None:
         await self._downloader.aclose()
@@ -410,6 +415,30 @@ class ProductEffectService:
                 f"Аргументы: {' '.join(proposal.argv)}"
             ),
         )
+
+    def prepare_google_drive(
+        self,
+        action: GoogleDriveAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._google_drive is None:
+            raise RuntimeError("Google Drive integration is unavailable")
+        action = GoogleDriveAction.model_validate(action.model_dump())
+        if action.kind is GoogleDriveActionKind.NONE:
+            raise ValueError("Google Drive action is not executable")
+        token = self._vault.issue(
+            kind=ProductEffectKind.GOOGLE_DRIVE,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=action.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(token, ProductEffectKind.GOOGLE_DRIVE, "")
 
     async def prepare_google_task_delete(
         self,
@@ -609,7 +638,13 @@ class ProductEffectService:
         elif binding.kind is ProductEffectKind.CALENDAR:
             if self._calendar is None:
                 raise RuntimeError("calendar integration is unavailable")
-            action = CalendarAction.model_validate(binding.payload)
+            action = CalendarAction.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
             calendar_result = await self._calendar.execute(
                 action,
                 idempotency_key=canonical_json_digest(
@@ -623,7 +658,13 @@ class ProductEffectService:
         elif binding.kind is ProductEffectKind.GOOGLE_TASK_DELETE:
             if self._google_tasks is None:
                 raise RuntimeError("Google Tasks integration is unavailable")
-            item = GoogleTaskItem.model_validate(binding.payload)
+            item = GoogleTaskItem.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
             await self._google_tasks.delete_task(
                 item.tasklist_id, item.task_id
             )
@@ -631,7 +672,13 @@ class ProductEffectService:
         elif binding.kind is ProductEffectKind.GOOGLE_TASK:
             if self._google_tasks is None:
                 raise RuntimeError("Google Tasks integration is unavailable")
-            action = GoogleTaskAction.model_validate(binding.payload)
+            action = GoogleTaskAction.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
             task_result = await self._google_tasks.execute(
                 action,
                 idempotency_key=canonical_json_digest(
@@ -642,6 +689,22 @@ class ProductEffectService:
                 ),
             )
             result = ProductEffectResult(task_result.message)
+        elif binding.kind is ProductEffectKind.GOOGLE_DRIVE:
+            if self._google_drive is None:
+                raise RuntimeError("Google Drive integration is unavailable")
+            action = GoogleDriveAction.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
+            drive_result = await self._google_drive.execute(action)
+            result = ProductEffectResult(
+                drive_result.message,
+                drive_result.filename,
+                drive_result.content,
+            )
         else:
             raise RuntimeError("product effect kind is unsupported")
         binding = self._vault.transition(
@@ -651,6 +714,11 @@ class ProductEffectService:
                 "message": result.message,
                 "filename": result.filename,
                 "approval_ref": approval_ref,
+                "content": (
+                    None
+                    if result.content is None
+                    else base64.b64encode(result.content).decode("ascii")
+                ),
             },
         )
         return self._completed_result(binding)
@@ -767,9 +835,12 @@ class ProductEffectService:
         filename = binding.result.get("filename")
         content: bytes | None = None
         if filename is not None:
-            content = base64.b64decode(
-                binding.payload["content"], validate=True
-            )
+            encoded = binding.result.get("content")
+            if encoded is None:
+                encoded = binding.payload.get("content")
+            if not isinstance(encoded, str):
+                raise RuntimeError("product effect content is unavailable")
+            content = base64.b64decode(encoded, validate=True)
         return ProductEffectResult(
             str(binding.result["message"]),
             str(filename) if filename is not None else None,

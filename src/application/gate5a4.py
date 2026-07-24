@@ -36,7 +36,11 @@ from src.contracts import (
     WorkerEventType,
 )
 from src.contracts.models import canonical_json_digest
-from src.integrations import CalendarAction, GoogleTaskAction
+from src.integrations import (
+    CalendarAction,
+    GoogleDriveAction,
+    GoogleTaskAction,
+)
 from src.core.policy import (
     InMemoryPolicyStore,
     TrustedVerifierRegistry,
@@ -244,7 +248,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             source="telegram",
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
-            permissions=("repo.read", "process.run_allowlisted"),
+            permissions=("model.inference",),
             risk=RiskLevel.LOW,
             acceptance_criteria=(
                 "Return only the outer answer JSON protocol.",
@@ -292,7 +296,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             source="telegram",
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
-            permissions=("repo.read", "process.run_allowlisted"),
+            permissions=("model.inference",),
             risk=RiskLevel.LOW,
             acceptance_criteria=(
                 "Return only the outer answer JSON protocol.",
@@ -308,6 +312,51 @@ class Gate5A4Runtime(DurableFakeRuntime):
             raise CodexCliError("worker_protocol_error")
         try:
             return GoogleTaskAction.model_validate_json(draft.answer)
+        except Exception:
+            raise CodexCliError("worker_protocol_error") from None
+
+    async def plan_google_drive_action(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> GoogleDriveAction:
+        """Convert an owner request to one closed read-only Drive action."""
+        trusted = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
+        planner_instruction = (
+            "You are a strict Google Drive intent parser. Do not use tools, "
+            "browse, or read files. Convert owner_request into one compact JSON "
+            "object with exactly these keys: kind,query. kind is none, search, "
+            "or download. query is the owner-provided file name or search phrase. "
+            "Use download when the owner asks to send, attach, download, or return "
+            "a Drive file; otherwise use search for a Drive lookup. If this is not "
+            "a Google Drive request, return kind none and query null. Return the "
+            "action JSON as the string value of the outer answer protocol. "
+            f"owner_request={json.dumps(instruction, ensure_ascii=False)}"
+        )
+        contract = TaskContract(
+            task_id=uuid4(),
+            idempotency_key=trusted.idempotency_key,
+            ingress_digest=trusted.envelope_revision,
+            tenant_id=trusted.tenant_id,
+            source="telegram",
+            instruction=planner_instruction,
+            allowed_paths=(self._allowed_path,),
+            permissions=("model.inference",),
+            risk=RiskLevel.LOW,
+            acceptance_criteria=(
+                "Return only the outer answer JSON protocol.",
+                "The answer value is one strict Google Drive action JSON object.",
+                "Do not use tools or access Google Drive.",
+            ),
+            timeout_seconds=120,
+            quality_profile="google-drive-intent-v1",
+        )
+        result = await self._execute_worker(contract)
+        draft = parse_codex_draft(result.message, self._pipeline.root)
+        if not isinstance(draft, CodexAnswerDraft):
+            raise CodexCliError("worker_protocol_error")
+        try:
+            return GoogleDriveAction.model_validate_json(draft.answer)
         except Exception:
             raise CodexCliError("worker_protocol_error") from None
 

@@ -250,6 +250,8 @@ def _product(
     calendar_service: object | None = None,
     google_tasks_planner: object | None = None,
     google_tasks_service: object | None = None,
+    google_drive_planner: object | None = None,
+    google_drive_service: object | None = None,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -284,6 +286,8 @@ def _product(
         calendar_service=calendar_service,
         google_tasks_planner=google_tasks_planner,
         google_tasks_service=google_tasks_service,
+        google_drive_planner=google_drive_planner,
+        google_drive_service=google_drive_service,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),

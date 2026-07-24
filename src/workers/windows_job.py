@@ -13,6 +13,7 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 from src.workers.codex_cli import (
+    _INTENT_ARGV,
     _RATE_LIMIT_ARGV,
     _READ_ARGV,
     _SAFE_ENV,
@@ -23,7 +24,7 @@ from src.workers.codex_cli import (
 
 
 _ARGV_PROFILES = frozenset(
-    {_READ_ARGV, _WEB_ARGV, _WRITE_ARGV, _RATE_LIMIT_ARGV}
+    {_READ_ARGV, _WEB_ARGV, _WRITE_ARGV, _RATE_LIMIT_ARGV, _INTENT_ARGV}
 )
 _CREATE_FLAGS = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
 _KILL_ON_JOB_CLOSE = 0x00002000

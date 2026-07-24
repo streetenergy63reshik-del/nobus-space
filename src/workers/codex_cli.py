@@ -47,6 +47,28 @@ _READ_ARGV = (
     "-",
 )
 _WRITE_ARGV = (*_READ_ARGV[:-3], "--sandbox", "workspace-write", "-")
+_INTENT_ARGV = (
+    *_READ_ARGV[:-3],
+    "--config",
+    "features.shell_tool=false",
+    "--config",
+    "features.shell_snapshot=false",
+    "--config",
+    "features.multi_agent=false",
+    "--config",
+    "features.apps=false",
+    "--config",
+    "features.goals=false",
+    "--config",
+    "features.hooks=false",
+    "--config",
+    "features.remote_plugin=false",
+    "--config",
+    'approval_policy="never"',
+    "--sandbox",
+    "read-only",
+    "-",
+)
 _WEB_ARGV = tuple(
     'web_search="live"' if value == 'web_search="disabled"' else value
     for value in _READ_ARGV
@@ -61,6 +83,7 @@ _RATE_LIMIT_ARGV = (
 )
 _KNOWN_PERMISSIONS = frozenset(
     {
+        "model.inference",
         "owner.library.read",
         "repo.read",
         "repo.write",
@@ -373,10 +396,16 @@ class CodexCliAdapter:
     async def execute(self, contract: TaskContract) -> CodexCliResult:
         """Execute a validated contract without inheriting ambient authority."""
         permissions = frozenset(contract.permissions)
+        intent_only = permissions == {"model.inference"}
         owner_read = _OWNER_READ_PERMISSION in permissions
         if (
             not permissions.issubset(_KNOWN_PERMISSIONS)
-            or not {"repo.read", "process.run_allowlisted"}.issubset(permissions)
+            or (
+                not intent_only
+                and not {"repo.read", "process.run_allowlisted"}.issubset(
+                    permissions
+                )
+            )
             or contract.timeout_seconds > self._max_timeout_seconds
             or (
                 owner_read
@@ -418,7 +447,9 @@ class CodexCliAdapter:
         prompt = self._build_prompt(contract, owner_projection)
 
         argv = (
-            _WRITE_ARGV
+            _INTENT_ARGV
+            if intent_only
+            else _WRITE_ARGV
             if "repo.write" in permissions
             else _WEB_ARGV
             if "web.search" in permissions
@@ -494,6 +525,7 @@ class CodexCliAdapter:
         return self._parse_stdout(
             output.stdout,
             allow_file_changes="repo.write" in permissions,
+            allow_tool_events=not intent_only,
             working_directory=cwd,
         )
 
@@ -574,6 +606,7 @@ class CodexCliAdapter:
         raw: bytes,
         *,
         allow_file_changes: bool,
+        allow_tool_events: bool = True,
         working_directory: Path,
     ) -> CodexCliResult:
         invalid = False
@@ -641,6 +674,11 @@ class CodexCliAdapter:
                     if terminal is not None and not (
                         item_type == "todo_list" and event_type == "item.completed"
                     ):
+                        raise ValueError
+                    if not allow_tool_events and item_type not in {
+                        "agent_message",
+                        "reasoning",
+                    }:
                         raise ValueError
                     if item_type == "file_change":
                         self._validate_file_change(

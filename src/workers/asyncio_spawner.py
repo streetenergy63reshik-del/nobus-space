@@ -12,6 +12,7 @@ from typing import Any
 
 from src.workers.codex_cli import (
     ProcessOutput,
+    _INTENT_ARGV,
     _RATE_LIMIT_ARGV,
     _READ_ARGV,
     _SAFE_ENV,
@@ -21,7 +22,9 @@ from src.workers.codex_cli import (
 )
 
 
-_ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV, _WEB_ARGV, _RATE_LIMIT_ARGV})
+_ARGV_PROFILES = frozenset(
+    {_READ_ARGV, _WRITE_ARGV, _WEB_ARGV, _RATE_LIMIT_ARGV, _INTENT_ARGV}
+)
 _READ_CHUNK = 64 * 1024
 TreeKiller = Callable[[asyncio.subprocess.Process], Awaitable[None]]
 

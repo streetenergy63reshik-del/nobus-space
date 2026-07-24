@@ -13,6 +13,9 @@ from typing import Any, Callable, Protocol
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+_MAX_PAGES = 100
+
+
 class GoogleTaskActionKind(str, Enum):
     NONE = "none"
     LIST = "list"
@@ -236,9 +239,13 @@ class GoogleTasksClient:
 
     def _tasklist_sync(self, name: str | None) -> tuple[str, str]:
         try:
-            values = self._service().tasklists().list(maxResults=100).execute()
-            items = values.get("items", [])
-            if not isinstance(items, list) or not items:
+            items = self._pages(
+                lambda token: self._service()
+                .tasklists()
+                .list(maxResults=100, pageToken=token)
+                .execute()
+            )
+            if not items:
                 raise RuntimeError("google_tasklist_not_found")
             candidates = [
                 item
@@ -271,15 +278,18 @@ class GoogleTasksClient:
         self, tasklist_id: str, tasklist_title: str
     ) -> tuple[GoogleTaskItem, ...]:
         try:
-            values = self._service().tasks().list(
-                tasklist=tasklist_id,
-                maxResults=100,
-                showCompleted=True,
-                showHidden=True,
-            ).execute()
-            items = values.get("items", [])
-            if not isinstance(items, list):
-                raise ValueError
+            items = self._pages(
+                lambda token: self._service()
+                .tasks()
+                .list(
+                    tasklist=tasklist_id,
+                    maxResults=100,
+                    showCompleted=True,
+                    showHidden=True,
+                    pageToken=token,
+                )
+                .execute()
+            )
             return tuple(
                 self._item(item, tasklist_id, tasklist_title) for item in items
             )
@@ -310,15 +320,18 @@ class GoogleTasksClient:
         exact_marker: str,
     ) -> GoogleTaskItem | None:
         try:
-            values = self._service().tasks().list(
-                tasklist=tasklist_id,
-                maxResults=100,
-                showCompleted=True,
-                showHidden=True,
-            ).execute()
-            raw_items = values.get("items", [])
-            if not isinstance(raw_items, list):
-                raise ValueError
+            raw_items = self._pages(
+                lambda token: self._service()
+                .tasks()
+                .list(
+                    tasklist=tasklist_id,
+                    maxResults=100,
+                    showCompleted=True,
+                    showHidden=True,
+                    pageToken=token,
+                )
+                .execute()
+            )
             matched = [
                 item
                 for item in raw_items
@@ -336,6 +349,28 @@ class GoogleTasksClient:
             raise
         except Exception:
             raise RuntimeError("google_tasks_read_failed") from None
+
+    @staticmethod
+    def _pages(fetch: Callable[[str | None], object]) -> list[object]:
+        items: list[object] = []
+        token: str | None = None
+        seen: set[str] = set()
+        for _ in range(_MAX_PAGES):
+            values = fetch(token)
+            if not isinstance(values, dict):
+                raise ValueError
+            page = values.get("items", [])
+            if not isinstance(page, list):
+                raise ValueError
+            items.extend(page)
+            next_token = values.get("nextPageToken")
+            if next_token is None:
+                return items
+            if not _safe_text(next_token, 2_048) or next_token in seen:
+                raise RuntimeError("google_tasks_pagination_invalid")
+            seen.add(next_token)
+            token = next_token
+        raise RuntimeError("google_tasks_pagination_invalid")
 
     def _delete_sync(self, tasklist_id: str, task_id: str) -> None:
         try:

@@ -8,6 +8,13 @@ from .google_calendar import (
     CalendarResult,
     GoogleCalendarClient,
 )
+from .google_drive import (
+    GoogleDriveAction,
+    GoogleDriveActionKind,
+    GoogleDriveClient,
+    GoogleDriveFile,
+    GoogleDriveResult,
+)
 from .google_tasks import (
     GoogleTaskAction,
     GoogleTaskActionKind,
@@ -23,6 +30,11 @@ __all__ = [
     "CalendarResult",
     "CalendarService",
     "GoogleCalendarClient",
+    "GoogleDriveAction",
+    "GoogleDriveActionKind",
+    "GoogleDriveClient",
+    "GoogleDriveFile",
+    "GoogleDriveResult",
     "GoogleTaskAction",
     "GoogleTaskActionKind",
     "GoogleTaskItem",
