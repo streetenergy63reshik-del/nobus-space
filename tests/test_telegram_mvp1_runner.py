@@ -70,6 +70,22 @@ def test_live_polling_lease_covers_only_telegram_processing() -> None:
     assert runner._POLLING_LEASE_SECONDS < 300
 
 
+def test_production_runtime_uses_one_canonical_database_directory() -> None:
+    assert runner._RUNTIME_ROOT == runner.ROOT / ".runtime"
+    paths = (
+        runner._CHECKPOINT_PATH,
+        runner._TASK_RUNTIME_PATH,
+        runner._TELEGRAM_STATE_PATH,
+    )
+
+    assert {path.parent for path in paths} == {runner._RUNTIME_ROOT}
+    assert {path.name for path in paths} == {
+        "telegram-checkpoint.sqlite3",
+        "task-runtime.sqlite3",
+        "telegram-state.sqlite3",
+    }
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure_stage", ["worker", "voice"] )
 async def test_failed_startup_probe_prevents_control_polling_and_announcement(

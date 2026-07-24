@@ -21,10 +21,8 @@ if str(ROOT) not in sys.path:
 
 from scripts.run_telegram_control import (  # noqa: E402
     _BINDING_PATH,
-    _CHECKPOINT_PATH,
     _CREDENTIAL_TARGET,
     _EXPECTED_USERNAME,
-    _TASK_RUNTIME_PATH,
     _arguments,
     _bootstrap_checkpoint,
     _poll_once_and_announce,
@@ -94,6 +92,8 @@ _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
 _POLLING_LEASE_SECONDS = 240
+_CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
+_TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
 _OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"

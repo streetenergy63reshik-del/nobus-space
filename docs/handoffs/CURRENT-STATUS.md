@@ -1,9 +1,11 @@
 # QUEUE-1-2-2026-07-24 — release candidate before live L4
 
 **Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; exact owner L4 live release pending.
-**Verification:** 886 passed, 2 skipped, 1 known warning; compileall, pip check,
+**Verification:** 887 passed, 2 skipped, 1 known warning; compileall, pip check,
 PowerShell parse, quality-memory validation and diff-check PASS. Independent L2 and
-L3: ACCEPT, P0/P1/P2 absent.
+L3: ACCEPT, P0/P1/P2 absent. Release preflight also fixed and independently accepted
+the production wiring invariant: all three canonical runtime databases share
+`ROOT/.runtime`, matching backup, health and restore.
 **Live state:** runner, Task Scheduler, workspace and live branch are intentionally not
 updated by this release cycle; live remains clean at `74b182a`.
 
