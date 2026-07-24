@@ -221,13 +221,27 @@ class SQLiteTelegramState:
         lease_id = uuid4()
         try:
             with self._transaction() as connection:
+                # Effects may already have an externally completed, durable result.
+                # An expired third lease must therefore recover instead of losing
+                # the owner-visible delivery after a power loss.
+                connection.execute(
+                    """UPDATE telegram_jobs
+                       SET status='pending',attempt_count=0,failure_code=NULL,
+                           lease_id=NULL,lease_owner=NULL,
+                           lease_expires_at=NULL,updated_at=?
+                       WHERE kind='effect' AND attempt_count>=? AND (
+                           status='pending' OR
+                           (status='leased' AND lease_expires_at<=?)
+                       )""",
+                    (now.isoformat(), MAX_JOB_CLAIMS, now.isoformat()),
+                )
                 connection.execute(
                     """UPDATE telegram_jobs
                        SET status='failed',
                            failure_code='runtime_job_attempts_exhausted',
                            lease_id=NULL,lease_owner=NULL,
                            lease_expires_at=NULL,updated_at=?
-                       WHERE attempt_count>=? AND (
+                       WHERE kind!='effect' AND attempt_count>=? AND (
                            status='pending' OR
                            (status='leased' AND lease_expires_at<=?)
                        )""",
