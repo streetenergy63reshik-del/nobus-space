@@ -1,3 +1,41 @@
+# Nobus Space Orchestrator v2 — owner command and Calendar RC
+
+**Status:** LOCAL RC — L1 PASS; independent L2/L3 in progress; live not published.
+**Commits:** `4861439`, `9447832`.
+**Evidence:** 905 passed, 2 skipped, 1 known warning; Calendar API read-only smoke
+PASS; Google token contents were not logged or copied; `pip check` PASS;
+`git diff --check` PASS.
+
+Implemented:
+
+- exact owner text command and locally transcribed voice command have equal
+  authority for reversible allowlisted actions; no second confirmation button;
+- local Whisper `base/int8` uses explicit Russian, beam 5, VAD, disabled
+  cross-segment context and Nobus/business hotwords; startup warmup remains local;
+- Google Calendar `LIST`, `CREATE` and `UPDATE` execute immediately from natural
+  text or voice intent;
+- Calendar `DELETE` resolves exactly one event and requires a separate
+  tenant/user/chat/event-bound one-shot owner button;
+- create uses deterministic Google event ID; same idempotency key with another
+  payload is rejected;
+- exact `/document`, `/download` and allowlisted `/network` owner commands execute
+  without a second button; Telegram delivery has three bounded attempts;
+- normal Codex execution deadline remains 10 800 seconds (3 hours); the
+  120-second boundary is only the tool-free Calendar intent parser;
+- `/calendar` is prepared for Bot Menu but has not been externally published.
+
+Not yet included in this RC:
+
+- Google Tasks and Drive adapters;
+- Business Notes topic binding, indexing, summaries and task extraction;
+- larger/off-device speech model evaluation;
+- v2 live activation, owner smoke, crash/restart and rollback drill.
+
+The accepted live runner remains on the previous revision until L2/L3 and the
+release preflight complete. Remote and push remain disabled.
+
+---
+
 # Queue 1/2 reliability hotfix — voice recovery and runner continuity
 
 **Status:** ACCEPTED LOCAL RC — L1/L2/L3 PASS; exact owner L4 live release pending.
