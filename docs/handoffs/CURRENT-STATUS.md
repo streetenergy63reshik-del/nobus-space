@@ -2,11 +2,11 @@
 
 **Дата:** 2026-07-25
 **Runtime feature commit:** `33b35f7`
-**Live commit до переключения:** `420c9a6`
-**Статус:** PERSISTENT MOBILE CODEX — RELEASE CANDIDATE
+**Live release commit:** `bec5f47`
+**Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
-## Кандидат 25 июля 2026
+## Релиз 25 июля 2026
 
 - Production worker переведён с одноразового `codex exec --json/ephemeral` на
   официальный persistent `openai-codex` SDK/app-server `0.144.4`.
@@ -28,10 +28,11 @@
 - L3 fault injection: `208 passed, 2 skipped, 880 deselected, 1 warning`.
 - Внешнее AI-review полного дерева не выполнялось: protective egress boundary
   заблокировал передачу незакоммиченного кода без отдельного разрешения.
-- Live publication, Google `NOBUS-SMOKE`, Business Notes owner marker и rollback
-  receipt выполняются только после документационного commit и свежего backup.
+- Live publication и Google `NOBUS-SMOKE` завершены после документационного
+  commit и свежего проверенного backup. Business Notes ожидает точный owner
+  marker `#NOBUS-BIND-NOTES` в разрешённой группе.
 
-## Что входит в кандидат
+## Что входит в релиз
 
 | Контур | Текущее состояние |
 |---|---|
@@ -59,7 +60,7 @@
 
 ## Проверки текущей итерации
 
-- Полный L1/L2 regression: `1068 passed, 2 skipped, 1 warning`.
+- Полный L1/L2 regression: `1088 passed, 2 skipped, 1 warning`.
 - Calendar/Tasks/Drive read-only API health: PASS; OAuth ready, содержимое
   объектов и секреты не выводились.
 - Google Tasks all-lists L3: 21 список прочитан с полной пагинацией; на неделю
@@ -83,12 +84,15 @@
 
 - Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
   tree is active.
-- Main и локальная live-ветка включают feature commit `dbdf630`; remote/push не
+- Main и локальная live-ветка синхронизированы на `bec5f47`; remote/push не
   выполнялись.
-- Startup Codex probe and cached Whisper warmup completed before Telegram polling.
+- Startup Codex probe and cached Whisper warmup завершились до Telegram polling:
+  активный polling lease подтверждён после запуска.
 - Runtime health: `PASS`; all four canonical SQLite databases are valid.
+- Calendar/Tasks `NOBUS-SMOKE` create/update/delete: PASS; созданные этой
+  проверкой объекты удалены. Google Drive read/search: PASS.
 - Verified pre-release four-database backup:
-  `ОРКЕСТРАТОР/Backups/2026-07-25 pre-release e9007e9`.
+  `ОРКЕСТРАТОР/Backups/2026-07-25-pre-mobile-codex-runtime-release-bec5f47`.
 - Telegram polling checkpoint advanced after restart.
 - Nobus Memory live retrieval: PASS; Inbox excluded until curation; vault docs commit `4a8d268`.
 - Pre-memory runtime backup: `ОРКЕСТРАТОР/Backups/2026-07-25-pre-nobus-memory`.
