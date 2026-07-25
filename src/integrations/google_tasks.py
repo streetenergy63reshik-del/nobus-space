@@ -34,6 +34,8 @@ class GoogleTaskAction(BaseModel):
     list_name: str | None = Field(default=None, max_length=1_024)
     notes: str | None = Field(default=None, max_length=8_000)
     due: date | None = None
+    due_from: date | None = None
+    due_to: date | None = None
 
     @model_validator(mode="after")
     def validate_action(self) -> "GoogleTaskAction":
@@ -49,9 +51,25 @@ class GoogleTaskAction(BaseModel):
                     self.list_name,
                     self.notes,
                     self.due,
+                    self.due_from,
+                    self.due_to,
                 )
             ):
                 raise ValueError("none task action must be empty")
+        elif self.kind is GoogleTaskActionKind.LIST:
+            if (self.due_from is None) != (self.due_to is None):
+                raise ValueError("task list date range is incomplete")
+            if any(
+                value is not None
+                for value in (self.title, self.target, self.notes, self.due)
+            ):
+                raise ValueError("task list action contains unsupported fields")
+            if (
+                self.due_from is not None
+                and self.due_to is not None
+                and self.due_from > self.due_to
+            ):
+                raise ValueError("task list date range is invalid")
         elif self.kind is GoogleTaskActionKind.CREATE and self.title is None:
             raise ValueError("task title is missing")
         elif self.kind in {
@@ -64,6 +82,10 @@ class GoogleTaskAction(BaseModel):
             value is None for value in (self.title, self.notes, self.due)
         ):
             raise ValueError("task update is empty")
+        if self.kind is not GoogleTaskActionKind.LIST and any(
+            value is not None for value in (self.due_from, self.due_to)
+        ):
+            raise ValueError("task list date range is not allowed")
         return self
 
 
@@ -82,7 +104,7 @@ class GoogleTaskItem(BaseModel):
 class GoogleTaskResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
-    message: str = Field(min_length=1, max_length=3_400)
+    message: str = Field(min_length=1, max_length=64_000)
     item: GoogleTaskItem | None = None
 
 
@@ -161,20 +183,9 @@ class GoogleTasksClient:
     def _execute_sync(
         self, action: GoogleTaskAction, idempotency_key: str
     ) -> GoogleTaskResult:
-        tasklist_id, tasklist_title = self._tasklist_sync(action.list_name)
         if action.kind is GoogleTaskActionKind.LIST:
-            items = self._items_sync(tasklist_id, tasklist_title)
-            active = [item for item in items if item.status == "needsAction"]
-            if not active:
-                return GoogleTaskResult(message="Активных задач нет.")
-            lines = [
-                f"• {item.title}"
-                + (f" — до {item.due:%d.%m.%Y}" if item.due else "")
-                for item in active[:30]
-            ]
-            return GoogleTaskResult(
-                message=f"Задачи · {tasklist_title}:\n\n" + "\n".join(lines)
-            )
+            return self._list_result_sync(action)
+        tasklist_id, tasklist_title = self._tasklist_sync(action.list_name)
         key_marker = _marker(idempotency_key)
         action_digest = hashlib.sha256(
             json.dumps(
@@ -237,7 +248,7 @@ class GoogleTasksClient:
             self._item(raw, current.tasklist_id, current.tasklist_title),
         )
 
-    def _tasklist_sync(self, name: str | None) -> tuple[str, str]:
+    def _tasklists_sync(self) -> tuple[tuple[str, str], ...]:
         try:
             items = self._pages(
                 lambda token: self._service()
@@ -245,34 +256,91 @@ class GoogleTasksClient:
                 .list(maxResults=100, pageToken=token)
                 .execute()
             )
-            if not items:
-                raise RuntimeError("google_tasklist_not_found")
             candidates = [
-                item
+                (item["id"], item["title"])
                 for item in items
                 if isinstance(item, dict)
                 and _safe_text(item.get("id"), 2_048)
                 and _safe_text(item.get("title"), 1_024)
             ]
-            if name is None:
-                selected = candidates[:1]
-            else:
-                selected = [
-                    item
-                    for item in candidates
-                    if item["title"].casefold() == name.strip().casefold()
-                ]
+            if not candidates:
+                raise RuntimeError("google_tasklist_not_found")
+            return tuple(candidates)
+        except RuntimeError:
+            raise
+        except Exception:
+            raise RuntimeError("google_tasks_read_failed") from None
+
+    def _tasklist_sync(self, name: str | None) -> tuple[str, str]:
+        candidates = self._tasklists_sync()
+        selected = (
+            candidates[:1]
+            if name is None
+            else [
+                item
+                for item in candidates
+                if item[1].casefold() == name.strip().casefold()
+            ]
+        )
+        try:
             if len(selected) != 1:
                 raise RuntimeError(
                     "google_tasklist_not_found"
                     if not selected
                     else "google_tasklist_ambiguous"
                 )
-            return selected[0]["id"], selected[0]["title"]
+            return selected[0]
         except RuntimeError:
             raise
         except Exception:
             raise RuntimeError("google_tasks_read_failed") from None
+
+    def _list_result_sync(self, action: GoogleTaskAction) -> GoogleTaskResult:
+        tasklists = (
+            self._tasklists_sync()
+            if action.list_name is None
+            else (self._tasklist_sync(action.list_name),)
+        )
+        sections: list[str] = []
+        for tasklist_id, tasklist_title in tasklists:
+            active = [
+                item
+                for item in self._items_sync(tasklist_id, tasklist_title)
+                if item.status == "needsAction"
+                and (
+                    action.due_from is None
+                    or (
+                        item.due is not None
+                        and action.due_from <= item.due <= action.due_to
+                    )
+                )
+            ]
+            if not active:
+                continue
+            active.sort(
+                key=lambda item: (
+                    item.due is None,
+                    item.due or date.max,
+                    item.title.casefold(),
+                )
+            )
+            lines = [
+                f"• {item.title}"
+                + (f" — до {item.due:%d.%m.%Y}" if item.due else "")
+                for item in active
+            ]
+            sections.append(f"{tasklist_title}\n" + "\n".join(lines))
+        if not sections:
+            return GoogleTaskResult(message="Активных задач нет.")
+        heading = (
+            f"Незавершённые задачи с {action.due_from:%d.%m.%Y} "
+            f"по {action.due_to:%d.%m.%Y}"
+            if action.due_from is not None and action.due_to is not None
+            else "Незавершённые задачи"
+        )
+        return GoogleTaskResult(
+            message=heading + "\n\n" + "\n\n".join(sections)
+        )
 
     def _items_sync(
         self, tasklist_id: str, tasklist_title: str

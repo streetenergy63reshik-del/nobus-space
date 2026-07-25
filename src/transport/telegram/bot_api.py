@@ -667,6 +667,32 @@ class TelegramPollingBoundary:
             raise TelegramBotApiError("telegram_checkpoint_failed")
         return result
 
+
+_STATUS_MESSAGE_CHUNK = 3_400
+
+
+def _status_message_chunks(value: str) -> tuple[str, ...]:
+    if not isinstance(value, str) or not value:
+        raise ValueError("Telegram status message is invalid")
+    chunks: list[str] = []
+    current = ""
+    for line in value.splitlines(keepends=True):
+        while len(line) > _STATUS_MESSAGE_CHUNK:
+            if current:
+                chunks.append(current.rstrip())
+                current = ""
+            chunks.append(line[:_STATUS_MESSAGE_CHUNK].rstrip())
+            line = line[_STATUS_MESSAGE_CHUNK:]
+        if len(current) + len(line) > _STATUS_MESSAGE_CHUNK:
+            chunks.append(current.rstrip())
+            current = line
+        else:
+            current += line
+    if current:
+        chunks.append(current.rstrip())
+    return tuple(chunk for chunk in chunks if chunk)
+
+
 class TelegramStatusSender:
     """Render one content-free outbox record for an exact tenant destination."""
 
@@ -721,7 +747,8 @@ class TelegramStatusSender:
         ):
             return False
         text = _status_text(validated, technical_details=self._technical_details)
-        await self._api.send_message(binding[1], text)
+        for chunk in _status_message_chunks(text):
+            await self._api.send_message(binding[1], chunk)
         return True
 
 

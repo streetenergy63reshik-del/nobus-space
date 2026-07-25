@@ -766,6 +766,53 @@ async def test_product_status_sender_never_exposes_internal_identifiers() -> Non
 
 
 @pytest.mark.asyncio
+async def test_product_status_sender_delivers_long_verified_answer_in_chunks() -> None:
+    sent: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return response({"message_id": len(sent), "chat": {"id": 42}})
+
+    api = api_for(handler)
+    sender = TelegramStatusSender(
+        api,
+        {"tenant-a": (DESTINATION_REF, 42)},
+        technical_details=False,
+    )
+    original = outbox_message(TaskStatus.ANSWERED)
+    answer = "\n".join(
+        f"Раздел {index}: " + "x" * 120 for index in range(80)
+    )
+    fingerprint = message_fingerprint(
+        tenant_id=original.tenant_id,
+        task_id=original.task_id,
+        task_revision=original.task_revision,
+        task_projection_digest=original.task_projection_digest,
+        contract_digest=original.contract_digest,
+        result_revision=original.result_revision,
+        result_digest=original.result_digest,
+        destination_ref=original.destination_ref,
+        task_status=original.task_status,
+        user_message=answer,
+    )
+    message = original.model_copy(
+        update={
+            "message_fingerprint": fingerprint,
+            "message_id": message_id_for(fingerprint),
+            "user_message": answer,
+        }
+    )
+    try:
+        assert await sender(message)
+    finally:
+        await api.aclose()
+
+    assert len(sent) > 1
+    assert all(len(item["text"]) <= 3_400 for item in sent)
+    assert "".join(item["text"] for item in sent).replace("\n", "") == answer.replace("\n", "")
+
+
+@pytest.mark.asyncio
 async def test_product_status_sender_requires_strict_mode_flag() -> None:
     api = api_for(lambda request: response({"message_id": 1, "chat": {"id": 42}}))
     try:

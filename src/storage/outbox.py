@@ -47,7 +47,9 @@ class OutboxMessage(BaseModel):
     destination_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     template_id: str = Field(pattern=r"^task_status$")
     task_status: TaskStatus
-    user_message: str | None = Field(default=None, min_length=1, max_length=3_400)
+    user_message: str | None = Field(
+        default=None, min_length=1, max_length=128 * 1024
+    )
     status: OutboxStatus
     attempt_count: StrictInt = Field(ge=0)
     max_attempts: StrictInt = Field(ge=1, le=10)

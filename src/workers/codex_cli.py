@@ -629,7 +629,7 @@ class CodexCliAdapter:
                 "user-facing. Format it for Telegram plain text: a short heading "
                 "when useful, blank lines between sections, and bullets for lists; "
                 "avoid dense walls of text and Markdown tables. Keep the complete "
-                "answer within 3400 characters and omit internal identifiers, local "
+                "answer within 12000 characters and omit internal identifiers, local "
                 "paths and implementation metadata unless explicitly requested. "
                 "Only when repository changes are needed use "
                 "{\"summary\":\"...\",\"patch\":\"<unified git diff>\","

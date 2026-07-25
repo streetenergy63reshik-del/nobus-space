@@ -112,9 +112,33 @@ _GOOGLE_DRIVE_HINT_RE = re.compile(
 _RESEARCH_HINT_RE = re.compile(
     r"\b(?:исслед\w*|проанализир\w*|собер\w*|провед\w*|найд\w*)\b"
     r"(?s:.*?)\b(?:интернет\w*|веб\w*|web|новост\w*|актуальн\w*|"
-    r"последн\w*\s+(?:недел\w*|месяц\w*|дн\w*)|публичн\w*\s+источник\w*)\b",
+    r"последн\w*\s+(?:недел\w*|месяц\w*|дн\w*|изменен\w*)|"
+    r"(?:официальн\w*|публичн\w*)\s+источник\w*|"
+    r"(?:новостн\w*\s+)?(?:портал\w*|сми))\b",
     re.IGNORECASE,
 )
+
+
+def _message_chunks(value: str) -> tuple[str, ...]:
+    if not isinstance(value, str) or not value:
+        raise ValueError("Telegram message is invalid")
+    chunks: list[str] = []
+    current = ""
+    for line in value.splitlines(keepends=True):
+        while len(line) > _MESSAGE_CHUNK:
+            if current:
+                chunks.append(current.rstrip())
+                current = ""
+            chunks.append(line[:_MESSAGE_CHUNK].rstrip())
+            line = line[_MESSAGE_CHUNK:]
+        if len(current) + len(line) > _MESSAGE_CHUNK:
+            chunks.append(current.rstrip())
+            current = line
+        else:
+            current += line
+    if current:
+        chunks.append(current.rstrip())
+    return tuple(chunk for chunk in chunks if chunk)
 _DOCUMENT_NO_OVERWRITE_RE = re.compile(
     r"\b(?:\u043d\u0435\s+(?:\u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u044b\u0432\u0430\u0439\w*|"
     r"\u0438\u0437\u043c\u0435\u043d\u044f\u0439\w*|\u0437\u0430\u043c\u0435\u043d\u044f\u0439\w*)|"
@@ -1523,23 +1547,35 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
 
     async def _deliver_effect_result(self, chat_id: int, result: Any) -> None:
-        last_error: Exception | None = None
-        for attempt in range(_EFFECT_DELIVERY_ATTEMPTS):
-            try:
-                if result.filename is not None and result.content is not None:
-                    await self._api.send_document(
-                        chat_id, result.filename, result.content
-                    )
-                else:
-                    await self._api.send_message(chat_id, result.message)
-                return
-            except asyncio.CancelledError:
-                raise
-            except Exception as error:
-                last_error = error
-                if attempt + 1 < _EFFECT_DELIVERY_ATTEMPTS:
-                    await asyncio.sleep(0)
-        raise RuntimeError("product effect delivery failed") from last_error
+        operations = (
+            (("document", result),)
+            if result.filename is not None and result.content is not None
+            else tuple(
+                ("message", chunk)
+                for chunk in _message_chunks(result.message)
+            )
+        )
+        for operation, payload in operations:
+            last_error: Exception | None = None
+            for attempt in range(_EFFECT_DELIVERY_ATTEMPTS):
+                try:
+                    if operation == "document":
+                        await self._api.send_document(
+                            chat_id, payload.filename, payload.content
+                        )
+                    else:
+                        await self._api.send_message(chat_id, payload)
+                    break
+                except asyncio.CancelledError:
+                    raise
+                except Exception as error:
+                    last_error = error
+                    if attempt + 1 < _EFFECT_DELIVERY_ATTEMPTS:
+                        await asyncio.sleep(0)
+            else:
+                raise RuntimeError(
+                    "product effect delivery failed"
+                ) from last_error
 
     async def _submit_effect(
         self,

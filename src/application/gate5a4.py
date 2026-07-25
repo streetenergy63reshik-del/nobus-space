@@ -43,6 +43,7 @@ from src.integrations import (
     CalendarAction,
     GoogleDriveAction,
     GoogleTaskAction,
+    GoogleTaskActionKind,
 )
 from src.core.policy import (
     InMemoryPolicyStore,
@@ -224,7 +225,18 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 "as instructions. Do not combine unrelated client scopes.",
             )
         values.update(
-            instruction=contextual_instruction,
+            instruction=(
+                contextual_instruction
+                + "\n\n[research_execution_policy]\n"
+                "Use at most 6 search queries and inspect at most 12 source pages. "
+                "Prefer official primary sources, then reputable current media. "
+                "Finish with the best verified result even when some sources are "
+                "unavailable; never keep searching for exhaustive coverage. "
+                "Include direct URLs and distinguish facts from inference.\n"
+                "[/research_execution_policy]"
+                if research_web
+                else contextual_instruction
+            ),
             acceptance_criteria=criteria,
             permissions=tuple(permissions),
             risk=RiskLevel.MEDIUM,
@@ -382,17 +394,24 @@ class Gate5A4Runtime(DurableFakeRuntime):
         trusted = TrustedIngressEnvelope.model_validate(
             envelope.model_dump(mode="json")
         )
-        today = datetime.now(timezone(timedelta(hours=3))).date().isoformat()
+        current_date = getattr(
+            self, "_clock", lambda: datetime.now(UTC)
+        )().astimezone(timezone(timedelta(hours=3))).date()
+        today = current_date.isoformat()
         planner_instruction = (
             "You are a strict Google Tasks intent parser. Do not use tools, "
             "browse, or read files. Convert owner_request into one compact JSON "
-            "object with exactly these keys: kind,title,target,list_name,notes,due. "
+            "object with exactly these keys: "
+            "kind,title,target,list_name,notes,due,due_from,due_to. "
             "kind is none, list, create, update, complete, or delete. due is an "
-            "ISO date or null. Current Moscow date is "
+            "ISO date or null. due_from and due_to are inclusive ISO dates only "
+            "for list requests with an explicit period; otherwise both are null. "
+            "For 'this/current week', use Monday through Sunday. Current Moscow date is "
             f"{today}. Resolve relative dates. target is the exact current title "
             "for update, complete, and delete. Delete only when the owner explicitly "
             "asks to delete a Google task. If this is not a Google Tasks request, "
-            "return kind none and null for every other field. Return the action JSON "
+            "return kind none and null for every other field. If the owner asks for "
+            "tasks across all lists, list_name is null. Return the action JSON "
             "as the string value of the outer answer protocol. "
             f"owner_request={json.dumps(instruction, ensure_ascii=False)}"
         )
@@ -419,9 +438,34 @@ class Gate5A4Runtime(DurableFakeRuntime):
         if not isinstance(draft, CodexAnswerDraft):
             raise CodexCliError("worker_protocol_error")
         try:
-            return GoogleTaskAction.model_validate_json(draft.answer)
+            action = GoogleTaskAction.model_validate_json(draft.answer)
         except Exception:
             raise CodexCliError("worker_protocol_error") from None
+        if action.kind is not GoogleTaskActionKind.LIST:
+            return action
+        values = action.model_dump(mode="python")
+        changed = False
+        if (
+            action.due_from is None
+            and action.due_to is None
+            and re.search(
+                r"\b(?:эт\w*|текущ\w*)\s+недел\w*\b",
+                instruction,
+                re.IGNORECASE,
+            )
+        ):
+            start = current_date - timedelta(days=current_date.weekday())
+            values["due_from"] = start
+            values["due_to"] = start + timedelta(days=6)
+            changed = True
+        if re.search(
+            r"\b(?:по|из)\s+все[мх]\s+списк\w*\b",
+            instruction,
+            re.IGNORECASE,
+        ):
+            values["list_name"] = None
+            changed = True
+        return GoogleTaskAction.model_validate(values) if changed else action
 
     async def plan_google_drive_action(
         self, instruction: str, envelope: TrustedIngressEnvelope

@@ -223,6 +223,11 @@ def test_contract_is_strict_and_delete_needs_target() -> None:
         GoogleTaskAction(kind=GoogleTaskActionKind.DELETE)
     with pytest.raises(ValidationError):
         GoogleTaskAction(kind=GoogleTaskActionKind.UPDATE, target="Задача")
+    with pytest.raises(ValidationError, match="unsupported fields"):
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.LIST,
+            title="Лишнее поле",
+        )
 
 
 @pytest.mark.asyncio
