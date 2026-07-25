@@ -32,6 +32,26 @@ async def test_exact_supported_document_is_read_with_relative_metadata(
 
 
 @pytest.mark.asyncio
+async def test_contextual_name_without_extension_selects_longest_exact_stem(
+    tmp_path: Path,
+) -> None:
+    base = tmp_path / "КЛИЕНТЫ" / "HomeEdit" / "Каталог" / "Каталог для сертификации.xlsx"
+    variant = base.with_name("Каталог для сертификации — без настенных полок.xlsx")
+    base.parent.mkdir(parents=True)
+    base.write_bytes(b"base")
+    variant.write_bytes(b"variant")
+    service = OwnerFileService(tmp_path)
+
+    selection = await service.select(
+        "из папки Агент-Клиенты-HomeEdit-Каталог каталог для сертификации"
+    )
+
+    assert selection.document is not None
+    assert selection.document.filename == base.name
+    assert selection.choices == ()
+
+
+@pytest.mark.asyncio
 async def test_ambiguous_documents_return_paths_without_reading(
     tmp_path: Path,
 ) -> None:

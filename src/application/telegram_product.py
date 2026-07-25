@@ -68,11 +68,27 @@ _EXECUTION_QUEUE_MAXSIZE = 40
 _TERMINALIZE_ATTEMPTS = 3
 _MOSCOW = timezone(timedelta(hours=3), "MSK")
 _FILE_REQUEST_RE = re.compile(
-    r"^\s*(?:\u043f\u0440\u0438\u0448\u043b\u0438|\u043e\u0442\u043f\u0440\u0430\u0432\u044c)\s+"
+    r"^\s*(?:\u043f\u0440\u0438\u0448\u043b\u0438|\u043e\u0442\u043f\u0440\u0430\u0432\u044c|"
+    r"\u043d\u0430\u043f\u0440\u0430\u0432\u044c|\u0434\u0430\u0439)\s+"
     r"\u043c\u043d\u0435\s+(?:\u0444\u0430\u0439\u043b|\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442)\s+"
-    r"(.+\.(?:docx|html?|pdf|xlsx))\s*$",
+    r"(.+?)\s*$",
     re.IGNORECASE,
 )
+_FILE_FOLLOWUP_RE = re.compile(
+    r"\b(?:\u0438|\u0430|\u0437\u0430\u0442\u0435\u043c|\u043f\u043e\u0441\u043b\u0435)\s+"
+    r"(?:\u043f\u0440\u043e\u0430\u043d\u0430\u043b\u0438\u0437\u0438\u0440\w*|\u043f\u0440\u043e\u0447\u0438\u0442\u0430\w*|"
+    r"\u0438\u0437\u0443\u0447\w*|\u0438\u0437\u043c\u0435\u043d\w*|\u043f\u0440\u043e\u0432\u0435\u0440\w*)\b",
+    re.IGNORECASE,
+)
+
+
+def _file_request_query(value: str) -> str | None:
+    match = _FILE_REQUEST_RE.fullmatch(value)
+    if match is None or _FILE_FOLLOWUP_RE.search(match.group(1)):
+        return None
+    return match.group(1)
+
+
 _FILE_ANALYSIS_RE = re.compile(
     r"^\s*(?:\u043f\u0440\u043e\u0430\u043d\u0430\u043b\u0438\u0437\u0438\u0440\w*|\u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0439|\u0438\u0437\u0443\u0447\u0438|\u0441\u0434\u0435\u043b\u0430\u0439\s+\u0440\u0435\u0437\u044e\u043c\w*)\s+"
     r"(?:\u0444\u0430\u0439\u043b\w*|\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\w*)?\s*[\u00ab\"']?(.+?\.(?:csv|docx|html?|json|md|txt|xlsx))[\u00bb\"']?\s*$",
@@ -760,9 +776,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Неизвестная команда. Откройте меню или используйте /help.",
             )
         else:
-            match = _FILE_REQUEST_RE.fullmatch(payload.text)
-            if match is not None:
-                await self._send_owner_file(payload.chat_id, match.group(1))
+            file_query = _file_request_query(payload.text)
+            if file_query is not None:
+                await self._send_owner_file(payload.chat_id, file_query)
             else:
                 await self._start_owner_instruction(
                     payload, ingress.envelope, payload.text
@@ -934,6 +950,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             and _NOTES_PRIVATE_HINT_RE.search(normalized)
         ):
             await self._send_private_notes(message, normalized)
+            return
+        file_query = _file_request_query(normalized)
+        if file_query is not None:
+            await self._send_owner_file(message.chat_id, file_query)
             return
         file_match = _FILE_ANALYSIS_RE.fullmatch(normalized)
         if file_match is not None and self._owner_files is not None:

@@ -1514,6 +1514,10 @@ async def test_public_text_overflow_does_not_ack_without_durable_terminal_proof(
     [
         ("/file roadmap.html", "roadmap.html"),
         ("\u041f\u0440\u0438\u0448\u043b\u0438 \u043c\u043d\u0435 \u0444\u0430\u0439\u043b roadmap.html", "roadmap.html"),
+        (
+            "Направь мне документ из папки Агент-Клиенты-HomeEdit-Каталог — каталог для сертификации",
+            "из папки Агент-Клиенты-HomeEdit-Каталог — каталог для сертификации",
+        ),
     ],
 )
 async def test_owner_file_request_sends_only_selected_document(
@@ -1533,6 +1537,36 @@ async def test_owner_file_request_sends_only_selected_document(
     assert provider.queries == [query]
     assert harness.api.documents == [(USER_ID, "roadmap.html", b"safe")]
     assert harness.api.sent == []
+
+
+@pytest.mark.asyncio
+async def test_voice_file_request_uses_the_same_direct_delivery_route(
+    tmp_path: Path,
+) -> None:
+    query = "из папки Клиенты HomeEdit Каталог каталог для сертификации"
+    provider = FakeOwnerFiles(
+        OwnerFileSelection(
+            document=OwnerDocument(
+                "КЛИЕНТЫ/HomeEdit/Каталог/Каталог для сертификации.xlsx",
+                "Каталог для сертификации.xlsx",
+                b"safe",
+            )
+        )
+    )
+    harness = _product(
+        tmp_path,
+        voice=True,
+        voice_text=f"Направь мне документ {query}",
+        owner_files=provider,
+    )
+
+    await harness.control.handle(voice_update(93))
+
+    assert provider.queries == [query]
+    assert harness.api.documents == [
+        (USER_ID, "Каталог для сертификации.xlsx", b"safe")
+    ]
+    assert harness.runtime.drafted == []
 
 
 @pytest.mark.asyncio

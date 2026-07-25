@@ -26,6 +26,7 @@ _ALLOWED_SUFFIXES = frozenset(
 )
 _CONTEXT_SUFFIXES = _ALLOWED_SUFFIXES - {".pdf"}
 _WHITESPACE_RE = re.compile(r"\s+")
+_FILE_NAME_WORD_RE = re.compile(r"[^\W_]+", re.UNICODE)
 
 _SENSITIVE_TEXT_RE = re.compile(
     r"(?i)(?:api[\s_-]*key|client[\s_-]*secret|access[\s_-]*token|"
@@ -108,6 +109,10 @@ class OwnerFileContextSelection:
             raise ValueError("owner file context selection is ambiguous")
 
 
+def _normalized_file_phrase(value: str) -> str:
+    return " ".join(_FILE_NAME_WORD_RE.findall(value.casefold()))
+
+
 class OwnerFileService:
     """Select and read only approved document types under one fixed root."""
 
@@ -149,7 +154,20 @@ class OwnerFileService:
             if path.casefold() == normalized.casefold()
             or Path(path).name.casefold() == normalized.casefold()
         )
-        candidates = exact or supported
+        query_phrase = _normalized_file_phrase(normalized)
+        stem_matches = tuple(
+            (len(stem_phrase), path)
+            for path in supported
+            if (stem_phrase := _normalized_file_phrase(Path(path).stem))
+            and stem_phrase in query_phrase
+        )
+        longest_stem_matches: tuple[str, ...] = ()
+        if stem_matches:
+            longest = max(length for length, _ in stem_matches)
+            longest_stem_matches = tuple(
+                path for length, path in stem_matches if length == longest
+            )
+        candidates = exact or longest_stem_matches or supported
         if not candidates:
             return OwnerFileSelection()
         if len(candidates) > 1:

@@ -129,7 +129,8 @@ _OWNER_SENSITIVE_MARKERS = (
 )
 _OWNER_WORD_RE = re.compile(r"[^\W_]{2,}", re.UNICODE)
 _OWNER_DISCOVERY_RE = re.compile(
-    r"\b(?:find|locate|search|show|where|найд\w*|ищ\w*|покаж\w*|где)\b",
+    r"\b(?:find|locate|search|show|where|найд\w*|ищ\w*|покаж\w*|где|"
+    r"пришл\w*|отправ\w*|направ\w*)\b",
     re.IGNORECASE,
 )
 _OWNER_TARGET_RE = re.compile(
@@ -792,7 +793,10 @@ class CodexCliAdapter:
                             raise ValueError
                         agent_message_count += 1
                         agent_message_bytes += len(message.encode("utf-8"))
-                        if agent_message_count > 8 or agent_message_bytes > 32 * 1024:
+                        if (
+                            agent_message_count > 64
+                            or agent_message_bytes > 128 * 1024
+                        ):
                             raise ValueError
                         terminal = CodexCliResult(message=message.strip())
                     continue

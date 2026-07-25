@@ -1004,6 +1004,48 @@ async def test_web_stream_accepts_current_started_placeholder_action(
 
 
 @pytest.mark.asyncio
+async def test_web_stream_accepts_many_bounded_progress_messages(
+    worker_files: tuple[Path, Path, Path],
+) -> None:
+    _, allowed, _ = worker_files
+    events = [
+        '{"type":"thread.started","thread_id":"thread-1"}',
+        '{"type":"turn.started"}',
+        (
+            '{"type":"item.completed","item":{"id":"web-1",'
+            '"type":"web_search","query":"public facts",'
+            '"action":{"type":"search","query":"public facts"}}}'
+        ),
+    ]
+    events.extend(
+        (
+            '{"type":"item.completed","item":{"id":"msg-'
+            + str(index)
+            + '","type":"agent_message","text":"progress '
+            + str(index)
+            + '"}}'
+        )
+        for index in range(16)
+    )
+    events.append(
+        '{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}'
+    )
+    stdout = ("\n".join(events) + "\n").encode()
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    result = await adapter.execute(
+        make_contract(
+            allowed,
+            permissions=["model.inference", "web.search"],
+        )
+    )
+
+    assert result.message == "progress 15"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event_type,action",
     [
