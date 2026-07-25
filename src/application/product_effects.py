@@ -306,7 +306,10 @@ class ProductEffectService:
         user_id: int,
         chat_id: int,
         idempotency_key: str | None = None,
+        allow_overwrite: bool = False,
     ) -> ProductEffectChallenge:
+        if type(allow_overwrite) is not bool:
+            raise ValueError("document overwrite policy is invalid")
         parts = tuple(part.strip() for part in argument.split("|", 2))
         if len(parts) != 3 or not all(parts):
             raise ValueError("document syntax is invalid")
@@ -326,6 +329,8 @@ class ProductEffectService:
         proposal = self._workspace.propose(
             path, title=title, paragraphs=paragraphs, rows=rows
         )
+        if proposal.current_digest is not None and not allow_overwrite:
+            raise ValueError("document target already exists")
         token = self._vault.issue(
             kind=ProductEffectKind.ARTIFACT,
             tenant_id=tenant_id,
@@ -334,14 +339,26 @@ class ProductEffectService:
             payload=_artifact_payload(proposal),
             idempotency_key=idempotency_key,
         )
+        overwrite = proposal.current_digest is not None
+        diff_summary = self._workspace.diff_summary(proposal)
         return ProductEffectChallenge(
             token,
             ProductEffectKind.ARTIFACT,
             (
-                "Создать документ?\n\n"
-                f"Файл: {proposal.relative_path}\n"
-                f"Размер: {len(proposal.content)} байт\n"
-                "Запись произойдёт только после подтверждения."
+                (
+                    "Перезаписать существующий документ?\n\n"
+                    if overwrite
+                    else "Создать новый документ?\n\n"
+                )
+                + f"Файл: {proposal.relative_path}\n"
+                + f"Размер: {len(proposal.content)} байт\n"
+                + f"Byte diff: {diff_summary}\n"
+                + (
+                    "Перед заменой будет создан проверенный snapshot; "
+                    "восстановление требует точного L4."
+                    if overwrite
+                    else "Точная команда владельца авторизует создание файла."
+                )
             ),
         )
 

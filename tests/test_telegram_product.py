@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import asyncio
 import json
 from dataclasses import dataclass
@@ -140,6 +141,22 @@ class FakeProductRuntime:
 
     async def prepare_instruction(self, instruction: str, envelope: object) -> PreparedTask:
         return await self.base.prepare_instruction(instruction, envelope)
+
+    async def prepare_instruction_with_context(
+        self,
+        instruction: str,
+        relative_path: str,
+        content_digest: str,
+        envelope: object,
+    ) -> PreparedTask:
+        encoded = base64.urlsafe_b64encode(
+            relative_path.encode("utf-8")
+        ).decode("ascii").rstrip("=")
+        referenced = (
+            f"{instruction}\n\n[owner_file_context_ref]"
+            f"{content_digest}:{encoded}[/owner_file_context_ref]"
+        )
+        return await self.base.prepare_instruction(referenced, envelope)
 
     async def cancel_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
         return await self.base.cancel_prepared(prepared)

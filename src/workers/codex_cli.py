@@ -106,6 +106,7 @@ _ERROR_MESSAGES = {
     "worker_failed": "Codex worker failed.",
     "worker_protocol_error": "Codex worker returned invalid output.",
     "worker_output_too_large": "Codex worker output is too large.",
+    "worker_context_unavailable": "Selected owner file changed or is unavailable.",
 }
 
 _OWNER_SCAN_LIMIT = 50_000
@@ -624,8 +625,11 @@ class CodexCliAdapter:
                 "Return exactly one JSON object and no markdown or prose. "
                 "For an informational/read-only result use {\"answer\":\"...\"}. "
                 "Write the answer in the instruction's language, concise and "
-                "user-facing; omit internal identifiers, local paths and "
-                "implementation metadata unless explicitly requested. "
+                "user-facing. Format it for Telegram plain text: a short heading "
+                "when useful, blank lines between sections, and bullets for lists; "
+                "avoid dense walls of text and Markdown tables. Keep the complete "
+                "answer within 3400 characters and omit internal identifiers, local "
+                "paths and implementation metadata unless explicitly requested. "
                 "Only when repository changes are needed use "
                 "{\"summary\":\"...\",\"patch\":\"<unified git diff>\","
                 "\"paths\":[\"relative/path\"]}. Never modify files."

@@ -23,7 +23,7 @@ The readiness statements and test counts below this release-candidate header are
 - Gate 5A.1–5A.3: authenticated owner-bound Telegram receive/send и live fake-task smoke приняты.
 - Gate 5A.4: product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit приняты; reliability-релиз добавляет fail-fast startup probe и не показывает служебные подтверждения для обычных задач.
 - Reliability verification: `127` target, `190 passed, 1 skipped` adversarial, `727 passed, 2 skipped, 1 warning` full; независимый verdict: `ACCEPT`, P0/P1/P2 отсутствуют.
-- Gate 5B / Queue 1–2: локальный supervisor, health alerts, строгие backup/restore и durable effects реализованы в текущем unreleased release candidate; live-активация ожидает L2/L3 ACCEPT и exact L4.
+- Gate 5B / Queue 1–2: локальный supervisor, health alerts, строгие backup/restore и durable effects реализованы в текущем unreleased release candidate; локальные L2/L3 дали ACCEPT; live-активация выполняется по уже выданному ограниченному L4.
 
 Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 

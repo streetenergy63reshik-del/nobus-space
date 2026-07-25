@@ -384,3 +384,18 @@ Production запрещён, пока отсутствует хотя бы од�
 - После restore выполнить `quick_check`, startup и no-duplicate reconciliation.
 - Реальный process-kill/reboot и restore drill нельзя считать пройденным по unit tests;
   он фиксируется только после owner L4.
+## Final MVP-1 release checklist
+
+1. Убедиться, что candidate worktree чист после локального commit и не имеет remote.
+2. Выполнить полный pytest, compileall, `pip check`, `git diff --check`, secret scan
+   и независимые L2/L3.
+3. Остановить Task Scheduler job и создать проверенный backup всех четырёх
+   runtime-БД до изменения live-ветки.
+4. Fast-forward чистую `agent/telegram-live` только на принятый local commit.
+5. Применить профиль/меню, переустановить Task Scheduler, выполнить startup
+   Codex probe и локальный Whisper warmup до начала polling.
+6. Проверить health, свежий lease, queue recovery, backup/restore dry drill и
+   owner smokes: answer, voice, research, file send/analyze, document,
+   Calendar/Tasks/Drive и Business Notes.
+7. При P0/P1 остановить candidate, восстановить БД из backup и вернуть прежний
+   live commit. Remote и push запрещены.

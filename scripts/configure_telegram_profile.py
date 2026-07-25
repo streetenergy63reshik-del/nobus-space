@@ -22,17 +22,12 @@ from src.transport.telegram.bot_api import TelegramBotApi, TelegramBotApiError  
 
 _COMMANDS = (
     ("start", "Как ставить задачи"),
-    ("status", "Состояние оркестратора"),
+    ("status", "Состояние и очередь"),
     ("limit", "Недельный лимит Codex"),
-    ("calendar", "Прочитать или изменить календарь"),
-    ("file", "\u041f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0441 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0430"),
-    ("research", "Исследование интернета со ссылками"),
-    ("document", "Создать Word, Excel, PDF или HTML"),
-    ("download", "Скачать и отправить безопасный файл"),
-    ("network", "Разрешённая сетевая команда"),
+    ("notes", "Резюме Заметок бизнеса"),
+    ("file", "Получить файл с компьютера"),
     ("help", "Помощь и безопасность"),
 )
-
 
 async def _run() -> None:
     credential = read_generic_credential(_CREDENTIAL_TARGET)
@@ -50,10 +45,11 @@ async def _run() -> None:
         await api.configure_profile(
             name="Nobus Space",
             description=(
-                "Личный Telegram-оркестратор: принимает текстовые и голосовые задачи, "
-                "показывает последствия и запрашивает подтверждение рискованных действий."
+                "Мобильный оркестратор: выполняет текстовые и голосовые задачи, "
+                "работает с файлами, интернетом, Google и Заметками бизнеса. "
+                "Подтверждение запрашивает только для необратимых действий."
             ),
-            short_description="Личный оркестратор задач с контролем результата и риска.",
+            short_description="Мобильный ИИ-оркестратор задач, файлов, Google и бизнеса.",
             commands=_COMMANDS,
         )
     finally:

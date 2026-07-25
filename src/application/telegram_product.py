@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
@@ -13,7 +14,12 @@ from uuid import UUID
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
-from src.application.owner_files import OwnerFileSelection
+from src.application.owner_files import (
+    OwnerFileContext,
+    OwnerFileContextSelection,
+    OwnerFileSelection,
+    OwnerFileSensitiveError,
+)
 from src.application.product_effects import (
     ProductEffectKind,
     ProductEffectService,
@@ -66,6 +72,11 @@ _FILE_REQUEST_RE = re.compile(
     r"(.+\.(?:docx|html?|pdf|xlsx))\s*$",
     re.IGNORECASE,
 )
+_FILE_ANALYSIS_RE = re.compile(
+    r"^\s*(?:\u043f\u0440\u043e\u0430\u043d\u0430\u043b\u0438\u0437\u0438\u0440\w*|\u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0439|\u0438\u0437\u0443\u0447\u0438|\u0441\u0434\u0435\u043b\u0430\u0439\s+\u0440\u0435\u0437\u044e\u043c\w*)\s+"
+    r"(?:\u0444\u0430\u0439\u043b\w*|\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\w*)?\s*[\u00ab\"']?(.+?\.(?:csv|docx|html?|json|md|txt|xlsx))[\u00bb\"']?\s*$",
+    re.IGNORECASE,
+)
 _CALENDAR_HINT_RE = re.compile(
     r"\b(?:календар\w*|встреч\w*|созвон\w*|событи\w*|calendar|meeting|appointment)\b",
     re.IGNORECASE,
@@ -80,11 +91,67 @@ _GOOGLE_DRIVE_HINT_RE = re.compile(
     r"(?:файл|документ)\w*\s+(?:из|на)\s+(?:google|гугл))\b",
     re.IGNORECASE,
 )
+
+_RESEARCH_HINT_RE = re.compile(
+    r"\b(?:исслед\w*|проанализир\w*|собер\w*|провед\w*|найд\w*)\b"
+    r"(?s:.*?)\b(?:интернет\w*|веб\w*|web|новост\w*|актуальн\w*|"
+    r"последн\w*\s+(?:недел\w*|месяц\w*|дн\w*)|публичн\w*\s+источник\w*)\b",
+    re.IGNORECASE,
+)
+_DOCUMENT_NO_OVERWRITE_RE = re.compile(
+    r"\b(?:\u043d\u0435\s+(?:\u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u044b\u0432\u0430\u0439\w*|"
+    r"\u0438\u0437\u043c\u0435\u043d\u044f\u0439\w*|\u0437\u0430\u043c\u0435\u043d\u044f\u0439\w*)|"
+    r"\u0431\u0435\u0437\s+\u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u0438|"
+    r"\u0441\u043e\u0445\u0440\u0430\u043d\u0438\w*\s+(?:\u0438\u0441\u0445\u043e\u0434\u043d\w*|\u043e\u0440\u0438\u0433\u0438\u043d\u0430\u043b\w*)|"
+    r"(?:\u0441\u043e\u0437\u0434\u0430\u0439|\u0441\u0434\u0435\u043b\u0430\u0439)\w*\s+\u043a\u043e\u043f\u0438\w*|"
+    r"\u043d\u0435\s+\u0442\u0440\u043e\u0433\u0430\u0439\w*\s+(?:\u0438\u0441\u0445\u043e\u0434\u043d\w*|\u043e\u0440\u0438\u0433\u0438\u043d\u0430\u043b\w*))\b",
+    re.IGNORECASE,
+)
+_DOCUMENT_DELIVERY_OPEN = "[deliver:document]"
+_DOCUMENT_DELIVERY_CLOSE = "[/deliver:document]"
+_DOCUMENT_HINT_RE = re.compile(
+    r"\b(?:созда\w*|сформир\w*|подготов\w*|сдела\w*|собер\w*|представ\w*|оформ\w*|отредактир\w*|измени\w*|обнови\w*|перезапиш\w*|замени\w*)\b"
+    r"(?s:.*?)\b(?:документ\w*|word|excel|pdf|html|docx|xlsx|ворд\w*|эксел\w*)\b",
+    re.IGNORECASE,
+)
+_NOTES_PRIVATE_HINT_RE = re.compile(
+    r"(?:\b(?:резюм\w*|итог\w*|задач\w*)\b(?s:.*?)\bзамет\w*\b|"
+    r"\bзамет\w*\b(?s:.*?)\b(?:резюм\w*|итог\w*|задач\w*)\b)",
+    re.IGNORECASE,
+)
 _MONTHS = (
     "", "января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря",
 )
 
+
+
+def _document_delivery(instruction: str) -> tuple[str, str] | None:
+    prefix = _DOCUMENT_DELIVERY_OPEN + "\n"
+    if not isinstance(instruction, str) or not instruction.startswith(prefix):
+        return None
+    closing = "\n" + _DOCUMENT_DELIVERY_CLOSE + "\n"
+    payload, separator, _ = instruction[len(prefix):].partition(closing)
+    if not separator or len(payload) > 1_024:
+        raise ValueError("document delivery metadata is invalid")
+    try:
+        value = json.loads(payload)
+    except (TypeError, ValueError):
+        raise ValueError("document delivery metadata is invalid") from None
+    if (
+        type(value) is not dict
+        or set(value) != {"path", "title"}
+        or not all(
+            isinstance(value[key], str)
+            and value[key].strip()
+            and len(value[key]) <= 256
+            and "\x00" not in value[key]
+            and "|" not in value[key]
+            for key in ("path", "title")
+        )
+    ):
+        raise ValueError("document delivery metadata is invalid")
+    return value["path"], value["title"]
 
 def _weekly_limit_text(snapshot: WeeklyLimitSnapshot) -> str:
     reset = "не сообщён OpenAI"
@@ -158,6 +225,8 @@ class WeeklyLimitProvider(Protocol):
 
 class OwnerFileProvider(Protocol):
     async def select(self, query: str) -> OwnerFileSelection: ...
+
+    async def context(self, query: str) -> OwnerFileContextSelection: ...
 
 @dataclass(frozen=True, slots=True)
 class _QueuedDraft:
@@ -339,7 +408,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             )
             or (
                 business_notes is not None
-                and not callable(getattr(business_notes, "handle_text", None))
+                and not all(
+                    callable(getattr(business_notes, name, None))
+                    for name in ("handle_text", "summarize_private")
+                )
             )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
@@ -609,6 +681,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._api.send_message(payload.chat_id, self._status_text())
         elif command == "/limit":
             await self._send_limit(payload.chat_id)
+        elif command == "/notes":
+            await self._send_private_notes(
+                payload,
+                _argument(payload.text)
+                or "Собери резюме Заметок бизнеса за сегодня",
+            )
         elif command == "/file":
             await self._send_owner_file(payload.chat_id, _argument(payload.text))
         elif command in {"/help", "/start"}:
@@ -680,8 +758,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         queue_status = ""
         if self._execution_queue is not None:
             queue_status = (
-                f"\n\u0412 \u0440\u0430\u0431\u043e\u0442\u0435: {self._active_jobs}"
-                f"\n\u0412 \u043e\u0447\u0435\u0440\u0435\u0434\u0438: {self._execution_queue.qsize()}"
+                f"\nВ работе: {self._active_jobs}"
+                f"\nВ очереди: {self._execution_queue.qsize()}"
             )
         return (
             "Nobus Space\n"
@@ -692,19 +770,18 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     def _help_text(self) -> str:
         return (
-            "Напишите задачу обычным сообщением — готовый результат придёт ответом.\n"
-            "Голосовое сообщение распознаётся и сразу выполняется как команда владельца.\n"
-            "Просмотр, создание и перенос событий календаря не требуют второй кнопки; "
-            "удаление всегда подтверждается отдельно.\n\n"
+            "Nobus Space готов к работе.\n\n"
+            "Напишите задачу обычным сообщением или продиктуйте её. Голосовое сообщение сначала "
+            "распознаётся локально, а затем выполняется как команда владельца. "
+            "Чтение, анализ, интернет-исследование, создание нового результата, календарь и "
+            "Google Tasks выполняются без дополнительной кнопки.\n\n"
+            "Отдельное подтверждение появится только для удаления, применения "
+            "изменений кода и других необратимых действий.\n\n"
             "Меню:\n"
-            "/status — состояние системы\n"
+            "/status — состояние и очередь\n"
             "/limit — недельный лимит Codex\n"
-            "/file <\u0438\u043c\u044f> \u2014 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0441 \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0430\n"
-            "/calendar <задача> — прочитать или изменить календарь\n"
-            "/research <запрос> — исследование интернета со ссылками\n"
-            "/document <путь>|<заголовок>|<текст> — создать документ\n"
-            "/download <https-url> — скачать и отправить файл\n"
-            "/network <тип>|... — выполнить разрешённую сетевую команду\n"
+            "/notes — резюме Заметок бизнеса\n"
+            "/file <имя> — получить файл\n"
             "/help — эта справка\n\n"
             "Не отправляйте пароли, токены и клиентские персональные данные."
         )
@@ -721,6 +798,28 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             except Exception:
                 text = "Лимит Codex сейчас недоступен. Попробуйте позже."
         await self._api.send_message(chat_id, text)
+
+
+    async def _send_private_notes(
+        self, message: TextMessage | VoiceMessage, request: str
+    ) -> None:
+        if self._business_notes is None:
+            await self._api.send_message(
+                message.chat_id,
+                "«Заметки бизнеса» пока не подключены.",
+            )
+            return
+        try:
+            result = await asyncio.to_thread(
+                self._business_notes.summarize_private,
+                tenant_id=message.tenant_id,
+                request=request,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            result = "Не удалось безопасно прочитать «Заметки бизнеса»."
+        await self._api.send_message(message.chat_id, result)
 
     async def _send_owner_file(self, chat_id: int, query: str) -> None:
         if self._owner_files is None:
@@ -778,6 +877,87 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
             )
             return
+        if (
+            self._business_notes is not None
+            and _NOTES_PRIVATE_HINT_RE.search(normalized)
+        ):
+            await self._send_private_notes(message, normalized)
+            return
+        file_match = _FILE_ANALYSIS_RE.fullmatch(normalized)
+        if file_match is not None and self._owner_files is not None:
+            await self._analyze_owner_file(
+                message, envelope, normalized, file_match.group(1)
+            )
+            return
+        if _RESEARCH_HINT_RE.search(normalized):
+            research_instruction = normalized
+            if (
+                self._product_effects is not None
+                and _DOCUMENT_HINT_RE.search(normalized)
+            ):
+                planner = getattr(
+                    self._product_runtime, "plan_document_argument", None
+                )
+                if not callable(planner):
+                    raise RuntimeError("document planner is unavailable")
+                try:
+                    argument = await planner(normalized, envelope)
+                    document_path, title, _ = argument.split("|", 2)
+                    delivery = json.dumps(
+                        {"path": document_path, "title": title},
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    research_instruction = (
+                        f"{_DOCUMENT_DELIVERY_OPEN}\n{delivery}\n"
+                        f"{_DOCUMENT_DELIVERY_CLOSE}\n{normalized}"
+                    )
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    await self._api.send_message(
+                        message.chat_id,
+                        "Не удалось подготовить формат итогового документа. "
+                        "Уточните тип файла.",
+                    )
+                    return
+            await self._start_text_task(
+                message,
+                envelope,
+                f"[profile:research.web]\n{research_instruction}",
+            )
+            return
+        if (
+            self._product_effects is not None
+            and _DOCUMENT_HINT_RE.search(normalized)
+        ):
+            planner = getattr(
+                self._product_runtime, "plan_document_argument", None
+            )
+            if callable(planner):
+                try:
+                    argument = await planner(normalized, envelope)
+                    document_path = argument.split("|", 1)[0]
+                    normalized_path = document_path.replace("\\", "/")
+                    allow_overwrite = _owner_authorizes_document_overwrite(
+                        normalized, normalized_path
+                    )
+                    await self._prepare_product_effect(
+                        message,
+                        envelope,
+                        "/document",
+                        argument,
+                        allow_document_overwrite=allow_overwrite,
+                    )
+                    return
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    await self._api.send_message(
+                        message.chat_id,
+                        "Не удалось подготовить документ. Уточните формат и содержание.",
+                    )
+                    return
         if (
             self._google_drive_planner is not None
             and self._google_drive_service is not None
@@ -945,13 +1125,67 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 return
         await self._start_text_task(message, envelope, normalized)
 
+    async def _analyze_owner_file(
+        self,
+        message: TextMessage | VoiceMessage,
+        envelope: TrustedIngressEnvelope,
+        instruction: str,
+        query: str,
+    ) -> None:
+        provider = getattr(self._owner_files, "context", None)
+        if not callable(provider):
+            await self._api.send_message(
+                message.chat_id,
+                "Анализ содержимого этого файла пока недоступен.",
+            )
+            return
+        try:
+            selection = await provider(query.strip())
+            if selection.context is not None:
+                context = selection.context
+                await self._start_text_task(
+                    message,
+                    envelope,
+                    instruction,
+                    supplied_context=context,
+                )
+                return
+            if selection.choices:
+                choices = "\n".join(f"• {item}" for item in selection.choices)
+                await self._api.send_message(
+                    message.chat_id,
+                    f"Найдено несколько файлов:\n\n{choices}\n\n"
+                    "Укажите точный относительный путь.",
+                )
+                return
+            await self._api.send_message(message.chat_id, "Файл не найден.")
+        except asyncio.CancelledError:
+            raise
+        except OwnerFileSensitiveError:
+            await self._api.send_message(
+                message.chat_id,
+                "Файл содержит возможные секреты или персональные данные. "
+                "Я не буду передавать его содержимое внешней модели.",
+            )
+        except Exception:
+            await self._api.send_message(
+                message.chat_id,
+                "Не удалось безопасно прочитать содержимое файла.",
+            )
+
     async def _start_text_task(
         self,
         message: TextMessage | VoiceMessage,
         envelope: TrustedIngressEnvelope,
         instruction: str,
+        *,
+        supplied_context: OwnerFileContext | None = None,
     ) -> None:
         instruction = self._instruction(instruction)
+        if supplied_context is not None and not isinstance(
+            supplied_context, OwnerFileContext
+        ):
+            raise ValueError("supplied file context is invalid")
         if instruction is None:
             await self._api.send_message(
                 message.chat_id,
@@ -960,9 +1194,22 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return
         prepared: PreparedTask | None = None
         try:
-            prepared = await self._product_runtime.prepare_instruction(
-                instruction, envelope
+            contextual = getattr(
+                self._product_runtime, "prepare_instruction_with_context", None
             )
+            if supplied_context is not None:
+                if not callable(contextual):
+                    raise RuntimeError("contextual worker is unavailable")
+                prepared = await contextual(
+                    instruction,
+                    supplied_context.relative_path,
+                    supplied_context.content_digest,
+                    envelope,
+                )
+            else:
+                prepared = await self._product_runtime.prepare_instruction(
+                    instruction, envelope
+                )
             await self._submit_draft(prepared, message, envelope)
         except asyncio.CancelledError:
             raise
@@ -1147,10 +1394,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     async def _prepare_product_effect(
         self,
-        message: TextMessage,
+        message: TextMessage | VoiceMessage,
         envelope: TrustedIngressEnvelope,
         command: str,
         argument: str,
+        *,
+        allow_document_overwrite: bool = False,
     ) -> None:
         if self._product_effects is None:
             await self._api.send_message(
@@ -1165,6 +1414,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     user_id=message.user_id,
                     chat_id=message.chat_id,
                     idempotency_key=envelope.idempotency_key,
+                    allow_overwrite=allow_document_overwrite,
                 )
             elif command == "/download":
                 challenge = await self._product_effects.prepare_download(
@@ -1390,6 +1640,27 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             else await self._product_runtime.draft_prepared(prepared)
         )
         if outcome.answer is not None:
+            delivery = _document_delivery(prepared.contract.instruction)
+            if delivery is not None:
+                if self._product_effects is None:
+                    raise RuntimeError("document effects are unavailable")
+                document_path, title = delivery
+                challenge = self._product_effects.prepare_document(
+                    f"{document_path}|{title}|{outcome.answer}",
+                    tenant_id=message.tenant_id,
+                    user_id=message.user_id,
+                    chat_id=message.chat_id,
+                    idempotency_key=(
+                        f"{envelope.idempotency_key}:research-document"
+                    ),
+                )
+                if not await self._submit_effect(
+                    message,
+                    envelope,
+                    TelegramAction.APPLY_ARTIFACT,
+                    challenge.token,
+                ):
+                    raise RuntimeError("research document was not delivered")
             await self.deliver_pending()
             return
         if outcome.proposal is None:
@@ -1541,6 +1812,23 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         ):
             return None
         return normalized
+
+
+def _owner_authorizes_document_overwrite(
+    instruction: str, relative_path: str
+) -> bool:
+    """Only a closed, explicit phrase authorizes replacement of an existing file."""
+    if not isinstance(instruction, str) or not isinstance(relative_path, str):
+        return False
+    normalized = " ".join(instruction.replace("\\", "/").split()).casefold()
+    expected = (
+        f"перезапиши файл {relative_path.casefold()} с заменой оригинала"
+    )
+    if normalized == expected:
+        return True
+    return normalized.startswith(expected + " | ") and bool(
+        normalized.removeprefix(expected + " | ").strip()
+    )
 
 
 def _voice_preview(challenge: TaskConfirmationChallenge) -> str:

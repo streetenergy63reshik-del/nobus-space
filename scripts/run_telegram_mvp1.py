@@ -116,12 +116,24 @@ _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
 _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
 _BUSINESS_NOTES_PATH = _RUNTIME_ROOT / "business-notes.sqlite3"
+_PROJECT_CONTEXT_PATH = ROOT / "docs" / "11-Контекст-продукта.md"
+_ARTIFACT_SNAPSHOT_ROOT = _RUNTIME_ROOT / "artifact-snapshots"
 _OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
 _GOOGLE_CALENDAR_TOKEN = (
     ROOT.parents[1] / "Интеграции/google_api_integration/token.json"
 )
 
+
+
+def _load_project_context() -> str:
+    try:
+        content = _PROJECT_CONTEXT_PATH.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError):
+        raise RuntimeError("project context is unavailable") from None
+    if not content or len(content) > 16_000 or "\x00" in content:
+        raise RuntimeError("project context is invalid")
+    return content
 
 
 async def _run(values: argparse.Namespace) -> dict[str, object]:
@@ -133,6 +145,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
     python = (ROOT / ".venv" / "Scripts" / "python.exe").resolve(strict=True)
     worktree = _validated_worktree()
     _CODEX_TEMP.mkdir(parents=True, exist_ok=True)
+    _ARTIFACT_SNAPSHOT_ROOT.mkdir(parents=True, exist_ok=True)
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
 
     control: ProductTelegramControlPlane | None = None
@@ -175,6 +188,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             destination_refs=destination_refs,
             worktree=worktree,
             owner_read_root=_OWNER_READ_ROOT,
+            project_context=_load_project_context(),
             codex_executable=executable,
             git_executable=git,
             python_executable=python,
@@ -224,6 +238,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             vault=DurableProductEffectVault(telegram_state),
             workspace=OwnerWorkspace(
                 _OWNER_WRITE_ROOT,
+                snapshot_root=_ARTIFACT_SNAPSHOT_ROOT,
                 pdf_renderer=EdgePdfRenderer(
                     _required_edge_executable(),
                     temp_root=_CODEX_TEMP,

@@ -377,3 +377,52 @@ async def test_terminal_effect_failure_is_durable_and_owner_visible(
     assert result.delivery_required
     assert not (service._workspace.root / "report.html").exists()
     await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_document_effect_never_overwrites_planner_collision(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    existing = service._workspace.root / "report.html"
+    existing.write_text("owner data", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="target already exists"):
+        service.prepare_document(
+            "report.html|Отчёт|Новый текст",
+            tenant_id="owner",
+            user_id=7,
+            chat_id=7,
+        )
+
+    assert existing.read_text(encoding="utf-8") == "owner data"
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_document_effect_allows_only_explicit_overwrite_policy(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    existing = service._workspace.root / "report.html"
+    existing.write_text("owner data", encoding="utf-8")
+
+    challenge = service.prepare_document(
+        "report.html|Отчёт|Новый текст",
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        allow_overwrite=True,
+    )
+
+    assert challenge.kind is ProductEffectKind.ARTIFACT
+    assert "Перезаписать существующий документ?" in challenge.preview
+    assert "snapshot" in challenge.preview
+    assert existing.read_text(encoding="utf-8") == "owner data"
+    await client.aclose()

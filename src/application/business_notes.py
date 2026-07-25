@@ -242,6 +242,58 @@ class SQLiteBusinessNotes:
         except (OSError, sqlite3.DatabaseError, TypeError, ValueError):
             raise BusinessNotesError("business_notes_store_unavailable") from None
 
+
+    def recent_all(
+        self,
+        *,
+        tenant_id: str,
+        limit: int = 500,
+        since: datetime | None = None,
+    ) -> tuple[BusinessNote, ...]:
+        """Read a bounded owner-only slice across all bound chats and topics."""
+        if (
+            not isinstance(tenant_id, str)
+            or not tenant_id.strip()
+            or type(limit) is not int
+            or not 1 <= limit <= 500
+            or (
+                since is not None
+                and (since.tzinfo is None or since.utcoffset() is None)
+            )
+        ):
+            raise ValueError("business Notes query is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(
+                    """SELECT tenant_id,chat_id,thread_id,message_id,
+                              update_id,payload,payload_digest,created_at
+                       FROM business_notes
+                       WHERE tenant_id=?
+                       ORDER BY created_at DESC, message_id DESC
+                       LIMIT ?""",
+                    (tenant_id.strip(), limit),
+                ).fetchall()
+            notes = [self._decode_row(row) for row in rows]
+            if since is not None:
+                threshold = since.astimezone(UTC)
+                notes = [
+                    note for note in notes
+                    if note.created_at >= threshold
+                ]
+            notes.sort(
+                key=lambda note: (
+                    note.created_at,
+                    note.chat_id,
+                    note.thread_id or 0,
+                    note.message_id,
+                )
+            )
+            return tuple(notes)
+        except BusinessNotesError:
+            raise
+        except (OSError, sqlite3.DatabaseError, TypeError, ValueError):
+            raise BusinessNotesError("business_notes_store_unavailable") from None
+
     def _decode_row(self, row: sqlite3.Row) -> BusinessNote:
         try:
             protected = bytes(row["payload"])
@@ -328,6 +380,43 @@ class BusinessNotesService:
             return self._summary(message, tasks_only=True)
         self._store.append(message)
         return None
+
+
+    def summarize_private(self, *, tenant_id: str, request: str) -> str:
+        """Summarize the owner's bound Notes from the private bot chat."""
+        if (
+            not isinstance(tenant_id, str)
+            or not tenant_id.strip()
+            or not isinstance(request, str)
+            or not request.strip()
+            or len(request) > 4_096
+        ):
+            raise ValueError("business Notes request is invalid")
+        normalized = " ".join(request.casefold().split())
+        tasks_only = "задач" in normalized or "tasks" in normalized
+        since: datetime | None = None
+        if "сегодня" in normalized or "today" in normalized:
+            now = self._clock()
+            if now.tzinfo is None or now.utcoffset() is None:
+                raise ValueError("business Notes clock is invalid")
+            now = now.astimezone(_MOSCOW)
+            since = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        notes = self._store.recent_all(
+            tenant_id=tenant_id.strip(),
+            since=since,
+        )
+        sentences = _unique_sentences(notes)
+        if tasks_only:
+            sentences = tuple(item for item in sentences if _TASK_HINT.search(item))
+            title = "Задачи из «Заметок бизнеса»"
+            empty = "Явных задач в «Заметках бизнеса» не найдено."
+        else:
+            title = "Резюме «Заметок бизнеса»"
+            empty = "В «Заметках бизнеса» пока нет записей для резюме."
+        if not sentences:
+            return empty
+        selected = sentences[-20:] if tasks_only else sentences[-12:]
+        return _bounded_summary(title, selected)
 
     def _summary(self, message: TextMessage, *, tasks_only: bool) -> str:
         since: datetime | None = None

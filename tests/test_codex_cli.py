@@ -1412,6 +1412,11 @@ async def test_gate5a4_retries_one_transient_read_only_worker_failure() -> None:
     runtime = object.__new__(Gate5A4Runtime)
     runtime._worker = worker  # type: ignore[attr-defined]
 
+    async def unchanged(contract: object) -> object:
+        return contract
+
+    runtime._worker_contract = unchanged  # type: ignore[method-assign]
+
     result = await runtime._execute_worker(SimpleNamespace(timeout_seconds=1))  # type: ignore[arg-type]
 
     assert result.message == '{"answer":"Работает."}'
@@ -1440,6 +1445,11 @@ async def test_gate5a4_worker_retry_is_bounded_and_policy_aware(
     runtime = object.__new__(Gate5A4Runtime)
     runtime._worker = worker  # type: ignore[attr-defined]
 
+    async def unchanged(contract: object) -> object:
+        return contract
+
+    runtime._worker_contract = unchanged  # type: ignore[method-assign]
+
     with pytest.raises(CodexCliError) as caught:
         await runtime._execute_worker(SimpleNamespace(timeout_seconds=1))  # type: ignore[arg-type]
 
@@ -1466,6 +1476,11 @@ async def test_gate5a4_retry_shares_the_original_worker_deadline() -> None:
     worker = LateFailureWorker()
     runtime = object.__new__(Gate5A4Runtime)
     runtime._worker = worker  # type: ignore[attr-defined]
+
+    async def unchanged(contract: object) -> object:
+        return contract
+
+    runtime._worker_contract = unchanged  # type: ignore[method-assign]
     loop = asyncio.get_running_loop()
     started = loop.time()
 
