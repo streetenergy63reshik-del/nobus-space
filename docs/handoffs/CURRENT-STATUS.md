@@ -1,8 +1,8 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Runtime feature commit:** `8884a6c`
-**Live release commit:** `8884a6c`
+**Runtime feature commit:** `e39c857`
+**Live release commit:** `e39c857`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
@@ -23,6 +23,10 @@
   «Заметки бизнеса». Только group marker может создать binding.
 - Финальный L1: `1116 passed, 2 skipped, 1 warning`. Независимые L2 и L3:
   ACCEPT, открытых P0/P1/P2 нет.
+- Hotfix `e39c857` опубликован локально: main и `agent/telegram-live`
+  синхронизированы, Task Scheduler работает. Runtime health четырёх БД — PASS;
+  Google Tasks read-only smoke — PASS (7 разделов); persistent SDK web smoke —
+  PASS (2 URL). Remote/push не выполнялись.
 
 ## Релиз 25 июля 2026
 
@@ -103,7 +107,7 @@
 
 - Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
   tree is active.
-- Main и локальная live-ветка синхронизированы на `8884a6c`; remote/push не
+- Main и локальная live-ветка синхронизированы на `e39c857`; remote/push не
   выполнялись.
 - Startup Codex probe and cached Whisper warmup завершились до Telegram polling:
   активный polling lease подтверждён после запуска.
