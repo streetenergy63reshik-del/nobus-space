@@ -185,6 +185,24 @@ class TelegramGateway:
         self._ingress_id_factory = ingress_id_factory
         self._clock = clock
 
+    def replace_actor_bindings(
+        self, actor_bindings: Mapping[tuple[int, int], ActorBinding]
+    ) -> None:
+        """Atomically replace the trusted binding snapshot."""
+        normalized: dict[tuple[int, int], ActorBinding] = {}
+        for pair, binding in actor_bindings.items():
+            if (
+                not isinstance(pair, tuple)
+                or len(pair) != 2
+                or not _is_int(pair[0])
+                or not _is_int(pair[1])
+            ):
+                raise ValueError("actor binding keys must be user/chat integer pairs")
+            normalized[pair] = ActorBinding.model_validate(binding.model_dump())
+        if not normalized:
+            raise ValueError("at least one actor binding is required")
+        self._actor_bindings = MappingProxyType(normalized)
+
     def process_update(self, update: dict[str, Any]) -> TrustedIngressResult:
         """Claim one raw update and atomically mint its trusted envelope."""
         update_id = update.get("update_id") if _is_dict(update) else None

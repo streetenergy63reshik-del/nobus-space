@@ -168,6 +168,42 @@ def test_binding_configuration_is_copied_and_immutable() -> None:
     assert result.status == IngressStatus.REJECTED
 
 
+def test_actor_bindings_can_be_atomically_replaced() -> None:
+    gateway = make_gateway()
+    replacement = {
+        (USER_A, CHAT_A): ActorBinding(
+            tenant_id="tenant-a",
+            actor_identity="telegram:user-a",
+            role="owner",
+            auth_context_ref=AUTH_CONTEXT_REF,
+        ),
+        (USER_A, CHAT_B): ActorBinding(
+            tenant_id="tenant-a",
+            actor_identity="telegram:user-a",
+            role="owner",
+            auth_context_ref="sha256:" + "b" * 64,
+            purpose="business_notes",
+        ),
+    }
+
+    gateway.replace_actor_bindings(replacement)
+    replacement.clear()
+
+    result = gateway.process_update(
+        make_text_update(update_id=8, user_id=USER_A, chat_id=CHAT_B)
+    )
+    assert result.status == IngressStatus.ACCEPTED
+    assert result.payload is not None
+    assert result.payload.binding_purpose == "business_notes"
+
+    with pytest.raises(ValueError, match="at least one actor binding"):
+        gateway.replace_actor_bindings({})
+    still_bound = gateway.process_update(
+        make_text_update(update_id=9, user_id=USER_A, chat_id=CHAT_B)
+    )
+    assert still_bound.status == IngressStatus.ACCEPTED
+
+
 def test_update_claim_is_atomic_under_concurrency() -> None:
     gateway = make_gateway()
     update = make_text_update()

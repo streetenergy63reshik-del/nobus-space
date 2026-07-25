@@ -19,6 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.bind_business_notes import (  # noqa: E402
+    _atomic_write as _write_binding_config,
+    _candidate as _business_notes_candidate,
+    _v2_config as _business_notes_v2_config,
+)
 from scripts.run_telegram_control import (  # noqa: E402
     _BINDING_PATH,
     _CREDENTIAL_TARGET,
@@ -73,6 +78,7 @@ from src.security.windows_credentials import (  # noqa: E402
 )
 from src.transport.telegram import PollingCheckpointUpdateIdStore, TelegramGateway  # noqa: E402
 from src.transport.telegram.bindings import (  # noqa: E402
+    TelegramBindingConfig,
     TelegramBindingError,
     load_telegram_bindings,
 )
@@ -181,6 +187,14 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         identity = await api.get_me()
         if identity.username.casefold() != _EXPECTED_USERNAME.casefold():
             raise TelegramBotApiError("telegram_protocol_error")
+        binding_config = TelegramBindingConfig.model_validate(
+            json.loads(_BINDING_PATH.read_text(encoding="utf-8"))
+        )
+        owner_binding = next(
+            item
+            for item in binding_config.bindings
+            if item.purpose == "owner_private"
+        )
         bindings = load_telegram_bindings(
             _BINDING_PATH,
             expected_bot_id=identity.bot_id,
@@ -312,7 +326,51 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             ),
         )
         await control.start()
-        polling = TelegramPollingBoundary(api, control.handle, checkpoint)
+
+        async def handle_with_binding(update: dict[str, object]) -> bool:
+            nonlocal binding_config
+            selected = _business_notes_candidate(
+                [update], owner_user_id=owner_binding.user_id
+            )
+            if selected is None:
+                return await control.handle(update)
+            update_id, chat_id = selected
+            existing = next(
+                (
+                    item
+                    for item in binding_config.bindings
+                    if item.purpose == "business_notes"
+                ),
+                None,
+            )
+            if existing is not None:
+                if existing.chat_id == chat_id:
+                    await api.send_message(
+                        owner_binding.chat_id,
+                        "✅ «Заметки бизнеса» уже подключены.",
+                    )
+                return True
+            updated = _business_notes_v2_config(
+                binding_config, update_id=update_id, chat_id=chat_id
+            )
+            _write_binding_config(_BINDING_PATH, updated)
+            reloaded = load_telegram_bindings(
+                _BINDING_PATH,
+                expected_bot_id=updated.bot_id,
+                expected_bot_username=updated.bot_username,
+                expected_tenant_id=owner_binding.tenant_id,
+                expected_actor_identity=owner_binding.actor_identity,
+                expected_role=owner_binding.role,
+            )
+            gateway.replace_actor_bindings(reloaded)
+            binding_config = updated
+            await api.send_message(
+                owner_binding.chat_id,
+                "✅ «Заметки бизнеса» подключены. Новые сообщения и темы доступны Nobus.",
+            )
+            return True
+
+        polling = TelegramPollingBoundary(api, handle_with_binding, checkpoint)
         if values.once:
             acknowledged = await _poll_once_and_announce(
                 polling, api, bindings, control=control,
