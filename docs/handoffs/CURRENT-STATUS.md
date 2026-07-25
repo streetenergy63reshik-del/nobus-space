@@ -1,8 +1,8 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Runtime feature commit:** `33b35f7`
-**Live release commit:** `bec5f47`
+**Runtime feature commit:** `8884a6c`
+**Live release commit:** `8884a6c`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
@@ -22,15 +22,16 @@
 - Business Notes binding v2 готов к точному owner marker; исторический импорт
   Telegram не выполняется.
 - Portability исправлена: runtime layout больше не зависит от `parents[n]`.
-- L1 в основном worktree: `1088 passed, 2 skipped, 1 warning`.
-- L2 clean detached worktree: `1088 passed, 2 skipped, 1 warning`; `pip check`
+- L1 в основном worktree: `1089 passed, 2 skipped, 1 warning`.
+- L2 clean detached worktree: архитектурная база — `1088 passed, 2 skipped, 1 warning`;
+  hot-binding delta — `53 passed`; `pip check`
   и `compileall` — PASS.
 - L3 fault injection: `208 passed, 2 skipped, 880 deselected, 1 warning`.
 - Внешнее AI-review полного дерева не выполнялось: protective egress boundary
   заблокировал передачу незакоммиченного кода без отдельного разрешения.
 - Live publication и Google `NOBUS-SMOKE` завершены после документационного
-  commit и свежего проверенного backup. Business Notes ожидает точный owner
-  marker `#NOBUS-BIND-NOTES` в разрешённой группе.
+  commit и свежего проверенного backup. Активный polling принимает точный owner
+  marker `#NOBUS-BIND-NOTES`, атомарно создаёт binding v2 и горячо обновляет gateway.
 
 ## Что входит в релиз
 
@@ -60,7 +61,7 @@
 
 ## Проверки текущей итерации
 
-- Полный L1/L2 regression: `1088 passed, 2 skipped, 1 warning`.
+- Полный L1 regression: `1089 passed, 2 skipped, 1 warning`.
 - Calendar/Tasks/Drive read-only API health: PASS; OAuth ready, содержимое
   объектов и секреты не выводились.
 - Google Tasks all-lists L3: 21 список прочитан с полной пагинацией; на неделю
@@ -84,11 +85,13 @@
 
 - Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
   tree is active.
-- Main и локальная live-ветка синхронизированы на `bec5f47`; remote/push не
+- Main и локальная live-ветка синхронизированы на `8884a6c`; remote/push не
   выполнялись.
 - Startup Codex probe and cached Whisper warmup завершились до Telegram polling:
   активный polling lease подтверждён после запуска.
 - Runtime health: `PASS`; all four canonical SQLite databases are valid.
+- Business Notes hot-binding L3: `62 passed`; wrong owner/title/chat, tampered config
+  и invalid replacement отклоняются.
 - Calendar/Tasks `NOBUS-SMOKE` create/update/delete: PASS; созданные этой
   проверкой объекты удалены. Google Drive read/search: PASS.
 - Verified pre-release four-database backup:
