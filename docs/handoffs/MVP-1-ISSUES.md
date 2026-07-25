@@ -41,6 +41,9 @@
 | Installer invocation | использование PowerShell `-?` для диагностики могло выполнить install path | эксплуатационное правило: читать help/source и применять только exact documented command; installer L4-bound | runbook checklist | MITIGATED; CLI help hardening desirable |
 | `sendDocument` crash | Telegram Bot API не принимает idempotency key; crash после remote accept до local receipt может дать повтор | delivery receipt/reconcile с явным at-least-once остаточным окном | ADR 0011 + release evidence | ACCEPTED RESIDUAL |
 | Windows path race | тот же Windows user может заменить каталог между проверкой и финальным path syscall | повторная identity/reparse проверка перед replace; owner-only workspace/quarantine | path adversarial tests | ACCEPTED LOCAL; production OS identity TARGET |
+| Calendar OAuth scopes | клиент требовал только узкий scope и отклонял совместимый более широкий Calendar scope | accepted-scope family с fail-closed проверкой фактических grants | 104 target tests + read-only Google API health | CLOSED |
+| Длительный web research | валидный JSONL с более чем восемью промежуточными `agent_message` ошибочно считался protocol failure | bounded allowance повышен до 64 сообщений / 128 KiB при неизменном общем stdout ceiling | parser regression + live five-source research | CLOSED |
+| Естественный запрос файла | product route требовал `пришли/отправь`, обязательное расширение и не различал два похожих имени | server-side contextual resolver, четыре явных owner-глагола, exact/longest filename stem; voice использует тот же route | text/voice regressions + real metadata smoke | CLOSED |
 
 ## Устойчивые профилактические правила
 
@@ -51,7 +54,7 @@
 5. Любой внешний эффект имеет exact proposal, action digest, L4 и receipt.
 6. Неизвестный исход сетевой записи не повторяется автоматически.
 7. Startup сообщает ready только после worker sentinel и Whisper warmup.
-8. Все три runtime-БД обслуживаются одним health/backup/restore contract.
+8. Все четыре runtime-БД обслуживаются одним health/backup/restore contract.
 9. Product projection скрывает технический audit, но не удаляет его из durable store.
 10. Новая capability считается CURRENT только после L1/L2/L3 и отдельного live L4,
     если меняет сеть, файлы, Telegram profile, credentials или host configuration.

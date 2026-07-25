@@ -1,7 +1,7 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Runtime feature commit:** `7f9acb1`
+**Runtime feature commit:** `e9007e9`
 **Статус:** PRODUCT MVP-1 PUBLISHED — LOCAL OWNER RUNTIME
 **Remote/push:** запрещены
 
@@ -33,7 +33,12 @@
 
 ## Проверки текущей итерации
 
-- Полный L1: `1049 passed, 2 skipped, 1 warning`.
+- Полный L1/L2 regression: `1062 passed, 2 skipped, 1 warning`.
+- Calendar/Tasks/Drive read-only API health: PASS; OAuth ready, содержимое
+  объектов и секреты не выводились.
+- Live web-research L3: PASS; production adapter вернул пять прямых источников.
+- Natural owner-file L3: PASS; запрос без расширения выбрал точный документ
+  среди двух похожих имён, не читая и не выводя его содержимое.
 - Nobus Memory product/boundary L2: `117 passed`; real-vault L3: PASS (5 scoped notes, only the explicitly named client card, no network/process imports).
 - Product/security targeted: `100 passed`; overwrite/restore targeted:
   `38 passed`; Codex CLI: `71 passed`.
@@ -47,8 +52,12 @@
 
 - Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
   tree is active.
+- Main и локальная live-ветка синхронизированы на `e9007e9`; remote/push не
+  выполнялись.
 - Startup Codex probe and cached Whisper warmup completed before Telegram polling.
 - Runtime health: `PASS`; all four canonical SQLite databases are valid.
+- Verified pre-release four-database backup:
+  `ОРКЕСТРАТОР/Backups/2026-07-25 pre-release e9007e9`.
 - Telegram polling checkpoint advanced after restart.
 - Nobus Memory live retrieval: PASS; Inbox excluded until curation; vault docs commit `4a8d268`.
 - Pre-memory runtime backup: `ОРКЕСТРАТОР/Backups/2026-07-25-pre-nobus-memory`.
@@ -73,3 +82,10 @@
 - Внешний restore отдельного owner artifact не опубликован: внутренний
   snapshot/CAS primitive проверен, но внешний вызов требует будущей durable
   one-shot capability, связанной с owner, путём и digest.
+- Для естественной отправки файла MVP-1 поддерживает точные owner-команды
+  `пришли/отправь/направь/дай мне файл|документ ...`; составная команда
+  «пришли и затем проанализируй» намеренно уходит в обычный task pipeline.
+- Delivery Telegram остаётся at-least-once на узком crash-окне внешнего
+  `sendDocument`.
+- Google MCP transport может деградировать независимо от API; штатный локальный
+  read-only health check является разрешённым fallback.
