@@ -19,6 +19,7 @@ _MAX_MEMORY_WRITE_CHARS = 4_000
 _SKIPPED_TOP_LEVEL = {
     ".git",
     ".obsidian",
+    "01 Inbox",
     "10 Sources",
     "95 Archive",
     "99 Templates",

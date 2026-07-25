@@ -125,6 +125,7 @@ def test_explicit_owner_memory_write_is_new_atomic_inbox_note(
     )
     assert repeated == result
     assert len(list((tmp_path / "01 Inbox").glob("*.md"))) == 1
+    assert memory.retrieve("Когда сдаём еженедельный отчёт?") is None
 
 
 def test_memory_write_rejects_secret_like_values(tmp_path: Path) -> None:
