@@ -1,3 +1,27 @@
+## Operational override 2026-07-25 — persistent Codex SDK candidate
+
+Этот раздел отменяет ниже расположенные инструкции, где production worker
+описан как `CodexCliAdapter`/`codex exec --json --ephemeral`.
+
+- Release-candidate: `33b35f7`; live-ветка не считается обновлённой до отдельного
+  backup/switch/smoke receipt.
+- Прямые зависимости закреплены: `openai-codex==0.144.4`,
+  `openai-codex-cli-bin==0.144.4`.
+- App-server persistent; thread name выводится из tenant, Telegram chat/topic,
+  quality profile и cwd. Технический thread id пользователю не показывается.
+- Model-turn: `gpt-5.6-sol`, reasoning high, Fast, `read-only`, `deny_all`.
+  Web включается только research-profile; effects применяет приложение.
+- Task deadline — 10 800 секунд, ceiling — 14 400; control interrupt/close —
+  15 секунд. Telegram poll/queue продолжают работу независимо от turn.
+- Startup ready допускается только после SDK sentinel, Whisper warmup, четырёх
+  SQLite health checks и получения polling lease.
+- Google read может повторяться не более двух раз; create/update/delete
+  transport-retry не имеют. Неизвестный write outcome требует reconciliation.
+- Business Notes binding создаётся только точным marker
+  `#NOBUS-BIND-NOTES` от server-bound owner в группе с точным названием
+  «Заметки бизнеса». Содержимое и идентификаторы в лог не выводятся.
+- Rollback target до публикации — live commit `420c9a6` плюс свежий проверенный
+  backup четырёх runtime-БД и локальной конфигурации.
 ## Operational override 2026-07-24 — Queue 1/2 release candidate
 
 This section supersedes older process-memory/restart instructions below.

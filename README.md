@@ -1,11 +1,16 @@
-# Product MVP-1 — published local owner runtime
+# Product MVP-1 — persistent mobile Codex release candidate
 
-Runtime feature commit `7f9acb1` adds Nobus Memory progressive retrieval and explicit pending-review Inbox writes. The local release contains
-the restart-safe Telegram queue, confirmations, supervised runner, strict
-backup/restore, public-web research and owner-bound document/download/network
-effects. Local L1/L2/L3 are `ACCEPT`; the owner-authorized live release checks are
-`PASS`. Active semantics:
-[docs/adr/0011-durable-owner-effects-and-web-profiles.md](docs/adr/0011-durable-owner-effects-and-web-profiles.md).
+Feature commit `33b35f7` replaces the one-shot `codex exec --json/ephemeral`
+production worker with the official persistent `openai-codex` SDK/app-server.
+It adds separate resumable threads for the owner chat and Telegram topics,
+`gpt-5.6-sol/high/Fast`, a three-hour task deadline, bounded cancellation,
+complete Google Tasks pagination, durable voice recovery and exact owner-command
+authorization while preserving application-owned snapshot/diff/atomic effects.
+The clean-worktree L2 reproduction is `1088 passed, 2 skipped`; the focused L3
+fault-injection slice is `208 passed, 2 skipped`. Live publication is not claimed
+until the backup/switch/startup-probe/owner-smoke sequence is complete. Active
+semantics:
+[ADR 0016](docs/adr/0016-persistent-mobile-codex-runtime.md).
 
 The readiness statements and test counts below this release-candidate header are historical snapshots. Where they conflict, this header, ADR 0011 and the leading section of `docs/handoffs/CURRENT-STATUS.md` are authoritative.
 
@@ -44,7 +49,7 @@ authenticated Telegram ingress
   -> explicit confirmation when needed
   -> trusted TaskContract
   -> persisted task and ordered WorkerEvents
-  -> local Codex CLI worker
+  -> persistent official Codex SDK/app-server
   -> result-bound L1 / L2 / L3 evidence
   -> L4 for every external mutation
   -> concise Telegram response
@@ -67,7 +72,7 @@ src/
 ├── storage/         # durable SQLite checkpoints/events/outbox
 ├── transport/       # Telegram normalization и ограниченный Bot API client
 ├── voice/           # bounded download, faster-whisper и confirmation
-└── workers/         # read-only Codex CLI и exact patch parser
+└── workers/         # persistent Codex SDK, legacy boundary и exact patch parser
 docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```

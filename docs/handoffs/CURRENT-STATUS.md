@@ -1,16 +1,42 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Runtime feature commit:** `dbdf630`
-**Статус:** PRODUCT MVP-1 PUBLISHED — LOCAL OWNER RUNTIME
+**Runtime feature commit:** `33b35f7`
+**Live commit до переключения:** `420c9a6`
+**Статус:** PERSISTENT MOBILE CODEX — RELEASE CANDIDATE
 **Remote/push:** запрещены
+
+## Кандидат 25 июля 2026
+
+- Production worker переведён с одноразового `codex exec --json/ephemeral` на
+  официальный persistent `openai-codex` SDK/app-server `0.144.4`.
+- Модель: `gpt-5.6-sol`, reasoning high, Fast. Личный чат и каждая Telegram-тема
+  получают отдельный resumable thread.
+- SDK-turn read-only; запись остаётся в application effects со
+  snapshot/diff/atomic/CAS. Общая owner-команда не разрешает удаление файла.
+- Deadline задачи — 10 800 секунд, ceiling — 14 400; polling и durable queue
+  не блокируются длительным turn. Interrupt/close bounded до 15 секунд.
+- Voice draft теперь полностью durable и восстанавливается после crash/restart.
+- Google Tasks читает все tasklists и страницы, включая assigned tasks.
+  Retry разрешён только safe reads; mutation transport-retry отключён.
+- Business Notes binding v2 готов к точному owner marker; исторический импорт
+  Telegram не выполняется.
+- Portability исправлена: runtime layout больше не зависит от `parents[n]`.
+- L1 в основном worktree: `1088 passed, 2 skipped, 1 warning`.
+- L2 clean detached worktree: `1088 passed, 2 skipped, 1 warning`; `pip check`
+  и `compileall` — PASS.
+- L3 fault injection: `208 passed, 2 skipped, 880 deselected, 1 warning`.
+- Внешнее AI-review полного дерева не выполнялось: protective egress boundary
+  заблокировал передачу незакоммиченного кода без отдельного разрешения.
+- Live publication, Google `NOBUS-SMOKE`, Business Notes owner marker и rollback
+  receipt выполняются только после документационного commit и свежего backup.
 
 ## Что входит в кандидат
 
 | Контур | Текущее состояние |
 |---|---|
 | Telegram owner binding, polling, queue, outbox | Durable SQLite, CAS lease, restart recovery |
-| Codex CLI | `gpt-5.6-sol`, high reasoning, Fast, answer/research/patch profiles |
+| Codex SDK/app-server | persistent `gpt-5.6-sol`, high reasoning, Fast; thread per chat/topic/profile |
 | Длительные задачи | deadline 10 800 секунд; polling не блокируется worker |
 | Параллельность | 2 worker; bounded durable queue и восстановление после restart |
 | Голос | local faster-whisper, Russian profile, startup warmup, preview/cancel |
