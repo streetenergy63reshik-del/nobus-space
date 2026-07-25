@@ -107,7 +107,7 @@
 
 - Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
   tree is active.
-- Main и локальная live-ветка синхронизированы на `e39c857`; remote/push не
+- Main и локальная live-ветка синхронизированы; runtime feature — `e39c857`; remote/push не
   выполнялись.
 - Startup Codex probe and cached Whisper warmup завершились до Telegram polling:
   активный polling lease подтверждён после запуска.
