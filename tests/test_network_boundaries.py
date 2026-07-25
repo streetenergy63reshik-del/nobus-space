@@ -85,11 +85,16 @@ def test_task_profiles_never_infer_write_authority_from_prose():
     assert profile_for_command("/research") is TaskProfile.RESEARCH_WEB
     assert PROFILE_POLICIES[TaskProfile.ANSWER_READ].permissions == (
         "model.inference",
+        "owner.library.read",
     )
     assert PROFILE_POLICIES[TaskProfile.RESEARCH_WEB].permissions == (
         "model.inference",
+        "owner.library.read",
         "web.search",
     )
+    for profile in (TaskProfile.ANSWER_READ, TaskProfile.RESEARCH_WEB):
+        assert "artifact.write" not in PROFILE_POLICIES[profile].permissions
+        assert "filesystem.delete" not in PROFILE_POLICIES[profile].permissions
     assert profile_for_command("создай документ") is None
     assert not PROFILE_POLICIES[TaskProfile.RESEARCH_WEB].requires_l4
     assert not PROFILE_POLICIES[TaskProfile.ARTIFACT_CREATE].requires_l4

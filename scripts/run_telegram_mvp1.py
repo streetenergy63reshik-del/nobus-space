@@ -95,8 +95,26 @@ from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E40
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
 
-_WORKTREE = ROOT.parent / "worktrees" / "telegram-live"
-_OWNER_READ_ROOT = ROOT.parents[3]
+def _named_ancestor(start: Path, name: str) -> Path | None:
+    expected = name.casefold()
+    for candidate in (start, *start.parents):
+        if candidate.name.casefold() == expected:
+            return candidate
+    return None
+
+
+def _runtime_layout(root: Path) -> tuple[Path, Path, Path]:
+    owner_root = _named_ancestor(root, "АГЕНТ") or root
+    orchestrator_root = _named_ancestor(root, "ОРКЕСТРАТОР") or root.parent
+    live_worktree = (
+        root
+        if root.parent.name.casefold() == "worktrees"
+        else orchestrator_root / "Code" / "worktrees" / "telegram-live"
+    )
+    return owner_root, orchestrator_root, live_worktree
+
+
+_OWNER_READ_ROOT, _ORCHESTRATOR_ROOT, _WORKTREE = _runtime_layout(ROOT)
 _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
@@ -120,10 +138,10 @@ _BUSINESS_NOTES_PATH = _RUNTIME_ROOT / "business-notes.sqlite3"
 _PROJECT_CONTEXT_PATH = ROOT / "docs" / "11-Контекст-продукта.md"
 _NOBUS_MEMORY_ROOT = _OWNER_READ_ROOT / "Nobus memory"
 _ARTIFACT_SNAPSHOT_ROOT = _RUNTIME_ROOT / "artifact-snapshots"
-_OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
+_OWNER_WRITE_ROOT = _ORCHESTRATOR_ROOT / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
 _GOOGLE_CALENDAR_TOKEN = (
-    ROOT.parents[1] / "Интеграции/google_api_integration/token.json"
+    _ORCHESTRATOR_ROOT / "Интеграции/google_api_integration/token.json"
 )
 
 
@@ -153,6 +171,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
 
     control: ProductTelegramControlPlane | None = None
     product_effects: ProductEffectService | None = None
+    runtime = None
     api = TelegramBotApi(
         token=credential.secret.get_secret_value(),
         transport=httpx.AsyncHTTPTransport(retries=0, trust_env=False),
@@ -325,7 +344,13 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             elif product_effects is not None:
                 await product_effects.close()
         finally:
-            await api.aclose()
+            try:
+                if runtime is not None:
+                    closer = getattr(runtime, "close", None)
+                    if callable(closer):
+                        await closer()
+            finally:
+                await api.aclose()
 
 
 def _extension_version(executable: Path) -> tuple[int, ...]:

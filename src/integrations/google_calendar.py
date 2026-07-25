@@ -12,6 +12,8 @@ from typing import Any, Callable, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.integrations.google_transport import execute_request, load_service
+
 
 MOSCOW = timezone(timedelta(hours=3), "MSK")
 _CALENDAR_WRITE_SCOPES = frozenset(
@@ -187,24 +189,12 @@ class GoogleCalendarClient:
         if not self._token_path.is_file():
             raise RuntimeError("google_calendar_credentials_unavailable")
         try:
-            from google.oauth2.credentials import Credentials
-            from google.auth.transport.requests import Request
-            from googleapiclient.discovery import build
-
-            credentials = Credentials.from_authorized_user_file(
-                str(self._token_path)
-            )
-            if not _has_any_scope(credentials, _CALENDAR_WRITE_SCOPES):
-                raise RuntimeError
-            if credentials.expired and credentials.refresh_token:
-                credentials.refresh(Request())
-            if not credentials.valid:
-                raise RuntimeError
-            self._service_instance = build(
-                "calendar",
-                "v3",
-                credentials=credentials,
-                cache_discovery=False,
+            self._service_instance = load_service(
+                self._token_path,
+                api="calendar",
+                version="v3",
+                required_scopes=_CALENDAR_WRITE_SCOPES,
+                any_scope=True,
             )
             return self._service_instance
         except ImportError:
@@ -243,17 +233,22 @@ class GoogleCalendarClient:
             }
             service = self._service()
             try:
-                raw = service.events().insert(
-                    calendarId=self._calendar_id,
-                    body=body,
-                    sendUpdates="none",
-                ).execute()
+                raw = execute_request(
+                    service.events().insert(
+                        calendarId=self._calendar_id,
+                        body=body,
+                        sendUpdates="none",
+                    )
+                )
             except Exception as error:
                 if getattr(getattr(error, "resp", None), "status", None) != 409:
                     raise RuntimeError("google_calendar_write_failed") from None
-                raw = service.events().get(
-                    calendarId=self._calendar_id, eventId=event_id
-                ).execute()
+                raw = execute_request(
+                    service.events().get(
+                        calendarId=self._calendar_id, eventId=event_id
+                    ),
+                    retries=2,
+                )
                 if not self._matches_create(raw, action):
                     raise RuntimeError("google_calendar_idempotency_conflict")
             event = self._event(raw)
@@ -305,12 +300,14 @@ class GoogleCalendarClient:
                     "dateTime": action.end.isoformat(),
                 }
             try:
-                raw = self._service().events().patch(
-                    calendarId=self._calendar_id,
-                    eventId=current.event_id,
-                    body=body,
-                    sendUpdates="none",
-                ).execute()
+                raw = execute_request(
+                    self._service().events().patch(
+                        calendarId=self._calendar_id,
+                        eventId=current.event_id,
+                        body=body,
+                        sendUpdates="none",
+                    )
+                )
             except Exception:
                 raise RuntimeError("google_calendar_write_failed") from None
             event = self._event(raw)
@@ -327,12 +324,15 @@ class GoogleCalendarClient:
         self, marker: str, action_digest: str
     ) -> CalendarEvent | None:
         try:
-            values = self._service().events().list(
-                calendarId=self._calendar_id,
-                privateExtendedProperty=f"nobusKey={marker}",
-                singleEvents=True,
-                maxResults=2,
-            ).execute()
+            values = execute_request(
+                self._service().events().list(
+                    calendarId=self._calendar_id,
+                    privateExtendedProperty=f"nobusKey={marker}",
+                    singleEvents=True,
+                    maxResults=2,
+                ),
+                retries=2,
+            )
             items = values.get("items", [])
             if not isinstance(items, list):
                 raise ValueError
@@ -404,7 +404,9 @@ class GoogleCalendarClient:
         if query:
             options["q"] = query
         try:
-            values = self._service().events().list(**options).execute()
+            values = execute_request(
+                self._service().events().list(**options), retries=2
+            )
             items = values.get("items", [])
             if not isinstance(items, list):
                 raise ValueError
@@ -416,11 +418,13 @@ class GoogleCalendarClient:
 
     def _delete_sync(self, event_id: str) -> None:
         try:
-            self._service().events().delete(
-                calendarId=self._calendar_id,
-                eventId=event_id,
-                sendUpdates="none",
-            ).execute()
+            execute_request(
+                self._service().events().delete(
+                    calendarId=self._calendar_id,
+                    eventId=event_id,
+                    sendUpdates="none",
+                )
+            )
         except Exception as error:
             if getattr(getattr(error, "resp", None), "status", None) != 404:
                 raise RuntimeError("google_calendar_delete_failed") from None

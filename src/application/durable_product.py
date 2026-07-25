@@ -413,7 +413,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     async def _submit_draft(
         self,
         prepared: PreparedTask,
-        message: TextMessage | CallbackQuery,
+        message: TextMessage | VoiceMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         *,
         recovery_envelope: TrustedIngressEnvelope | None = None,
@@ -447,7 +447,11 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 "envelope_revision": prepared.envelope_revision,
             },
             "message_type": (
-                "text" if isinstance(message, TextMessage) else "callback"
+                "text"
+                if isinstance(message, TextMessage)
+                else "voice"
+                if isinstance(message, VoiceMessage)
+                else "callback"
             ),
             "message": message.model_dump(mode="json"),
             "envelope": envelope.model_dump(mode="json"),
@@ -624,11 +628,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             )
         )
         message_type = payload["message_type"]
-        if message_type not in {"text", "callback"}:
+        if message_type not in {"text", "voice", "callback"}:
             raise RuntimeError("durable draft message type is invalid")
         message = (
             TextMessage.model_validate(payload["message"])
             if message_type == "text"
+            else VoiceMessage.model_validate(payload["message"])
+            if message_type == "voice"
             else CallbackQuery.model_validate(payload["message"])
         )
         envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])

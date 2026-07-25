@@ -278,7 +278,7 @@ class OwnerFileProvider(Protocol):
 @dataclass(frozen=True, slots=True)
 class _QueuedDraft:
     prepared: PreparedTask
-    message: TextMessage | CallbackQuery
+    message: TextMessage | VoiceMessage | CallbackQuery
     envelope: TrustedIngressEnvelope
 
 
@@ -654,7 +654,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     async def _submit_draft(
         self,
         prepared: PreparedTask,
-        message: TextMessage | CallbackQuery,
+        message: TextMessage | VoiceMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         *,
         recovery_envelope: TrustedIngressEnvelope | None = None,
@@ -1734,7 +1734,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     async def _draft_and_present(
         self,
         prepared: PreparedTask,
-        message: TextMessage | CallbackQuery,
+        message: TextMessage | VoiceMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         *,
         progress: Callable[[str], Awaitable[None]] | None = None,
@@ -1779,12 +1779,38 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 )
             await self.deliver_pending()
             return
-        challenge = self._patch_confirmations.issue(
-            message=message,
-            envelope=envelope,
-            proposal=outcome.proposal,
+        if _patch_deletes_files(outcome.proposal):
+            await self._product_runtime.reject_proposal(outcome.proposal)
+            await self._api.send_message(
+                message.chat_id,
+                "Изменение включает удаление файла. Для каждого удаляемого "
+                "объекта нужен отдельный L4-запрос с точным путём.",
+            )
+            await self.deliver_pending()
+            return
+        approval_digest = canonical_json_digest(
+            {
+                "actor_identity": envelope.actor_identity,
+                "authorization": "exact-owner-command",
+                "chat_id": message.chat_id,
+                "interaction_id": (
+                    message.query_id
+                    if isinstance(message, CallbackQuery)
+                    else str(message.message_id)
+                ),
+                "task_id": str(outcome.proposal.task_id),
+                "update_id": message.update_id,
+            }
         )
-        await self._send_patch_challenge(message, challenge)
+        queued = await self._submit_patch(
+            outcome.proposal,
+            approver_identity=envelope.actor_identity,
+            approval_evidence_ref=(
+                f"telegram-owner-confirmation:{approval_digest}"
+            ),
+        )
+        if not queued:
+            raise RuntimeError("owner-authorized patch was not durably enqueued")
 
     async def _resolve_patch(
         self,
@@ -1920,6 +1946,16 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         ):
             return None
         return normalized
+
+
+def _patch_deletes_files(proposal: PatchProposal) -> bool:
+    """File deletion is never inferred from a general owner edit command."""
+    patch = proposal.patch.replace("\r\n", "\n")
+    normalized = "\n" + patch
+    return (
+        "\ndeleted file mode " in normalized
+        or "\n+++ /dev/null\n" in normalized
+    )
 
 
 def _owner_authorizes_document_overwrite(

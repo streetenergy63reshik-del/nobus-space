@@ -30,7 +30,10 @@ from src.application.task_confirmation import (
     InMemoryTaskConfirmationStore,
     TaskConfirmationStatus,
 )
-from src.application.telegram_actions import InMemoryTelegramActionStore
+from src.application.telegram_actions import (
+    InMemoryTelegramActionStore,
+    TelegramAction,
+)
 from src.application.telegram_product import ProductTelegramControlPlane
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
@@ -388,6 +391,35 @@ def callback_update(token: str, update_id: int) -> dict[str, Any]:
             "data": token,
         },
     }
+
+
+async def _issue_legacy_patch_apply(
+    harness: ProductHarness, instruction: str, update_id: int
+) -> str:
+    ingress = harness.control._gateway.process_update(
+        text_update(instruction, update_id)
+    )
+    assert ingress.envelope is not None
+    assert ingress.payload is not None
+    prepared = await harness.runtime.prepare_instruction(
+        instruction, ingress.envelope
+    )
+    proposal = (await harness.runtime.draft_prepared(prepared)).proposal
+    assert proposal is not None
+    challenge = harness.patches.issue(
+        message=ingress.payload,
+        envelope=ingress.envelope,
+        proposal=proposal,
+    )
+    return harness.control._action_buttons(
+        ingress.payload,
+        ((
+            TelegramAction.APPLY_PATCH,
+            challenge.confirmation_token.get_secret_value(),
+            "Apply",
+        ),),
+        ttl_seconds=600,
+    )[0][1]
 
 
 class FakeCalendarPlanner:
@@ -786,40 +818,29 @@ async def test_google_task_delete_requires_exact_button(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_plain_text_immediately_creates_read_only_draft_then_button_applies(
+async def test_plain_owner_text_authorizes_non_delete_patch_without_second_button(
     tmp_path: Path,
 ) -> None:
     harness = _product(tmp_path)
 
     assert await harness.control.handle(text_update("Исправь безопасный файл", 1))
-    assert all("Задача принята" not in text for _, text, _ in harness.api.sent)
     assert len(harness.runtime.drafted) == 1
-    assert harness.runtime.applied == []
-    labels = [label for label, _ in harness.api.sent[-1][2]]
-    assert labels == ["✅ Применить", "❌ Отклонить"]
-
-    apply_token = harness.api.sent[-1][2][0][1]
-    assert await harness.control.handle(callback_update(apply_token, 2))
     assert len(harness.runtime.applied) == 1
     assert harness.runtime.applied[0][1] == "telegram:owner"
-    assert harness.runtime.applied[0][2].startswith("telegram-owner-confirmation:sha256:")
-    assert harness.api.answered == ["query-2"]
-    assert "Точный diff подтверждён" in harness.api.sent[-1][1]
-    assert harness.api.deleted == [(USER_ID, 102)]
-    assert "Task:" not in harness.api.sent[-1][1]
-    assert "Event:" not in harness.api.sent[-1][1]
-
-
+    assert harness.runtime.applied[0][2].startswith(
+        "telegram-owner-confirmation:sha256:"
+    )
+    assert all(buttons == () for _, _, buttons in harness.api.sent)
+    assert all("Task:" not in text for _, text, _ in harness.api.sent)
 @pytest.mark.asyncio
 async def test_voice_is_queued_without_confirmation(tmp_path: Path) -> None:
     harness = _product(tmp_path, voice=True)
 
     assert await harness.control.handle(voice_update(1))
     assert len(harness.runtime.drafted) == 1
-    assert len(harness.api.sent) == 1
-    assert "Я распознал задачу" not in harness.api.sent[-1][1]
+    assert len(harness.runtime.applied) == 1
+    assert harness.api.sent == []
     assert harness.api.callback_texts == []
-    assert harness.api.sent[-1][2] == ()
 
 
 @pytest.mark.asyncio
@@ -867,8 +888,7 @@ async def test_menu_commands_are_separate_from_default_task_text(tmp_path: Path)
 @pytest.mark.asyncio
 async def test_callback_answer_failure_does_not_lose_owner_apply(tmp_path: Path) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("??????? ?????????? ????", 1))
-    apply_token = harness.api.sent[-1][2][0][1]
+    apply_token = await _issue_legacy_patch_apply(harness, "safe change", 1)
     harness.api.callback_failure = True
 
     assert await harness.control.handle(callback_update(apply_token, 2))
@@ -879,8 +899,7 @@ async def test_callback_answer_failure_does_not_lose_owner_apply(tmp_path: Path)
 @pytest.mark.asyncio
 async def test_callback_delete_failure_does_not_lose_owner_apply(tmp_path: Path) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("safe change", 1))
-    apply_token = harness.api.sent[-1][2][0][1]
+    apply_token = await _issue_legacy_patch_apply(harness, "safe change", 1)
     harness.api.delete_failure = True
 
     assert await harness.control.handle(callback_update(apply_token, 2))
@@ -905,8 +924,7 @@ async def test_cancellation_after_callback_claim_cannot_lose_owner_action(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("safe change", 1))
-    apply_token = harness.api.sent[-1][2][0][1]
+    apply_token = await _issue_legacy_patch_apply(harness, "safe change", 1)
     started = asyncio.Event()
     release = asyncio.Event()
     completed: list[str] = []
@@ -943,8 +961,7 @@ async def test_ordinary_pre_durable_failure_releases_callback_for_retry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("safe change", 1))
-    apply_token = harness.api.sent[-1][2][0][1]
+    apply_token = await _issue_legacy_patch_apply(harness, "safe change", 1)
     attempts = 0
 
     async def flaky_resolution(*args: object, **kwargs: object) -> None:
@@ -972,8 +989,7 @@ async def test_child_cancellation_releases_callback_for_retry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("safe change", 1))
-    apply_token = harness.api.sent[-1][2][0][1]
+    apply_token = await _issue_legacy_patch_apply(harness, "safe change", 1)
     attempts = 0
 
     async def cancelled_then_succeeds(*args: object, **kwargs: object) -> None:
@@ -1001,7 +1017,7 @@ async def test_child_cancellation_releases_callback_for_retry(
 @pytest.mark.asyncio
 async def test_expired_patch_is_rejected_and_discarded(tmp_path: Path) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("??????? ?????????? ????", 1))
+    await _issue_legacy_patch_apply(harness, "safe change", 1)
     assert harness.runtime.rejected == []
 
     harness.clock.advance(601)
@@ -1013,7 +1029,7 @@ async def test_expired_patch_is_rejected_and_discarded(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_expiry_cleanup_retries_after_transient_reject_failure(tmp_path: Path) -> None:
     harness = _product(tmp_path)
-    await harness.control.handle(text_update("??????? ?????????? ????", 1))
+    await _issue_legacy_patch_apply(harness, "safe change", 1)
     harness.runtime.reject_failures = 1
     harness.clock.advance(601)
     await harness.control.handle(text_update("/status", 2))
@@ -1064,7 +1080,7 @@ async def test_patch_and_voice_product_messages_hide_ids_and_backup_codes(
         for marker in ("Task:", "Event:", "Revision:", "Digest:", "/confirm ", "/cancel "):
             assert marker not in visible
     assert "agent/telegram-live" not in text_harness.control._status_text()
-    assert voice_harness.api.sent[-1][2] == ()
+    assert all(buttons == () for _, _, buttons in voice_harness.api.sent)
 
 @pytest.mark.asyncio
 async def test_informational_answer_uses_only_durable_delivery_boundary(

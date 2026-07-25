@@ -12,6 +12,8 @@ from typing import Any, Callable, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.integrations.google_transport import execute_request, load_service
+
 
 _MAX_PAGES = 100
 
@@ -155,22 +157,12 @@ class GoogleTasksClient:
         if not self._token_path.is_file():
             raise RuntimeError("google_tasks_credentials_unavailable")
         try:
-            from google.auth.transport.requests import Request
-            from google.oauth2.credentials import Credentials
-            from googleapiclient.discovery import build
-
             scopes = ("https://www.googleapis.com/auth/tasks",)
-            credentials = Credentials.from_authorized_user_file(
-                str(self._token_path)
-            )
-            if not credentials.has_scopes(scopes):
-                raise RuntimeError
-            if credentials.expired and credentials.refresh_token:
-                credentials.refresh(Request())
-            if not credentials.valid:
-                raise RuntimeError
-            self._service_instance = build(
-                "tasks", "v1", credentials=credentials, cache_discovery=False
+            self._service_instance = load_service(
+                self._token_path,
+                api="tasks",
+                version="v1",
+                required_scopes=scopes,
             )
             return self._service_instance
         except ImportError:
@@ -213,9 +205,11 @@ class GoogleTasksClient:
             if action.due is not None:
                 body["due"] = f"{action.due.isoformat()}T00:00:00.000Z"
             try:
-                raw = self._service().tasks().insert(
-                    tasklist=tasklist_id, body=body
-                ).execute()
+                raw = execute_request(
+                    self._service().tasks().insert(
+                        tasklist=tasklist_id, body=body
+                    )
+                )
             except Exception:
                 raise RuntimeError("google_tasks_write_failed") from None
             return self._result(
@@ -236,11 +230,13 @@ class GoogleTasksClient:
         else:
             raise ValueError("Google Task action requires another boundary")
         try:
-            raw = self._service().tasks().patch(
-                tasklist=current.tasklist_id,
-                task=current.task_id,
-                body=body,
-            ).execute()
+            raw = execute_request(
+                self._service().tasks().patch(
+                    tasklist=current.tasklist_id,
+                    task=current.task_id,
+                    body=body,
+                )
+            )
         except Exception:
             raise RuntimeError("google_tasks_write_failed") from None
         return self._result(
@@ -251,10 +247,12 @@ class GoogleTasksClient:
     def _tasklists_sync(self) -> tuple[tuple[str, str], ...]:
         try:
             items = self._pages(
-                lambda token: self._service()
-                .tasklists()
-                .list(maxResults=100, pageToken=token)
-                .execute()
+                lambda token: execute_request(
+                    self._service()
+                    .tasklists()
+                    .list(maxResults=100, pageToken=token),
+                    retries=2,
+                )
             )
             candidates = [
                 (item["id"], item["title"])
@@ -347,16 +345,19 @@ class GoogleTasksClient:
     ) -> tuple[GoogleTaskItem, ...]:
         try:
             items = self._pages(
-                lambda token: self._service()
-                .tasks()
-                .list(
-                    tasklist=tasklist_id,
-                    maxResults=100,
-                    showCompleted=True,
-                    showHidden=True,
-                    pageToken=token,
+                lambda token: execute_request(
+                    self._service()
+                    .tasks()
+                    .list(
+                        tasklist=tasklist_id,
+                        maxResults=100,
+                        showAssigned=True,
+                        showCompleted=True,
+                        showHidden=True,
+                        pageToken=token,
+                    ),
+                    retries=2,
                 )
-                .execute()
             )
             return tuple(
                 self._item(item, tasklist_id, tasklist_title) for item in items
@@ -389,16 +390,19 @@ class GoogleTasksClient:
     ) -> GoogleTaskItem | None:
         try:
             raw_items = self._pages(
-                lambda token: self._service()
-                .tasks()
-                .list(
-                    tasklist=tasklist_id,
-                    maxResults=100,
-                    showCompleted=True,
-                    showHidden=True,
-                    pageToken=token,
+                lambda token: execute_request(
+                    self._service()
+                    .tasks()
+                    .list(
+                        tasklist=tasklist_id,
+                        maxResults=100,
+                        showAssigned=True,
+                        showCompleted=True,
+                        showHidden=True,
+                        pageToken=token,
+                    ),
+                    retries=2,
                 )
-                .execute()
             )
             matched = [
                 item
@@ -442,9 +446,11 @@ class GoogleTasksClient:
 
     def _delete_sync(self, tasklist_id: str, task_id: str) -> None:
         try:
-            self._service().tasks().delete(
-                tasklist=tasklist_id, task=task_id
-            ).execute()
+            execute_request(
+                self._service().tasks().delete(
+                    tasklist=tasklist_id, task=task_id
+                )
+            )
         except Exception as error:
             if getattr(getattr(error, "resp", None), "status", None) != 404:
                 raise RuntimeError("google_tasks_delete_failed") from None

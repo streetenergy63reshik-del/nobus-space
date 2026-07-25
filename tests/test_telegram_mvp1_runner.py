@@ -216,3 +216,30 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     assert not polling_constructed
     assert len(api_instances) == 1
     assert api_instances[0].closed
+
+def test_runtime_layout_is_portable_and_defaults_to_current_root(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "checkout"
+    root.mkdir()
+
+    owner, orchestrator, live = runner._runtime_layout(root)
+
+    assert owner == root
+    assert orchestrator == tmp_path
+    assert live == tmp_path / "Code" / "worktrees" / "telegram-live"
+
+
+def test_runtime_layout_discovers_canonical_named_ancestors(
+    tmp_path: Path,
+) -> None:
+    owner = tmp_path / "АГЕНТ"
+    orchestrator = owner / "PROстранство" / "ОРКЕСТРАТОР"
+    root = orchestrator / "Code" / "worktrees" / "telegram-live"
+    root.mkdir(parents=True)
+
+    discovered_owner, discovered_orchestrator, live = runner._runtime_layout(root)
+
+    assert discovered_owner == owner
+    assert discovered_orchestrator == orchestrator
+    assert live == root

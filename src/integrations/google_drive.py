@@ -9,6 +9,8 @@ from typing import Any, Callable
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.integrations.google_transport import execute_request, load_service
+
 
 _MAX_DOWNLOAD_BYTES = 49 * 1024 * 1024
 _EXPORTS = {
@@ -102,25 +104,17 @@ class GoogleDriveClient:
         if not self._token_path.is_file():
             raise RuntimeError("google_drive_credentials_unavailable")
         try:
-            from google.auth.transport.requests import Request
-            from google.oauth2.credentials import Credentials
-            from googleapiclient.discovery import build
-
-            scopes = ("https://www.googleapis.com/auth/drive.readonly",)
-            credentials = Credentials.from_authorized_user_file(
-                str(self._token_path)
+            scopes = (
+                "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/drive.file",
+                "https://www.googleapis.com/auth/drive",
             )
-            if not credentials.has_scopes(scopes):
-                raise RuntimeError
-            if credentials.expired and credentials.refresh_token:
-                credentials.refresh(Request())
-            if not credentials.valid:
-                raise RuntimeError
-            self._service_instance = build(
-                "drive",
-                "v3",
-                credentials=credentials,
-                cache_discovery=False,
+            self._service_instance = load_service(
+                self._token_path,
+                api="drive",
+                version="v3",
+                required_scopes=scopes,
+                any_scope=True,
             )
             return self._service_instance
         except ImportError:
@@ -164,10 +158,8 @@ class GoogleDriveClient:
             token: str | None = None
             seen: set[str] = set()
             for _ in range(100):
-                values = (
-                    self._service()
-                    .files()
-                    .list(
+                values = execute_request(
+                    self._service().files().list(
                         q=f"name contains '{escaped}' and trashed = false",
                         spaces="drive",
                         fields=(
@@ -177,8 +169,8 @@ class GoogleDriveClient:
                         pageSize=100,
                         orderBy="modifiedTime desc",
                         pageToken=token,
-                    )
-                    .execute()
+                    ),
+                    retries=2,
                 )
                 if not isinstance(values, dict):
                     raise ValueError

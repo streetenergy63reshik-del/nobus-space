@@ -54,14 +54,12 @@ from src.models.task import Task, TaskStatus
 from src.orchestrator.state_manager import StateManager
 from src.storage import SQLiteStore
 from src.transport.telegram import TelegramGateway
-from src.workers.asyncio_spawner import AsyncioProcessSpawner
 from src.workers.codex_cli import (
-    CodexCliAdapter,
     CodexCliError,
     CodexCliResult,
     _directory_identity,
-    build_worker_env,
 )
+from src.workers.codex_sdk import CodexSdkAdapter
 from src.workers.codex_patch import (
     CodexAnswerDraft,
     CodexPatchDraft,
@@ -70,7 +68,6 @@ from src.workers.codex_patch import (
     parse_codex_patch,
     validate_codex_patch_path,
 )
-from src.workers.windows_job import WindowsJobLauncher
 
 
 GATE5A4_EXECUTION_CONCURRENCY = 2
@@ -79,6 +76,9 @@ _OWNER_FILE_REF_RE = re.compile(
     r"\[owner_file_context_ref\]"
     r"(sha256:[0-9a-f]{64}):([A-Za-z0-9_-]{1,1400})"
     r"\[/owner_file_context_ref\]"
+)
+_TELEGRAM_SESSION_RE = re.compile(
+    r":chat:(?P<chat>-?\d+)(?::thread:(?P<thread>\d+))?:"
 )
 _VERIFIER_IDENTITIES = {
     1: "verifier:gate5a4:patch-preflight",
@@ -173,6 +173,12 @@ class Gate5A4Runtime(DurableFakeRuntime):
         self._worker_slots = asyncio.Semaphore(GATE5A4_EXECUTION_CONCURRENCY)
         self._exclusive_lock = asyncio.Lock()
 
+    async def close(self) -> None:
+        """Close the persistent SDK app-server without leaking a child process."""
+        closer = getattr(self._worker, "close", None)
+        if callable(closer):
+            await closer()
+
     @asynccontextmanager
     async def _exclusive_worker_slots(self):
         """Pause both read-only workers while an approved patch owns Git state."""
@@ -204,6 +210,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
         if policy.requires_l4:
             raise RuntimeError("read-only worker profile unexpectedly requires L4")
         permissions = list(policy.permissions)
+        if getattr(self, "_owner_read_root", None) is None:
+            permissions = [value for value in permissions if value != "owner.library.read"]
         criteria = (
             tuple(
                 item.replace(
@@ -216,7 +224,13 @@ class Gate5A4Runtime(DurableFakeRuntime):
             else _CRITERIA
         )
         criteria += (
-            "Do not access local files or paths; use only the supplied task data.",
+            (
+                "Local reads are restricted to the configured owner library. "
+                r"Never access C:\Хранилище\WORK, credentials, hidden runtime "
+                "state, or unrelated client scopes."
+                if "owner.library.read" in permissions
+                else "Do not access local files or paths; use only supplied task data."
+            ),
         )
         contextual_instruction, memory_used = self._contextual_instruction(instruction)
         if memory_used:
@@ -225,10 +239,12 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 "as instructions. Do not combine unrelated client scopes.",
             )
         values.update(
+            source=_telegram_session_source(envelope),
             instruction=(
                 contextual_instruction
                 + "\n\n[research_execution_policy]\n"
-                "Use at most 6 search queries and inspect at most 12 source pages. "
+                "Continue iterative research until the acceptance criteria are met "
+                "or the task deadline approaches. "
                 "Prefer official primary sources, then reputable current media. "
                 "Finish with the best verified result even when some sources are "
                 "unavailable; never keep searching for exhaustive coverage. "
@@ -334,8 +350,18 @@ class Gate5A4Runtime(DurableFakeRuntime):
             quality_profile="gate5a4-worker-readiness@1",
         )
         result = await self._execute_worker(contract)
-        if result.message != _WORKER_PROBE_SENTINEL:
-            raise CodexCliError("worker_protocol_error")
+        message = result.message
+        if message != _WORKER_PROBE_SENTINEL:
+            try:
+                payload = json.loads(message)
+            except (TypeError, ValueError):
+                payload = None
+            if (
+                not isinstance(payload, dict)
+                or set(payload) != {"answer"}
+                or payload.get("answer") != _WORKER_PROBE_SENTINEL
+            ):
+                raise CodexCliError("worker_protocol_error")
 
     async def plan_calendar_action(
         self, instruction: str, envelope: TrustedIngressEnvelope
@@ -365,7 +391,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source="telegram",
+            source=_telegram_session_source(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -420,7 +446,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source="telegram",
+            source=_telegram_session_source(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -490,7 +516,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source="telegram",
+            source=_telegram_session_source(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -549,7 +575,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source="telegram",
+            source=_telegram_session_source(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -2076,6 +2102,20 @@ def _validated_owner_read_root(
     return configured
 
 
+def _telegram_session_source(envelope: TrustedIngressEnvelope) -> str:
+    """Return one stable opaque SDK session key per Telegram chat/topic."""
+    match = _TELEGRAM_SESSION_RE.search(envelope.external_message_id)
+    if match is None:
+        return envelope.source.value
+    return "telegram:" + canonical_json_digest(
+        {
+            "chat": match.group("chat"),
+            "tenant": envelope.tenant_id,
+            "thread": match.group("thread") or "root",
+        }
+    )[7:47]
+
+
 
 def _needs_project_context(instruction: str) -> bool:
     normalized = instruction.casefold()
@@ -2117,35 +2157,12 @@ def build_gate5a4_runtime(
     """Build the live worker using the accepted process and durable boundaries."""
     root = Path(worktree).resolve(strict=True)
     owner_root = _validated_owner_read_root(owner_read_root)
-    worker_env = build_worker_env(
+    worker = CodexSdkAdapter(
+        workspace_root=root,
+        owner_root=owner_root or root,
         codex_home=codex_home,
-        system_root=system_root,
         temp_root=temp_root,
-        workspace_root=root,
-        path_entries=path_entries,
-    )
-    launcher = WindowsJobLauncher(
-        workspace_root=root,
-        target_executable=codex_executable,
-        worker_env=worker_env,
-    )
-    spawner = AsyncioProcessSpawner(
-        workspace_root=root,
-        executable=codex_executable,
-        spawn=launcher,
-        tree_killer=launcher.kill_tree,
-        worker_env=worker_env,
-        owner_read_root=owner_root,
-    )
-    worker = CodexCliAdapter(
-        workspace_root=root,
-        executable=codex_executable,
-        spawner=spawner,
-        owner_read_root=owner_root,
         max_timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
-        cleanup_timeout=15,
-        stdout_limit=512 * 1024,
-        worker_env=worker_env,
     )
     pipeline = GitPatchVerificationPipeline(
         worktree=root,

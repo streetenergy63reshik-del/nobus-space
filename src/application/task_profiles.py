@@ -23,10 +23,14 @@ class ProfilePolicy:
 
 PROFILE_POLICIES = {
     TaskProfile.ANSWER_READ: ProfilePolicy(
-        ("model.inference",), False, "tool-less-answer"
+        ("model.inference", "owner.library.read"),
+        False,
+        "owner-library-read",
     ),
     TaskProfile.RESEARCH_WEB: ProfilePolicy(
-        ("model.inference", "web.search"), False, "tool-less-network-read"
+        ("model.inference", "owner.library.read", "web.search"),
+        False,
+        "owner-library-and-network-read",
     ),
     TaskProfile.ARTIFACT_CREATE: ProfilePolicy(
         ("artifact.write",), False, "owner-command-filesystem-write"
