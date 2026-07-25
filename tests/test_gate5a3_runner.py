@@ -65,6 +65,22 @@ def test_task_destinations_are_tenant_bound_and_deterministic() -> None:
     assert refs["owner"].startswith("sha256:")
 
 
+def test_business_notes_binding_is_not_a_task_destination() -> None:
+    refs, destinations = _task_destinations(
+        {
+            (42, 42): binding(),
+            (42, -1001): ActorBinding(
+                tenant_id="owner",
+                actor_identity="telegram:owner",
+                role="owner",
+                auth_context_ref=AUTH_REF,
+                purpose="business_notes",
+            ),
+        }
+    )
+    assert destinations == {"owner": (refs["owner"], 42)}
+
+
 def test_task_destinations_reject_one_tenant_with_two_chats() -> None:
     with pytest.raises(TelegramBindingError):
         _task_destinations(

@@ -2,9 +2,12 @@ pydantic==2.13.4
 pydantic-settings==2.14.2
 fastapi==0.139.2
 faster-whisper==1.2.1
+numpy==2.5.1
 uvicorn[standard]==0.51.0
 httpx==0.28.1
 langgraph==1.2.9
 typing-extensions==4.16.0
 pytest==9.1.1
 pytest-asyncio==1.4.0
+google-api-python-client==2.131.0
+google-auth==2.29.0

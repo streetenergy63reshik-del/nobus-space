@@ -23,6 +23,7 @@ _DATABASES = (
     ROOT / ".runtime" / "telegram-checkpoint.sqlite3",
     ROOT / ".runtime" / "task-runtime.sqlite3",
     ROOT / ".runtime" / "telegram-state.sqlite3",
+    ROOT / ".runtime" / "business-notes.sqlite3",
 )
 
 

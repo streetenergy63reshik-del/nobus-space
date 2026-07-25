@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from src.workers.codex_cli import _INTENT_ARGV
 from src.workers.asyncio_spawner import (
     AsyncioProcessSpawner,
     AsyncioSpawnedProcess,
@@ -173,6 +174,27 @@ async def test_spawns_only_fixed_profile_without_shell_or_ambient_env(
 
 
 @pytest.mark.asyncio
+async def test_intent_profile_crosses_real_spawner_allowlist(
+    worker_paths: tuple[Path, Path, Path],
+) -> None:
+    calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    async def spawn(*args: Any, **kwargs: Any) -> Any:
+        calls.append((args, kwargs))
+        return FakeChild()
+
+    workspace, _, executable = worker_paths
+    spawner = AsyncioProcessSpawner(
+        workspace_root=workspace,
+        executable=executable,
+        spawn=spawn,
+        tree_killer=fake_tree_killer,
+    )
+    await spawner(**allowed_call(worker_paths, _INTENT_ARGV))
+    assert calls[0][0] == (str(executable.resolve()), *_INTENT_ARGV)
+
+
+@pytest.mark.asyncio
 async def test_workspace_write_profile_is_exactly_allowlisted(
     worker_paths: tuple[Path, Path, Path],
 ) -> None:
@@ -191,6 +213,97 @@ async def test_workspace_write_profile_is_exactly_allowlisted(
     )
     await spawner(**allowed_call(worker_paths, WRITE_ARGV))
     assert calls[0][0] == (str(executable.resolve()), *WRITE_ARGV)
+
+
+@pytest.mark.asyncio
+async def test_owner_root_does_not_widen_read_profile(
+    worker_paths: tuple[Path, Path, Path],
+) -> None:
+    calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    async def spawn(*args: Any, **kwargs: Any) -> Any:
+        calls.append((args, kwargs))
+        return FakeChild()
+
+    workspace, _, executable = worker_paths
+    owner_root = workspace.parent / "owner-library"
+    owner_root.mkdir()
+    other_root = workspace.parent / "other-library"
+    other_root.mkdir()
+    spawner = AsyncioProcessSpawner(
+        workspace_root=workspace,
+        executable=executable,
+        spawn=spawn,
+        tree_killer=fake_tree_killer,
+        owner_read_root=owner_root,
+    )
+    await spawner(**allowed_call(worker_paths, READ_ARGV))
+    assert calls[0][0] == (str(executable.resolve()), *READ_ARGV)
+
+    injected = (
+        *READ_ARGV[:-3],
+        "--add-dir",
+        str(other_root.resolve()),
+        *READ_ARGV[-3:],
+    )
+    with pytest.raises(RuntimeError, match="not allowlisted"):
+        await spawner(**allowed_call(worker_paths, injected))
+
+
+@pytest.mark.asyncio
+async def test_owner_root_identity_change_is_rejected_before_spawn(
+    worker_paths: tuple[Path, Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = False
+
+    async def spawn(*args: Any, **kwargs: Any) -> Any:
+        nonlocal called
+        called = True
+        return FakeChild()
+
+    workspace, _, executable = worker_paths
+    owner_root = workspace.parent / "owner-library"
+    owner_root.mkdir()
+    spawner = AsyncioProcessSpawner(
+        workspace_root=workspace,
+        executable=executable,
+        spawn=spawn,
+        tree_killer=fake_tree_killer,
+        owner_read_root=owner_root,
+    )
+    monkeypatch.setattr(
+        "src.workers.asyncio_spawner._directory_identity",
+        lambda path: (999, 999),
+    )
+
+    with pytest.raises(RuntimeError, match="not allowlisted"):
+        await spawner(**allowed_call(worker_paths, READ_ARGV))
+    assert not called
+
+
+@pytest.mark.asyncio
+async def test_owner_root_is_never_allowed_on_workspace_write_profile(
+    worker_paths: tuple[Path, Path, Path],
+) -> None:
+    workspace, _, executable = worker_paths
+    owner_root = workspace.parent / "owner-library"
+    owner_root.mkdir()
+    spawner = AsyncioProcessSpawner(
+        workspace_root=workspace,
+        executable=executable,
+        spawn=lambda *args, **kwargs: asyncio.sleep(0),
+        tree_killer=fake_tree_killer,
+        owner_read_root=owner_root,
+    )
+    unsafe = (
+        *WRITE_ARGV[:-3],
+        "--add-dir",
+        str(owner_root.resolve()),
+        *WRITE_ARGV[-3:],
+    )
+    with pytest.raises(RuntimeError, match="not allowlisted"):
+        await spawner(**allowed_call(worker_paths, unsafe))
 
 
 @pytest.mark.asyncio

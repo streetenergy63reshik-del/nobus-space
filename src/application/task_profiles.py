@@ -23,19 +23,19 @@ class ProfilePolicy:
 
 PROFILE_POLICIES = {
     TaskProfile.ANSWER_READ: ProfilePolicy(
-        ("repo.read", "process.run_allowlisted"), False, "read-only"
+        ("model.inference",), False, "tool-less-answer"
     ),
     TaskProfile.RESEARCH_WEB: ProfilePolicy(
-        ("repo.read", "process.run_allowlisted", "web.search"), False, "network-read"
+        ("model.inference", "web.search"), False, "tool-less-network-read"
     ),
     TaskProfile.ARTIFACT_CREATE: ProfilePolicy(
-        ("artifact.write",), True, "filesystem-write"
+        ("artifact.write",), False, "owner-command-filesystem-write"
     ),
     TaskProfile.DOWNLOAD_QUARANTINE: ProfilePolicy(
-        ("network.download", "artifact.write"), True, "network-and-filesystem-write"
+        ("network.download", "artifact.write"), False, "owner-command-download"
     ),
     TaskProfile.NETWORK_COMMAND: ProfilePolicy(
-        ("network.command",), True, "process-and-network-effect"
+        ("network.command",), False, "owner-command-network-effect"
     ),
 }
 

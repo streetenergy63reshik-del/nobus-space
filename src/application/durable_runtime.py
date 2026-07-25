@@ -46,6 +46,7 @@ _WORKER_FAILURE_MESSAGES = {
     "worker_failed": "Worker execution failed.",
     "worker_protocol_error": "Worker returned invalid output.",
     "worker_output_too_large": "Worker output is too large.",
+    "worker_context_unavailable": "Selected owner file changed or is unavailable.",
 }
 
 

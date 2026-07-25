@@ -1,18 +1,99 @@
+## Operational override 2026-07-24 — Queue 1/2 release candidate
+
+This section supersedes older process-memory/restart instructions below.
+
+### Runtime rules
+
+- Accepted jobs live in `.runtime/telegram-state.sqlite3`; queue size is 40.
+- Safe read-only work gets at most three durable claims. The third failure is a dead
+  letter and makes the health probe report `DEGRADED`; later FIFO items remain claimable.
+- An interrupted network command is never retried blindly.
+- Completed Telegram effects use a delivery receipt. `sendDocument` still has a narrow
+  at-least-once crash window because Telegram exposes no idempotency key.
+- Confirmation capabilities expire after seven days.
+
+### Business Notes live binding preflight
+
+1. Keep the operator-owned binding file outside Git and migrate it atomically to
+   schema version 2.
+2. Preserve exactly one `owner_private` binding and add one separate
+   `business_notes` binding for the exact owner user and negative forum chat ID.
+   Recalculate the proof with the local configuration helper; never paste IDs,
+   proofs or note contents into Markdown or logs.
+3. Make the bot an administrator of the forum or disable BotFather privacy mode,
+   otherwise Telegram will not deliver ordinary topic messages. Grant only the
+   permissions needed to read incoming messages and reply in topics.
+4. Verify a health `PASS`, then run an owner-only smoke in a dedicated test topic:
+   one text note, one voice note, `/summary` and `/tasks`. Confirm that replies
+   carry the same `message_thread_id` and that no note becomes a Codex task.
+5. Restart the runner and repeat `/summary`; then execute backup/restore in a
+   disposable runtime copy and verify that the encrypted note survives.
+
+Do not activate the group binding when privacy/admin delivery is unresolved.
+Business-note payloads must never be printed by smoke scripts.
+
+### Read-only checks
+
+```powershell
+.\.venv\Scripts\python.exe scripts\check_telegram_health.py
+$env:DEBUG='false'
+.\.venv\Scripts\python.exe -m pytest -q --disable-warnings
+```
+
+The health command requires all four databases, exact DDL fingerprints and valid
+application digests. `PASS` means healthy, `DEGRADED` means operator reconciliation
+(for example a dead letter), and `FAIL` means corruption/unavailability. The health
+task only records an alert; it never restarts the runner. Task Scheduler owns the
+single bounded liveness contract: at most ten one-minute restart attempts.
+
+### Backup
+
+Stop/quiesce the runner through the shared mutex, then create a new directory:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\backup_telegram_runtime.py <new-backup-directory>
+```
+
+The backup is accepted only when source and copied schemas, payloads and hashes pass.
+
+### Restore (L4)
+
+Restore is an external state change and requires an exact owner-bound approval:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\restore_telegram_runtime.py `
+  <backup-manifest.json> `
+  --approval-ref telegram-owner-confirmation:sha256:<64-hex>
+```
+
+The journal, staged files and rollback copies are flushed before replacement. A startup
+recovery rolls back an interrupted multi-database install.
+
+### Telegram product profile (L4)
+
+`--help` and a missing flag never write to Telegram. Publication is explicit:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\configure_telegram_profile.py --apply
+```
+
+Do not run this command before the release candidate has independent L2/L3 `ACCEPT`.
+
 # 08. Runbook эксплуатации
 
-## Активный локальный релиз
+## Operational update 2026-07-24: current-user autostart
 
-Owner-approved Task Scheduler task `NobusSpaceBot` запускает `aa8a02e` после
-входа текущего пользователя, не допускает дубликат процесса и выполняет до
-десяти перезапусков с интервалом одна минута. Launcher и bounded логи находятся
-в Git-ignored `.runtime`; логи не содержат credentials, prompt, voice или
-document content.
+This section supersedes the older statement that the MVP has no autostart.
 
-После переноса репозитория, ротации credential, замены Python/Codex или Windows
-account оператор повторяет startup probe, Whisper warmup, health и owner smoke.
-Destructive reboot drill остаётся отдельным L4.
+The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. Its launcher is Git-ignored in the live worktree and runs the canonical repository `scripts/run_telegram_mvp1.py --serve --timeout 30 --announce`. Logs are local, bounded, and stored under live `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
+
+The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
+
+Revision `74b182a` is active in the live runner under exact owner L4. `/file` is published in Bot Menu; startup Codex probe, offline Whisper warmup and fresh polling lease revision `6868` passed before service readiness. A product-route owner smoke sent one known non-secret HTML successfully. The adapter supports only `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx` up to 50 MiB. It never sends hidden/sensitive-name matches, absolute paths, linked paths, or content outside the configured owner root. Google Drive read/download and owner-bound Google Tasks actions are present in the v2 local RC. Business Notes adds the fourth encrypted runtime database; its live group binding remains pending.
+
+
 **Статус документа:** CANONICAL
-**Состояние реализации:** CURRENT Queue 1/2 local owner runtime / TARGET production
+**Состояние реализации:** CURRENT Queue 1/2 local release candidate / TARGET production
 **Дата актуализации:** 24 июля 2026
 
 ## CURRENT и TARGET
@@ -22,10 +103,7 @@ confirmations, progress bindings, polling checkpoint и status outbox. Task Sche
 является единственным liveness supervisor и выполняет максимум десять перезапусков.
 Отдельная health-задача только фиксирует `DEGRADED`/`FAIL` и не перезапускает runner.
 Backup/restore проверяют exact DDL и application digests. Text/voice read-only work,
-public web research и owner-L4 effects определены ADR 0011. Live revision `aa8a02e`
-прошла startup probe, Whisper warmup, health и owner smoke. `/file` отправляет
-`.docx/.htm/.html/.pdf/.xlsx` до 50 MiB. Принятые jobs и подтверждения сохраняются
-до Telegram ACK и восстанавливаются после restart.
+public web research и owner-L4 effects определены ADR 0011.
 
 **TARGET:** отдельная production OS identity/ACL, внешний deployment pipeline,
 независимый канал alerts и утверждённые RPO/RTO. Эти production-hardening пункты не
@@ -150,27 +228,26 @@ Telegram не может быть единственным каналом опо
 $env:DEBUG='false'
 .\.venv\Scripts\python.exe scripts\run_telegram_mvp1.py --serve --timeout 30 --announce
 ```
-Текущая live-версия: `aa8a02e`. Канонические БД находятся только в `.runtime`.
 
-Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12 и точные три SQLite runtime-БД с ожидаемыми DDL fingerprints, application digests и `quick_check=ok`. Runner сверяет bot identity, выбирает CLI только после успешного `codex --version`, затем до объявления «готов к работе» выполняет через production `CodexCliAdapter` сетевой read-only sentinel: тот же Windows Job, auth, sandbox, environment и JSONL parser, но без durable Task. Prompt запрещает tools и чтение файлов; технически процесс сохраняет тот же `repo.read` boundary, что и обычный worker, тогда как `workspace-write` запрещён. Любой start/timeout/protocol/output failure останавливает запуск; ложный online-статус не публикуется.
+Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12 и точные четыре SQLite runtime-БД с ожидаемыми DDL fingerprints, application digests и `quick_check=ok`. Runner сверяет bot identity, выбирает CLI только после успешного `codex --version`, затем до объявления «готов к работе» выполняет через production `CodexCliAdapter` сетевой read-only sentinel: тот же Windows Job, auth, sandbox, environment и JSONL parser, но без durable Task. Probe использует tool-less `model.inference`: shell, shell snapshot, apps, MCP, web и local file tools выключены. Любой start/timeout/protocol/output failure останавливает запуск; ложный online-статус не публикуется.
 
 До начала polling runner также прогревает `faster-whisper base/int8` из локального runtime cache с `local_files_only=True`. Порядок fail-closed: Codex startup probe → локальный warmup Whisper → создание control plane → polling и объявление готовности. Если локального snapshot нет или warmup завершается ошибкой, бот не публикует ложную готовность и не пытается разрешать или скачивать модель из сети при первом голосовом сообщении.
 
-При подтверждении голосового preview callback получает краткий Telegram toast `Обрабатываю…`; optional acknowledgement имеет отдельный двухсекундный deadline и при timeout/API failure не задерживает постановку задачи. Отдельное сообщение в чат не отправляется. Telegram worker использует exact профиль `gpt-5.6-sol`, `model_reasoning_effort=high`, `service_tier=fast`, `features.fast_mode=true`; exact argv остаётся read-only, без web и MCP. Startup sentinel использует тот же профиль и fail-closed останавливает запуск, если модель, fast tier или auth недоступны. Fast mode уменьшает latency, но расходует кредиты быстрее; это эксплуатационный trade-off, а не ослабление reasoning.
+Точная голосовая команда подтверждённого владельца после локальной транскрипции сразу ставится в durable очередь и имеет ту же силу, что точная текстовая команда. Второй callback для обратимого действия не создаётся. Если распознано удаление или другое необратимое действие, бот подготавливает отдельное action-bound L4 с точной целью; без этой кнопки эффект не выполняется. Telegram worker использует exact профиль `gpt-5.6-sol`, `model_reasoning_effort=high`, `service_tier=fast`, `features.fast_mode=true`; answer-профиль остаётся tool-less, research получает только web search, а MCP выключен. Startup sentinel использует тот же профиль и fail-closed останавливает запуск, если модель, fast tier или auth недоступны. Fast mode уменьшает latency, но расходует кредиты быстрее; это эксплуатационный trade-off, а не ослабление reasoning.
 
-Валидный callback привязан также к source `message_id`. `answerCallbackQuery` и `deleteMessage` запускаются параллельно с независимыми двухсекундными deadline. После нажатия исходная карточка preview/patch удаляется целиком; временная ошибка удаления не отменяет и не теряет уже принятую задачу. Невалидная или повторная кнопка карточку не удаляет. Исходный voice envelope сохраняется отдельно от callback envelope: первый используется для TaskContract/recovery, второй — только для подтверждённого Telegram-действия и последующего UI.
+Валидный L4/patch callback привязан также к source `message_id`. `answerCallbackQuery` и `deleteMessage` запускаются параллельно с независимыми двухсекундными deadline. После нажатия исходная карточка удаляется целиком; временная ошибка удаления не отменяет и не теряет уже принятое действие. Невалидная или повторная кнопка карточку не удаляет. Исходный voice envelope сохраняется для TaskContract/recovery; callback envelope создаётся только для отдельного L4 или применения patch.
 
 После durable admission бот создаёт одну карточку прогресса и редактирует её на безопасных стадиях `контекст`, `Codex`, `L1`, `L2`, `L3`; каждые 30 секунд обновляется elapsed heartbeat. Это операционные статусы, а не скрытые рассуждения: prompt, raw payload, локальные пути, секреты и технические идентификаторы не публикуются. После доставки результата или безопасной ошибки промежуточная карточка удаляется либо превращается в единственную финальную ошибку, если recovery не может завершить outbox.
 
-Owner-bound task contract может получить `owner.library.read` для точного server-owned корня `C:\Хранилище\АГЕНТ`. Это permission разрешено только вместе с CLI `read-only` и запрещено при `repo.write`; web/MCP выключены, рабочей директорией остаётся `agent/telegram-live`.
+Owner-bound task contract может получить `owner.library.read` для точного server-owned корня `C:\Хранилище\АГЕНТ`. Adapter фиксирует resolved root и directory identity, а trusted server строит только bounded относительный path index. Обычный answer, owner index и startup probe выполняются tool-less: shell, shell snapshot, apps и MCP выключены; owner root не добавляется в argv и prompt, содержимое файлов не пересылается. Owner permission запрещено при `repo.write` и `web.search`; public research получает только model inference и строго валидированные `web_search` events, без shell, local-file, apps и MCP. Выдачу файла владельцу выполняет отдельный server-side file-transfer. `C:\Хранилище\WORK` находится вне owner root и не сканируется.
 
-Прямой CLI-доступ к owner root не используется: live smoke подтвердил, что prompt policy не создаёт filesystem scope. По явному запросу поиска server-side path index без symlink/junction просматривает не более 50 000 entries и передаёт Codex до 8 относительных путей. Содержимое файлов и абсолютный owner root в prompt не включаются; hidden/control и sensitive names исключаются.
+Server-side path index без symlink/junction по явному поисковому запросу просматривает не более 50 000 entries и передаёт до 8 относительных путей как подсказку. Сам Codex не может открыть эти файлы: owner root отсутствует в его argv и prompt. Отправку выбранного файла владельцу выполняет отдельный trusted file-transfer; анализ содержимого требует отдельного data-handling gate.
 
-CURRENT caveat: Python runner работает под desktop account без отдельной Windows ACL. Directory/file identity и reparse ancestors повторно проверяются перед чтением или отправкой, но без handle-relative Windows API остаётся минимальное race-window замены пути. Safe content adapter и `/file` активны; до production нужны отдельная OS identity, signed path manifest и per-project allowlist. Не использовать `--add-dir`: он расширяет write access.
+CURRENT caveat: Python runner работает под desktop account без отдельной Windows ACL, поэтому server-side scan остаётся доверенным компонентом. Реальный synthetic probe показал, что native-Windows shell read нельзя ограничить permission profile: соседний и deny-файл читались. Поэтому прямой owner filesystem scope для Codex запрещён; будущая замена требует доказанного negative-read теста.
 
 Telegram document upload реализован для owner-bound `/file`: адаптер повторно проверяет разрешённый тип, размер, корень и стабильную identity открытого файла, после чего отправляет его через `sendDocument`. Подтверждённый эффект и его delivery receipt входят в durable Queue 2; остаётся явно документированное at-least-once окно между принятием файла Telegram и локальной записью receipt.
 
-Telegram long poll до 30 секунд и request timeout до 60 секунд ограничены polling lease 240 секунд. Accepted text и подтверждённый voice после durable prepare ставятся во внутреннюю FIFO-очередь; handler не ждёт Codex. Два read-only workers выполняют независимые draft/answer параллельно. Admission допускает до 32 ожидающих drafts; общий maxsize 40 сохраняет резерв для L4. Overflow делает до трёх terminalization attempts и ACK-ается только после повторного чтения exact terminal Task из durable store. Owner-confirmed patch получает эксклюзивный доступ к обоим слотам на L2/L3/apply/commit. `/status` показывает `В работе`, `В очереди`, `Сбойных задач` и явно помечает очередь, требующую operator reconciliation.
+Telegram long poll до 30 секунд и request timeout до 60 секунд ограничены polling lease 240 секунд. Accepted text и локально распознанный owner voice после durable prepare ставятся во внутреннюю FIFO-очередь; handler не ждёт Codex. Два read-only workers выполняют независимые draft/answer параллельно. Admission допускает до 32 ожидающих drafts; общий maxsize 40 сохраняет резерв для L4. Overflow делает до трёх terminalization attempts и ACK-ается только после повторного чтения exact terminal Task из durable store. Owner-confirmed patch получает эксклюзивный доступ к обоим слотам на L2/L3/apply/commit. `/status` показывает `В работе`, `В очереди`, `Сбойных задач` и явно помечает очередь, требующую operator reconciliation.
 
 `/limit` не ставится в task queue и не запускает model turn. На каждый запрос создаётся отдельный Codex app-server под тем же sanitized environment и Windows Job, отправляются только `initialize`, `initialized` и `account/rateLimits/read`, после ответа process tree завершается. Принимается exact bucket `codex` с окном 10 080 минут; результат показывает использованный/оставшийся процент и server reset time. Абсолютное число токенов OpenAI не раскрывает. Протокол ограничен 32 JSONL-сообщениями, 64 KiB stdout, 16 KiB stderr и 15 секундами; malformed/ambiguous response и provider failure возвращают безопасное «Лимит Codex сейчас недоступен» без Task и технических деталей.
 
@@ -281,9 +358,7 @@ Production запрещён, пока отсутствует хотя бы од�
 
 ### До L4
 
-1. Остановить live-runner перед полным offline-прогоном: тесты singleton mutex,
-   backup и restore намеренно отклоняются, пока `NobusSpaceBot` удерживает mutex.
-   Затем выполнить `DEBUG=false python -m pytest -q --disable-warnings`.
+1. `DEBUG=false python -m pytest -q --disable-warnings`.
 2. `python -m compileall -q src scripts tests`.
 3. `git diff --check`, `pip check`, независимый L2/L3.
 4. Убедиться, что live worktree и scheduled task не изменялись.
@@ -297,7 +372,7 @@ Production запрещён, пока отсутствует хотя бы од�
 4. Запустить `ops/windows/Install-NobusSpaceBot.ps1`; проверить один process tree.
 5. Опубликовать команды через `scripts/configure_telegram_profile.py`.
 6. Проверить startup Codex probe, offline Whisper warmup и свежий polling lease.
-7. Выполнить owner smokes: text, voice confirm, queue ≥5, research with citations,
+7. Выполнить owner smokes: text, direct reversible voice, voice-delete L4, queue ≥5, research with citations,
    document create/send, bounded download/send. Network command проверять отдельно.
 
 ### Health, backup and restore
@@ -309,3 +384,18 @@ Production запрещён, пока отсутствует хотя бы од�
 - После restore выполнить `quick_check`, startup и no-duplicate reconciliation.
 - Реальный process-kill/reboot и restore drill нельзя считать пройденным по unit tests;
   он фиксируется только после owner L4.
+## Final MVP-1 release checklist
+
+1. Убедиться, что candidate worktree чист после локального commit и не имеет remote.
+2. Выполнить полный pytest, compileall, `pip check`, `git diff --check`, secret scan
+   и независимые L2/L3.
+3. Остановить Task Scheduler job и создать проверенный backup всех четырёх
+   runtime-БД до изменения live-ветки.
+4. Fast-forward чистую `agent/telegram-live` только на принятый local commit.
+5. Применить профиль/меню, переустановить Task Scheduler, выполнить startup
+   Codex probe и локальный Whisper warmup до начала polling.
+6. Проверить health, свежий lease, queue recovery, backup/restore dry drill и
+   owner smokes: answer, voice, research, file send/analyze, document,
+   Calendar/Tasks/Drive и Business Notes.
+7. При P0/P1 остановить candidate, восстановить БД из backup и вернуть прежний
+   live commit. Remote и push запрещены.

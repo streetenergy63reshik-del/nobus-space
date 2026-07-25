@@ -83,10 +83,18 @@ def test_quarantine_requires_l4_and_never_overwrites(tmp_path):
 
 def test_task_profiles_never_infer_write_authority_from_prose():
     assert profile_for_command("/research") is TaskProfile.RESEARCH_WEB
+    assert PROFILE_POLICIES[TaskProfile.ANSWER_READ].permissions == (
+        "model.inference",
+    )
+    assert PROFILE_POLICIES[TaskProfile.RESEARCH_WEB].permissions == (
+        "model.inference",
+        "web.search",
+    )
     assert profile_for_command("создай документ") is None
     assert not PROFILE_POLICIES[TaskProfile.RESEARCH_WEB].requires_l4
-    assert PROFILE_POLICIES[TaskProfile.ARTIFACT_CREATE].requires_l4
-    assert PROFILE_POLICIES[TaskProfile.NETWORK_COMMAND].requires_l4
+    assert not PROFILE_POLICIES[TaskProfile.ARTIFACT_CREATE].requires_l4
+    assert not PROFILE_POLICIES[TaskProfile.DOWNLOAD_QUARANTINE].requires_l4
+    assert not PROFILE_POLICIES[TaskProfile.NETWORK_COMMAND].requires_l4
 
 
 def test_network_command_proposal_is_exact_and_path_bound(tmp_path):

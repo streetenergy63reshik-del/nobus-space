@@ -174,6 +174,8 @@ def _task_destinations(
     refs: dict[str, str] = {}
     destinations: dict[str, tuple[str, int]] = {}
     for (_, chat_id), binding in bindings.items():
+        if binding.purpose != "owner_private":
+            continue
         tenant_id = binding.tenant_id
         existing = destinations.get(tenant_id)
         if existing is not None and existing[1] != chat_id:
@@ -195,7 +197,7 @@ def _task_destinations(
 async def _poll_once_and_announce(
     polling: TelegramPollingBoundary,
     api: TelegramBotApi,
-    bindings: Mapping[tuple[int, int], object],
+    bindings: Mapping[tuple[int, int], ActorBinding],
     *,
     control: TelegramControlPlane | None = None,
     timeout: int,
@@ -207,9 +209,13 @@ async def _poll_once_and_announce(
     if control is not None:
         await control.deliver_pending()
     if announce:
-        if len(bindings) != 1:
+        private = [
+            pair for pair, binding in bindings.items()
+            if binding.purpose == "owner_private"
+        ]
+        if len(private) != 1:
             raise TelegramBindingError("telegram_binding_configuration_invalid")
-        await api.send_message(next(iter(bindings))[1], _ANNOUNCEMENT)
+        await api.send_message(private[0][1], _ANNOUNCEMENT)
     return result.acknowledged
 
 

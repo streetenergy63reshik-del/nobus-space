@@ -845,3 +845,63 @@ async def test_delete_message_treats_exact_not_found_as_idempotent_success() -> 
         await api.delete_message(42, 101)
     finally:
         await api.aclose()
+
+
+@pytest.mark.asyncio
+async def test_send_message_binds_exact_forum_topic() -> None:
+    payloads: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        value = json.loads(request.content)
+        assert isinstance(value, dict)
+        payloads.append(value)
+        return response({
+            "message_id": 5,
+            "message_thread_id": 77,
+            "chat": {"id": -1001},
+        })
+
+    api = api_for(handler)
+    try:
+        assert await api.send_message(
+            -1001,
+            "Резюме темы",
+            message_thread_id=77,
+        ) == 5
+        with pytest.raises(TelegramBotApiError):
+            await api.send_message(
+                -1001,
+                "bad",
+                message_thread_id=0,
+            )
+    finally:
+        await api.aclose()
+
+    for returned in (None, 76, True, 77.0):
+        def mismatch_handler(_: httpx.Request) -> httpx.Response:
+            result: dict[str, object] = {
+                "message_id": 5,
+                "chat": {"id": -1001},
+            }
+            if returned is not None:
+                result["message_thread_id"] = returned
+            return response(result)
+
+        mismatch_api = api_for(mismatch_handler)
+        try:
+            with pytest.raises(
+                TelegramBotApiError, match="invalid response"
+            ):
+                await mismatch_api.send_message(
+                    -1001, "bad topic", message_thread_id=77
+                )
+        finally:
+            await mismatch_api.aclose()
+
+    assert payloads == [
+        {
+            "chat_id": -1001,
+            "text": "Резюме темы",
+            "message_thread_id": 77,
+        }
+    ]

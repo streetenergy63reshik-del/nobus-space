@@ -13,14 +13,14 @@ from src.application.product_effects import (
     DurableProductEffectVault,
     ProductEffectService,
 )
-from tests.test_telegram_product import _product, callback_update, text_update
+from tests.test_telegram_product import _product, text_update
 
 
 PUBLIC = [(None, None, None, None, ("93.184.216.34", 443))]
 
 
 @pytest.mark.asyncio
-async def test_document_route_requires_button_then_sends_created_file(
+async def test_exact_owner_document_command_executes_without_second_button(
     tmp_path,
 ) -> None:
     harness = _product(tmp_path)
@@ -57,23 +57,15 @@ async def test_document_route_requires_button_then_sends_created_file(
     await harness.control.handle(
         text_update("/document report.html|Отчёт|Готово", 1)
     )
-    assert not (root / "report.html").exists()
-    buttons = harness.api.sent[-1][2]
-    assert [label for label, _ in buttons] == [
-        "✅ Подтверждаю",
-        "❌ Отмена",
-    ]
-
-    await harness.control.handle(callback_update(buttons[0][1], 2))
-
     assert (root / "report.html").is_file()
     assert harness.api.documents[-1][1] == "report.html"
-    assert harness.api.deleted[-1] == (harness.api.sent[0][0], 102)
+    assert harness.api.sent == []
+    assert harness.api.deleted == []
     await client.aclose()
 
 
 @pytest.mark.asyncio
-async def test_cancelled_document_route_writes_nothing(tmp_path) -> None:
+async def test_exact_owner_effect_uses_command_as_authority(tmp_path) -> None:
     harness = _product(tmp_path)
 
     class Effects:
@@ -96,7 +88,7 @@ async def test_cancelled_document_route_writes_nothing(tmp_path) -> None:
         async def resolve(self, *args, **kwargs):
             from src.application.product_effects import ProductEffectResult
 
-            assert not kwargs["approve"]
+            assert kwargs["approve"]
             return ProductEffectResult("Действие отменено.")
 
         def acknowledge_delivery(self, *args, **kwargs):
@@ -109,8 +101,6 @@ async def test_cancelled_document_route_writes_nothing(tmp_path) -> None:
     await harness.control.handle(
         text_update("/document report.html|Отчёт|Готово", 1)
     )
-    cancel = harness.api.sent[-1][2][1][1]
-    await harness.control.handle(callback_update(cancel, 2))
 
     assert harness.api.sent[-1][1] == "Действие отменено."
     assert harness.api.documents == []

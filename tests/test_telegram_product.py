@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import base64
 import asyncio
+import json
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from src.application.business_notes import (
+    BusinessNotesError,
+    BusinessNotesService,
+    SQLiteBusinessNotes,
+)
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
@@ -18,12 +26,29 @@ from src.application.patch_confirmation import (
     PatchProposal,
     patch_proposal_digest,
 )
-from src.application.task_confirmation import InMemoryTaskConfirmationStore
+from src.application.task_confirmation import (
+    InMemoryTaskConfirmationStore,
+    TaskConfirmationStatus,
+)
 from src.application.telegram_actions import InMemoryTelegramActionStore
 from src.application.telegram_product import ProductTelegramControlPlane
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
-from src.transport.telegram import ActorBinding, PollingCheckpointUpdateIdStore, TelegramGateway
+from src.integrations import (
+    CalendarAction,
+    CalendarActionKind,
+    CalendarResult,
+    GoogleTaskAction,
+    GoogleTaskActionKind,
+    GoogleTaskResult,
+)
+from src.application.product_effects import ProductEffectChallenge, ProductEffectKind, ProductEffectResult
+from src.transport.telegram import (
+    ActorBinding,
+    PollingCheckpointUpdateIdStore,
+    TelegramGateway,
+    VoiceMessage,
+)
 from src.voice import VoicePreview
 from tests.test_telegram_task_control import (
     AUTH_REF,
@@ -46,6 +71,7 @@ class FakeProductApi:
         self.deleted: list[tuple[int, int]] = []
         self.delete_failure = False
         self.documents: list[tuple[int, str, bytes]] = []
+        self.threads: list[int | None] = []
 
     async def send_message(
         self,
@@ -53,8 +79,10 @@ class FakeProductApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        message_thread_id: int | None = None,
     ) -> int:
         self.sent.append((chat_id, text, buttons))
+        self.threads.append(message_thread_id)
         return len(self.sent)
 
     async def answer_callback_query(
@@ -84,10 +112,13 @@ class FakeProductApi:
 
 
 class FakeVoiceService:
+    def __init__(self, transcript: str = "Проверь голосовую задачу") -> None:
+        self.transcript = transcript
+
     async def preview_from_bytes(self, audio: bytes) -> VoicePreview:
         assert audio == b"voice"
         return VoicePreview(
-            transcript="Проверь голосовую задачу",
+            transcript=self.transcript,
             language="ru",
             confidence=0.99,
             sha256="0" * 64,
@@ -110,6 +141,22 @@ class FakeProductRuntime:
 
     async def prepare_instruction(self, instruction: str, envelope: object) -> PreparedTask:
         return await self.base.prepare_instruction(instruction, envelope)
+
+    async def prepare_instruction_with_context(
+        self,
+        instruction: str,
+        relative_path: str,
+        content_digest: str,
+        envelope: object,
+    ) -> PreparedTask:
+        encoded = base64.urlsafe_b64encode(
+            relative_path.encode("utf-8")
+        ).decode("ascii").rstrip("=")
+        referenced = (
+            f"{instruction}\n\n[owner_file_context_ref]"
+            f"{content_digest}:{encoded}[/owner_file_context_ref]"
+        )
+        return await self.base.prepare_instruction(referenced, envelope)
 
     async def cancel_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
         return await self.base.cancel_prepared(prepared)
@@ -225,8 +272,17 @@ def _product(
     tmp_path: Path,
     *,
     voice: bool = False,
+    voice_text: str = "Проверь голосовую задачу",
     execution_concurrency: int = 0,
     owner_files: object | None = None,
+    product_effects: object | None = None,
+    calendar_planner: object | None = None,
+    calendar_service: object | None = None,
+    google_tasks_planner: object | None = None,
+    google_tasks_service: object | None = None,
+    google_drive_planner: object | None = None,
+    google_drive_service: object | None = None,
+    business_notes: BusinessNotesService | None = None,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -238,7 +294,14 @@ def _product(
                 actor_identity="telegram:owner",
                 role="owner",
                 auth_context_ref=AUTH_REF,
-            )
+            ),
+            (USER_ID, -1001): ActorBinding(
+                tenant_id=TENANT_ID,
+                actor_identity="telegram:owner",
+                role="owner",
+                auth_context_ref=AUTH_REF,
+                purpose="business_notes",
+            ),
         },
         update_id_store=PollingCheckpointUpdateIdStore(),
         callback_token_store=actions,
@@ -254,8 +317,16 @@ def _product(
         task_confirmations=InMemoryTaskConfirmationStore(clock=clock),
         patch_confirmations=patches,
         action_store=actions,
-        voice_service=FakeVoiceService() if voice else None,
+        voice_service=FakeVoiceService(voice_text) if voice else None,
         owner_files=owner_files,
+        product_effects=product_effects,
+        calendar_planner=calendar_planner,
+        calendar_service=calendar_service,
+        google_tasks_planner=google_tasks_planner,
+        google_tasks_service=google_tasks_service,
+        google_drive_planner=google_drive_planner,
+        google_drive_service=google_drive_service,
+        business_notes=business_notes,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
@@ -274,6 +345,19 @@ def text_update(text: str, update_id: int) -> dict[str, Any]:
         },
     }
 
+
+
+def notes_update(text: str, update_id: int) -> dict[str, Any]:
+    return {
+        "update_id": update_id,
+        "message": {
+            "message_id": update_id,
+            "message_thread_id": 77,
+            "from": {"id": USER_ID},
+            "chat": {"id": -1001},
+            "text": text,
+        },
+    }
 
 def voice_update(update_id: int) -> dict[str, Any]:
     return {
@@ -304,6 +388,401 @@ def callback_update(token: str, update_id: int) -> dict[str, Any]:
     }
 
 
+class FakeCalendarPlanner:
+    def __init__(self, action: CalendarAction) -> None:
+        self.action = action
+        self.instructions: list[str] = []
+
+    async def plan_calendar_action(
+        self, instruction: str, envelope: object
+    ) -> CalendarAction:
+        self.instructions.append(instruction)
+        return self.action
+
+
+class FakeCalendarService:
+    def __init__(self) -> None:
+        self.executed: list[tuple[CalendarAction, str]] = []
+
+    async def execute(
+        self, action: CalendarAction, *, idempotency_key: str
+    ) -> CalendarResult:
+        self.executed.append((action, idempotency_key))
+        return CalendarResult(message="Событие записано.")
+
+    async def resolve_delete(self, action: CalendarAction) -> object:
+        raise AssertionError("effect boundary resolves deletion")
+
+    async def delete_event(self, event_id: str) -> None:
+        raise AssertionError("effect boundary performs deletion")
+
+
+class FakeCalendarDeleteEffects:
+    def __init__(self) -> None:
+        self.resolved: list[tuple[ProductEffectKind, bool]] = []
+
+    def prepare_document(self, *args, **kwargs):
+        raise AssertionError
+
+    async def prepare_download(self, *args, **kwargs):
+        raise AssertionError
+
+    def prepare_network(self, *args, **kwargs):
+        raise AssertionError
+
+    def prepare_calendar(
+        self, action: CalendarAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind in {
+            CalendarActionKind.LIST,
+            CalendarActionKind.CREATE,
+            CalendarActionKind.UPDATE,
+        }
+        return ProductEffectChallenge(
+            "calendar-direct-token",
+            ProductEffectKind.CALENDAR,
+            "",
+        )
+
+    async def prepare_calendar_delete(
+        self, action: CalendarAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind is CalendarActionKind.DELETE
+        return ProductEffectChallenge(
+            "calendar-token",
+            ProductEffectKind.CALENDAR_DELETE,
+            "Удалить событие «Планёрка»?",
+        )
+
+    async def resolve(self, *args, **kwargs) -> ProductEffectResult:
+        self.resolved.append((kwargs["expected_kind"], kwargs["approve"]))
+        if kwargs["expected_kind"] is ProductEffectKind.CALENDAR:
+            return ProductEffectResult("Событие записано.")
+        return ProductEffectResult(
+            "Событие удалено."
+            if kwargs["approve"]
+            else "Действие отменено."
+        )
+
+    def acknowledge_delivery(self, *args, **kwargs) -> bool:
+        return True
+
+    def finalize_delivery(self, *args, **kwargs) -> bool:
+        return True
+
+
+@pytest.mark.asyncio
+async def test_calendar_create_executes_without_second_confirmation(
+    tmp_path: Path,
+) -> None:
+    start = datetime(2026, 7, 27, 10, 0, tzinfo=timezone.utc)
+    planner = FakeCalendarPlanner(
+        CalendarAction(
+            kind=CalendarActionKind.CREATE,
+            title="Планёрка",
+            start=start,
+            end=start + timedelta(hours=1),
+        )
+    )
+    service = FakeCalendarService()
+    effects = FakeCalendarDeleteEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        calendar_planner=planner,
+        calendar_service=service,
+    )
+
+    await harness.control.handle(
+        text_update("Запиши планёрку в календарь на понедельник", 1)
+    )
+
+    assert service.executed == []
+    assert effects.resolved == [(ProductEffectKind.CALENDAR, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][1] == "Событие записано."
+    assert harness.api.sent[-1][2] == ()
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action",
+    [
+        CalendarAction(
+            kind=CalendarActionKind.LIST,
+            start=datetime(2026, 7, 27, 0, 0, tzinfo=timezone.utc),
+            end=datetime(2026, 7, 28, 0, 0, tzinfo=timezone.utc),
+        ),
+        CalendarAction(
+            kind=CalendarActionKind.UPDATE,
+            target="Планёрка",
+            title="Планёрка команды",
+        ),
+    ],
+)
+async def test_calendar_list_and_update_execute_without_confirmation(
+    tmp_path: Path, action: CalendarAction
+) -> None:
+    planner = FakeCalendarPlanner(action)
+    effects = FakeCalendarDeleteEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        calendar_planner=planner,
+        calendar_service=FakeCalendarService(),
+    )
+
+    await harness.control.handle(text_update("Покажи или обнови календарь", 1))
+
+    assert effects.resolved == [(ProductEffectKind.CALENDAR, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_voice_calendar_update_executes_without_confirmation(
+    tmp_path: Path,
+) -> None:
+    instruction = "Перенеси планёрку в календаре"
+    planner = FakeCalendarPlanner(
+        CalendarAction(
+            kind=CalendarActionKind.UPDATE,
+            target="Планёрка",
+            title="Планёрка команды",
+        )
+    )
+    effects = FakeCalendarDeleteEffects()
+    harness = _product(
+        tmp_path,
+        voice=True,
+        voice_text=instruction,
+        product_effects=effects,
+        calendar_planner=planner,
+        calendar_service=FakeCalendarService(),
+    )
+
+    await harness.control.handle(voice_update(1))
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.CALENDAR, True)]
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_calendar_delete_requires_exact_button(tmp_path: Path) -> None:
+    planner = FakeCalendarPlanner(
+        CalendarAction(kind=CalendarActionKind.DELETE, target="Планёрка")
+    )
+    service = FakeCalendarService()
+    effects = FakeCalendarDeleteEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        calendar_planner=planner,
+        calendar_service=service,
+    )
+
+    await harness.control.handle(
+        text_update("Удали планёрку из календаря", 1)
+    )
+    assert service.executed == []
+    assert [label for label, _ in harness.api.sent[-1][2]] == [
+        "🗑️ Удалить", "Отмена"
+    ]
+
+    await harness.control.handle(
+        callback_update(harness.api.sent[-1][2][0][1], 2)
+    )
+    assert effects.resolved == [(ProductEffectKind.CALENDAR_DELETE, True)]
+    assert harness.api.deleted == [(USER_ID, 102)]
+
+
+class FakeGoogleTasksPlanner:
+    def __init__(self, action: GoogleTaskAction) -> None:
+        self.action = action
+        self.instructions: list[str] = []
+
+    async def plan_google_task_action(
+        self, instruction: str, envelope: object
+    ) -> GoogleTaskAction:
+        self.instructions.append(instruction)
+        return self.action
+
+
+class FakeGoogleTasksService:
+    async def execute(
+        self, action: GoogleTaskAction, *, idempotency_key: str
+    ) -> GoogleTaskResult:
+        return GoogleTaskResult(message="Задача создана.")
+
+    async def resolve_delete(self, action: GoogleTaskAction) -> object:
+        raise AssertionError("effect boundary resolves deletion")
+
+    async def delete_task(self, tasklist_id: str, task_id: str) -> None:
+        raise AssertionError("effect boundary performs deletion")
+
+
+class FakeGoogleTaskEffects(FakeCalendarDeleteEffects):
+    def prepare_google_task(
+        self, action: GoogleTaskAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind in {
+            GoogleTaskActionKind.LIST,
+            GoogleTaskActionKind.CREATE,
+            GoogleTaskActionKind.UPDATE,
+            GoogleTaskActionKind.COMPLETE,
+        }
+        return ProductEffectChallenge(
+            "google-task-direct-token",
+            ProductEffectKind.GOOGLE_TASK,
+            "",
+        )
+
+    async def prepare_google_task_delete(
+        self, action: GoogleTaskAction, **kwargs: object
+    ) -> ProductEffectChallenge:
+        assert action.kind is GoogleTaskActionKind.DELETE
+        return ProductEffectChallenge(
+            "google-task-delete-token",
+            ProductEffectKind.GOOGLE_TASK_DELETE,
+            "Удалить задачу «Позвонить»?",
+        )
+
+    async def resolve(self, *args, **kwargs) -> ProductEffectResult:
+        self.resolved.append((kwargs["expected_kind"], kwargs["approve"]))
+        if kwargs["expected_kind"] is ProductEffectKind.GOOGLE_TASK:
+            return ProductEffectResult("Задача создана.")
+        return ProductEffectResult(
+            "Задача удалена."
+            if kwargs["approve"]
+            else "Действие отменено."
+        )
+
+
+@pytest.mark.asyncio
+async def test_google_task_create_executes_without_confirmation(
+    tmp_path: Path,
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Подготовить отчёт",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Добавь задачу в Google Tasks: подготовить отчёт", 1)
+    )
+
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][1] == "Задача создана."
+    assert harness.api.sent[-1][2] == ()
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action",
+    [
+        GoogleTaskAction(kind=GoogleTaskActionKind.LIST),
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.UPDATE,
+            target="Подготовить отчёт",
+            title="Подготовить итоговый отчёт",
+        ),
+    ],
+)
+async def test_google_task_list_and_update_execute_without_confirmation(
+    tmp_path: Path, action: GoogleTaskAction
+) -> None:
+    planner = FakeGoogleTasksPlanner(action)
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(text_update("Покажи или обнови Google Tasks", 1))
+
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.runtime.drafted == []
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_voice_google_task_update_executes_without_confirmation(
+    tmp_path: Path,
+) -> None:
+    instruction = "Обнови задачу в Google Tasks"
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.UPDATE,
+            target="Подготовить отчёт",
+            title="Подготовить итоговый отчёт",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=True,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(voice_update(1))
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.api.sent[-1][2] == ()
+
+
+@pytest.mark.asyncio
+async def test_google_task_delete_requires_exact_button(tmp_path: Path) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.DELETE,
+            target="Позвонить",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Удали задачу Позвонить из Google Tasks", 1)
+    )
+    assert effects.resolved == []
+    assert [label for label, _ in harness.api.sent[-1][2]] == [
+        "🗑️ Удалить",
+        "Отмена",
+    ]
+
+    await harness.control.handle(
+        callback_update(harness.api.sent[-1][2][0][1], 2)
+    )
+    assert effects.resolved == [
+        (ProductEffectKind.GOOGLE_TASK_DELETE, True)
+    ]
+    assert harness.api.deleted == [(USER_ID, 102)]
+
+
 @pytest.mark.asyncio
 async def test_plain_text_immediately_creates_read_only_draft_then_button_applies(
     tmp_path: Path,
@@ -330,35 +809,44 @@ async def test_plain_text_immediately_creates_read_only_draft_then_button_applie
 
 
 @pytest.mark.asyncio
-async def test_voice_requires_button_before_read_only_draft(tmp_path: Path) -> None:
+async def test_voice_is_queued_without_confirmation(tmp_path: Path) -> None:
     harness = _product(tmp_path, voice=True)
 
     assert await harness.control.handle(voice_update(1))
-    assert harness.runtime.drafted == []
-    assert len(harness.api.sent) == 1
-    assert "Распознаю" not in harness.api.sent[0][1]
-    assert "Я распознал задачу" in harness.api.sent[-1][1]
-    confirm_token = harness.api.sent[-1][2][0][1]
-
-    assert await harness.control.handle(callback_update(confirm_token, 2))
     assert len(harness.runtime.drafted) == 1
-    assert all("Текст подтверждён" not in text for _, text, _ in harness.api.sent)
-    assert harness.api.callback_texts == ["Обрабатываю…"]
-    assert harness.api.sent[-1][2][0][0] == "✅ Применить"
+    assert len(harness.api.sent) == 1
+    assert "Я распознал задачу" not in harness.api.sent[-1][1]
+    assert harness.api.callback_texts == []
+    assert harness.api.sent[-1][2] == ()
 
 
 @pytest.mark.asyncio
-async def test_cancelled_voice_never_reaches_codex(tmp_path: Path) -> None:
+async def test_legacy_voice_cancellation_never_reaches_codex(tmp_path: Path) -> None:
     harness = _product(tmp_path, voice=True)
-    await harness.control.handle(voice_update(1))
-    cancel_token = harness.api.sent[-1][2][1][1]
+    ingress = harness.control._gateway.process_update(voice_update(1))
+    assert ingress.envelope is not None
+    assert isinstance(ingress.payload, VoiceMessage)
+    prepared = await harness.runtime.prepare_instruction(
+        "legacy voice task", ingress.envelope
+    )
+    challenge = harness.control._task_confirmations.issue(
+        message=ingress.payload,
+        envelope=ingress.envelope,
+        prepared=prepared,
+    )
+    cancel_token = challenge.confirmation_token.get_secret_value()
     sent_before_cancel = len(harness.api.sent)
 
-    await harness.control.handle(callback_update(cancel_token, 2))
+    await harness.control._confirm_voice(
+        ingress.payload,  # type: ignore[arg-type]
+        ingress.envelope,
+        cancel_token,
+        TaskConfirmationStatus.CANCELLED,
+    )
 
     assert harness.runtime.drafted == []
     assert harness.runtime.applied == []
-    assert harness.api.answered == ["query-2"]
+    assert harness.api.answered == []
     assert len(harness.api.sent) == sent_before_cancel
 
 
@@ -399,23 +887,15 @@ async def test_callback_delete_failure_does_not_lose_owner_apply(tmp_path: Path)
 
 
 @pytest.mark.asyncio
-async def test_slow_callback_ack_does_not_delay_voice_worker(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_voice_submission_does_not_use_callback_boundary(tmp_path: Path) -> None:
     harness = _product(tmp_path, voice=True)
-    await harness.control.handle(voice_update(1))
-    confirm_token = harness.api.sent[-1][2][0][1]
     harness.api.callback_gate = asyncio.Event()
-    monkeypatch.setattr(
-        "src.application.telegram_product._CALLBACK_ACK_TIMEOUT_SECONDS",
-        0.01,
-    )
 
-    await harness.control.handle(callback_update(confirm_token, 2))
+    await harness.control.handle(voice_update(1))
 
     assert len(harness.runtime.drafted) == 1
     assert harness.api.answered == []
-    assert harness.api.deleted == [(USER_ID, 102)]
+    assert harness.api.deleted == []
 
 
 @pytest.mark.asyncio
@@ -582,10 +1062,7 @@ async def test_patch_and_voice_product_messages_hide_ids_and_backup_codes(
         for marker in ("Task:", "Event:", "Revision:", "Digest:", "/confirm ", "/cancel "):
             assert marker not in visible
     assert "agent/telegram-live" not in text_harness.control._status_text()
-    assert [label for label, _ in voice_harness.api.sent[-1][2]] == [
-        "✅ Подтверждаю",
-        "❌ Отмена",
-    ]
+    assert voice_harness.api.sent[-1][2] == ()
 
 @pytest.mark.asyncio
 async def test_informational_answer_uses_only_durable_delivery_boundary(
@@ -685,7 +1162,7 @@ async def test_background_queue_accepts_five_tasks_while_two_workers_are_busy(
         await harness.control.close()
 
 @pytest.mark.asyncio
-async def test_voice_confirmation_is_queued_while_previous_task_runs(
+async def test_voice_is_queued_while_previous_task_runs(
     tmp_path: Path,
 ) -> None:
     harness = _product(tmp_path, voice=True, execution_concurrency=1)
@@ -703,13 +1180,8 @@ async def test_voice_confirmation_is_queued_while_previous_task_runs(
         await harness.control.handle(text_update("First task", 1))
         await asyncio.wait_for(started.wait(), timeout=1)
         await harness.control.handle(voice_update(2))
-        confirm_token = harness.api.sent[-1][2][0][1]
 
-        await asyncio.wait_for(
-            harness.control.handle(callback_update(confirm_token, 3)), timeout=1
-        )
-
-        assert harness.api.answered == ["query-3"]
+        assert harness.api.answered == []
         assert harness.control._execution_queue is not None
         assert harness.control._execution_queue.qsize() == 1
 
@@ -1098,3 +1570,64 @@ async def test_ambiguous_file_language_remains_a_regular_task(
 
     assert provider.queries == []
     assert len(harness.runtime.drafted) == 1
+
+
+@pytest.mark.asyncio
+async def test_business_notes_are_indexed_without_becoming_codex_tasks(
+    tmp_path: Path,
+) -> None:
+    def encode(value: dict[str, object]) -> bytes:
+        return json.dumps(value, ensure_ascii=False).encode("utf-8")
+
+    def decode(value: bytes) -> dict[str, object]:
+        result = json.loads(value)
+        assert isinstance(result, dict)
+        return result
+
+    store = SQLiteBusinessNotes(
+        tmp_path / "business-notes.sqlite3",
+        encode=encode,
+        decode=decode,
+    )
+    harness = _product(
+        tmp_path,
+        business_notes=BusinessNotesService(store),
+    )
+
+    assert await harness.control.handle(
+        notes_update("Нужно позвонить поставщику.", 900)
+    )
+    assert harness.runtime.drafted == []
+    assert harness.api.sent == []
+
+    assert await harness.control.handle(
+        notes_update("/summary", 901)
+    )
+    assert harness.runtime.drafted == []
+    assert len(harness.api.sent) == 1
+    assert "Нужно позвонить поставщику" in harness.api.sent[0][1]
+    assert harness.api.threads == [77]
+
+
+@pytest.mark.asyncio
+async def test_business_notes_store_failure_is_not_acknowledged(
+    tmp_path: Path,
+) -> None:
+    class FailingNotes(BusinessNotesService):
+        def handle_text(self, message):
+            raise BusinessNotesError("business_notes_store_unavailable")
+
+    store = SQLiteBusinessNotes(
+        tmp_path / "business-notes.sqlite3",
+        encode=lambda value: json.dumps(value).encode(),
+        decode=lambda value: json.loads(value),
+    )
+    harness = _product(
+        tmp_path,
+        business_notes=FailingNotes(store),
+    )
+
+    with pytest.raises(BusinessNotesError, match="store_unavailable"):
+        await harness.control.handle(notes_update("Заметка.", 902))
+    assert harness.runtime.drafted == []
+    assert harness.api.sent == []

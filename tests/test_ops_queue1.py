@@ -15,6 +15,7 @@ from src.application.windows_singleton import RunnerAlreadyActive, WindowsNamedM
 
 
 def _runtime_databases(root: Path) -> tuple[Path, ...]:
+    from src.application.business_notes import SQLiteBusinessNotes
     from src.application.durable_telegram_state import SQLiteTelegramState
     from src.storage.sqlite_store import SQLiteStore
     from src.transport.telegram.sqlite_checkpoint import (
@@ -25,10 +26,12 @@ def _runtime_databases(root: Path) -> tuple[Path, ...]:
         root / "telegram-checkpoint.sqlite3",
         root / "task-runtime.sqlite3",
         root / "telegram-state.sqlite3",
+        root / "business-notes.sqlite3",
     )
     SQLitePollingCheckpointStore(sources[0], consumer_id="nobus-space-bot")
     SQLiteStore(sources[1])
     SQLiteTelegramState(sources[2])
+    SQLiteBusinessNotes(sources[3])
     return sources
 
 
@@ -39,7 +42,7 @@ def test_health_and_verified_non_overwriting_backup(tmp_path: Path) -> None:
     destination = tmp_path / "backup"
     manifest = backup(sources, destination)
     values = json.loads(manifest.read_text(encoding="utf-8"))
-    assert values["schema_version"] == 1
+    assert values["schema_version"] == 2
     assert {item["name"] for item in values["files"]} == {
         source.name for source in sources
     }
@@ -67,6 +70,7 @@ def test_health_fails_closed_for_missing_database(tmp_path: Path) -> None:
             "telegram-checkpoint.sqlite3",
             "task-runtime.sqlite3",
             "telegram-state.sqlite3",
+            "business-notes.sqlite3",
         )
     )
     result = check(paths)

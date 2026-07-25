@@ -22,6 +22,13 @@ class TelegramAction(str, Enum):
     REJECT_DOWNLOAD = "reject_download"
     RUN_NETWORK = "run_network"
     REJECT_NETWORK = "reject_network"
+    DELETE_CALENDAR = "delete_calendar"
+    REJECT_CALENDAR_DELETE = "reject_calendar_delete"
+    RUN_CALENDAR = "run_calendar"
+    RUN_GOOGLE_TASK = "run_google_task"
+    DELETE_GOOGLE_TASK = "delete_google_task"
+    REJECT_GOOGLE_TASK_DELETE = "reject_google_task_delete"
+    RUN_GOOGLE_DRIVE = "run_google_drive"
 
 
 @dataclass(frozen=True)

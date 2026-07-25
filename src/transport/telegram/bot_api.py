@@ -269,6 +269,7 @@ class TelegramBotApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        message_thread_id: int | None = None,
     ) -> int:
         valid_buttons = (
             type(buttons) is tuple
@@ -286,9 +287,18 @@ class TelegramBotApi:
             type(chat_id) is not int
             or not _bounded_text(text, 4096)
             or not valid_buttons
+            or (
+                message_thread_id is not None
+                and (
+                    type(message_thread_id) is not int
+                    or message_thread_id <= 0
+                )
+            )
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
         payload: dict[str, Any] = {"chat_id": chat_id, "text": text.strip()}
+        if message_thread_id is not None:
+            payload["message_thread_id"] = message_thread_id
         if buttons:
             payload["reply_markup"] = {
                 "inline_keyboard": [[
@@ -300,10 +310,18 @@ class TelegramBotApi:
         if type(result) is not dict or not _non_negative_int(result.get("message_id")):
             raise TelegramBotApiError("telegram_protocol_error")
         chat = result.get("chat")
+        returned_thread_id = result.get("message_thread_id")
         if (
             type(chat) is not dict
             or type(chat.get("id")) is not int
             or chat["id"] != chat_id
+            or (
+                message_thread_id is not None
+                and (
+                    type(returned_thread_id) is not int
+                    or returned_thread_id != message_thread_id
+                )
+            )
         ):
             raise TelegramBotApiError("telegram_protocol_error")
         return result["message_id"]

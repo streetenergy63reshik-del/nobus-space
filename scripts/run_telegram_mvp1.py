@@ -33,6 +33,10 @@ from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
 )
+from src.application.business_notes import (
+    BusinessNotesService,
+    SQLiteBusinessNotes,
+)
 from src.application.durable_confirmations import (  # noqa: E402
     DurablePatchConfirmationStore,
     DurableTaskConfirmationStore,
@@ -81,6 +85,11 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointError,
     SQLitePollingCheckpointStore,
 )
+from src.integrations import (  # noqa: E402
+    GoogleCalendarClient,
+    GoogleDriveClient,
+    GoogleTasksClient,
+)
 from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
@@ -91,12 +100,40 @@ _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
+_VOICE_INITIAL_PROMPT = (
+    "Нобус Спейс — личный оркестратор. Компания называется PROстранство, "
+    "про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, "
+    "Telegram, Google Drive, Google Calendar и Google Tasks. "
+    "Термины: MCP, idempotency key, L1, L2, L3, L4, субагент."
+)
+_VOICE_HOTWORDS = (
+    "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon "
+    "Google Drive Google Calendar Google Tasks MCP idempotency оркестратор "
+    "субагент"
+)
 _POLLING_LEASE_SECONDS = 240
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
 _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
+_BUSINESS_NOTES_PATH = _RUNTIME_ROOT / "business-notes.sqlite3"
+_PROJECT_CONTEXT_PATH = ROOT / "docs" / "11-Контекст-продукта.md"
+_ARTIFACT_SNAPSHOT_ROOT = _RUNTIME_ROOT / "artifact-snapshots"
 _OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
+_GOOGLE_CALENDAR_TOKEN = (
+    ROOT.parents[1] / "Интеграции/google_api_integration/token.json"
+)
+
+
+
+def _load_project_context() -> str:
+    try:
+        content = _PROJECT_CONTEXT_PATH.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError):
+        raise RuntimeError("project context is unavailable") from None
+    if not content or len(content) > 16_000 or "\x00" in content:
+        raise RuntimeError("project context is invalid")
+    return content
 
 
 async def _run(values: argparse.Namespace) -> dict[str, object]:
@@ -108,6 +145,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
     python = (ROOT / ".venv" / "Scripts" / "python.exe").resolve(strict=True)
     worktree = _validated_worktree()
     _CODEX_TEMP.mkdir(parents=True, exist_ok=True)
+    _ARTIFACT_SNAPSHOT_ROOT.mkdir(parents=True, exist_ok=True)
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
 
     control: ProductTelegramControlPlane | None = None
@@ -150,6 +188,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             destination_refs=destination_refs,
             worktree=worktree,
             owner_read_root=_OWNER_READ_ROOT,
+            project_context=_load_project_context(),
             codex_executable=executable,
             git_executable=git,
             python_executable=python,
@@ -170,6 +209,13 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             compute_type="int8",
             download_root=_VOICE_MODEL_ROOT,
             local_files_only=True,
+            language="ru",
+            beam_size=8,
+            patience=1.2,
+            vad_filter=True,
+            condition_on_previous_text=True,
+            initial_prompt=_VOICE_INITIAL_PROMPT,
+            hotwords=_VOICE_HOTWORDS,
         )
         await voice_transcriber.warmup()
         limit_provider = build_codex_rate_limit_client(
@@ -185,10 +231,14 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git.parent,
             ),
         )
+        calendar = GoogleCalendarClient(_GOOGLE_CALENDAR_TOKEN)
+        google_tasks = GoogleTasksClient(_GOOGLE_CALENDAR_TOKEN)
+        google_drive = GoogleDriveClient(_GOOGLE_CALENDAR_TOKEN)
         product_effects = ProductEffectService(
             vault=DurableProductEffectVault(telegram_state),
             workspace=OwnerWorkspace(
                 _OWNER_WRITE_ROOT,
+                snapshot_root=_ARTIFACT_SNAPSHOT_ROOT,
                 pdf_renderer=EdgePdfRenderer(
                     _required_edge_executable(),
                     temp_root=_CODEX_TEMP,
@@ -201,6 +251,9 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git_executable=git,
                 python_executable=python,
             ),
+            calendar=calendar,
+            google_tasks=google_tasks,
+            google_drive=google_drive,
         )
         control = DurableProductTelegramControlPlane(
             gateway,
@@ -218,6 +271,15 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             limit_provider=limit_provider,
             owner_files=OwnerFileService(_OWNER_READ_ROOT),
             product_effects=product_effects,
+            calendar_planner=runtime,
+            calendar_service=calendar,
+            google_tasks_planner=runtime,
+            google_tasks_service=google_tasks,
+            google_drive_planner=runtime,
+            google_drive_service=google_drive,
+            business_notes=BusinessNotesService(
+                SQLiteBusinessNotes(_BUSINESS_NOTES_PATH)
+            ),
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
             task_tenants=destination_refs,

@@ -55,7 +55,8 @@ class TelegramChallengeProof(BindingModel):
 
 class StoredActorBinding(BindingModel):
     user_id: int = Field(gt=0)
-    chat_id: int = Field(gt=0)
+    chat_id: int
+    purpose: Literal["owner_private", "business_notes"] = "owner_private"
     tenant_id: str = Field(min_length=1, max_length=128)
     actor_identity: str = Field(min_length=1, max_length=256)
     role: str = Field(min_length=1, max_length=64)
@@ -71,7 +72,7 @@ class StoredActorBinding(BindingModel):
 
 
 class TelegramBindingConfig(BindingModel):
-    version: Literal[1]
+    version: Literal[1, 2]
     bot_id: int = Field(gt=0)
     bot_username: str = Field(min_length=5, max_length=64)
     bindings: tuple[StoredActorBinding, ...] = Field(min_length=1, max_length=32)
@@ -103,6 +104,15 @@ class TelegramBindingConfig(BindingModel):
 
     @model_validator(mode="after")
     def exact_pairs_are_unique(self) -> "TelegramBindingConfig":
+        for item in self.bindings:
+            private = item.purpose == "owner_private"
+            if (
+                item.user_id <= 0
+                or item.chat_id == 0
+                or (private and item.chat_id != item.user_id)
+                or (not private and (self.version != 2 or item.chat_id >= 0))
+            ):
+                raise ValueError("invalid Telegram binding purpose")
         pairs = [(item.user_id, item.chat_id) for item in self.bindings]
         if len(set(pairs)) != len(pairs):
             raise ValueError("duplicate Telegram user/chat binding")
@@ -158,8 +168,7 @@ def load_telegram_bindings(
     bindings: dict[tuple[int, int], ActorBinding] = {}
     for item in config.bindings:
         if (
-            item.user_id != item.chat_id
-            or item.tenant_id != expected_tenant_id
+            item.tenant_id != expected_tenant_id
             or item.actor_identity != expected_actor_identity
             or item.role != expected_role
             or item.auth_context_ref != _proof_digest(config, item)
@@ -170,6 +179,7 @@ def load_telegram_bindings(
             actor_identity=item.actor_identity,
             role=item.role,
             auth_context_ref=item.auth_context_ref,
+            purpose=item.purpose,
         )
     return MappingProxyType(bindings)
 
@@ -241,6 +251,8 @@ def _proof_digest(config: TelegramBindingConfig, item: StoredActorBinding) -> st
         "update_id": item.proof.update_id,
         "user_id": item.user_id,
     }
+    if config.version == 2:
+        payload["purpose"] = item.purpose
     canonical = json.dumps(
         payload,
         ensure_ascii=True,

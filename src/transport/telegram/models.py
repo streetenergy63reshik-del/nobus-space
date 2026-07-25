@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -32,6 +32,7 @@ class ActorBinding(IngressModel):
     actor_identity: str
     role: str
     auth_context_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    purpose: Literal["owner_private", "business_notes"] = "owner_private"
 
     @field_validator("tenant_id", "actor_identity", "role", "auth_context_ref")
     @classmethod
@@ -59,6 +60,10 @@ class ActorBoundIngress(IngressModel):
     auth_context_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     user_id: int
     chat_id: int
+    message_thread_id: int | None = Field(default=None, gt=0)
+    binding_purpose: Literal["owner_private", "business_notes"] = (
+        "owner_private"
+    )
 
     @field_validator("tenant_id", "actor_identity", "actor_role")
     @classmethod
@@ -97,18 +102,25 @@ TelegramPayload: TypeAlias = TextMessage | VoiceMessage | CallbackQuery
 
 def _telegram_payload_facts(payload: TelegramPayload) -> dict[str, object]:
     """Derive non-authoritative fingerprints used to verify one payload binding."""
+    topic = (
+        f":thread:{payload.message_thread_id}"
+        if payload.message_thread_id is not None
+        else ""
+    )
     if type(payload) is TextMessage:
         kind = IngressKind.TEXT
         external_message_id = (
             f"update:{payload.update_id}:user:{payload.user_id}:"
-            f"chat:{payload.chat_id}:message:{payload.message_id}"
+            f"chat:{payload.chat_id}{topic}:"
+            f"message:{payload.message_id}"
         )
         content = {"text": payload.text}
     elif type(payload) is VoiceMessage:
         kind = IngressKind.VOICE_PREVIEW
         external_message_id = (
             f"update:{payload.update_id}:user:{payload.user_id}:"
-            f"chat:{payload.chat_id}:message:{payload.message_id}"
+            f"chat:{payload.chat_id}{topic}:"
+            f"message:{payload.message_id}"
         )
         content = {
             "duration": payload.duration,
@@ -119,7 +131,8 @@ def _telegram_payload_facts(payload: TelegramPayload) -> dict[str, object]:
         kind = IngressKind.CALLBACK
         external_message_id = (
             f"update:{payload.update_id}:user:{payload.user_id}:"
-            f"chat:{payload.chat_id}:callback:{payload.query_id}"
+            f"chat:{payload.chat_id}{topic}:"
+            f"callback:{payload.query_id}"
         )
         content = {
             "callback_token": payload.callback_token,
@@ -127,6 +140,10 @@ def _telegram_payload_facts(payload: TelegramPayload) -> dict[str, object]:
         }
     else:
         raise TypeError("unsupported Telegram payload")
+
+    if payload.binding_purpose == "business_notes":
+        external_message_id += ":purpose:business_notes"
+        content["binding_purpose"] = "business_notes"
 
     source = IngressSource.TELEGRAM
     return {

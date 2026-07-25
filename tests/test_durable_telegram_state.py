@@ -245,3 +245,48 @@ def test_dpapi_roundtrip_and_wrong_entropy_fail_closed():
     )
     with pytest.raises(Exception):
         unprotect_current_user(protected, entropy=b"nobus-other-entropy")
+
+
+def test_completed_effect_delivery_uses_persisted_backoff(tmp_path):
+    now = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    clock = [now]
+    store = _store(tmp_path, clock=lambda: clock[0])
+    task_id = uuid4()
+    store.enqueue(
+        kind="effect",
+        tenant_id="owner",
+        task_id=task_id,
+        binding_digest=canonical_json_digest({"effect": str(task_id)}),
+        payload={"capability_token": "safe-token"},
+    )
+    lease_owner = uuid4()
+    first = store.claim(lease_owner=lease_owner)
+    assert first is not None
+    store.release(first, lease_owner=lease_owner)
+    second = store.claim(lease_owner=lease_owner)
+    assert second is not None
+    store.release(second, lease_owner=lease_owner)
+    exhausted = store.claim(lease_owner=lease_owner)
+    assert exhausted is not None and exhausted.attempt_count == 3
+
+    store.retry_effect_delivery(
+        exhausted, lease_owner=lease_owner, delay_seconds=30
+    )
+
+    assert store.queue_counts() == (1, 0)
+    assert store.claim(lease_owner=uuid4()) is None
+    clock[0] += timedelta(seconds=31)
+    replay = store.claim(lease_owner=uuid4())
+    assert replay is not None
+    assert replay.job_id == exhausted.job_id
+    assert replay.attempt_count == 1
+
+    draft_id = uuid4()
+    draft = store.enqueue(
+        kind="draft",
+        tenant_id="owner",
+        task_id=draft_id,
+        binding_digest=canonical_json_digest({"draft": str(draft_id)}),
+        payload={"instruction": "safe"},
+    )
+    assert draft.kind == "draft"

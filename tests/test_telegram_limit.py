@@ -24,8 +24,10 @@ class FakeLimitProvider:
         return WeeklyLimitSnapshot(used_percent=14, resets_at=1_785_400_820)
 
 
-def test_product_profile_includes_limit_menu_command() -> None:
+def test_product_profile_keeps_menu_small_and_product_facing() -> None:
     assert ("limit", "Недельный лимит Codex") in _COMMANDS
+    assert all(command != "calendar" for command, _ in _COMMANDS)
+    assert len(_COMMANDS) == 6
 
 
 @pytest.mark.asyncio

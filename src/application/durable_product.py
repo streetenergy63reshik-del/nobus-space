@@ -26,6 +26,7 @@ from src.transport.telegram import (
     IngressStatus,
     TextMessage,
     TrustedIngressResult,
+    VoiceMessage,
 )
 
 
@@ -180,7 +181,6 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     self._telegram_state.release(
                         durable, lease_owner=self._lease_owner
                     )
-                    await asyncio.sleep(1)
                 else:
                     self._telegram_state.fail(
                         durable,
@@ -208,19 +208,19 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             try:
                 await self._execute_with_lease(durable, job)
                 await self._clear_progress(job)
-                self._telegram_state.ack(
-                    durable, lease_owner=self._lease_owner
-                )
-                if isinstance(job, _QueuedEffect) and self._product_effects is not None:
-                    try:
-                        self._product_effects.finalize_delivery(
-                            job.capability_token,
-                            tenant_id=job.callback.tenant_id,
-                            user_id=job.callback.user_id,
-                            chat_id=job.callback.chat_id,
-                        )
-                    except Exception:
-                        pass
+                if isinstance(job, _QueuedEffect):
+                    self._telegram_state.ack_effect_delivery(
+                        durable,
+                        lease_owner=self._lease_owner,
+                        capability_token=job.capability_token,
+                        tenant_id=job.callback.tenant_id,
+                        user_id=job.callback.user_id,
+                        chat_id=job.callback.chat_id,
+                    )
+                else:
+                    self._telegram_state.ack(
+                        durable, lease_owner=self._lease_owner
+                    )
                 self._worker_error = None
                 self._worker_error_count = 0
             except asyncio.CancelledError:
@@ -235,7 +235,27 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     if isinstance(job, _QueuedEffect)
                     else "runtime_job_failed"
                 )
-                if durable.attempt_count < _MAX_JOB_ATTEMPTS:
+                delivery_pending = (
+                    isinstance(job, _QueuedEffect)
+                    and self._product_effects is not None
+                    and self._product_effects.delivery_pending(
+                        job.capability_token,
+                        tenant_id=job.callback.tenant_id,
+                        user_id=job.callback.user_id,
+                        chat_id=job.callback.chat_id,
+                    )
+                )
+                if delivery_pending:
+                    try:
+                        self._telegram_state.retry_effect_delivery(
+                            durable,
+                            lease_owner=self._lease_owner,
+                            delay_seconds=30,
+                        )
+                    except Exception:
+                        pass
+                    await asyncio.sleep(1)
+                elif durable.attempt_count < _MAX_JOB_ATTEMPTS:
                     try:
                         self._telegram_state.release(
                             durable, lease_owner=self._lease_owner
@@ -243,7 +263,46 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     except Exception:
                         pass
                 else:
-                    if not isinstance(job, _QueuedEffect):
+                    if isinstance(job, _QueuedEffect):
+                        recorded = (
+                            self._product_effects is not None
+                            and self._product_effects.record_terminal_failure(
+                                job.capability_token,
+                                tenant_id=job.callback.tenant_id,
+                                user_id=job.callback.user_id,
+                                chat_id=job.callback.chat_id,
+                            )
+                        )
+                        if recorded:
+                            try:
+                                await self._resolve_product_effect(
+                                    job.callback,
+                                    job.envelope,
+                                    job.action,
+                                    job.capability_token,
+                                )
+                                self._telegram_state.ack_effect_delivery(
+                                    durable,
+                                    lease_owner=self._lease_owner,
+                                    capability_token=job.capability_token,
+                                    tenant_id=job.callback.tenant_id,
+                                    user_id=job.callback.user_id,
+                                    chat_id=job.callback.chat_id,
+                                )
+                                await self._clear_progress(job)
+                                continue
+                            except Exception:
+                                try:
+                                    self._telegram_state.retry_effect_delivery(
+                                        durable,
+                                        lease_owner=self._lease_owner,
+                                        delay_seconds=30,
+                                    )
+                                except Exception:
+                                    pass
+                                await self._clear_progress(job)
+                                continue
+                    else:
                         await self._terminalize_job(job)
                     try:
                         self._telegram_state.fail(
@@ -455,7 +514,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     async def _submit_effect(
         self,
-        callback: CallbackQuery,
+        callback: TextMessage | VoiceMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
         action: object,
         token: str,
@@ -464,6 +523,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             return False
         payload = {
             "callback": callback.model_dump(mode="json"),
+            "message_type": (
+                "text"
+                if isinstance(callback, TextMessage)
+                else "voice"
+                if isinstance(callback, VoiceMessage)
+                else "callback"
+            ),
             "envelope": envelope.model_dump(mode="json"),
             "action": getattr(action, "value", None),
             "capability_token": token,
@@ -494,7 +560,16 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
             if canonical_json_digest(payload) != durable.binding_digest:
                 raise RuntimeError("durable effect binding mismatch")
-            callback = CallbackQuery.model_validate(payload["callback"])
+            message_type = payload.get("message_type", "callback")
+            if message_type not in {"text", "voice", "callback"}:
+                raise RuntimeError("durable effect message type is invalid")
+            callback = (
+                TextMessage.model_validate(payload["callback"])
+                if message_type == "text"
+                else VoiceMessage.model_validate(payload["callback"])
+                if message_type == "voice"
+                else CallbackQuery.model_validate(payload["callback"])
+            )
             envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])
             action = TelegramAction(payload["action"])
             token = payload["capability_token"]

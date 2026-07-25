@@ -21,9 +21,16 @@ RUNTIME_DATABASE_NAMES = frozenset(
         "telegram-checkpoint.sqlite3",
         "task-runtime.sqlite3",
         "telegram-state.sqlite3",
+        "business-notes.sqlite3",
     }
 )
 EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
+    "business-notes.sqlite3": {
+        "index:idx_business_notes_topic":
+            "05fcb014bb5a54c2220f990ce2c1b211c2dc6d3e7f5e0b490defb656b74307fc",
+        "table:business_notes":
+            "6bf62f047ad4465c6420ee5538b46eeab3e3854ff523741d9991684f93542b21",
+    },
     "telegram-checkpoint.sqlite3": {
         "table:telegram_polling_checkpoints":
             "49efdc53c50e91d899b3ee17f48e3f33f1deeb149c9e55ab6060e5184f3e1393",
@@ -91,8 +98,10 @@ def validate_runtime_database(path: Path) -> None:
         _validate_checkpoint_rows(path)
     elif path.name == "task-runtime.sqlite3":
         _validate_task_runtime_rows(path)
-    else:
+    elif path.name == "telegram-state.sqlite3":
         _validate_telegram_state_rows(path)
+    else:
+        _validate_business_notes_rows(path)
 
 
 def dead_letter_count(path: Path) -> int:
@@ -314,6 +323,36 @@ def _validate_telegram_state_rows(path: Path) -> None:
         ):
             raise RuntimeError("progress binding is invalid")
 
+
+
+def _validate_business_notes_rows(path: Path) -> None:
+    from src.application.business_notes import BusinessNote
+    from src.application.durable_telegram_state import DpapiJsonCodec
+
+    codec = DpapiJsonCodec()
+    with closing(sqlite3.connect(path)) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            """SELECT tenant_id,chat_id,thread_id,message_id,update_id,
+                      payload,payload_digest,created_at
+               FROM business_notes"""
+        )
+        for row in rows:
+            payload = codec.decode(bytes(row["payload"]))
+            note = BusinessNote.model_validate_json(
+                json.dumps(payload, ensure_ascii=False)
+            )
+            if (
+                "sha256:" + hashlib.sha256(bytes(row["payload"])).hexdigest()
+                != row["payload_digest"]
+                or note.tenant_id != row["tenant_id"]
+                or note.chat_id != row["chat_id"]
+                or (note.thread_id or 0) != row["thread_id"]
+                or note.message_id != row["message_id"]
+                or note.update_id != row["update_id"]
+                or note.created_at != _aware(row["created_at"])
+            ):
+                raise RuntimeError("business Notes row is invalid")
 
 def _runtime_text(value: object, limit: int) -> bool:
     return (

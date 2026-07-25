@@ -142,6 +142,61 @@ def test_restore_manifest_requires_exact_integer_schema_version(
         restore_telegram_runtime._restore_quiescent(manifest, runtime)
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ("missing_created_at", "extra_root", "extra_file", "bool_bytes"),
+)
+def test_restore_manifest_v2_requires_exact_shape(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    backup = tmp_path / "backup"
+    runtime = tmp_path / "runtime"
+    backup.mkdir()
+    files = [
+        {"name": name, "bytes": 0, "sha256": "0" * 64}
+        for name in sorted(restore_telegram_runtime._NAMES)
+    ]
+    unsigned: dict[str, object] = {
+        "schema_version": 2,
+        "created_at": "2026-07-24T00:00:00+00:00",
+        "quiescent": True,
+        "files": files,
+    }
+    if mutation == "missing_created_at":
+        unsigned.pop("created_at")
+    elif mutation == "extra_root":
+        unsigned["unexpected"] = True
+    elif mutation == "extra_file":
+        files[0]["unexpected"] = True
+    else:
+        files[0]["bytes"] = True
+    digest = canonical_json_digest(unsigned)
+    manifest = backup / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                **unsigned,
+                "authentication": {
+                    "file": "manifest-auth.bin",
+                    "manifest_digest": digest,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (backup / "manifest-auth.bin").write_bytes(b"test-auth")
+    monkeypatch.setattr(
+        restore_telegram_runtime,
+        "unprotect_current_user",
+        lambda value, *, entropy: digest.encode("ascii"),
+    )
+
+    with pytest.raises(ValueError, match="backup manifest is invalid"):
+        restore_telegram_runtime._restore_quiescent(manifest, runtime)
+
+
 def test_restore_rolls_back_new_and_existing_targets(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -165,7 +220,8 @@ def test_restore_rolls_back_new_and_existing_targets(
     _database(runtime / names[0], "old")
     manifest = backup / "manifest.json"
     unsigned = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "created_at": "2026-07-24T00:00:00+00:00",
         "quiescent": True,
         "files": manifest_files,
     }

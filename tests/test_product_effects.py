@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -16,6 +17,7 @@ from src.application.product_effects import (
     ProductEffectService,
     approval_reference,
 )
+from src.integrations import CalendarAction, CalendarActionKind, CalendarEvent
 
 
 PUBLIC = [(None, None, None, None, ("93.184.216.34", 443))]
@@ -59,6 +61,73 @@ def _service(tmp_path: Path, client: httpx.AsyncClient) -> ProductEffectService:
             python_executable=python,
         ),
     )
+
+
+class _Calendar:
+    def __init__(self) -> None:
+        start = datetime(2026, 7, 27, 10, 0, tzinfo=timezone.utc)
+        self.event = CalendarEvent(
+            event_id="event-1",
+            title="Планёрка",
+            start=start,
+            end=start + timedelta(hours=1),
+        )
+        self.deleted: list[str] = []
+
+    async def resolve_delete(self, action: CalendarAction) -> CalendarEvent:
+        assert action.kind is CalendarActionKind.DELETE
+        return self.event
+
+    async def delete_event(self, event_id: str) -> None:
+        self.deleted.append(event_id)
+
+
+@pytest.mark.asyncio
+async def test_calendar_delete_requires_effect_and_replay_does_not_repeat(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    calendar = _Calendar()
+    service._calendar = calendar
+    challenge = await service.prepare_calendar_delete(
+        CalendarAction(kind=CalendarActionKind.DELETE, target="Планёрка"),
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        idempotency_key="sha256:" + "f" * 64,
+    )
+    assert calendar.deleted == []
+    approval = approval_reference(
+        actor_identity="telegram:owner",
+        query_id="calendar-delete-1",
+        effect_token=challenge.token,
+    )
+
+    first = await service.resolve(
+        challenge.token,
+        expected_kind=ProductEffectKind.CALENDAR_DELETE,
+        approve=True,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        approval_ref=approval,
+    )
+    replay = await service.resolve(
+        challenge.token,
+        expected_kind=ProductEffectKind.CALENDAR_DELETE,
+        approve=True,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        approval_ref=approval,
+    )
+
+    assert first.message == replay.message == "Событие «Планёрка» удалено."
+    assert calendar.deleted == ["event-1"]
+    await client.aclose()
 
 
 @pytest.mark.asyncio
@@ -177,6 +246,38 @@ def test_effect_vault_is_tenant_and_actor_bound(tmp_path: Path) -> None:
     ) is not None
 
 
+def test_effect_vault_reuses_exact_idempotent_owner_command(tmp_path: Path) -> None:
+    vault = _vault(tmp_path / "effects.sqlite3")
+    key = "sha256:" + "a" * 64
+    first = vault.issue(
+        kind=ProductEffectKind.ARTIFACT,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        payload={"safe": True},
+        idempotency_key=key,
+    )
+    second = vault.issue(
+        kind=ProductEffectKind.ARTIFACT,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        payload={"safe": True},
+        idempotency_key=key,
+    )
+    assert second == first
+
+    with pytest.raises(RuntimeError, match="unavailable"):
+        vault.issue(
+            kind=ProductEffectKind.ARTIFACT,
+            tenant_id="owner",
+            user_id=7,
+            chat_id=7,
+            payload={"safe": False},
+            idempotency_key=key,
+        )
+
+
 @pytest.mark.asyncio
 async def test_delivery_receipt_prevents_resend_before_durable_job_ack(
     tmp_path: Path,
@@ -238,4 +339,90 @@ async def test_delivery_receipt_prevents_resend_before_durable_job_ack(
         )
         is None
     )
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_terminal_effect_failure_is_durable_and_owner_visible(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    challenge = service.prepare_document(
+        "report.html|Отчёт|Текст",
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+    )
+
+    assert service.record_terminal_failure(
+        challenge.token,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+    )
+    result = await service.resolve(
+        challenge.token,
+        expected_kind=ProductEffectKind.ARTIFACT,
+        approve=True,
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        approval_ref="system:test",
+    )
+
+    assert "Не удалось завершить действие" in result.message
+    assert result.delivery_required
+    assert not (service._workspace.root / "report.html").exists()
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_document_effect_never_overwrites_planner_collision(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    existing = service._workspace.root / "report.html"
+    existing.write_text("owner data", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="target already exists"):
+        service.prepare_document(
+            "report.html|Отчёт|Новый текст",
+            tenant_id="owner",
+            user_id=7,
+            chat_id=7,
+        )
+
+    assert existing.read_text(encoding="utf-8") == "owner data"
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_document_effect_allows_only_explicit_overwrite_policy(
+    tmp_path: Path,
+) -> None:
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500))
+    )
+    service = _service(tmp_path, client)
+    existing = service._workspace.root / "report.html"
+    existing.write_text("owner data", encoding="utf-8")
+
+    challenge = service.prepare_document(
+        "report.html|Отчёт|Новый текст",
+        tenant_id="owner",
+        user_id=7,
+        chat_id=7,
+        allow_overwrite=True,
+    )
+
+    assert challenge.kind is ProductEffectKind.ARTIFACT
+    assert "Перезаписать существующий документ?" in challenge.preview
+    assert "snapshot" in challenge.preview
+    assert existing.read_text(encoding="utf-8") == "owner data"
     await client.aclose()

@@ -1,62 +1,80 @@
-# ADR 0010. Read-only область библиотеки владельца
+# ADR 0010. Server-mediated доступ к библиотеке владельца
 
 **Статус решения:** ACCEPTED
 
-**Статус реализации:** CURRENT LIVE — safe index/content adapter и `/file` приняты L1/L2/L3 и owner L4
+**Статус реализации:** IMPLEMENTED — безопасный path index и file-transfer; анализ содержимого внешней моделью отложен
 
-**Дата:** 2026-07-23
+**Дата:** 2026-07-24
 
 ## Контекст
 
-Owner-bound Telegram-оркестратор должен находить и читать проектные материалы не только в изолированном Git worktree, но и в библиотеке владельца `C:\Хранилище\АГЕНТ`. Предыдущий worker contract запрещал любой путь за пределами репозитория, поэтому корректно отказывался искать существующий HTML-файл.
+Nobus должен находить и возвращать владельцу материалы из
+`C:\Хранилище\АГЕНТ`, не читать и не изменять `C:\Хранилище\WORK` и не
+расширять write boundary рабочего Git worktree.
 
-Расширять write-scope нельзя: библиотека содержит несколько проектов, документы и служебные каталоги. Флаг Codex CLI `--add-dir` не используется, поскольку он добавляет директории с правом записи, а не узкие read-only inputs.
+Первый вариант передавал Codex CLI дополнительный каталог через `--add-dir`.
+Второй вариант использовал custom permission profile с точными `read` и
+`deny`. Синтетический native-Windows probe показал: запись блокируется, но
+shell-подпроцесс способен читать соседний каталог и deny-файл. Поэтому ни один
+из этих вариантов не считается доказанной read-изоляцией на текущем runtime.
 
 ## Решение
 
-1. Серверная конфигурация owner-bound runner задаёт один точный корень библиотеки: `C:\Хранилище\АГЕНТ`.
-2. Контракт получает отдельное permission `owner.library.read`.
-3. Permission принимается только если adapter сконфигурирован существующим корнем и контракт не содержит `repo.write`.
-4. Codex CLI продолжает работать с `--sandbox read-only`; web, MCP и ambient secrets выключены.
-5. Рабочей директорией остаётся изолированный Git worktree. Дополнительный корень не становится `allowed_path` для diff, apply, tests или commit.
-6. Только при явном запросе server-side index/content adapter сканирует корень без перехода по symlink/junction, передаёт worker bounded sanitized context либо отправляет разрешённый файл; абсолютный root в продуктовый ответ не включается.
-7. Один запрос ограничен 50 000 directory entries и 8 совпадениями.
-8. Запрещены hidden/control names, `.git`, `.codex`, `.cache`, `.venv`, `.runtime`, `.env`, а также sensitive names с markers auth, cookie, credential, login, password, secret, session, token и vpn.
-9. Path index входит в общий deadline контракта и получает cooperative stop при timeout/cancel. До безопасного content adapter capability означает поиск пути, а не чтение содержимого.
-10. Startup sentinel не получает `owner.library.read` и по-прежнему не читает owner-library.
-11. Активация новой ревизии в работающем runner требует отдельного L4.
+1. Локальный trusted service владеет одним exact resolved owner root.
+2. Root и directory identity фиксируются при startup и перепроверяются перед
+   каждой проекцией и перед запуском worker.
+3. `owner.library.read` означает server-mediated доступ, а не прямой
+   filesystem-доступ LLM-процесса.
+4. Сервер строит bounded path index: максимум 50 000 entries и 8 совпадений,
+   без symlink/junction, hidden/runtime/VCS-каталогов и чувствительных имён.
+5. В prompt попадают только относительные пути. Абсолютный root и содержимое
+   файлов не передаются.
+6. Обычный ответ, owner path-index и startup probe используют tool-less
+   `model.inference`: shell, shell snapshot, apps, MCP и local file tools
+   выключены. `--add-dir`, custom owner profile и иной root отсутствуют в argv.
+7. `owner.library.read` несовместим с `repo.write` и `web.search`.
+8. Файл владельцу отправляет отдельный `OwnerFileService` после server-side
+   проверки root, размера, типа и owner binding; модель файл не открывает.
+9. `C:\Хранилище\WORK` находится вне owner root и не сканируется.
+10. Анализ содержимого локальных бизнес-документов внешней моделью не
+    разрешается этим ADR. Для него нужен отдельный data-handling gate:
+    локальное извлечение, явная per-request авторизация данных, DLP/secret
+    scan, bounded excerpts и независимый review.
 
-## Инварианты
+## Проверяемые инварианты
 
-- LLM не назначает себе permission и не меняет корень.
-- `owner.library.read` несовместим с `repo.write`.
-- Ни один путь библиотеки не передаётся в patch pipeline.
-- Любой code effect остаётся exact diff внутри `agent/telegram-live` и требует owner-bound L4.
-- Внешняя сеть, merge, rebase, push и remote отсутствуют.
-- Секреты не включаются в prompt, ответ, audit или `.nobus-quality`.
-- Codex CLI не получает filesystem authority на owner root и не получает абсолютный owner path в prompt.
+- owner root не добавляется в Codex CLI argv или prompt;
+- owner path-index попадает только в tool-less model session; public research использует отдельный web-search-only profile без local-file scope;
+- внешний worker не может открыть путь из server-projected index;
+- `owner.library.read + repo.write` запрещено;
+- `owner.library.read + web.search` запрещено;
+- подмена root/reparse point/identity отклоняется до spawn;
+- path index не читает и не пересылает содержимое;
+- `C:\Хранилище\WORK` не является потомком owner root;
+- секреты и бизнес-данные не попадают в Git, документацию, логи и
+  `.nobus-quality`.
 
-## Остаточный риск
+## Доказательства
 
-Path-only index устраняет передачу file content и зависимость от внешнего filesystem scope Codex CLI, но Python runner всё ещё работает под owner Windows account без отдельной OS identity. Ошибка denylist теоретически может раскрыть лишнее имя файла; без handle-level ACL остаётся минимальное race-window между повторной проверкой directory и `scandir`. Поэтому решение допустимо только для локального owner-bound MVP.
-
-До production требуется один из вариантов:
-
-- отдельная Windows identity с ACL только на утверждённую проекцию;
-- read-only projection/staging area с deterministic manifest;
-- усиление текущего path index: signed manifest, per-project allowlist и audit digest;
-- отдельный content adapter с явным выбором файла, secret-scan и изоляцией untrusted content.
+- Реальный синтетический probe зафиксировал неприемлемость прямого Windows
+  shell read: разрешённый sentinel читался, запись блокировалась, но соседний и
+  deny-файл оставались читаемыми. Этот дизайн отвергнут.
+- Adversarial tests проверяют отсутствие `--add-dir`, отсутствие owner root в
+  prompt, выключенные shell/apps/MCP для answer/owner/web, запрет web/write
+  сочетаний, identity check, bounded scan, cancellation и исключение
+  чувствительных путей.
 
 ## Последствия
 
 Положительные:
 
-- оркестратор может находить проектные документы внутри библиотеки владельца;
-- write boundary не расширяется;
-- доступ проверяется отдельным permission и fail-closed конфигурацией;
-- startup probe и обычный repository-only adapter остаются совместимыми.
+- сервер может безопасно находить и отправлять файлы владельцу;
+- `C:\Хранилище\WORK` и произвольные каталоги не становятся областью worker;
+- внешний Codex не получает ambient filesystem authority;
+- write pipeline остаётся ограничен worktree.
 
-Отрицательные:
+Ограничение:
 
-- server-side reader не заменяет отдельную OS identity и per-project ACL;
-- `sendDocument` имеет узкое at-least-once crash-window; Google Drive остаётся отдельным TARGET connector;
+- текущий worker может сообщить найденный относительный путь или вернуть файл
+  через Telegram, но не анализирует содержимое произвольного локального
+  документа. Это честное ограничение до отдельного безопасного content gate.

@@ -69,7 +69,6 @@ def _message() -> str:
         separators=(",", ":"),
     )
 
-
 @pytest.mark.asyncio
 async def test_patch_pipeline_checks_tests_and_commits_in_isolated_branch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -101,7 +100,6 @@ async def test_patch_pipeline_checks_tests_and_commits_in_isolated_branch(
         (_git(), "status", "--porcelain"), cwd=tmp_path, check=True,
         capture_output=True, text=True,
     ).stdout == ""
-
 
 @pytest.mark.asyncio
 async def test_failed_l2_restores_clean_worktree(
@@ -141,7 +139,6 @@ async def test_failed_l2_restores_clean_worktree(
         await pipeline.l2(next_candidate)
     ).status is VerificationLevelStatus.PASSED
     await pipeline.discard(next_candidate.task_id)
-
 
 @pytest.mark.asyncio
 async def test_l1_rejects_wrong_branch_and_never_changes_files(tmp_path: Path) -> None:
@@ -359,7 +356,6 @@ async def test_restart_restores_exact_paths_after_crash_during_l2(
         capture_output=True, text=True,
     ).stdout == ""
 
-
 @pytest.mark.asyncio
 async def test_informational_answer_passes_three_read_only_levels(
     tmp_path: Path,
@@ -385,7 +381,6 @@ async def test_informational_answer_passes_three_read_only_levels(
     ).stdout == ""
     assert candidate.task_id not in pipeline._answers
 
-
 @pytest.mark.asyncio
 async def test_informational_answer_l1_rejects_local_path_disclosure(
     tmp_path: Path,
@@ -399,7 +394,6 @@ async def test_informational_answer_l1_rejects_local_path_disclosure(
     candidate = _candidate('{"answer":"Read C:\\\\Users\\\\owner\\\\secret.txt"}')
 
     assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.FAILED
-
 
 @pytest.mark.asyncio
 async def test_l1_retries_one_transient_git_preflight_failure(
@@ -426,7 +420,6 @@ async def test_l1_retries_one_transient_git_preflight_failure(
 
     assert (await pipeline.l1(candidate)).status is VerificationLevelStatus.PASSED
     assert calls == 2
-
 
 @pytest.mark.asyncio
 async def test_l1_remains_failed_after_one_transient_retry(
@@ -458,7 +451,6 @@ def _lock_only_runtime() -> Gate5A4Runtime:
     runtime._worker_slots = asyncio.Semaphore(2)  # type: ignore[attr-defined]
     runtime._exclusive_lock = asyncio.Lock()  # type: ignore[attr-defined]
     return runtime
-
 
 @pytest.mark.asyncio
 async def test_exclusive_l4_waits_for_both_drafts_and_blocks_new_draft() -> None:
@@ -504,7 +496,6 @@ async def test_exclusive_l4_waits_for_both_drafts_and_blocks_new_draft() -> None
     await asyncio.wait_for(later_draft_started.wait(), timeout=1)
     await later
 
-
 @pytest.mark.asyncio
 async def test_two_exclusive_l4_operations_are_serialized() -> None:
     runtime = _lock_only_runtime()
@@ -522,7 +513,6 @@ async def test_two_exclusive_l4_operations_are_serialized() -> None:
     await asyncio.gather(exclusive(), exclusive())
 
     assert maximum == 1
-
 
 @pytest.mark.asyncio
 async def test_cancelled_partial_exclusive_acquire_releases_every_permit() -> None:
@@ -595,7 +585,6 @@ def _bound_gate_inputs() -> tuple[PreparedTask, PatchProposal]:
     )
     return prepared, proposal
 
-
 @pytest.mark.asyncio
 async def test_real_gate_methods_enforce_draft_and_l4_slot_wrappers() -> None:
     runtime = _lock_only_runtime()
@@ -650,3 +639,24 @@ async def test_real_gate_methods_enforce_draft_and_l4_slot_wrappers() -> None:
     await later
 
     assert (await runtime.reject_proposal(proposal)).status.value == "failed"
+
+
+
+def test_owner_root_validation_preserves_link_evidence_before_resolve(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.application import gate5a4
+
+    configured = tmp_path / "owner-link"
+    observed: list[Path] = []
+
+    def reject_link(path: Path) -> tuple[int, int]:
+        observed.append(path)
+        raise ValueError("linked root")
+
+    monkeypatch.setattr(gate5a4, "_directory_identity", reject_link)
+
+    with pytest.raises(ValueError, match="non-linked"):
+        gate5a4._validated_owner_read_root(configured)
+
+    assert observed == [configured]

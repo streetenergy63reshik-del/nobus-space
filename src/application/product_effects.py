@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import json
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -20,12 +21,27 @@ from src.application.network_commands import (
 from src.application.network_tools import DownloadProposal, Quarantine, SafeDownloader
 from src.application.owner_workspace import ArtifactProposal, OwnerWorkspace
 from src.contracts.models import canonical_json_digest
+from src.integrations import (
+    CalendarAction,
+    CalendarActionKind,
+    CalendarEvent,
+    GoogleDriveAction,
+    GoogleDriveActionKind,
+    GoogleTaskAction,
+    GoogleTaskActionKind,
+    GoogleTaskItem,
+)
 
 
 class ProductEffectKind(str, Enum):
     ARTIFACT = "artifact"
     DOWNLOAD = "download"
     NETWORK = "network"
+    CALENDAR_DELETE = "calendar_delete"
+    CALENDAR = "calendar"
+    GOOGLE_TASK = "google_task"
+    GOOGLE_TASK_DELETE = "google_task_delete"
+    GOOGLE_DRIVE = "google_drive"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +88,7 @@ class DurableProductEffectVault:
         user_id: int,
         chat_id: int,
         payload: dict[str, Any],
+        idempotency_key: str | None = None,
         ttl_seconds: int = 604_800,
     ) -> str:
         if (
@@ -84,10 +101,32 @@ class DurableProductEffectVault:
             or not 60 <= ttl_seconds <= 604_800
         ):
             raise ValueError("product effect binding is invalid")
+        if idempotency_key is not None and (
+            not isinstance(idempotency_key, str)
+            or not idempotency_key.startswith("sha256:")
+            or len(idempotency_key) != 71
+        ):
+            raise ValueError("product effect idempotency key is invalid")
         effect_digest = canonical_json_digest(payload)
         expires_at = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
-        for _ in range(8):
-            token = secrets.token_urlsafe(32)
+        deterministic_token = (
+            None
+            if idempotency_key is None
+            else hashlib.sha256(
+                canonical_json_digest(
+                    {
+                        "idempotency_key": idempotency_key,
+                        "kind": kind.value,
+                        "tenant_id": tenant_id.strip(),
+                    }
+                ).encode()
+            ).hexdigest()
+        )
+        for token in (
+            (deterministic_token,)
+            if deterministic_token is not None
+            else tuple(secrets.token_urlsafe(32) for _ in range(8))
+        ):
             token_digest = _digest(token)
             values = {
                 "token": token,
@@ -110,7 +149,22 @@ class DurableProductEffectVault:
                 )
                 return token
             except Exception:
-                continue
+                if deterministic_token is None:
+                    continue
+                existing = self.read(
+                    token,
+                    tenant_id=tenant_id.strip(),
+                    user_id=user_id,
+                    chat_id=chat_id,
+                )
+                if (
+                    existing is not None
+                    and existing.kind is kind
+                    and existing.payload == payload
+                    and existing.effect_digest == effect_digest
+                ):
+                    return token
+                break
         raise RuntimeError("product effect capability is unavailable")
 
     def read(
@@ -218,7 +272,7 @@ class DurableProductEffectVault:
 
 
 class ProductEffectService:
-    """Prepare effects without authority and execute only an exact L4 binding."""
+    """Execute reversible owner effects directly and destructive effects via L4."""
 
     def __init__(
         self,
@@ -228,19 +282,34 @@ class ProductEffectService:
         downloader: SafeDownloader,
         quarantine: Quarantine,
         network_runner: NetworkCommandRunner,
+        calendar: Any | None = None,
+        google_tasks: Any | None = None,
+        google_drive: Any | None = None,
     ) -> None:
         self._vault = vault
         self._workspace = workspace
         self._downloader = downloader
         self._quarantine = quarantine
         self._network = network_runner
+        self._calendar = calendar
+        self._google_tasks = google_tasks
+        self._google_drive = google_drive
 
     async def close(self) -> None:
         await self._downloader.aclose()
 
     def prepare_document(
-        self, argument: str, *, tenant_id: str, user_id: int, chat_id: int
+        self,
+        argument: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str | None = None,
+        allow_overwrite: bool = False,
     ) -> ProductEffectChallenge:
+        if type(allow_overwrite) is not bool:
+            raise ValueError("document overwrite policy is invalid")
         parts = tuple(part.strip() for part in argument.split("|", 2))
         if len(parts) != 3 or not all(parts):
             raise ValueError("document syntax is invalid")
@@ -260,26 +329,47 @@ class ProductEffectService:
         proposal = self._workspace.propose(
             path, title=title, paragraphs=paragraphs, rows=rows
         )
+        if proposal.current_digest is not None and not allow_overwrite:
+            raise ValueError("document target already exists")
         token = self._vault.issue(
             kind=ProductEffectKind.ARTIFACT,
             tenant_id=tenant_id,
             user_id=user_id,
             chat_id=chat_id,
             payload=_artifact_payload(proposal),
+            idempotency_key=idempotency_key,
         )
+        overwrite = proposal.current_digest is not None
+        diff_summary = self._workspace.diff_summary(proposal)
         return ProductEffectChallenge(
             token,
             ProductEffectKind.ARTIFACT,
             (
-                "Создать документ?\n\n"
-                f"Файл: {proposal.relative_path}\n"
-                f"Размер: {len(proposal.content)} байт\n"
-                "Запись произойдёт только после подтверждения."
+                (
+                    "Перезаписать существующий документ?\n\n"
+                    if overwrite
+                    else "Создать новый документ?\n\n"
+                )
+                + f"Файл: {proposal.relative_path}\n"
+                + f"Размер: {len(proposal.content)} байт\n"
+                + f"Byte diff: {diff_summary}\n"
+                + (
+                    "Перед заменой будет создан проверенный snapshot; "
+                    "восстановление требует точного L4."
+                    if overwrite
+                    else "Точная команда владельца авторизует создание файла."
+                )
             ),
         )
 
     async def prepare_download(
-        self, argument: str, *, tenant_id: str, user_id: int, chat_id: int
+        self,
+        argument: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str | None = None,
     ) -> ProductEffectChallenge:
         proposal = await self._downloader.preview(argument.strip())
         token = self._vault.issue(
@@ -288,6 +378,7 @@ class ProductEffectService:
             user_id=user_id,
             chat_id=chat_id,
             payload=_download_payload(proposal),
+            idempotency_key=idempotency_key,
         )
         return ProductEffectChallenge(
             token,
@@ -301,7 +392,13 @@ class ProductEffectService:
         )
 
     def prepare_network(
-        self, argument: str, *, tenant_id: str, user_id: int, chat_id: int
+        self,
+        argument: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str | None = None,
     ) -> ProductEffectChallenge:
         parts = tuple(part.strip() for part in argument.split("|"))
         if len(parts) == 4 and parts[0] == "git-fetch":
@@ -323,6 +420,7 @@ class ProductEffectService:
             user_id=user_id,
             chat_id=chat_id,
             payload=_network_payload(proposal),
+            idempotency_key=idempotency_key,
         )
         return ProductEffectChallenge(
             token,
@@ -334,6 +432,143 @@ class ProductEffectService:
                 f"Аргументы: {' '.join(proposal.argv)}"
             ),
         )
+
+    def prepare_google_drive(
+        self,
+        action: GoogleDriveAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._google_drive is None:
+            raise RuntimeError("Google Drive integration is unavailable")
+        action = GoogleDriveAction.model_validate(action.model_dump())
+        if action.kind is GoogleDriveActionKind.NONE:
+            raise ValueError("Google Drive action is not executable")
+        token = self._vault.issue(
+            kind=ProductEffectKind.GOOGLE_DRIVE,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=action.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(token, ProductEffectKind.GOOGLE_DRIVE, "")
+
+    async def prepare_google_task_delete(
+        self,
+        action: GoogleTaskAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._google_tasks is None:
+            raise RuntimeError("Google Tasks integration is unavailable")
+        item = await self._google_tasks.resolve_delete(action)
+        token = self._vault.issue(
+            kind=ProductEffectKind.GOOGLE_TASK_DELETE,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=item.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(
+            token,
+            ProductEffectKind.GOOGLE_TASK_DELETE,
+            (
+                "Удалить задачу из Google Tasks?\n\n"
+                f"Задача: {item.title}\n"
+                f"Список: {item.tasklist_title}\n\n"
+                "Удаление необратимо и будет выполнено только после нажатия кнопки."
+            ),
+        )
+
+    def prepare_google_task(
+        self,
+        action: GoogleTaskAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._google_tasks is None:
+            raise RuntimeError("Google Tasks integration is unavailable")
+        action = GoogleTaskAction.model_validate(action.model_dump())
+        if action.kind in {
+            GoogleTaskActionKind.NONE,
+            GoogleTaskActionKind.DELETE,
+        }:
+            raise ValueError("Google Task action is not directly executable")
+        token = self._vault.issue(
+            kind=ProductEffectKind.GOOGLE_TASK,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=action.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(token, ProductEffectKind.GOOGLE_TASK, "")
+
+    async def prepare_calendar_delete(
+        self,
+        action: CalendarAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._calendar is None:
+            raise RuntimeError("calendar integration is unavailable")
+        event = await self._calendar.resolve_delete(action)
+        token = self._vault.issue(
+            kind=ProductEffectKind.CALENDAR_DELETE,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=_calendar_payload(event),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(
+            token,
+            ProductEffectKind.CALENDAR_DELETE,
+            (
+                "Удалить событие из календаря?\n\n"
+                f"Событие: {event.title}\n"
+                f"Начало: {event.start.astimezone():%d.%m.%Y %H:%M}\n\n"
+                "Удаление необратимо и будет выполнено только после нажатия кнопки."
+            ),
+        )
+
+    def prepare_calendar(
+        self,
+        action: CalendarAction,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+        idempotency_key: str,
+    ) -> ProductEffectChallenge:
+        if self._calendar is None:
+            raise RuntimeError("calendar integration is unavailable")
+        action = CalendarAction.model_validate(action.model_dump())
+        if action.kind in {CalendarActionKind.NONE, CalendarActionKind.DELETE}:
+            raise ValueError("calendar action is not directly executable")
+        token = self._vault.issue(
+            kind=ProductEffectKind.CALENDAR,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+            payload=action.model_dump(mode="json"),
+            idempotency_key=idempotency_key,
+        )
+        return ProductEffectChallenge(token, ProductEffectKind.CALENDAR, "")
 
     async def resolve(
         self,
@@ -399,7 +634,7 @@ class ProductEffectService:
             result = ProductEffectResult(
                 "Файл сохранён.", target.name, target.read_bytes()
             )
-        else:
+        elif binding.kind is ProductEffectKind.NETWORK:
             proposal = _network(binding.payload)
             completed = await asyncio.to_thread(
                 self._network.run,
@@ -411,12 +646,151 @@ class ProductEffectService:
                 if completed.returncode == 0
                 else "Сетевая команда завершилась с ошибкой."
             )
+        elif binding.kind is ProductEffectKind.CALENDAR_DELETE:
+            if self._calendar is None:
+                raise RuntimeError("calendar integration is unavailable")
+            event = _calendar_event(binding.payload)
+            await self._calendar.delete_event(event.event_id)
+            result = ProductEffectResult(f"Событие «{event.title}» удалено.")
+        elif binding.kind is ProductEffectKind.CALENDAR:
+            if self._calendar is None:
+                raise RuntimeError("calendar integration is unavailable")
+            action = CalendarAction.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
+            calendar_result = await self._calendar.execute(
+                action,
+                idempotency_key=canonical_json_digest(
+                    {
+                        "effect_digest": binding.effect_digest,
+                        "tenant_id": binding.tenant_id,
+                    }
+                ),
+            )
+            result = ProductEffectResult(calendar_result.message)
+        elif binding.kind is ProductEffectKind.GOOGLE_TASK_DELETE:
+            if self._google_tasks is None:
+                raise RuntimeError("Google Tasks integration is unavailable")
+            item = GoogleTaskItem.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
+            await self._google_tasks.delete_task(
+                item.tasklist_id, item.task_id
+            )
+            result = ProductEffectResult(f"Задача «{item.title}» удалена.")
+        elif binding.kind is ProductEffectKind.GOOGLE_TASK:
+            if self._google_tasks is None:
+                raise RuntimeError("Google Tasks integration is unavailable")
+            action = GoogleTaskAction.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
+            task_result = await self._google_tasks.execute(
+                action,
+                idempotency_key=canonical_json_digest(
+                    {
+                        "effect_digest": binding.effect_digest,
+                        "tenant_id": binding.tenant_id,
+                    }
+                ),
+            )
+            result = ProductEffectResult(task_result.message)
+        elif binding.kind is ProductEffectKind.GOOGLE_DRIVE:
+            if self._google_drive is None:
+                raise RuntimeError("Google Drive integration is unavailable")
+            action = GoogleDriveAction.model_validate_json(
+                json.dumps(
+                    binding.payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
+            drive_result = await self._google_drive.execute(action)
+            result = ProductEffectResult(
+                drive_result.message,
+                drive_result.filename,
+                drive_result.content,
+            )
+        else:
+            raise RuntimeError("product effect kind is unsupported")
         binding = self._vault.transition(
             binding,
             state="completed",
-            result={"message": result.message, "filename": result.filename},
+            result={
+                "message": result.message,
+                "filename": result.filename,
+                "approval_ref": approval_ref,
+                "content": (
+                    None
+                    if result.content is None
+                    else base64.b64encode(result.content).decode("ascii")
+                ),
+            },
         )
         return self._completed_result(binding)
+
+    def delivery_pending(
+        self,
+        token: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+    ) -> bool:
+        binding = self._vault.read(
+            token,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+        )
+        return binding is not None and binding.state in {
+            "completed",
+            "unknown",
+        }
+
+    def record_terminal_failure(
+        self,
+        token: str,
+        *,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+    ) -> bool:
+        """Persist a safe owner-visible result after deterministic retries end."""
+        binding = self._vault.read(
+            token,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            chat_id=chat_id,
+        )
+        if binding is None:
+            return False
+        if binding.state in {"completed", "unknown", "delivered"}:
+            return True
+        self._vault.transition(
+            binding,
+            state="completed",
+            result={
+                "message": (
+                    "Не удалось завершить действие после нескольких попыток. "
+                    "Внешняя система не подтвердила результат; повторите команду позже."
+                ),
+                "filename": None,
+                "approval_ref": "system:terminal-failure",
+            },
+        )
+        return True
 
     def acknowledge_delivery(
         self,
@@ -478,9 +852,12 @@ class ProductEffectService:
         filename = binding.result.get("filename")
         content: bytes | None = None
         if filename is not None:
-            content = base64.b64decode(
-                binding.payload["content"], validate=True
-            )
+            encoded = binding.result.get("content")
+            if encoded is None:
+                encoded = binding.payload.get("content")
+            if not isinstance(encoded, str):
+                raise RuntimeError("product effect content is unavailable")
+            content = base64.b64decode(encoded, validate=True)
         return ProductEffectResult(
             str(binding.result["message"]),
             str(filename) if filename is not None else None,
@@ -572,3 +949,13 @@ def _network(value: dict[str, Any]) -> NetworkCommandProposal:
 
 def _digest(value: str) -> str:
     return f"sha256:{hashlib.sha256(value.encode()).hexdigest()}"
+
+
+def _calendar_payload(value: CalendarEvent) -> dict[str, Any]:
+    return value.model_dump(mode="json")
+
+
+def _calendar_event(value: dict[str, Any]) -> CalendarEvent:
+    return CalendarEvent.model_validate_json(
+        json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from collections.abc import Callable, Mapping
@@ -221,13 +222,39 @@ class SQLiteTelegramState:
         lease_id = uuid4()
         try:
             with self._transaction() as connection:
+                # One recovery round protects an externally completed effect
+                # after power loss. A second exhausted execution round, or an
+                # exhausted delivery round, is dead-lettered instead of looping.
                 connection.execute(
                     """UPDATE telegram_jobs
                        SET status='failed',
-                           failure_code='runtime_job_attempts_exhausted',
+                           failure_code=CASE
+                               WHEN kind='effect'
+                               THEN 'runtime_effect_attempts_exhausted'
+                               ELSE 'runtime_job_attempts_exhausted'
+                           END,
                            lease_id=NULL,lease_owner=NULL,
                            lease_expires_at=NULL,updated_at=?
                        WHERE attempt_count>=? AND (
+                           kind!='effect' OR
+                           failure_code IN (
+                               'runtime_effect_recovery',
+                               'runtime_effect_delivery'
+                           )
+                       ) AND (
+                           status='pending' OR
+                           (status='leased' AND lease_expires_at<=?)
+                       )""",
+                    (now.isoformat(), MAX_JOB_CLAIMS, now.isoformat()),
+                )
+                connection.execute(
+                    """UPDATE telegram_jobs
+                       SET status='pending',attempt_count=0,
+                           failure_code='runtime_effect_recovery',
+                           lease_id=NULL,lease_owner=NULL,
+                           lease_expires_at=NULL,updated_at=?
+                       WHERE kind='effect' AND attempt_count>=?
+                         AND failure_code IS NULL AND (
                            status='pending' OR
                            (status='leased' AND lease_expires_at<=?)
                        )""",
@@ -295,6 +322,135 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def ack_effect_delivery(
+        self,
+        job: DurableJob,
+        *,
+        lease_owner: UUID,
+        capability_token: str,
+        tenant_id: str,
+        user_id: int,
+        chat_id: int,
+    ) -> None:
+        """Atomically remove a delivered effect job and its capability."""
+        job = self._validated_job(job, require_lease=True)
+        if (
+            job.kind != "effect"
+            or not _text(capability_token, 2_048)
+            or not _text(tenant_id, 128)
+            or type(user_id) is not int
+            or type(chat_id) is not int
+            or user_id <= 0
+            or chat_id == 0
+            or job.tenant_id != tenant_id.strip()
+        ):
+            raise ValueError("effect delivery acknowledgement is invalid")
+        token_digest = (
+            "sha256:"
+            + hashlib.sha256(capability_token.encode("utf-8")).hexdigest()
+        )
+        now = self._now()
+        try:
+            with self._transaction() as connection:
+                job_row = connection.execute(
+                    """SELECT tenant_id,task_id,binding_digest,payload,
+                              payload_digest
+                       FROM telegram_jobs
+                       WHERE job_id=? AND kind='effect' AND status='leased'
+                         AND lease_id=? AND lease_owner=?
+                         AND lease_expires_at>?""",
+                    (
+                        str(job.job_id),
+                        str(job.lease_id),
+                        str(lease_owner),
+                        now.isoformat(),
+                    ),
+                ).fetchone()
+                if job_row is None:
+                    raise DurableTelegramStateError(
+                        "runtime_job_lease_lost"
+                    )
+                job_payload = self._decode(bytes(job_row["payload"]))
+                expected_task_id = UUID(
+                    bytes=hashlib.sha256(
+                        f"{tenant_id.strip()}:{capability_token}".encode()
+                    ).digest()[:16],
+                    version=4,
+                )
+                if (
+                    not isinstance(job_payload, dict)
+                    or canonical_json_digest(job_payload)
+                    != job_row["payload_digest"]
+                    or canonical_json_digest(job_payload)
+                    != job_row["binding_digest"]
+                    or job_payload.get("capability_token")
+                    != capability_token
+                    or job_row["tenant_id"] != tenant_id.strip()
+                    or UUID(job_row["task_id"]) != expected_task_id
+                    or job.task_id != expected_task_id
+                    or job.binding_digest != job_row["binding_digest"]
+                    or job.payload != job_payload
+                ):
+                    raise DurableTelegramStateError(
+                        "runtime_effect_job_binding_invalid"
+                    )
+                row = connection.execute(
+                    """SELECT payload,payload_digest
+                       FROM telegram_capabilities
+                       WHERE kind='action' AND token_digest=?
+                         AND tenant_id=?""",
+                    (token_digest, tenant_id.strip()),
+                ).fetchone()
+                if row is None:
+                    raise DurableTelegramStateError(
+                        "runtime_effect_capability_missing"
+                    )
+                payload = self._decode(bytes(row["payload"]))
+                if (
+                    not isinstance(payload, dict)
+                    or canonical_json_digest(payload) != row["payload_digest"]
+                    or payload.get("token") != capability_token
+                    or payload.get("tenant_id") != tenant_id.strip()
+                    or payload.get("user_id") != user_id
+                    or payload.get("chat_id") != chat_id
+                    or payload.get("state") != "delivered"
+                ):
+                    raise DurableTelegramStateError(
+                        "runtime_effect_delivery_invalid"
+                    )
+                deleted_job = connection.execute(
+                    """DELETE FROM telegram_jobs
+                       WHERE job_id=? AND kind='effect' AND status='leased'
+                         AND lease_id=? AND lease_owner=?
+                         AND lease_expires_at>?""",
+                    (
+                        str(job.job_id),
+                        str(job.lease_id),
+                        str(lease_owner),
+                        now.isoformat(),
+                    ),
+                )
+                if deleted_job.rowcount != 1:
+                    raise DurableTelegramStateError(
+                        "runtime_job_lease_lost"
+                    )
+                deleted_capability = connection.execute(
+                    """DELETE FROM telegram_capabilities
+                       WHERE kind='action' AND token_digest=?
+                         AND tenant_id=?""",
+                    (token_digest, tenant_id.strip()),
+                )
+                if deleted_capability.rowcount != 1:
+                    raise DurableTelegramStateError(
+                        "runtime_effect_capability_missing"
+                    )
+        except DurableTelegramStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DurableTelegramStateError(
+                "runtime_store_unavailable"
+            ) from None
+
     def release(self, job: DurableJob, *, lease_owner: UUID) -> None:
         job = self._validated_job(job, require_lease=True)
         now = self._now()
@@ -306,7 +462,7 @@ class SQLiteTelegramState:
                                        ELSE 'pending' END,
                            failure_code=CASE WHEN attempt_count>=?
                                        THEN 'runtime_job_attempts_exhausted'
-                                       ELSE NULL END,
+                                       ELSE failure_code END,
                            lease_id=NULL,lease_owner=NULL,
                            lease_expires_at=NULL,updated_at=?
                        WHERE job_id=? AND status='leased'
@@ -315,6 +471,53 @@ class SQLiteTelegramState:
                     (
                         MAX_JOB_CLAIMS,
                         MAX_JOB_CLAIMS,
+                        now.isoformat(),
+                        str(job.job_id),
+                        str(job.lease_id),
+                        str(lease_owner),
+                        now.isoformat(),
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise DurableTelegramStateError("runtime_job_lease_lost")
+        except DurableTelegramStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
+    def retry_effect_delivery(
+        self,
+        job: DurableJob,
+        *,
+        lease_owner: UUID,
+        delay_seconds: int = 30,
+    ) -> None:
+        """Persist a delayed retry for a completed effect delivery."""
+        job = self._validated_job(job, require_lease=True)
+        if (
+            job.kind != "effect"
+            or type(delay_seconds) is not int
+            or not 5 <= delay_seconds <= 3_600
+        ):
+            raise ValueError("effect delivery retry is invalid")
+        now = self._now()
+        retry_at = now + timedelta(seconds=delay_seconds)
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE telegram_jobs
+                       SET status='leased',
+                           attempt_count=CASE
+                               WHEN failure_code='runtime_effect_delivery'
+                               THEN attempt_count ELSE 0
+                           END,
+                           failure_code='runtime_effect_delivery',
+                           lease_expires_at=?,updated_at=?
+                       WHERE job_id=? AND status='leased'
+                         AND lease_id=? AND lease_owner=?
+                         AND lease_expires_at>?""",
+                    (
+                        retry_at.isoformat(),
                         now.isoformat(),
                         str(job.job_id),
                         str(job.lease_id),

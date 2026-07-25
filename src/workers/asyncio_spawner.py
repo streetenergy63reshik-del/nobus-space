@@ -12,16 +12,20 @@ from typing import Any
 
 from src.workers.codex_cli import (
     ProcessOutput,
+    _INTENT_ARGV,
     _RATE_LIMIT_ARGV,
     _READ_ARGV,
     _SAFE_ENV,
     _WEB_ARGV,
     _WRITE_ARGV,
+    _directory_identity,
     _validated_worker_env,
 )
 
 
-_ARGV_PROFILES = frozenset({_READ_ARGV, _WRITE_ARGV, _WEB_ARGV, _RATE_LIMIT_ARGV})
+_ARGV_PROFILES = frozenset(
+    {_READ_ARGV, _WRITE_ARGV, _WEB_ARGV, _RATE_LIMIT_ARGV, _INTENT_ARGV}
+)
 _READ_CHUNK = 64 * 1024
 TreeKiller = Callable[[asyncio.subprocess.Process], Awaitable[None]]
 
@@ -105,16 +109,36 @@ class AsyncioProcessSpawner:
         spawn: Callable[..., Awaitable[asyncio.subprocess.Process]] | None = None,
         tree_killer: TreeKiller | None = None,
         worker_env: Mapping[str, str] = _SAFE_ENV,
+        owner_read_root: str | Path | None = None,
     ) -> None:
         try:
             configured_executable = Path(executable)
             workspace = Path(workspace_root).resolve(strict=True)
             resolved_executable = configured_executable.resolve(strict=True)
+            configured_owner_root = (
+                None if owner_read_root is None else Path(owner_read_root)
+            )
+            owner_root = (
+                None
+                if configured_owner_root is None
+                else configured_owner_root.resolve(strict=True)
+            )
+            owner_identity = (
+                None
+                if configured_owner_root is None
+                else _directory_identity(configured_owner_root)
+            )
+            if (
+                owner_root is not None
+                and _directory_identity(owner_root) != owner_identity
+            ):
+                raise ValueError("owner read root identity changed")
             valid = (
                 configured_executable.is_absolute()
                 and workspace.is_dir()
                 and resolved_executable.is_absolute()
                 and resolved_executable.is_file()
+                and (owner_root is None or owner_root.is_dir())
                 and (tree_killer is None or callable(tree_killer))
             )
             normalized_env = _validated_worker_env(worker_env)
@@ -129,6 +153,9 @@ class AsyncioProcessSpawner:
         self._spawn = spawn or asyncio.create_subprocess_exec
         self._tree_killer = tree_killer or _kill_posix_process_group
         self._worker_env = normalized_env
+        self._owner_read_root = owner_root
+        self._owner_read_identity = owner_identity
+        self._argv_profiles = _ARGV_PROFILES
         self._start_lock = asyncio.Lock()
         self._start_task: asyncio.Task[asyncio.subprocess.Process] | None = None
         self._cleanup_task: asyncio.Task[None] | None = None
@@ -203,11 +230,20 @@ class AsyncioProcessSpawner:
             resolved_executable = Path(executable).resolve(strict=True)
             resolved_cwd = Path(cwd).resolve(strict=True)
             resolved_cwd.relative_to(self._workspace)
+            owner_root_valid = (
+                self._owner_read_root is None
+                or (
+                    self._owner_read_identity is not None
+                    and _directory_identity(self._owner_read_root)
+                    == self._owner_read_identity
+                )
+            )
             valid = (
-                resolved_executable == self._executable
+                owner_root_valid
+                and resolved_executable == self._executable
                 and resolved_cwd.is_dir()
                 and type(argv) is tuple
-                and argv in _ARGV_PROFILES
+                and argv in self._argv_profiles
                 and dict(env) == dict(self._worker_env)
             )
         except (OSError, RuntimeError, TypeError, ValueError):

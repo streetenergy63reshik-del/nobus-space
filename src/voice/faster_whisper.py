@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import threading
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from pydantic import ValidationError
 
 from .base import TranscriptResult, VoiceTranscriptionError
@@ -29,6 +31,13 @@ class FasterWhisperTranscriber:
         compute_type: str = "int8",
         download_root: str | Path | None = None,
         local_files_only: bool = False,
+        language: str | None = None,
+        beam_size: int = 5,
+        patience: float = 1.0,
+        vad_filter: bool = False,
+        condition_on_previous_text: bool = True,
+        initial_prompt: str | None = None,
+        hotwords: str | None = None,
     ) -> None:
         self._model_size = model_size
         self._device = device
@@ -39,6 +48,44 @@ class FasterWhisperTranscriber:
         if not isinstance(local_files_only, bool):
             raise ValueError("local_files_only must be a boolean")
         self._local_files_only = local_files_only
+        if language is not None and (
+            not isinstance(language, str) or not language.strip()
+        ):
+            raise ValueError("language must be a non-empty string or None")
+        if (
+            isinstance(beam_size, bool)
+            or not isinstance(beam_size, int)
+            or beam_size <= 0
+        ):
+            raise ValueError("beam_size must be a positive integer")
+        if (
+            isinstance(patience, bool)
+            or not isinstance(patience, (int, float))
+            or not math.isfinite(patience)
+            or not 1.0 <= patience <= 2.0
+        ):
+            raise ValueError("patience must be between 1.0 and 2.0")
+        if not isinstance(vad_filter, bool):
+            raise ValueError("vad_filter must be a boolean")
+        if not isinstance(condition_on_previous_text, bool):
+            raise ValueError("condition_on_previous_text must be a boolean")
+        for name, value in (
+            ("initial_prompt", initial_prompt),
+            ("hotwords", hotwords),
+        ):
+            if value is not None and (
+                not isinstance(value, str) or not value.strip()
+            ):
+                raise ValueError(f"{name} must be a non-empty string or None")
+        self._language = language.strip().lower() if language is not None else None
+        self._beam_size = beam_size
+        self._patience = float(patience)
+        self._vad_filter = vad_filter
+        self._condition_on_previous_text = condition_on_previous_text
+        self._initial_prompt = (
+            initial_prompt.strip() if initial_prompt is not None else None
+        )
+        self._hotwords = hotwords.strip() if hotwords is not None else None
         self._model: Any | None = None
         self._model_lock = threading.Lock()
 
@@ -72,7 +119,16 @@ class FasterWhisperTranscriber:
         """Synchronous transcription pipeline; runs entirely in a worker thread."""
         model = self._model_instance()
 
-        segments, info = model.transcribe(str(path))
+        segments, info = model.transcribe(
+            str(path),
+            language=self._language,
+            beam_size=self._beam_size,
+            patience=self._patience,
+            vad_filter=self._vad_filter,
+            condition_on_previous_text=self._condition_on_previous_text,
+            initial_prompt=self._initial_prompt,
+            hotwords=self._hotwords,
+        )
         parts: list[str] = []
         length = 0
         for segment in segments:
@@ -102,6 +158,19 @@ class FasterWhisperTranscriber:
             raise VoiceTranscriptionError("transcription limit is invalid")
         return await asyncio.to_thread(self._transcribe_sync, path, max_chars)
 
+    def _warmup_sync(self) -> None:
+        """Load the model and execute one in-memory encoder inference."""
+        failed = False
+        try:
+            model = self._model_instance()
+            samples = np.zeros(16_000, dtype=np.float32)
+            features = model.feature_extractor(samples)
+            model.encode(features)
+        except Exception:
+            failed = True
+        if failed:
+            raise VoiceTranscriptionError("voice model warmup failed") from None
+
     async def warmup(self) -> None:
-        """Load the local model before the bot announces readiness."""
-        await asyncio.to_thread(self._model_instance)
+        """Prove local model inference before the bot announces readiness."""
+        await asyncio.to_thread(self._warmup_sync)

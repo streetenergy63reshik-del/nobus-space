@@ -391,8 +391,19 @@ class _FakeFasterWhisperModel:
         self.load_options = kwargs
         self.instances.append(self)
 
+    def feature_extractor(self, samples: Any) -> object:
+        self.feature_thread = threading.current_thread()
+        self.feature_samples = samples
+        return object()
+
+    def encode(self, features: object) -> object:
+        self.encode_thread = threading.current_thread()
+        self.encoded_features = features
+        return object()
+
     def transcribe(self, path: str, **kwargs: Any) -> tuple[Any, Any]:
         self.transcribe_thread = threading.current_thread()
+        self.transcribe_options = kwargs
 
         def _segments() -> Any:
             self.iterate_thread = threading.current_thread()
@@ -500,7 +511,95 @@ async def test_warmup_loads_offline_model_once_before_transcription(
 
     assert result.text == "hello world"
     assert len(_FakeFasterWhisperModel.instances) == 1
-    assert _FakeFasterWhisperModel.instances[0].load_options["local_files_only"] is True
+    model = _FakeFasterWhisperModel.instances[0]
+    assert model.load_options["local_files_only"] is True
+    assert model.feature_thread != threading.main_thread()
+    assert model.encode_thread == model.feature_thread
+
+
+@pytest.mark.asyncio
+async def test_warmup_inference_failure_is_sanitized(
+    monkeypatch: Any,
+) -> None:
+    _FakeFasterWhisperModel.reset()
+    original_import = builtins.__import__
+    monkeypatch.setattr(
+        builtins, "__import__", _fake_faster_whisper_import(original_import)
+    )
+
+    def fail_encode(self: Any, features: object) -> object:
+        raise RuntimeError(r"C:\private\driver-detail")
+
+    monkeypatch.setattr(_FakeFasterWhisperModel, "encode", fail_encode)
+    transcriber = FasterWhisperTranscriber(local_files_only=True)
+
+    with pytest.raises(
+        VoiceTranscriptionError, match="voice model warmup failed"
+    ) as caught:
+        await transcriber.warmup()
+
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+    assert "private" not in str(caught.value)
+
+
+@pytest.mark.asyncio
+async def test_warmup_model_load_failure_is_sanitized(
+    monkeypatch: Any,
+) -> None:
+    _FakeFasterWhisperModel.reset()
+    original_import = builtins.__import__
+    monkeypatch.setattr(
+        builtins, "__import__", _fake_faster_whisper_import(original_import)
+    )
+
+    def fail_load(self: Any, *args: Any, **kwargs: Any) -> None:
+        raise RuntimeError(r"C:\private\model-detail")
+
+    monkeypatch.setattr(_FakeFasterWhisperModel, "__init__", fail_load)
+    transcriber = FasterWhisperTranscriber(local_files_only=True)
+
+    with pytest.raises(
+        VoiceTranscriptionError, match="voice model warmup failed"
+    ) as caught:
+        await transcriber.warmup()
+
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+    assert "private" not in str(caught.value)
+
+
+@pytest.mark.asyncio
+async def test_transcription_accuracy_options_are_forwarded(
+    tmp_voice: Path, monkeypatch: Any
+) -> None:
+    _FakeFasterWhisperModel.reset()
+    original_import = builtins.__import__
+    monkeypatch.setattr(
+        builtins, "__import__", _fake_faster_whisper_import(original_import)
+    )
+    transcriber = FasterWhisperTranscriber(
+        language="ru",
+        beam_size=5,
+        patience=1.25,
+        vad_filter=True,
+        condition_on_previous_text=False,
+        initial_prompt="Nobus Space",
+        hotwords="Nobus Space Codex",
+    )
+
+    await transcriber.transcribe(tmp_voice / "dummy.ogg", max_chars=100)
+
+    model = _FakeFasterWhisperModel.instances[0]
+    assert model.transcribe_options == {
+        "language": "ru",
+        "beam_size": 5,
+        "patience": 1.25,
+        "vad_filter": True,
+        "condition_on_previous_text": False,
+        "initial_prompt": "Nobus Space",
+        "hotwords": "Nobus Space Codex",
+    }
 
 
 @pytest.mark.asyncio

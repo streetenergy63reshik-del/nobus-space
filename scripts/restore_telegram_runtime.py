@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +39,7 @@ _NAMES = {
     "telegram-checkpoint.sqlite3",
     "task-runtime.sqlite3",
     "telegram-state.sqlite3",
+    "business-notes.sqlite3",
 }
 _APPROVAL = re.compile(
     r"^telegram-owner-confirmation:sha256:[0-9a-f]{64}$"
@@ -74,6 +76,31 @@ def _restore_quiescent(manifest_path: Path, runtime: Path) -> None:
     except Exception:
         raise ValueError("backup manifest authentication failed") from None
     files = values.get("files") if isinstance(values, dict) else None
+    created_at_valid = False
+    if isinstance(values, dict) and isinstance(values.get("created_at"), str):
+        try:
+            created_at = datetime.fromisoformat(values["created_at"])
+            created_at_valid = (
+                created_at.tzinfo is not None
+                and created_at.utcoffset() is not None
+            )
+        except ValueError:
+            pass
+    files_valid = (
+        isinstance(files, list)
+        and len(files) == len(_NAMES)
+        and all(
+            isinstance(item, dict)
+            and set(item) == {"name", "bytes", "sha256"}
+            and item["name"] in _NAMES
+            and type(item["bytes"]) is int
+            and item["bytes"] >= 0
+            and isinstance(item["sha256"], str)
+            and re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) is not None
+            for item in files
+        )
+        and {item["name"] for item in files} == _NAMES
+    )
     if (
         authentication
         != {
@@ -82,13 +109,17 @@ def _restore_quiescent(manifest_path: Path, runtime: Path) -> None:
         }
         or authenticated_digest != expected_manifest_digest
         or type(values.get("schema_version")) is not int
-        or values["schema_version"] != 1
-        or values.get("quiescent") is not True
-        or not isinstance(files, list)
-        or {
-            item.get("name") for item in files if isinstance(item, dict)
+        or values["schema_version"] != 2
+        or set(values) != {
+            "schema_version",
+            "created_at",
+            "quiescent",
+            "files",
+            "authentication",
         }
-        != _NAMES
+        or not created_at_valid
+        or values.get("quiescent") is not True
+        or not files_valid
     ):
         raise ValueError("backup manifest is invalid")
     staging = Path(tempfile.mkdtemp(prefix="restore-", dir=runtime))
