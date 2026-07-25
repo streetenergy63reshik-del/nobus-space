@@ -1,9 +1,10 @@
-# Queue 1/2 — accepted local release candidate
+# Product MVP-1 — published local owner runtime
 
-The local branch contains the restart-safe Telegram queue, confirmations, supervised
-runner, strict backup/restore, public-web research and owner-bound document/download/
-network effects. Local L1/L2/L3 are `ACCEPT`; it is not live and awaits one exact owner
-L4 release package. Active semantics:
+Commit `98a9ca3` is active through Windows Task Scheduler. The local release contains
+the restart-safe Telegram queue, confirmations, supervised runner, strict
+backup/restore, public-web research and owner-bound document/download/network
+effects. Local L1/L2/L3 are `ACCEPT`; the owner-authorized live release checks are
+`PASS`. Active semantics:
 [docs/adr/0011-durable-owner-effects-and-web-profiles.md](docs/adr/0011-durable-owner-effects-and-web-profiles.md).
 
 The readiness statements and test counts below this release-candidate header are historical snapshots. Where they conflict, this header, ADR 0011 and the leading section of `docs/handoffs/CURRENT-STATUS.md` are authoritative.

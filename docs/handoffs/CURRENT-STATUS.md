@@ -1,8 +1,8 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Кандидат:** `agent/orchestrator-v2`
-**Статус:** PRODUCT MVP-1 RELEASE CANDIDATE — LIVE PUBLICATION PENDING
+**Live commit:** `98a9ca3`
+**Статус:** PRODUCT MVP-1 PUBLISHED — LOCAL OWNER RUNTIME
 **Remote/push:** запрещены
 
 ## Что входит в кандидат
@@ -41,6 +41,23 @@
 - Независимый L2: ACCEPT, P0/P1 отсутствуют.
 - Independent final L3: ACCEPT; P0/P1/P2 absent in the accepted reliability scope.
 - Owner-file reliability/security focused: 48 passed; final full suite: 1043 passed, 2 skipped, 1 warning.
+
+## Live publication evidence
+
+- Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
+  tree is active.
+- Startup Codex probe and cached Whisper warmup completed before Telegram polling.
+- Runtime health: `PASS`; all four canonical SQLite databases are valid.
+- Telegram polling checkpoint advanced after restart.
+- Verified pre-release backup:
+  `ОРКЕСТРАТОР/Backups/2026-07-25-pre-product-mvp1`.
+- Verified final four-database backup:
+  `ОРКЕСТРАТОР/Backups/2026-07-25-product-mvp1-final`.
+- Disposable restore drill: `PASS`; every restored database passed SQLite
+  `quick_check`.
+- Forced-process-stop recovery: `PASS`; the durable polling lease prevented a
+  duplicate consumer and the runner started normally after its 240-second TTL.
+- No remote, push or external repository publication was performed.
 
 ## Остаточные границы MVP-1
 
