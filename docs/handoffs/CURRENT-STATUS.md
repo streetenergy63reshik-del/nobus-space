@@ -1,7 +1,7 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Runtime feature commit:** `4831270`
+**Runtime feature commit:** `7f9acb1`
 **Статус:** PRODUCT MVP-1 PUBLISHED — LOCAL OWNER RUNTIME
 **Remote/push:** запрещены
 
@@ -50,6 +50,8 @@
 - Startup Codex probe and cached Whisper warmup completed before Telegram polling.
 - Runtime health: `PASS`; all four canonical SQLite databases are valid.
 - Telegram polling checkpoint advanced after restart.
+- Nobus Memory live retrieval: PASS; Inbox excluded until curation; vault docs commit `4a8d268`.
+- Pre-memory runtime backup: `ОРКЕСТРАТОР/Backups/2026-07-25-pre-nobus-memory`.
 - Verified pre-release backup:
   `ОРКЕСТРАТОР/Backups/2026-07-25-pre-product-mvp1`.
 - Verified final four-database backup:

@@ -1,6 +1,6 @@
 # Product MVP-1 — published local owner runtime
 
-Runtime feature commit `4831270` adds Nobus Memory progressive retrieval and explicit pending-review Inbox writes. The local release contains
+Runtime feature commit `7f9acb1` adds Nobus Memory progressive retrieval and explicit pending-review Inbox writes. The local release contains
 the restart-safe Telegram queue, confirmations, supervised runner, strict
 backup/restore, public-web research and owner-bound document/download/network
 effects. Local L1/L2/L3 are `ACCEPT`; the owner-authorized live release checks are
