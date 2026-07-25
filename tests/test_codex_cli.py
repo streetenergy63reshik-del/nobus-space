@@ -976,6 +976,76 @@ async def test_official_stream_accepts_safe_command_events(
 
 
 @pytest.mark.asyncio
+async def test_web_stream_accepts_current_started_placeholder_action(
+    worker_files: tuple[Path, Path, Path]
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"msg-0","type":"agent_message","text":"Searching."}}\n'
+        b'{"type":"item.started","item":{"id":"item_0","type":"web_search","id":"call-1","query":"","action":{"type":"other"}}}\n'
+        b'{"type":"item.completed","item":{"id":"item_0","type":"web_search","id":"call-1","query":"Python","action":{"type":"search","query":"Python"}}}\n'
+        b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    result = await adapter.execute(
+        make_contract(
+            allowed,
+            permissions=["model.inference", "web.search"],
+        )
+    )
+
+    assert result.message == "safe"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "event_type,action",
+    [
+        ("item.completed", '{"type":"other"}'),
+        ("item.started", '{"type":"other","unexpected":true}'),
+    ],
+)
+async def test_web_stream_rejects_unbounded_placeholder_action(
+    worker_files: tuple[Path, Path, Path],
+    event_type: str,
+    action: str,
+) -> None:
+    _, allowed, _ = worker_files
+    stdout = (
+        b'{"type":"thread.started","thread_id":"thread-1"}\n'
+        b'{"type":"turn.started"}\n'
+        + (
+            '{"type":"'
+            + event_type
+            + '","item":{"id":"item_0","type":"web_search","id":"call-1","query":"Python","action":'
+            + action
+            + '}}\n'
+        ).encode("utf-8")
+        + b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"safe"}}\n'
+        + b'{"type":"turn.completed","usage":{"input_tokens":2,"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(stdout, b"", 0))
+    )
+
+    with pytest.raises(CodexCliError) as caught:
+        await adapter.execute(
+            make_contract(
+                allowed,
+                permissions=["model.inference", "web.search"],
+            )
+        )
+
+    assert caught.value.code == "worker_protocol_error"
+
+
+@pytest.mark.asyncio
 async def test_official_stream_accepts_bounded_todo_list_events(
     worker_files: tuple[Path, Path, Path]
 ) -> None:
@@ -1086,6 +1156,7 @@ async def test_read_only_rejects_file_change_event(
         b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"error","message":"private detail"}\n',
         b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"ok","extra":1}}\n',
         b'{"type":"thread.started","type":"turn.started"}\n',
+        b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","id":"msg-2","text":"ok"}}\n' b'{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}\n',
         b'{"type":"thread.started","thread_id":"thread-1"}\n' b'{"type":"turn.started"}\n' b'{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"ok"}}\n' b'{"type":"turn.completed","usage":{"input_tokens":true,"output_tokens":1}}\n',
         _SUCCESS_STDOUT + b'{"type":"turn.started"}\n',
         b"\xff\n",

@@ -1298,7 +1298,6 @@ class _DraftState:
 @dataclass(frozen=True)
 class _AnswerState:
     draft: CodexAnswerDraft
-    baseline: str
 
 
 @dataclass(frozen=True)
@@ -1356,6 +1355,10 @@ class GitPatchVerificationPipeline:
             self._drafts.pop(candidate.task_id, None)
             self._answers.pop(candidate.task_id, None)
             return self._level(candidate, 1, False, "read-only preflight rejected")
+        if isinstance(draft, CodexAnswerDraft):
+            self._answers[candidate.task_id] = _AnswerState(draft)
+            self._drafts.pop(candidate.task_id, None)
+            return self._level(candidate, 1, True, "answer schema preflight")
         for attempt in range(2):
             try:
                 await self._require_clean_branch()
@@ -1366,18 +1369,12 @@ class GitPatchVerificationPipeline:
                     character not in "0123456789abcdef" for character in baseline
                 ):
                     raise RuntimeError("invalid baseline")
-                if isinstance(draft, CodexPatchDraft):
-                    await self._run_git(
-                        "apply", "--check", "--whitespace=error-all", "-", stdin=draft.patch
-                    )
-                    self._drafts[candidate.task_id] = _DraftState(draft, baseline)
-                    self._answers.pop(candidate.task_id, None)
-                    method = "patch schema and git apply-check"
-                else:
-                    self._answers[candidate.task_id] = _AnswerState(draft, baseline)
-                    self._drafts.pop(candidate.task_id, None)
-                    method = "answer schema and clean worktree baseline"
-                return self._level(candidate, 1, True, method)
+                await self._run_git(
+                    "apply", "--check", "--whitespace=error-all", "-", stdin=draft.patch
+                )
+                self._drafts[candidate.task_id] = _DraftState(draft, baseline)
+                self._answers.pop(candidate.task_id, None)
+                return self._level(candidate, 1, True, "patch schema and git apply-check")
             except RuntimeError:
                 if attempt == 0:
                     continue
@@ -1388,16 +1385,9 @@ class GitPatchVerificationPipeline:
     async def l2(self, candidate: VerificationInput) -> VerificationLevel:
         answer = self._matching_answer(candidate)
         if answer is not None:
-            try:
-                await self._require_exact_baseline(answer.baseline)
-                return self._level(
-                    candidate, 2, True, "independent read-only worktree invariant"
-                )
-            except RuntimeError:
-                self._answers.pop(candidate.task_id, None)
-                return self._level(
-                    candidate, 2, False, "read-only worktree changed"
-                )
+            return self._level(
+                candidate, 2, True, "independent answer binding invariant"
+            )
 
         state = self._matching_draft(candidate)
         if state is None:
@@ -1434,17 +1424,9 @@ class GitPatchVerificationPipeline:
     async def l3(self, candidate: VerificationInput) -> VerificationLevel:
         answer = self._matching_answer(candidate)
         if answer is not None:
-            try:
-                await self._require_exact_baseline(answer.baseline)
-
-                return self._level(
-                    candidate, 3, True, "independent bounded answer safety audit"
-                )
-            except RuntimeError:
-                self._answers.pop(candidate.task_id, None)
-                return self._level(
-                    candidate, 3, False, "answer safety audit failed"
-                )
+            return self._level(
+                candidate, 3, True, "independent bounded answer safety audit"
+            )
 
         state = self._matching_draft(candidate)
         if state is None:

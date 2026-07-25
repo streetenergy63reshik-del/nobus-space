@@ -15,7 +15,17 @@ from tests.test_codex_cli import (
 @pytest.mark.asyncio
 async def test_web_profile_enables_only_live_search_and_keeps_read_only(worker_files):
     _, allowed, _ = worker_files
-    adapter, spawner = adapter_for(worker_files)
+    output = (
+        b'{"type":"thread.started","thread_id":"thread"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.started","item":{"id":"item_0","type":"web_search","id":"call-1","query":"","action":{"type":"other"}}}\n'
+        b'{"type":"item.completed","item":{"id":"item_0","type":"web_search","id":"call-1","query":"official source","action":{"type":"search","query":"official source"}}}\n'
+        b'{"type":"item.completed","item":{"id":"answer","type":"agent_message","text":"done"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}\n'
+    )
+    adapter, spawner = adapter_for(
+        worker_files, FakeProcess(output=ProcessOutput(output, b"", 0))
+    )
 
     await adapter.execute(
         make_contract(

@@ -670,6 +670,10 @@ class CodexCliAdapter:
         turn_completed = False
         todo_id: str | None = None
         todo_completed = False
+        agent_message_count = 0
+        agent_message_bytes = 0
+        web_search_completed = False
+        web_enabled = "web_search" in allowed_tool_item_types
         safe_item_types = {
             "agent_message",
             "command_execution",
@@ -727,7 +731,12 @@ class CodexCliAdapter:
                     ):
                         raise ValueError
                     if terminal is not None and not (
-                        item_type == "todo_list" and event_type == "item.completed"
+                        (item_type == "todo_list" and event_type == "item.completed")
+                        or (
+                            web_enabled
+                            and item_type
+                            in {"agent_message", "reasoning", "web_search"}
+                        )
                     ):
                         raise ValueError
                     if (
@@ -737,6 +746,8 @@ class CodexCliAdapter:
                         raise ValueError
                     if item_type == "web_search":
                         self._validate_web_search(item, event_type=event_type)
+                        if event_type == "item.completed":
+                            web_search_completed = True
                         continue
                     if item_type == "file_change":
                         self._validate_file_change(
@@ -771,13 +782,17 @@ class CodexCliAdapter:
                     if item_type == "agent_message":
                         message = item.get("text")
                         if (
-                            terminal is not None
+                            (terminal is not None and not web_enabled)
                             or event_type != "item.completed"
                             or set(item) != {"id", "type", "text"}
                             or not isinstance(message, str)
                             or not message.strip()
                             or "\x00" in message
                         ):
+                            raise ValueError
+                        agent_message_count += 1
+                        agent_message_bytes += len(message.encode("utf-8"))
+                        if agent_message_count > 8 or agent_message_bytes > 32 * 1024:
                             raise ValueError
                         terminal = CodexCliResult(message=message.strip())
                     continue
@@ -788,6 +803,7 @@ class CodexCliAdapter:
                         or not turn_started
                         or terminal is None
                         or (todo_id is not None and not todo_completed)
+                        or (web_enabled and not web_search_completed)
                         or set(value) != {"type", "usage"}
                         or not isinstance(usage, dict)
                         or not {"input_tokens", "output_tokens"}.issubset(usage)
@@ -829,7 +845,6 @@ class CodexCliAdapter:
         action = item.get("action")
         if (
             not isinstance(query, str)
-            or not query.strip()
             or len(query) > 4_096
             or "\x00" in query
             or not isinstance(action, dict)
@@ -837,6 +852,16 @@ class CodexCliAdapter:
         ):
             raise ValueError
         action_type = action.get("type")
+        if action_type == "other":
+            if (
+                event_type != "item.started"
+                or query
+                or set(action) != {"type"}
+            ):
+                raise ValueError
+            return
+        if not query.strip():
+            raise ValueError
         if (
             action_type not in {"search", "open_page", "find_in_page"}
             or len(
@@ -913,10 +938,26 @@ class CodexCliAdapter:
 
     @staticmethod
     def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        keys = [key for key, _ in pairs]
+        duplicate_keys = {key for key in keys if keys.count(key) > 1}
+        if duplicate_keys:
+            ids = [value for key, value in pairs if key == "id"]
+            item_types = [value for key, value in pairs if key == "type"]
+            if (
+                duplicate_keys != {"id"}
+                or len(ids) != 2
+                or item_types != ["web_search"]
+                or any(
+                    not isinstance(value, str)
+                    or not value
+                    or len(value) > 256
+                    or "\x00" in value
+                    for value in ids
+                )
+            ):
+                raise ValueError("duplicate JSON object key")
         result: dict[str, object] = {}
         for key, value in pairs:
-            if key in result:
-                raise ValueError("duplicate JSON object key")
             result[key] = value
         return result
 
