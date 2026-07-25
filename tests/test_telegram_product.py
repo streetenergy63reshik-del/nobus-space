@@ -1683,3 +1683,159 @@ async def test_business_notes_store_failure_is_not_acknowledged(
         await harness.control.handle(notes_update("Заметка.", 902))
     assert harness.runtime.drafted == []
     assert harness.api.sent == []
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "instruction",
+    ("#NOBUS-BIND-NOTES", "Подключи Заметки бизнеса"),
+)
+async def test_private_business_notes_bind_request_is_not_enqueued(
+    tmp_path: Path, instruction: str
+) -> None:
+    harness = _product(tmp_path)
+
+    await harness.control.handle(text_update(instruction, 950))
+
+    assert harness.runtime.drafted == []
+    assert len(harness.api.sent) == 1
+    assert "#NOBUS-BIND-NOTES" in harness.api.sent[0][1]
+    assert "в самой группе" in harness.api.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_ordinary_project_tasks_are_not_hijacked_by_google_followup(
+    tmp_path: Path,
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(kind=GoogleTaskActionKind.LIST)
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Пришли все невыполненные задачи проекта Nobus", 951)
+    )
+
+    assert planner.instructions == []
+    assert effects.resolved == []
+    assert len(harness.runtime.drafted) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "followup",
+    (
+        "Какие задачи мне нужно выполнить на этой неделе?",
+        "Покажи задачи на сегодня",
+        "Покажи актуальные задачи",
+        "А что на завтра?",
+    ),
+)
+async def test_google_task_followup_uses_recent_chat_context(
+    tmp_path: Path, followup: str
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(kind=GoogleTaskActionKind.LIST)
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Покажи актуальные задачи из Google Tasks", 952)
+    )
+    await harness.control.handle(text_update(followup, 953))
+
+    assert planner.instructions == [
+        "Покажи актуальные задачи из Google Tasks",
+        followup,
+    ]
+    assert effects.resolved == [
+        (ProductEffectKind.GOOGLE_TASK, True),
+        (ProductEffectKind.GOOGLE_TASK, True),
+    ]
+    assert harness.runtime.drafted == []
+
+
+
+@pytest.mark.asyncio
+async def test_google_context_does_not_hijack_a_project_task(
+    tmp_path: Path,
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(kind=GoogleTaskActionKind.LIST)
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(
+        text_update("Покажи актуальные задачи из Google Tasks", 954)
+    )
+    await harness.control.handle(
+        text_update("Составь актуальные задачи проекта Nobus", 955)
+    )
+
+    assert planner.instructions == ["Покажи актуальные задачи из Google Tasks"]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert len(harness.runtime.drafted) == 1
+
+
+
+@pytest.mark.asyncio
+async def test_google_context_yields_to_explicit_calendar_domain(
+    tmp_path: Path,
+) -> None:
+    google_planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(kind=GoogleTaskActionKind.LIST)
+    )
+    calendar_planner = FakeCalendarPlanner(
+        CalendarAction(
+            kind=CalendarActionKind.LIST,
+            start=datetime(2026, 7, 25, 0, 0, tzinfo=timezone.utc),
+            end=datetime(2026, 7, 26, 0, 0, tzinfo=timezone.utc),
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=google_planner,
+        google_tasks_service=FakeGoogleTasksService(),
+        calendar_planner=calendar_planner,
+        calendar_service=FakeCalendarService(),
+    )
+
+    await harness.control.handle(
+        text_update("Покажи актуальные задачи из Google Tasks", 956)
+    )
+    await harness.control.handle(
+        text_update("Покажи задачи в календаре на сегодня", 957)
+    )
+
+    assert google_planner.instructions == [
+        "Покажи актуальные задачи из Google Tasks"
+    ]
+    assert calendar_planner.instructions == [
+        "Покажи задачи в календаре на сегодня"
+    ]
+    assert effects.resolved == [
+        (ProductEffectKind.GOOGLE_TASK, True),
+        (ProductEffectKind.CALENDAR, True),
+    ]
+    assert harness.runtime.drafted == []

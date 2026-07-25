@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 import threading
 from dataclasses import dataclass
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 from types import MappingProxyType
 from uuid import UUID, uuid4
@@ -95,6 +95,76 @@ _CRITERIA = (
     "runtime metadata or hidden control directories.",
     "Keep any change minimal and include or update tests where behavior changes.",
 )
+
+
+def _simple_google_task_list_action(
+    instruction: str, current_date: date
+) -> GoogleTaskAction | None:
+    """Handle common read-only task listings without an LLM planner round-trip."""
+    value = instruction.casefold()
+    if not any(term in value for term in ("\u0437\u0430\u0434\u0430\u0447", "task")):
+        return None
+    if re.search(r"\b\u0432\u044b\u043f\u043e\u043b\u043d\u0438\b", value):
+        return None
+    if any(
+        term in value
+        for term in (
+            "\u0441\u043e\u0437\u0434\u0430\u0439",
+            "\u0441\u043e\u0437\u0434\u0430\u0442\u044c",
+            "\u0434\u043e\u0431\u0430\u0432\u044c",
+            "\u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c",
+            "\u0438\u0437\u043c\u0435\u043d\u0438",
+            "\u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c",
+            "\u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0438",
+            "\u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438",
+            "\u0437\u0430\u0432\u0435\u0440\u0448\u0438",
+            "\u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c",
+            "\u043e\u0442\u043c\u0435\u0442\u044c",
+            "\u043e\u0442\u043c\u0435\u0442\u0438\u0442\u044c",
+            "\u0443\u0434\u0430\u043b\u0438",
+            "\u0443\u0434\u0430\u043b\u0438\u0442\u044c",
+        )
+    ):
+        return None
+    if not any(
+        term in value
+        for term in (
+            "\u043f\u0440\u0438\u0448\u043b",
+            "\u043f\u043e\u043a\u0430\u0436",
+            "\u0441\u0432\u043e\u0434\u043a",
+            "\u043f\u0435\u0440\u0435\u0447\u0438\u0441\u043b",
+            "\u0441\u043f\u0438\u0441\u043e\u043a",
+            "\u043a\u0430\u043a\u0438\u0435",
+            "\u0432\u0441\u0435 ",
+            "\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d",
+            "\u043d\u0435\u0432\u044b\u043f\u043e\u043b\u043d",
+            "\u043d\u0435 \u0432\u044b\u043f\u043e\u043b\u043d",
+            "\u043d\u0435\u0437\u0430\u0432\u0435\u0440\u0448",
+        )
+    ):
+        return None
+    due_from = due_to = None
+    if "\u0441\u0435\u0433\u043e\u0434\u043d" in value:
+        due_from = due_to = current_date
+    elif "\u0437\u0430\u0432\u0442\u0440" in value:
+        due_from = due_to = current_date + timedelta(days=1)
+    elif any(
+        term in value
+        for term in (
+            "\u044d\u0442\u043e\u0439 \u043d\u0435\u0434\u0435\u043b",
+            "\u044d\u0442\u0443 \u043d\u0435\u0434\u0435\u043b",
+            "\u0442\u0435\u043a\u0443\u0449\u0435\u0439 \u043d\u0435\u0434\u0435\u043b",
+            "\u0442\u0435\u043a\u0443\u0449\u0443\u044e \u043d\u0435\u0434\u0435\u043b",
+            "\u043d\u0430 \u044d\u0442\u0443 \u043d\u0435\u0434\u0435\u043b",
+        )
+    ):
+        due_from = current_date - timedelta(days=current_date.weekday())
+        due_to = due_from + timedelta(days=6)
+    return GoogleTaskAction(
+        kind=GoogleTaskActionKind.LIST,
+        due_from=due_from,
+        due_to=due_to,
+    )
 
 
 class Gate5A4DraftOutcome(BaseModel):
@@ -424,6 +494,9 @@ class Gate5A4Runtime(DurableFakeRuntime):
             self, "_clock", lambda: datetime.now(UTC)
         )().astimezone(timezone(timedelta(hours=3))).date()
         today = current_date.isoformat()
+        simple_list = _simple_google_task_list_action(instruction, current_date)
+        if simple_list is not None:
+            return simple_list
         planner_instruction = (
             "You are a strict Google Tasks intent parser. Do not use tools, "
             "browse, or read files. Convert owner_request into one compact JSON "

@@ -18,8 +18,11 @@
 - Google read может повторяться не более двух раз; create/update/delete
   transport-retry не имеют. Неизвестный write outcome требует reconciliation.
 - Business Notes binding создаётся только точным marker
-  `#NOBUS-BIND-NOTES` от server-bound owner в группе с точным названием
-  «Заметки бизнеса». Содержимое и идентификаторы в лог не выводятся.
+  `#NOBUS-BIND-NOTES` от server-bound owner непосредственно в группе с точным
+  названием «Заметки бизнеса». Marker в личном чате с ботом не содержит
+  group chat proof и намеренно только возвращает инструкцию; после marker в
+  группе писать боту в личный чат «Подключи Заметки бизнеса» не требуется.
+  Содержимое и идентификаторы в лог не выводятся.
 - Rollback target до публикации — live commit `420c9a6` плюс свежий проверенный
   backup четырёх runtime-БД и локальной конфигурации.
 ## Operational override 2026-07-24 — Queue 1/2 release candidate

@@ -144,7 +144,10 @@ class CodexSdkAdapter:
             except Exception:
                 self._threads.pop(session, None)
                 raise CodexCliError("worker_failed") from None
-        return self._validated_result(result.final_response)
+        return self._validated_result(
+            result.final_response,
+            allow_plain_answer="repo.write" not in permissions,
+        )
 
     async def close(self) -> None:
         async with self._client_lock:
@@ -326,22 +329,74 @@ class CodexSdkAdapter:
         return f"nobus:{digest[:40]}"
 
     @staticmethod
-    def _validated_result(final_response: str | None) -> CodexCliResult:
-        if not isinstance(final_response, str):
+    def _validated_result(
+        final_response: str | None, *, allow_plain_answer: bool = False
+    ) -> CodexCliResult:
+        if (
+            not isinstance(final_response, str)
+            or not final_response.strip()
+            or "\x00" in final_response
+            or len(final_response) > 128_000
+        ):
             raise CodexCliError("worker_protocol_error")
+        candidate = final_response.strip()
+        if candidate.startswith("```") and candidate.endswith("```"):
+            first_break = candidate.find("\n")
+            if first_break != -1:
+                candidate = candidate[first_break + 1 : -3].strip()
         try:
-            payload = json.loads(final_response)
+            payload = json.loads(candidate)
         except (TypeError, ValueError):
+            if allow_plain_answer:
+                return CodexCliResult(
+                    message=json.dumps(
+                        {"answer": candidate},
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                )
             raise CodexCliError("worker_protocol_error") from None
         expected = {"kind", "answer", "summary", "patch", "paths"}
         if not isinstance(payload, dict) or set(payload) != expected:
+            if (
+                allow_plain_answer
+                and isinstance(payload, dict)
+                and set(payload) == {"answer"}
+                and isinstance(payload["answer"], str)
+                and payload["answer"].strip()
+            ):
+                return CodexCliResult(
+                    message=json.dumps(
+                        {"answer": payload["answer"]},
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                )
+            if isinstance(payload, dict) and set(payload).intersection(
+                {"answer", "summary", "patch", "paths"}
+            ):
+                raise CodexCliError("worker_protocol_error")
+            if allow_plain_answer:
+                answer = (
+                    payload
+                    if isinstance(payload, str) and payload.strip()
+                    else candidate
+                )
+                return CodexCliResult(
+                    message=json.dumps(
+                        {"answer": answer},
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                )
             raise CodexCliError("worker_protocol_error")
         if payload["kind"] == "answer":
             answer = payload["answer"]
             if (
                 not isinstance(answer, str)
                 or not answer.strip()
-                or any(payload[key] is not None for key in ("summary", "patch", "paths"))
+                or payload["patch"] is not None
+                or payload["paths"] is not None
             ):
                 raise CodexCliError("worker_protocol_error")
             normalized = {"answer": answer}

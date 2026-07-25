@@ -179,7 +179,7 @@ async def test_google_tasks_planner_contract_supports_week_across_all_lists(
     assert action.due_from == date(2026, 7, 20)
     assert action.due_to == date(2026, 7, 26)
     assert action.list_name is None
-    assert "due_from,due_to" in worker.contract.instruction
+    assert worker.contract is None
 
 
 @pytest.mark.asyncio

@@ -6,6 +6,24 @@
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
+## Reliability hotfix 25 июля 2026
+
+- Runtime-права Google и web были исправны; массовые отказы owner-запросов
+  вызвала несовместимость product protocol с реальными read-only ответами
+  persistent Codex SDK. Read-only turn теперь принимает plain text, минимальный
+  `{"answer": ...}` и закрытый planner JSON; write-capability и patch envelope
+  остаются строгими, а answer с `patch/paths` отклоняется.
+- Частые read-only запросы Google Tasks (`сегодня`, `завтра`, `эта неделя`,
+  все списки) разбираются детерминированно без LLM round-trip. Естественные
+  follow-up работают только 10 минут внутри exact tenant/chat/topic после
+  явного Google Tasks turn; project/client/file/Nobus и Calendar формулировки
+  переключаются обратно в соответствующий домен.
+- `#NOBUS-BIND-NOTES` в личном чате больше не становится задачей: бот объясняет,
+  что marker надо отправить отдельным сообщением непосредственно в группе
+  «Заметки бизнеса». Только group marker может создать binding.
+- Финальный L1: `1116 passed, 2 skipped, 1 warning`. Независимые L2 и L3:
+  ACCEPT, открытых P0/P1/P2 нет.
+
 ## Релиз 25 июля 2026
 
 - Production worker переведён с одноразового `codex exec --json/ephemeral` на

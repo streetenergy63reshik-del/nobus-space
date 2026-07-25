@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import re
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Protocol
@@ -65,6 +66,7 @@ _CALLBACK_ACK_TIMEOUT_SECONDS = 2.0
 _CALLBACK_CLEANUP_TIMEOUT_SECONDS = 2.0
 _DRAFT_QUEUE_LIMIT = 32
 _EXECUTION_QUEUE_MAXSIZE = 40
+_GOOGLE_TASKS_CONTEXT_TTL_SECONDS = 10 * 60
 _TERMINALIZE_ATTEMPTS = 3
 _MOSCOW = timezone(timedelta(hours=3), "MSK")
 _FILE_REQUEST_RE = re.compile(
@@ -102,6 +104,37 @@ _GOOGLE_TASKS_HINT_RE = re.compile(
     r"\b(?:google\s+tasks?|гугл[е]?\s+(?:задач\w*|таск\w*)|"
     r"задач\w*\s+в\s+google|список\s+google\s+tasks?)\b",
     re.IGNORECASE,
+)
+_GOOGLE_TASKS_FOLLOWUP_RE = re.compile(
+    r"(?:\b(?:\u0432\u0441\u0435\s+)?(?:\u043d\u0435\s+\u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u043d|"
+    r"\u043d\u0435\u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u043d|\u043d\u0435\u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d)"
+    r"\w*\s+\u0437\u0430\u0434\u0430\u0447\w*\b|"
+    r"^\s*\u043a\u0430\u043a\u0438\u0435\b(?s:.*?)\b\u0437\u0430\u0434\u0430\u0447\w*\b"
+    r"(?s:.*?)\b\u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c\b|"
+    r"^\s*(?:\u043f\u043e\u043a\u0430\u0436\w*|\u043f\u0440\u0438\u0448\u043b\w*|"
+    r"\u043f\u0435\u0440\u0435\u0447\u0438\u0441\u043b\w*|\u043a\u0430\u043a\u0438\u0435)\b"
+    r"(?s:.*?)\b\u0437\u0430\u0434\u0430\u0447\w*\b|"
+    r"^\s*\u0430\s+(?:\u0447\u0442\u043e\s+\u043d\u0430|\u043d\u0430)\s+"
+    r"(?:\u0441\u0435\u0433\u043e\u0434\u043d\u044f|\u0437\u0430\u0432\u0442\u0440\u0430)\s*\??\s*$)",
+    re.IGNORECASE,
+)
+_GOOGLE_TASKS_DOMAIN_SWITCH_RE = re.compile(
+    r"\b(?:\u043f\u0440\u043e\u0435\u043a\u0442\w*|\u043a\u043b\u0438\u0435\u043d\u0442\w*|"
+    r"\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\w*|\u043a\u043e\u0434\w*|"
+    r"\u0444\u0430\u0439\u043b\w*|\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\w*|"
+    r"\u043e\u0440\u043a\u0435\u0441\u0442\u0440\u0430\u0442\u043e\u0440\w*|\u0430\u0433\u0435\u043d\u0442\w*|nobus)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_google_tasks_followup(value: str) -> bool:
+    return bool(
+        _GOOGLE_TASKS_FOLLOWUP_RE.search(value)
+        and not _GOOGLE_TASKS_DOMAIN_SWITCH_RE.search(value)
+        and not _CALENDAR_HINT_RE.search(value)
+    )
+_BUSINESS_NOTES_BIND_REQUESTS = frozenset(
+    {"#nobus-bind-notes", "\u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0438 \u0437\u0430\u043c\u0435\u0442\u043a\u0438 \u0431\u0438\u0437\u043d\u0435\u0441\u0430"}
 )
 _GOOGLE_DRIVE_HINT_RE = re.compile(
     r"\b(?:google\s+drive|гугл[е]?\s+диск\w*|google\s+диск\w*|"
@@ -507,6 +540,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._closed = False
         self._close_failed = False
         self._close_lock = asyncio.Lock()
+        self._google_tasks_context: dict[tuple[str, int, int | None], float] = {}
 
     async def start(self) -> None:
         """Start background executors without coupling them to Telegram polling."""
@@ -809,6 +843,35 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 )
         return True
 
+    @staticmethod
+    def _google_tasks_context_key(
+        message: TextMessage | VoiceMessage,
+    ) -> tuple[str, int, int | None]:
+        return (
+            message.tenant_id,
+            message.chat_id,
+            message.message_thread_id,
+        )
+
+    def _remember_google_tasks_context(
+        self, message: TextMessage | VoiceMessage
+    ) -> None:
+        self._google_tasks_context[self._google_tasks_context_key(message)] = (
+            time.monotonic() + _GOOGLE_TASKS_CONTEXT_TTL_SECONDS
+        )
+
+    def _has_google_tasks_context(
+        self, message: TextMessage | VoiceMessage
+    ) -> bool:
+        key = self._google_tasks_context_key(message)
+        expires_at = self._google_tasks_context.get(key)
+        if expires_at is None:
+            return False
+        if expires_at <= time.monotonic():
+            self._google_tasks_context.pop(key, None)
+            return False
+        return True
+
     def _status_text(self) -> str:
         voice = "активен" if self._voice_service is not None else "не активирован"
         queue_status = ""
@@ -963,6 +1026,14 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
             )
             return
+        if normalized.casefold() in _BUSINESS_NOTES_BIND_REQUESTS:
+            await self._api.send_message(
+                message.chat_id,
+                "\u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 #NOBUS-BIND-NOTES \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u043c "
+                "\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435\u043c \u0432 \u0441\u0430\u043c\u043e\u0439 \u0433\u0440\u0443\u043f\u043f\u0435 \u00ab\u0417\u0430\u043c\u0435\u0442\u043a\u0438 "
+                "\u0431\u0438\u0437\u043d\u0435\u0441\u0430\u00bb, \u0430 \u043d\u0435 \u0432 \u043b\u0438\u0447\u043d\u043e\u043c \u0447\u0430\u0442\u0435 \u0441 \u0431\u043e\u0442\u043e\u043c.",
+            )
+            return
         memory_match = _MEMORY_SAVE_RE.fullmatch(normalized)
         if memory_match is not None:
             await self._remember_owner_statement(
@@ -1092,11 +1163,18 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     "Уточните точное имя файла.",
                 )
                 return
+        google_tasks_explicit = bool(_GOOGLE_TASKS_HINT_RE.search(normalized))
+        google_tasks_followup = bool(
+            _is_google_tasks_followup(normalized)
+            and self._has_google_tasks_context(message)
+        )
         if (
             self._google_tasks_planner is not None
             and self._google_tasks_service is not None
-            and _GOOGLE_TASKS_HINT_RE.search(normalized)
+            and (google_tasks_explicit or google_tasks_followup)
         ):
+            if google_tasks_explicit:
+                self._remember_google_tasks_context(message)
             try:
                 action = await self._google_tasks_planner.plan_google_task_action(
                     normalized, envelope
