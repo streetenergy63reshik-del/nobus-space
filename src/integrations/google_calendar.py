@@ -14,6 +14,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 MOSCOW = timezone(timedelta(hours=3), "MSK")
+_CALENDAR_WRITE_SCOPES = frozenset(
+    {
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/calendar.events",
+        "https://www.googleapis.com/auth/calendar.events.owned",
+    }
+)
 
 
 class CalendarActionKind(str, Enum):
@@ -184,11 +191,10 @@ class GoogleCalendarClient:
             from google.auth.transport.requests import Request
             from googleapiclient.discovery import build
 
-            scopes = ("https://www.googleapis.com/auth/calendar.events",)
             credentials = Credentials.from_authorized_user_file(
                 str(self._token_path)
             )
-            if not credentials.has_scopes(scopes):
+            if not _has_any_scope(credentials, _CALENDAR_WRITE_SCOPES):
                 raise RuntimeError
             if credentials.expired and credentials.refresh_token:
                 credentials.refresh(Request())
@@ -462,3 +468,13 @@ class GoogleCalendarClient:
             )
         except (KeyError, TypeError, ValueError):
             return False
+
+
+def _has_any_scope(
+    credentials: object, accepted: frozenset[str]
+) -> bool:
+    """Accept a least-privilege scope or an explicitly broader one."""
+    has_scopes = getattr(credentials, "has_scopes", None)
+    return callable(has_scopes) and any(
+        bool(has_scopes((scope,))) for scope in accepted
+    )

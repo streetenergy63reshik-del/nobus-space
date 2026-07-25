@@ -8,6 +8,10 @@ from typing import Any, Callable
 import pytest
 
 from src.integrations import CalendarAction, CalendarActionKind, GoogleCalendarClient
+from src.integrations.google_calendar import (
+    _CALENDAR_WRITE_SCOPES,
+    _has_any_scope,
+)
 
 
 MSK = timezone(timedelta(hours=3), "MSK")
@@ -258,3 +262,48 @@ def test_resolve_delete_rejects_ambiguous_and_delete_is_idempotent() -> None:
 def test_resolve_delete_rejects_multiple_partial_matches() -> None:
     service = _Service()
     client = _client(service)
+    asyncio.run(client.execute(_create("Созвон один"), idempotency_key=KEY))
+    asyncio.run(
+        client.execute(
+            _create("Созвон два"),
+            idempotency_key="sha256:" + "e" * 64,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="calendar_event_ambiguous"):
+        asyncio.run(
+            client.resolve_delete(
+                CalendarAction(
+                    kind=CalendarActionKind.DELETE,
+                    target="Созвон",
+                )
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "granted_scope",
+    [
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/calendar.events",
+        "https://www.googleapis.com/auth/calendar.events.owned",
+    ],
+)
+def test_calendar_accepts_compatible_write_scopes(granted_scope: str) -> None:
+    class _Credentials:
+        @staticmethod
+        def has_scopes(scopes: tuple[str, ...]) -> bool:
+            return set(scopes).issubset({granted_scope})
+
+    assert _has_any_scope(_Credentials(), _CALENDAR_WRITE_SCOPES)
+
+
+def test_calendar_rejects_read_only_or_unrelated_scopes() -> None:
+    class _Credentials:
+        @staticmethod
+        def has_scopes(scopes: tuple[str, ...]) -> bool:
+            return set(scopes).issubset(
+                {"https://www.googleapis.com/auth/calendar.readonly"}
+            )
+
+    assert not _has_any_scope(_Credentials(), _CALENDAR_WRITE_SCOPES)
