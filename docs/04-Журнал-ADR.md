@@ -21,6 +21,7 @@
 | [0013](adr/0013-business-notes-memory.md) | Telegram «Заметки бизнеса» хранятся локально зашифрованно, изолируются по tenant/chat/topic и не передаются внешней LLM | ACCEPTED | IMPLEMENTED |
 
 | [0014](adr/0014-natural-product-router-and-bounded-context.md) | Естественные owner-команды маршрутизируются в закрытые профили; project/file context передаётся минимально и без прямого доступа LLM к диску | ACCEPTED | IMPLEMENTED |
+| [0015](adr/0015-nobus-memory-progressive-retrieval.md) | Nobus Memory подключается через server-side progressive retrieval; exact owner save создаёт только pending-review Inbox note | ACCEPTED | IMPLEMENTED |
 
 ## Правила статусов ADR
 

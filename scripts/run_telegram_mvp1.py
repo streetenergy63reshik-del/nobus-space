@@ -44,6 +44,7 @@ from src.application.durable_confirmations import (  # noqa: E402
 )
 from src.application.durable_product import DurableProductTelegramControlPlane  # noqa: E402
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
+from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.owner_files import OwnerFileService  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
     recover_interrupted_restore,
@@ -104,12 +105,12 @@ _VOICE_INITIAL_PROMPT = (
     "Нобус Спейс — личный оркестратор. Компания называется PROстранство, "
     "про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, "
     "Telegram, Google Drive, Google Calendar и Google Tasks. "
-    "Термины: MCP, idempotency key, L1, L2, L3, L4, субагент."
+    "Термины: MCP, idempotency key, L1, L2, L3, L4, субагент, Nobus Memory."
 )
 _VOICE_HOTWORDS = (
     "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon "
     "Google Drive Google Calendar Google Tasks MCP idempotency оркестратор "
-    "субагент"
+    "субагент Nobus Memory Нобус память"
 )
 _POLLING_LEASE_SECONDS = 240
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
@@ -117,6 +118,7 @@ _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
 _BUSINESS_NOTES_PATH = _RUNTIME_ROOT / "business-notes.sqlite3"
 _PROJECT_CONTEXT_PATH = ROOT / "docs" / "11-Контекст-продукта.md"
+_NOBUS_MEMORY_ROOT = _OWNER_READ_ROOT / "Nobus memory"
 _ARTIFACT_SNAPSHOT_ROOT = _RUNTIME_ROOT / "artifact-snapshots"
 _OWNER_WRITE_ROOT = ROOT.parents[1] / "NOBUS SPACE BOT"
 _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
@@ -147,6 +149,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
     _CODEX_TEMP.mkdir(parents=True, exist_ok=True)
     _ARTIFACT_SNAPSHOT_ROOT.mkdir(parents=True, exist_ok=True)
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
+    nobus_memory = NobusMemory(_NOBUS_MEMORY_ROOT)
 
     control: ProductTelegramControlPlane | None = None
     product_effects: ProductEffectService | None = None
@@ -189,6 +192,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             worktree=worktree,
             owner_read_root=_OWNER_READ_ROOT,
             project_context=_load_project_context(),
+            nobus_memory=nobus_memory,
             codex_executable=executable,
             git_executable=git,
             python_executable=python,
@@ -280,6 +284,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             business_notes=BusinessNotesService(
                 SQLiteBusinessNotes(_BUSINESS_NOTES_PATH)
             ),
+            nobus_memory=nobus_memory,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
             task_tenants=destination_refs,

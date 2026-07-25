@@ -20,7 +20,7 @@
 | Documents | Word/Excel/PDF/HTML в owner workspace; overwrite только со snapshot |
 | Google | Calendar/Tasks/Drive natural commands; delete всегда action-bound L4 |
 | Business Notes | encrypted tenant/chat/topic index; private local summaries/tasks |
-| Context | компактный проектный контекст только для Nobus/PROстранство вопросов |
+| Context | Nobus Memory progressive retrieval: scoped 3–7 notes, client isolation, explicit Inbox writes |
 | Autostart/ops | Windows Task Scheduler, health, backup, restore и rollback scripts |
 
 ## Авторизация

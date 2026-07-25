@@ -165,6 +165,7 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(runner, "_required_codex_executable", lambda: executable)
     monkeypatch.setattr(runner, "_required_executable", lambda name: executable)
     monkeypatch.setattr(runner, "_validated_worktree", lambda: worktree)
+    monkeypatch.setattr(runner, "NobusMemory", lambda path: object())
     monkeypatch.setattr(runner, "_CODEX_TEMP", tmp_path / "codex-temp")
     monkeypatch.setattr(runner, "TelegramBotApi", api_factory)
     monkeypatch.setattr(runner.httpx, "AsyncHTTPTransport", lambda **values: object())

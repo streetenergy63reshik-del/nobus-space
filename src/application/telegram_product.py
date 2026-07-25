@@ -14,6 +14,7 @@ from uuid import UUID
 from src.application.durable_runtime import PreparedTask
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
 from src.application.gate5a4 import Gate5A4DraftOutcome
+from src.application.nobus_memory import NobusMemory
 from src.application.owner_files import (
     OwnerFileContext,
     OwnerFileContextSelection,
@@ -118,6 +119,12 @@ _NOTES_PRIVATE_HINT_RE = re.compile(
     r"(?:\b(?:резюм\w*|итог\w*|задач\w*)\b(?s:.*?)\bзамет\w*\b|"
     r"\bзамет\w*\b(?s:.*?)\b(?:резюм\w*|итог\w*|задач\w*)\b)",
     re.IGNORECASE,
+)
+_MEMORY_SAVE_RE = re.compile(
+    r"^\s*(?:сохрани|запомни)(?:\s+это)?\s+(?:в\s+)?"
+    r"(?:nobus\s*memory|нобус\s*(?:memory|памят\w*)|памят\w*)"
+    r"\s*[:—-]\s*(.+?)\s*$",
+    re.IGNORECASE | re.DOTALL,
 )
 _MONTHS = (
     "", "января", "февраля", "марта", "апреля", "мая", "июня",
@@ -306,6 +313,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         google_drive_planner: Any | None = None,
         google_drive_service: Any | None = None,
         business_notes: BusinessNotesService | None = None,
+        nobus_memory: NobusMemory | None = None,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -413,6 +421,13 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     for name in ("handle_text", "summarize_private")
                 )
             )
+            or (
+                nobus_memory is not None
+                and not all(
+                    callable(getattr(nobus_memory, name, None))
+                    for name in ("retrieve", "remember")
+                )
+            )
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -439,6 +454,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._google_drive_planner = google_drive_planner
         self._google_drive_service = google_drive_service
         self._business_notes = business_notes
+        self._nobus_memory = nobus_memory
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -782,6 +798,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             "/limit — недельный лимит Codex\n"
             "/notes — резюме Заметок бизнеса\n"
             "/file <имя> — получить файл\n"
+            "Сохранить факт: Сохрани в Nobus Memory: <текст>\n"
             "/help — эта справка\n\n"
             "Не отправляйте пароли, токены и клиентские персональные данные."
         )
@@ -798,6 +815,35 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             except Exception:
                 text = "Лимит Codex сейчас недоступен. Попробуйте позже."
         await self._api.send_message(chat_id, text)
+
+
+    async def _remember_owner_statement(
+        self,
+        message: TextMessage | VoiceMessage,
+        envelope: TrustedIngressEnvelope,
+        statement: str,
+    ) -> None:
+        if self._nobus_memory is None:
+            await self._api.send_message(
+                message.chat_id, "Nobus Memory пока не подключена."
+            )
+            return
+        try:
+            await asyncio.to_thread(
+                self._nobus_memory.remember,
+                statement,
+                source_ref=f"telegram:owner:{envelope.envelope_revision}",
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            await self._api.send_message(
+                message.chat_id,
+                "Не удалось безопасно сохранить запись. "
+                "Не отправляйте в память пароли и токены.",
+            )
+            return
+        await self._api.send_message(message.chat_id, "Сохранено в Nobus Memory.")
 
 
     async def _send_private_notes(
@@ -875,6 +921,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._api.send_message(
                 message.chat_id,
                 f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
+            )
+            return
+        memory_match = _MEMORY_SAVE_RE.fullmatch(normalized)
+        if memory_match is not None:
+            await self._remember_owner_statement(
+                message, envelope, memory_match.group(1)
             )
             return
         if (

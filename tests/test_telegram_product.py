@@ -283,6 +283,7 @@ def _product(
     google_drive_planner: object | None = None,
     google_drive_service: object | None = None,
     business_notes: BusinessNotesService | None = None,
+    nobus_memory: object | None = None,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -327,6 +328,7 @@ def _product(
         google_drive_planner=google_drive_planner,
         google_drive_service=google_drive_service,
         business_notes=business_notes,
+        nobus_memory=nobus_memory,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
