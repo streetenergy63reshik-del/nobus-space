@@ -12,11 +12,11 @@
 | [0004](adr/0004-uchet-rashodov-prezhde-limitov.md) | Сначала учёт расходов, затем лимиты и блокировки | ACCEPTED | TARGET |
 | [0005](adr/0005-agent-prompt-inzhener.md) | Доверенный intake формирует контракт до необязательного LLM-обогащения | ACCEPTED | TARGET |
 | [0006](adr/0006-rezidentskie-proksi.md) | Доступ без официального API: residential proxies и обход защит запрещены; browser adapter — только после правовой/security проверки | PROPOSED | DEFERRED |
-| [0007](adr/0007-reglament-rezervnogo-kopirovaniya.md) | Проверяемое резервное копирование и восстановление | ACCEPTED | TARGET |
-| [0008](adr/0008-pravila-vneshney-zapisi.md) | Любое внешнее изменение требует связанного L4-подтверждения | ACCEPTED | PARTIAL |
-| [0009](adr/0009-telegram-queue-sol-fast-timeouts.md) | Telegram intake отделён от длительного Codex execution; два read-only workers, Sol/High/Fast и отдельный двухчасовой deadline | ACCEPTED | PARTIAL |
-| [0010](adr/0010-owner-library-read-scope.md) | Owner-bound worker читает библиотеку владельца отдельным permission без расширения write boundary | ACCEPTED | PARTIAL |
-| [0011](adr/0011-durable-owner-effects-and-web-profiles.md) | Durable Telegram admission, explicit owner effects и закрытые web/network profiles | PROPOSED | PARTIAL |
+| [0007](adr/0007-reglament-rezervnogo-kopirovaniya.md) | Проверяемое резервное копирование и восстановление | ACCEPTED | CURRENT LOCAL |
+| [0008](adr/0008-pravila-vneshney-zapisi.md) | Любое внешнее изменение требует связанного L4-подтверждения | ACCEPTED | CURRENT LOCAL |
+| [0009](adr/0009-telegram-queue-sol-fast-timeouts.md) | Telegram intake отделён от длительного Codex execution; два read-only workers, Sol/High/Fast и трёхчасовой deadline | ACCEPTED | CURRENT LIVE |
+| [0010](adr/0010-owner-library-read-scope.md) | Owner-bound worker читает библиотеку владельца отдельным permission без расширения write boundary | ACCEPTED | CURRENT LIVE |
+| [0011](adr/0011-durable-owner-effects-and-web-profiles.md) | Durable Telegram admission, explicit owner effects и закрытые web/network profiles | ACCEPTED | CURRENT LIVE |
 
 ## Правила статусов ADR
 

@@ -2,7 +2,7 @@
 
 **Статус:** ACCEPTED
 **Дата:** 2026-07-23
-**Реализация:** PARTIAL; main проверяется, live activation требует отдельного owner L4
+**Реализация:** CURRENT LIVE на `aa8a02e`
 
 ## Контекст
 
@@ -15,15 +15,15 @@ Telegram handler последовательно ожидал read-only Codex wor
 3. Owner-confirmed exact diff, L2/L3, apply и локальный CAS commit получают эксклюзивный доступ к обоим слотам.
 4. Production CLI profile фиксируется exact argv: `gpt-5.6-sol`, `model_reasoning_effort=high`, `service_tier=fast`, `features.fast_mode=true`; `workspace-write`, web и MCP запрещены.
 5. Gate 5A.4 execution deadline равен 10 800 секундам: два часа ожидаемой работы плюс час operational headroom. Абсолютный TaskContract/adapter ceiling равен 14 400 секундам. Polling lease 240 секунд относится только к Telegram boundary.
-6. Очередь CURRENT хранится в памяти owner-bound процесса: не более 32 ожидающих drafts, общий maxsize 40 с резервом для L4. Overflow и controlled close завершают каждый принятый active/queued job только после чтения exact terminal binding из durable store; ответ runtime сам по себе доказательством не считается. После трёх неудачных попыток admission не подтверждается либо clean shutdown завершается ошибкой. Новый message broker не вводится до Gate 5B.
+6. Очередь CURRENT хранится в `.runtime/telegram-state.sqlite3`: не более 40 records, generation-bound renewable leases и максимум три claims. Третий failure создаёт dead letter и не блокирует последующие FIFO jobs. Новый message broker не вводится до доказанной нагрузки.
 
 ## Последствия
 
 - Пользователь может быстро передать несколько задач; две выполняются параллельно, остальные ждут FIFO.
 - Fast mode сокращает latency, но увеличивает расход OpenAI credits; `high` сохраняет требуемую глубину reasoning.
 - Две параллельные CLI-сессии увеличивают пиковое потребление CPU/RAM и credits, поэтому concurrency является server-owned константой, а не пользовательским параметром.
-- Controlled restart разрешён только после остановки intake и опустошения очереди. При раннем shutdown active и queued jobs получают bounded terminalization retry; clean close требует повторного чтения exact terminal Task из SQLite. Crash не replay-ит незапущенные raw instructions; durable Task/audit/outbox остаются fail-closed и требуют reconciliation.
-- Durable claim/lease queue, rate limits, supervisor и restart resume остаются Gate 5B.
+- Controlled restart останавливает intake, release-ит/терминализирует claims и после старта reconciles durable jobs. Принятый raw instruction хранится только DPAPI-protected.
+- Task Scheduler, health, backup/restore и restart resume реализованы локально; внешний monitoring и production RPO/RTO остаются TARGET.
 
 ## Проверка
 

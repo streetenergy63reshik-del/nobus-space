@@ -2,7 +2,7 @@
 
 **Статус решения:** ACCEPTED
 
-**Статус реализации:** PARTIAL — безопасный path-only index локально принят L1/L2/L3; live-активация ожидает нового L4
+**Статус реализации:** CURRENT LIVE — safe index/content adapter и `/file` приняты L1/L2/L3 и owner L4
 
 **Дата:** 2026-07-23
 
@@ -19,7 +19,7 @@ Owner-bound Telegram-оркестратор должен находить и ч�
 3. Permission принимается только если adapter сконфигурирован существующим корнем и контракт не содержит `repo.write`.
 4. Codex CLI продолжает работать с `--sandbox read-only`; web, MCP и ambient secrets выключены.
 5. Рабочей директорией остаётся изолированный Git worktree. Дополнительный корень не становится `allowed_path` для diff, apply, tests или commit.
-6. Только при явном запросе поиска server-side path index сканирует корень без перехода по symlink/junction и передаёт worker относительные пути; абсолютный корень и содержимое файлов в prompt не включаются.
+6. Только при явном запросе server-side index/content adapter сканирует корень без перехода по symlink/junction, передаёт worker bounded sanitized context либо отправляет разрешённый файл; абсолютный root в продуктовый ответ не включается.
 7. Один запрос ограничен 50 000 directory entries и 8 совпадениями.
 8. Запрещены hidden/control names, `.git`, `.codex`, `.cache`, `.venv`, `.runtime`, `.env`, а также sensitive names с markers auth, cookie, credential, login, password, secret, session, token и vpn.
 9. Path index входит в общий deadline контракта и получает cooperative stop при timeout/cancel. До безопасного content adapter capability означает поиск пути, а не чтение содержимого.
@@ -59,4 +59,4 @@ Path-only index устраняет передачу file content и зависи
 Отрицательные:
 
 - server-side reader не заменяет отдельную OS identity и per-project ACL;
-- Telegram пока возвращает текст и относительный путь, но не отправляет локальный файл как document;
+- `sendDocument` имеет узкое at-least-once crash-window; Google Drive остаётся отдельным TARGET connector;

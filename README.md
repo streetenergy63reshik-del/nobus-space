@@ -1,32 +1,28 @@
-# Queue 1/2 — accepted local release candidate
+# Nobus Space — Telegram Orchestrator MVP-1
 
-The local branch contains the restart-safe Telegram queue, confirmations, supervised
-runner, strict backup/restore, public-web research and owner-bound document/download/
-network effects. Local L1/L2/L3 are `ACCEPT`; it is not live and awaits one exact owner
-L4 release package. Active semantics:
-[docs/adr/0011-durable-owner-effects-and-web-profiles.md](docs/adr/0011-durable-owner-effects-and-web-profiles.md).
-
-The readiness statements and test counts below this release-candidate header are historical snapshots. Where they conflict, this header, ADR 0011 and the leading section of `docs/handoffs/CURRENT-STATUS.md` are authoritative.
-
-# Nobus Space — Telegram Orchestrator MVP
-
-`nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
-
-Реализация MVP-1 завершена и независимо принята. Reliability-релиз `36c17e4` с обязательным startup probe реального Codex CLI, безопасными диагностическими кодами и тихим продуктовым UX активирован в `agent/telegram-live`: startup probe прошёл, polling lease получена, desktop-runner работает. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B после функционального MVP-1.
+`nobus-orchestrator-dev` — единственный канонический репозиторий Nobus Space.
+Локальный owner runtime `aa8a02e` принимает текстовые и голосовые задачи из
+Telegram, выполняет их через изолированный Codex CLI, применяет L1/L2/L3 и
+запрашивает L4 только для конкретного внешнего эффекта.
 
 ## Текущее состояние
 
-- Gate 0 и Documentation baseline приняты: `ea5bd51`, `364e6ab`.
-- Gate 1–2: Core contracts/policy, Telegram ingress и безопасный voice preview приняты.
-- Gate 3A/3B: Codex CLI boundary и Windows process-tree hardening приняты, включая `007640b`.
-- Gate 4A–4F: trusted ingress, SQLite tasks/events/outbox, voice confirmation и durable recovery E2E приняты.
-- Gate 5A.1–5A.3: authenticated owner-bound Telegram receive/send и live fake-task smoke приняты.
-- Gate 5A.4: product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit приняты; reliability-релиз добавляет fail-fast startup probe и не показывает служебные подтверждения для обычных задач.
-- Reliability verification: `127` target, `190 passed, 1 skipped` adversarial, `727 passed, 2 skipped, 1 warning` full; независимый verdict: `ACCEPT`, P0/P1/P2 отсутствуют.
-- Gate 5B / Queue 1–2: локальный supervisor, health alerts, строгие backup/restore и durable effects реализованы в текущем unreleased release candidate; live-активация ожидает L2/L3 ACCEPT и exact L4.
+- Gate 0–4F: contracts, policy, trusted Telegram/voice ingress, SQLite,
+  verification, outbox и recovery — `ACCEPTED`;
+- Gate 5A: owner-bound live Telegram, text/voice, `gpt-5.6-sol` high/Fast,
+  `/limit` и `/file` — `ACCEPTED LIVE`;
+- Gate 5B / Queue 1–2: durable FIFO, DPAPI confirmations/effects, progress card,
+  public web research, owner-L4 documents/download/network, Task Scheduler,
+  health и backup/restore — `ACCEPTED LOCAL OWNER RUNTIME`;
+- полный release suite: `893 passed, 2 skipped`; независимые L2/L3 — `ACCEPT`;
+- remote отсутствует; merge/rebase/push запрещены.
 
-Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
+Это локальный owner runtime, а не внешний production deployment. Отдельная
+Windows service identity/ACL, независимый monitoring, утверждённые RPO/RTO,
+Google integrations и business-notes connector остаются TARGET.
 
+Подробный воспроизводимый снимок:
+[docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
 ## Документация
 
 Канонический индекс: [docs/README.md](docs/README.md). В документах всегда разделены:
@@ -71,7 +67,7 @@ docs/                # каноническая документация и ADR
 tests/               # unit, policy and API tests
 ```
 
-Gate 5A.4 соединяет authenticated Telegram ingress, обычный текст как задачу, voice transcription/confirmation, read-only Codex draft, exact diff, L1/L2/L3, owner-bound L4 и локальный CAS commit в изолированной ветке. Pre-apply journal и restart reconciliation предотвращают тихую потерю или дублирование эффекта. Runner остаётся desktop-процессом, а не production service.
+Gate 5A.4 соединяет authenticated Telegram ingress, обычный текст как задачу, voice transcription/confirmation, read-only Codex draft, exact diff, L1/L2/L3, owner-bound L4 и локальный CAS commit в изолированной ветке. Pre-apply journal и restart reconciliation предотвращают тихую потерю или дублирование эффекта. Runner запускается Task Scheduler под текущим owner Windows account; это host-local runtime, а не production service identity.
 
 ## Локальная проверка
 

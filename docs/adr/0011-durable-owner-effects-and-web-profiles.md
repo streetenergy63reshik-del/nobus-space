@@ -1,6 +1,6 @@
 # ADR 0011 — Durable Telegram queue and explicit owner effects
 
-**Status:** ACCEPTED LOCAL RC — LIVE L4 PENDING
+**Status:** ACCEPTED LIVE LOCAL OWNER RUNTIME
 **Date:** 2026-07-24
 
 ## Context
@@ -68,8 +68,9 @@ in historical handoff sections.
 - Queue admission is restart-safe and a poison item cannot permanently block later work.
 - Exact L4 decisions survive runner restart without granting broader authority.
 - Backup/restore detects a valid but unrelated SQLite database.
-- Live activation, Task Scheduler update, Telegram menu publication, network smoke,
-  crash/reboot drill and restore drill remain explicit owner L4 actions after L1–L3.
+- Live activation at `aa8a02e`, Task Scheduler update, Telegram menu publication,
+  startup probe, Whisper warmup, health and owner smoke are complete.
+- A destructive crash/reboot drill and every future network/write smoke remain explicit owner L4.
 
 ### Windows path boundary
 
