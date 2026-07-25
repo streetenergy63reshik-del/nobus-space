@@ -1,7 +1,7 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 **Статус:** CANONICAL HISTORY
-**Период:** Gate 0 — Queue 1/2, 17–24 июля 2026 года
+**Период:** Gate 0 — product reliability, 17–25 июля 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
@@ -44,6 +44,10 @@
 | Calendar OAuth scopes | клиент требовал только узкий scope и отклонял совместимый более широкий Calendar scope | accepted-scope family с fail-closed проверкой фактических grants | 104 target tests + read-only Google API health | CLOSED |
 | Длительный web research | валидный JSONL с более чем восемью промежуточными `agent_message` ошибочно считался protocol failure | bounded allowance повышен до 64 сообщений / 128 KiB при неизменном общем stdout ceiling | parser regression + live five-source research | CLOSED |
 | Естественный запрос файла | product route требовал `пришли/отправь`, обязательное расширение и не различал два похожих имени | server-side contextual resolver, четыре явных owner-глагола, exact/longest filename stem; voice использует тот же route | text/voice regressions + real metadata smoke | CLOSED |
+| Natural research routing | формулировка «последние изменения правил» не совпадала с узким web-intent regex и уходила в offline answer profile | закрытый словарь расширен на последние изменения, официальные источники, новостные порталы и СМИ | реальные owner-фразы в regression suite | CLOSED |
+| Длинный research answer | outbox разрешал только 3400 символов и sender отправлял один message; подробный валидный ответ не мог стать durable delivery | verified answer хранится до 128 KiB, product budget 12 000 символов, sender режет по строкам на сообщения до 3400 | long-answer outbox/sender tests + live 7964-char web result | CLOSED |
+| Research runaway/transient | широкий запрос мог слишком долго добирать источники; отдельный transient turn failure выглядел как поломка функции | web-profile ограничен шестью поисковыми запросами и 12 страницами, обязан завершать best verified result; штатный worker сохраняет один retry | bounded live research: 4 completed searches, parser PASS | CLOSED |
+| Google Tasks all lists | `list_name=null` выбирал только первый список, а выдача обрезалась до 30 задач | пагинация всех tasklists и tasks, группировка по спискам, inclusive period filter, chunked delivery | 21 список; независимые и production counts совпали: 36 задач / 12 списков | CLOSED |
 
 ## Устойчивые профилактические правила
 

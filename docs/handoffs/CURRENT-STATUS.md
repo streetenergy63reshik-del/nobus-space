@@ -1,7 +1,7 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Runtime feature commit:** `e9007e9`
+**Runtime feature commit:** `dbdf630`
 **Статус:** PRODUCT MVP-1 PUBLISHED — LOCAL OWNER RUNTIME
 **Remote/push:** запрещены
 
@@ -33,10 +33,15 @@
 
 ## Проверки текущей итерации
 
-- Полный L1/L2 regression: `1062 passed, 2 skipped, 1 warning`.
+- Полный L1/L2 regression: `1068 passed, 2 skipped, 1 warning`.
 - Calendar/Tasks/Drive read-only API health: PASS; OAuth ready, содержимое
   объектов и секреты не выводились.
-- Live web-research L3: PASS; production adapter вернул пять прямых источников.
+- Google Tasks all-lists L3: 21 список прочитан с полной пагинацией; на неделю
+  20–26 июля независимо подтверждены 36 незавершённых задач в 12 списках;
+  production-контур вернул те же 36.
+- Live bounded web-research L3: PASS; `gpt-5.6-sol/high/Fast` завершил четыре
+  web-search и вернул структурированный результат на 7964 символа. Durable outbox
+  и Telegram chunk-delivery проверены для длинного ответа.
 - Natural owner-file L3: PASS; запрос без расширения выбрал точный документ
   среди двух похожих имён, не читая и не выводя его содержимое.
 - Nobus Memory product/boundary L2: `117 passed`; real-vault L3: PASS (5 scoped notes, only the explicitly named client card, no network/process imports).
@@ -52,7 +57,7 @@
 
 - Windows Task Scheduler: `NobusSpaceBot` — `Running`; supervised Python process
   tree is active.
-- Main и локальная live-ветка синхронизированы на `e9007e9`; remote/push не
+- Main и локальная live-ветка включают feature commit `dbdf630`; remote/push не
   выполнялись.
 - Startup Codex probe and cached Whisper warmup completed before Telegram polling.
 - Runtime health: `PASS`; all four canonical SQLite databases are valid.
@@ -87,5 +92,8 @@
   «пришли и затем проанализируй» намеренно уходит в обычный task pipeline.
 - Delivery Telegram остаётся at-least-once на узком crash-окне внешнего
   `sendDocument`.
+- Длинный verified answer доставляется несколькими Telegram-сообщениями. В узком
+  crash-окне между частичной внешней доставкой и локальным receipt возможен
+  повтор уже отправленной части; потеря полного durable результата не допускается.
 - Google MCP transport может деградировать независимо от API; штатный локальный
   read-only health check является разрешённым fallback.
