@@ -1,7 +1,7 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-25
-**Live commit:** `98a9ca3`
+**Runtime feature commit:** `4831270`
 **Статус:** PRODUCT MVP-1 PUBLISHED — LOCAL OWNER RUNTIME
 **Remote/push:** запрещены
 
@@ -33,14 +33,15 @@
 
 ## Проверки текущей итерации
 
-- Полный L1: `1043 passed, 2 skipped, 1 warning`.
+- Полный L1: `1049 passed, 2 skipped, 1 warning`.
+- Nobus Memory product/boundary L2: `117 passed`; real-vault L3: PASS (5 scoped notes, only the explicitly named client card, no network/process imports).
 - Product/security targeted: `100 passed`; overwrite/restore targeted:
   `38 passed`; Codex CLI: `71 passed`.
 - `compileall`: PASS; `pip check`: PASS; `git diff --check`: PASS
   (только уведомления LF→CRLF).
 - Независимый L2: ACCEPT, P0/P1 отсутствуют.
 - Independent final L3: ACCEPT; P0/P1/P2 absent in the accepted reliability scope.
-- Owner-file reliability/security focused: 48 passed; final full suite: 1043 passed, 2 skipped, 1 warning.
+- Owner-file reliability/security focused: 48 passed; final full suite: 1049 passed, 2 skipped, 1 warning.
 
 ## Live publication evidence
 
