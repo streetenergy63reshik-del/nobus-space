@@ -284,24 +284,31 @@ class GoogleDriveClient:
         deadline = deadline or (time.monotonic() + _SEARCH_TIMEOUT_SECONDS)
         stop = stop or threading.Event()
         budget = [_SEARCH_MAX_REQUESTS]
+        search_budget_before = budget[0]
         matches = self._search_term_sync(query, deadline, budget, stop)
+        fallback_calls = max(
+            0,
+            4 - (search_budget_before - budget[0]),
+        )
         if matches:
             filtered = self._filter_folder_sync(
                 matches, folder, deadline, budget, stop
             )
             if filtered or folder is None:
                 return filtered
-            return ()
+        token_values = {
+            token
+            for token in re.findall(
+                r"[0-9A-Za-zА-Яа-яЁё]{4,}", query.casefold()
+            )
+            if token not in _SEARCH_STOPWORDS
+        }
+        if "юнит" in token_values:
+            token_values.discard("экономика")
         tokens = sorted(
-            {
-                token
-                for token in re.findall(
-                    r"[0-9A-Za-zА-Яа-яЁё]{4,}", query.casefold()
-                )
-                if token not in _SEARCH_STOPWORDS
-            },
+            token_values,
             key=lambda value: (-len(value), value),
-        )[:3]
+        )[:fallback_calls]
         if len(tokens) < 2:
             return ()
         candidates: dict[str, GoogleDriveFile] = {}
@@ -319,7 +326,16 @@ class GoogleDriveClient:
 
         def score(item: GoogleDriveFile) -> int:
             normalized = item.name.casefold().replace("-", " ").replace("_", " ")
-            return sum(token in normalized for token in tokens)
+            compact = "".join(character for character in normalized if character.isalnum())
+            return sum(
+                token in normalized
+                or (
+                    token.isalnum()
+                    and len(token) >= 4
+                    and token in compact
+                )
+                for token in tokens
+            )
 
         selected = [
             item
@@ -583,24 +599,32 @@ class GoogleDriveClient:
         budget: list[int],
         stop: threading.Event,
     ) -> set[str]:
-        whole = self._search_term_sync(
-            folder, deadline, budget, stop, max_pages=1, folders_only=True
-        )
-        exact = {
-            item.file_id
-            for item in whole
-            if self._folder_name_matches(item.name, folder)
-        }
-        if len(exact) == 1:
-            return exact
-        if len(exact) > 1:
-            raise RuntimeError("google_drive_folder_ambiguous")
         segments = [
             value.strip()
-            for value in re.split(r"\s*(?:→|->|>|/|\\|[—–-])\s*", folder)
+            for value in re.split(
+                r"\s*(?:→|->|>|/|\\)\s*|\s+[—–-]\s+",
+                folder,
+            )
             if value.strip()
         ]
         if len(segments) < 2:
+            whole = self._search_term_sync(
+                folder,
+                deadline,
+                budget,
+                stop,
+                max_pages=1,
+                folders_only=True,
+            )
+            exact = {
+                item.file_id
+                for item in whole
+                if self._folder_name_matches(item.name, folder)
+            }
+            if len(exact) == 1:
+                return exact
+            if len(exact) > 1:
+                raise RuntimeError("google_drive_folder_ambiguous")
             return set()
         current: list[GoogleDriveFile] = []
         for index, segment in enumerate(segments):
@@ -663,11 +687,16 @@ class GoogleDriveClient:
         )
         if not brand_tokens or sum(map(len, brand_tokens)) < 3:
             return False
-        width = len(brand_tokens)
-        return any(
-            name_tokens[index : index + width] == brand_tokens
-            for index in range(len(name_tokens) - width + 1)
-        )
+        compact_brand = "".join(brand_tokens)
+        for start in range(len(name_tokens)):
+            compact_name = ""
+            for end in range(start, len(name_tokens)):
+                compact_name += name_tokens[end]
+                if compact_name == compact_brand:
+                    return True
+                if len(compact_name) >= len(compact_brand):
+                    break
+        return False
 
     @staticmethod
     def _folder_name_matches(name: str, requested: str) -> bool:

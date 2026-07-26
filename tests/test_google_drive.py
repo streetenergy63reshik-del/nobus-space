@@ -316,6 +316,28 @@ async def test_fuzzy_search_has_a_small_request_budget() -> None:
     assert len(service.boundary.queries) <= 4
 
 
+
+@pytest.mark.asyncio
+async def test_paginated_initial_search_still_has_four_request_ceiling() -> None:
+    class PaginatedFiles(_Files):
+        def list(self, *, q: str, pageToken: str | None = None, **_: object):
+            self.queries.append(q)
+            if pageToken is None and len(self.queries) == 1:
+                return _Request({"files": [], "nextPageToken": "next"})
+            return _Request({"files": []})
+
+    service = _Service()
+    service.boundary = PaginatedFiles()
+    await _client(service).execute(
+        GoogleDriveAction(
+            kind=GoogleDriveActionKind.SEARCH,
+            query="alpha beta gamma delta missing",
+        )
+    )
+
+    assert len(service.boundary.queries) == 4
+
+
 @pytest.mark.asyncio
 async def test_folder_hint_filters_by_ancestor() -> None:
     service = _Service()
@@ -629,6 +651,132 @@ def test_folder_name_alias_is_exact_not_suffix_based() -> None:
         "PRO\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u043e", "\u041f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u043e"
     )
     assert not GoogleDriveClient._folder_name_matches("OtherClients", "Clients")
+
+
+
+def test_brand_match_accepts_exact_separator_alias_only() -> None:
+    assert GoogleDriveClient._name_contains_brand(
+        "Home_edit_ЮНИТКА_OZON.xlsx",
+        "HomeEdit",
+    )
+    assert not GoogleDriveClient._name_contains_brand(
+        "HomeEditorial_OZON.xlsx",
+        "HomeEdit",
+    )
+
+
+def test_scoped_token_fallback_ignores_unrelated_initial_match() -> None:
+    service = _Service()
+    client = _client(service)
+    foreign = GoogleDriveFile(
+        file_id="foreign",
+        name="Юнит-экономика Ozon",
+        mime_type="application/vnd.google-apps.spreadsheet",
+    )
+    desired = GoogleDriveFile(
+        file_id="desired",
+        name="Home_edit_ЮНИТКА_OZON.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        parents=("homeedit",),
+    )
+    full_query = "юнит-экономика Ozon по бренду HomeEdit"
+
+    def search_term(query: str, *args: object, **kwargs: object):
+        if query == full_query:
+            return (foreign,)
+        if query.casefold() == "юнит":
+            return (foreign, desired)
+        return ()
+
+    client._search_term_sync = search_term
+    client._filter_folder_sync = (
+        lambda values, folder, *args: tuple(
+            item for item in values if item.file_id == "desired"
+        )
+    )
+
+    assert client._search_sync(full_query, "PROстранство — Клиенты") == (
+        desired,
+    )
+
+
+
+def test_explicit_path_cannot_be_shadowed_by_literal_folder_name() -> None:
+    service = _Service()
+    client = _client(service)
+    captured: list[str] = []
+
+    def search_term(query: str, *args: object, **kwargs: object):
+        captured.append(query)
+        if query == "Root — Clients":
+            return (
+                GoogleDriveFile(
+                    file_id="impostor",
+                    name="Root — Clients",
+                    mime_type="application/vnd.google-apps.folder",
+                ),
+            )
+        return ()
+
+    def candidates(
+        segment: str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[GoogleDriveFile, ...]:
+        if segment == "Root":
+            return (
+                GoogleDriveFile(
+                    file_id="root",
+                    name="Root",
+                    mime_type="application/vnd.google-apps.folder",
+                ),
+            )
+        return (
+            GoogleDriveFile(
+                file_id="clients",
+                name="Clients",
+                mime_type="application/vnd.google-apps.folder",
+                parents=("root",),
+            ),
+        )
+
+    client._search_term_sync = search_term
+    client._folder_candidates_sync = candidates
+    client._is_within_folder_sync = (
+        lambda item, folder_ids, *args, **kwargs: bool(
+            folder_ids.intersection(item.parents)
+        )
+    )
+
+    result = client._resolve_folder_ids_sync(
+        "Root — Clients",
+        time.monotonic() + 1,
+        [10],
+        threading.Event(),
+    )
+
+    assert result == {"clients"}
+    assert "Root — Clients" not in captured
+
+
+def test_hyphen_inside_single_folder_name_is_not_a_path_separator() -> None:
+    service = _Service()
+    client = _client(service)
+    folder = GoogleDriveFile(
+        file_id="home-edit",
+        name="Home-Edit",
+        mime_type="application/vnd.google-apps.folder",
+    )
+    client._search_term_sync = lambda query, *args, **kwargs: (
+        (folder,) if query == "Home-Edit" else ()
+    )
+
+    assert client._resolve_folder_ids_sync(
+        "Home-Edit",
+        time.monotonic() + 1,
+        [10],
+        threading.Event(),
+    ) == {"home-edit"}
 
 
 def test_folder_path_accepts_unicode_dash_separator() -> None:
