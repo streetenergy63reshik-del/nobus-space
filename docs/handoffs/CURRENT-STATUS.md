@@ -1,8 +1,8 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-26
-**Runtime feature commit:** `c5495c1`
-**Live release commit:** `b26faa0`
+**Runtime feature commit:** `b1b9cca`
+**Live runtime commit:** `b1b9cca`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
