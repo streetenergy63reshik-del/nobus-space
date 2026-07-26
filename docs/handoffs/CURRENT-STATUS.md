@@ -1,10 +1,29 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
-**Дата:** 2026-07-25
-**Runtime feature commit:** `e39c857`
-**Live release commit:** `e39c857`
+**Дата:** 2026-07-26
+**Runtime feature commit:** `cc1a3ae`
+**Live release commit:** `cc1a3ae`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
+
+## Reliability hotfix 26 июля 2026
+
+- Длительный web research больше не наследует устаревший thread: каждый
+  research-turn получает свежий ephemeral SDK thread, а обычные личные и
+  topic-диалоги остаются persistent.
+- Ссылки в research-ответе принимаются только из фактически наблюдавшихся
+  `web_search`/`open_page` events текущего turn. Непубличные, вложенные,
+  локальные и неподтверждённые URI удаляются; ответ без evidence отклоняется.
+- Естественный запрос Google Drive теперь разрешает точную ссылку и поиск
+  документа в указанной папке/бренде. Проверка ancestry использует bounded
+  batch BFS с fail-closed binding `request_id == response.id`, deadline,
+  cancellation и защитой от совпадений по подстроке.
+- Полный L1: `1158 passed, 2 skipped, 1 warning`. Независимые L2 и L3:
+  ACCEPT, открытых P0/P1/P2 нет.
+- Live web smoke: PASS, 2164 символа и 3 подтверждённых evidence events.
+  Live Google Drive link smoke: PASS. Четыре runtime-БД: health PASS.
+- Проверенный pre-release backup:
+  `ОРКЕСТРАТОР/Backups/2026-07-26-pre-research-drive-cc1a3ae`.
 
 ## Reliability hotfix 25 июля 2026
 
