@@ -346,26 +346,25 @@ def _simple_google_drive_link_action(
         and not _DRIVE_REFERENCE_DOC_RE.search(instruction)
     ):
         return None
-    parts = re.split(r"\s+[—–-]\s+", instruction, maxsplit=1)
-    if len(parts) == 2:
-        query = parts[1]
+    marker = re.search(r"\b(?:drive|диск\w*)\b", instruction, re.IGNORECASE)
+    if marker is not None:
+        query = instruction[marker.end() :]
+        query = re.sub(
+            r"^\s*(?:на\s+)?(?:файл\w*|таблиц\w*)?\s*[:—–-]?\s*",
+            "",
+            query,
+            count=1,
+            flags=re.IGNORECASE,
+        )
     else:
-        marker = re.search(r"\b(?:drive|диск\w*)\b", instruction, re.IGNORECASE)
-        if marker is not None:
-            query = instruction[marker.end() :]
-            query = re.sub(
-                r"^\s*(?:на\s+)?(?:файл\w*|таблиц\w*)?\s*[:—–-]?\s*",
-                "",
-                query,
-                count=1,
-                flags=re.IGNORECASE,
-            )
-        else:
-            table = re.search(r"\bтаблиц\w*\b", instruction, re.IGNORECASE)
-            if table is None:
-                return None
-            query = instruction[table.end() :]
-    folder_match = re.search(r"\s+\bв\s+папк\w*\s+(.+)$", query, re.IGNORECASE)
+        table = re.search(r"\bтаблиц\w*\b", instruction, re.IGNORECASE)
+        if table is None:
+            return None
+        query = instruction[table.end() :]
+    query = re.sub(r"^\s*(?:с|на)\s+", "", query, count=1, flags=re.IGNORECASE)
+    folder_match = re.search(
+        r"\s+\b(?:в|из)\s+папк\w*\s+(.+)$", query, re.IGNORECASE
+    )
     folder = (
         folder_match.group(1).strip(" \t\r\n\"'«».,:;—–-")
         if folder_match
@@ -374,6 +373,19 @@ def _simple_google_drive_link_action(
     if folder_match:
         query = query[: folder_match.start()]
     query = query.strip(" \t\r\n\"'«».,:;—–-")
+    query = re.sub(
+        r"\bэкономик(?:ой|ою)\b",
+        "экономика",
+        query,
+        flags=re.IGNORECASE,
+    )
+    query = re.sub(
+        r"\bпо\s+(?!бренд\w*\b)([0-9A-Za-z][0-9A-Za-z_-]{2,})\b",
+        r"по бренду \1",
+        query,
+        count=1,
+        flags=re.IGNORECASE,
+    )
     if not query or len(query) > 1_024 or "\x00" in query:
         return None
     return GoogleDriveAction(

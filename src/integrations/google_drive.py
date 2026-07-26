@@ -291,10 +291,6 @@ class GoogleDriveClient:
             )
             if filtered or folder is None:
                 return filtered
-            if len(matches) == 1 and self._allows_approximate_folder_fallback(
-                query, matches[0]
-            ):
-                return matches
             return ()
         tokens = sorted(
             {
@@ -334,13 +330,6 @@ class GoogleDriveClient:
         filtered = self._filter_folder_sync(
             selected, folder, deadline, budget, stop
         )
-        if (
-            not filtered
-            and folder is not None
-            and len(selected) == 1
-            and self._allows_approximate_folder_fallback(query, selected[0])
-        ):
-            filtered = tuple(selected)
         return tuple(
             sorted(filtered, key=lambda item: (-score(item), item.name.casefold()))
         )
@@ -608,7 +597,7 @@ class GoogleDriveClient:
             raise RuntimeError("google_drive_folder_ambiguous")
         segments = [
             value.strip()
-            for value in re.split(r"\s*(?:→|->|>|/|\\|-)\s*", folder)
+            for value in re.split(r"\s*(?:→|->|>|/|\\|[—–-])\s*", folder)
             if value.strip()
         ]
         if len(segments) < 2:
@@ -678,22 +667,6 @@ class GoogleDriveClient:
         return any(
             name_tokens[index : index + width] == brand_tokens
             for index in range(len(name_tokens) - width + 1)
-        )
-
-    @staticmethod
-    def _allows_approximate_folder_fallback(
-        query: str, item: GoogleDriveFile
-    ) -> bool:
-        brand_match = re.search(
-            r"\b(?:по\s+бренду|brand)\s+([0-9A-Za-zА-Яа-яЁё_-]{3,})",
-            query,
-            re.IGNORECASE,
-        )
-        return bool(
-            brand_match
-            and GoogleDriveClient._name_contains_brand(
-                item.name, brand_match.group(1)
-            )
         )
 
     @staticmethod

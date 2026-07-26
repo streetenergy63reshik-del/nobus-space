@@ -107,7 +107,14 @@ class CodexSdkAdapter:
         )
         self._client: AsyncCodex | None = None
         self._client_lock = asyncio.Lock()
-        self._threads: dict[str, Any] = {}
+        self._close_lock = asyncio.Lock()
+        self._close_task: asyncio.Task[bool] | None = None
+        self._client_users: dict[int, int] = {}
+        self._retired_clients: dict[int, AsyncCodex] = {}
+        self._retired_events: dict[int, asyncio.Event] = {}
+        self._retired_outcomes: dict[int, bool] = {}
+        self._closed = False
+        self._threads: dict[str, tuple[AsyncCodex, Any]] = {}
         self._thread_locks: dict[str, asyncio.Lock] = {}
 
     async def execute(self, contract: TaskContract) -> CodexCliResult:
@@ -124,33 +131,48 @@ class CodexSdkAdapter:
         session = self._session_name(contract, cwd)
         async with self._thread_locks.setdefault(session, asyncio.Lock()):
             client = await self._client_instance()
-            thread = await self._thread(client, session, cwd, permissions)
             try:
-                turn = await thread.turn(
-                    prompt,
-                    approval_mode=ApprovalMode.deny_all,
-                    cwd=str(cwd),
-                    effort=ReasoningEffort.high,
-                    model=_MODEL,
-                    output_schema=_OUTPUT_SCHEMA,
-                    sandbox=Sandbox.read_only,
-                    service_tier="fast",
-                )
-                task = asyncio.create_task(turn.run())
                 try:
-                    result = await asyncio.wait_for(
-                        asyncio.shield(task), timeout=contract.timeout_seconds
+                    thread = await self._thread(client, session, cwd, permissions)
+                    turn = await thread.turn(
+                        prompt,
+                        approval_mode=ApprovalMode.deny_all,
+                        cwd=str(cwd),
+                        effort=ReasoningEffort.high,
+                        model=_MODEL,
+                        output_schema=_OUTPUT_SCHEMA,
+                        sandbox=Sandbox.read_only,
+                        service_tier="fast",
                     )
-                except (asyncio.CancelledError, TimeoutError) as error:
-                    await self._stop_turn(turn, task)
-                    if isinstance(error, asyncio.CancelledError):
-                        raise
-                    raise CodexCliError("worker_timeout") from None
-            except (CodexCliError, asyncio.CancelledError):
-                raise
-            except Exception:
-                self._threads.pop(session, None)
-                raise CodexCliError("worker_failed") from None
+                    task = asyncio.create_task(turn.run())
+                    try:
+                        result = await asyncio.wait_for(
+                            asyncio.shield(task), timeout=contract.timeout_seconds
+                        )
+                    except (asyncio.CancelledError, TimeoutError) as error:
+                        clean = await self._stop_turn(turn, task)
+                        if not clean:
+                            await self._invalidate_client(client)
+                        if isinstance(error, asyncio.CancelledError):
+                            raise
+                        raise CodexCliError("worker_timeout") from None
+                except asyncio.CancelledError:
+                    raise
+                except CodexCliError as error:
+                    if error.code == "worker_start_failed":
+                        await self._invalidate_client(client)
+                    raise
+                except Exception:
+                    self._threads.pop(session, None)
+                    await self._invalidate_client(client)
+                    raise CodexCliError("worker_failed") from None
+            finally:
+                release = asyncio.create_task(self._release_client(client))
+                try:
+                    await asyncio.shield(release)
+                except asyncio.CancelledError:
+                    await self._drain(release)
+                    raise
         validated = self._validated_result(
             result.final_response,
             allow_plain_answer="repo.write" not in permissions,
@@ -164,30 +186,160 @@ class CodexSdkAdapter:
         )
 
     async def close(self) -> None:
+        async with self._close_lock:
+            if self._close_task is None:
+                self._close_task = asyncio.create_task(self._close_result())
+            close_task = self._close_task
+        outcome = await asyncio.shield(close_task)
+        if not outcome:
+            raise CodexCliError("worker_failed")
+
+    async def _close_result(self) -> bool:
+        try:
+            await self._close_once()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            return False
+        return True
+
+    async def _close_once(self) -> None:
+        immediate: list[tuple[int, AsyncCodex, asyncio.Event]] = []
+        waiting: list[tuple[int, asyncio.Event]] = []
         async with self._client_lock:
+            self._closed = True
             client, self._client = self._client, None
+            if client is not None:
+                self._retire_locked(client)
             self._threads.clear()
-        if client is not None:
+            for identity, retired in tuple(self._retired_clients.items()):
+                event = self._retired_events[identity]
+                if self._client_users.get(identity, 0):
+                    waiting.append((identity, event))
+                elif self._retired_outcomes.get(identity) is not True:
+                    immediate.append((identity, retired, event))
+        retry: list[tuple[int, AsyncCodex, asyncio.Event]] = []
+        for identity, retired, event in immediate:
+            outcome = await self._close_client(retired)
+            async with self._client_lock:
+                self._retired_outcomes[identity] = outcome
+            event.set()
+            if not outcome:
+                retry.append((identity, retired, event))
+        wait_failed = False
+        if waiting:
             try:
                 await asyncio.wait_for(
-                    client.close(), timeout=_CONTROL_TIMEOUT_SECONDS
+                    asyncio.gather(*(event.wait() for _, event in waiting)),
+                    timeout=_CONTROL_TIMEOUT_SECONDS,
                 )
-            except Exception:
-                raise CodexCliError("worker_failed") from None
+            except (TimeoutError, Exception):
+                wait_failed = True
+        async with self._client_lock:
+            for identity, event in waiting:
+                if (
+                    not self._client_users.get(identity, 0)
+                    and self._retired_outcomes.get(identity) is False
+                    and identity in self._retired_clients
+                ):
+                    retry.append(
+                        (identity, self._retired_clients[identity], event)
+                    )
+        for identity, retired, event in retry:
+            outcome = await self._close_client(retired)
+            async with self._client_lock:
+                self._retired_outcomes[identity] = outcome
+            event.set()
+        async with self._client_lock:
+            failed = wait_failed or any(
+                self._retired_outcomes.get(identity) is not True
+                for identity in self._retired_clients
+            )
+            if not failed:
+                self._retired_clients.clear()
+                self._retired_events.clear()
+                self._retired_outcomes.clear()
+        if failed:
+            raise CodexCliError("worker_failed")
+
+    async def _invalidate_client(self, expected: AsyncCodex) -> None:
+        """Retire a failed generation without interrupting its active peers."""
+        async with self._client_lock:
+            if self._client is expected:
+                self._client = None
+            self._retire_locked(expected)
+            self._threads = {
+                name: value
+                for name, value in self._threads.items()
+                if value[0] is not expected
+            }
+
+    def _retire_locked(self, client: AsyncCodex) -> None:
+        identity = id(client)
+        self._retired_clients.setdefault(identity, client)
+        self._retired_events.setdefault(identity, asyncio.Event())
+
+    async def _release_client(self, client: AsyncCodex) -> None:
+        retired: AsyncCodex | None = None
+        event: asyncio.Event | None = None
+        identity = id(client)
+        async with self._client_lock:
+            users = self._client_users.get(identity, 0)
+            if users <= 1:
+                self._client_users.pop(identity, None)
+                retired = self._retired_clients.get(identity)
+                event = self._retired_events.get(identity)
+                if retired is not None:
+                    self._threads = {
+                        name: value
+                        for name, value in self._threads.items()
+                        if value[0] is not client
+                    }
+            else:
+                self._client_users[identity] = users - 1
+        if retired is not None:
+            outcome = await self._close_client(retired)
+            assert event is not None
+            async with self._client_lock:
+                self._retired_outcomes[identity] = outcome
+                if outcome and not self._closed:
+                    self._retired_clients.pop(identity, None)
+                    self._retired_events.pop(identity, None)
+                    self._retired_outcomes.pop(identity, None)
+            event.set()
+
+    @staticmethod
+    async def _close_client(client: AsyncCodex) -> bool:
+        try:
+            await asyncio.wait_for(
+                client.close(), timeout=_CONTROL_TIMEOUT_SECONDS
+            )
+            return True
+        except (TimeoutError, Exception):
+            return False
 
     async def _client_instance(self) -> AsyncCodex:
-        if self._client is not None:
-            return self._client
         async with self._client_lock:
+            if self._closed:
+                raise CodexCliError("worker_start_failed")
             if self._client is None:
                 client = self._client_factory(self._config)
                 try:
                     await client.__aenter__()
+                except asyncio.CancelledError:
+                    cleanup = asyncio.create_task(self._close_client(client))
+                    try:
+                        await asyncio.shield(cleanup)
+                    except asyncio.CancelledError:
+                        await self._drain(cleanup)
+                    raise
                 except Exception:
+                    await self._close_client(client)
                     raise CodexCliError("worker_start_failed") from None
                 self._client = client
-        assert self._client is not None
-        return self._client
+            identity = id(self._client)
+            self._client_users[identity] = self._client_users.get(identity, 0) + 1
+            return self._client
 
     async def _thread(
         self,
@@ -213,8 +365,8 @@ class CodexSdkAdapter:
             except Exception:
                 raise CodexCliError("worker_start_failed") from None
         cached = self._threads.get(name)
-        if cached is not None:
-            return cached
+        if cached is not None and cached[0] is client:
+            return cached[1]
         cursor: str | None = None
         seen_cursors: set[str] = set()
         try:
@@ -237,7 +389,7 @@ class CodexSdkAdapter:
                         sandbox=Sandbox.read_only,
                         service_tier="fast",
                     )
-                    self._threads[name] = thread
+                    self._threads[name] = (client, thread)
                     return thread
                 cursor = page.next_cursor
                 if cursor is None:
@@ -262,7 +414,7 @@ class CodexSdkAdapter:
             await thread.set_name(name)
         except Exception:
             raise CodexCliError("worker_start_failed") from None
-        self._threads[name] = thread
+        self._threads[name] = (client, thread)
         return thread
 
     @staticmethod
@@ -471,26 +623,68 @@ class CodexSdkAdapter:
 
 
     @staticmethod
-    async def _stop_turn(turn: Any, task: asyncio.Task[Any]) -> None:
+    async def _stop_turn(turn: Any, task: asyncio.Task[Any]) -> bool:
+        cleanup = asyncio.create_task(
+            CodexSdkAdapter._cleanup_turn(turn, task)
+        )
+        try:
+            return await asyncio.shield(cleanup)
+        except asyncio.CancelledError:
+            await CodexSdkAdapter._drain(cleanup)
+            raise
+
+    @staticmethod
+    async def _cleanup_turn(turn: Any, task: asyncio.Task[Any]) -> bool:
         try:
             await asyncio.wait_for(
                 turn.interrupt(), timeout=_CONTROL_TIMEOUT_SECONDS
             )
-        except (asyncio.CancelledError, TimeoutError, Exception):
+        except (TimeoutError, Exception):
             pass
         try:
             await asyncio.wait_for(
                 asyncio.shield(task), timeout=_CONTROL_TIMEOUT_SECONDS
             )
+            return True
         except TimeoutError:
             task.cancel()
             await CodexSdkAdapter._drain(task)
-        except (asyncio.CancelledError, Exception):
-            pass
+            return False
+        except asyncio.CancelledError:
+            return task.done()
+        except Exception:
+            return True
 
     @staticmethod
     async def _drain(task: asyncio.Task[Any]) -> None:
+        deadline = (
+            asyncio.get_running_loop().time() + _CONTROL_TIMEOUT_SECONDS
+        )
+        while not task.done():
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                task.cancel()
+                break
+            try:
+                await asyncio.wait_for(
+                    asyncio.shield(task), timeout=remaining
+                )
+            except asyncio.CancelledError:
+                continue
+            except Exception:
+                task.cancel()
+                break
+        if task.done():
+            try:
+                task.result()
+            except BaseException:
+                pass
+        else:
+            task.add_done_callback(CodexSdkAdapter._consume_cleanup_result)
+
+    @staticmethod
+    def _consume_cleanup_result(task: asyncio.Task[Any]) -> None:
         try:
-            await task
-        except (asyncio.CancelledError, Exception):
+            task.result()
+        except BaseException:
             pass

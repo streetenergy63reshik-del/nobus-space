@@ -200,6 +200,19 @@ async def test_hyphenated_google_sheet_request_routes_to_drive(tmp_path) -> None
     assert harness.runtime.drafted == []
 
 
+def test_exact_owner_drive_phrase_preserves_query_and_folder_path() -> None:
+    action = _simple_google_drive_link_action(
+        "Пришли ссылку на гугл-таблицу с юнит-экономикой Ozon "
+        "по HomeEdit из папки PROстранство — Клиенты"
+    )
+
+    assert action == GoogleDriveAction(
+        kind=GoogleDriveActionKind.LINK,
+        query="юнит-экономика Ozon по бренду HomeEdit",
+        folder="PROстранство — Клиенты",
+    )
+
+
 @pytest.mark.parametrize(
     "instruction",
     (

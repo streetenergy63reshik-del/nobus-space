@@ -603,7 +603,7 @@ async def test_shared_google_transport_is_not_used_concurrently() -> None:
     assert "two" in second.message
     assert overlap is False
 @pytest.mark.asyncio
-async def test_approximate_folder_hint_falls_back_only_for_unique_file() -> None:
+async def test_explicit_folder_never_falls_back_to_foreign_unique_file() -> None:
     service = _Service()
     service.boundary.values.append(
         {
@@ -615,21 +615,68 @@ async def test_approximate_folder_hint_falls_back_only_for_unique_file() -> None
         }
     )
 
-    result = await _client(service).execute(
-        GoogleDriveAction(
-            kind=GoogleDriveActionKind.LINK,
-            query="Unit economics по бренду HomeEdit",
-            folder="Human approximate alias",
+    with pytest.raises(RuntimeError, match="file_not_found"):
+        await _client(service).execute(
+            GoogleDriveAction(
+                kind=GoogleDriveActionKind.LINK,
+                query="Unit economics по бренду HomeEdit",
+                folder="Human approximate alias",
+            )
         )
-    )
-
-    assert "unique/view" in result.message
 
 def test_folder_name_alias_is_exact_not_suffix_based() -> None:
     assert GoogleDriveClient._folder_name_matches(
         "PRO\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u043e", "\u041f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u043e"
     )
     assert not GoogleDriveClient._folder_name_matches("OtherClients", "Clients")
+
+
+def test_folder_path_accepts_unicode_dash_separator() -> None:
+    service = _Service()
+    client = _client(service)
+    captured: list[str] = []
+
+    def candidates(
+        segment: str,
+        deadline: float,
+        budget: list[int],
+        stop: threading.Event,
+    ) -> tuple[GoogleDriveFile, ...]:
+        captured.append(segment)
+        if segment == "PROстранство":
+            return (
+                GoogleDriveFile(
+                    file_id="root",
+                    name="PROстранство",
+                    mime_type="application/vnd.google-apps.folder",
+                ),
+            )
+        return (
+            GoogleDriveFile(
+                file_id="clients",
+                name="Клиенты",
+                mime_type="application/vnd.google-apps.folder",
+                parents=("root",),
+            ),
+        )
+
+    client._search_term_sync = lambda *args, **kwargs: ()
+    client._folder_candidates_sync = candidates
+    client._is_within_folder_sync = (
+        lambda item, folder_ids, *args, **kwargs: bool(
+            folder_ids.intersection(item.parents)
+        )
+    )
+
+    result = client._resolve_folder_ids_sync(
+        "PROстранство — Клиенты",
+        time.monotonic() + 1,
+        [10],
+        threading.Event(),
+    )
+
+    assert result == {"clients"}
+    assert captured == ["PROстранство", "Клиенты"]
 
 
 @pytest.mark.asyncio

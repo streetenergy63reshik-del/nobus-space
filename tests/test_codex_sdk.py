@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -281,6 +282,393 @@ async def test_sdk_rejects_invalid_final_protocol(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_sdk_invalidates_failed_app_server_before_retry(
+    tmp_path: Path,
+) -> None:
+    class FailingTurn(_Turn):
+        async def run(self):
+            raise RuntimeError("transport failed")
+
+    class FailingThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> FailingTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return FailingTurn(self._response)
+
+    class FailingClient(_Client):
+        async def thread_start(self, **values: object) -> FailingThread:
+            thread = FailingThread("failed", self.response)
+            self.started.append(thread)
+            self.start_values.append(values)
+            return thread
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    failed = FailingClient()
+    recovered = _Client()
+    clients = iter((failed, recovered))
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: next(clients),
+    )
+
+    with pytest.raises(CodexCliError, match="worker failed"):
+        await adapter.execute(_contract(workspace))
+    result = await adapter.execute(
+        _contract(workspace).model_copy(update={"task_id": uuid4()})
+    )
+
+    assert failed.closed is True
+    assert recovered.entered is True
+    assert json.loads(result.message) == {"answer": "ok"}
+
+
+
+@pytest.mark.asyncio
+async def test_failed_generation_drains_parallel_peer_before_close(
+    tmp_path: Path,
+) -> None:
+    peer_started = asyncio.Event()
+    release_peer = asyncio.Event()
+
+    class PeerTurn(_Turn):
+        async def run(self):
+            peer_started.set()
+            await release_peer.wait()
+            return SimpleNamespace(final_response=self._response)
+
+    class FailingTurn(_Turn):
+        async def run(self):
+            await peer_started.wait()
+            raise RuntimeError("transport failed")
+
+    class PeerThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> PeerTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return PeerTurn(self._response)
+
+    class FailingThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> FailingTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return FailingTurn(self._response)
+
+    class ParallelClient(_Client):
+        async def thread_start(self, **values: object) -> _Thread:
+            thread: _Thread
+            if not self.started:
+                thread = PeerThread("peer", self.response)
+            else:
+                thread = FailingThread("failing", self.response)
+            self.started.append(thread)
+            self.start_values.append(values)
+            return thread
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    failed = ParallelClient()
+    recovered = _Client()
+    clients = iter((failed, recovered))
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: next(clients),
+    )
+    peer = asyncio.create_task(
+        adapter.execute(_contract(workspace, source="telegram:peer"))
+    )
+    await asyncio.wait_for(peer_started.wait(), timeout=1)
+
+    with pytest.raises(CodexCliError, match="worker failed"):
+        await adapter.execute(_contract(workspace, source="telegram:failing"))
+    assert failed.closed is False
+
+    release_peer.set()
+    result = await peer
+    assert json.loads(result.message) == {"answer": "ok"}
+    assert failed.closed is True
+
+    recovered_result = await adapter.execute(
+        _contract(workspace, source="telegram:recovered")
+    )
+    assert recovered.entered is True
+    assert json.loads(recovered_result.message) == {"answer": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_unclean_interrupt_retires_client_before_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StuckTurn:
+        async def run(self):
+            await asyncio.Event().wait()
+
+        async def interrupt(self) -> None:
+            raise RuntimeError("interrupt failed")
+
+    class StuckThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> StuckTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return StuckTurn()
+
+    class StuckClient(_Client):
+        async def thread_start(self, **values: object) -> StuckThread:
+            thread = StuckThread("stuck", self.response)
+            self.started.append(thread)
+            self.start_values.append(values)
+            return thread
+
+    monkeypatch.setattr("src.workers.codex_sdk._CONTROL_TIMEOUT_SECONDS", 0.01)
+    owner, workspace, home, temp = _paths(tmp_path)
+    stuck = StuckClient()
+    recovered = _Client()
+    clients = iter((stuck, recovered))
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        max_timeout_seconds=1,
+        client_factory=lambda _: next(clients),
+    )
+
+    with pytest.raises(CodexCliError, match="timed out"):
+        await adapter.execute(
+            _contract(workspace).model_copy(update={"timeout_seconds": 1})
+        )
+    assert stuck.closed is True
+
+    result = await adapter.execute(
+        _contract(workspace).model_copy(update={"timeout_seconds": 1})
+    )
+    assert recovered.entered is True
+    assert json.loads(result.message) == {"answer": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_cancellation_during_timeout_cleanup_propagates(
+    tmp_path: Path,
+) -> None:
+    interrupt_started = asyncio.Event()
+    release_interrupt = asyncio.Event()
+
+    class SlowCleanupTurn:
+        async def run(self):
+            await asyncio.Event().wait()
+
+        async def interrupt(self) -> None:
+            interrupt_started.set()
+            await release_interrupt.wait()
+
+    class SlowCleanupThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> SlowCleanupTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return SlowCleanupTurn()
+
+    class SlowCleanupClient(_Client):
+        async def thread_start(self, **values: object) -> SlowCleanupThread:
+            thread = SlowCleanupThread("slow-cleanup", self.response)
+            self.started.append(thread)
+            self.start_values.append(values)
+            return thread
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = SlowCleanupClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        max_timeout_seconds=1,
+        client_factory=lambda _: client,
+    )
+    execution = asyncio.create_task(
+        adapter.execute(
+            _contract(workspace).model_copy(update={"timeout_seconds": 1})
+        )
+    )
+    await asyncio.wait_for(interrupt_started.wait(), timeout=2)
+    execution.cancel()
+    await asyncio.sleep(0)
+    execution.cancel()
+    release_interrupt.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await execution
+
+
+@pytest.mark.asyncio
+async def test_failed_client_enter_is_closed(tmp_path: Path) -> None:
+    class EnterFailureClient(_Client):
+        async def __aenter__(self):
+            self.entered = True
+            raise RuntimeError("start failed")
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = EnterFailureClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+
+    with pytest.raises(CodexCliError, match="could not be started"):
+        await adapter.execute(_contract(workspace))
+
+    assert client.closed is True
+
+
+
+
+@pytest.mark.asyncio
+async def test_repeated_cancellation_cannot_interrupt_release_drain(
+    tmp_path: Path,
+) -> None:
+    turn_started = asyncio.Event()
+    release_turn = asyncio.Event()
+    close_started = asyncio.Event()
+    release_close = asyncio.Event()
+
+    class ActiveTurn(_Turn):
+        async def run(self):
+            turn_started.set()
+            await release_turn.wait()
+            return SimpleNamespace(final_response=self._response)
+
+    class ActiveThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> ActiveTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return ActiveTurn(self._response)
+
+    class SlowCloseClient(_Client):
+        async def thread_start(self, **values: object) -> ActiveThread:
+            thread = ActiveThread("active", self.response)
+            self.started.append(thread)
+            self.start_values.append(values)
+            return thread
+
+        async def close(self) -> None:
+            close_started.set()
+            await release_close.wait()
+            self.closed = True
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = SlowCloseClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    execution = asyncio.create_task(adapter.execute(_contract(workspace)))
+    await asyncio.wait_for(turn_started.wait(), timeout=1)
+    closing = asyncio.create_task(adapter.close())
+    await asyncio.sleep(0)
+    release_turn.set()
+    await asyncio.wait_for(close_started.wait(), timeout=1)
+
+    execution.cancel()
+    await asyncio.sleep(0)
+    execution.cancel()
+    release_close.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await execution
+    await closing
+    assert client.closed is True
+
+
+@pytest.mark.asyncio
+async def test_cancelled_client_enter_is_closed(tmp_path: Path) -> None:
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    class SlowEnterClient(_Client):
+        async def __aenter__(self):
+            entered.set()
+            await release.wait()
+            return self
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = SlowEnterClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    execution = asyncio.create_task(adapter.execute(_contract(workspace)))
+    await asyncio.wait_for(entered.wait(), timeout=1)
+
+    execution.cancel()
+    release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await execution
+    assert client.closed is True
+
+
+@pytest.mark.asyncio
+async def test_deferred_close_failure_is_reported(
+    tmp_path: Path,
+) -> None:
+    turn_started = asyncio.Event()
+    release_turn = asyncio.Event()
+
+    class ActiveTurn(_Turn):
+        async def run(self):
+            turn_started.set()
+            await release_turn.wait()
+            return SimpleNamespace(final_response=self._response)
+
+    class ActiveThread(_Thread):
+        async def turn(self, prompt: str, **values: object) -> ActiveTurn:
+            self.turns.append({"prompt": prompt, **values})
+            return ActiveTurn(self._response)
+
+    class FailingCloseClient(_Client):
+        def __init__(self) -> None:
+            super().__init__()
+            self.close_calls = 0
+
+        async def thread_start(self, **values: object) -> ActiveThread:
+            thread = ActiveThread("active", self.response)
+            self.started.append(thread)
+            self.start_values.append(values)
+            return thread
+
+        async def close(self) -> None:
+            self.close_calls += 1
+            raise RuntimeError("close failed")
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = FailingCloseClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    execution = asyncio.create_task(adapter.execute(_contract(workspace)))
+    await asyncio.wait_for(turn_started.wait(), timeout=1)
+    closing = asyncio.create_task(adapter.close())
+    await asyncio.sleep(0)
+    release_turn.set()
+
+    assert json.loads((await execution).message) == {"answer": "ok"}
+    with pytest.raises(CodexCliError, match="worker failed"):
+        await closing
+    assert client.close_calls == 2
+
+
+@pytest.mark.asyncio
 async def test_sdk_close_stops_app_server(tmp_path: Path) -> None:
     owner, workspace, home, temp = _paths(tmp_path)
     client = _Client()
@@ -296,6 +684,173 @@ async def test_sdk_close_stops_app_server(tmp_path: Path) -> None:
     await adapter.close()
 
     assert client.closed is True
+
+
+
+@pytest.mark.asyncio
+async def test_concurrent_close_calls_share_one_physical_close(
+    tmp_path: Path,
+) -> None:
+    class NonReentrantClient(_Client):
+        def __init__(self) -> None:
+            super().__init__()
+            self.close_calls = 0
+            self.overlap = 0
+            self.closing = False
+
+        async def close(self) -> None:
+            self.close_calls += 1
+            if self.closing:
+                self.overlap += 1
+            self.closing = True
+            await asyncio.sleep(0.01)
+            self.closing = False
+            self.closed = True
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = NonReentrantClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    await adapter.execute(_contract(workspace))
+
+    await asyncio.gather(adapter.close(), adapter.close())
+
+    assert client.closed is True
+    assert client.close_calls == 1
+    assert client.overlap == 0
+
+
+
+
+@pytest.mark.asyncio
+async def test_cancelled_close_cannot_cancel_shared_physical_close(
+    tmp_path: Path,
+) -> None:
+    close_started = asyncio.Event()
+    release_close = asyncio.Event()
+
+    class SlowCloseClient(_Client):
+        def __init__(self) -> None:
+            super().__init__()
+            self.close_calls = 0
+            self.close_cancelled = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+            close_started.set()
+            try:
+                await release_close.wait()
+            except asyncio.CancelledError:
+                self.close_cancelled += 1
+                raise
+            self.closed = True
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = SlowCloseClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    await adapter.execute(_contract(workspace))
+    first = asyncio.create_task(adapter.close())
+    await asyncio.wait_for(close_started.wait(), timeout=1)
+
+    first.cancel()
+    await asyncio.sleep(0)
+    first.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await first
+
+    second = asyncio.create_task(adapter.close())
+    release_close.set()
+    await second
+
+    assert client.closed is True
+    assert client.close_calls == 1
+    assert client.close_cancelled == 0
+
+
+@pytest.mark.asyncio
+async def test_concurrent_close_calls_share_one_failure_outcome(
+    tmp_path: Path,
+) -> None:
+    class FailingNonReentrantClient(_Client):
+        def __init__(self) -> None:
+            super().__init__()
+            self.close_calls = 0
+            self.overlap = 0
+            self.closing = False
+
+        async def close(self) -> None:
+            self.close_calls += 1
+            if self.closing:
+                self.overlap += 1
+            self.closing = True
+            await asyncio.sleep(0.01)
+            self.closing = False
+            raise RuntimeError("close failed")
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = FailingNonReentrantClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    await adapter.execute(_contract(workspace))
+
+    outcomes = await asyncio.gather(
+        adapter.close(), adapter.close(), return_exceptions=True
+    )
+
+    assert all(isinstance(outcome, CodexCliError) for outcome in outcomes)
+    assert [outcome.code for outcome in outcomes] == [
+        "worker_failed",
+        "worker_failed",
+    ]
+    assert client.close_calls == 2
+    assert client.overlap == 0
+
+
+@pytest.mark.asyncio
+async def test_idle_close_failure_retries_and_reports_error(
+    tmp_path: Path,
+) -> None:
+    class FailingCloseClient(_Client):
+        def __init__(self) -> None:
+            super().__init__()
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+            raise RuntimeError("close failed")
+
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = FailingCloseClient()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    await adapter.execute(_contract(workspace))
+
+    with pytest.raises(CodexCliError, match="worker failed"):
+        await adapter.close()
+
+    assert client.close_calls == 2
+
 
 @pytest.mark.asyncio
 async def test_sdk_interrupts_and_drains_timed_out_turn(tmp_path: Path) -> None:
