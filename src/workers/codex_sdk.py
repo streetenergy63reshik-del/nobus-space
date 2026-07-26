@@ -25,6 +25,7 @@ from src.workers.codex_cli import (
     CodexCliError,
     CodexCliResult,
     _OWNER_READ_PERMISSION,
+    _WEB_RESEARCH_TIMEOUT_SECONDS,
     _directory_identity,
     _project_owner_library,
 )
@@ -40,6 +41,11 @@ _MODEL = "gpt-5.6-sol"
 _SESSION_SCHEMA_VERSION = "2"
 _CONTROL_TIMEOUT_SECONDS = 15
 _MAX_THREAD_LIST_PAGES = 100
+_WEB_FALLBACK_RESERVE_SECONDS = 1_800
+_WEB_PRIMARY_TIMEOUT_SECONDS = (
+    _WEB_RESEARCH_TIMEOUT_SECONDS - _WEB_FALLBACK_RESERVE_SECONDS
+)
+_WEB_PRIMARY_STREAM_IDLE_TIMEOUT_MS = _WEB_PRIMARY_TIMEOUT_SECONDS * 1_000
 _SDK_PERMISSION_PROFILES = frozenset(
     {
         frozenset({"model.inference"}),
@@ -374,7 +380,16 @@ class CodexSdkAdapter:
                     model=_MODEL,
                     sandbox=Sandbox.read_only,
                     service_tier="fast",
-                    config={"web_search": "live"},
+                    config={
+                        "web_search": "live",
+                        "model_providers": {
+                            "openai": {
+                                "stream_idle_timeout_ms": (
+                                    _WEB_PRIMARY_STREAM_IDLE_TIMEOUT_MS
+                                )
+                            }
+                        },
+                    },
                 )
             except Exception:
                 raise CodexCliError("worker_start_failed") from None
@@ -748,24 +763,61 @@ class ResilientCodexAdapter:
     async def execute(self, contract: TaskContract) -> CodexCliResult:
         is_web = "web.search" in contract.permissions
         worker_contract = self._with_delivered_web_context(contract)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + contract.timeout_seconds
+        primary_contract = worker_contract
+        reserved_fallback = (
+            is_web
+            and contract.timeout_seconds > _WEB_FALLBACK_RESERVE_SECONDS
+        )
+        if reserved_fallback:
+            primary_contract = worker_contract.model_copy(
+                update={
+                    "timeout_seconds": (
+                        contract.timeout_seconds
+                        - _WEB_FALLBACK_RESERVE_SECONDS
+                    )
+                }
+            )
         try:
-            result = await self._primary.execute(worker_contract)
+            if reserved_fallback:
+                result = await asyncio.wait_for(
+                    self._primary.execute(primary_contract),
+                    timeout=primary_contract.timeout_seconds,
+                )
+            else:
+                result = await self._primary.execute(primary_contract)
             if not is_web or result.source_urls:
                 return result
         except asyncio.CancelledError:
             raise
+        except TimeoutError:
+            if not reserved_fallback:
+                raise CodexCliError("worker_timeout") from None
         except CodexCliError as error:
             if (
                 not is_web
+                or (
+                    error.code == "worker_timeout"
+                    and not reserved_fallback
+                )
                 or error.code
                 not in {
                     "worker_start_failed",
                     "worker_failed",
                     "worker_protocol_error",
+                    "worker_timeout",
                 }
             ):
                 raise
-        result = await self._web_fallback.execute(worker_contract)
+        remaining = min(
+            contract.timeout_seconds,
+            max(1, int(deadline - loop.time() + 0.999)),
+        )
+        fallback_contract = worker_contract.model_copy(
+            update={"timeout_seconds": remaining}
+        )
+        result = await self._web_fallback.execute(fallback_contract)
         if not result.web_search_observed:
             return result.model_copy(update={"source_urls": ()})
         try:

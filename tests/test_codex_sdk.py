@@ -126,6 +126,34 @@ async def test_sdk_starts_persistent_named_thread_and_validates_result(
 ) -> None:
     owner, workspace, home, temp = _paths(tmp_path)
     client = _Client('{"kind":"answer","answer":"Готово","summary":null,"patch":null,"paths":null}')
+    configs = []
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda value: configs.append(value) or client,
+    )
+
+    result = await adapter.execute(_contract(workspace))
+
+    assert not any(
+        value.startswith("model_providers.openai.stream_idle_timeout_ms=")
+        for value in configs[0].config_overrides
+    )
+    assert client.start_values[0]["config"] == {"web_search": "disabled"}
+    assert json.loads(result.message) == {"answer": "Готово"}
+    assert client.entered is True
+    assert len(client.started) == 1
+    assert client.started[0].name is not None
+    assert client.started[0].name.startswith("nobus:")
+    assert len(client.started[0].turns) == 1
+
+
+@pytest.mark.asyncio
+async def test_sdk_scopes_long_stream_idle_to_web_thread(tmp_path: Path) -> None:
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = _Client()
     adapter = CodexSdkAdapter(
         workspace_root=workspace,
         owner_root=owner,
@@ -134,14 +162,23 @@ async def test_sdk_starts_persistent_named_thread_and_validates_result(
         client_factory=lambda _: client,
     )
 
-    result = await adapter.execute(_contract(workspace))
+    await adapter.execute(
+        _contract(
+            workspace,
+            permissions=(
+                "model.inference",
+                "owner.library.read",
+                "web.search",
+            ),
+        )
+    )
 
-    assert json.loads(result.message) == {"answer": "Готово"}
-    assert client.entered is True
-    assert len(client.started) == 1
-    assert client.started[0].name is not None
-    assert client.started[0].name.startswith("nobus:")
-    assert len(client.started[0].turns) == 1
+    assert client.start_values[0]["config"] == {
+        "web_search": "live",
+        "model_providers": {
+            "openai": {"stream_idle_timeout_ms": 9_000_000}
+        },
+    }
 
 
 @pytest.mark.asyncio
@@ -387,6 +424,71 @@ async def test_resilient_adapter_falls_back_only_for_web_transport_failure(
         await adapter.execute(non_web)
     assert len(fallback.calls) == 1
 
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_reserves_deadline_for_timeout_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.workers.codex_sdk._WEB_FALLBACK_RESERVE_SECONDS",
+        1,
+    )
+
+    class Primary:
+        def __init__(self) -> None:
+            self.calls: list[TaskContract] = []
+            self.cancelled = False
+
+        async def execute(self, contract: TaskContract):
+            self.calls.append(contract)
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+
+        async def close(self) -> None:
+            return None
+
+    class Fallback:
+        def __init__(self) -> None:
+            self.calls: list[TaskContract] = []
+
+        async def execute(self, contract: TaskContract):
+            self.calls.append(contract)
+            return CodexCliResult(
+                message='{"answer":"ok https://example.com [source_quote: safe source content from page]"}',
+                web_search_observed=True,
+            )
+
+        async def close(self) -> None:
+            return None
+
+    class Verifier:
+        async def verify(self, url: str, quote: str) -> bool:
+            return url == "https://example.com"
+
+    _, workspace, _, _ = _paths(tmp_path)
+    contract = _contract(
+        workspace,
+        permissions=(
+            "model.inference",
+            "owner.library.read",
+            "web.search",
+        ),
+    ).model_copy(update={"timeout_seconds": 3})
+    primary = Primary()
+    fallback = Fallback()
+
+    result = await ResilientCodexAdapter(
+        primary, fallback, Verifier()
+    ).execute(contract)
+
+    assert primary.calls[0].timeout_seconds == 2
+    assert primary.cancelled is True
+    assert fallback.calls[0].timeout_seconds == 1
+    assert result.source_urls == ("https://example.com",)
 
 @pytest.mark.asyncio
 async def test_resilient_adapter_verifies_cited_fallback_urls(

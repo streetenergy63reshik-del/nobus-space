@@ -280,15 +280,25 @@ Telegram long poll до 30 секунд и request timeout до 60 секунд 
 
 Gate 5A.4 worker contract имеет deadline 10 800 секунд (3 часа, включая запас для двухчасовой работы); абсолютный schema/adapter ceiling равен 14 400 секундам. Один retry разрешён только для раннего `worker_start_failed`, `worker_failed` или `worker_protocol_error` и делит исходный execution deadline; timeout, policy error и внешний эффект не повторяются. Safe error code сохраняется в audit без stderr/prompt/path. Длительность worker больше не входит в polling lease.
 
+Только web-thread persistent SDK получает provider override
+`model_providers.openai.stream_idle_timeout_ms=9000000` и до 2,5 часов
+основного бюджета. Последние 1 800 секунд общего трёхчасового deadline
+зарезервированы для одного pinned CLI fallback. CLI argv допускает idle до
+10 800 000 мс, но fallback contract ограничивает его фактически оставшимся
+временем. Non-web turns не получают расширенный provider idle.
+
 ### Историческая семантика до Queue 1/2
 
 ### Диагностика длительного web research
 
-Не увеличивать трёхчасовой deadline при отказе через несколько минут: это
-признак transport failure, а не timeout Nobus. Research выполняет один turn
-persistent SDK. При `worker_start_failed`, `worker_failed`,
-`worker_protocol_error` или отсутствии evidence composite worker выполняет
-не более одного pinned ephemeral CLI fallback в пределах исходного deadline.
+При отказе примерно через 15 минут сначала различать audit-коды
+`worker_failed` и `worker_timeout`. Первый означает transport/provider failure,
+даже если общий deadline ещё активен. Проверить web-only SDK idle
+`stream_idle_timeout_ms=9000000`, CLI/Windows Job argv 10 800 000 мс и
+резерв fallback 1 800 секунд. Research выполняет один primary turn. При
+`worker_start_failed`, `worker_failed`, `worker_protocol_error`, зарезервированном
+`worker_timeout` или отсутствии evidence composite worker выполняет не более
+одного pinned ephemeral CLI fallback в пределах оставшегося deadline.
 Внешний retry поверх composite worker отключён.
 
 Fallback считается успешным только при наличии direct HTTPS URL и точной короткой `source_quote` из этой страницы. `SafeSourceVerifier` один раз разрешает DNS, закрепляет TLS-соединение за выбранным public IP с исходным SNI/Host и повторяет границу для redirect. Private/reserved/CGNAT/multicast, DNS rebinding, non-2xx, compressed или oversized body и несовпавшая цитата не становятся evidence. После отказа задача завершается безопасно; дополнительный model turn не запускается.

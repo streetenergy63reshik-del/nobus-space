@@ -18,6 +18,9 @@ from pydantic import BaseModel, ConfigDict
 from src.contracts import TaskContract
 
 
+_WEB_RESEARCH_TIMEOUT_SECONDS = 10_800
+_WEB_STREAM_IDLE_TIMEOUT_MS = _WEB_RESEARCH_TIMEOUT_SECONDS * 1_000
+
 _READ_ARGV = (
     "exec",
     "--json",
@@ -69,9 +72,16 @@ _INTENT_ARGV = (
     "read-only",
     "-",
 )
-_WEB_ARGV = tuple(
-    'web_search="live"' if value == 'web_search="disabled"' else value
-    for value in _INTENT_ARGV
+_WEB_ARGV = (
+    *tuple(
+        'web_search="live"' if value == 'web_search="disabled"' else value
+        for value in _INTENT_ARGV[:-3]
+    ),
+    "--config",
+    f"model_providers.openai.stream_idle_timeout_ms={_WEB_STREAM_IDLE_TIMEOUT_MS}",
+    "--sandbox",
+    "read-only",
+    "-",
 )
 _RATE_LIMIT_ARGV = (
     "app-server",

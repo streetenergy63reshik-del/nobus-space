@@ -6,6 +6,23 @@
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
+## Three-hour web stream deadline — 26 июля 2026
+
+- Последний product research завершился примерно через 15 минут с
+  `worker_failed`, а не `worker_timeout`: внешний task deadline уже был равен
+  10 800 секундам, но provider stream использовал более короткий idle-timeout и
+  внутренние повторы.
+- Только web-thread persistent Codex SDK/app-server получает provider idle
+  9 000 000 мс (2,5 часа). Последние 1 800 секунд общего бюджета
+  зарезервированы для единственного pinned CLI fallback; CLI допускает idle до
+  10 800 000 мс, но фактически ограничен оставшимся task deadline.
+- Обычные non-web turn не получают расширенный provider idle.
+- Общая граница не стала бесконечной: Gate 5A.4 по-прежнему завершает весь
+  execution через 10 800 секунд, а schema/adapter ceiling остаётся 14 400
+  секунд. Telegram polling и очередь не ждут worker синхронно. Трёхчасовая
+  длительность проверяется детерминированными deadline-регрессиями; буквальный
+  трёхчасовой live-run для релиза не требуется.
+
 ## Web research dual-transport recovery — 26 июля 2026
 
 - Повторные продуктовые отказы длительного research происходили через 182–488

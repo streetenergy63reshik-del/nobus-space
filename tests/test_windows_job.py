@@ -64,6 +64,10 @@ def test_parent_and_helper_fixed_profiles_match() -> None:
     assert ADAPTER_WEB_ARGV == HELPER_WEB_ARGV
     assert "features.shell_tool=false" in HELPER_WEB_ARGV
     assert "features.shell_snapshot=false" in HELPER_WEB_ARGV
+    assert (
+        "model_providers.openai.stream_idle_timeout_ms=10800000"
+        in HELPER_WEB_ARGV
+    )
 
 
 @dataclass(eq=False)
