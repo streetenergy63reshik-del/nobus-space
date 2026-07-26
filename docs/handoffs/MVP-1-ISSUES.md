@@ -59,6 +59,8 @@
 | Research provenance и stale thread | persistent research-thread мог не дать новых web events, а строгая проверка отклоняла полезный ответ из-за одной неподтверждённой ссылки | fresh ephemeral thread на каждый research-turn; exact sanitizer; union evidence initial+repair; server-owned ссылка только из реально открытого public HTTPS source | live smoke: 2164 символа, 3 evidence events; focused L3 142; full 1158 | CLOSED |
 | Google Drive contextual retrieval | последовательный ancestry walk терял глубокий target после множества посторонних цепочек; fuzzy brand совпадал по подстроке; batch callback можно было подменить | bounded batch BFS, exact response binding, token-bound brand/folder matching, deadline/cancellation и fail-closed partial batch | deep 39×7 foreign-chain regression; focused L2 257; full 1158 | CLOSED |
 
+| Telegram task admission/session binding | transport source был перегружен хешем chat/topic, поэтому Core отклонял обычные Telegram-задачи до durable queue; последующее укрепление выявило forged ref, persistence и opaque callback gaps | разделены подписанный `source` и серверный `conversation_ref`; ref выводится только из trusted envelope, связан в policy, условно сохраняется и не меняет legacy digest; Google Sheets hint расширен | exact Gateway→prepare PASS; product phrases 14; full 1167; независимые L2/L3 ACCEPT | CLOSED |
+
 ## Устойчивые профилактические правила
 
 1. Admission подтверждается только после durable write.

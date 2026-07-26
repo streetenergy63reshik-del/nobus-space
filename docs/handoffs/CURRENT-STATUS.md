@@ -1,10 +1,30 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-26
-**Runtime feature commit:** `cc1a3ae`
-**Live release commit:** `cc1a3ae`
+**Runtime feature commit:** `28cb2ea`
+**Live release commit:** `28cb2ea`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
+
+## Telegram admission hotfix 26 июля 2026
+
+- Устранён массовый отказ обычных owner-задач до durable queue. Корень:
+  `TaskContract.source` ошибочно использовался одновременно как доверенный
+  transport source и как SDK session key; Core policy закономерно отклонял
+  `telegram:<hash>` вместо подписанного `telegram`.
+- Transport source снова равен доверенному ingress source. Отдельный
+  `conversation_ref` серверно выводится только из проверенного
+  tenant/chat/topic и используется для persistent Codex thread.
+- `conversation_ref` связан на Core boundary, условно сохраняется в Task/SQLite
+  и сохраняет legacy digest для старых записей. Forged/API/malformed binding
+  отклоняется fail-closed; opaque Telegram callback ID не интерпретируется.
+- Естественные owner-фразы web research и запросы Google Sheets/«гугл-таблица»
+  маршрутизируются в соответствующие product adapters.
+- L1: `1167 passed, 2 skipped, 1 warning`; exact
+  `TelegramGateway → prepare_instruction`: PASS; product phrase smoke:
+  `14 passed`; `compileall`, `pip check`, `git diff --check`: PASS.
+- Независимые L2 и L3: ACCEPT, открытых P0/P1/P2 нет. Четыре runtime-БД:
+  health PASS; Task Scheduler и polling checkpoint: active.
 
 ## Reliability hotfix 26 июля 2026
 
