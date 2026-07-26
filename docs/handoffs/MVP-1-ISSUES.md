@@ -61,6 +61,8 @@
 
 | Telegram task admission/session binding | transport source был перегружен хешем chat/topic, поэтому Core отклонял обычные Telegram-задачи до durable queue; последующее укрепление выявило forged ref, persistence и opaque callback gaps | разделены подписанный `source` и серверный `conversation_ref`; ref выводится только из trusted envelope, связан в policy, условно сохраняется и не меняет legacy digest; Google Sheets hint расширен | exact Gateway→prepare PASS; product phrases 14; full 1167; независимые L2/L3 ACCEPT | CLOSED |
 
+| Google Tasks create/list selection | Natural owner create с формой «в списке пространства» мог уйти в общий SDK route; общий `httplib2` service делился между worker threads; fuzzy resolver мог выбрать соседний список | anchored text/direct-voice/Business-Notes route; per-thread transport reset; exact normalized tasklist + closed alias; zero mutation retry, marker reconciliation и same-key in-process lock | target 143; full regression; independent L2/L3; read-only 21-list reproduction | CLOSED |
+
 ## Устойчивые профилактические правила
 
 1. Admission подтверждается только после durable write.

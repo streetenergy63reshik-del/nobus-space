@@ -5,6 +5,28 @@
 **Live release commit:** `b1e1086`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
+
+## Google Tasks natural creation reliability — 26 июля 2026
+
+- Текстовая owner-команда, direct-owner voice и команда вида «из резюме Заметок
+  бизнеса создай задачу…» используют один специализированный Google Tasks route,
+  а не общий Codex turn.
+- Имя tasklist разрешается только exact-normalized match. Для брендового списка
+  действует закрытый алиас `пространства` → `PROстранство`; fuzzy-write удалён,
+  поэтому соседний `PROстранство2` не может получить задачу по ошибке.
+- Google API service/HTTP transport создаётся отдельно на worker thread и
+  сбрасывается после SSL/read failure. Mutation transport retry остаётся
+  отключён; неизвестный исход записи сверяется по idempotency marker.
+- Одинаковый idempotency key сериализуется в одном процессе. Production сохраняет
+  invariant единственного runner через Task Scheduler и polling mutex.
+- Без отдельной кнопки разрешена только прямая утвердительная owner-команда.
+  Инфинитив, отрицание, отмена, пример/цитата/инструкция и управляющий текст
+  fail-closed. Явный заголовок в сбалансированных кавычках остаётся данными.
+- Direct owner voice выполняется без второй кнопки согласно актуальной продуктовой
+  политике; удаление Google Task по-прежнему требует action-bound L4.
+- Read-only live reproduction: 21 tasklist; `пространства` однозначно разрешён в
+  `PROстранство`. Реальная тестовая задача не создавалась без новой точной
+  owner-команды в Telegram.
 ## Runtime и Google Drive recovery hotfix — 26 июля 2026
 
 - Устранён повторный отказ длительных SDK-задач после первой временной ошибки:

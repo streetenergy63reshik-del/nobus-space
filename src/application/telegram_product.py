@@ -100,6 +100,72 @@ _CALENDAR_HINT_RE = re.compile(
     r"\b(?:календар\w*|встреч\w*|созвон\w*|событи\w*|calendar|meeting|appointment)\b",
     re.IGNORECASE,
 )
+_GOOGLE_TASKS_COMMAND_PREFIX = (
+    r"^\s*(?:пожалуйста\s*,?\s*)?"
+    r"(?:(?:из|по)\s+резюм\w*\s+замет\w*\s+бизнес\w*\s+)?"
+    r"(?:(?:в|для)\s+(?:google\s+tasks?|гугл\w*\s+таск\w*)\s+)?"
+)
+_GOOGLE_TASKS_TARGET = (
+    r"(?:мне\s+)?"
+    r"(?:(?:в|для)\s+(?:google\s+tasks?|гугл\w*\s+таск\w*)\s+)?"
+    r"(?:нов\w*\s+)?задач\w*\b"
+)
+_GOOGLE_TASKS_LIST_MUTATION_RE = re.compile(
+    _GOOGLE_TASKS_COMMAND_PREFIX
+    + r"(?:создай|добавь|запиши|"
+    r"поставь|перенеси)\s+"
+    + _GOOGLE_TASKS_TARGET
+    + r"(?s:.{0,160}?)\b(?:в|по)\s+списк\w*\b",
+    re.IGNORECASE,
+)
+_GOOGLE_TASKS_NON_ACTION_RE = re.compile(
+    r"\bничего\s+не\s+(?:делай|выполняй|исполняй|запускай|"
+    r"создавай|добавляй|изменяй)\b|"
+    r"\bне\s+(?:делай|выполняй|исполняй|запускай|создавай|"
+    r"добавляй|записывай|ставь|переноси|изменяй|обновляй|"
+    r"закрывай|отмечай|удаляй)\b|"
+    r"\bне\s+(?:выполнять|исполнять|запускать|создавать|добавлять|"
+    r"записывать|ставить|переносить|изменять|обновлять|закрывать|"
+    r"отмечать|удалять)\b|"
+    r"\b(?:команду|просьбу|запрос)\s+(?:отменить|не\s+(?:выполнять|"
+    r"исполнять|запускать|создавать|добавлять|изменять|удалять))\b|"
+    r"\bне\s+(?:нужно|надо|требуется|следует|стоит)\b|"
+    r"\bя\s+не\s+(?:хочу|буду)\b|"
+    r"\b(?:нельзя|запрещено|отмена|отменяю|отмени|передумал\w*)\b|"
+    r"\b(?:(?:это|только|просто|условн\w*)\s+(?:как\s+)?|как\s+)"
+    r"(?:пример|демонстрац\w*|цитат\w*|инструкц\w*)\b|"
+    r"\b(?:это\s+)?(?:пример|демонстрац\w*|цитат\w*|инструкц\w*)"
+    r"\s+команд\w*\b",
+    re.IGNORECASE,
+)
+_GOOGLE_TASK_ACTION_COMMANDS = {
+    GoogleTaskActionKind.CREATE: re.compile(
+        _GOOGLE_TASKS_COMMAND_PREFIX
+        + r"(?:создай|добавь|запиши|"
+        r"поставь)\s+"
+        + _GOOGLE_TASKS_TARGET,
+        re.IGNORECASE,
+    ),
+    GoogleTaskActionKind.UPDATE: re.compile(
+        _GOOGLE_TASKS_COMMAND_PREFIX
+        + r"(?:обнови|измени|перенеси|"
+        r"переименуй)\s+"
+        + _GOOGLE_TASKS_TARGET,
+        re.IGNORECASE,
+    ),
+    GoogleTaskActionKind.COMPLETE: re.compile(
+        _GOOGLE_TASKS_COMMAND_PREFIX
+        + r"(?:закрой|заверши|отметь)\s+"
+        + _GOOGLE_TASKS_TARGET,
+        re.IGNORECASE,
+    ),
+    GoogleTaskActionKind.DELETE: re.compile(
+        _GOOGLE_TASKS_COMMAND_PREFIX
+        + r"удали\s+"
+        + _GOOGLE_TASKS_TARGET,
+        re.IGNORECASE,
+    ),
+}
 _GOOGLE_TASKS_HINT_RE = re.compile(
     r"\b(?:google\s+tasks?|гугл[е]?\s+(?:задач\w*|таск\w*)|"
     r"задач\w*\s+в\s+google|список\s+google\s+tasks?)\b",
@@ -126,6 +192,57 @@ _GOOGLE_TASKS_DOMAIN_SWITCH_RE = re.compile(
     re.IGNORECASE,
 )
 
+
+def _is_google_tasks_list_mutation(value: str) -> bool:
+    return bool(_GOOGLE_TASKS_LIST_MUTATION_RE.search(value))
+
+
+def _instruction_without_planned_task_title(
+    value: str, action: GoogleTaskAction
+) -> str:
+    if action.kind is not GoogleTaskActionKind.CREATE or action.title is None:
+        return value
+    command = _GOOGLE_TASK_ACTION_COMMANDS[GoogleTaskActionKind.CREATE].search(value)
+    if command is None:
+        return value
+    suffix = value[command.end() :]
+    opening = re.match(
+        r"\s+(?:(?:в|для)\s+(?:google\s+tasks?|гугл\w*\s+таск\w*)\s+)?"
+        r"(?P<quote>[«“\"'])",
+        suffix,
+        re.IGNORECASE,
+    )
+    if opening is None:
+        return value
+    closing_quote = {"«": "»", "“": "”", '"': '"', "'": "'"}[
+        opening.group("quote")
+    ]
+    closing = suffix.find(closing_quote, opening.end())
+    if closing < 0:
+        return value
+    payload = suffix[opening.end() : closing]
+    if " ".join(payload.split()).casefold() != " ".join(
+        action.title.split()
+    ).casefold():
+        return value
+    start = command.end() + opening.end()
+    end = command.end() + closing
+    return value[:start] + value[end:]
+
+def _google_task_action_authorized(
+    value: str, action: GoogleTaskAction
+) -> bool:
+    if action.kind is GoogleTaskActionKind.LIST:
+        return True
+    command = _GOOGLE_TASK_ACTION_COMMANDS.get(action.kind)
+    instruction_without_title = _instruction_without_planned_task_title(
+        value, action
+    )
+    return bool(
+        command is not None
+        and command.search(value)
+        and not _GOOGLE_TASKS_NON_ACTION_RE.search(instruction_without_title)
+    )
 
 def _is_google_tasks_followup(value: str) -> bool:
     return bool(
@@ -1044,6 +1161,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         if (
             self._business_notes is not None
             and _NOTES_PRIVATE_HINT_RE.search(normalized)
+            and not _GOOGLE_TASKS_HINT_RE.search(normalized)
+            and not _is_google_tasks_list_mutation(normalized)
         ):
             await self._send_private_notes(message, normalized)
             return
@@ -1164,7 +1283,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     "Уточните точное имя файла.",
                 )
                 return
-        google_tasks_explicit = bool(_GOOGLE_TASKS_HINT_RE.search(normalized))
+        google_tasks_explicit = bool(
+            _GOOGLE_TASKS_HINT_RE.search(normalized)
+            or _is_google_tasks_list_mutation(normalized)
+        )
         google_tasks_followup = bool(
             _is_google_tasks_followup(normalized)
             and self._has_google_tasks_context(message)
@@ -1180,6 +1302,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 action = await self._google_tasks_planner.plan_google_task_action(
                     normalized, envelope
                 )
+                if not _google_task_action_authorized(normalized, action):
+                    action = GoogleTaskAction(kind=GoogleTaskActionKind.NONE)
                 if action.kind is GoogleTaskActionKind.DELETE:
                     if self._product_effects is None:
                         raise RuntimeError("Google Tasks deletion is unavailable")

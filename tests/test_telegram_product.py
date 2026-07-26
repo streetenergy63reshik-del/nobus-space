@@ -6,7 +6,7 @@ import base64
 import asyncio
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -695,6 +695,427 @@ class FakeGoogleTaskEffects(FakeCalendarDeleteEffects):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+async def test_task_in_named_list_routes_to_google_without_google_words(
+    tmp_path: Path, voice: bool
+) -> None:
+    instruction = (
+        "Создай задачу в списке пространства. Тестовая задача. "
+        "Срок до 1 августа."
+    )
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Тестовая задача",
+            list_name="пространства",
+            due=date(2026, 8, 1),
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.runtime.drafted == []
+
+
+@pytest.mark.asyncio
+async def test_task_from_business_notes_summary_is_not_hijacked_by_notes_view(
+    tmp_path: Path,
+) -> None:
+    instruction = (
+        "Из резюме Заметок бизнеса создай задачу подготовить документ клиенту "
+        "в списке пространства"
+    )
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Подготовить документ клиенту",
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        business_notes=BusinessNotesService(
+            SQLiteBusinessNotes(tmp_path / "notes.sqlite3")
+        ),
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(text_update(instruction, 1))
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+    assert harness.runtime.drafted == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "Не создавай задачу в списке пространства",
+        "Объясни, как создать задачу в Google Tasks, ничего не выполняй",
+        "Проверь, почему команда «создай задачу в Google Tasks» не работает",
+        "Я не хочу команду «создай задачу в Google Tasks»",
+        "Что означает команда «создай задачу в Google Tasks»?",
+        "Проанализируй фразу «создай задачу в Google Tasks»",
+        "Напиши инструкцию пользователю: «создай задачу в Google Tasks»",
+        "Создай задачу в Google Tasks, но не выполняй эту команду",
+        "Создай задачу в Google Tasks — это только пример команды",
+        "Создай задачу в Google Tasks — это пример команды",
+        "Создай задачу в Google Tasks, я не хочу",
+        "Создай задачу в Google Tasks — нельзя",
+        "Создай задачу в Google Tasks, не стоит",
+        "Создай задачу в Google Tasks — запрещено",
+        "Создай задачу в Google Tasks — «не выполняй эту команду»",
+        "Создай задачу в Google Tasks — «это только пример команды»",
+        "Создай задачу в Google Tasks, отменяю запрос",
+        "Создай задачу в Google Tasks, команду не выполнять",
+        "Создай задачу в Google Tasks, просьбу отменить",
+        "Создай задачу в Google Tasks — это демонстрация команды",
+        "Создай задачу в Google Tasks — это цитата",
+        "Создай задачу в Google Tasks — условный пример",
+    ),
+)
+@pytest.mark.parametrize("voice", [False, True])
+async def test_google_task_write_requires_affirmative_owner_command(
+    tmp_path: Path, instruction: str, voice: bool
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Не создавать",
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert effects.resolved == []
+    assert planner.instructions == ([instruction] if "Google" in instruction else [])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+async def test_infinitive_is_not_authorization_for_external_write(
+    tmp_path: Path, voice: bool
+) -> None:
+    instruction = "Создать задачу в Google Tasks в списке пространства"
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Тестовая задача",
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+@pytest.mark.parametrize(
+    ("instruction", "title"),
+    (
+        (
+            "Создай задачу не выполняй эту команду в Google Tasks",
+            "не выполняй эту команду",
+        ),
+        (
+            "Создай задачу это пример команды в Google Tasks",
+            "это пример команды",
+        ),
+        (
+            "Создай задачу отменяю запрос в Google Tasks",
+            "отменяю запрос",
+        ),
+    ),
+)
+async def test_unquoted_planner_title_cannot_erase_control_language(
+    tmp_path: Path, voice: bool, instruction: str, title: str
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title=title,
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert effects.resolved == []
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+async def test_negative_words_inside_quoted_task_title_are_payload(
+    tmp_path: Path, voice: bool
+) -> None:
+    instruction = (
+        "Создай задачу «Не нужно продлевать подписку» в Google Tasks"
+    )
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Не нужно продлевать подписку",
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+
+
+@pytest.mark.asyncio
+async def test_explicit_google_reference_in_document_is_not_executed(
+    tmp_path: Path,
+) -> None:
+    instruction = (
+        "Создай документ-инструкцию с фразой "
+        "«создай задачу в Google Tasks»"
+    )
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Не создавать",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(text_update(instruction, 1))
+
+    assert effects.resolved == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+@pytest.mark.parametrize(
+    ("instruction", "action"),
+    (
+        (
+            "Создать задачу в Google Tasks не нужно",
+            GoogleTaskAction(
+                kind=GoogleTaskActionKind.CREATE,
+                title="Не создавать",
+            ),
+        ),
+        (
+            "Обновить задачу в Google Tasks не требуется",
+            GoogleTaskAction(
+                kind=GoogleTaskActionKind.UPDATE,
+                target="Не обновлять",
+                title="Не обновлять",
+            ),
+        ),
+        (
+            "Закрыть задачу в Google Tasks не надо",
+            GoogleTaskAction(
+                kind=GoogleTaskActionKind.COMPLETE,
+                target="Не закрывать",
+            ),
+        ),
+        (
+            "Удалить задачу в Google Tasks не нужно",
+            GoogleTaskAction(
+                kind=GoogleTaskActionKind.DELETE,
+                target="Не удалять",
+            ),
+        ),
+    ),
+)
+async def test_postpositive_negation_blocks_every_google_task_write(
+    tmp_path: Path,
+    voice: bool,
+    instruction: str,
+    action: GoogleTaskAction,
+) -> None:
+    planner = FakeGoogleTasksPlanner(action)
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert effects.resolved == []
+    assert all(buttons == () for _, _, buttons in harness.api.sent)
+
+
+@pytest.mark.asyncio
+async def test_project_document_list_is_not_hijacked_by_google_tasks(
+    tmp_path: Path,
+) -> None:
+    instruction = "Создай в документе таблицу задач в списке проектов"
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Не создавать",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    await harness.control.handle(text_update(instruction, 1))
+
+    assert planner.instructions == []
+    assert effects.resolved == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "Создай задачу подготовить документ для клиента в списке пространства",
+        "Создай задачу проверить проект клиента в списке пространства",
+        "Создай задачу подготовить демонстрацию продукта в списке пространства",
+        "Создай задачу написать инструкцию клиенту в списке пространства",
+        "Создай задачу добавить пример в отчёт в списке пространства",
+    ),
+)
+async def test_direct_google_task_payload_can_name_business_domains(
+    tmp_path: Path, voice: bool, instruction: str
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title="Подготовить документ для клиента",
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert planner.instructions == [instruction]
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("voice", [False, True])
+@pytest.mark.parametrize(
+    ("instruction", "title"),
+    (
+        (
+            "Создай задачу в Google Tasks — «не выполняй эту команду»",
+            "не выполняй эту команду",
+        ),
+        (
+            "Создай задачу в Google Tasks — «это только пример команды»",
+            "это только пример команды",
+        ),
+    ),
+)
+async def test_quoted_control_language_is_not_mistaken_for_task_title(
+    tmp_path: Path, voice: bool, instruction: str, title: str
+) -> None:
+    planner = FakeGoogleTasksPlanner(
+        GoogleTaskAction(
+            kind=GoogleTaskActionKind.CREATE,
+            title=title,
+            list_name="пространства",
+        )
+    )
+    effects = FakeGoogleTaskEffects()
+    harness = _product(
+        tmp_path,
+        voice=voice,
+        voice_text=instruction,
+        product_effects=effects,
+        google_tasks_planner=planner,
+        google_tasks_service=FakeGoogleTasksService(),
+    )
+
+    update = voice_update(1) if voice else text_update(instruction, 1)
+    await harness.control.handle(update)
+
+    assert effects.resolved == []
+
+@pytest.mark.asyncio
 async def test_google_task_create_executes_without_confirmation(
     tmp_path: Path,
 ) -> None:
@@ -725,18 +1146,24 @@ async def test_google_task_create_executes_without_confirmation(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "action",
+    ("instruction", "action"),
     [
-        GoogleTaskAction(kind=GoogleTaskActionKind.LIST),
-        GoogleTaskAction(
-            kind=GoogleTaskActionKind.UPDATE,
-            target="Подготовить отчёт",
-            title="Подготовить итоговый отчёт",
+        (
+            "Покажи Google Tasks",
+            GoogleTaskAction(kind=GoogleTaskActionKind.LIST),
+        ),
+        (
+            "Обнови задачу Подготовить отчёт в Google Tasks",
+            GoogleTaskAction(
+                kind=GoogleTaskActionKind.UPDATE,
+                target="Подготовить отчёт",
+                title="Подготовить итоговый отчёт",
+            ),
         ),
     ],
 )
 async def test_google_task_list_and_update_execute_without_confirmation(
-    tmp_path: Path, action: GoogleTaskAction
+    tmp_path: Path, instruction: str, action: GoogleTaskAction
 ) -> None:
     planner = FakeGoogleTasksPlanner(action)
     effects = FakeGoogleTaskEffects()
@@ -747,7 +1174,7 @@ async def test_google_task_list_and_update_execute_without_confirmation(
         google_tasks_service=FakeGoogleTasksService(),
     )
 
-    await harness.control.handle(text_update("Покажи или обнови Google Tasks", 1))
+    await harness.control.handle(text_update(instruction, 1))
 
     assert effects.resolved == [(ProductEffectKind.GOOGLE_TASK, True)]
     assert harness.runtime.drafted == []

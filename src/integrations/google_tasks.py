@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
+import threading
 from datetime import date
 from enum import Enum
 from pathlib import Path
@@ -16,6 +18,10 @@ from src.integrations.google_transport import execute_request, load_service
 
 
 _MAX_PAGES = 100
+_IDEMPOTENCY_LOCKS = tuple(threading.Lock() for _ in range(64))
+_TASKLIST_KEY_ALIASES = {
+    "пространства": "пространство",
+}
 
 
 class GoogleTaskActionKind(str, Enum):
@@ -128,7 +134,9 @@ class GoogleTasksClient:
             raise ValueError("Google Tasks configuration is invalid")
         self._token_path = path
         self._service_factory = service_factory
-        self._service_instance: Any | None = None
+        # googleapiclient/httplib2 transports are not thread-safe. Each
+        # asyncio.to_thread worker owns its service and HTTP connection.
+        self._thread_service = threading.local()
 
     async def execute(
         self, action: GoogleTaskAction, *, idempotency_key: str
@@ -149,22 +157,25 @@ class GoogleTasksClient:
         await asyncio.to_thread(self._delete_sync, tasklist_id, task_id)
 
     def _service(self) -> Any:
-        if self._service_instance is not None:
-            return self._service_instance
+        service = getattr(self._thread_service, "instance", None)
+        if service is not None:
+            return service
         if self._service_factory is not None:
-            self._service_instance = self._service_factory()
-            return self._service_instance
+            service = self._service_factory()
+            self._thread_service.instance = service
+            return service
         if not self._token_path.is_file():
             raise RuntimeError("google_tasks_credentials_unavailable")
         try:
             scopes = ("https://www.googleapis.com/auth/tasks",)
-            self._service_instance = load_service(
+            service = load_service(
                 self._token_path,
                 api="tasks",
                 version="v1",
                 required_scopes=scopes,
             )
-            return self._service_instance
+            self._thread_service.instance = service
+            return service
         except ImportError:
             raise RuntimeError("google_tasks_dependency_unavailable") from None
         except RuntimeError:
@@ -172,12 +183,30 @@ class GoogleTasksClient:
         except Exception:
             raise RuntimeError("google_tasks_unavailable") from None
 
+    def _discard_service(self) -> None:
+        self._thread_service.__dict__.pop("instance", None)
+
     def _execute_sync(
         self, action: GoogleTaskAction, idempotency_key: str
     ) -> GoogleTaskResult:
         if action.kind is GoogleTaskActionKind.LIST:
             return self._list_result_sync(action)
         tasklist_id, tasklist_title = self._tasklist_sync(action.list_name)
+        with _idempotency_lock(tasklist_id, idempotency_key):
+            return self._execute_mutation_sync(
+                action,
+                tasklist_id,
+                tasklist_title,
+                idempotency_key,
+            )
+
+    def _execute_mutation_sync(
+        self,
+        action: GoogleTaskAction,
+        tasklist_id: str,
+        tasklist_title: str,
+        idempotency_key: str,
+    ) -> GoogleTaskResult:
         key_marker = _marker(idempotency_key)
         action_digest = hashlib.sha256(
             json.dumps(
@@ -211,6 +240,7 @@ class GoogleTasksClient:
                     )
                 )
             except Exception:
+                self._discard_service()
                 raise RuntimeError("google_tasks_write_failed") from None
             return self._result(
                 action.kind,
@@ -218,7 +248,10 @@ class GoogleTasksClient:
             )
         current = self._resolve_unique_sync(action)
         body: dict[str, object] = {
-            "notes": _notes(action.notes if action.notes is not None else current.notes, marker)
+            "notes": _notes(
+                action.notes if action.notes is not None else current.notes,
+                marker,
+            )
         }
         if action.kind is GoogleTaskActionKind.UPDATE:
             if action.title is not None:
@@ -238,6 +271,7 @@ class GoogleTasksClient:
                 )
             )
         except Exception:
+            self._discard_service()
             raise RuntimeError("google_tasks_write_failed") from None
         return self._result(
             action.kind,
@@ -265,33 +299,24 @@ class GoogleTasksClient:
                 raise RuntimeError("google_tasklist_not_found")
             return tuple(candidates)
         except RuntimeError:
+            self._discard_service()
             raise
         except Exception:
+            self._discard_service()
             raise RuntimeError("google_tasks_read_failed") from None
 
     def _tasklist_sync(self, name: str | None) -> tuple[str, str]:
         candidates = self._tasklists_sync()
-        selected = (
-            candidates[:1]
-            if name is None
-            else [
-                item
-                for item in candidates
-                if item[1].casefold() == name.strip().casefold()
-            ]
-        )
-        try:
-            if len(selected) != 1:
-                raise RuntimeError(
-                    "google_tasklist_not_found"
-                    if not selected
-                    else "google_tasklist_ambiguous"
-                )
-            return selected[0]
-        except RuntimeError:
-            raise
-        except Exception:
-            raise RuntimeError("google_tasks_read_failed") from None
+        if name is None:
+            return candidates[0]
+        requested = _tasklist_key(name)
+        exact = [item for item in candidates if _tasklist_key(item[1]) == requested]
+        if len(exact) == 1:
+            return exact[0]
+        if len(exact) > 1:
+            raise RuntimeError("google_tasklist_ambiguous")
+        raise RuntimeError("google_tasklist_not_found")
+
 
     def _list_result_sync(self, action: GoogleTaskAction) -> GoogleTaskResult:
         tasklists = (
@@ -363,8 +388,10 @@ class GoogleTasksClient:
                 self._item(item, tasklist_id, tasklist_title) for item in items
             )
         except (RuntimeError, ValueError):
+            self._discard_service()
             raise
         except Exception:
+            self._discard_service()
             raise RuntimeError("google_tasks_read_failed") from None
 
     def _resolve_unique_sync(self, action: GoogleTaskAction) -> GoogleTaskItem:
@@ -418,8 +445,10 @@ class GoogleTasksClient:
                 raise RuntimeError("google_tasks_idempotency_conflict")
             return self._item(matched[0], tasklist_id, tasklist_title)
         except (RuntimeError, ValueError):
+            self._discard_service()
             raise
         except Exception:
+            self._discard_service()
             raise RuntimeError("google_tasks_read_failed") from None
 
     @staticmethod
@@ -452,6 +481,7 @@ class GoogleTasksClient:
                 )
             )
         except Exception as error:
+            self._discard_service()
             if getattr(getattr(error, "resp", None), "status", None) != 404:
                 raise RuntimeError("google_tasks_delete_failed") from None
 
@@ -514,3 +544,19 @@ def _safe_text(value: object, limit: int) -> bool:
         and "\x00" not in value
         and len(value) <= limit
     )
+
+
+def _idempotency_lock(tasklist_id: str, idempotency_key: str) -> threading.Lock:
+    digest = hashlib.sha256(
+        f"{tasklist_id}\0{idempotency_key}".encode("utf-8")
+    ).digest()
+    return _IDEMPOTENCY_LOCKS[
+        int.from_bytes(digest[:2], "big") % len(_IDEMPOTENCY_LOCKS)
+    ]
+
+
+def _tasklist_key(value: str) -> str:
+    normalized = value.casefold().replace("ё", "е")
+    normalized = re.sub(r"^\s*pro(?=[\W_]*[а-я])", "про", normalized)
+    key = "".join(character for character in normalized if character.isalnum())
+    return _TASKLIST_KEY_ALIASES.get(key, key)
