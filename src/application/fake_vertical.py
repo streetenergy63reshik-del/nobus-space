@@ -24,6 +24,7 @@ from src.core.policy import (
     DuplicateIdempotencyKeyError,
     InMemoryPolicyStore,
     canonical_json_digest,
+    trusted_conversation_ref,
 )
 from src.models.task import Task, TaskStatus
 from src.orchestrator.state_manager import StateManager
@@ -246,6 +247,7 @@ class FakeVertical:
             ingress_digest=envelope.envelope_revision,
             tenant_id=envelope.tenant_id,
             source=envelope.source.value,
+            conversation_ref=trusted_conversation_ref(envelope),
             instruction=instruction,
             allowed_paths=(self._allowed_path,),
             permissions=self._PERMISSIONS,

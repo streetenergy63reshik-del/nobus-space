@@ -101,21 +101,24 @@ class StateManager:
         validated = TaskContract.model_validate(contract.model_dump())
         if validated.task_id in self._tasks:
             raise PolicyViolation("task is already registered")
+        payload = {
+            "acceptance_criteria": list(validated.acceptance_criteria),
+            "allowed_paths": list(validated.allowed_paths),
+            "ingress_digest": validated.ingress_digest,
+            "ingress_idempotency_key": validated.idempotency_key,
+            "permissions": list(validated.permissions),
+            "quality_profile": validated.quality_profile,
+            "timeout_seconds": validated.timeout_seconds,
+        }
+        if validated.conversation_ref is not None:
+            payload["conversation_ref"] = validated.conversation_ref
         task = Task(
             id=validated.task_id,
             tenant_id=validated.tenant_id,
             contract_digest=task_contract_digest(validated),
             source=TaskSource(validated.source),
             intent=validated.instruction,
-            payload={
-                "acceptance_criteria": list(validated.acceptance_criteria),
-                "allowed_paths": list(validated.allowed_paths),
-                "ingress_digest": validated.ingress_digest,
-                "ingress_idempotency_key": validated.idempotency_key,
-                "permissions": list(validated.permissions),
-                "quality_profile": validated.quality_profile,
-                "timeout_seconds": validated.timeout_seconds,
-            },
+            payload=payload,
             risk=validated.risk,
             status=TaskStatus.PENDING,
         )

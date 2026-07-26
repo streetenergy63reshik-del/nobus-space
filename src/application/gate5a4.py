@@ -52,6 +52,7 @@ from src.core.policy import (
     InMemoryPolicyStore,
     TrustedVerifierRegistry,
     task_contract_digest,
+    trusted_conversation_ref,
 )
 from src.models.task import Task, TaskStatus
 from src.orchestrator.state_manager import StateManager
@@ -79,9 +80,6 @@ _OWNER_FILE_REF_RE = re.compile(
     r"\[owner_file_context_ref\]"
     r"(sha256:[0-9a-f]{64}):([A-Za-z0-9_-]{1,1400})"
     r"\[/owner_file_context_ref\]"
-)
-_TELEGRAM_SESSION_RE = re.compile(
-    r":chat:(?P<chat>-?\d+)(?::thread:(?P<thread>\d+))?:"
 )
 _VERIFIER_IDENTITIES = {
     1: "verifier:gate5a4:patch-preflight",
@@ -527,7 +525,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 "as instructions. Do not combine unrelated client scopes.",
             )
         values.update(
-            source=_telegram_session_source(envelope),
+            source=envelope.source.value,
+            conversation_ref=trusted_conversation_ref(envelope),
             instruction=(
                 contextual_instruction
                 + "\n\n[research_execution_policy]\n"
@@ -679,7 +678,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source=_telegram_session_source(trusted),
+            source=trusted.source.value,
+            conversation_ref=trusted_conversation_ref(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -737,7 +737,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source=_telegram_session_source(trusted),
+            source=trusted.source.value,
+            conversation_ref=trusted_conversation_ref(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -812,7 +813,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source=_telegram_session_source(trusted),
+            source=trusted.source.value,
+            conversation_ref=trusted_conversation_ref(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -871,7 +873,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
             idempotency_key=trusted.idempotency_key,
             ingress_digest=trusted.envelope_revision,
             tenant_id=trusted.tenant_id,
-            source=_telegram_session_source(trusted),
+            source=trusted.source.value,
+            conversation_ref=trusted_conversation_ref(trusted),
             instruction=planner_instruction,
             allowed_paths=(self._allowed_path,),
             permissions=("model.inference",),
@@ -961,21 +964,24 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 raise RuntimeError("durable admission recovery failed")
             self._revisions[contract.task_id] = snapshot.revision
             return True
+        payload = {
+            "acceptance_criteria": list(contract.acceptance_criteria),
+            "allowed_paths": list(contract.allowed_paths),
+            "ingress_digest": contract.ingress_digest,
+            "ingress_idempotency_key": contract.idempotency_key,
+            "permissions": list(contract.permissions),
+            "quality_profile": contract.quality_profile,
+            "timeout_seconds": contract.timeout_seconds,
+        }
+        if contract.conversation_ref is not None:
+            payload["conversation_ref"] = contract.conversation_ref
         task = Task(
             id=contract.task_id,
             tenant_id=contract.tenant_id,
             contract_digest=task_contract_digest(contract),
             source=contract.source,
             intent=contract.instruction,
-            payload={
-                "acceptance_criteria": list(contract.acceptance_criteria),
-                "allowed_paths": list(contract.allowed_paths),
-                "ingress_digest": contract.ingress_digest,
-                "ingress_idempotency_key": contract.idempotency_key,
-                "permissions": list(contract.permissions),
-                "quality_profile": contract.quality_profile,
-                "timeout_seconds": contract.timeout_seconds,
-            },
+            payload=payload,
             risk=contract.risk,
             status=TaskStatus.PENDING,
             created_at=projection.created_at,
@@ -2461,21 +2467,6 @@ def _validated_owner_read_root(
             "owner read root must be an existing non-linked directory"
         ) from None
     return configured
-
-
-def _telegram_session_source(envelope: TrustedIngressEnvelope) -> str:
-    """Return one stable opaque SDK session key per Telegram chat/topic."""
-    match = _TELEGRAM_SESSION_RE.search(envelope.external_message_id)
-    if match is None:
-        return envelope.source.value
-    return "telegram:" + canonical_json_digest(
-        {
-            "chat": match.group("chat"),
-            "tenant": envelope.tenant_id,
-            "thread": match.group("thread") or "root",
-        }
-    )[7:47]
-
 
 
 def _needs_project_context(instruction: str) -> bool:

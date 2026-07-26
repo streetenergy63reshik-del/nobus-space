@@ -193,6 +193,12 @@ class TaskContract(ContractModel):
     ingress_digest: str
     tenant_id: str
     source: str
+    conversation_ref: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        pattern=r"^telegram:[0-9a-f]{40}$",
+    )
     instruction: str
     allowed_paths: tuple[str, ...] = Field(min_length=1)
     permissions: tuple[str, ...]
@@ -207,6 +213,11 @@ class TaskContract(ContractModel):
     @classmethod
     def validate_required_text(cls, value: str, info: Any) -> str:
         return _non_empty(value, info.field_name)
+
+    @field_validator("conversation_ref")
+    @classmethod
+    def validate_conversation_ref(cls, value: str | None) -> str | None:
+        return None if value is None else _non_empty(value, "conversation_ref")
 
     @field_validator("ingress_digest")
     @classmethod

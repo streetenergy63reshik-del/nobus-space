@@ -172,6 +172,34 @@ async def test_drive_link_request_without_dash_extracts_only_title(
     )
     assert worker.contract is None
 
+
+@pytest.mark.asyncio
+async def test_hyphenated_google_sheet_request_routes_to_drive(tmp_path) -> None:
+    effects = _Effects()
+    harness = _product(
+        tmp_path,
+        product_effects=effects,
+        google_drive_planner=_Planner(
+            GoogleDriveAction(
+                kind=GoogleDriveActionKind.DOWNLOAD,
+                query="Юнит экономика Ozon",
+            )
+        ),
+        google_drive_service=_Drive(),
+    )
+
+    await harness.control.handle(
+        text_update(
+            "Пришли ссылку на гугл-таблицу с юнит-экономикой Ozon "
+            "из папки PROстранство — Клиенты",
+            1,
+        )
+    )
+
+    assert effects.resolved == [(ProductEffectKind.GOOGLE_DRIVE, True)]
+    assert harness.runtime.drafted == []
+
+
 @pytest.mark.parametrize(
     "instruction",
     (

@@ -17,6 +17,9 @@ from src.application.gate5a4 import (
     _retain_evidenced_public_source_urls,
 )
 from src.application.telegram_product import _message_chunks
+from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
+from src.contracts.models import canonical_json_digest
+from src.core.policy import InMemoryPolicyStore, trusted_conversation_ref
 from src.integrations.google_tasks import (
     GoogleTaskAction,
     GoogleTaskActionKind,
@@ -25,6 +28,30 @@ from src.integrations.google_tasks import (
 from src.workers.codex_cli import CodexCliResult
 from tests.test_contracts import make_envelope
 from tests.test_telegram_product import _product, text_update
+
+
+def _telegram_envelope(
+    external_message_id: str = "update:42:user:7:chat:-100123:thread:77:message:42",
+) -> TrustedIngressEnvelope:
+    values = {
+        "ingress_id": __import__("uuid").uuid4(),
+        "tenant_id": "owner",
+        "source": IngressSource.TELEGRAM,
+        "actor_identity": "telegram:user:opaque",
+        "external_message_id": external_message_id,
+        "idempotency_key": "owner:telegram:42",
+        "received_at": datetime(2026, 7, 26, 9, 15, tzinfo=UTC),
+        "kind": IngressKind.TEXT,
+        "content_ref": "sha256:" + "2" * 64,
+        "auth_context_ref": "sha256:" + "3" * 64,
+    }
+    revision = canonical_json_digest(
+        TrustedIngressEnvelope.model_construct(
+            **values,
+            envelope_revision="sha256:" + "0" * 64,
+        ).model_dump(mode="json", exclude={"envelope_revision"})
+    )
+    return TrustedIngressEnvelope(**values, envelope_revision=revision)
 
 
 class _Request:
@@ -211,6 +238,66 @@ async def test_owner_research_phrases_use_web_profile(
     assert harness.runtime.drafted[0].contract.instruction.startswith(
         "[profile:research.web]\n"
     )
+
+
+def test_telegram_contract_keeps_trust_source_and_separate_conversation() -> None:
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = "C:/owner"
+    runtime._owner_read_root = None
+    runtime._nobus_memory = None
+    runtime._project_context = None
+    envelope = _telegram_envelope()
+
+    contract = runtime._contract("Подготовь краткий ответ", envelope)
+
+    assert contract.source == "telegram"
+    assert contract.conversation_ref == trusted_conversation_ref(envelope)
+    assert contract.conversation_ref is not None
+    InMemoryPolicyStore().register_contract(contract, envelope)
+
+
+def test_malformed_telegram_conversation_is_rejected_fail_closed() -> None:
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = "C:/owner"
+    runtime._owner_read_root = None
+    runtime._nobus_memory = None
+    runtime._project_context = None
+    envelope = _telegram_envelope("update:42:message:42")
+
+    with pytest.raises(Exception, match="conversation binding unavailable"):
+        runtime._contract("Подготовь краткий ответ", envelope)
+
+
+def test_policy_rejects_forged_conversation_ref() -> None:
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = "C:/owner"
+    runtime._owner_read_root = None
+    runtime._nobus_memory = None
+    runtime._project_context = None
+    envelope = _telegram_envelope()
+    contract = runtime._contract("Подготовь краткий ответ", envelope)
+    forged = contract.model_copy(
+        update={"conversation_ref": "telegram:" + "f" * 40}
+    )
+
+    with pytest.raises(Exception, match="contract/ingress binding mismatch"):
+        InMemoryPolicyStore().register_contract(forged, envelope)
+
+
+def test_policy_rejects_conversation_ref_for_api_ingress() -> None:
+    envelope = make_envelope()
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = "C:/owner"
+    runtime._owner_read_root = None
+    runtime._nobus_memory = None
+    runtime._project_context = None
+    contract = runtime._contract("Подготовь краткий ответ", envelope)
+    forged = contract.model_copy(
+        update={"conversation_ref": "telegram:" + "f" * 40}
+    )
+
+    with pytest.raises(Exception, match="contract/ingress binding mismatch"):
+        InMemoryPolicyStore().register_contract(forged, envelope)
 
 
 def test_long_effect_result_is_split_within_telegram_limit() -> None:

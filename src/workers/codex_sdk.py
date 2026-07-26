@@ -372,7 +372,8 @@ class CodexSdkAdapter:
         digest = hashlib.sha256(
             (
                 f"{_SESSION_SCHEMA_VERSION}\0{_MODEL}\0"
-                f"{contract.tenant_id}\0{contract.source}\0"
+                f"{contract.tenant_id}\0"
+                f"{contract.conversation_ref or contract.source}\0"
                 f"{contract.quality_profile}\0"
                 f"{','.join(sorted(contract.permissions))}\0{cwd}"
             ).encode("utf-8")

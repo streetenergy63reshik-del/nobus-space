@@ -285,6 +285,7 @@ async def test_text_vertical_completes_with_server_owned_contract_and_exact_bind
         ingress_digest=stored.payload["ingress_digest"],
         tenant_id=stored.tenant_id,
         source=stored.source.value,
+        conversation_ref=stored.payload.get("conversation_ref"),
         instruction=stored.intent,
         allowed_paths=tuple(stored.payload["allowed_paths"]),
         permissions=tuple(stored.payload["permissions"]),

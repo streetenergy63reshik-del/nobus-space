@@ -99,6 +99,7 @@ def _contract(
     workspace: Path,
     *,
     source: str = "telegram:one",
+    conversation_ref: str | None = None,
     permissions: tuple[str, ...] = ("model.inference",),
 ) -> TaskContract:
     return TaskContract(
@@ -107,6 +108,7 @@ def _contract(
         ingress_digest="sha256:" + "0" * 64,
         tenant_id="owner",
         source=source,
+        conversation_ref=conversation_ref,
         instruction="Ответь кратко.",
         allowed_paths=(str(workspace),),
         permissions=permissions,
@@ -226,6 +228,27 @@ async def test_sdk_isolates_sources_into_distinct_threads(tmp_path: Path) -> Non
 
     assert len(client.started) == 2
     assert client.started[0].name != client.started[1].name
+
+
+def test_sdk_isolates_conversations_without_overloading_trust_source(
+    tmp_path: Path,
+) -> None:
+    _, workspace, _, _ = _paths(tmp_path)
+    first = _contract(
+        workspace,
+        source="telegram",
+        conversation_ref="telegram:" + "a" * 40,
+    )
+    second = _contract(
+        workspace,
+        source="telegram",
+        conversation_ref="telegram:" + "b" * 40,
+    )
+
+    assert first.source == second.source == "telegram"
+    assert CodexSdkAdapter._session_name(
+        first, workspace
+    ) != CodexSdkAdapter._session_name(second, workspace)
 
 
 def test_sdk_session_identity_includes_capabilities(tmp_path: Path) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import threading
 from collections.abc import Collection, Mapping
 from datetime import datetime
@@ -154,10 +155,45 @@ def canonical_json_digest(value: Any) -> str:
         raise PolicyViolation("value is not strict JSON") from exc
 
 
+_TELEGRAM_CONVERSATION_RE = re.compile(
+    r"^update:\d+:user:\d+:chat:(?P<chat>-?\d+)"
+    r"(?::thread:(?P<thread>\d+))?:"
+    # Telegram callback query IDs are opaque strings. The gateway already
+    # validates the enclosing envelope length, so retain their exact domain.
+    r"(?:message:\d+|callback:[\s\S]+)"
+    r"(?::purpose:business_notes)?$"
+)
+
+
+def trusted_conversation_ref(
+    envelope: TrustedIngressEnvelope,
+) -> str | None:
+    """Derive the SDK conversation identity only from signed ingress facts."""
+    trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump())
+    if trusted.source.value != "telegram":
+        return None
+    match = _TELEGRAM_CONVERSATION_RE.fullmatch(
+        trusted.external_message_id
+    )
+    if match is None:
+        raise EventBindingError("telegram conversation binding unavailable")
+    return "telegram:" + canonical_json_digest(
+        {
+            "chat": match.group("chat"),
+            "tenant": trusted.tenant_id,
+            "thread": match.group("thread") or "root",
+        }
+    )[7:47]
+
+
 def task_contract_digest(contract: TaskContract) -> str:
     """Digest a validated public contract without accepting caller metadata."""
     validated = TaskContract.model_validate(contract.model_dump())
-    return canonical_json_digest(validated.model_dump(mode="json"))
+    # Preserve digests for contracts persisted before the optional
+    # conversation routing hint was introduced.
+    return canonical_json_digest(
+        validated.model_dump(mode="json", exclude_none=True)
+    )
 
 
 class InMemoryPolicyStore:
@@ -187,6 +223,7 @@ class InMemoryPolicyStore:
             or validated.tenant_id != trusted.tenant_id
             or validated.idempotency_key != trusted.idempotency_key
             or validated.ingress_digest != trusted.envelope_revision
+            or validated.conversation_ref != trusted_conversation_ref(trusted)
         ):
             raise EventBindingError("contract/ingress binding mismatch")
 

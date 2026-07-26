@@ -578,6 +578,23 @@ class SQLiteStore:
                     return False, stored
 
                 contract_digest = task_contract_digest(validated_contract)
+                expected_payload = {
+                    "acceptance_criteria": list(
+                        validated_contract.acceptance_criteria
+                    ),
+                    "allowed_paths": list(validated_contract.allowed_paths),
+                    "ingress_digest": validated_contract.ingress_digest,
+                    "ingress_idempotency_key": (
+                        validated_contract.idempotency_key
+                    ),
+                    "permissions": list(validated_contract.permissions),
+                    "quality_profile": validated_contract.quality_profile,
+                    "timeout_seconds": validated_contract.timeout_seconds,
+                }
+                if validated_contract.conversation_ref is not None:
+                    expected_payload["conversation_ref"] = (
+                        validated_contract.conversation_ref
+                    )
                 if (
                     validated_contract.tenant_id != validated_envelope.tenant_id
                     or validated_contract.source != validated_envelope.source.value
@@ -591,20 +608,7 @@ class SQLiteStore:
                     or validated_task.contract_digest != contract_digest
                     or validated_task.risk != validated_contract.risk
                     or validated_task.intent != validated_contract.instruction
-                    or validated_task.payload
-                    != {
-                        "acceptance_criteria": list(
-                            validated_contract.acceptance_criteria
-                        ),
-                        "allowed_paths": list(validated_contract.allowed_paths),
-                        "ingress_digest": validated_contract.ingress_digest,
-                        "ingress_idempotency_key": (
-                            validated_contract.idempotency_key
-                        ),
-                        "permissions": list(validated_contract.permissions),
-                        "quality_profile": validated_contract.quality_profile,
-                        "timeout_seconds": validated_contract.timeout_seconds,
-                    }
+                    or validated_task.payload != expected_payload
                     or validated_task.status != TaskStatus.PENDING
                     or validated_task.external_chat_id is not None
                     or validated_task.agent_id is not None

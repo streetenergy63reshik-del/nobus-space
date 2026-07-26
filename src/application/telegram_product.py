@@ -138,6 +138,7 @@ _BUSINESS_NOTES_BIND_REQUESTS = frozenset(
 )
 _GOOGLE_DRIVE_HINT_RE = re.compile(
     r"\b(?:google\s+drive|гугл[е]?\s+диск\w*|google\s+диск\w*|"
+    r"google\s+sheets?|гугл[-\s]+таблиц\w*|"
     r"(?:файл|документ)\w*\s+(?:из|на)\s+(?:google|гугл))\b",
     re.IGNORECASE,
 )

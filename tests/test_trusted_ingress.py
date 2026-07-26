@@ -16,6 +16,7 @@ from src.core import (
     DuplicateIdempotencyKeyError,
     EventBindingError,
     InMemoryPolicyStore,
+    trusted_conversation_ref,
 )
 from src.transport.telegram import (
     ActorBinding,
@@ -90,6 +91,7 @@ def telegram_contract(
         "ingress_digest": envelope.envelope_revision,
         "tenant_id": envelope.tenant_id,
         "source": "telegram",
+        "conversation_ref": trusted_conversation_ref(envelope),
         "instruction": "hello",
         "allowed_paths": ("workspace",),
         "permissions": ("repo.read",),
@@ -196,6 +198,36 @@ def _callback_update() -> dict[str, object]:
             "data": "AbcdEFgh_12345678",
         },
     }
+
+
+@pytest.mark.parametrize(
+    "query_id",
+    ("opaque:query", "opaque query", "q" * 129),
+)
+def test_trusted_conversation_ref_accepts_opaque_callback_query_id(
+    query_id: str,
+) -> None:
+    update = _callback_update()
+    callback = update["callback_query"]
+    assert isinstance(callback, dict)
+    callback["id"] = query_id
+    token = "AbcdEFgh_12345678"
+    gateway = TelegramGateway(
+        actor_bindings={(USER_ID, CHAT_ID): binding()},
+        update_id_store=InMemoryUpdateIdStore(),
+        callback_token_store=InMemoryCallbackTokenStore(
+            {token: (USER_ID, CHAT_ID)}
+        ),
+        clock=lambda: RECEIVED_AT,
+        ingress_id_factory=lambda: INGRESS_ID,
+    )
+
+    result = gateway.process_update(update)
+
+    assert result.envelope is not None
+    assert trusted_conversation_ref(result.envelope) == trusted_conversation_ref(
+        trusted()
+    )
 
 
 def _fail_once(first: object, second: object) -> Callable[[], object]:
