@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import html
 import ipaddress
 import os
 import re
 import socket
+import ssl
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import quote, unquote, urljoin, urlsplit
 
 import httpx
 
@@ -50,6 +53,242 @@ class DownloadProposal:
 
 class ResearchProvider(Protocol):
     async def research(self, instruction: str) -> str: ...
+
+
+@dataclass(frozen=True, repr=False, slots=True)
+class _PinnedHttpResponse:
+    status_code: int
+    headers: dict[str, str]
+    content: bytes
+
+
+async def _read_pinned_response(
+    reader: asyncio.StreamReader,
+) -> _PinnedHttpResponse:
+    try:
+        header_blob = await reader.readuntil(b"\r\n\r\n")
+    except (asyncio.IncompleteReadError, asyncio.LimitOverrunError):
+        raise NetworkBoundaryError("download_url_invalid") from None
+    if len(header_blob) > 32_768:
+        raise NetworkBoundaryError("download_url_invalid")
+    lines = header_blob[:-4].split(b"\r\n")
+    if not lines:
+        raise NetworkBoundaryError("download_url_invalid")
+    status_match = re.fullmatch(rb"HTTP/1\.[01] ([0-9]{3})(?: .*)?", lines[0])
+    if status_match is None:
+        raise NetworkBoundaryError("download_url_invalid")
+    status = int(status_match.group(1))
+    selected = {
+        "content-encoding",
+        "content-length",
+        "location",
+        "transfer-encoding",
+    }
+    headers: dict[str, str] = {}
+    for line in lines[1:]:
+        if b":" not in line:
+            raise NetworkBoundaryError("download_url_invalid")
+        raw_name, raw_value = line.split(b":", 1)
+        try:
+            name = raw_name.decode("ascii").strip().casefold()
+            value = raw_value.decode("latin-1").strip()
+        except UnicodeError:
+            raise NetworkBoundaryError("download_url_invalid") from None
+        if name in selected:
+            if name in headers or "\x00" in value or len(value) > 2_048:
+                raise NetworkBoundaryError("download_url_invalid")
+            headers[name] = value
+    if "transfer-encoding" in headers and "content-length" in headers:
+        raise NetworkBoundaryError("download_url_invalid")
+    if status in {301, 302, 303, 307, 308}:
+        return _PinnedHttpResponse(status, headers, b"")
+    if headers.get("content-encoding", "identity").casefold() not in {
+        "",
+        "identity",
+    }:
+        raise NetworkBoundaryError("download_url_invalid")
+    limit = 131_072
+    content = bytearray()
+    transfer = headers.get("transfer-encoding", "").casefold()
+    if transfer:
+        if transfer != "chunked":
+            raise NetworkBoundaryError("download_url_invalid")
+        while len(content) < limit:
+            size_line = await reader.readline()
+            if not size_line or len(size_line) > 128 or not size_line.endswith(b"\r\n"):
+                raise NetworkBoundaryError("download_url_invalid")
+            try:
+                size = int(size_line[:-2].split(b";", 1)[0], 16)
+            except ValueError:
+                raise NetworkBoundaryError("download_url_invalid") from None
+            if size == 0:
+                break
+            take = min(size, limit - len(content))
+            content.extend(await reader.readexactly(take))
+            if take < size:
+                break
+            if await reader.readexactly(2) != b"\r\n":
+                raise NetworkBoundaryError("download_url_invalid")
+    else:
+        raw_length = headers.get("content-length")
+        if raw_length is not None:
+            if not raw_length.isdigit():
+                raise NetworkBoundaryError("download_url_invalid")
+            length = min(int(raw_length), limit)
+            if length:
+                content.extend(await reader.readexactly(length))
+        else:
+            while len(content) < limit:
+                chunk = await reader.read(min(8_192, limit - len(content)))
+                if not chunk:
+                    break
+                content.extend(chunk)
+    return _PinnedHttpResponse(status, headers, bytes(content))
+
+
+async def _pinned_https_get(
+    url: str,
+    addresses: frozenset[str],
+) -> _PinnedHttpResponse:
+    parsed = urlsplit(url)
+    hostname = parsed.hostname or ""
+    ascii_host = hostname.encode("idna").decode("ascii")
+    target = quote(
+        parsed.path or "/",
+        safe="/:@-._~!$&'()*+,;=%",
+    )
+    if parsed.query:
+        target += "?" + quote(
+            parsed.query,
+            safe="=&?/:@-._~!$'()*+,;%",
+        )
+    request = (
+        f"GET {target} HTTP/1.1\r\n"
+        f"Host: {ascii_host}\r\n"
+        "Accept: text/html,text/plain,application/json;q=0.9,*/*;q=0.1\r\n"
+        "Accept-Encoding: identity\r\n"
+        "Connection: close\r\n"
+        "Range: bytes=0-131071\r\n"
+        "User-Agent: NobusSpaceBot/1.0 source-verifier\r\n\r\n"
+    ).encode("ascii")
+    context = ssl.create_default_context()
+    context.set_alpn_protocols(["http/1.1"])
+    for address in sorted(addresses):
+        writer: asyncio.StreamWriter | None = None
+        try:
+            reader, writer = await asyncio.open_connection(
+                host=address,
+                port=443,
+                ssl=context,
+                server_hostname=ascii_host,
+                limit=32_768,
+            )
+            peer = writer.get_extra_info("peername")
+            peer_value = peer[0] if isinstance(peer, tuple) else peer
+            if _normalized_public_ip(str(peer_value)) != address:
+                raise NetworkBoundaryError("download_url_invalid")
+            writer.write(request)
+            await writer.drain()
+            return await _read_pinned_response(reader)
+        except asyncio.CancelledError:
+            raise
+        except (OSError, UnicodeError, ValueError, ssl.SSLError, NetworkBoundaryError):
+            continue
+        finally:
+            if writer is not None:
+                writer.close()
+    raise NetworkBoundaryError("download_url_invalid")
+
+
+class SafeSourceVerifier:
+    """Fetch bounded content from one cited public HTTPS source."""
+
+    def __init__(
+        self,
+        *,
+        client: httpx.AsyncClient | None = None,
+        resolver=socket.getaddrinfo,
+        pinned_fetcher=_pinned_https_get,
+    ) -> None:
+        self._client = client
+        self._resolver = resolver
+        self._pinned_fetcher = pinned_fetcher
+
+    async def aclose(self) -> None:
+        return None
+
+    async def verify(self, url: str, quote: str) -> bool:
+        try:
+            async with asyncio.timeout(20):
+                current = _https_url_syntax(url)
+                for _ in range(4):
+                    hostname = urlsplit(current).hostname or ""
+                    expected_addresses = await asyncio.to_thread(
+                        _public_addresses, hostname, self._resolver
+                    )
+                    if self._client is None:
+                        response = await self._pinned_fetcher(
+                            current, expected_addresses
+                        )
+                        status_code = response.status_code
+                        headers = response.headers
+                        content = response.content
+                    else:
+                        async with self._client.stream(
+                            "GET",
+                            current,
+                            headers={
+                                "accept-encoding": "identity",
+                                "range": "bytes=0-131071",
+                                "user-agent": (
+                                    "NobusSpaceBot/1.0 source-verifier"
+                                ),
+                            },
+                        ) as remote:
+                            status_code = remote.status_code
+                            headers = dict(remote.headers)
+                            if headers.get(
+                                "content-encoding", "identity"
+                            ).casefold() not in {"", "identity"}:
+                                return False
+                            if remote.is_stream_consumed:
+                                content = remote.content
+                                if len(content) > 131_072:
+                                    return False
+                            else:
+                                body = bytearray()
+                                async for chunk in remote.aiter_raw(
+                                    chunk_size=8_192
+                                ):
+                                    body.extend(chunk)
+                                    if len(body) > 131_072:
+                                        return False
+                                content = bytes(body)
+                    if status_code in {301, 302, 303, 307, 308}:
+                        location = headers.get("location")
+                        if not location:
+                            return False
+                        current = _https_url_syntax(
+                            urljoin(current, location)
+                        )
+                        continue
+                    if not 200 <= status_code < 300 or not content:
+                        return False
+                    return _source_quote_matches(content, quote)
+                return False
+        except asyncio.CancelledError:
+            raise
+        except (
+            TimeoutError,
+            asyncio.IncompleteReadError,
+            asyncio.LimitOverrunError,
+            NetworkBoundaryError,
+            OSError,
+            UnicodeError,
+            ValueError,
+            httpx.HTTPError,
+        ):
+            return False
 
 
 class SafeDownloader:
@@ -213,6 +452,18 @@ class Quarantine:
 
 
 
+def _source_quote_matches(content: bytes, quote: str) -> bool:
+    if not isinstance(quote, str) or not 5 <= len(quote) <= 500:
+        return False
+    if not 5 <= len(re.findall(r"\w+", quote, re.UNICODE)) <= 30:
+        return False
+    source = content.decode("utf-8", errors="ignore")
+    source = html.unescape(re.sub(r"<[^>]{0,500}>", " ", source))
+    normalized_source = " ".join(source.casefold().split())
+    normalized_quote = " ".join(html.unescape(quote).casefold().split())
+    return bool(normalized_quote) and normalized_quote in normalized_source
+
+
 def _directory_identity(path: Path) -> tuple[int, int]:
     stat = path.stat()
     return stat.st_dev, stat.st_ino
@@ -222,18 +473,19 @@ def _connected_peer(response: httpx.Response) -> str:
         stream = response.extensions["network_stream"]
         peer = stream.get_extra_info("server_addr")
         value = peer[0] if isinstance(peer, tuple) else peer
-        address = str(ipaddress.ip_address(value))
-        if not _public_ip(address):
-            raise ValueError
-        return address
+        return _normalized_public_ip(str(value))
     except Exception:
         raise NetworkBoundaryError("download_url_invalid") from None
 
 
-def _validated_https_url(url: str, resolver) -> str:
-    if not isinstance(url, str) or len(url) > 2_048 or "\x00" in url:
+def _https_url_syntax(url: str) -> str:
+    if (
+        not isinstance(url, str)
+        or len(url) > 2_048
+        or any(ord(char) <= 32 or ord(char) == 127 for char in url)
+    ):
         raise NetworkBoundaryError("download_url_invalid")
-    parsed = urlsplit(url.strip())
+    parsed = urlsplit(url)
     if (
         parsed.scheme.casefold() != "https"
         or not parsed.hostname
@@ -243,33 +495,51 @@ def _validated_https_url(url: str, resolver) -> str:
         or parsed.port not in {None, 443}
     ):
         raise NetworkBoundaryError("download_url_invalid")
-    _public_addresses(parsed.hostname, resolver)
     return parsed.geturl()
+
+
+def _validated_https_url(url: str, resolver) -> str:
+    value = _https_url_syntax(url)
+    _public_addresses(urlsplit(value).hostname or "", resolver)
+    return value
 
 
 def _public_addresses(hostname: str, resolver) -> frozenset[str]:
     try:
         addresses = frozenset(
-            item[4][0]
+            _normalized_public_ip(item[4][0])
             for item in resolver(hostname, 443, type=socket.SOCK_STREAM)
         )
-        if not addresses or any(not _public_ip(value) for value in addresses):
+        if not addresses:
             raise ValueError
         return addresses
     except Exception:
         raise NetworkBoundaryError("download_url_invalid") from None
 
 
-def _public_ip(value: str) -> bool:
+def _normalized_public_ip(value: str) -> str:
     address = ipaddress.ip_address(value)
-    return not (
-        address.is_private
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+        address = address.ipv4_mapped
+    if (
+        not address.is_global
+        or address.is_multicast
+        or address.is_unspecified
+        or address.is_reserved
         or address.is_loopback
         or address.is_link_local
-        or address.is_multicast
-        or address.is_reserved
-        or address.is_unspecified
-    )
+        or address.is_private
+    ):
+        raise ValueError
+    return str(address)
+
+
+def _public_ip(value: str) -> bool:
+    try:
+        _normalized_public_ip(value)
+        return True
+    except ValueError:
+        return False
 
 
 def _download_name(url: str, disposition: str | None) -> str:

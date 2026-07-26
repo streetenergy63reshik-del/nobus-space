@@ -282,6 +282,17 @@ Gate 5A.4 worker contract имеет deadline 10 800 секунд (3 часа, �
 
 ### Историческая семантика до Queue 1/2
 
+### Диагностика длительного web research
+
+Не увеличивать трёхчасовой deadline при отказе через несколько минут: это
+признак transport failure, а не timeout Nobus. Research выполняет один turn
+persistent SDK. При `worker_start_failed`, `worker_failed`,
+`worker_protocol_error` или отсутствии evidence composite worker выполняет
+не более одного pinned ephemeral CLI fallback в пределах исходного deadline.
+Внешний retry поверх composite worker отключён.
+
+Fallback считается успешным только при наличии direct HTTPS URL и точной короткой `source_quote` из этой страницы. `SafeSourceVerifier` один раз разрешает DNS, закрепляет TLS-соединение за выбранным public IP с исходным SNI/Host и повторяет границу для redirect. Private/reserved/CGNAT/multicast, DNS rebinding, non-2xx, compressed или oversized body и несовпавшая цитата не становятся evidence. После отказа задача завершается безопасно; дополнительный model turn не запускается.
+
 Удалена из активного runbook. Действуют правила раздела «Operational override 2026-07-24» и ADR 0011.
 
 ### Локальная проверка Windows Job guard
@@ -426,3 +437,11 @@ Production запрещён, пока отсутствует хотя бы од�
    Calendar/Tasks/Drive и Business Notes.
 7. При P0/P1 остановить candidate, восстановить БД из backup и вернуть прежний
    live commit. Remote и push запрещены.
+
+### Web research dual-transport operational note — 2026-07-26
+
+The fallback is not a general retry. A research task may use at most one
+persistent SDK turn and one pinned ephemeral CLI turn inside the original
+three-hour deadline. The CLI result is eligible only after a completed trusted
+web-search trace. Before any URL becomes evidence, Nobus checks at most eight
+unique candidates. DNS is resolved once per hop; TLS connects directly to that public IP while preserving the original SNI/Host. A URL is retained only when its 5–30 word `source_quote` exactly matches the bounded identity-encoded page body. Do not weaken this boundary to DNS-only, post-connect peer checks or model-provided URLs.

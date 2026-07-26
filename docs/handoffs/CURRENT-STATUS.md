@@ -6,6 +6,23 @@
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
 
+## Web research dual-transport recovery — 26 июля 2026
+
+- Повторные продуктовые отказы длительного research происходили через 182–488
+  секунд при рабочем deadline 10 800 секунд. Причина — временный разрыв
+  WebSocket/stream официального Codex app-server, а не тайм-аут Telegram или Nobus.
+- Основной транспорт остаётся persistent official Codex SDK/app-server. Только для
+  `web.search` при transient transport failure или отсутствии подтверждённых
+  источников выполняется один изолированный `codex exec --json --ephemeral`.
+- Резервный CLI берётся из того же зафиксированного пакета `codex_cli_bin`
+  (`0.144.4`), запускается read-only, с live web и без shell, MCP, apps,
+  workspace-write и произвольного локального доступа.
+- Production-профиль `model.inference + owner.library.read + web.search`
+  сохраняет server-side owner projection. Локальные файлы не передаются CLI.
+- Fallback URL становится evidence только вместе с короткой точной цитатой из открытой страницы. `SafeSourceVerifier` один раз разрешает DNS, подключается TLS непосредственно к этому public IP с исходным SNI/Host, повторяет проверку на каждом redirect и принимает только совпавшую цитату из identity-encoded body не более 128 KiB. Private, CGNAT, multicast, mapped-special, DNS rebinding, non-2xx и blocked sources fail closed.
+- Общая граница inference — один SDK turn плюс один fallback turn. Только доставленный результат после `L3 -> ANSWERED` и `pipeline.finalize` становится явно недоверенным контекстом следующего turn.
+- L1: `1303 passed, 2 skipped, 1 warning`; compileall, pip check и diff-check: PASS. Live read-only owner-class business research: PASS, 3 независимо проверенных публичных источника.
+
 ## Google Tasks natural creation reliability — 26 июля 2026
 
 - Текстовая owner-команда, direct-owner voice и команда вида «из резюме Заметок

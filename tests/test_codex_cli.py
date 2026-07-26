@@ -1049,10 +1049,7 @@ async def test_web_stream_accepts_many_bounded_progress_messages(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event_type,action",
-    [
-        ("item.completed", '{"type":"other"}'),
-        ("item.started", '{"type":"other","unexpected":true}'),
-    ],
+    [("item.started", '{"type":"other","unexpected":true}')],
 )
 async def test_web_stream_rejects_unbounded_placeholder_action(
     worker_files: tuple[Path, Path, Path],

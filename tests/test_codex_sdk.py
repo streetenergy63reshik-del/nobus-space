@@ -19,8 +19,8 @@ from openai_codex.generated.v2_all import (
 )
 
 from src.contracts import RiskLevel, TaskContract
-from src.workers.codex_cli import CodexCliError
-from src.workers.codex_sdk import CodexSdkAdapter
+from src.workers.codex_cli import CodexCliError, CodexCliResult
+from src.workers.codex_sdk import CodexSdkAdapter, ResilientCodexAdapter
 
 
 class _Turn:
@@ -323,6 +323,299 @@ async def test_sdk_invalidates_failed_app_server_before_retry(
     assert recovered.entered is True
     assert json.loads(result.message) == {"answer": "ok"}
 
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_falls_back_only_for_web_transport_failure(
+    tmp_path: Path,
+) -> None:
+    class Verifier:
+        async def verify(self, url: str, quote: str) -> bool:
+            return url == "https://example.com"
+
+        async def aclose(self) -> None:
+            return None
+
+    class Worker:
+        def __init__(self, result=None, error: str | None = None) -> None:
+            self.result = result
+            self.error = error
+            self.calls: list[TaskContract] = []
+
+        async def execute(self, contract: TaskContract):
+            self.calls.append(contract)
+            if self.error is not None:
+                raise CodexCliError(self.error)
+            return self.result
+
+        async def close(self) -> None:
+            return None
+
+    _, workspace, _, _ = _paths(tmp_path)
+    contract = _contract(workspace).model_copy(
+        update={
+            "permissions": (
+                "model.inference",
+                "owner.library.read",
+                "web.search",
+            )
+        }
+    )
+    recovered = CodexCliResult(
+        message='{"kind":"answer","answer":"ok https://example.com [source_quote: safe source content from page]","summary":null,"patch":null,"paths":null}',
+        web_search_observed=True,
+    )
+    primary = Worker(error="worker_failed")
+    fallback = Worker(result=recovered)
+    adapter = ResilientCodexAdapter(primary, fallback, Verifier())
+
+    result = await adapter.execute(contract)
+    assert result == recovered.model_copy(
+        update={
+            "message": (
+                '{"kind":"answer","answer":"ok https://example.com","summary":null,"patch":null,"paths":null}'
+            ),
+            "fallback_used": True,
+            "source_urls": ("https://example.com",),
+        }
+    )
+    adapter.remember_delivered(contract, result)
+    assert primary.calls == [contract]
+    assert fallback.calls[0].permissions == contract.permissions
+
+    non_web = contract.model_copy(update={"permissions": ("model.inference",)})
+    with pytest.raises(CodexCliError, match="worker failed"):
+        await adapter.execute(non_web)
+    assert len(fallback.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_verifies_cited_fallback_urls(
+    tmp_path: Path,
+) -> None:
+    class Primary:
+        async def execute(self, contract):
+            raise CodexCliError("worker_failed")
+
+        async def close(self):
+            return None
+
+    class Fallback:
+        async def execute(self, contract):
+            return CodexCliResult(
+                message='{"answer":"https://example.com [source_quote: safe source content from page] https://spoof.invalid [source_quote: spoof source content from page]"}',
+                web_search_observed=True,
+            )
+
+    class Verifier:
+        async def verify(self, url, quote):
+            return url == "https://example.com"
+
+    _, workspace, _, _ = _paths(tmp_path)
+    contract = _contract(workspace).model_copy(
+        update={
+            "permissions": (
+                "model.inference",
+                "owner.library.read",
+                "web.search",
+            )
+        }
+    )
+    result = await ResilientCodexAdapter(
+        Primary(), Fallback(), Verifier()
+    ).execute(contract)
+
+    assert result.source_urls == ("https://example.com",)
+
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_uses_each_transport_once(tmp_path: Path) -> None:
+    class Worker:
+        def __init__(self, result):
+            self.result = result
+            self.calls = 0
+
+        async def execute(self, contract):
+            self.calls += 1
+            return self.result
+
+        async def close(self):
+            return None
+
+    class Verifier:
+        async def verify(self, url, quote):
+            return True
+
+    _, workspace, _, _ = _paths(tmp_path)
+    contract = _contract(workspace).model_copy(
+        update={"permissions": ("model.inference", "web.search")}
+    )
+    primary = Worker(CodexCliResult(message='{"answer":"no source"}'))
+    fallback = Worker(
+        CodexCliResult(
+            message='{"answer":"https://example.com [source_quote: safe source content from page]"}',
+            web_search_observed=True,
+        )
+    )
+    result = await ResilientCodexAdapter(
+        primary, fallback, Verifier()
+    ).execute(contract)
+
+    assert result.source_urls == ("https://example.com",)
+    assert primary.calls == fallback.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_carries_fallback_context_to_next_turn(
+    tmp_path: Path,
+) -> None:
+    class Primary:
+        def __init__(self):
+            self.calls = []
+
+        async def execute(self, contract):
+            self.calls.append(contract)
+            if len(self.calls) == 1:
+                raise CodexCliError("worker_failed")
+            return CodexCliResult(message='{"answer":"follow-up"}')
+
+        async def close(self):
+            return None
+
+    class Fallback:
+        async def execute(self, contract):
+            return CodexCliResult(
+                message='{"answer":"research https://example.com [source_quote: safe source content from page]"}',
+                web_search_observed=True,
+            )
+
+    class Verifier:
+        async def verify(self, url, quote):
+            return True
+
+    _, workspace, _, _ = _paths(tmp_path)
+    reference = "telegram:" + "c" * 40
+    first = _contract(workspace).model_copy(
+        update={
+            "permissions": ("model.inference", "web.search"),
+            "conversation_ref": reference,
+        }
+    )
+    primary = Primary()
+    adapter = ResilientCodexAdapter(primary, Fallback(), Verifier())
+    result = await adapter.execute(first)
+    adapter.remember_delivered(first, result)
+    second = first.model_copy(
+        update={"task_id": uuid4(), "instruction": "continue"}
+    )
+    await adapter.execute(second)
+
+    assert "previous_verified_web_answer" in primary.calls[1].instruction
+    assert "research https://example.com" in primary.calls[1].instruction
+    assert primary.calls[1].instruction.endswith("continue")
+
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_remembers_delivered_primary_web_once(
+    tmp_path: Path,
+) -> None:
+    class Primary:
+        def __init__(self):
+            self.calls = []
+
+        async def execute(self, contract):
+            self.calls.append(contract)
+            if len(self.calls) == 1:
+                return CodexCliResult(
+                    message='{"answer":"accepted primary answer"}',
+                    source_urls=("https://example.com",),
+                )
+            return CodexCliResult(message='{"answer":"follow-up"}')
+
+        async def close(self):
+            return None
+
+    class Fallback:
+        async def execute(self, contract):
+            raise AssertionError("verified primary must not use fallback")
+
+    class Verifier:
+        async def verify(self, url, quote):
+            raise AssertionError("verified primary source is SDK-owned evidence")
+
+    _, workspace, _, _ = _paths(tmp_path)
+    reference = "telegram:" + "d" * 40
+    first = _contract(workspace).model_copy(
+        update={
+            "permissions": ("model.inference", "web.search"),
+            "conversation_ref": reference,
+        }
+    )
+    primary = Primary()
+    adapter = ResilientCodexAdapter(primary, Fallback(), Verifier())
+    result = await adapter.execute(first)
+    adapter.remember_delivered(first, result)
+    second = first.model_copy(
+        update={
+            "task_id": uuid4(),
+            "instruction": "continue",
+            "permissions": ("model.inference",),
+        }
+    )
+    await adapter.execute(second)
+
+    instruction = primary.calls[1].instruction
+    assert instruction.count("previous_verified_web_answer") == 2
+    assert instruction.count("accepted primary answer") == 1
+    assert instruction.endswith("continue")
+
+
+@pytest.mark.asyncio
+async def test_resilient_adapter_does_not_remember_unverified_fallback(
+    tmp_path: Path,
+) -> None:
+    class Primary:
+        def __init__(self):
+            self.calls = []
+
+        async def execute(self, contract):
+            self.calls.append(contract)
+            if len(self.calls) == 1:
+                raise CodexCliError("worker_failed")
+            return CodexCliResult(message='{"answer":"follow-up"}')
+
+        async def close(self):
+            return None
+
+    class Fallback:
+        async def execute(self, contract):
+            return CodexCliResult(
+                message='{"answer":"unverified https://spoof.invalid [source_quote: spoof source content from page]"}',
+                web_search_observed=True,
+            )
+
+    class Verifier:
+        async def verify(self, url, quote):
+            return False
+
+    _, workspace, _, _ = _paths(tmp_path)
+    reference = "telegram:" + "u" * 40
+    first = _contract(workspace).model_copy(
+        update={
+            "permissions": ("model.inference", "web.search"),
+            "conversation_ref": reference,
+        }
+    )
+    primary = Primary()
+    adapter = ResilientCodexAdapter(primary, Fallback(), Verifier())
+    result = await adapter.execute(first)
+    assert result.source_urls == ()
+
+    second = first.model_copy(
+        update={"task_id": uuid4(), "instruction": "continue"}
+    )
+    await adapter.execute(second)
+
+    assert primary.calls[1].instruction == "continue"
 
 
 @pytest.mark.asyncio
@@ -957,3 +1250,27 @@ def test_sdk_extracts_only_urls_opened_by_web_search() -> None:
     assert CodexSdkAdapter._web_source_urls(items) == (
         "https://openai.com/news",
     )
+
+@pytest.mark.asyncio
+async def test_sdk_rejects_unsupported_mixed_permission_profile(
+    tmp_path: Path,
+) -> None:
+    workspace, _, home, temp = _paths(tmp_path)
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=workspace,
+        codex_home=home,
+        temp_root=temp,
+    )
+    contract = _contract(workspace).model_copy(
+        update={
+            "permissions": (
+                "model.inference",
+                "repo.read",
+                "web.search",
+            )
+        }
+    )
+
+    with pytest.raises(CodexCliError, match="not allowed"):
+        await adapter.execute(contract)

@@ -64,6 +64,30 @@ def test_selector_skips_cli_that_cannot_start(
     assert runner._required_codex_executable(tmp_path) == working.resolve()
 
 
+def test_production_selector_prefers_pinned_bundled_codex(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundled = tmp_path / "bundled" / "codex.exe"
+    bundled.parent.mkdir()
+    bundled.touch()
+    monkeypatch.setattr(runner, "bundled_codex_path", lambda: bundled)
+    monkeypatch.setattr(runner.shutil, "which", lambda name: None)
+    calls: list[Path] = []
+
+    def run(argv: tuple[str, str], **options: object) -> SimpleNamespace:
+        calls.append(Path(argv[0]))
+        return SimpleNamespace(
+            returncode=0,
+            stdout=b"codex-cli 0.144.4\n",
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(runner.subprocess, "run", run)
+
+    assert runner._required_codex_executable() == bundled.resolve()
+    assert calls == [bundled.resolve()]
+
+
 def test_live_polling_lease_covers_only_telegram_processing() -> None:
     assert runner._POLLING_LEASE_SECONDS == 240
     assert runner._POLLING_LEASE_SECONDS > 30

@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import httpx
+from codex_cli_bin import bundled_codex_path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -420,7 +421,11 @@ def _extension_version(executable: Path) -> tuple[int, ...]:
 
 def _required_codex_executable(home: Path | None = None) -> Path:
     """Select an installed CLI that can actually start, preferring VS Code bundles."""
-    candidates: list[Path] = []
+    candidates: list[Path] = (
+        [bundled_codex_path()]
+        if home is None
+        else []
+    )
     extension_root = (home or Path.home()) / ".vscode" / "extensions"
     try:
         candidates.extend(

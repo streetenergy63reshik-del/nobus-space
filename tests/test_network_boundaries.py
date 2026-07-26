@@ -6,7 +6,12 @@ import httpx
 import pytest
 
 from src.application.network_commands import NetworkCommandRunner
-from src.application.network_tools import NetworkBoundaryError, Quarantine, SafeDownloader
+from src.application.network_tools import (
+    NetworkBoundaryError,
+    Quarantine,
+    SafeDownloader,
+    SafeSourceVerifier,
+)
 from src.application.task_profiles import (
     PROFILE_POLICIES,
     TaskProfile,
@@ -38,6 +43,65 @@ async def test_download_preview_is_https_public_bounded_and_not_written(tmp_path
     assert proposal.filename == "report.pdf"
     assert proposal.content.startswith(b"%PDF-")
     assert list(tmp_path.iterdir()) == []
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_source_verifier_accepts_only_public_responding_https() -> None:
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if request.url.path == "/redirect":
+            return httpx.Response(302, headers={"location": "/article"})
+        return httpx.Response(200, content=b"safe source content from page")
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    verifier = SafeSourceVerifier(
+        client=client, resolver=lambda *a, **k: PUBLIC
+    )
+
+    assert await verifier.verify("https://example.com/article", "safe source content from page")
+    assert await verifier.verify("https://example.com/redirect", "safe source content from page")
+    assert not await verifier.verify("http://example.com/article", "safe source content from page")
+    private = SafeSourceVerifier(
+        client=client, resolver=lambda *a, **k: PRIVATE
+    )
+    assert not await private.verify("https://127.0.0.1/article", "safe source content from page")
+    assert calls
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_source_verifier_enforces_exact_quote_word_bounds() -> None:
+    words = [f"word{index}" for index in range(1, 32)]
+    content = " ".join(words).encode("ascii")
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, content=content)
+        )
+    )
+    verifier = SafeSourceVerifier(
+        client=client,
+        resolver=lambda *args, **kwargs: PUBLIC,
+    )
+
+    assert not await verifier.verify(
+        "https://example.com/article",
+        " ".join(words[:4]),
+    )
+    assert await verifier.verify(
+        "https://example.com/article",
+        " ".join(words[:5]),
+    )
+    assert await verifier.verify(
+        "https://example.com/article",
+        " ".join(words[:30]),
+    )
+    assert not await verifier.verify(
+        "https://example.com/article",
+        " ".join(words),
+    )
     await client.aclose()
 
 

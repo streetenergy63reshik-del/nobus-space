@@ -20,9 +20,11 @@ from types import MappingProxyType
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
+from codex_cli_bin import bundled_codex_path
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.application.durable_runtime import DurableFakeRuntime, PreparedTask
+from src.application.network_tools import SafeSourceVerifier
 from src.application.task_profiles import PROFILE_POLICIES, TaskProfile
 from src.application.patch_confirmation import PatchProposal, patch_proposal_digest
 from src.application.fake_vertical import FakeVerticalResponse, FakeVerticalStatus
@@ -59,11 +61,15 @@ from src.orchestrator.state_manager import StateManager
 from src.storage import SQLiteStore
 from src.transport.telegram import TelegramGateway
 from src.workers.codex_cli import (
+    CodexCliAdapter,
     CodexCliError,
     CodexCliResult,
     _directory_identity,
+    build_worker_env,
 )
-from src.workers.codex_sdk import CodexSdkAdapter
+from src.workers.codex_sdk import CodexSdkAdapter, ResilientCodexAdapter
+from src.workers.asyncio_spawner import AsyncioProcessSpawner
+from src.workers.windows_job import WindowsJobLauncher
 from src.workers.codex_patch import (
     CodexAnswerDraft,
     CodexPatchDraft,
@@ -1214,7 +1220,6 @@ class Gate5A4Runtime(DurableFakeRuntime):
                     )
 
                 worker_result = await execute_within_deadline(contract)
-                observed_source_urls = worker_result.source_urls
                 draft = parse_codex_draft(worker_result.message, self._pipeline.root)
                 if "web.search" in contract.permissions and (
                     not isinstance(draft, CodexAnswerDraft)
@@ -1222,56 +1227,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                         draft.answer, worker_result.source_urls
                     )
                 ):
-                    repair_values = contract.model_dump(mode="python")
-                    repair_values["instruction"] = (
-                        contract.instruction
-                        + "\n\nThe previous draft omitted verifiable direct URLs. "
-                        "Use live web search now, open the source pages, and return "
-                        "the best useful answer with direct https:// source links."
-                    )
-                    worker_result = await execute_within_deadline(
-                        TaskContract.model_validate(repair_values)
-                    )
-                    observed_source_urls = tuple(
-                        dict.fromkeys(
-                            (*observed_source_urls, *worker_result.source_urls)
-                        )
-                    )
-                    worker_result = worker_result.model_copy(
-                        update={"source_urls": observed_source_urls}
-                    )
-                    draft = parse_codex_draft(
-                        worker_result.message, self._pipeline.root
-                    )
-                    if (
-                        not isinstance(draft, CodexAnswerDraft)
-                        or not _has_evidenced_public_source_url(
-                            draft.answer, worker_result.source_urls
-                        )
-                    ):
-                        if isinstance(draft, CodexAnswerDraft):
-                            sanitized_answer = _retain_evidenced_public_source_urls(
-                                draft.answer,
-                                observed_source_urls,
-                            )
-                            if sanitized_answer:
-                                draft = CodexAnswerDraft(answer=sanitized_answer)
-                                worker_result = worker_result.model_copy(
-                                    update={
-                                        "message": json.dumps(
-                                            {"answer": sanitized_answer},
-                                            ensure_ascii=False,
-                                            separators=(",", ":"),
-                                        )
-                                    }
-                                )
-                        if (
-                            not isinstance(draft, CodexAnswerDraft)
-                            or not _has_evidenced_public_source_url(
-                                draft.answer, observed_source_urls
-                            )
-                        ):
-                            raise CodexCliError("worker_protocol_error")
+                    raise CodexCliError("worker_protocol_error")
                 if isinstance(draft, CodexAnswerDraft):
                     await self._require_safe_owner_file_answer(contract, draft.answer)
                 task = await self._record_worker_result(
@@ -1372,6 +1328,9 @@ class Gate5A4Runtime(DurableFakeRuntime):
                         message="Read-only answer audit failed.",
                     )
                 await self._pipeline.finalize(task.id)
+                remember = getattr(self._worker, "remember_delivered", None)
+                if callable(remember):
+                    remember(contract, worker_result)
                 return Gate5A4DraftOutcome(
                     status=FakeVerticalStatus.COMPLETED,
                     task_id=task.id,
@@ -1406,7 +1365,8 @@ class Gate5A4Runtime(DurableFakeRuntime):
         worker_contract = await self._worker_contract(contract)
         loop = asyncio.get_running_loop()
         deadline = loop.time() + contract.timeout_seconds
-        for attempt in range(2):
+        attempts = 1 if getattr(self._worker, "manages_retry", False) else 2
+        for attempt in range(attempts):
             remaining = deadline - loop.time()
             if remaining <= 0:
                 raise CodexCliError("worker_timeout")
@@ -1418,7 +1378,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             except TimeoutError:
                 raise CodexCliError("worker_timeout") from None
             except CodexCliError as error:
-                if attempt == 1 or error.code not in {
+                if attempt == attempts - 1 or error.code not in {
                     "worker_start_failed",
                     "worker_failed",
                     "worker_protocol_error",
@@ -2521,12 +2481,46 @@ def build_gate5a4_runtime(
     """Build the live worker using the accepted process and durable boundaries."""
     root = Path(worktree).resolve(strict=True)
     owner_root = _validated_owner_read_root(owner_read_root)
-    worker = CodexSdkAdapter(
+    primary_worker = CodexSdkAdapter(
         workspace_root=root,
         owner_root=owner_root or root,
         codex_home=codex_home,
         temp_root=temp_root,
         max_timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
+    )
+    worker_env = build_worker_env(
+        codex_home=codex_home,
+        system_root=system_root,
+        temp_root=temp_root,
+        workspace_root=root,
+        path_entries=path_entries,
+    )
+    fallback_executable = bundled_codex_path().resolve(strict=True)
+    launcher = WindowsJobLauncher(
+        workspace_root=root,
+        target_executable=fallback_executable,
+        python_executable=python_executable,
+        worker_env=worker_env,
+    )
+    spawner = AsyncioProcessSpawner(
+        workspace_root=root,
+        executable=fallback_executable,
+        spawn=launcher,
+        tree_killer=launcher.kill_tree,
+        worker_env=worker_env,
+    )
+    web_fallback = CodexCliAdapter(
+        workspace_root=root,
+        executable=fallback_executable,
+        spawner=spawner,
+        owner_read_root=owner_root,
+        stdout_limit=2 * 1024 * 1024,
+        max_timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
+        cleanup_timeout=10,
+        worker_env=worker_env,
+    )
+    worker = ResilientCodexAdapter(
+        primary_worker, web_fallback, SafeSourceVerifier()
     )
     pipeline = GitPatchVerificationPipeline(
         worktree=root,

@@ -78,6 +78,76 @@ async def test_web_profile_accepts_only_bounded_web_search_events(
 
     assert result.message == "done"
 
+
+@pytest.mark.asyncio
+async def test_web_profile_does_not_self_attest_source_urls(worker_files) -> None:
+    _, allowed, _ = worker_files
+    output = (
+        b'{"type":"thread.started","thread_id":"thread"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.completed","item":{"id":"search","type":"web_search",'
+        b'"query":"official source","action":{"type":"search",'
+        b'"query":"official source"}}}\n'
+        b'{"type":"item.completed","item":{"id":"open","type":"web_search",'
+        b'"query":"official source","action":{"type":"open_page",'
+        b'"url":"https://example.com/source"}}}\n'
+        b'{"type":"item.completed","item":{"id":"answer","type":'
+        b'"agent_message","text":"https://example.com/source"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":1,'
+        b'"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files,
+        FakeProcess(output=ProcessOutput(output, b"", 0)),
+    )
+
+    result = await adapter.execute(
+        make_contract(
+            allowed,
+            permissions=["model.inference", "web.search"],
+        )
+    )
+
+    assert result.source_urls == ()
+
+
+@pytest.mark.asyncio
+async def test_web_profile_accepts_current_completed_other_and_cited_source(
+    worker_files,
+) -> None:
+    _, allowed, _ = worker_files
+    output = (
+        b'{"type":"thread.started","thread_id":"thread"}\n'
+        b'{"type":"turn.started"}\n'
+        b'{"type":"item.started","item":{"id":"web-1","type":"web_search",'
+        b'"query":"","action":{"type":"other"}}}\n'
+        b'{"type":"item.completed","item":{"id":"web-1","type":"web_search",'
+        b'"query":"official source","action":{"type":"search",'
+        b'"query":"official source"}}}\n'
+        b'{"type":"item.started","item":{"id":"web-2","type":"web_search",'
+        b'"query":"","action":{"type":"other"}}}\n'
+        b'{"type":"item.completed","item":{"id":"web-2","type":"web_search",'
+        b'"query":"official source","action":{"type":"other"}}}\n'
+        b'{"type":"item.completed","item":{"id":"answer","type":'
+        b'"agent_message","text":"Source: https://example.com/current"}}\n'
+        b'{"type":"turn.completed","usage":{"input_tokens":1,'
+        b'"output_tokens":1}}\n'
+    )
+    adapter, _ = adapter_for(
+        worker_files,
+        FakeProcess(output=ProcessOutput(output, b"", 0)),
+    )
+
+    result = await adapter.execute(
+        make_contract(
+            allowed,
+            permissions=["model.inference", "web.search"],
+        )
+    )
+
+    assert result.source_urls == ()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "item",
