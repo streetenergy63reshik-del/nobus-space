@@ -5,7 +5,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.application.gate5a4 import Gate5A4Runtime
+from src.application.gate5a4 import (
+    Gate5A4Runtime,
+    _simple_google_drive_link_action,
+)
 from src.application.product_effects import (
     ProductEffectChallenge,
     ProductEffectKind,
@@ -119,3 +122,66 @@ async def test_drive_planner_is_tool_free(tmp_path) -> None:
     assert worker.contract is not None
     assert worker.contract.permissions == ("model.inference",)
     assert "Do not use tools" in worker.contract.instruction
+
+
+@pytest.mark.asyncio
+async def test_drive_link_request_is_parsed_without_worker(tmp_path) -> None:
+    worker = _Worker("unused")
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._worker = worker
+    runtime._allowed_path = str(tmp_path)
+    runtime._pipeline = SimpleNamespace(root=tmp_path)
+
+    result = await runtime.plan_google_drive_action(
+        "Пришли ссылку на гугл таблицу с гугл диска - "
+        "Юнит экономика Ozon по бренду HomeEdit "
+        "в папке Пространство-Клиенты",
+        make_envelope(),
+    )
+
+    assert result == GoogleDriveAction(
+        kind=GoogleDriveActionKind.LINK,
+        query="Юнит экономика Ozon по бренду HomeEdit",
+        folder="Пространство-Клиенты",
+    )
+    assert worker.contract is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "Пришли ссылку с Google Drive на файл Юнит экономика HomeEdit",
+        "Пришли ссылку на гугл таблицу Юнит экономика HomeEdit",
+    ),
+)
+async def test_drive_link_request_without_dash_extracts_only_title(
+    tmp_path, instruction: str
+) -> None:
+    worker = _Worker("unused")
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._worker = worker
+    runtime._allowed_path = str(tmp_path)
+    runtime._pipeline = SimpleNamespace(root=tmp_path)
+
+    result = await runtime.plan_google_drive_action(instruction, make_envelope())
+
+    assert result == GoogleDriveAction(
+        kind=GoogleDriveActionKind.LINK,
+        query="Юнит экономика HomeEdit",
+    )
+    assert worker.contract is None
+
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "Find link to Google Drive API documentation",
+        "Send link from Google Drive to file Annual Report",
+        "Пришли ссылку на документацию Google Drive API",
+        "Пришли ссылку на статью о безопасности Google Drive",
+    ),
+)
+def test_drive_fast_path_ignores_non_owner_english_docs_prompts(
+    instruction: str,
+) -> None:
+    assert _simple_google_drive_link_action(instruction) is None

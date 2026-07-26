@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from copy import deepcopy
 from datetime import UTC, date, datetime
@@ -8,7 +9,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.application.gate5a4 import Gate5A4Runtime
+from src.application.gate5a4 import (
+    Gate5A4Runtime,
+    _await_worker_before_deadline,
+    _has_evidenced_public_source_url,
+    _has_usable_public_source_url,
+    _retain_evidenced_public_source_urls,
+)
 from src.application.telegram_product import _message_chunks
 from src.integrations.google_tasks import (
     GoogleTaskAction,
@@ -190,6 +197,10 @@ async def test_google_tasks_planner_contract_supports_week_across_all_lists(
         "и Wildberries со ссылками на источники.",
         "Проведи исследование по официальным источникам, новостным порталам "
         "и СМИ бизнес-сообщества РФ.",
+        "Обратись в интернет, в бизнес сообщества РФ, всё что связано с "
+        "маркетплейсами и собери актуальный новостной фон на сегодня",
+        "Проведи анализ в интернете на актуальные даты предстоящих изменений "
+        "комиссий озон и вб",
     ],
 )
 async def test_owner_research_phrases_use_web_profile(
@@ -210,3 +221,142 @@ def test_long_effect_result_is_split_within_telegram_limit() -> None:
     assert len(chunks) > 1
     assert all(0 < len(chunk) <= 3_400 for chunk in chunks)
     assert chunks[0].startswith("Задачи")
+
+
+def test_research_source_url_rejects_reserved_and_local_hosts() -> None:
+    assert _has_usable_public_source_url("Источник: https://openai.com/news")
+    assert not _has_usable_public_source_url("https://x")
+    assert not _has_usable_public_source_url("https://example.invalid/report")
+    assert not _has_usable_public_source_url("https://127.0.0.1/report")
+    assert not _has_usable_public_source_url("https://example.com/report")
+    assert not _has_usable_public_source_url("https://foo.local/report")
+    assert not _has_usable_public_source_url("https://openai.com:bad/report")
+    assert not _has_usable_public_source_url("https://localhost./report")
+    assert not _has_usable_public_source_url("https://home.arpa/report")
+    assert not _has_usable_public_source_url("https://100.64.0.1/report")
+    assert not _has_usable_public_source_url("https://224.0.0.1/report")
+    assert not _has_usable_public_source_url("https://%65xample.com/report")
+    assert not _has_usable_public_source_url("https://bad..host/report")
+    assert not _has_usable_public_source_url("https://-bad.example.edu/report")
+
+
+def test_research_source_must_be_observed_by_worker() -> None:
+    assert _has_evidenced_public_source_url(
+        "Source: https://openai.com/news",
+        ("https://openai.com/news",),
+    )
+    assert not _has_evidenced_public_source_url(
+        "Source: https://invented-public.example.edu/news",
+        ("https://openai.com/news",),
+    )
+    assert not _has_evidenced_public_source_url(
+        "Sources: https://openai.com/news and https://invented.edu/report",
+        ("https://openai.com/news",),
+    )
+    assert not _has_evidenced_public_source_url(
+        "Sources: https://openai.com/news and https://127.0.0.1/private",
+        ("https://openai.com/news",),
+    )
+
+
+def test_research_answer_drops_only_unevidenced_url_tokens() -> None:
+    sanitized = _retain_evidenced_public_source_urls(
+        (
+            "Verified: https://openai.com/news\n"
+            "Invented: https://invented.edu/report\n"
+            "Local: https://127.0.0.1/private"
+        ),
+        ("https://openai.com/news",),
+    )
+    assert sanitized
+    assert "https://openai.com/news" in sanitized
+    assert "invented.edu" not in sanitized
+    assert "127.0.0.1" not in sanitized
+    assert _has_evidenced_public_source_url(
+        sanitized,
+        ("https://openai.com/news",),
+    )
+
+
+def test_research_answer_removes_non_https_and_protocol_relative_uris() -> None:
+    sanitized = _retain_evidenced_public_source_urls(
+        (
+            "Verified: https://openai.com/news\n"
+            "Local: http://localhost:8080/private\n"
+            "File: file:///C:/secret\n"
+            "Fake: http://example.invalid/report\n"
+            "Relative: //localhost/private\n"
+            "Nested file: file://https://openai.com/news\n"
+            "Nested http: http://https://openai.com/news\n"
+            "Nested custom: evil+https://openai.com/news\n"
+            "Mail: mailto:owner@example.invalid\n"
+            "Data: data:text/plain,secret\n"
+            "Script: javascript:alert(1)"
+        ),
+        ("https://openai.com/news",),
+    )
+    assert sanitized
+    assert "https://openai.com/news" in sanitized
+    assert "http://" not in sanitized
+    assert "file://" not in sanitized
+    assert "//localhost" not in sanitized
+    assert "file://" not in sanitized
+    assert "http://https://" not in sanitized
+    assert "evil+https://" not in sanitized
+    assert "mailto:" not in sanitized
+    assert "data:" not in sanitized
+    assert "javascript:" not in sanitized
+    assert _has_evidenced_public_source_url(
+        sanitized,
+        ("https://openai.com/news",),
+    )
+    assert not _has_evidenced_public_source_url(
+        "Verified: https://openai.com/news and file:///C:/secret",
+        ("https://openai.com/news",),
+    )
+
+
+def test_research_answer_appends_opened_evidence_after_filtering() -> None:
+    sanitized = _retain_evidenced_public_source_urls(
+        (
+            "Substantive verified research result with enough useful text. "
+            "Unsupported: https://invented.edu/report"
+        ),
+        ("https://openai.com/news",),
+    )
+    assert sanitized
+    assert "invented.edu" not in sanitized
+    assert "https://openai.com/news" in sanitized
+    assert _has_evidenced_public_source_url(
+        sanitized,
+        ("https://openai.com/news",),
+    )
+
+
+def test_research_answer_without_evidenced_url_is_rejected() -> None:
+    assert (
+        _retain_evidenced_public_source_urls(
+            "Invented: https://invented.edu/report",
+            ("https://openai.com/news",),
+        )
+        == ""
+    )
+
+
+@pytest.mark.asyncio
+async def test_research_repair_shares_one_absolute_deadline() -> None:
+    async def first():
+        await asyncio.sleep(0.15)
+        return CodexCliResult(message="first")
+
+    async def repair():
+        await asyncio.sleep(0.60)
+        return CodexCliResult(message="repair")
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + 0.50
+    assert (await _await_worker_before_deadline(first, deadline)).message == "first"
+    started = loop.time()
+    with pytest.raises(Exception, match="timed out"):
+        await _await_worker_before_deadline(repair, deadline)
+    assert loop.time() - started < 0.45

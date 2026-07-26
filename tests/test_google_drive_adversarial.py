@@ -237,7 +237,7 @@ async def test_streaming_download_stops_before_exceeding_memory_bound(
             self._step = 0
 
         def next_chunk(self, *, num_retries: int) -> tuple[None, bool]:
-            assert num_retries == 2
+            assert num_retries == 0
             self._step += 1
             self._sink.write(b"1234" if self._step == 1 else b"5")
             return None, False

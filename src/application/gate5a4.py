@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import base64
 import hashlib
 import json
@@ -16,6 +17,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 from types import MappingProxyType
+from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -42,6 +44,7 @@ from src.contracts.models import canonical_json_digest
 from src.integrations import (
     CalendarAction,
     GoogleDriveAction,
+    GoogleDriveActionKind,
     GoogleTaskAction,
     GoogleTaskActionKind,
 )
@@ -164,6 +167,221 @@ def _simple_google_task_list_action(
         kind=GoogleTaskActionKind.LIST,
         due_from=due_from,
         due_to=due_to,
+    )
+
+
+_DRIVE_LINK_RE = re.compile(r"\b(?:ссылк\w*|link)\b", re.IGNORECASE)
+_DRIVE_OWNER_ACTION_RE = re.compile(
+    r"\b(?:пришл\w*|отправ\w*|дай|дайте|покаж\w*)\b",
+    re.IGNORECASE,
+)
+_DRIVE_REFERENCE_DOC_RE = re.compile(
+    r"\b(?:документац\w*|api|справк\w*|стать\w*|безопасност\w*)\b",
+    re.IGNORECASE,
+)
+_DRIVE_MARKER_RE = re.compile(
+    r"\b(?:google|гугл)\b(?s:.*?)\b(?:drive|диск\w*|таблиц\w*)\b|"
+    r"\b(?:drive|диск\w*|таблиц\w*)\b(?s:.*?)\b(?:google|гугл)\b",
+    re.IGNORECASE,
+)
+_SOURCE_URL_RE = re.compile(r"https://[^\s)\]>]+", re.IGNORECASE)
+_URI_TOKEN_RE = re.compile(
+    r"(?<![\w.+-])(?:[a-z][a-z0-9+.-]*:[^\s)\]>]+|//[^\s)\]>]+)",
+    re.IGNORECASE,
+)
+
+
+async def _await_worker_before_deadline(
+    execute: Callable[[], Awaitable[CodexCliResult]],
+    deadline: float,
+) -> CodexCliResult:
+    remaining = deadline - asyncio.get_running_loop().time()
+    if remaining <= 0:
+        raise CodexCliError("worker_timeout")
+    try:
+        return await asyncio.wait_for(execute(), timeout=remaining)
+    except TimeoutError:
+        raise CodexCliError("worker_timeout") from None
+
+
+def _canonical_public_source_url(candidate: str) -> str | None:
+    """Canonicalize one complete URI token only when it is public HTTPS."""
+    try:
+        parsed = urlsplit(candidate.rstrip(".,;:!?"))
+        raw_host = parsed.hostname
+        port = parsed.port
+        host = raw_host.casefold().rstrip(".") if raw_host else ""
+        reserved_names = (
+            "example.com",
+            "example.org",
+            "example.net",
+            "home.arpa",
+            "localhost",
+        )
+        if (
+            parsed.scheme != "https"
+            or not host
+            or parsed.username is not None
+            or parsed.password is not None
+            or port not in (None, 443)
+            or "." not in host
+            or re.fullmatch(r"[a-z0-9.-]+", host) is None
+            or any(
+                not label
+                or len(label) > 63
+                or label.startswith("-")
+                or label.endswith("-")
+                for label in host.split(".")
+            )
+            or host in reserved_names
+            or any(host.endswith("." + name) for name in reserved_names)
+            or host.endswith(
+                (
+                    ".invalid",
+                    ".example",
+                    ".test",
+                    ".localhost",
+                    ".local",
+                    ".internal",
+                    ".lan",
+                    ".home",
+                    ".corp",
+                )
+            )
+        ):
+            return None
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            pass
+        else:
+            if (
+                not address.is_global
+                or address.is_multicast
+                or address.is_unspecified
+            ):
+                return None
+        return parsed._replace(netloc=host).geturl().rstrip("/")
+    except (TypeError, ValueError):
+        return None
+
+
+def _public_source_urls(value: str) -> tuple[str, ...]:
+    """Find and canonicalize public HTTPS URLs in free-form text."""
+    accepted = (
+        canonical
+        for candidate in _SOURCE_URL_RE.findall(value)
+        if (canonical := _canonical_public_source_url(candidate)) is not None
+    )
+    return tuple(dict.fromkeys(accepted))
+
+
+def _has_usable_public_source_url(value: str) -> bool:
+    return bool(_public_source_urls(value))
+
+
+def _has_evidenced_public_source_url(
+    answer: str,
+    source_urls: tuple[str, ...],
+) -> bool:
+    raw_answer_urls = tuple(
+        value.rstrip(".,;:!?") for value in _URI_TOKEN_RE.findall(answer)
+    )
+    if not raw_answer_urls:
+        return False
+    answer_urls: set[str] = set()
+    for raw_url in raw_answer_urls:
+        canonical = _canonical_public_source_url(raw_url)
+        if canonical is None:
+            return False
+        answer_urls.add(canonical)
+    evidence_urls = {
+        canonical
+        for value in source_urls
+        if (canonical := _canonical_public_source_url(value)) is not None
+    }
+    return bool(answer_urls) and answer_urls.issubset(evidence_urls)
+
+
+def _retain_evidenced_public_source_urls(
+    answer: str,
+    source_urls: tuple[str, ...],
+) -> str:
+    """Remove URI tokens that are not evidenced opened public HTTPS pages."""
+    evidence_urls = {
+        canonical
+        for value in source_urls
+        if (canonical := _canonical_public_source_url(value)) is not None
+    }
+    sanitized = answer
+    for raw_url in _URI_TOKEN_RE.findall(answer):
+        token = raw_url.rstrip(".,;:!?")
+        canonical = _canonical_public_source_url(token)
+        if canonical is None or canonical not in evidence_urls:
+            sanitized = sanitized.replace(raw_url, "")
+    sanitized = re.sub(r"[ \t]+\n", "\n", sanitized)
+    sanitized = re.sub(r"\n{3,}", "\n\n", sanitized).strip()
+    if (
+        len(sanitized) >= 20
+        and evidence_urls
+        and not _has_evidenced_public_source_url(sanitized, source_urls)
+    ):
+        sanitized = (
+            f"{sanitized}\n\n\u041f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a: "
+            f"{sorted(evidence_urls)[0]}"
+        )
+    return (
+        sanitized
+        if _has_evidenced_public_source_url(sanitized, source_urls)
+        else ""
+    )
+
+
+def _simple_google_drive_link_action(
+    instruction: str,
+) -> GoogleDriveAction | None:
+    """Parse common owner link requests without a fragile LLM round-trip."""
+    if not (
+        _DRIVE_LINK_RE.search(instruction)
+        and _DRIVE_MARKER_RE.search(instruction)
+        and _DRIVE_OWNER_ACTION_RE.search(instruction)
+        and not _DRIVE_REFERENCE_DOC_RE.search(instruction)
+    ):
+        return None
+    parts = re.split(r"\s+[—–-]\s+", instruction, maxsplit=1)
+    if len(parts) == 2:
+        query = parts[1]
+    else:
+        marker = re.search(r"\b(?:drive|диск\w*)\b", instruction, re.IGNORECASE)
+        if marker is not None:
+            query = instruction[marker.end() :]
+            query = re.sub(
+                r"^\s*(?:на\s+)?(?:файл\w*|таблиц\w*)?\s*[:—–-]?\s*",
+                "",
+                query,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+        else:
+            table = re.search(r"\bтаблиц\w*\b", instruction, re.IGNORECASE)
+            if table is None:
+                return None
+            query = instruction[table.end() :]
+    folder_match = re.search(r"\s+\bв\s+папк\w*\s+(.+)$", query, re.IGNORECASE)
+    folder = (
+        folder_match.group(1).strip(" \t\r\n\"'«».,:;—–-")
+        if folder_match
+        else None
+    )
+    if folder_match:
+        query = query[: folder_match.start()]
+    query = query.strip(" \t\r\n\"'«».,:;—–-")
+    if not query or len(query) > 1_024 or "\x00" in query:
+        return None
+    return GoogleDriveAction(
+        kind=GoogleDriveActionKind.LINK,
+        query=query,
+        folder=folder,
     )
 
 
@@ -573,14 +791,19 @@ class Gate5A4Runtime(DurableFakeRuntime):
         trusted = TrustedIngressEnvelope.model_validate(
             envelope.model_dump(mode="json")
         )
+        simple_link = _simple_google_drive_link_action(instruction)
+        if simple_link is not None:
+            return simple_link
         planner_instruction = (
             "You are a strict Google Drive intent parser. Do not use tools, "
             "browse, or read files. Convert owner_request into one compact JSON "
-            "object with exactly these keys: kind,query. kind is none, search, "
-            "or download. query is the owner-provided file name or search phrase. "
-            "Use download when the owner asks to send, attach, download, or return "
-            "a Drive file; otherwise use search for a Drive lookup. If this is not "
-            "a Google Drive request, return kind none and query null. Return the "
+            "object with exactly these keys: kind,query,folder. kind is none, search, "
+            "link, or download. query is the owner-provided file name or search "
+            "phrase. folder is an optional owner-provided folder name or null. Use link "
+            "when the owner asks for a URL or link. Use download "
+            "when the owner asks to send, attach, download, or return a Drive file; "
+            "otherwise use search for a Drive lookup. If this is not "
+            "a Google Drive request, return kind none with query and folder null. Return the "
             "action JSON as the string value of the outer answer protocol. "
             f"owner_request={json.dumps(instruction, ensure_ascii=False)}"
         )
@@ -959,13 +1182,78 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 task = await self._prepared_task(contract)
                 task = await self._start_worker(contract, task)
                 await report("Codex выполняет задачу")
-                worker_result = await self._execute_worker(contract)
+                worker_deadline = (
+                    asyncio.get_running_loop().time()
+                    + contract.timeout_seconds
+                )
+
+                async def execute_within_deadline(
+                    worker_contract: TaskContract,
+                ) -> CodexCliResult:
+                    return await _await_worker_before_deadline(
+                        lambda: self._execute_worker(worker_contract),
+                        worker_deadline,
+                    )
+
+                worker_result = await execute_within_deadline(contract)
+                observed_source_urls = worker_result.source_urls
                 draft = parse_codex_draft(worker_result.message, self._pipeline.root)
                 if "web.search" in contract.permissions and (
                     not isinstance(draft, CodexAnswerDraft)
-                    or re.search(r"https://[^\s)\]>]+", draft.answer) is None
+                    or not _has_evidenced_public_source_url(
+                        draft.answer, worker_result.source_urls
+                    )
                 ):
-                    raise CodexCliError("worker_protocol_error")
+                    repair_values = contract.model_dump(mode="python")
+                    repair_values["instruction"] = (
+                        contract.instruction
+                        + "\n\nThe previous draft omitted verifiable direct URLs. "
+                        "Use live web search now, open the source pages, and return "
+                        "the best useful answer with direct https:// source links."
+                    )
+                    worker_result = await execute_within_deadline(
+                        TaskContract.model_validate(repair_values)
+                    )
+                    observed_source_urls = tuple(
+                        dict.fromkeys(
+                            (*observed_source_urls, *worker_result.source_urls)
+                        )
+                    )
+                    worker_result = worker_result.model_copy(
+                        update={"source_urls": observed_source_urls}
+                    )
+                    draft = parse_codex_draft(
+                        worker_result.message, self._pipeline.root
+                    )
+                    if (
+                        not isinstance(draft, CodexAnswerDraft)
+                        or not _has_evidenced_public_source_url(
+                            draft.answer, worker_result.source_urls
+                        )
+                    ):
+                        if isinstance(draft, CodexAnswerDraft):
+                            sanitized_answer = _retain_evidenced_public_source_urls(
+                                draft.answer,
+                                observed_source_urls,
+                            )
+                            if sanitized_answer:
+                                draft = CodexAnswerDraft(answer=sanitized_answer)
+                                worker_result = worker_result.model_copy(
+                                    update={
+                                        "message": json.dumps(
+                                            {"answer": sanitized_answer},
+                                            ensure_ascii=False,
+                                            separators=(",", ":"),
+                                        )
+                                    }
+                                )
+                        if (
+                            not isinstance(draft, CodexAnswerDraft)
+                            or not _has_evidenced_public_source_url(
+                                draft.answer, observed_source_urls
+                            )
+                        ):
+                            raise CodexCliError("worker_protocol_error")
                 if isinstance(draft, CodexAnswerDraft):
                     await self._require_safe_owner_file_answer(contract, draft.answer)
                 task = await self._record_worker_result(

@@ -167,6 +167,7 @@ class CodexCliResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     message: str
+    source_urls: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

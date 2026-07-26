@@ -9,6 +9,14 @@ from uuid import uuid4
 
 import pytest
 
+from openai_codex.generated.v2_all import (
+    OpenPageWebSearchAction,
+    SearchWebSearchAction,
+    ThreadItem,
+    WebSearchAction,
+    WebSearchThreadItem,
+)
+
 from src.contracts import RiskLevel, TaskContract
 from src.workers.codex_cli import CodexCliError
 from src.workers.codex_sdk import CodexSdkAdapter
@@ -50,6 +58,7 @@ class _Client:
         self.response = response
         self.listed = listed
         self.started: list[_Thread] = []
+        self.start_values: list[dict[str, object]] = []
         self.resumed: list[_Thread] = []
         self.closed = False
         self.entered = False
@@ -61,9 +70,10 @@ class _Client:
     async def thread_list(self, **_: object):
         return SimpleNamespace(data=list(self.listed), next_cursor=None)
 
-    async def thread_start(self, **_: object) -> _Thread:
+    async def thread_start(self, **values: object) -> _Thread:
         thread = _Thread(f"started-{len(self.started)}", self.response)
         self.started.append(thread)
+        self.start_values.append(values)
         return thread
 
     async def thread_resume(self, thread_id: str, **_: object) -> _Thread:
@@ -152,6 +162,31 @@ async def test_sdk_reuses_thread_in_process(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_sdk_web_turns_use_fresh_ephemeral_threads(tmp_path: Path) -> None:
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = _Client()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    contract = _contract(
+        workspace,
+        permissions=("model.inference", "web.search"),
+    )
+
+    await adapter.execute(contract)
+    await adapter.execute(contract)
+
+    assert len(client.started) == 2
+    assert all(value["ephemeral"] is True for value in client.start_values)
+    assert all(thread.name is None for thread in client.started)
+    assert not client.resumed
+
+
+@pytest.mark.asyncio
 async def test_sdk_resumes_named_persistent_thread_after_restart(
     tmp_path: Path,
 ) -> None:
@@ -191,6 +226,19 @@ async def test_sdk_isolates_sources_into_distinct_threads(tmp_path: Path) -> Non
 
     assert len(client.started) == 2
     assert client.started[0].name != client.started[1].name
+
+
+def test_sdk_session_identity_includes_capabilities(tmp_path: Path) -> None:
+    _, workspace, _, _ = _paths(tmp_path)
+    plain = _contract(workspace)
+    web = _contract(
+        workspace,
+        permissions=("model.inference", "web.search"),
+    )
+
+    assert CodexSdkAdapter._session_name(
+        plain, workspace
+    ) != CodexSdkAdapter._session_name(web, workspace)
 
 
 @pytest.mark.asyncio
@@ -295,3 +343,39 @@ async def test_sdk_rejects_repeated_thread_list_cursor(tmp_path: Path) -> None:
 
     with pytest.raises(CodexCliError, match="could not be started"):
         await adapter.execute(_contract(workspace))
+
+def test_sdk_extracts_only_urls_opened_by_web_search() -> None:
+    items = [
+        ThreadItem(
+            root=WebSearchThreadItem(
+                id="open",
+                query="open",
+                type="webSearch",
+                action=WebSearchAction(
+                    root=OpenPageWebSearchAction(
+                        type="openPage", url="https://openai.com/news"
+                    )
+                ),
+            )
+        ),
+        ThreadItem(
+            root=WebSearchThreadItem(
+                id="search",
+                query="ignored",
+                type="webSearch",
+                action=WebSearchAction(
+                    root=SearchWebSearchAction(type="search", query="ignored")
+                ),
+            )
+        ),
+        SimpleNamespace(
+            root=SimpleNamespace(
+                type="webSearch",
+                action=SimpleNamespace(url="https://spoof.invalid"),
+            )
+        ),
+    ]
+
+    assert CodexSdkAdapter._web_source_urls(items) == (
+        "https://openai.com/news",
+    )
