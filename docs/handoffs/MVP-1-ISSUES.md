@@ -84,3 +84,9 @@
 - безопасный renderer длинных структурированных ответов;
 - строгий `-Help`/dry-run contract для всех operational PowerShell scripts.
 
+## Дополнение: SDK recovery и scoped Drive — 26 июля 2026
+
+| Область | Проблема и root cause | Решение | Регрессия / evidence | Статус |
+|---|---|---|---|---|
+| Persistent SDK generation recovery | После временного сбоя повтор выполнялся на том же повреждённом app-server/client; отмена или параллельное закрытие могли оставить orphan либо оборвать соседнюю задачу | Generation leases/refcounts, client-bound thread cache, invalidation только повреждённого поколения, общий shielded close-task с bounded drain и повторной попыткой | SDK regressions 24; полный L1 1186; независимые L2/L3 ACCEPT; длительный web-smoke 496,11 с | CLOSED |
+| Google Drive scoped natural lookup | Точное имя могло совпасть вне указанной папки; whole-path lookup мог быть затенён literal folder; `Home_edit` не совпадал с `HomeEdit`; fallback расходовал лишние страницы | Segment-first path resolution, hard folder boundary, exact adjacent-token brand alias, dynamic budget не более 4 list-запросов, ambiguity fail-closed | Drive regressions 49; exact product smoke PASS 9,36 с; независимые L2/L3 ACCEPT | CLOSED |

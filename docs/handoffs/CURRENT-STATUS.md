@@ -1,10 +1,31 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
 **Дата:** 2026-07-26
-**Runtime feature commit:** `28cb2ea`
-**Live release commit:** `28cb2ea`
+**Runtime feature commit:** `b1e1086`
+**Live release commit:** `b1e1086`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
+## Runtime и Google Drive recovery hotfix — 26 июля 2026
+
+- Устранён повторный отказ длительных SDK-задач после первой временной ошибки:
+  Codex app-server теперь управляется поколениями с lease/refcount, а повреждённое
+  поколение исключается без остановки параллельных задач. Закрытие клиента общее,
+  ограниченное по времени и устойчивое к повторной отмене.
+- Google Drive теперь сначала разрешает явный путь по сегментам и сохраняет папку
+  жёсткой границей поиска. Добавлены безопасные точные алиасы бренда, bounded
+  token fallback, защита от literal-path impostor и общий лимит не более четырёх
+  list-запросов.
+- Прямой длительный web-smoke: PASS за 496,11 с; итог 5829 символов,
+  подтверждённый публичный источник присутствует.
+- Точная продуктовая Drive-команда: PASS за 9,36 с; возвращена HTTPS-ссылка без
+  раскрытия содержимого файла.
+- L1: `1186 passed, 2 skipped, 1 warning`; `compileall`, `pip check`,
+  `git diff --check`: PASS.
+- Независимые L2 и L3: ACCEPT, открытых P0/P1/P2 нет.
+- Task Scheduler: Running; Codex app-server активен; polling checkpoint
+  обновляется; health четырёх runtime-БД: PASS.
+- Проверенный backup:
+  `ОРКЕСТРАТОР/Backups/2026-07-26-pre-runtime-drive-hotfix-2`.
 
 ## Telegram admission hotfix 26 июля 2026
 
