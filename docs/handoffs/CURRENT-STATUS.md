@@ -1,10 +1,23 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
-**Дата:** 2026-07-26
+**Дата:** 2026-07-28
 **Runtime feature commit:** `b69e846`
 **Live runtime commit:** `b69e846`
 **Статус:** PERSISTENT MOBILE CODEX — PUBLISHED LOCALLY
 **Remote/push:** запрещены
+
+## Принятый TARGET MVP-1 — 28 июля 2026
+
+- Владелец принял эталон Natural Language First и гибридный document plane:
+  Server Nobus Core + Google Workspace + Windows Local Library Bridge.
+- Google Drive/Docs/Sheets и `C:\Хранилище\АГЕНТ` должны иметь единый lifecycle:
+  search, select, read, analyze, create, revision/digest-bound update и deliver.
+- Нормативный объём, Gate 0–8, acceptance matrix и L4-шаблоны находятся в
+  [`../12-Эталон-MVP-1-и-дорожная-карта.md`](../12-Эталон-MVP-1-и-дорожная-карта.md);
+  архитектурное решение — [ADR 0017](../adr/0017-hybrid-natural-google-local-document-plane.md).
+- Это документационный TARGET. Server hybrid runtime, Local Library Bridge,
+  Google document writeback и новый Gate release ещё не считаются CURRENT без
+  кода, L1/L2/L3 и точного release L4.
 
 ## Three-hour web stream deadline — 26 июля 2026
 

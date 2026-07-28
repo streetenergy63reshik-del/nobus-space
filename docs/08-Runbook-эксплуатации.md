@@ -1,3 +1,11 @@
+> **TARGET hybrid runbook — 28 июля 2026.** Полная последовательность Gate 0–8,
+> самостоятельные L4-сообщения, server/Windows Bridge preflight, composite
+> health, rollback и 72-часовой pilot находятся в
+> [`12-Эталон-MVP-1-и-дорожная-карта.md`](12-Эталон-MVP-1-и-дорожная-карта.md).
+> Этот TARGET не отменяет расположенные ниже CURRENT operational overrides до
+> принятого Gate 8 release.
+>
+
 ## Operational override 2026-07-25 — persistent Codex SDK candidate
 
 Этот раздел отменяет ниже расположенные инструкции, где production worker

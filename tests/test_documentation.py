@@ -21,6 +21,8 @@ CANONICAL_DOCS = {
     "08-Runbook-эксплуатации.md",
     "09-Стандарты-отчётов.md",
     "10-Политика-памяти.md",
+    "11-Контекст-продукта.md",
+    "12-Эталон-MVP-1-и-дорожная-карта.md",
 }
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 INTERVIEW_REFERENCE = re.compile(r"[（(]В\d+[）)]")
