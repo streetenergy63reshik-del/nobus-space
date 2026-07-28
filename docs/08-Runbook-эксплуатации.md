@@ -1,7 +1,9 @@
 > **TARGET hybrid runbook — 28 июля 2026.** Полная последовательность Gate 0–8,
 > самостоятельные L4-сообщения, server/Windows Bridge preflight, composite
 > health, rollback и 72-часовой pilot находятся в
-> [`12-Эталон-MVP-1-и-дорожная-карта.md`](12-Эталон-MVP-1-и-дорожная-карта.md).
+> [`12-Эталон-MVP-1-и-дорожная-карта.md`](12-Эталон-MVP-1-и-дорожная-карта.md),
+> [`13-Интегрированная-архитектура-MVP-1.md`](13-Интегрированная-архитектура-MVP-1.md)
+> и детальном [`Gate 8`](gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md).
 > Этот TARGET не отменяет расположенные ниже CURRENT operational overrides до
 > принятого Gate 8 release.
 >
@@ -453,8 +455,11 @@ Production запрещён, пока отсутствует хотя бы од�
 6. Проверить health, свежий lease, queue recovery, backup/restore dry drill и
    owner smokes: answer, voice, research, file send/analyze, document,
    Calendar/Tasks/Drive и Business Notes.
-7. При P0/P1 остановить candidate, восстановить БД из backup и вернуть прежний
-   live commit. Remote и push запрещены.
+7. При P0/P1 заморозить admission/effect dispatch, сохранить recovery watermark
+   и reconciliation evidence. Код можно вернуть на прежний live commit отдельно
+   от данных. DB restore разрешён только если доказано отсутствие внешних effects
+   и новых подтверждённых данных после watermark; иначе выполнить forward repair
+   либо manual L4. Remote и push запрещены.
 
 ### Web research dual-transport operational note — 2026-07-26
 

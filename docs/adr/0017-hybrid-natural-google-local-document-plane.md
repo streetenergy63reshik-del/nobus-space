@@ -97,9 +97,10 @@ Bridge не публикует arbitrary filesystem API, shell, PowerShell ил�
 - `DocumentWritePlan`.
 
 `DocumentRef` связывает backend, tenant, project/client, opaque source identity,
-revision/digest, media type, classification и provenance. Для локального файла
-наружу доверенной границы передаётся относительный путь; для Google —
-проверенный file ID и revision.
+revision/digest, media type, classification и provenance. Для local backend
+наружу Bridge передаётся только Bridge-minted opaque `doc_id`; путь остаётся
+внутри device boundary. Google IDs разрешает Core adapter и не передаёт модели
+как authority. Специализация закреплена ADR 0018.
 
 Поиск всегда metadata-first. Содержимое читается только после exact selection.
 При нескольких кандидатах Core спрашивает владельца до чтения содержимого.
@@ -164,8 +165,10 @@ output root или Google folder. Поддерживаемые целевые ф
 новую версию либо требует уточнения.
 
 Обновление существующего локального документа требует snapshot, current digest,
-diff preview, CAS, atomic replace и readback. Google update требует current
-revision, preview, precondition, idempotency и readback.
+diff preview, CAS, atomic replace и readback. Google Docs update требует
+`requiredRevisionId`, preview, idempotency и readback. Если Google Sheets или
+Drive blob не предоставляет доказанный strict precondition, MVP создаёт новую
+version/copy либо fail closed; CAS не симулируется.
 
 Удаление, sharing/access changes, отправка третьей стороне, деньги, deployment,
 remote и push всегда требуют отдельного action-bound L4.
@@ -201,7 +204,8 @@ plan, затем извлекаются факты. Формулы и агрег
 Ограничения:
 
 - локальные документы недоступны, когда ПК/Bridge выключен;
-- Google и local update требуют revision/digest binding;
+- local и Google Docs update требуют digest/revision binding; Sheets/Drive
+  используют new-version/fail-closed до доказанного strict precondition;
 - scanned PDF может потребовать отдельный OCR fallback;
 - удаление, sharing, массовые операции и third-party delivery не входят в
   обычные полномочия MVP-1;

@@ -14,10 +14,16 @@
   search, select, read, analyze, create, revision/digest-bound update и deliver.
 - Нормативный объём, Gate 0–8, acceptance matrix и L4-шаблоны находятся в
   [`../12-Эталон-MVP-1-и-дорожная-карта.md`](../12-Эталон-MVP-1-и-дорожная-карта.md);
-  архитектурное решение — [ADR 0017](../adr/0017-hybrid-natural-google-local-document-plane.md).
-- Это документационный TARGET. Server hybrid runtime, Local Library Bridge,
-  Google document writeback и новый Gate release ещё не считаются CURRENT без
-  кода, L1/L2/L3 и точного release L4.
+  сквозная architecture — в [`../13-Интегрированная-архитектура-MVP-1.md`](../13-Интегрированная-архитектура-MVP-1.md);
+  детальные исследования/design — в [`../gates`](../gates/README.md); решения —
+  [ADR 0017](../adr/0017-hybrid-natural-google-local-document-plane.md) и
+  [ADR 0018](../adr/0018-cross-gate-mvp1-integration.md).
+- Архитектура теперь требует opaque local handles, atomic effect+job admission,
+  раздельные provider/delivery unknown и честные Google preconditions: Docs CAS,
+  Sheets/Drive new-version-or-deny.
+- Это документационный TARGET. Ни один Gate не получил implementation PASS;
+  Server hybrid runtime, Bridge и новый release не считаются CURRENT без кода,
+  L1/L2/L3, fresh runtime evidence и точного L4.
 
 ## Three-hour web stream deadline — 26 июля 2026
 

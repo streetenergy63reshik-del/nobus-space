@@ -24,6 +24,7 @@
 | [0015](adr/0015-nobus-memory-progressive-retrieval.md) | Nobus Memory подключается через server-side progressive retrieval; exact owner save создаёт только pending-review Inbox note | ACCEPTED | IMPLEMENTED |
 | [0016](adr/0016-persistent-mobile-codex-runtime.md) | Production worker использует persistent официальный Codex SDK/app-server; threads разделены по owner chat/topic, а effects остаются application-owned | ACCEPTED | RELEASE CANDIDATE |
 | [0017](adr/0017-hybrid-natural-google-local-document-plane.md) | Natural Language First; hybrid Server Core + Windows Local Library Bridge; единый Google/local document lifecycle и application-owned writeback | ACCEPTED | TARGET |
+| [0018](adr/0018-cross-gate-mvp1-integration.md) | Единая интеграция Gate 0–8: atomic effects, opaque document identity, честные Google preconditions, single-node SQLite и global poller fencing | ACCEPTED | TARGET |
 
 ## Правила статусов ADR
 
