@@ -1,0 +1,1614 @@
+{
+  "bounded_projection_contract": {
+    "allowed_operations": [
+      "sanitized_snapshot_projection",
+      "manifest_rebuild",
+      "bound_l1_l2_l3_receipts",
+      "exact_readback"
+    ],
+    "max_seconds": 120,
+    "reuses_frozen_tests_and_release_scans": true,
+    "runtime_or_provider_calls": false
+  },
+  "capture_dependent_paths": [
+    "docs/gates/gate-00-product-contract-baseline/HANDOFF.md",
+    "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
+    "docs/gates/gate-00-product-contract-baseline/evidence/component-manifest.json",
+    "docs/gates/gate-00-product-contract-baseline/evidence/current-corpus-baseline.json",
+    "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
+    "docs/gates/gate-00-product-contract-baseline/evidence/evidence-manifest.json",
+    "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-bool-as-int.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-naive-timestamp.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-non-utc-timestamp.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/capability-naive-timestamp.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/capability-non-utc-timestamp.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/gate-handoff-naive-timestamp.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/gate-handoff-non-utc-timestamp.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/baseline-evidence.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/gate-handoff.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/golden/core-digests.json",
+    "docs/gates/gate-00-product-contract-baseline/fixtures/golden/gate-acceptance-score.json",
+    "docs/gates/gate-00-product-contract-baseline/verification/l1.json",
+    "docs/gates/gate-00-product-contract-baseline/verification/l2.json",
+    "docs/gates/gate-00-product-contract-baseline/verification/l3.json"
+  ],
+  "frozen_tree_digest": "sha256:e4c6530d8e4f0c0554995a8f59d6c54b5df4a5474cf2c2d06b04272fc403f672",
+  "generated_at": "2026-07-31T08:27:52.986084Z",
+  "git_status_digest": "sha256:56eea62acca478eb811ba8d8743e4a37d05c30681dcfe73d631849bc0bf8d5fb",
+  "input_entries": [
+    {
+      "bytes": 239,
+      "path": ".gitattributes",
+      "sha256": "sha256:1e1dda98b992ec92fe3b33d2b230cdc85feddea9f1352f59379fd68613cfd02f"
+    },
+    {
+      "bytes": 519,
+      "path": ".gitignore",
+      "sha256": "sha256:d17df6470d2777d60c823ba8575cff6b00777e1fb58f0b61fafe41034998f39e"
+    },
+    {
+      "bytes": 3558,
+      "path": "AGENTS.md",
+      "sha256": "sha256:55fea3909da240944d3180cba0e9456818afc001e721302e1c656ca40dddd4e1"
+    },
+    {
+      "bytes": 23660,
+      "path": "docs/01-Единый-документ-проекта.md",
+      "sha256": "sha256:0db14253e7ff3379af4d3c77392d5e06bf966e5dd207f638a77c9a86d773f1d3"
+    },
+    {
+      "bytes": 19358,
+      "path": "docs/02-Глоссарий.md",
+      "sha256": "sha256:34c9c348e511b6730e4dffac3a9d80cf033cc74011e8e66a7315afcee8d73f9b"
+    },
+    {
+      "bytes": 25675,
+      "path": "docs/03-Архитектурный-обзор.md",
+      "sha256": "sha256:169138b1376c5d5323458710a832b26b57d4632dce3acae471bd1e865fb1419b"
+    },
+    {
+      "bytes": 5917,
+      "path": "docs/04-Журнал-ADR.md",
+      "sha256": "sha256:10982c35ee0912d82afcb1afd6a7786799a26e78376e2c1180708c9f1dd54d1a"
+    },
+    {
+      "bytes": 26366,
+      "path": "docs/05-Спецификации-контрактов.md",
+      "sha256": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6"
+    },
+    {
+      "bytes": 14808,
+      "path": "docs/06-Регламент-качества-L1-L4.md",
+      "sha256": "sha256:9aed0e4d84a61b959e54520b6d6631220f64b14225c713807ec03b6af288fb10"
+    },
+    {
+      "bytes": 20946,
+      "path": "docs/07-Правила-внешней-записи.md",
+      "sha256": "sha256:aa867c0a2ec4f959c49103985b131012ceffaa566a9af676b39e817bcdff3da5"
+    },
+    {
+      "bytes": 43706,
+      "path": "docs/08-Runbook-эксплуатации.md",
+      "sha256": "sha256:dd4e5b204a0786c928d7367d1433b376ad1909d272875836653af24099dba293"
+    },
+    {
+      "bytes": 13115,
+      "path": "docs/09-Стандарты-отчётов.md",
+      "sha256": "sha256:5eccf4bb904c06eaa5a6583faca9c7713bfcee0e3640cc4bbd9b9cb810f90bf1"
+    },
+    {
+      "bytes": 15917,
+      "path": "docs/10-Политика-памяти.md",
+      "sha256": "sha256:1d2b42e6f83f0194b1b8aa26b5278a6215412db65e1e9941befe6f7b8232d4c5"
+    },
+    {
+      "bytes": 6411,
+      "path": "docs/11-Контекст-продукта.md",
+      "sha256": "sha256:b4d2d2d7db1855fb1199802822e3ca6a5b5affbd0dff4cddd1e2062b5eafcaf4"
+    },
+    {
+      "bytes": 48585,
+      "path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+      "sha256": "sha256:6df73d2511220ef27b4ad2a5199a4269361fc4581e42eb3b61a594f82a1990ed"
+    },
+    {
+      "bytes": 31345,
+      "path": "docs/13-Интегрированная-архитектура-MVP-1.md",
+      "sha256": "sha256:36a1121cf860c4794a133c1d9b6093e302ef7bce4fe30377d6ec1e52db3f40cc"
+    },
+    {
+      "bytes": 3044,
+      "path": "docs/adr/0001-platforma-zamenyaet-menedzhera-marketpleisa.md",
+      "sha256": "sha256:15fb98ec1f36ab5587489e9218a066362bfa9e4a727783928199527b2e224f78"
+    },
+    {
+      "bytes": 2692,
+      "path": "docs/adr/0002-determinirovannoe-yadro-smennye-llm.md",
+      "sha256": "sha256:aad1c936d0662cf9a4b64c1d6c032ca8700b251b1dd6376f69ff282c4b4fa2ea"
+    },
+    {
+      "bytes": 2312,
+      "path": "docs/adr/0003-kanal-prodazh-abstraktsiya.md",
+      "sha256": "sha256:24036a599f463031f5179641f8249d449dbb56cb9ad35ba3dfe0e792019a2c3a"
+    },
+    {
+      "bytes": 2470,
+      "path": "docs/adr/0004-uchet-rashodov-prezhde-limitov.md",
+      "sha256": "sha256:fd97cc4c54659aef48fce04d47eba2333d5b79bae851992e8cedb8c279e99393"
+    },
+    {
+      "bytes": 3182,
+      "path": "docs/adr/0005-agent-prompt-inzhener.md",
+      "sha256": "sha256:2ef01291760f47216d0be3d45a4f8fcade2ef2f463021eda9363fa157b7aa2d6"
+    },
+    {
+      "bytes": 3092,
+      "path": "docs/adr/0006-rezidentskie-proksi.md",
+      "sha256": "sha256:b6a9d446eed7433b7a94655b77ae2030d56348f6a69dba45b6f2ed71c8a49013"
+    },
+    {
+      "bytes": 2789,
+      "path": "docs/adr/0007-reglament-rezervnogo-kopirovaniya.md",
+      "sha256": "sha256:67b663fb958a11c975dfa3de011dc85172bbbca6c2e54f7b7e8bf4ea6cda699b"
+    },
+    {
+      "bytes": 2489,
+      "path": "docs/adr/0008-pravila-vneshney-zapisi.md",
+      "sha256": "sha256:bd64e786d1c0ef334e948f6bd08c223caac24e903d6765627817c4b72ba912bd"
+    },
+    {
+      "bytes": 3770,
+      "path": "docs/adr/0009-telegram-queue-sol-fast-timeouts.md",
+      "sha256": "sha256:328d147441b56a3936a8f8312f8a3cec8080929a8833add18581014be944a42a"
+    },
+    {
+      "bytes": 5736,
+      "path": "docs/adr/0010-owner-library-read-scope.md",
+      "sha256": "sha256:2c8d16cb78565838d159bd3c10d17040f338bbbf4d854ab6ddf220f1d53dd28e"
+    },
+    {
+      "bytes": 4951,
+      "path": "docs/adr/0011-durable-owner-effects-and-web-profiles.md",
+      "sha256": "sha256:1ea5d60b23dd99ba60a746ecdbe185f57fa64ea1dc4611e8cd40faf447eb86c5"
+    },
+    {
+      "bytes": 5487,
+      "path": "docs/adr/0012-owner-command-authority-and-calendar.md",
+      "sha256": "sha256:c9cef2ce85c7145e60fac82d3eda9a465b0180eea82673cedd61ac2d9e3b5d4a"
+    },
+    {
+      "bytes": 4682,
+      "path": "docs/adr/0013-business-notes-memory.md",
+      "sha256": "sha256:c577bea0943b32dfcc55569e259a66ac8408297e35fa4492a7e0d537810f5124"
+    },
+    {
+      "bytes": 4474,
+      "path": "docs/adr/0014-natural-product-router-and-bounded-context.md",
+      "sha256": "sha256:05342be239b7e91d2511ff4e9fbc6d8fd6a46855c7574af93e51804dffe16b56"
+    },
+    {
+      "bytes": 4012,
+      "path": "docs/adr/0015-nobus-memory-progressive-retrieval.md",
+      "sha256": "sha256:35187b64ca9615f82e043cdc06071f09848f9cbfb1806f6d4a08ad11eebb773f"
+    },
+    {
+      "bytes": 3025,
+      "path": "docs/adr/0016-persistent-mobile-codex-runtime.md",
+      "sha256": "sha256:1db03e5e13892093e2b62a20ffb37b38ef3a324b351535cdde6dc9d468bb9edf"
+    },
+    {
+      "bytes": 12458,
+      "path": "docs/adr/0017-hybrid-natural-google-local-document-plane.md",
+      "sha256": "sha256:dc58d5be0d0d1805be39c0cb2e6b49cbff961408561d18dc51ebf2dc32781e9d"
+    },
+    {
+      "bytes": 6424,
+      "path": "docs/adr/0018-cross-gate-mvp1-integration.md",
+      "sha256": "sha256:8f6c3a6a0b3ce15f73266c34023e557e2b69fe6ebee7fb93a9cc64b2e63041bb"
+    },
+    {
+      "bytes": 16054,
+      "path": "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+      "sha256": "sha256:0e663d30e78050272d78a2be66b28449495671348f70b2c5677df70e8bc7a5ba"
+    },
+    {
+      "bytes": 66552,
+      "path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "sha256": "sha256:6dc727b253a8a2e33da64311092125bfae9f37dcf95a1c8530228f19461cbdde"
+    },
+    {
+      "bytes": 530,
+      "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
+      "sha256": "sha256:6e858460eb22f01488c210d90a06cb65ef93e97a9ce2b837d7e0f4ed036fc79b"
+    },
+    {
+      "bytes": 4008,
+      "path": "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
+      "sha256": "sha256:3ca682bb64579494e3cdb0ed0ab3873f00a0b723aada3f7dc84a0ce0684fb6ca"
+    },
+    {
+      "bytes": 151449,
+      "path": "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
+      "sha256": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a"
+    },
+    {
+      "bytes": 6649,
+      "path": "docs/gates/gate-00-product-contract-baseline/decisions/decision-register.json",
+      "sha256": "sha256:1230402c5ee845c1cafc8854289c47e448d0d7709836a309f52384fd88de863f"
+    },
+    {
+      "bytes": 2156,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/configuration-inventory.json",
+      "sha256": "sha256:b881f0ca0100f55a7b06ed39229ea31c7a7c86f73fb9f18ffeee54e3a0d10ddd"
+    },
+    {
+      "bytes": 4913,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
+      "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+    },
+    {
+      "bytes": 3575,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+      "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+    },
+    {
+      "bytes": 420,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/owner-root-metadata.json",
+      "sha256": "sha256:ca1f09738f13c3c94d3f329ee1cad64b5aa91c0ac594e0548a1e5af8a6be1869"
+    },
+    {
+      "bytes": 2022,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-naive-datetime.json",
+      "sha256": "sha256:1de8ffcd4163c5a3d474a0b9c081aaaa5ea3ad748fb41b78578f138c3e7803eb"
+    },
+    {
+      "bytes": 2026,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-real-payload-flag.json",
+      "sha256": "sha256:d2b534270ef2fadff222070d2b91d0efe744b4d5c28977c81934173051b48ba8"
+    },
+    {
+      "bytes": 2023,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-tenant-swap.json",
+      "sha256": "sha256:2811d591fb50c3d12be6f08acbc9e50862f140230a00a739f3ad53862b8bd175"
+    },
+    {
+      "bytes": 2029,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-unknown-enum.json",
+      "sha256": "sha256:6f6f3dd20c77c86a3e6050c17fa73a1a86b11b5aca7cc91d0487dee663e80522"
+    },
+    {
+      "bytes": 2045,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-unknown-field.json",
+      "sha256": "sha256:48bf19e02b101ea415d36c17c21894f2e3e0b9028cbe94289f2723dd41c70cdd"
+    },
+    {
+      "bytes": 24044,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/product-contract-unknown-field.json",
+      "sha256": "sha256:651a2692f50a2dc25b766274c99bb838bff8836486fb28318610a4bcd41527a3"
+    },
+    {
+      "bytes": 2023,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/corpus-case.json",
+      "sha256": "sha256:f7194932bbee15efcb4f9f9eaada15b168578fb70fe3775eef287632abd860ed"
+    },
+    {
+      "bytes": 24019,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/product-contract.json",
+      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9"
+    },
+    {
+      "bytes": 226,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/canonicalization.json",
+      "sha256": "sha256:37915a03f5707428bdab2032b2bedd9fd67ee887d6abe83db9a75b67292e8aaa"
+    },
+    {
+      "bytes": 25175,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/contract-examples.json",
+      "sha256": "sha256:a68583dfeace5d420b81ab22486e7f86af16b34cb7c852558579998259d07db8"
+    },
+    {
+      "bytes": 2967,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/expected-intents.json",
+      "sha256": "sha256:c775058619c709967ae80df8e6e5c295c5b0e2f70ed4e4eceb1a07492b988d84"
+    },
+    {
+      "bytes": 52432,
+      "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/target-contract-schema-projections.json",
+      "sha256": "sha256:b0d235dac1db34024b19d3bb281e3f67f711c74fb51701c38e020185d2d75fcd"
+    },
+    {
+      "bytes": 24019,
+      "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
+      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9"
+    },
+    {
+      "bytes": 25482,
+      "path": "docs/gates/gate-00-product-contract-baseline/RESEARCH.md",
+      "sha256": "sha256:4ad0a29442265669355157c6a9670c10601931e556c1fe967af885bca8878ca0"
+    },
+    {
+      "bytes": 59981,
+      "path": "docs/gates/gate-00-product-contract-baseline/schemas/baseline-evidence.schema.json",
+      "sha256": "sha256:deba917881b9377f0fb97116a37003a2f95b3fb84dd2b7b0603ac682b0206c4a"
+    },
+    {
+      "bytes": 3388,
+      "path": "docs/gates/gate-00-product-contract-baseline/schemas/capability-claim.schema.json",
+      "sha256": "sha256:e5eaf95a50c77970ef854889f022ccc2bf8d0f7e93b75eedd4beb8530a810d7a"
+    },
+    {
+      "bytes": 18151,
+      "path": "docs/gates/gate-00-product-contract-baseline/schemas/corpus-case.schema.json",
+      "sha256": "sha256:701a6dedd54e10e46eaa765949d41d8a5815f00f2ef608f7b06978b39f9f30c4"
+    },
+    {
+      "bytes": 6965,
+      "path": "docs/gates/gate-00-product-contract-baseline/schemas/gate-handoff.schema.json",
+      "sha256": "sha256:a54782d03629ee7203a348a7a63d1620ec25f7eba6fff955760f6efba69f498a"
+    },
+    {
+      "bytes": 8250,
+      "path": "docs/gates/gate-00-product-contract-baseline/schemas/product-contract.schema.json",
+      "sha256": "sha256:a59b0661eb564c41eef3b38ef6262b963cba50653a223700967d61396090d365"
+    },
+    {
+      "bytes": 64983,
+      "path": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+      "sha256": "sha256:b85a3845fe746968f854ab1b9315e5dee1112b7c7621561bb93c0b70a34b4143"
+    },
+    {
+      "bytes": 35436,
+      "path": "docs/gates/gate-01-natural-language-voice/RESEARCH.md",
+      "sha256": "sha256:75da75f68ad10bff280b9dc06795006119ae34b4822185736b0061908080b551"
+    },
+    {
+      "bytes": 73806,
+      "path": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "sha256": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301"
+    },
+    {
+      "bytes": 21378,
+      "path": "docs/gates/gate-02-scope-document-contracts/RESEARCH.md",
+      "sha256": "sha256:430d1567b4f55964ae3b41d56f06863b1c79dcc2fa7bdf78501cdda224319498"
+    },
+    {
+      "bytes": 65058,
+      "path": "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
+      "sha256": "sha256:599755c46c78e29a65e14001cf9d550aa31072ffb8fde35b9a401f676a9727d4"
+    },
+    {
+      "bytes": 30278,
+      "path": "docs/gates/gate-03-google-foundation/RESEARCH.md",
+      "sha256": "sha256:46c3cdf945fdd9851c305135434a507a99e318dac1050eb3d411c43626b21c63"
+    },
+    {
+      "bytes": 87057,
+      "path": "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
+      "sha256": "sha256:301d081588bfdeceb0bac267cf2417876992ebbad1a5a62db52037044adf256c"
+    },
+    {
+      "bytes": 27658,
+      "path": "docs/gates/gate-04-notes-calendar-tasks/RESEARCH.md",
+      "sha256": "sha256:20e0dc6671691ec466f02e6916f4a5182f0c085fb4aadda9ab9ea4b7eb507d53"
+    },
+    {
+      "bytes": 80986,
+      "path": "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md",
+      "sha256": "sha256:2ed3887d88ca16443861193702501ce10cdf25fd51a6644b46c083fcf425cb8e"
+    },
+    {
+      "bytes": 38421,
+      "path": "docs/gates/gate-05-document-gateway-windows-bridge/RESEARCH.md",
+      "sha256": "sha256:9219d67bd28c24f01c2f33f85e186978a05a9839e327dc29877dcea6291687cb"
+    },
+    {
+      "bytes": 59385,
+      "path": "docs/gates/gate-06-multidocument-analytics/ARCHITECTURE.md",
+      "sha256": "sha256:14a64dfa5f13792b5fca70b2aa75fc43074af72f7ee17b25c0b5d9aa5dae29bd"
+    },
+    {
+      "bytes": 36983,
+      "path": "docs/gates/gate-06-multidocument-analytics/RESEARCH.md",
+      "sha256": "sha256:70e6e93d5fa213cec7da8990288ff176b5fda76bbe68992ba795741985d00982"
+    },
+    {
+      "bytes": 45655,
+      "path": "docs/gates/gate-07-artifact-factory-writeback/ARCHITECTURE.md",
+      "sha256": "sha256:dec2aecb8380740a5928ed74ec01d03bacb0c835f533ff82f9e4b55335bd51f7"
+    },
+    {
+      "bytes": 24658,
+      "path": "docs/gates/gate-07-artifact-factory-writeback/RESEARCH.md",
+      "sha256": "sha256:a54cd392ec8701c206fd2278dcc7f1c1267a863e82ab7438d03a397552a8e106"
+    },
+    {
+      "bytes": 60223,
+      "path": "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
+      "sha256": "sha256:39dc8989bef0d5855b5d762a108883efd4fa7ffb784feed5223b706b5cd781ff"
+    },
+    {
+      "bytes": 31465,
+      "path": "docs/gates/gate-08-hybrid-release-pilot/RESEARCH.md",
+      "sha256": "sha256:75247d0eaca67d7b4fe4a2bee2ae8a1e5a48c571a85726b72baacd0d032dacdf"
+    },
+    {
+      "bytes": 3907,
+      "path": "docs/gates/README.md",
+      "sha256": "sha256:c2e61c706c4664616ee707574cdad39b76ffb30046f8cd15b773c0e5eaaf7d34"
+    },
+    {
+      "bytes": 3750,
+      "path": "docs/handoffs/2026-07-28-MVP1-GATE-ARCHITECTURE-HANDOFF.md",
+      "sha256": "sha256:09d3b99a862de2b3aa5349245f3ff911bcded1d0f335b22706ef0c325c8596e7"
+    },
+    {
+      "bytes": 6953,
+      "path": "docs/handoffs/CODEX-1.md",
+      "sha256": "sha256:1f8ebabefa938dfb459c3dade89072614c57363b33910bedb521f400d0aed2fb"
+    },
+    {
+      "bytes": 25002,
+      "path": "docs/handoffs/CURRENT-STATUS.md",
+      "sha256": "sha256:974d31fa11701429a4b5a30a6d7693198f6db2b111e0cc40f6f1c80f3c8e2f18"
+    },
+    {
+      "bytes": 5111,
+      "path": "docs/handoffs/GATE-2.md",
+      "sha256": "sha256:763f3f4d2eef16cd1922779e4c4ab7ff5003a3b5a14e42af67430f3b8915fe1e"
+    },
+    {
+      "bytes": 5188,
+      "path": "docs/handoffs/GATE-3.md",
+      "sha256": "sha256:3ebf02d70fa174f2017cc605dbb826002d299312b4911c2f7cc4ea33448b950a"
+    },
+    {
+      "bytes": 4920,
+      "path": "docs/handoffs/GATE-3B1-5A1.md",
+      "sha256": "sha256:1a7398d212a0f3bb4b9f44fb179b001a1570abcff5ef81adf3b35ce6117c6513"
+    },
+    {
+      "bytes": 5912,
+      "path": "docs/handoffs/GATE-3B2A-5A2A.md",
+      "sha256": "sha256:ec8b990b2f907df28ad7c564e82eda0dc25a4348107bf2d7f9f9c1447cf76f79"
+    },
+    {
+      "bytes": 4033,
+      "path": "docs/handoffs/GATE-3B2B-WINDOWS-JOB-LIVE.md",
+      "sha256": "sha256:00a3a77897e42282dbf080eff7eddd5f70985dd1abe8ab907f9640b075d04712"
+    },
+    {
+      "bytes": 7271,
+      "path": "docs/handoffs/GATE-4A.md",
+      "sha256": "sha256:94f3560b9278a971100670d47398abfa1259d0a1e7efaa85953eaaabd01b5c85"
+    },
+    {
+      "bytes": 5893,
+      "path": "docs/handoffs/GATE-4B.md",
+      "sha256": "sha256:aab1ed2ef1cff419af17e5c6952b08b4f56cf48a0328b094e66ded609f5da8a3"
+    },
+    {
+      "bytes": 4788,
+      "path": "docs/handoffs/GATE-4C.md",
+      "sha256": "sha256:12f64e1c256132da4f8b22992c9cb6bc91b272021dfc894af2064f59410d1002"
+    },
+    {
+      "bytes": 3059,
+      "path": "docs/handoffs/GATE-4D.md",
+      "sha256": "sha256:c9ee20fe2a3a2a19c23f00a907453e13db1e54ec68805a7cc60ac95875f8cd48"
+    },
+    {
+      "bytes": 4136,
+      "path": "docs/handoffs/GATE-4E.md",
+      "sha256": "sha256:b54d5274373ad253cabeb59f695f39c0e28eb22ad98d643762f043bfecd4b48a"
+    },
+    {
+      "bytes": 4933,
+      "path": "docs/handoffs/GATE-4F.md",
+      "sha256": "sha256:970df2ec4d093ad36dad291e444775ced64106ce70eeae6eabe9d61f026464c2"
+    },
+    {
+      "bytes": 5081,
+      "path": "docs/handoffs/GATE-5A3.md",
+      "sha256": "sha256:c08bd1bd796b67bc89c76e28936638b946e4f27aff5db79591915aaf7c90f332"
+    },
+    {
+      "bytes": 22847,
+      "path": "docs/handoffs/MVP-1-ISSUES.md",
+      "sha256": "sha256:de644284f2731fd507974e597ba10cd71e84da8306144d0d73151552878b6460"
+    },
+    {
+      "bytes": 7798,
+      "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+      "sha256": "sha256:937898d658c4816ff96a887b8756f5a9efd93470b27f7abdbdfee384e0d29761"
+    },
+    {
+      "bytes": 7619,
+      "path": "docs/README.md",
+      "sha256": "sha256:e83fbcbcacd65a133aad737ffb9f8871bb873af8bfc96a6a0d5f10ea592c72bb"
+    },
+    {
+      "bytes": 4225,
+      "path": "ops/windows/Install-NobusSpaceBot.ps1",
+      "sha256": "sha256:9526078962158fa3bfd456d2b74264bd1acd53281d2225402019083f59ae4c02"
+    },
+    {
+      "bytes": 8143,
+      "path": "README.md",
+      "sha256": "sha256:e4ece28fa7f9d877527c5c47e458dfa2de015e8a977a6319601fc15b0a677a5f"
+    },
+    {
+      "bytes": 321,
+      "path": "requirements.txt",
+      "sha256": "sha256:610392d35b038e0b827ee9596edf6f7d791aecd06d0ac8981b20980ecbf6df3c"
+    },
+    {
+      "bytes": 4681,
+      "path": "scripts/backup_telegram_runtime.py",
+      "sha256": "sha256:491057ce3a38442312d79cbf0d691f1926520b7b99af1fea13abdb84fa5b1021"
+    },
+    {
+      "bytes": 6747,
+      "path": "scripts/bind_business_notes.py",
+      "sha256": "sha256:3e2ee05436bb06e7483a97e489dc3e89058096380753d6288c77bfd80dd8c357"
+    },
+    {
+      "bytes": 2500,
+      "path": "scripts/check_telegram_health.py",
+      "sha256": "sha256:a12d82f84ae377f9fbb430db86c04c1d36489d2546346026bbba3f85203eb73b"
+    },
+    {
+      "bytes": 3302,
+      "path": "scripts/configure_telegram_profile.py",
+      "sha256": "sha256:6bfa3520246cd386099d3343306f3a119eb165dfc3ab1ec521e01bbe7c37cfa7"
+    },
+    {
+      "bytes": 1905,
+      "path": "scripts/initialize_owner_workspace.py",
+      "sha256": "sha256:2a03efc861084c93e5434e9e1028d503fd4eb12b376ff91167ca30cb0cc5c80e"
+    },
+    {
+      "bytes": 3520,
+      "path": "scripts/live_codex_cli_probe.py",
+      "sha256": "sha256:6c466b157fa2d2ccaf53092724842333a2817a13c03c66ee436085444c480b10"
+    },
+    {
+      "bytes": 3292,
+      "path": "scripts/live_telegram_discovery.py",
+      "sha256": "sha256:57555f58c1b927025876ff17ca101c197dac19f0d006c88d52de4c75e2a26e49"
+    },
+    {
+      "bytes": 13644,
+      "path": "scripts/live_windows_job_probe.py",
+      "sha256": "sha256:2c443469360f53ba9761198767274b9a56340e5f6505396819dc2987a56fd62e"
+    },
+    {
+      "bytes": 6177,
+      "path": "scripts/restore_telegram_runtime.py",
+      "sha256": "sha256:fb4ae1d1162863840a1a2c0073f585aec0832413b1a046c18c0b41cbe48d41e6"
+    },
+    {
+      "bytes": 10899,
+      "path": "scripts/run_telegram_control.py",
+      "sha256": "sha256:f5077a9d86d02d556973f1a69e3e6fdd751c4d273acc8f0c853bc227d8e1f83c"
+    },
+    {
+      "bytes": 21294,
+      "path": "scripts/run_telegram_mvp1.py",
+      "sha256": "sha256:27a79d92ce6645d68d1f9c8ab1d374e93c47ed40e7b5dc4fd7e4e6e220761de9"
+    },
+    {
+      "bytes": 46,
+      "path": "src/__init__.py",
+      "sha256": "sha256:d6521984eec5e1f5c50d26ac3f92f4c206e283887bdcf34bae1f1f007e303012"
+    },
+    {
+      "bytes": 53,
+      "path": "src/agents/__init__.py",
+      "sha256": "sha256:c74dc79c4b3d2b476eddf82917be600523967fb657d1cbee57df0f78554d3d1e"
+    },
+    {
+      "bytes": 1466,
+      "path": "src/agents/audit_agent.py",
+      "sha256": "sha256:665a7e4c5eb1b6d5e8b5808577937c274e1694c3564e638c9d6439e528433566"
+    },
+    {
+      "bytes": 2205,
+      "path": "src/agents/base.py",
+      "sha256": "sha256:1f2bbd163ada16000ce8219074a6f303b89e35ddfaf4dd973dd28ecbddb67e0d"
+    },
+    {
+      "bytes": 935,
+      "path": "src/application/__init__.py",
+      "sha256": "sha256:bd695f6a4206836b9ed2e5ed97d0ffafc9712a61792350f0c40b60c9b23687b7"
+    },
+    {
+      "bytes": 19944,
+      "path": "src/application/business_notes.py",
+      "sha256": "sha256:6506a685176e01b76f6e28beaac0a017ed390cf17ee42ecc129594a28745714f"
+    },
+    {
+      "bytes": 13876,
+      "path": "src/application/durable_confirmations.py",
+      "sha256": "sha256:4186964f8fff5ff16531397c610957f94e8f4b6aebc4d68e9aaa7c1e01883d05"
+    },
+    {
+      "bytes": 30515,
+      "path": "src/application/durable_product.py",
+      "sha256": "sha256:bf26f36890e4a7b963f85d3bda49dfcd441b6f852f9028d754f39a89a2c8483c"
+    },
+    {
+      "bytes": 27364,
+      "path": "src/application/durable_runtime.py",
+      "sha256": "sha256:d7afe3757e832d15083904a532765ac40f6361d25f23fa6367b37d15562d7544"
+    },
+    {
+      "bytes": 46319,
+      "path": "src/application/durable_telegram_state.py",
+      "sha256": "sha256:9f1a6e82feed0f75dee6dfba01528588a76fbadaa3f1446cb41ca8443d6d8ae7"
+    },
+    {
+      "bytes": 12175,
+      "path": "src/application/fake_vertical.py",
+      "sha256": "sha256:6c14e4c2bd23dc241937d6e7eeff398e8773fb094b18fd78f03bffcf1ba3fb75"
+    },
+    {
+      "bytes": 3248,
+      "path": "src/application/gate5a3.py",
+      "sha256": "sha256:3fb840e31bb198fccb8bf338cc6845f72ee4016b5608b205e267abc76a3d0342"
+    },
+    {
+      "bytes": 108322,
+      "path": "src/application/gate5a4.py",
+      "sha256": "sha256:baae4bdeb821e8b1c739a9cd39fa3961d8760fb339438ff810e3dd579deb667c"
+    },
+    {
+      "bytes": 13572,
+      "path": "src/application/network_commands.py",
+      "sha256": "sha256:bd956f833ac82089609dd28bcae4c7185684f91c10bf539f0a82002525b09710"
+    },
+    {
+      "bytes": 21641,
+      "path": "src/application/network_tools.py",
+      "sha256": "sha256:8669d4ae4a47de0d82615bedd4a885a9cb73a463fd7754c855057db7a65bacfe"
+    },
+    {
+      "bytes": 10480,
+      "path": "src/application/nobus_memory.py",
+      "sha256": "sha256:386e446f21e38796bab587df161a62347b4af30c54938296ef8586837c914d60"
+    },
+    {
+      "bytes": 16424,
+      "path": "src/application/owner_files.py",
+      "sha256": "sha256:d39eae1b4864d54e85dffb6cf17922de12702840c64586b46abaa2bd6fe67061"
+    },
+    {
+      "bytes": 45014,
+      "path": "src/application/owner_workspace.py",
+      "sha256": "sha256:53ec191d76479402c0eec00c739c5fa060f6ad6a2ddaecdc40b538cf834f6394"
+    },
+    {
+      "bytes": 12760,
+      "path": "src/application/patch_confirmation.py",
+      "sha256": "sha256:7bf67e1b98d56f4740b78fdb277c675ad8f846b4fbee4ccc8d778366073b59b5"
+    },
+    {
+      "bytes": 34467,
+      "path": "src/application/product_effects.py",
+      "sha256": "sha256:257150614d23cb54d0cb4b59c02425bcf5859cd6fd6bb605467fe1a2301846c8"
+    },
+    {
+      "bytes": 19431,
+      "path": "src/application/runtime_maintenance.py",
+      "sha256": "sha256:8abb29c53a34a0547739f2ffee6c76707931ca5ab5bc23ea69a843c037ff0043"
+    },
+    {
+      "bytes": 16334,
+      "path": "src/application/task_confirmation.py",
+      "sha256": "sha256:ae3e3920570f78ff673b69f143e1e73471041919327e4dcdc6edaa21d90d78ff"
+    },
+    {
+      "bytes": 1733,
+      "path": "src/application/task_profiles.py",
+      "sha256": "sha256:a84e5959df2369d8b1e96982aaa7f6fa68b09d99dc4b90bd045f070b469f3086"
+    },
+    {
+      "bytes": 5852,
+      "path": "src/application/telegram_actions.py",
+      "sha256": "sha256:7ac07e3f879dda81e803f224763ec6444823e3794ecede1f7020cef0f4bf147a"
+    },
+    {
+      "bytes": 11315,
+      "path": "src/application/telegram_control.py",
+      "sha256": "sha256:4ca8acc959959e43e8a326801f796a69368194b93378efc5e38bf42374ce4088"
+    },
+    {
+      "bytes": 91841,
+      "path": "src/application/telegram_product.py",
+      "sha256": "sha256:90fc6b6ca48f566d0dccf413625c5a98e8f662c8b48f44f7ad5f15610015ce1e"
+    },
+    {
+      "bytes": 1549,
+      "path": "src/application/windows_singleton.py",
+      "sha256": "sha256:a0f2e6825e46bf9687f1de6b8c578bd2bbbcf1538d2417fb536251be549f724e"
+    },
+    {
+      "bytes": 669,
+      "path": "src/config.py",
+      "sha256": "sha256:e46e6f57b4985bd2a556f600912bc997b0647724d52ee77cbab66e4074fb845b"
+    },
+    {
+      "bytes": 658,
+      "path": "src/contracts/__init__.py",
+      "sha256": "sha256:29eb118f149f09fdb36537192878d6ac092275e0deb7f6e712ae2520be4bf92c"
+    },
+    {
+      "bytes": 16832,
+      "path": "src/contracts/models.py",
+      "sha256": "sha256:8e5bbd29fd0db5e140f9cd103dcbe026699ac7a89053965cb70dda2dfe4d1406"
+    },
+    {
+      "bytes": 877,
+      "path": "src/core/__init__.py",
+      "sha256": "sha256:190e6e469763863fc1f9b7f698a0ef21776571eca7862b266da1f4e794e5da3e"
+    },
+    {
+      "bytes": 22407,
+      "path": "src/core/policy.py",
+      "sha256": "sha256:25d29e32a80128c87eb9ab98bddd9558de6957453e13ca77008f8ac815b83e53"
+    },
+    {
+      "bytes": 972,
+      "path": "src/integrations/__init__.py",
+      "sha256": "sha256:b512cb4a767e39c90418475bf1d74d75d910978cd6e97b4de83951415a253d4f"
+    },
+    {
+      "bytes": 18585,
+      "path": "src/integrations/google_calendar.py",
+      "sha256": "sha256:9160e94af1708a4163690db9c0a24dbce5eb94114790f544ad1ed60d18e71f1a"
+    },
+    {
+      "bytes": 33296,
+      "path": "src/integrations/google_drive.py",
+      "sha256": "sha256:0bd48a8030157163873d85a2ab3837fc0a4a0d66539749bc3682b8c87ba9abcc"
+    },
+    {
+      "bytes": 20563,
+      "path": "src/integrations/google_tasks.py",
+      "sha256": "sha256:6f8e347df07933855238196e1cd148b876e8367d8eb1febd7dc0d3b209309d08"
+    },
+    {
+      "bytes": 3203,
+      "path": "src/integrations/google_transport.py",
+      "sha256": "sha256:dc4a5744c7c59a9a6369fd8d20a8bf17f932008921f98eea42085138c8c8b919"
+    },
+    {
+      "bytes": 986,
+      "path": "src/main.py",
+      "sha256": "sha256:68bf51504491ffa1637e8d66a83439c226fd09a7e92927f51ba4645723456fed"
+    },
+    {
+      "bytes": 49,
+      "path": "src/memory/__init__.py",
+      "sha256": "sha256:cedf25756feee70800ef17f89f48ec8fadc1ff4eb08743258e3b412aab9c585f"
+    },
+    {
+      "bytes": 4664,
+      "path": "src/memory/codebase_memory.py",
+      "sha256": "sha256:322aa1dce55004a50c6e2953aeed0bd8f49891749e8993e985e696c6cb49ca6a"
+    },
+    {
+      "bytes": 46,
+      "path": "src/models/__init__.py",
+      "sha256": "sha256:6ed6186a67144f07e505d770e9a81a326a8593b64d9765de5b94660fb06daac1"
+    },
+    {
+      "bytes": 3300,
+      "path": "src/models/task.py",
+      "sha256": "sha256:aacf96f380093e39e7c066e094c7a4ed1f570897d87f30caacbd0ca9a9800b95"
+    },
+    {
+      "bytes": 47,
+      "path": "src/orchestrator/__init__.py",
+      "sha256": "sha256:6ddcf73046cd8c5664258049217ca04e627953fe395bd6d0bc720251f7b7853a"
+    },
+    {
+      "bytes": 7644,
+      "path": "src/orchestrator/graph.py",
+      "sha256": "sha256:310db0da195f210572aa517490926bc2dabc196f3a959f6e2eb32c4fedd02cbc"
+    },
+    {
+      "bytes": 3416,
+      "path": "src/orchestrator/intent_parser.py",
+      "sha256": "sha256:e52a9b5de3add2929b45df49f2b77d92d73cb7b86177e1890bdebfb97bc77b61"
+    },
+    {
+      "bytes": 2524,
+      "path": "src/orchestrator/orchestrator.py",
+      "sha256": "sha256:00d2e5697bac0ce31700d3f1072b553bda05ced85778154cddfc6ad0258bdfdd"
+    },
+    {
+      "bytes": 915,
+      "path": "src/orchestrator/router.py",
+      "sha256": "sha256:a14a7acd1572ca05494b8eb78e5c997f7aef68020c30ea2057d82b80c1f747a2"
+    },
+    {
+      "bytes": 17007,
+      "path": "src/orchestrator/state_manager.py",
+      "sha256": "sha256:c884bd69e9d24aa3158e27098032c89a67e8e929cf258628dcb77e2e22f1cc54"
+    },
+    {
+      "bytes": 262,
+      "path": "src/security/__init__.py",
+      "sha256": "sha256:f5fbf21177cd753fb9d9e7409591cb25a5e2475928bd236a0b034bdb32615660"
+    },
+    {
+      "bytes": 3300,
+      "path": "src/security/dpapi.py",
+      "sha256": "sha256:06e4459e9f945dbf61d2a7fef0dd3937636439168c69d7a074ab4a2ed459836b"
+    },
+    {
+      "bytes": 4327,
+      "path": "src/security/windows_credentials.py",
+      "sha256": "sha256:0f1ed94ec9430a35fed921e2a84aec526264ed07e116e45bd45dd75d3c0d90d3"
+    },
+    {
+      "bytes": 55,
+      "path": "src/skills/__init__.py",
+      "sha256": "sha256:88d4bbd01a974f82e5954cc312e6cbc07a04b8ea969b07b75518c626b1036dfe"
+    },
+    {
+      "bytes": 3460,
+      "path": "src/skills/ponytail_rules.py",
+      "sha256": "sha256:36915738adddac2677a0c5d3b2a9b846edb8a1d34b13eb484a999c5a40ddc290"
+    },
+    {
+      "bytes": 1035,
+      "path": "src/storage/__init__.py",
+      "sha256": "sha256:1603a3d1070bd376e1a9f162c33b05bfdbfd9554e274037abd40db4eafbcd0a9"
+    },
+    {
+      "bytes": 8256,
+      "path": "src/storage/outbox.py",
+      "sha256": "sha256:590021e6e89f0cf2e4e8b1a04509c72be3d52f42cb8cb32a0bd0b54d0b104ef8"
+    },
+    {
+      "bytes": 76319,
+      "path": "src/storage/sqlite_store.py",
+      "sha256": "sha256:662077da33c2abe54088b3a86f32ed413ad570b0cf62ac5f1c661ed2e88892eb"
+    },
+    {
+      "bytes": 856,
+      "path": "src/transport/telegram/__init__.py",
+      "sha256": "sha256:7f9a43d061a2abeae2f42e0e9e508b70d99cf58de9084bac7d184afe98a6204e"
+    },
+    {
+      "bytes": 10174,
+      "path": "src/transport/telegram/bindings.py",
+      "sha256": "sha256:e25f8a0e9d6d25c7d33c39e4adb89faa5c1ddbe7d5d0a6facae8f30ceedb7f3f"
+    },
+    {
+      "bytes": 34075,
+      "path": "src/transport/telegram/bot_api.py",
+      "sha256": "sha256:fae384249e9cf606f913bf837e7035bf67b60c4ff46d25249aadf32f90c8e78d"
+    },
+    {
+      "bytes": 580,
+      "path": "src/transport/telegram/checkpoint_update_store.py",
+      "sha256": "sha256:052a42e34eacfb6f75f97e2b0e27cf96982f31c33f87e0ca2af59ea61ab2916d"
+    },
+    {
+      "bytes": 3032,
+      "path": "src/transport/telegram/discovery.py",
+      "sha256": "sha256:231584c579ace8a466a632939ceac65146bc95c04a76a18ce3dc2cfcdcf2f933"
+    },
+    {
+      "bytes": 20276,
+      "path": "src/transport/telegram/gateway.py",
+      "sha256": "sha256:ba78b90c7358d4ebf1ff1bfc00fffa7e055121de487807a2031379bf5e4bcc3b"
+    },
+    {
+      "bytes": 7051,
+      "path": "src/transport/telegram/models.py",
+      "sha256": "sha256:d4c60b364c18cfddb4e62fa205509b457f6861381e878c18a08eadbf825c5639"
+    },
+    {
+      "bytes": 15152,
+      "path": "src/transport/telegram/sqlite_checkpoint.py",
+      "sha256": "sha256:84a00b1b03d1af3e30ae9c6bf256eb3ae09d9f5db6e5ded7e9796963dabec461"
+    },
+    {
+      "bytes": 828,
+      "path": "src/voice/__init__.py",
+      "sha256": "sha256:cc1dd1ea68f6fe432b6c9563e3e1ea089dcee45420c8441a41b2ea779c1a6113"
+    },
+    {
+      "bytes": 2945,
+      "path": "src/voice/base.py",
+      "sha256": "sha256:69efff03d67b21ea2f9d9c09f364ecd8cd6385000651d662068734d18246c66f"
+    },
+    {
+      "bytes": 23354,
+      "path": "src/voice/confirmation.py",
+      "sha256": "sha256:dc696980eaa2e165d529d141d640426d7e45e0bc354daea36ee150d45b599ddf"
+    },
+    {
+      "bytes": 7074,
+      "path": "src/voice/faster_whisper.py",
+      "sha256": "sha256:c0a1f918d65cf67f4811b0ac364dc9bcd4e9d5f7ebfb6f975df665a69e0070d7"
+    },
+    {
+      "bytes": 9523,
+      "path": "src/voice/service.py",
+      "sha256": "sha256:0583b990dc7bdf38b89c243b4ad19d3072f97d32e9cdc6925b4a354a07bba95a"
+    },
+    {
+      "bytes": 392,
+      "path": "src/workers/__init__.py",
+      "sha256": "sha256:d3b94c900858c3a630f6c16458d37ffdf1037d547bd5f8655e8111c4e8752ada"
+    },
+    {
+      "bytes": 12296,
+      "path": "src/workers/asyncio_spawner.py",
+      "sha256": "sha256:5f8b5ccee1a7fc5f358147d3e2a49d2bcb92c79afaefdc8b3e478405d6a4eb1e"
+    },
+    {
+      "bytes": 41355,
+      "path": "src/workers/codex_cli.py",
+      "sha256": "sha256:0f4a0ba471ca1c6f47d5547c2d41d1ff241b8c91187e8edae190101e6273171e"
+    },
+    {
+      "bytes": 10012,
+      "path": "src/workers/codex_limits.py",
+      "sha256": "sha256:6f342cb1e65aba2f4c29b50d00981f2e666f3f1c3d6f45ebe00b4500d0dd727a"
+    },
+    {
+      "bytes": 7351,
+      "path": "src/workers/codex_patch.py",
+      "sha256": "sha256:179aad577edaad9a6bb07e50fed1486a0fa5a1ceb1bb81ff5f0134aa84c631e6"
+    },
+    {
+      "bytes": 36005,
+      "path": "src/workers/codex_sdk.py",
+      "sha256": "sha256:e609ade5820d539eb7cd2fc738a64d7b6dd9819d95697d5ba0c893a888beddb1"
+    },
+    {
+      "bytes": 12821,
+      "path": "src/workers/windows_job.py",
+      "sha256": "sha256:c3acf5574da41642eeb03845fc790afd9515169c7b2472f9af41c9aa297ae2fc"
+    },
+    {
+      "bytes": 4464,
+      "path": "src/workers/windows_job_helper.py",
+      "sha256": "sha256:b17269120c32663b1e46542e36da5b3a1b7c3abfcd972ab7b9a42751c5ec6b2d"
+    },
+    {
+      "bytes": 40,
+      "path": "tests/__init__.py",
+      "sha256": "sha256:68666c15758e5ff7cf613c428b1dbc98a45a11f183a54fe89a480ec5de09181b"
+    },
+    {
+      "bytes": 2033,
+      "path": "tests/fixtures/windows_job_probe.cs",
+      "sha256": "sha256:10751bfcc5d3fa21b9199f309a65c3d066045060ae3f029de3bdb711494b43cf"
+    },
+    {
+      "bytes": 28940,
+      "path": "tests/gate0/collect_gate0_snapshot.py",
+      "sha256": "sha256:4d8623b044504c53fcbb65df31e0c227b8596280e39d74e9bb8d71d81e9c8987"
+    },
+    {
+      "bytes": 17393,
+      "path": "tests/gate0/collect_runtime_snapshot.ps1",
+      "sha256": "sha256:fdb117ff07b473240671e26013a180f2ceb00249ac4c1ba87c46d1da1f349e2f"
+    },
+    {
+      "bytes": 18752,
+      "path": "tests/gate0/gate0_lifecycle.py",
+      "sha256": "sha256:c6c1e0320c2ceeb0b90ba24db7f531d6b54c69f80e0aa806b5562da39db6c93a"
+    },
+    {
+      "bytes": 33685,
+      "path": "tests/gate0/gate0_precapture.py",
+      "sha256": "sha256:9d3bdc4d65ad0aadb79c6e2724a2dd1387723c779d439fd603706f1a9761494b"
+    },
+    {
+      "bytes": 136704,
+      "path": "tests/gate0/generate_gate0_artifacts.py",
+      "sha256": "sha256:443a4d7f06e5eec245c08f9a985d63cf520a5d14a942f038d37a45062f379978"
+    },
+    {
+      "bytes": 1574,
+      "path": "tests/gate0/importlinter-gate0.ini",
+      "sha256": "sha256:c4cc21d052426be559914bd56378d9bbec5b59ef65cf02e389cfa82a5bbfee9b"
+    },
+    {
+      "bytes": 1631,
+      "path": "tests/gate0/invoke_release_audit.ps1",
+      "sha256": "sha256:f1fd116c597114b47425bc243bb512bfb0baeefd39a755451ff2cfe4ad66bc82"
+    },
+    {
+      "bytes": 93224,
+      "path": "tests/gate0/manage_runtime_maintenance.ps1",
+      "sha256": "sha256:8d43541bba2f93ab6b515a783d8b331038da10c2d90b703a1ff616c899c37984"
+    },
+    {
+      "bytes": 109455,
+      "path": "tests/gate0/normalize_gate0_contracts.py",
+      "sha256": "sha256:a512833f2aac546a9abb0e90456531cdd92136477ddf490d3beaa8f67595ee22"
+    },
+    {
+      "bytes": 27579,
+      "path": "tests/gate0/normative_models.py",
+      "sha256": "sha256:9637bc9ec3795cb4238bb7bdf5ca31a9a051bc9ecff852992e735f4be6f8507b"
+    },
+    {
+      "bytes": 765,
+      "path": "tests/gate0/pytest_mutex_namespace.py",
+      "sha256": "sha256:092aeedb04be7512926005c0e062b657a14f082dc9cc8eeea8ef1d9332c603c8"
+    },
+    {
+      "bytes": 14454,
+      "path": "tests/gate0/target_golden_semantics.py",
+      "sha256": "sha256:d21c4b3f725562eb7135d79ed3910057903f1f07e26478f68c9d68dccba2672e"
+    },
+    {
+      "bytes": 2679,
+      "path": "tests/gate0/test_gate0_handoff_lifecycle.py",
+      "sha256": "sha256:b86e558f550ac1f95e8278d7c61998623d953fed155b5687d8e9266e2f37c0fe"
+    },
+    {
+      "bytes": 4324,
+      "path": "tests/gate0/test_gate0_lifecycle.py",
+      "sha256": "sha256:31649fd9e9c6881d8326520194fd3ac2e4dacd72d897286e197796a71496d341"
+    },
+    {
+      "bytes": 71981,
+      "path": "tests/gate0/test_gate0_normative.py",
+      "sha256": "sha256:f16d4e4623fcb74046123e7b028250ac4dcc4233e353e39e2f556bd8ba834102"
+    },
+    {
+      "bytes": 37970,
+      "path": "tests/gate0/test_gate0_precapture.py",
+      "sha256": "sha256:69b9a06e035b926972c715b1d9637b01a0f7523e50a90e3dfd98024e1e7077a1"
+    },
+    {
+      "bytes": 3134,
+      "path": "tests/gate0/test_release_audit_wrapper.py",
+      "sha256": "sha256:622e2ff842865fe88fbd6285a8bc0036f0a9377de7e9f6bd7ad75d3743f62416"
+    },
+    {
+      "bytes": 10015,
+      "path": "tests/gate0/test_runtime_maintenance_action_repair.py",
+      "sha256": "sha256:11533edac40f9d5bb9188ed9bc6ac049816c7abbb8861f3bb9c8df93327ad6a0"
+    },
+    {
+      "bytes": 3013,
+      "path": "tests/gate0/test_runtime_maintenance_adversarial.py",
+      "sha256": "sha256:928db72004788d1f7b5bf42585754d0b13a26b5ab4be3f7b879f4058bd8833b1"
+    },
+    {
+      "bytes": 2230,
+      "path": "tests/gate0/test_runtime_maintenance_argument_matrix.py",
+      "sha256": "sha256:0f497de7bc8f377931f87ca72183914147d71660a3a9ff1518a4fe70def23e24"
+    },
+    {
+      "bytes": 1869,
+      "path": "tests/gate0/test_runtime_maintenance_candidate_scope.py",
+      "sha256": "sha256:d3804f9907ade318c0df5b6ec17f1fbb16ad38864ce254b365d8adcf3a787b5f"
+    },
+    {
+      "bytes": 3333,
+      "path": "tests/gate0/test_runtime_maintenance_diagnostic_profile.py",
+      "sha256": "sha256:90379020baade4b78d9cf76711d02a6f8fc2918bb392cbc58d10b739faf9189b"
+    },
+    {
+      "bytes": 7953,
+      "path": "tests/gate0/test_runtime_maintenance_evidence_contract.py",
+      "sha256": "sha256:5440fdd2254cb4b3989910f554ff7fea6f799a55216b01dc2474c4f930498556"
+    },
+    {
+      "bytes": 6513,
+      "path": "tests/gate0/test_runtime_maintenance_failure_receipt.py",
+      "sha256": "sha256:c2b30a0c5f389089dee05602cd053df159fdacf0c5b6a2072413545c064e7a7e"
+    },
+    {
+      "bytes": 4144,
+      "path": "tests/gate0/test_runtime_maintenance_helper.py",
+      "sha256": "sha256:3b3ece017f2322bad4397771cae8da3211ad2e7b38b8103339e7e8d68d1b5284"
+    },
+    {
+      "bytes": 4242,
+      "path": "tests/gate0/test_runtime_maintenance_legacy_remediation.py",
+      "sha256": "sha256:30becb3a167fbdf2377d5687cb70c09a9a40fff2c811718075029b8409160b80"
+    },
+    {
+      "bytes": 2083,
+      "path": "tests/gate0/test_runtime_maintenance_live_root.py",
+      "sha256": "sha256:2e39be7e786291638b8671c0710923200f15f4c7e0818ca17e8b11690d668bd2"
+    },
+    {
+      "bytes": 1388,
+      "path": "tests/gate0/test_runtime_maintenance_native_api.py",
+      "sha256": "sha256:810c9b9e9048c44644b1cdbc1cdf888a598cdf1225409d51c37faf2f55c6e339"
+    },
+    {
+      "bytes": 1752,
+      "path": "tests/gate0/test_runtime_maintenance_postcondition.py",
+      "sha256": "sha256:e6ff861eca289e4fdc2819f73923477c2131fbbdaf9a0ea4f1ba205e43e988f0"
+    },
+    {
+      "bytes": 21577,
+      "path": "tests/gate0/test_runtime_maintenance_profiles.py",
+      "sha256": "sha256:2f38622ff98087b1a2450b4bff8bd4fd60d2e48367a91379a8cbf47705b511f1"
+    },
+    {
+      "bytes": 1820,
+      "path": "tests/gate0/test_runtime_maintenance_pyvenv.py",
+      "sha256": "sha256:b52965ea73b5bbfe9d76b5cc6678dc753a21f9fe19ca4fa546d84fdcb946a7f3"
+    },
+    {
+      "bytes": 1841,
+      "path": "tests/gate0/test_runtime_maintenance_root_failure_stage.py",
+      "sha256": "sha256:54c0a878cc7f7408c19b274a572b257da9ea8e680fd4671e794c39804d4afead"
+    },
+    {
+      "bytes": 4108,
+      "path": "tests/gate0/test_runtime_maintenance_running_group.py",
+      "sha256": "sha256:208f155a70263b2126b8e71cb5f2b5ca0adb696e1e33ee88c91dc10d806fb0ac"
+    },
+    {
+      "bytes": 3383,
+      "path": "tests/gate0/test_runtime_maintenance_running_route.py",
+      "sha256": "sha256:45dd4e19793249401bdb26dff4d49dd8a9af78ac222c5779b22fd5e20f65e761"
+    },
+    {
+      "bytes": 7173,
+      "path": "tests/gate0/test_runtime_maintenance_start_authority.py",
+      "sha256": "sha256:cabdaefd84e764665330e14cb655a3dae19909735c1a3465c4123baaeebb6530"
+    },
+    {
+      "bytes": 2702,
+      "path": "tests/gate0/test_runtime_maintenance_termination_plan.py",
+      "sha256": "sha256:c246f874e9eee908fcd409209d3d100bb86e10ab107a9deebf5d094d0460a3cb"
+    },
+    {
+      "bytes": 4036,
+      "path": "tests/gate0/verifier-requirements.txt",
+      "sha256": "sha256:cd0e3d350803942246f9b7ea08840d850906e7e8f02edccf74b2318a5a362d2e"
+    },
+    {
+      "bytes": 736,
+      "path": "tests/gate0/verifier-toolchain.json",
+      "sha256": "sha256:6761a8a2808e0592736a614d47f94ff71cc13e1aa32744c33b7a7ee98ac8cf42"
+    },
+    {
+      "bytes": 13731,
+      "path": "tests/test_asyncio_spawner.py",
+      "sha256": "sha256:876ca469f2e1139290b86a11ad5438cb0678b69a6fdff17c941cb9ca1583a8d5"
+    },
+    {
+      "bytes": 2675,
+      "path": "tests/test_bind_business_notes.py",
+      "sha256": "sha256:69acf7f01b8887c60234f1ad3f1bc772d61b87a83ed91f6635825b9b8c5e1346"
+    },
+    {
+      "bytes": 9728,
+      "path": "tests/test_business_notes.py",
+      "sha256": "sha256:f5df8546ecb834fe88a2738092ed411f5b2b3029fc82c779bd9c9c845f6f9b0e"
+    },
+    {
+      "bytes": 5268,
+      "path": "tests/test_business_notes_ingress.py",
+      "sha256": "sha256:72d4adc32fb902908948a4410b383835ff893aefd4a55715203e4ca96d888789"
+    },
+    {
+      "bytes": 2357,
+      "path": "tests/test_calendar_planner.py",
+      "sha256": "sha256:7916e1b5566c79c9f2d34ed04d1e7f8dcb3ee150821b6237ee89e1d26b7c70ae"
+    },
+    {
+      "bytes": 2274,
+      "path": "tests/test_codebase_memory.py",
+      "sha256": "sha256:c562987ba78d316dff8134122342cd889fd4f850a3767f08ff95b77b71419475"
+    },
+    {
+      "bytes": 56087,
+      "path": "tests/test_codex_cli.py",
+      "sha256": "sha256:fa03aaddad94ef726050cd8aa9834c26becce1971c5928086202e29dd4537bc0"
+    },
+    {
+      "bytes": 3283,
+      "path": "tests/test_codex_intent_profile.py",
+      "sha256": "sha256:0e1d8ca8d21b13679cbbcb0145c6ca0f46a2f3a10b40a9c424cc114484e6d80d"
+    },
+    {
+      "bytes": 693,
+      "path": "tests/test_codex_limit_allowlist.py",
+      "sha256": "sha256:87d995dba0d854ae32561eb7fb825ee7f6656ffbaa82a0277eb8da20e85432a5"
+    },
+    {
+      "bytes": 4892,
+      "path": "tests/test_codex_limits.py",
+      "sha256": "sha256:97a51c72af9bc3cbdd08c664293efb3fc6936ff913269633bd678c704a17c41e"
+    },
+    {
+      "bytes": 3978,
+      "path": "tests/test_codex_patch.py",
+      "sha256": "sha256:ac38ce197b53acb5aaa0c9f555d97d49888ced4dfde985d8ed4d1897681f1b5d"
+    },
+    {
+      "bytes": 2662,
+      "path": "tests/test_codex_patch_adversarial.py",
+      "sha256": "sha256:9fc89afc8bb04f039f9341c0f74c7128f0ca130919c04ff4e8e37bf1a5868880"
+    },
+    {
+      "bytes": 43633,
+      "path": "tests/test_codex_sdk.py",
+      "sha256": "sha256:b25eb432079269120c83a68204795f292f1ad497b74c0a15b2dd83005fa33851"
+    },
+    {
+      "bytes": 6407,
+      "path": "tests/test_codex_web_profile.py",
+      "sha256": "sha256:c5f6406162f386ac2650fbe834ee6caa6670250372a6e21cd5914428fe8fa11c"
+    },
+    {
+      "bytes": 25105,
+      "path": "tests/test_completion_policy.py",
+      "sha256": "sha256:b2bec3331f3f2619825cf02da32e3d256b0e294bbc939ea767fc4a165b0ad0be"
+    },
+    {
+      "bytes": 12542,
+      "path": "tests/test_contracts.py",
+      "sha256": "sha256:6dc601316f8b0357f5b457630d70f786aa61900e8119826a902ab8e0206abeae"
+    },
+    {
+      "bytes": 2910,
+      "path": "tests/test_documentation.py",
+      "sha256": "sha256:3d416b045d3b6cc2c2c4a8537600640c29f1c82966b8b02e316e4750cf5bf885"
+    },
+    {
+      "bytes": 1086,
+      "path": "tests/test_durable_confirmations.py",
+      "sha256": "sha256:5c373a14e0f5577d95555cb91a6be18ca162ce300c636edd525947b13e1745e3"
+    },
+    {
+      "bytes": 24185,
+      "path": "tests/test_durable_runtime.py",
+      "sha256": "sha256:58329d9642d5454bc411ab4c49cdfaa52a698e03e016bbbe0c5cfc4d98768e1f"
+    },
+    {
+      "bytes": 9833,
+      "path": "tests/test_durable_telegram_state.py",
+      "sha256": "sha256:2e6b993049b5abea1a06263e5b665b7d255481c1adb2c31a9b1090c83dbf3297"
+    },
+    {
+      "bytes": 1473,
+      "path": "tests/test_effect_crash_recovery.py",
+      "sha256": "sha256:db7eee8d1692ff57517d66a8efa1e476c1937cf5d53b9b5ff5033e42207e6270"
+    },
+    {
+      "bytes": 7974,
+      "path": "tests/test_effect_delivery_atomicity.py",
+      "sha256": "sha256:192732a9c249ca7b7a6ee4f334921228cf2a11349b7017dd298003cd884c09ae"
+    },
+    {
+      "bytes": 17283,
+      "path": "tests/test_fake_vertical.py",
+      "sha256": "sha256:1cfd1e82f9a922bf254e7b17082f42b5e272081a4629df594c21872ee2830ce4"
+    },
+    {
+      "bytes": 3935,
+      "path": "tests/test_gate5a3_runner.py",
+      "sha256": "sha256:2f04f06c4a89ddd1380620937215ffc5a1e13edc6ca5c07d1d7b44e342b9fa4e"
+    },
+    {
+      "bytes": 24804,
+      "path": "tests/test_gate5a4.py",
+      "sha256": "sha256:9b032263da6a0f6321da0141d83ae6d2e43e956e8be37167b3972d81c3423e96"
+    },
+    {
+      "bytes": 9836,
+      "path": "tests/test_google_calendar.py",
+      "sha256": "sha256:d5e37083554ece6f31195076258b8f3e8a6c11212c6f5a0865ceb39e8ad07e51"
+    },
+    {
+      "bytes": 2287,
+      "path": "tests/test_google_calendar_credentials.py",
+      "sha256": "sha256:0626a6aa943435f06f8ec258e2603d59e541773806d02d6eb924c14b53d13b52"
+    },
+    {
+      "bytes": 34348,
+      "path": "tests/test_google_drive.py",
+      "sha256": "sha256:e38ba3cfb26b0f083a438725597b366dcc89c4bd89e2031dcf8777bf7fa2f5de"
+    },
+    {
+      "bytes": 8042,
+      "path": "tests/test_google_drive_adversarial.py",
+      "sha256": "sha256:abc0609bb83b5d8060185b48f0d6742e07159c1bb2e8929286fd124c2e55bde1"
+    },
+    {
+      "bytes": 2432,
+      "path": "tests/test_google_drive_durable.py",
+      "sha256": "sha256:9e8f589820be4dc1678c4502a51d7e5d890e825176b84f52585d558a1cb8529c"
+    },
+    {
+      "bytes": 7230,
+      "path": "tests/test_google_drive_product.py",
+      "sha256": "sha256:c2e3ca7d3cfdaf2e22b3c8ed638df93e99c76275057b22f0dc15ede97cca157d"
+    },
+    {
+      "bytes": 7499,
+      "path": "tests/test_google_tasks.py",
+      "sha256": "sha256:99575e35887cbf4f084db617f695b6b8ee2a28847349393799d4ea1194250aff"
+    },
+    {
+      "bytes": 3135,
+      "path": "tests/test_google_tasks_adversarial.py",
+      "sha256": "sha256:221f0f0a7901e39d43c418773d4440149311c9135c65eb179e1fdcf2cfb50a3e"
+    },
+    {
+      "bytes": 8071,
+      "path": "tests/test_google_tasks_list_resolution.py",
+      "sha256": "sha256:fc5b2fbbd25d8b2b9fdc8dcae0c8f6e8fb7d41ffba7cb4b1ee4933f885941114"
+    },
+    {
+      "bytes": 4734,
+      "path": "tests/test_google_tasks_pagination.py",
+      "sha256": "sha256:55335151ddd2c9dc72ff311791c6c6c9d5bdd2f46cb22d7076089aeec251fa77"
+    },
+    {
+      "bytes": 1791,
+      "path": "tests/test_google_tasks_planner.py",
+      "sha256": "sha256:0e72f34a03cfaee1cb6007de3c100cb745c02c2d1ea452645989124728aee0be"
+    },
+    {
+      "bytes": 1009,
+      "path": "tests/test_google_transport.py",
+      "sha256": "sha256:b8e9b549c68d553f0eb1c45fa1f1cea91db1a9e2cada2ff06f3376902cb1ca35"
+    },
+    {
+      "bytes": 3873,
+      "path": "tests/test_graph.py",
+      "sha256": "sha256:b524f5c1e1f70b62472fae7edd1cdab539e6e0c1744174021b6332f2cc118afa"
+    },
+    {
+      "bytes": 2936,
+      "path": "tests/test_live_telegram_discovery.py",
+      "sha256": "sha256:ed5dc3b3da0dbe9cf6521826029c9e578fa037eb1e9c00fb85a0cfb74fdaf0e5"
+    },
+    {
+      "bytes": 1414,
+      "path": "tests/test_llm_fallback.py",
+      "sha256": "sha256:3a4de3c8fd84ca463cdd0fdc2eb313b70a35ef848534d5231b311e3ec3c9b0fc"
+    },
+    {
+      "bytes": 1553,
+      "path": "tests/test_main.py",
+      "sha256": "sha256:b6569e2b4ef415bd9a5e181ffcda1af1a74b61a77bb1541e5174a74e7bd27962"
+    },
+    {
+      "bytes": 8344,
+      "path": "tests/test_network_boundaries.py",
+      "sha256": "sha256:4932cac172bd52f06596839c523bfadde741cd7597a5e1b2723ead62c17cac17"
+    },
+    {
+      "bytes": 6378,
+      "path": "tests/test_nobus_memory.py",
+      "sha256": "sha256:f636e2bf8f91dd4f19a8f3b246f047ca6b3f1c5b5b518bd94e045e49fb04e515"
+    },
+    {
+      "bytes": 9227,
+      "path": "tests/test_ops_queue1.py",
+      "sha256": "sha256:a5358d6d0e899a9357e8344b8327b2d613f3ab0bd1b06ce30a671feee4d8548d"
+    },
+    {
+      "bytes": 3682,
+      "path": "tests/test_orchestrator.py",
+      "sha256": "sha256:0e924b3a586b6667b083980cfcabf72edf5f17d2253b8bcc209eadd9658d881b"
+    },
+    {
+      "bytes": 12582,
+      "path": "tests/test_owner_files.py",
+      "sha256": "sha256:c5460fc8d5ab6d9fc93172276bfe46d82c42b7c56bae0c0b54a090d5ff4c06ad"
+    },
+    {
+      "bytes": 11721,
+      "path": "tests/test_owner_workspace.py",
+      "sha256": "sha256:53c3500343efcf742e3da68fd06453c91286593b4d04eaf02005c5427bb1311b"
+    },
+    {
+      "bytes": 556,
+      "path": "tests/test_owner_workspace_init.py",
+      "sha256": "sha256:5bac1b57bd2694b971a6b0ea1c665e3be9683b13827d7ca775c2613da22e7e09"
+    },
+    {
+      "bytes": 2334,
+      "path": "tests/test_ponytail_rules.py",
+      "sha256": "sha256:e1848ff027535998fd9c523ee9e952ebd7753e290111a0450e0efeda78ae1767"
+    },
+    {
+      "bytes": 3502,
+      "path": "tests/test_product_effect_routes.py",
+      "sha256": "sha256:09acffc6de3e7a69a83506f161eae99a44eaba59e68ea4651c6ada95ac5473f0"
+    },
+    {
+      "bytes": 13081,
+      "path": "tests/test_product_effects.py",
+      "sha256": "sha256:2e6387b309f62dc79bd18e1d5e922653a3f243b6f8ca354862e222724153d228"
+    },
+    {
+      "bytes": 15634,
+      "path": "tests/test_product_mvp_completion.py",
+      "sha256": "sha256:cea3bb2f15942dbdd8ab462857b39460f5f912342105e304afe50cced86445cb"
+    },
+    {
+      "bytes": 5355,
+      "path": "tests/test_product_runtime_regressions.py",
+      "sha256": "sha256:d34a42362369a4126a0b47c23ca7102daa844883a4dda550cbb98cfb06412236"
+    },
+    {
+      "bytes": 12967,
+      "path": "tests/test_queue12_acceptance_rework.py",
+      "sha256": "sha256:a6a71938c5ce2cb8ab55688be11fac36690902e50785ad005827a45ac8b3635d"
+    },
+    {
+      "bytes": 24676,
+      "path": "tests/test_queue12_crash_regressions.py",
+      "sha256": "sha256:8215cdafce48c03932d2ba0031b29abe06ad3d44e729ef364adf46e1b68a3ba3"
+    },
+    {
+      "bytes": 7926,
+      "path": "tests/test_queue12_rework.py",
+      "sha256": "sha256:d6f45f7d8ed6057f678d87ca9165bb78c713c78d1e7fb5b806f094aed1a67f49"
+    },
+    {
+      "bytes": 16200,
+      "path": "tests/test_research_tasks_regressions.py",
+      "sha256": "sha256:6cea0a7577a12c55cbe15ef583e4a1a43c6fc8f343fce93a89935038fb2b2a58"
+    },
+    {
+      "bytes": 7542,
+      "path": "tests/test_run_telegram_control.py",
+      "sha256": "sha256:209c1297de25d1433c756de798f8a6aa0e696f00eff96f4b5eff6e166e6c862b"
+    },
+    {
+      "bytes": 8873,
+      "path": "tests/test_runtime_operations.py",
+      "sha256": "sha256:98fc8a73d6f86d0c687b2ebf82bb7972564d28f9e391df694c5db587ceee2e3c"
+    },
+    {
+      "bytes": 9657,
+      "path": "tests/test_sqlite_checkpoint.py",
+      "sha256": "sha256:8e06934d046850e3c4181b5e4681fced72d84ac367612f039fe6061e308309c6"
+    },
+    {
+      "bytes": 27191,
+      "path": "tests/test_sqlite_outbox.py",
+      "sha256": "sha256:e411b57af40e9e264defca7bc8895b08f1c7696acded669363a96e180e7c05fb"
+    },
+    {
+      "bytes": 38903,
+      "path": "tests/test_sqlite_store.py",
+      "sha256": "sha256:5518341b8c48934f17d79adae40687c3ad9c62b2945892be388b3b5e891d2ce8"
+    },
+    {
+      "bytes": 3274,
+      "path": "tests/test_telegram_actions.py",
+      "sha256": "sha256:e273b2e3873d5f33753b37cbedccb74e9a4dd9a74dc8a6da8f3d4c8b7625d0b5"
+    },
+    {
+      "bytes": 6821,
+      "path": "tests/test_telegram_bindings.py",
+      "sha256": "sha256:f83339c358cfa6010171813955f64d530bc6188fc24cb9961693681dea6c6c9e"
+    },
+    {
+      "bytes": 31081,
+      "path": "tests/test_telegram_bot_api.py",
+      "sha256": "sha256:3d5d104b18afa42f4f6d20055310c585f47479351399a34bd26beaaf34d7fb5f"
+    },
+    {
+      "bytes": 3190,
+      "path": "tests/test_telegram_bot_profile.py",
+      "sha256": "sha256:e742bb7fce833df92d9b3954cedf49099788008fde137d7af3613f7d947e0b7d"
+    },
+    {
+      "bytes": 2666,
+      "path": "tests/test_telegram_control.py",
+      "sha256": "sha256:8f17adda516352bd0186705fd82379cbe40914e192c6509249b9fad562b66565"
+    },
+    {
+      "bytes": 2670,
+      "path": "tests/test_telegram_discovery.py",
+      "sha256": "sha256:08dd9e07c637e977ce1c9bb6c55d34fca627609a46265f021c1ed8bbbce3f9c8"
+    },
+    {
+      "bytes": 15650,
+      "path": "tests/test_telegram_gateway.py",
+      "sha256": "sha256:b41a5b99e7f1d7036aebecdb657ec3063d411ad8d488cf585f7161482f4a419f"
+    },
+    {
+      "bytes": 1633,
+      "path": "tests/test_telegram_inline_buttons.py",
+      "sha256": "sha256:7695803fd3f96c1fe96ba73b7559d2e786adcde68dcd266bc66174d935fed4fd"
+    },
+    {
+      "bytes": 2406,
+      "path": "tests/test_telegram_limit.py",
+      "sha256": "sha256:3d5ffee0beb2e9768271fa258b253952958ad6fa7a5d757eae05d3b680cd730f"
+    },
+    {
+      "bytes": 9526,
+      "path": "tests/test_telegram_mvp1_runner.py",
+      "sha256": "sha256:dbb941a02df273b694d4257562e2f7c9015956f071ac45bf10e35d1da1a94647"
+    },
+    {
+      "bytes": 78653,
+      "path": "tests/test_telegram_product.py",
+      "sha256": "sha256:84114fa4d69b9fa06352d0eb0821470da0223274164f5d0e85256df72da774e6"
+    },
+    {
+      "bytes": 15317,
+      "path": "tests/test_telegram_task_control.py",
+      "sha256": "sha256:3fc18b09b44c6f21f1c5471a0ccb53bd4ba577595936d6759553863aed3b9f1a"
+    },
+    {
+      "bytes": 15399,
+      "path": "tests/test_trusted_ingress.py",
+      "sha256": "sha256:2873330497dc91a578b40cc88e65bb2a8bbd6938d7d54817f60f26d43db5cf4a"
+    },
+    {
+      "bytes": 25572,
+      "path": "tests/test_voice_confirmation.py",
+      "sha256": "sha256:243119f53f859d3e3ded94fd484a0b26ff840f619795c13f74ce3f3fd19d72d6"
+    },
+    {
+      "bytes": 3713,
+      "path": "tests/test_voice_effect_restart.py",
+      "sha256": "sha256:74e32928d296b768fc777967327df6972c89e1ad4357acf1ba66cd6fea2d0851"
+    },
+    {
+      "bytes": 37789,
+      "path": "tests/test_voice_service.py",
+      "sha256": "sha256:527e91cd7423c0ef8ac76259d313c9ec9f5186047ca28d8390a8d8e7b532d747"
+    },
+    {
+      "bytes": 12415,
+      "path": "tests/test_web_fallback_rework.py",
+      "sha256": "sha256:32f76bd00de1f0c38ea016ab84ad3410d69e8da051e0b01a610045c31f65ba9e"
+    },
+    {
+      "bytes": 2158,
+      "path": "tests/test_windows_credentials.py",
+      "sha256": "sha256:c60cca3811c0732ec00ee64845511334d8b8c50ce9c7c52088db3632a5a2b462"
+    },
+    {
+      "bytes": 11035,
+      "path": "tests/test_windows_job.py",
+      "sha256": "sha256:9b74572d4b7ef1c7e787988b2633de623baa9729b980d87f36f86ed6db56fe60"
+    }
+  ],
+  "input_generated_at": "2026-07-31T08:13:41.595605Z",
+  "input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+  "receipt_entries": [
+    {
+      "bytes": 31232,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
+      "sha256": "sha256:bb4eae9c10329e25402f10a61a7a5791c33147238f46a58916bfc0db20d4eccc"
+    },
+    {
+      "bytes": 31119,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
+      "sha256": "sha256:bacfaf8b661c8d199e743d3ecad1172874e6226dc0a1a245f782678d33f29df9"
+    },
+    {
+      "bytes": 2138,
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+      "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+    }
+  ],
+  "repository_branch": "agent/mobile-codex-runtime",
+  "repository_head": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+  "schema": "nobus.gate0.pre_capture_core.v1",
+  "status": "pre_capture_ready"
+}

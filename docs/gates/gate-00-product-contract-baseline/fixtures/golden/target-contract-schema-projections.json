@@ -1,0 +1,1889 @@
+{
+  "authoritative_sources": [
+    "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+    "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md"
+  ],
+  "profile": "test_only_closed_exact_golden_shape_no_production_model",
+  "schema": "nobus.gate0.target_contract_schema_projections.v1",
+  "schemas": {
+    "AnalysisRequest": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:AnalysisRequest:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "calculation_rules": {
+          "maxItems": 0,
+          "type": "array"
+        },
+        "client_ref": {
+          "type": "null"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "grouping": {
+          "items": {
+            "enum": [
+              "client",
+              "sku",
+              "source",
+              "day",
+              "week",
+              "month",
+              "quarter",
+              "year"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "limitations": {
+          "maxItems": 0,
+          "type": "array"
+        },
+        "limits": {
+          "additionalProperties": false,
+          "properties": {
+            "max_cells": {
+              "type": "integer"
+            },
+            "max_documents": {
+              "type": "integer"
+            },
+            "max_extracted_characters": {
+              "type": "integer"
+            },
+            "max_model_input_bytes": {
+              "type": "integer"
+            },
+            "max_pages": {
+              "type": "integer"
+            },
+            "max_provider_calls": {
+              "type": "integer"
+            },
+            "max_source_bytes": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "max_documents",
+            "max_source_bytes",
+            "max_extracted_characters",
+            "max_cells",
+            "max_pages",
+            "max_model_input_bytes",
+            "max_provider_calls"
+          ],
+          "type": "object"
+        },
+        "maximum_classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ],
+          "type": "string"
+        },
+        "metrics": {
+          "items": {
+            "enum": [
+              "revenue",
+              "units",
+              "average_price",
+              "margin",
+              "growth_rate",
+              "share",
+              "count",
+              "custom_declared"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "period": {
+          "type": "null"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "processing_policy_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "project_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "question": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "read_plan_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "registry_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "requested_outputs": {
+          "items": {
+            "enum": [
+              "telegram_text",
+              "normalized_facts",
+              "table",
+              "chart",
+              "artifact_plan",
+              "jpeg",
+              "html",
+              "xlsx",
+              "docx",
+              "pdf",
+              "google_doc",
+              "google_sheet"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "schema": {
+          "const": "nobus.analysis_request.v1",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "type": "string"
+        },
+        "sku_or_articles": {
+          "maxItems": 0,
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "backend": {
+                "enum": [
+                  "local",
+                  "google"
+                ],
+                "type": "string"
+              },
+              "classification": {
+                "enum": [
+                  "public",
+                  "internal",
+                  "confidential",
+                  "restricted"
+                ],
+                "type": "string"
+              },
+              "client_ref": {
+                "type": "null"
+              },
+              "content_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "contract_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                "type": "string"
+              },
+              "display_name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "document_kind": {
+                "enum": [
+                  "text",
+                  "markdown",
+                  "json",
+                  "csv",
+                  "html",
+                  "docx",
+                  "xlsx",
+                  "pdf",
+                  "google_doc",
+                  "google_sheet"
+                ],
+                "type": "string"
+              },
+              "document_ref_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "expires_at": {
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                "type": "string"
+              },
+              "media_type": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "policy_version": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "project_ref": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "provenance": {
+                "additionalProperties": false,
+                "properties": {
+                  "adapter": {
+                    "enum": [
+                      "windows_bridge",
+                      "google_drive",
+                      "google_docs",
+                      "google_sheets"
+                    ],
+                    "type": "string"
+                  },
+                  "metadata_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "observed_at": {
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                    "type": "string"
+                  },
+                  "parent_scope_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "selection_method": {
+                    "enum": [
+                      "exact_id",
+                      "unique_metadata_match",
+                      "owner_confirmed_candidate"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "adapter",
+                  "observed_at",
+                  "parent_scope_id",
+                  "metadata_digest",
+                  "selection_method"
+                ],
+                "type": "object"
+              },
+              "registry_bundle_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "revision": {
+                "additionalProperties": false,
+                "properties": {
+                  "file_id_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "local_sha256",
+                    "type": "string"
+                  },
+                  "observed_at": {
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "volume_id_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "sha256",
+                  "volume_id_digest",
+                  "file_id_digest",
+                  "observed_at"
+                ],
+                "type": "object"
+              },
+              "schema": {
+                "const": "nobus.document_ref.v1",
+                "type": "string"
+              },
+              "schema_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "schema_version": {
+                "const": "1",
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer"
+              },
+              "source_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "source_scope_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "tenant_id": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "schema",
+              "schema_version",
+              "schema_digest",
+              "contract_digest",
+              "created_at",
+              "tenant_id",
+              "project_ref",
+              "client_ref",
+              "policy_version",
+              "registry_bundle_digest",
+              "document_ref_id",
+              "source_scope_id",
+              "backend",
+              "source_id",
+              "display_name",
+              "document_kind",
+              "media_type",
+              "classification",
+              "size_bytes",
+              "revision",
+              "content_digest",
+              "provenance",
+              "expires_at"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "analysis_id",
+        "idempotency_key",
+        "read_plan_digest",
+        "sources",
+        "question",
+        "sku_or_articles",
+        "period",
+        "metrics",
+        "grouping",
+        "calculation_rules",
+        "requested_outputs",
+        "limitations",
+        "processing_policy_ref",
+        "limits",
+        "maximum_classification"
+      ],
+      "title": "AnalysisRequest exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "ArtifactPlan": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:ArtifactPlan:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "artifact_plan_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "client_ref": {
+          "type": "null"
+        },
+        "collision_policy": {
+          "enum": [
+            "new_version",
+            "ask"
+          ],
+          "type": "string"
+        },
+        "content_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "destination_hint": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "telegram_text",
+            "jpeg",
+            "html",
+            "xlsx",
+            "docx",
+            "pdf",
+            "google_doc",
+            "google_sheet"
+          ],
+          "type": "string"
+        },
+        "output_scope_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "project_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "provenance_refs": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "registry_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "render_profile": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.artifact_plan.v1",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "content_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "content_ref": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "heading": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "section_kind": {
+                "enum": [
+                  "text",
+                  "table",
+                  "chart",
+                  "reference"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_kind",
+              "heading",
+              "content_ref",
+              "content_digest"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "target_backend": {
+          "enum": [
+            "telegram",
+            "local",
+            "google"
+          ],
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "artifact_plan_id",
+        "analysis_digest",
+        "title",
+        "format",
+        "sections",
+        "content_digest",
+        "render_profile",
+        "target_backend",
+        "output_scope_id",
+        "destination_hint",
+        "collision_policy",
+        "provenance_refs"
+      ],
+      "title": "ArtifactPlan exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "DocumentQuery": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:DocumentQuery:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "classifications": {
+          "items": {
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "client_ref": {
+          "type": "null"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "document_kinds": {
+          "items": {
+            "enum": [
+              "text",
+              "markdown",
+              "json",
+              "csv",
+              "html",
+              "docx",
+              "xlsx",
+              "pdf",
+              "google_doc",
+              "google_sheet"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "folder_hints": {
+          "maxItems": 0,
+          "type": "array"
+        },
+        "max_candidates": {
+          "type": "integer"
+        },
+        "max_pages": {
+          "type": "integer"
+        },
+        "media_types": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "metadata_timeout_ms": {
+          "type": "integer"
+        },
+        "name_hints": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "period": {
+          "type": "null"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "project_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "query_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "query_text": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "registry_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.document_query.v1",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "type": "string"
+        },
+        "source_scope_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "query_id",
+        "source_scope_ids",
+        "query_text",
+        "name_hints",
+        "folder_hints",
+        "period",
+        "document_kinds",
+        "media_types",
+        "classifications",
+        "max_candidates",
+        "max_pages",
+        "metadata_timeout_ms"
+      ],
+      "title": "DocumentQuery exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "DocumentReadPlan": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:DocumentReadPlan:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "client_ref": {
+          "type": "null"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "dlp_profile": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "documents": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "document_ref": {
+                "additionalProperties": false,
+                "properties": {
+                  "backend": {
+                    "enum": [
+                      "local",
+                      "google"
+                    ],
+                    "type": "string"
+                  },
+                  "classification": {
+                    "enum": [
+                      "public",
+                      "internal",
+                      "confidential",
+                      "restricted"
+                    ],
+                    "type": "string"
+                  },
+                  "client_ref": {
+                    "type": "null"
+                  },
+                  "content_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "contract_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "created_at": {
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                    "type": "string"
+                  },
+                  "display_name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "document_kind": {
+                    "enum": [
+                      "text",
+                      "markdown",
+                      "json",
+                      "csv",
+                      "html",
+                      "docx",
+                      "xlsx",
+                      "pdf",
+                      "google_doc",
+                      "google_sheet"
+                    ],
+                    "type": "string"
+                  },
+                  "document_ref_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                    "type": "string"
+                  },
+                  "media_type": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "policy_version": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "project_ref": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provenance": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "adapter": {
+                        "enum": [
+                          "windows_bridge",
+                          "google_drive",
+                          "google_docs",
+                          "google_sheets"
+                        ],
+                        "type": "string"
+                      },
+                      "metadata_digest": {
+                        "pattern": "^sha256:[0-9a-f]{64}$",
+                        "type": "string"
+                      },
+                      "observed_at": {
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                        "type": "string"
+                      },
+                      "parent_scope_id": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "selection_method": {
+                        "enum": [
+                          "exact_id",
+                          "unique_metadata_match",
+                          "owner_confirmed_candidate"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "adapter",
+                      "observed_at",
+                      "parent_scope_id",
+                      "metadata_digest",
+                      "selection_method"
+                    ],
+                    "type": "object"
+                  },
+                  "registry_bundle_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "revision": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "file_id_digest": {
+                        "pattern": "^sha256:[0-9a-f]{64}$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "local_sha256",
+                        "type": "string"
+                      },
+                      "observed_at": {
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "volume_id_digest": {
+                        "pattern": "^sha256:[0-9a-f]{64}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "sha256",
+                      "volume_id_digest",
+                      "file_id_digest",
+                      "observed_at"
+                    ],
+                    "type": "object"
+                  },
+                  "schema": {
+                    "const": "nobus.document_ref.v1",
+                    "type": "string"
+                  },
+                  "schema_digest": {
+                    "pattern": "^sha256:[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "schema_version": {
+                    "const": "1",
+                    "type": "string"
+                  },
+                  "size_bytes": {
+                    "type": "integer"
+                  },
+                  "source_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "source_scope_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "tenant_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema",
+                  "schema_version",
+                  "schema_digest",
+                  "contract_digest",
+                  "created_at",
+                  "tenant_id",
+                  "project_ref",
+                  "client_ref",
+                  "policy_version",
+                  "registry_bundle_digest",
+                  "document_ref_id",
+                  "source_scope_id",
+                  "backend",
+                  "source_id",
+                  "display_name",
+                  "document_kind",
+                  "media_type",
+                  "classification",
+                  "size_bytes",
+                  "revision",
+                  "content_digest",
+                  "provenance",
+                  "expires_at"
+                ],
+                "type": "object"
+              },
+              "selection_kind": {
+                "enum": [
+                  "whole_document",
+                  "pages",
+                  "sheet_ranges",
+                  "text_sections"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "selection_kind",
+              "document_ref"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "max_extracted_chars_per_document": {
+          "type": "integer"
+        },
+        "max_extracted_chars_total": {
+          "type": "integer"
+        },
+        "max_parser_seconds_per_document": {
+          "type": "integer"
+        },
+        "max_parser_seconds_total": {
+          "type": "integer"
+        },
+        "max_source_bytes_per_document": {
+          "type": "integer"
+        },
+        "max_source_bytes_total": {
+          "type": "integer"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "project_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "prompt_profile": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "purpose": {
+          "enum": [
+            "summarize",
+            "answer",
+            "extract_facts",
+            "analyze",
+            "preview"
+          ],
+          "type": "string"
+        },
+        "read_plan_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "registry_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.document_read_plan.v1",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "read_plan_id",
+        "documents",
+        "purpose",
+        "max_source_bytes_per_document",
+        "max_source_bytes_total",
+        "max_extracted_chars_per_document",
+        "max_extracted_chars_total",
+        "max_parser_seconds_per_document",
+        "max_parser_seconds_total",
+        "dlp_profile",
+        "prompt_profile"
+      ],
+      "title": "DocumentReadPlan exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "DocumentRef": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:DocumentRef:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "enum": [
+            "local",
+            "google"
+          ],
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ],
+          "type": "string"
+        },
+        "client_ref": {
+          "type": "null"
+        },
+        "content_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "display_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "document_kind": {
+          "enum": [
+            "text",
+            "markdown",
+            "json",
+            "csv",
+            "html",
+            "docx",
+            "xlsx",
+            "pdf",
+            "google_doc",
+            "google_sheet"
+          ],
+          "type": "string"
+        },
+        "document_ref_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "media_type": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "project_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "provenance": {
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {
+              "enum": [
+                "windows_bridge",
+                "google_drive",
+                "google_docs",
+                "google_sheets"
+              ],
+              "type": "string"
+            },
+            "metadata_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "observed_at": {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            "parent_scope_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "selection_method": {
+              "enum": [
+                "exact_id",
+                "unique_metadata_match",
+                "owner_confirmed_candidate"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "adapter",
+            "observed_at",
+            "parent_scope_id",
+            "metadata_digest",
+            "selection_method"
+          ],
+          "type": "object"
+        },
+        "registry_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "revision": {
+          "additionalProperties": false,
+          "properties": {
+            "file_id_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "local_sha256",
+              "type": "string"
+            },
+            "observed_at": {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            "sha256": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "volume_id_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "sha256",
+            "volume_id_digest",
+            "file_id_digest",
+            "observed_at"
+          ],
+          "type": "object"
+        },
+        "schema": {
+          "const": "nobus.document_ref.v1",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer"
+        },
+        "source_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "source_scope_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "document_ref_id",
+        "source_scope_id",
+        "backend",
+        "source_id",
+        "display_name",
+        "document_kind",
+        "media_type",
+        "classification",
+        "size_bytes",
+        "revision",
+        "content_digest",
+        "provenance",
+        "expires_at"
+      ],
+      "title": "DocumentRef exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "DocumentWritePlan": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:DocumentWritePlan:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "approval_binding": {
+          "additionalProperties": false,
+          "properties": {
+            "approval_kind": {
+              "enum": [
+                "exact_owner_request",
+                "preview_confirmation"
+              ],
+              "type": "string"
+            },
+            "ingress_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "intent_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "unchanged_destination_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "unchanged_payload_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "approval_kind",
+            "ingress_digest",
+            "intent_digest",
+            "unchanged_payload_digest",
+            "unchanged_destination_digest"
+          ],
+          "type": "object"
+        },
+        "artifact_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "artifact_plan_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "artifact_ref": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "backend": {
+          "enum": [
+            "local",
+            "google"
+          ],
+          "type": "string"
+        },
+        "client_ref": {
+          "type": "null"
+        },
+        "collision_policy": {
+          "enum": [
+            "new_version",
+            "ask"
+          ],
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "expected_revision": {
+          "type": "null"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "create",
+            "update"
+          ],
+          "type": "string"
+        },
+        "output_scope_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "project_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "registry_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.document_write_plan.v1",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "type": "string"
+        },
+        "snapshot_required": {
+          "type": "boolean"
+        },
+        "strict_cas_required": {
+          "type": "boolean"
+        },
+        "target": {
+          "additionalProperties": false,
+          "properties": {
+            "destination_name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "target_kind": {
+              "enum": [
+                "new_document",
+                "existing_document"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "target_kind",
+            "destination_name"
+          ],
+          "type": "object"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "write_plan_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "write_plan_id",
+        "artifact_plan_digest",
+        "artifact_ref",
+        "artifact_digest",
+        "backend",
+        "operation",
+        "output_scope_id",
+        "target",
+        "expected_revision",
+        "collision_policy",
+        "snapshot_required",
+        "strict_cas_required",
+        "idempotency_key",
+        "approval_binding",
+        "expires_at"
+      ],
+      "title": "DocumentWritePlan exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "IntentEnvelope": {
+      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:IntentEnvelope:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "none",
+            "answer",
+            "help",
+            "status",
+            "limit",
+            "cancel",
+            "search",
+            "read",
+            "list",
+            "summarize",
+            "compare",
+            "analyze",
+            "audit",
+            "report",
+            "remember",
+            "extract_tasks",
+            "create",
+            "update",
+            "complete",
+            "delete",
+            "deliver"
+          ],
+          "type": "string"
+        },
+        "actor_identity": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "ambiguities": {
+          "maxItems": 0,
+          "type": "array"
+        },
+        "clarification": {
+          "type": "null"
+        },
+        "confidence": {
+          "type": "integer"
+        },
+        "context": {
+          "additionalProperties": false,
+          "properties": {
+            "expires_at": {
+              "type": "null"
+            },
+            "frame_id": {
+              "type": "null"
+            },
+            "frame_revision": {
+              "type": "null"
+            },
+            "parent_intent_id": {
+              "type": "null"
+            },
+            "relation": {
+              "enum": [
+                "none",
+                "follow_up",
+                "clarification_answer"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "relation",
+            "frame_id",
+            "frame_revision",
+            "parent_intent_id",
+            "expires_at"
+          ],
+          "type": "object"
+        },
+        "conversation_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "domain": {
+          "enum": [
+            "notes",
+            "calendar",
+            "tasks",
+            "documents",
+            "research",
+            "general"
+          ],
+          "type": "string"
+        },
+        "entities": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence": {
+                "type": "integer"
+              },
+              "kind": {
+                "const": "document",
+                "type": "string"
+              },
+              "normalized": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "raw": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "unresolved",
+                  "exact",
+                  "ambiguous",
+                  "not_found"
+                ],
+                "type": "string"
+              },
+              "resolved_ref": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "raw",
+              "normalized",
+              "resolution",
+              "resolved_ref",
+              "confidence"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "ingress_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "intent_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "intent_revision": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "modality": {
+          "enum": [
+            "text",
+            "voice"
+          ],
+          "type": "string"
+        },
+        "owner_text": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "period": {
+          "type": "null"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "proposed_effects": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "authority": {
+                "enum": [
+                  "direct_owner",
+                  "l4_required",
+                  "denied"
+                ],
+                "type": "string"
+              },
+              "idempotency_scope": {
+                "type": "null"
+              },
+              "kind": {
+                "const": "read",
+                "type": "string"
+              },
+              "requires_confirmation": {
+                "type": "boolean"
+              },
+              "risk": {
+                "enum": [
+                  "low",
+                  "medium",
+                  "high",
+                  "critical"
+                ],
+                "type": "string"
+              },
+              "source": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "summary": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "target_hint": {
+                "type": "null"
+              },
+              "target_ref": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "source",
+              "target_hint",
+              "target_ref",
+              "summary",
+              "risk",
+              "authority",
+              "requires_confirmation",
+              "idempotency_scope"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "received_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "requested_outputs": {
+          "items": {
+            "enum": [
+              "telegram_text",
+              "normalized_facts",
+              "table",
+              "chart",
+              "artifact_plan",
+              "jpeg",
+              "html",
+              "xlsx",
+              "docx",
+              "pdf",
+              "google_doc",
+              "google_sheet"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "route_registry_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.intent.v1",
+          "type": "string"
+        },
+        "source_scope": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "access": {
+                "enum": [
+                  "metadata",
+                  "content"
+                ],
+                "type": "string"
+              },
+              "explicit": {
+                "type": "boolean"
+              },
+              "scope_ref": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "selector": {
+                "type": "null"
+              },
+              "source": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "access",
+              "selector",
+              "scope_ref",
+              "explicit"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "needs_clarification",
+            "unsupported",
+            "rejected"
+          ],
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "voice": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "schema",
+        "intent_id",
+        "tenant_id",
+        "actor_identity",
+        "conversation_ref",
+        "ingress_digest",
+        "received_at",
+        "modality",
+        "owner_text",
+        "voice",
+        "status",
+        "domain",
+        "action",
+        "entities",
+        "period",
+        "source_scope",
+        "requested_outputs",
+        "proposed_effects",
+        "confidence",
+        "ambiguities",
+        "clarification",
+        "context",
+        "policy_version",
+        "route_registry_version",
+        "intent_revision"
+      ],
+      "title": "IntentEnvelope exact synthetic golden structural projection",
+      "type": "object"
+    }
+  }
+}

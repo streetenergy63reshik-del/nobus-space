@@ -1,0 +1,379 @@
+{
+  "acceptance": [
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-01",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-02",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-03",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-04",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-05",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-06",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-07",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-08",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-09",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-10",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-11",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-12",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-13",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-14",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-15",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-16",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-17",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-18",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-19",
+      "reason_code": "INDEPENDENT_REVIEW_PENDING",
+      "status": "pending"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-20",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-21",
+      "reason_code": null,
+      "status": "pass"
+    },
+    {
+      "evidence_refs": [
+        "verification/l1.json",
+        "verification/l2.json",
+        "verification/l3.json"
+      ],
+      "id": "G0-22",
+      "reason_code": null,
+      "status": "pass"
+    }
+  ],
+  "applied_contract_digest": "sha256:17f143380a2bae1fa32bc0dbf5a91f06a0001f4b1d8b68b0b0021d31af754c8b",
+  "applied_contract_version": "1.0.0",
+  "applied_corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
+  "applied_corpus_version": "1.0.0",
+  "artifact_manifest_ref": "evidence/evidence-manifest.json",
+  "base_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+  "baseline_ref": "evidence/baseline-evidence.json",
+  "blocking_criteria": [
+    "G0-19"
+  ],
+  "consumer_handoffs": [
+    {
+      "gate": 1,
+      "name": "intent_voice",
+      "not_precompleted": [
+        "parser, prompt, confidence or context implementation"
+      ],
+      "required_inputs": [
+        "corpus version and digest",
+        "intent vocabulary",
+        "ambiguity and effect rules",
+        "CURRENT baseline score"
+      ]
+    },
+    {
+      "gate": 2,
+      "name": "contracts_registries",
+      "not_precompleted": [
+        "production models, migrations or registry data"
+      ],
+      "required_inputs": [
+        "contract catalog",
+        "schema and golden fixtures",
+        "registry semantics",
+        "architecture fitness rules"
+      ]
+    },
+    {
+      "gate": 3,
+      "name": "google_gemini",
+      "not_precompleted": [
+        "provider selection, cost cap or adapter implementation"
+      ],
+      "required_inputs": [
+        "provider and data policy",
+        "external capability baseline",
+        "provider event fields"
+      ]
+    },
+    {
+      "gate": 4,
+      "name": "notes_calendar_tasks",
+      "not_precompleted": [
+        "end-to-end effects"
+      ],
+      "required_inputs": [
+        "domain corpus cases",
+        "authority rules",
+        "idempotency and unknown-outcome rules"
+      ]
+    },
+    {
+      "gate": 5,
+      "name": "documents_bridge",
+      "not_precompleted": [
+        "Bridge protocol, authentication, indexer or parser"
+      ],
+      "required_inputs": [
+        "document lifecycle",
+        "deny, source and output semantics",
+        "path and adversarial cases"
+      ]
+    },
+    {
+      "gate": 6,
+      "name": "analytics",
+      "not_precompleted": [
+        "formulas, datasets or calibrated quality metrics"
+      ],
+      "required_inputs": [
+        "AnalysisRequest semantics",
+        "provenance rules",
+        "calculation corpus cases"
+      ]
+    },
+    {
+      "gate": 7,
+      "name": "artifacts_writeback",
+      "not_precompleted": [
+        "renderers or Google/local writeback"
+      ],
+      "required_inputs": [
+        "ArtifactPlan and DocumentWritePlan semantics",
+        "revision and digest rules",
+        "collision policy"
+      ]
+    },
+    {
+      "gate": 8,
+      "name": "release_pilot",
+      "not_precompleted": [
+        "deployment, retention backend or 72-hour pilot"
+      ],
+      "required_inputs": [
+        "Baseline Evidence schema",
+        "evidence manifest",
+        "SLO candidates",
+        "evidence freshness rules"
+      ]
+    }
+  ],
+  "corpus_manifest_ref": "corpus/corpus-manifest.json",
+  "current_after": {
+    "baseline_evidence": "candidate_implemented",
+    "corpus": "candidate_implemented",
+    "gate_status": "blocked",
+    "product_contract": "candidate_implemented",
+    "runtime_mutated": false
+  },
+  "current_before": {
+    "database_migration_status": "GENESIS_BASELINE_VERIFIED",
+    "database_runtime_binding_status": "VERIFIED",
+    "documentation_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
+    "repository_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "runner_status": "VERIFIED",
+    "runtime_commit": "1ac52a00fd22b25cb6fcbd9f694688157c900cc8",
+    "server_profile_status": "NOT_APPLICABLE_VERIFIED"
+  },
+  "evidence_manifest_ref": "evidence/evidence-manifest.json",
+  "gate": 0,
+  "generated_at": "2030-01-10T03:00:00+03:00",
+  "l4_ref": "owner-authority:gate0-evidence-closure-2026-07-29",
+  "mutations": {
+    "backups": false,
+    "external_effects": false,
+    "migrations": false,
+    "runtime": false
+  },
+  "next_gate": 1,
+  "product_contract_ref": "product/product-contract.json",
+  "release_readiness_blockers": [],
+  "result_commit": null,
+  "schema": "nobus.gate0.handoff.v1",
+  "status": "blocked",
+  "target_remaining": [
+    "Gate 2 must start its durable migration ledger at the accepted genesis before any post-genesis migration"
+  ],
+  "unresolved_risks": [
+    "Historical Telegram legacy migration execution is not proven; only the accepted current schema is the genesis baseline"
+  ],
+  "verification_refs": {
+    "l1": "verification/l1.json",
+    "l2": "verification/l2.json",
+    "l3": "verification/l3.json"
+  }
+}

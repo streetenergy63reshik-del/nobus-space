@@ -1,0 +1,795 @@
+{
+  "$defs": {
+    "CorpusEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "execution": {
+          "enum": [
+            "forbidden",
+            "proposed",
+            "allowed_after_l4"
+          ],
+          "title": "Execution",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "read",
+            "create",
+            "update",
+            "complete",
+            "delete",
+            "deliver_owner",
+            "deliver_third_party",
+            "publish",
+            "change_access",
+            "money",
+            "push",
+            "deploy"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "execution"
+      ],
+      "title": "CorpusEffect",
+      "type": "object"
+    },
+    "CorpusEntities": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "tenant_ref": {
+                "const": "tenant-a"
+              }
+            },
+            "required": [
+              "tenant_ref"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope_ref": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "pattern": "^scope://tenant-a/[a-z0-9._/-]+$",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "tenant_ref": {
+                "const": "tenant-b"
+              }
+            },
+            "required": [
+              "tenant_ref"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope_ref": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "pattern": "^scope://tenant-b/[a-z0-9._/-]+$",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "client_ref": {
+          "anyOf": [
+            {
+              "pattern": "^client-[a-z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Client Ref"
+        },
+        "project_ref": {
+          "pattern": "^project-[a-z0-9-]+$",
+          "title": "Project Ref",
+          "type": "string"
+        },
+        "scope_ref": {
+          "anyOf": [
+            {
+              "pattern": "^scope://tenant-(?:a|b)/[a-z0-9._/-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope Ref"
+        },
+        "tenant_ref": {
+          "enum": [
+            "tenant-a",
+            "tenant-b"
+          ],
+          "title": "Tenant Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_ref",
+        "project_ref"
+      ],
+      "title": "CorpusEntities",
+      "type": "object"
+    },
+    "CorpusError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[A-Z0-9_]+$",
+          "title": "Code",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "required"
+      ],
+      "title": "CorpusError",
+      "type": "object"
+    },
+    "CorpusExpected": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "accept",
+            "clarify",
+            "reject",
+            "require_l4",
+            "degraded"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "effects": {
+          "items": {
+            "$ref": "#/$defs/CorpusEffect"
+          },
+          "title": "Effects",
+          "type": "array"
+        },
+        "errors": {
+          "items": {
+            "$ref": "#/$defs/CorpusError"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "intent": {
+          "$ref": "#/$defs/CorpusIntent"
+        },
+        "user_message_profile": {
+          "enum": [
+            "answer",
+            "clarification",
+            "denial",
+            "preview",
+            "status"
+          ],
+          "title": "User Message Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent",
+        "decision",
+        "effects",
+        "errors",
+        "user_message_profile"
+      ],
+      "title": "CorpusExpected",
+      "type": "object"
+    },
+    "CorpusForbidden": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "enum": [
+              "none",
+              "answer",
+              "help",
+              "status",
+              "limit",
+              "cancel",
+              "search",
+              "read",
+              "list",
+              "summarize",
+              "compare",
+              "analyze",
+              "audit",
+              "report",
+              "remember",
+              "extract_tasks",
+              "create",
+              "update",
+              "complete",
+              "delete",
+              "deliver"
+            ],
+            "type": "string"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "data_exposure": {
+          "items": {
+            "enum": [
+              "secret",
+              "raw_path",
+              "cross_tenant",
+              "raw_prompt",
+              "raw_document"
+            ],
+            "type": "string"
+          },
+          "title": "Data Exposure",
+          "type": "array"
+        },
+        "domains": {
+          "items": {
+            "enum": [
+              "notes",
+              "calendar",
+              "tasks",
+              "documents",
+              "research",
+              "general"
+            ],
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "effects": {
+          "items": {
+            "enum": [
+              "read",
+              "create",
+              "update",
+              "complete",
+              "delete",
+              "deliver_owner",
+              "deliver_third_party",
+              "publish",
+              "change_access",
+              "money",
+              "push",
+              "deploy"
+            ],
+            "type": "string"
+          },
+          "title": "Effects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domains",
+        "actions",
+        "effects",
+        "data_exposure"
+      ],
+      "title": "CorpusForbidden",
+      "type": "object"
+    },
+    "CorpusIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "none",
+            "answer",
+            "help",
+            "status",
+            "limit",
+            "cancel",
+            "search",
+            "read",
+            "list",
+            "summarize",
+            "compare",
+            "analyze",
+            "audit",
+            "report",
+            "remember",
+            "extract_tasks",
+            "create",
+            "update",
+            "complete",
+            "delete",
+            "deliver"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "ambiguity": {
+          "enum": [
+            "none",
+            "clarify",
+            "reject"
+          ],
+          "title": "Ambiguity",
+          "type": "string"
+        },
+        "domain": {
+          "enum": [
+            "notes",
+            "calendar",
+            "tasks",
+            "documents",
+            "research",
+            "general"
+          ],
+          "title": "Domain",
+          "type": "string"
+        },
+        "entities": {
+          "$ref": "#/$defs/CorpusEntities"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorpusTimeRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proposed_effects": {
+          "items": {
+            "enum": [
+              "read",
+              "create",
+              "update",
+              "complete",
+              "delete",
+              "deliver_owner",
+              "deliver_third_party",
+              "publish",
+              "change_access",
+              "money",
+              "push",
+              "deploy"
+            ],
+            "type": "string"
+          },
+          "title": "Proposed Effects",
+          "type": "array"
+        },
+        "requested_outputs": {
+          "items": {
+            "enum": [
+              "telegram_text",
+              "jpeg",
+              "html",
+              "xlsx",
+              "docx",
+              "pdf",
+              "google_doc",
+              "google_sheet"
+            ],
+            "type": "string"
+          },
+          "title": "Requested Outputs",
+          "type": "array"
+        },
+        "schema": {
+          "const": "nobus.intent.v1",
+          "title": "Schema",
+          "type": "string"
+        },
+        "source_scope": {
+          "items": {
+            "enum": [
+              "none",
+              "public_web",
+              "nobus_memory",
+              "business_notes",
+              "google_calendar",
+              "google_tasks",
+              "google_drive",
+              "local_library",
+              "telegram_attachment"
+            ],
+            "type": "string"
+          },
+          "title": "Source Scope",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema",
+        "domain",
+        "action",
+        "entities",
+        "period",
+        "source_scope",
+        "requested_outputs",
+        "proposed_effects",
+        "ambiguity"
+      ],
+      "title": "CorpusIntent",
+      "type": "object"
+    },
+    "CorpusOwnership": {
+      "additionalProperties": false,
+      "properties": {
+        "curator": {
+          "title": "Curator",
+          "type": "string"
+        },
+        "product_owner": {
+          "title": "Product Owner",
+          "type": "string"
+        },
+        "security_reviewer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Security Reviewer"
+        }
+      },
+      "required": [
+        "product_owner",
+        "curator",
+        "security_reviewer"
+      ],
+      "title": "CorpusOwnership",
+      "type": "object"
+    },
+    "CorpusProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "created_from": {
+          "enum": [
+            "canonical_requirement",
+            "incident_pattern",
+            "synthetic_boundary"
+          ],
+          "title": "Created From",
+          "type": "string"
+        },
+        "reviewed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "created_from",
+        "source_refs",
+        "created_at",
+        "reviewed_at"
+      ],
+      "title": "CorpusProvenance",
+      "type": "object"
+    },
+    "CorpusTimeRange": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End"
+        },
+        "inclusive_end": {
+          "title": "Inclusive End",
+          "type": "boolean"
+        },
+        "original_text": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Original Text",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start"
+        },
+        "timezone": {
+          "const": "Europe/Moscow",
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "timezone",
+        "original_text",
+        "inclusive_end"
+      ],
+      "title": "CorpusTimeRange",
+      "type": "object"
+    },
+    "CorpusTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "speaker": {
+          "enum": [
+            "owner",
+            "system_context"
+          ],
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "trusted_context_ref": {
+          "anyOf": [
+            {
+              "pattern": "^context://synthetic/[a-z0-9._/-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trusted Context Ref"
+        },
+        "turn": {
+          "minimum": 1,
+          "title": "Turn",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "turn",
+        "speaker",
+        "text"
+      ],
+      "title": "CorpusTurn",
+      "type": "object"
+    }
+  },
+  "$id": "urn:nobus:gate0:corpus-case:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assertions": {
+      "items": {
+        "enum": [
+          "strict_intent",
+          "tenant_bound",
+          "deterministic_expected_output"
+        ],
+        "type": "string"
+      },
+      "title": "Assertions",
+      "type": "array"
+    },
+    "case_id": {
+      "pattern": "^G0-[A-Z]+-[0-9]{3}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "corpus_version": {
+      "const": "1.0.0",
+      "title": "Corpus Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/CorpusExpected"
+    },
+    "forbidden": {
+      "$ref": "#/$defs/CorpusForbidden"
+    },
+    "locale": {
+      "const": "ru-RU",
+      "title": "Locale",
+      "type": "string"
+    },
+    "modality": {
+      "enum": [
+        "text",
+        "voice_transcript"
+      ],
+      "title": "Modality",
+      "type": "string"
+    },
+    "ownership": {
+      "$ref": "#/$defs/CorpusOwnership"
+    },
+    "pair_ref": {
+      "anyOf": [
+        {
+          "pattern": "^G0-[A-Z]+-[0-9]{3}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pair Ref"
+    },
+    "provenance": {
+      "$ref": "#/$defs/CorpusProvenance"
+    },
+    "schema": {
+      "const": "nobus.gate0.corpus_case.v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "synthetic",
+        "sanitized_pattern"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "deprecated",
+        "tombstone"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "enum": [
+          "adversarial",
+          "analysis",
+          "analyze",
+          "bridge_offline",
+          "category.analytics_research_general",
+          "category.business_notes",
+          "category.calendar",
+          "category.documents_google_local_lifecycle",
+          "category.security_effect_tenant_provider_adversarial",
+          "category.tasks",
+          "category.voice_text_context_clarification",
+          "clarification",
+          "context",
+          "create",
+          "cross_client_denied",
+          "cross_project_denied",
+          "deliver",
+          "delivery_unknown",
+          "google",
+          "half_open_time",
+          "local",
+          "money",
+          "multi_turn",
+          "negative",
+          "opaque_doc_id",
+          "path_traversal_denied",
+          "positive",
+          "prompt_injection_ignored",
+          "provenance_safe_view",
+          "provider_unknown",
+          "read",
+          "registry_denied",
+          "reparse_point_denied",
+          "replay_fenced",
+          "safe_provenance",
+          "search",
+          "secret_path_denied",
+          "security",
+          "select",
+          "share",
+          "stale_revision_denied",
+          "tenant_isolation",
+          "text_pair",
+          "third_party_delivery",
+          "update",
+          "version_or_deny",
+          "voice_pair"
+        ],
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "turns": {
+      "items": {
+        "$ref": "#/$defs/CorpusTurn"
+      },
+      "minItems": 1,
+      "title": "Turns",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "corpus_version",
+    "case_id",
+    "status",
+    "locale",
+    "source_kind",
+    "modality",
+    "turns",
+    "expected",
+    "forbidden",
+    "assertions",
+    "tags",
+    "ownership",
+    "provenance"
+  ],
+  "title": "Nobus Gate 0 Canonical Corpus Case",
+  "type": "object"
+}

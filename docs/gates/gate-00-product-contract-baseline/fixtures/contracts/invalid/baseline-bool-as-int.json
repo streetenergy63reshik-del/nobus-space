@@ -1,0 +1,1962 @@
+{
+  "baseline_digest": "sha256:cac103f8ad4c8acb341b86eae0961fb70555491f7230e18331e677e0ed8ef8cc",
+  "baseline_id": "9a1046a8-dd67-5241-bb32-00239d760241",
+  "capture": {
+    "collector_identity": "gate0-test-only-collector.v1",
+    "completed_at": "2026-07-31T09:18:31.4790228Z",
+    "host_ref": "windows-owner-pc",
+    "method_version": "1.0.0",
+    "policy_version": "gate0-architecture.v1",
+    "started_at": "2026-07-29T17:04:07.919588Z"
+  },
+  "claims": [
+    {
+      "capability": "repository_candidate",
+      "claim_id": "current.repository.candidate",
+      "contradictions": [],
+      "evidence_refs": [
+        {
+          "bytes": 31119,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "json_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
+          "sha256": "sha256:bacfaf8b661c8d199e743d3ecad1172874e6226dc0a1a245f782678d33f29df9"
+        },
+        {
+          "bytes": 4913,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "json_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
+          "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+        }
+      ],
+      "fresh_until": null,
+      "implementation_status": "CURRENT",
+      "requires_layers": [
+        "documentation",
+        "repository"
+      ],
+      "statement": "Candidate repository identity and dirty ownership are verified.",
+      "verdict": "VERIFIED"
+    },
+    {
+      "capability": "telegram_polling",
+      "claim_id": "current.telegram.runner",
+      "contradictions": [],
+      "evidence_refs": [
+        {
+          "bytes": 3983,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "json_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+          "sha256": "sha256:4b6ebaa619c254f4b0faabf2b0650e5f20c08b913a404357c59f269ff09b5bb2"
+        }
+      ],
+      "fresh_until": "2026-07-31T09:23:31.4790228Z",
+      "implementation_status": "CURRENT",
+      "requires_layers": [
+        "runtime_release",
+        "process",
+        "scheduler"
+      ],
+      "statement": "Exact single Scheduler-bound runner identity and loaded release are verified.",
+      "verdict": "VERIFIED"
+    },
+    {
+      "capability": "mvp1_integrated_contract",
+      "claim_id": "target.mvp1.product",
+      "contradictions": [],
+      "evidence_refs": [
+        {
+          "bytes": 4913,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "json_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
+          "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+        },
+        {
+          "bytes": 2138,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "test_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+          "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+        }
+      ],
+      "fresh_until": null,
+      "implementation_status": "TARGET",
+      "requires_layers": [
+        "documentation",
+        "tests"
+      ],
+      "statement": "Gate 1 through Gate 8 consume the frozen Product Contract.",
+      "verdict": "VERIFIED"
+    }
+  ],
+  "configuration": {
+    "active_profile": "local_owner_runtime",
+    "config_schema_version": "current-safe-projection.v1",
+    "config_sources": [
+      "src/contracts/models.py",
+      "src/core/policy.py",
+      "src/storage/sqlite_store.py",
+      "src/application/durable_runtime.py",
+      "src/application/product_effects.py",
+      "src/application/business_notes.py",
+      "src/application/durable_telegram_state.py"
+    ],
+    "evidence_refs": [
+      {
+        "bytes": 2156,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/configuration-inventory.json",
+        "sha256": "sha256:b881f0ca0100f55a7b06ed39229ea31c7a7c86f73fb9f18ffeee54e3a0d10ddd"
+      }
+    ],
+    "model_profile_digest": "sha256:c0566cc0a72f95c8561211d7b2897c266ca3c779238104a06da5dfcbd5055be2",
+    "observed_at": "2026-07-29T17:04:07.919588Z",
+    "policy_digest": "sha256:6484b7fbac3fd45703de046dd76b058d5ba994a43363da3bc1af7eb1a25f11ba",
+    "registries": {
+      "deny": {
+        "digest": null,
+        "entries_count": null,
+        "schema_version": "target"
+      },
+      "google_folders": {
+        "digest": null,
+        "entries_count": null,
+        "schema_version": null
+      },
+      "output": {
+        "digest": null,
+        "entries_count": null,
+        "schema_version": "target"
+      },
+      "source": {
+        "digest": null,
+        "entries_count": null,
+        "schema_version": "target"
+      }
+    },
+    "safe_config_digest": "sha256:6484b7fbac3fd45703de046dd76b058d5ba994a43363da3bc1af7eb1a25f11ba",
+    "secret_store": {
+      "provider": "windows_credential_manager",
+      "required_refs_present": null,
+      "values_read": false
+    },
+    "status": "UNVERIFIABLE"
+  },
+  "databases": [
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:business_notes",
+      "database_role": "legacy",
+      "engine": "sqlite",
+      "evidence_refs": [
+        {
+          "bytes": 10264,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "database_check",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
+          "sha256": "sha256:b9f17b8d43c7b748ffd5d820306847b6cd710eecdb39d3096210a10bc2b61fa1"
+        }
+      ],
+      "file_identity_digest": "sha256:a9234f0dc6a15b1dda9f1f4ff66571140d9753859c04aa8047ba7f06730d1d1c",
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "delete",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "modified_at": "2026-07-30T10:25:28.896452Z",
+      "observed_at": "2026-07-31T09:18:31.426935Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "VERIFIED",
+      "schema_digest": "sha256:2d06f646e2e3decdbea0ec888601d7a66b71a83622ef4acd19f352a1480d1073",
+      "size_bytes": 24576,
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "state_aggregates": {
+        "dead_letters": null,
+        "failed": null,
+        "in_progress": null,
+        "orphaned_leases": null,
+        "pending": null,
+        "undelivered_outbox": null,
+        "unreconciled_effects": null,
+        "waiting_human": null
+      },
+      "status": "VERIFIED",
+      "user_version": 0
+    },
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:core",
+      "database_role": "core",
+      "engine": "sqlite",
+      "evidence_refs": [
+        {
+          "bytes": 10264,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "database_check",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
+          "sha256": "sha256:b9f17b8d43c7b748ffd5d820306847b6cd710eecdb39d3096210a10bc2b61fa1"
+        }
+      ],
+      "file_identity_digest": "sha256:9153a411bbed32eecdf620ec00b71543ed348469ccdf628b58b3d9eebfbd9e30",
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "wal",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "modified_at": "2026-07-27T16:01:25.720104Z",
+      "observed_at": "2026-07-31T09:18:31.426935Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "VERIFIED",
+      "schema_digest": "sha256:35b1f2c09f1bc6fa756568bac7c6a479c8d014c252edf6b51b0dd1bc26b2d6a2",
+      "size_bytes": 630784,
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "state_aggregates": {
+        "dead_letters": null,
+        "failed": null,
+        "in_progress": null,
+        "orphaned_leases": null,
+        "pending": null,
+        "undelivered_outbox": null,
+        "unreconciled_effects": null,
+        "waiting_human": null
+      },
+      "status": "VERIFIED",
+      "user_version": 0
+    },
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:checkpoint",
+      "database_role": "checkpoint",
+      "engine": "sqlite",
+      "evidence_refs": [
+        {
+          "bytes": 10264,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "database_check",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
+          "sha256": "sha256:b9f17b8d43c7b748ffd5d820306847b6cd710eecdb39d3096210a10bc2b61fa1"
+        }
+      ],
+      "file_identity_digest": "sha256:bd9392c69975be6c302d5727f8f54f0d784bc652d1cd016ecab597fea547b4f2",
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "wal",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "modified_at": "2026-07-31T09:18:09.422750Z",
+      "observed_at": "2026-07-31T09:18:31.426935Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "VERIFIED",
+      "schema_digest": "sha256:16d4dd2b3769aac24f2be6e9431fc19e0053d95e4cf000103cee727db28184bf",
+      "size_bytes": 12288,
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "state_aggregates": {
+        "dead_letters": null,
+        "failed": null,
+        "in_progress": null,
+        "orphaned_leases": null,
+        "pending": null,
+        "undelivered_outbox": null,
+        "unreconciled_effects": null,
+        "waiting_human": null
+      },
+      "status": "VERIFIED",
+      "user_version": 0
+    },
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:telegram_state",
+      "database_role": "telegram_state",
+      "engine": "sqlite",
+      "evidence_refs": [
+        {
+          "bytes": 10264,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "database_check",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
+          "sha256": "sha256:b9f17b8d43c7b748ffd5d820306847b6cd710eecdb39d3096210a10bc2b61fa1"
+        }
+      ],
+      "file_identity_digest": "sha256:337fb2ad658fbcd5f902dee39cd90103e3b4c796d8d0b8e82ee28b0182e9aa7e",
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "wal",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "modified_at": "2026-07-27T16:01:25.831314Z",
+      "observed_at": "2026-07-31T09:18:31.426935Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "VERIFIED",
+      "schema_digest": "sha256:180fc13b1cdd6a349f8d942f2d363050dd8fdd40a829ef56432afdd5305758bf",
+      "size_bytes": 81920,
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "state_aggregates": {
+        "dead_letters": null,
+        "failed": null,
+        "in_progress": null,
+        "orphaned_leases": null,
+        "pending": null,
+        "undelivered_outbox": null,
+        "unreconciled_effects": null,
+        "waiting_human": null
+      },
+      "status": "VERIFIED",
+      "user_version": 0
+    }
+  ],
+  "dependencies": {
+    "evidence_refs": [
+      {
+        "bytes": 31232,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
+        "sha256": "sha256:bb4eae9c10329e25402f10a61a7a5791c33147238f46a58916bfc0db20d4eccc"
+      }
+    ],
+    "external_tools": [
+      {
+        "executable_digest": null,
+        "name": "git",
+        "version": "git version 2.55.0.windows.2"
+      },
+      {
+        "executable_digest": null,
+        "name": "gitleaks",
+        "version": "8.30.1"
+      },
+      {
+        "executable_digest": null,
+        "name": "hypothesis",
+        "version": "6.163.0"
+      },
+      {
+        "executable_digest": null,
+        "name": "import_linter",
+        "version": "2.13"
+      },
+      {
+        "executable_digest": null,
+        "name": "jsonschema",
+        "version": "4.26.0"
+      },
+      {
+        "executable_digest": null,
+        "name": "pip_audit",
+        "version": "2.10.1"
+      }
+    ],
+    "observed_at": "2026-07-29T17:04:11.525626Z",
+    "os": {
+      "architecture": "AMD64",
+      "family": "windows",
+      "version": "10.0.26200"
+    },
+    "pip": {
+      "inspect_report_digest": "sha256:634a00e64ce2be09de0719dca598fab8ab373f6d85ef77a342bf94aa8b8bf3b4",
+      "inspect_report_ref": {
+        "bytes": 31232,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
+        "sha256": "sha256:bb4eae9c10329e25402f10a61a7a5791c33147238f46a58916bfc0db20d4eccc"
+      },
+      "inspect_schema_version": "1",
+      "version": "25.0.1"
+    },
+    "pip_check": {
+      "status": "passed"
+    },
+    "python": {
+      "executable_digest": "sha256:0b471133e110cfb53a061cad528ce8e517d7b9ac41a0a396c39ad795a487fc14",
+      "implementation": "CPython",
+      "version": "3.12.10"
+    },
+    "requirements": {
+      "files": [
+        {
+          "path": "requirements.txt",
+          "sha256": "sha256:610392d35b038e0b827ee9596edf6f7d791aecd06d0ac8981b20980ecbf6df3c"
+        }
+      ],
+      "fully_pinned": false
+    },
+    "status": "VERIFIED",
+    "vulnerability_report": {
+      "database_observed_at": "2026-07-29T17:04:11.525626Z",
+      "report_ref": {
+        "bytes": 31232,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
+        "sha256": "sha256:bb4eae9c10329e25402f10a61a7a5791c33147238f46a58916bfc0db20d4eccc"
+      },
+      "status": "passed",
+      "tool": "pip-audit",
+      "version": "2.10.1"
+    }
+  },
+  "documentation": {
+    "canonical_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
+    "current_worktree_documents": [
+      {
+        "path": "docs/README.md",
+        "sha256": "sha256:e83fbcbcacd65a133aad737ffb9f8871bb873af8bfc96a6a0d5f10ea592c72bb",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/05-Спецификации-контрактов.md",
+        "sha256": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/06-Регламент-качества-L1-L4.md",
+        "sha256": "sha256:9aed0e4d84a61b959e54520b6d6631220f64b14225c713807ec03b6af288fb10",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/07-Правила-внешней-записи.md",
+        "sha256": "sha256:aa867c0a2ec4f959c49103985b131012ceffaa566a9af676b39e817bcdff3da5",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/10-Политика-памяти.md",
+        "sha256": "sha256:1d2b42e6f83f0194b1b8aa26b5278a6215412db65e1e9941befe6f7b8232d4c5",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+        "sha256": "sha256:6df73d2511220ef27b4ad2a5199a4269361fc4581e42eb3b61a594f82a1990ed",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/13-Интегрированная-архитектура-MVP-1.md",
+        "sha256": "sha256:36a1121cf860c4794a133c1d9b6093e302ef7bce4fe30377d6ec1e52db3f40cc",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/adr/0017-hybrid-natural-google-local-document-plane.md",
+        "sha256": "sha256:dc58d5be0d0d1805be39c0cb2e6b49cbff961408561d18dc51ebf2dc32781e9d",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/adr/0018-cross-gate-mvp1-integration.md",
+        "sha256": "sha256:8f6c3a6a0b3ce15f73266c34023e557e2b69fe6ebee7fb93a9cc64b2e63041bb",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+        "sha256": "sha256:0e663d30e78050272d78a2be66b28449495671348f70b2c5677df70e8bc7a5ba",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+        "sha256": "sha256:6dc727b253a8a2e33da64311092125bfae9f37dcf95a1c8530228f19461cbdde",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-00-product-contract-baseline/RESEARCH.md",
+        "sha256": "sha256:4ad0a29442265669355157c6a9670c10601931e556c1fe967af885bca8878ca0",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+        "sha256": "sha256:b85a3845fe746968f854ab1b9315e5dee1112b7c7621561bb93c0b70a34b4143",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+        "sha256": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
+        "sha256": "sha256:599755c46c78e29a65e14001cf9d550aa31072ffb8fde35b9a401f676a9727d4",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
+        "sha256": "sha256:301d081588bfdeceb0bac267cf2417876992ebbad1a5a62db52037044adf256c",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md",
+        "sha256": "sha256:2ed3887d88ca16443861193702501ce10cdf25fd51a6644b46c083fcf425cb8e",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-06-multidocument-analytics/ARCHITECTURE.md",
+        "sha256": "sha256:14a64dfa5f13792b5fca70b2aa75fc43074af72f7ee17b25c0b5d9aa5dae29bd",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-07-artifact-factory-writeback/ARCHITECTURE.md",
+        "sha256": "sha256:dec2aecb8380740a5928ed74ec01d03bacb0c835f533ff82f9e4b55335bd51f7",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
+        "sha256": "sha256:39dc8989bef0d5855b5d762a108883efd4fa7ffb784feed5223b706b5cd781ff",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/handoffs/CURRENT-STATUS.md",
+        "sha256": "sha256:974d31fa11701429a4b5a30a6d7693198f6db2b111e0cc40f6f1c80f3c8e2f18",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/handoffs/MVP-1-ISSUES.md",
+        "sha256": "sha256:de644284f2731fd507974e597ba10cd71e84da8306144d0d73151552878b6460",
+        "status": "VERIFIED"
+      },
+      {
+        "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+        "sha256": "sha256:937898d658c4816ff96a887b8756f5a9efd93470b27f7abdbdfee384e0d29761",
+        "status": "VERIFIED"
+      }
+    ],
+    "evidence_refs": [
+      {
+        "bytes": 4913,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
+        "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+      }
+    ],
+    "head_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "head_matches_canonical": false,
+    "observed_at": "2026-07-30T21:16:43.153074Z",
+    "required_documents": [
+      {
+        "git_blob": "328867927bf66764b02d9e100362524c54d941b0",
+        "path": "docs/README.md",
+        "sha256": "sha256:b02cb3e0890a36561c3ab6e1e690f9879be18f8f48e6eb20d97050cc01f0293d",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "6b64fab5aa230edfd09546fd73719ebe76cd3247",
+        "path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+        "sha256": "sha256:52b84412d1f9fd606e4a7523609dd5fd02dd3bc7541a87b67b5921bb98929fe0",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "ea7b9f7884b20580830274c1a4035f16f605371d",
+        "path": "docs/adr/0017-hybrid-natural-google-local-document-plane.md",
+        "sha256": "sha256:ea58570b1af43638bae7051f5ef6915eedf34803e66526528a4c9a7ef024fe08",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "1e93a65031f9890dcd75a40cf5961b1602ea6a1f",
+        "path": "docs/handoffs/CURRENT-STATUS.md",
+        "sha256": "sha256:15d70dc6b849f10a6d2819ab546a8cd4cf23afb538118cf5a1f4698882a40054",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "48396f284279a9dfe4fed729f19a220eeee5bcf0",
+        "path": "docs/handoffs/MVP-1-ISSUES.md",
+        "sha256": "sha256:790f025aaa7504ff3df1957809084dd9f67b0aa4e4b5a35e80cc61198d4ae8f0",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "3f6a9bc4851ab52f40cee543f03ba666df35b8c0",
+        "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+        "sha256": "sha256:937898d658c4816ff96a887b8756f5a9efd93470b27f7abdbdfee384e0d29761",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "6f1aca1bf116d86c34949f68a7ffb0852563b3b5",
+        "path": "docs/05-Спецификации-контрактов.md",
+        "sha256": "sha256:eaf50a2687cbc05d61f2cabf2f96df3c6c87fe679b3e4cd0e69bba21ab4046a0",
+        "status": "VERIFIED"
+      },
+      {
+        "git_blob": "e1b127dd357adba226873525bf5beb94acfcc5ba",
+        "path": "docs/06-Регламент-качества-L1-L4.md",
+        "sha256": "sha256:9aed0e4d84a61b959e54520b6d6631220f64b14225c713807ec03b6af288fb10",
+        "status": "VERIFIED"
+      }
+    ],
+    "source_hierarchy_version": "328867927bf66764b02d9e100362524c54d941b0",
+    "status": "VERIFIED"
+  },
+  "evidence_manifest_ref": {
+    "bytes": 3341,
+    "classification": "internal",
+    "created_at": "2026-07-31T09:18:31.4790228Z",
+    "kind": "manifest",
+    "media_type": "application/json",
+    "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/component-manifest.json",
+    "sha256": "sha256:b97b8e93b2ad961d7c4c53107634a28cd8eb6040edc7aaae21d5749666cab57c"
+  },
+  "external_capabilities": [
+    {
+      "capability": "telegram_polling",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": "2026-07-29T17:04:07.919588Z",
+      "implementation_status": "current",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "metadata_only",
+      "provider_or_adapter_version": null,
+      "safe_summary": "EXPECTED_SCHEDULER_BOUND_RUNNER_NOT_OBSERVED",
+      "status": "VERIFIED",
+      "verification_status": "unavailable"
+    },
+    {
+      "capability": "google_calendar",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": null,
+      "implementation_status": "target",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "not_applicable",
+      "provider_or_adapter_version": null,
+      "safe_summary": "LIVE_CALL_FORBIDDEN_NO_FRESH_RECEIPT",
+      "status": "NOT_CHECKED",
+      "verification_status": "not_checked"
+    },
+    {
+      "capability": "google_tasks",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": null,
+      "implementation_status": "target",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "not_applicable",
+      "provider_or_adapter_version": null,
+      "safe_summary": "LIVE_CALL_FORBIDDEN_NO_FRESH_RECEIPT",
+      "status": "NOT_CHECKED",
+      "verification_status": "not_checked"
+    },
+    {
+      "capability": "google_drive",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": null,
+      "implementation_status": "target",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "not_applicable",
+      "provider_or_adapter_version": null,
+      "safe_summary": "LIVE_CALL_FORBIDDEN_NO_FRESH_RECEIPT",
+      "status": "NOT_CHECKED",
+      "verification_status": "not_checked"
+    },
+    {
+      "capability": "codex_sdk",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": "2026-07-29T17:04:07.919588Z",
+      "implementation_status": "target",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "metadata_only",
+      "provider_or_adapter_version": null,
+      "safe_summary": "OWNER_VERIFIED_SERVER_NOT_DEPLOYED",
+      "status": "VERIFIED",
+      "verification_status": "not_checked"
+    },
+    {
+      "capability": "local_library_bridge_read_v1",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": "2026-07-29T17:04:07.919588Z",
+      "implementation_status": "target",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "metadata_only",
+      "provider_or_adapter_version": null,
+      "safe_summary": "GATE5_TARGET_NOT_IMPLEMENTED",
+      "status": "VERIFIED",
+      "verification_status": "not_checked"
+    },
+    {
+      "capability": "local_library_bridge_write_v2",
+      "evidence_refs": [
+        {
+          "bytes": 3575,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "external_receipt",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "sha256": "sha256:86a8dd6a82cef4567a6f7d99d1cf92380d52583d1dadea571943daf37bc08117"
+        }
+      ],
+      "fresh_evidence_at": "2026-07-29T17:04:07.919588Z",
+      "implementation_status": "target",
+      "last_success_at": null,
+      "limitations": [
+        "no_live_call"
+      ],
+      "mode": "metadata_only",
+      "provider_or_adapter_version": null,
+      "safe_summary": "GATE7_TARGET_NOT_IMPLEMENTED",
+      "status": "VERIFIED",
+      "verification_status": "not_checked"
+    }
+  ],
+  "gate": false,
+  "limitations": [],
+  "processes": [
+    {
+      "evidence_refs": [
+        {
+          "bytes": 3983,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "json_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+          "sha256": "sha256:4b6ebaa619c254f4b0faabf2b0650e5f20c08b913a404357c59f269ff09b5bb2"
+        }
+      ],
+      "expected_count": 1,
+      "instances": [
+        {
+          "argv_digest": "sha256:88544b20b2b7e6bf8fba02a41ef475544dba744115afbd400f7be46445c9242d",
+          "argv_profile": "scheduler_bound_runner",
+          "config_digest": null,
+          "executable_ref": "runtime-executable:telegram-python",
+          "executable_sha256": "sha256:0b471133e110cfb53a061cad528ce8e517d7b9ac41a0a396c39ad795a487fc14",
+          "executable_version": null,
+          "health": "unknown",
+          "identity_ref": "principal:scheduler-task-owner",
+          "loaded_code_digest": "sha256:27a79d92ce6645d68d1f9c8ab1d374e93c47ed40e7b5dc4fd7e4e6e220761de9",
+          "loaded_release_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+          "parent_pid": 19940,
+          "pid": 8676,
+          "started_at": "2026-07-31T07:07:47.0456880Z",
+          "working_directory_ref": "runtime-worktree:canonical-repo"
+        }
+      ],
+      "observed_at": "2026-07-31T09:18:31.4790228Z",
+      "observed_count": 1,
+      "polling_checkpoint": {
+        "age_seconds": null,
+        "observed_at": null,
+        "source_ref": null
+      },
+      "process_role": "telegram_runner",
+      "status": "VERIFIED"
+    }
+  ],
+  "repository": {
+    "branch_or_detached": "agent/mobile-codex-runtime",
+    "dirty": {
+      "entries": [
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": ".gitattributes",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "not_needed",
+          "owner": "preexisting",
+          "path": ".nobus-quality/cases.ndjson",
+          "safe_content_sha256": null,
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/04-Журнал-ADR.md",
+          "safe_content_sha256": "sha256:10982c35ee0912d82afcb1afd6a7786799a26e78376e2c1180708c9f1dd54d1a",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/07-Правила-внешней-записи.md",
+          "safe_content_sha256": "sha256:aa867c0a2ec4f959c49103985b131012ceffaa566a9af676b39e817bcdff3da5",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+          "safe_content_sha256": "sha256:6df73d2511220ef27b4ad2a5199a4269361fc4581e42eb3b61a594f82a1990ed",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/13-Интегрированная-архитектура-MVP-1.md",
+          "safe_content_sha256": "sha256:36a1121cf860c4794a133c1d9b6093e302ef7bce4fe30377d6ec1e52db3f40cc",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/README.md",
+          "safe_content_sha256": "sha256:e83fbcbcacd65a133aad737ffb9f8871bb873af8bfc96a6a0d5f10ea592c72bb",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+          "safe_content_sha256": "sha256:0e663d30e78050272d78a2be66b28449495671348f70b2c5677df70e8bc7a5ba",
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/adr/0020-early-miniapp-and-specialist-workers.md",
+          "safe_content_sha256": "sha256:c5e90431f55286229782a13e9a3c9cfad5562cf62fb4f614eb37c41a47eabd66",
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/README.md",
+          "safe_content_sha256": "sha256:c2e61c706c4664616ee707574cdad39b76ffb30046f8cd15b773c0e5eaaf7d34",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+          "safe_content_sha256": null,
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/HANDOFF.md",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/decisions/decision-register.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/component-manifest.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/configuration-inventory.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/current-corpus-baseline.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/evidence-manifest.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/owner-root-metadata.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/pre-capture-core.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-bool-as-int.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-naive-timestamp.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-non-utc-timestamp.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/capability-naive-timestamp.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/capability-non-utc-timestamp.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-naive-datetime.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-real-payload-flag.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-tenant-swap.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-unknown-enum.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-unknown-field.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/gate-handoff-naive-timestamp.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/gate-handoff-non-utc-timestamp.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/product-contract-unknown-field.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/baseline-evidence.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/corpus-case.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/gate-handoff.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/product-contract.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/canonicalization.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/contract-examples.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/core-digests.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/expected-intents.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/gate-acceptance-score.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/target-contract-schema-projections.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/schemas/baseline-evidence.schema.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/schemas/capability-claim.schema.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/schemas/corpus-case.schema.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/schemas/gate-handoff.schema.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/schemas/product-contract.schema.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/verification/l1.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/verification/l2.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "docs/gates/gate-00-product-contract-baseline/verification/l3.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:b85a3845fe746968f854ab1b9315e5dee1112b7c7621561bb93c0b70a34b4143",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:0ba15d4e753053f83622687835233bb0f8e70427b4bad830c00d897e3d9830a7",
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-02a-miniapp-development-control/RESEARCH.md",
+          "safe_content_sha256": "sha256:013be44c8d9b7df776b24968f82f2b2bc20ecf76bb1c8b1929703d73b10a44c0",
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:599755c46c78e29a65e14001cf9d550aa31072ffb8fde35b9a401f676a9727d4",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:301d081588bfdeceb0bac267cf2417876992ebbad1a5a62db52037044adf256c",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:2ed3887d88ca16443861193702501ce10cdf25fd51a6644b46c083fcf425cb8e",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
+          "safe_content_sha256": "sha256:39dc8989bef0d5855b5d762a108883efd4fa7ffb784feed5223b706b5cd781ff",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": null,
+          "owner": "preexisting",
+          "path": "docs/handoffs/CURRENT-STATUS.md",
+          "safe_content_sha256": "sha256:974d31fa11701429a4b5a30a6d7693198f6db2b111e0cc40f6f1c80f3c8e2f18",
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/collect_gate0_snapshot.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/collect_runtime_snapshot.ps1",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/gate0_lifecycle.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/gate0_precapture.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/generate_gate0_artifacts.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/importlinter-gate0.ini",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/invoke_release_audit.ps1",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/manage_runtime_maintenance.ps1",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/normalize_gate0_contracts.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/normative_models.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/pytest_mutex_namespace.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/target_golden_semantics.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_gate0_handoff_lifecycle.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_gate0_lifecycle.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_gate0_normative.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_gate0_precapture.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_release_audit_wrapper.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_action_repair.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_adversarial.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_argument_matrix.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_candidate_scope.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_diagnostic_profile.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_evidence_contract.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_failure_receipt.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_helper.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_legacy_remediation.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_live_root.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_native_api.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_postcondition.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_profiles.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_pyvenv.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_root_failure_stage.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_running_group.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_running_route.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_start_authority.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/test_runtime_maintenance_termination_plan.py",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/verifier-requirements.txt",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/gate0/verifier-toolchain.json",
+          "safe_content_sha256": null,
+          "status": "??",
+          "tracked": false
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/test_fake_vertical.py",
+          "safe_content_sha256": null,
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/test_telegram_gateway.py",
+          "safe_content_sha256": null,
+          "status": " M",
+          "tracked": true
+        },
+        {
+          "content_omitted_reason": "covered_by_evidence_manifest",
+          "owner": "gate0",
+          "path": "tests/test_trusted_ingress.py",
+          "safe_content_sha256": null,
+          "status": " M",
+          "tracked": true
+        }
+      ],
+      "is_dirty": true
+    },
+    "evidence_refs": [
+      {
+        "bytes": 31119,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
+        "sha256": "sha256:bacfaf8b661c8d199e743d3ecad1172874e6226dc0a1a245f782678d33f29df9"
+      }
+    ],
+    "head_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "merge_bases": {
+      "docs_to_repo": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
+      "docs_to_runtime_release": "1ac52a00fd22b25cb6fcbd9f694688157c900cc8",
+      "repo_to_runtime_release": "1ac52a00fd22b25cb6fcbd9f694688157c900cc8"
+    },
+    "observed_at": "2026-07-31T08:03:31.336446Z",
+    "repo_ref": "nobus-orchestrator-dev",
+    "status": "VERIFIED",
+    "upstream_ref": null,
+    "worktree_ref": "worktree:candidate"
+  },
+  "runtime_release": {
+    "docs_commit_is_ancestor": false,
+    "evidence_refs": [
+      {
+        "bytes": 31119,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "json_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
+        "sha256": "sha256:bacfaf8b661c8d199e743d3ecad1172874e6226dc0a1a245f782678d33f29df9"
+      }
+    ],
+    "expected_feature_commit": "b69e84687cdce439c42f1bc53e4fe7654e4deaf9",
+    "expected_feature_is_ancestor": true,
+    "observed_at": "2026-07-31T08:03:31.336446Z",
+    "release_artifact_digest": null,
+    "release_artifact_ref": null,
+    "runtime_branch_or_detached": "agent/telegram-live",
+    "runtime_code_manifest_digest": null,
+    "runtime_head_commit": "1ac52a00fd22b25cb6fcbd9f694688157c900cc8",
+    "runtime_worktree_ref": "worktree:canonical-current",
+    "status": "VERIFIED"
+  },
+  "scheduler": [
+    {
+      "action_arguments_digest": "sha256:f136b3ef5f8f8a84b24d3015e8ffedeec33996dd866438ea1bc54f8ffce795ea",
+      "action_arguments_profile": "verified_sanitized",
+      "action_executable_digest": "sha256:7600ffe12da441fe89d035b13801e8e91d064bc544a27b19a5cf49f6ab8b18f5",
+      "action_executable_ref": "executable-profile:powershell.exe",
+      "definition_changed_at": null,
+      "definition_digest": "sha256:a8f93de509b81251717037fdf79a96ab1b1c6827b8a663652862762bb51c9bd7",
+      "enabled": true,
+      "evidence_refs": [
+        {
+          "bytes": 3983,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "json_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+          "sha256": "sha256:4b6ebaa619c254f4b0faabf2b0650e5f20c08b913a404357c59f269ff09b5bb2"
+        }
+      ],
+      "last_result_code": 267009,
+      "last_run_at": "2026-07-31T07:07:46.0000000Z",
+      "next_run_at": null,
+      "observed_at": "2026-07-31T09:18:31.4790228Z",
+      "principal_ref": "principal:task-owner",
+      "restart_policy_profile": {
+        "mode": "scheduler_default"
+      },
+      "scheduler_kind": "windows_task_scheduler",
+      "state": "running",
+      "status": "VERIFIED",
+      "task_ref": "scheduler-task:nobus-space-bot",
+      "trigger_profile": {
+        "count": 1
+      },
+      "working_directory_ref": "opaque:none"
+    }
+  ],
+  "schema": "nobus.gate0.baseline.v1",
+  "scope": "nobus-space-mvp1",
+  "tests": {
+    "baseline_scores": {
+      "current_system": {
+        "corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
+        "corpus_version": "1.0.0",
+        "pass_rate": 0.041667,
+        "report_ref": {
+          "bytes": 13582,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "test_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/current-corpus-baseline.json",
+          "sha256": "sha256:8df7b22b3643559e34eff33c3480f3bdffea7020af4ed977ed35f05bb2c7e6ba"
+        }
+      }
+    },
+    "collection": {
+      "collected_cases": 1487,
+      "collection_report_ref": {
+        "bytes": 2138,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "test_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+        "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+      },
+      "files": 105
+    },
+    "commit_under_test": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "environment_digest": "sha256:ba1bcd63e7002db3faa5853bbbeffb6e8b0404ed8501b8043516c4a8fe163e84",
+    "evidence_refs": [
+      {
+        "bytes": 2138,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "test_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+        "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+      },
+      {
+        "bytes": 13582,
+        "classification": "internal",
+        "created_at": "2026-07-31T09:18:31.4790228Z",
+        "kind": "test_report",
+        "media_type": "application/json",
+        "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/current-corpus-baseline.json",
+        "sha256": "sha256:8df7b22b3643559e34eff33c3480f3bdffea7020af4ed977ed35f05bb2c7e6ba"
+      }
+    ],
+    "observed_at": "2026-07-31T08:27:41.6117724Z",
+    "runs": [
+      {
+        "command_profile": "gate0_contracts",
+        "exit_code": 0,
+        "failed": 0,
+        "finished_at": "2026-07-31T08:19:47.5734685Z",
+        "passed": 179,
+        "profile": "gate0_contracts",
+        "report_digest": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7",
+        "report_ref": {
+          "bytes": 2138,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "test_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+          "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+        },
+        "seed": null,
+        "skipped": 1,
+        "started_at": "2026-07-31T08:16:57.4823310Z",
+        "warnings": null
+      },
+      {
+        "command_profile": "full_regression",
+        "exit_code": 0,
+        "failed": 0,
+        "finished_at": "2026-07-31T08:24:10.3397523Z",
+        "passed": 1484,
+        "profile": "full_regression",
+        "report_digest": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7",
+        "report_ref": {
+          "bytes": 2138,
+          "classification": "internal",
+          "created_at": "2026-07-31T09:18:31.4790228Z",
+          "kind": "test_report",
+          "media_type": "application/json",
+          "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+          "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+        },
+        "seed": null,
+        "skipped": 3,
+        "started_at": "2026-07-31T08:20:04.5707310Z",
+        "warnings": null
+      }
+    ],
+    "status": "VERIFIED",
+    "test_contract_version": "gate0.v1"
+  }
+}

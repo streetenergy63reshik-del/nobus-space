@@ -1,0 +1,10 @@
+{
+  "blocked": 0,
+  "blocking_total": 22,
+  "gate_ready": true,
+  "passed": 22,
+  "pending": 0,
+  "reason": "All 22 Gate 0 acceptance criteria pass.",
+  "schema": "nobus.gate0.gate_acceptance_score.v1",
+  "score_percent": 100.0
+}

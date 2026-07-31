@@ -1,0 +1,85 @@
+{
+  "decisions": [
+    {
+      "decision": "ADAPT current contracts, policy, durable, effect, evidence and owner-file primitives.",
+      "id": "G0-D001",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/RESEARCH.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "ADOPT Pydantic, pytest and stdlib JSON/JSONL/hashlib/pip inspect.",
+      "id": "G0-D002",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Use jsonschema, Hypothesis and Import Linter only as dev verification dependencies.",
+      "id": "G0-D003",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Use pip-audit and Gitleaks at release; do not grant them owner-document runtime access.",
+      "id": "G0-D004",
+      "source_ref": "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Promptfoo may later consume a sanitized corpus; OTel and Langfuse wait for server and retention policy.",
+      "id": "G0-D005",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Evidence manifest excludes only itself and declares the exclusion to prevent self-reference.",
+      "id": "G0-D006",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "The 2026-07-29 evidence-closure L4 permits one transient Scheduler-arguments and prefiltered Nobus-candidate command-line read; raw values are discarded before output and the authority expires with this capture.",
+      "id": "G0-D007",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "The owner accepts the verified current Telegram SQLite schema as the genesis baseline; historical legacy migration execution is not claimed, and Gate 2 must create the durable ledger before the first post-genesis migration.",
+      "id": "G0-D008",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Legacy Scheduler stop semantics may leave detached runner processes; owner-authorized exact-runner maintenance is bounded by opaque identity predicates and creation-time-bound native process handles. CURRENT is bound to the canonical candidate worktree; telegram-live isolation remains TARGET for the runtime/deployment Gate, where durable WinSW supervision belongs, while the current launcher remains unchanged in Gate 0.",
+      "id": "G0-D009",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "The one-start precondition is bound to the canonical repository HEAD, branch, sanitized Git status, exact tracked repository closure excluding quality ledgers, and all existing ops/scripts/src/tests bytes. Traversal is no-follow and reject-before-read: credential and database names plus every symlink or reparse input fail closed before content access. All hashes use atomic validated file handles whose opened identity must equal the pre-open lstat identity. Ignored local credentials, runtime databases and local runtime state are never included. Any drift fails closed before start.",
+      "id": "G0-D010",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Scheduler start authority requires the exact whole launcher, exact Scheduler definition and exact canonical runtime artifact digests; identity spellings are equivalent only when they denote the same resolved Windows SID, while arguments must satisfy a closed eight-token action contract represented by a single-command AST without control tokens or redirections. Representation-only case and whitespace normalization is allowed; launcher quoting is optional but limited to a single matching outer quote pair. Installer-equivalent empty Action.Id is mandatory and each stable live definition must carry a strictly boolean true ActionIdContractExact marker; missing, non-boolean or false blocks even when all digests match. On action-contract failure, only a fixed 20-field action bitmap may be emitted; raw Scheduler values are never persisted. The internal start path requires all eight expected digests before its first read and executes the fixed core/live/core/core/live/start sequence. Two stable live reads and three frozen core readbacks must match the expected opaque digests; the final live read occurs immediately before the single in-process start-verified call. Any mismatch blocks without start or retry.",
+      "id": "G0-D011",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Owner-authorized Gate 0 repair may replace only Action.Arguments after two stable repair observations form coherent task-object/XML snapshots and exactly match the Inspect C drift, canonical shifted -File target, approved PowerShell, canonical launcher and installer-equivalent empty Action.Id. An exclusive sanctioned-writer mutex and a third final coherent freshness observation immediately precede one Set-ScheduledTask. The helper proves an unchanged non-argument definition digest and an exact postcondition and stops without retry on mismatch or error. Windows Task Scheduler exposes no OS-level compare-and-swap against unsanctioned external writers, so executing the residual race requires explicit human acceptance.",
+      "id": "G0-D012",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    },
+    {
+      "decision": "Offline verification closure binds Gitleaks scanned_file_count to the exact immutable input_entries set. The self-referential receipt files are excluded from scanner input but exact-hash bound by receipt_entries and frozen_tree_digest. After receipt bind, post-bind targeted and full test suites must rerun on the final materialized bytes before independent L1/L2/L3 or Scheduler start; any failure invalidates the freeze.",
+      "id": "G0-D013",
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "accepted"
+    }
+  ],
+  "schema": "nobus.gate0.decision_register.v1",
+  "updated_at": "2026-07-28T00:00:00Z",
+  "version": "1.0.0"
+}

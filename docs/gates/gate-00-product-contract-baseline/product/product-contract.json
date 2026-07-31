@@ -1,0 +1,906 @@
+{
+  "change_control": {
+    "approval_rule": "Authority, data route or paid-cost expansion requires action-bound L4.",
+    "corpus_rule": "Every accepted regression receives a synthetic case before release.",
+    "required_inputs": [
+      "owner decision when product, data, cost or authority changes",
+      "updated decision register",
+      "schema and compatibility diff",
+      "corpus delta and golden regeneration",
+      "fresh L1, independent L2 and adversarial L3 evidence"
+    ],
+    "version_rule": "Breaking change increments the major contract version."
+  },
+  "contract_catalog": [
+    {
+      "closed_enum_refs": [
+        "src/contracts/models.py#IngressSource",
+        "src/contracts/models.py#IngressKind"
+      ],
+      "consumers": [
+        "core"
+      ],
+      "contract_name": "TrustedIngressEnvelope",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/TrustedIngressEnvelope",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "current_core",
+      "producer": "trusted_ingress",
+      "required_fields": [
+        "schema_version",
+        "ingress_id",
+        "tenant_id",
+        "source",
+        "actor_identity",
+        "external_message_id",
+        "idempotency_key",
+        "received_at",
+        "kind",
+        "content_ref",
+        "auth_context_ref",
+        "envelope_revision"
+      ],
+      "schema_id": "python-symbol:src/contracts/models.py#TrustedIngressEnvelope@1",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "src/contracts/models.py#RiskLevel",
+        "docs/05-Спецификации-контрактов.md#permission-registry"
+      ],
+      "consumers": [
+        "worker",
+        "verification"
+      ],
+      "contract_name": "TaskContract",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/TaskContract",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "current_core",
+      "producer": "core",
+      "required_fields": [
+        "schema_version",
+        "task_id",
+        "idempotency_key",
+        "ingress_digest",
+        "tenant_id",
+        "source",
+        "conversation_ref",
+        "instruction",
+        "allowed_paths",
+        "permissions",
+        "risk",
+        "acceptance_criteria",
+        "timeout_seconds",
+        "quality_profile"
+      ],
+      "schema_id": "python-symbol:src/contracts/models.py#TaskContract@1",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "src/contracts/models.py#WorkerEventType"
+      ],
+      "consumers": [
+        "core"
+      ],
+      "contract_name": "WorkerEvent",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/WorkerEvent",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "current_core",
+      "producer": "worker",
+      "required_fields": [
+        "schema_version",
+        "event_id",
+        "tenant_id",
+        "task_id",
+        "attempt_id",
+        "contract_digest",
+        "worker_identity",
+        "sequence",
+        "event_type",
+        "emitted_at",
+        "payload"
+      ],
+      "schema_id": "python-symbol:src/contracts/models.py#WorkerEvent@1",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "src/contracts/models.py#VerificationBundleStatus",
+        "src/contracts/models.py#VerificationLevel"
+      ],
+      "consumers": [
+        "core"
+      ],
+      "contract_name": "VerificationBundle",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/VerificationBundle",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "current_core",
+      "producer": "verification",
+      "required_fields": [
+        "schema_version",
+        "tenant_id",
+        "task_id",
+        "contract_digest",
+        "result_revision",
+        "result_digest",
+        "executor_identity",
+        "l1",
+        "l2",
+        "l3",
+        "status"
+      ],
+      "schema_id": "python-symbol:src/contracts/models.py#VerificationBundle@1",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/05-Спецификации-контрактов.md#approval-contracts-v1"
+      ],
+      "consumers": [
+        "core"
+      ],
+      "contract_name": "HumanApprovalRecord",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/HumanApprovalRecord",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "current_core",
+      "producer": "approval_adapter",
+      "required_fields": [
+        "tenant_id",
+        "task_id",
+        "contract_digest",
+        "result_revision",
+        "result_digest",
+        "approver_identity",
+        "approved_at",
+        "evidence_ref"
+      ],
+      "schema_id": "python-symbol:src/contracts/models.py#HumanApprovalRecord@1",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "src/application/product_effects.py#ProductEffectKind"
+      ],
+      "consumers": [
+        "effect_adapter"
+      ],
+      "contract_name": "ProductEffectChallenge",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/ProductEffectChallenge",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "current_core",
+      "producer": "core",
+      "required_fields": [
+        "token",
+        "kind",
+        "preview"
+      ],
+      "schema_id": "python-symbol:src/application/product_effects.py#ProductEffectChallenge@d11eda8",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md#5.2"
+      ],
+      "consumers": [
+        "gate2",
+        "gate3",
+        "gate4"
+      ],
+      "contract_name": "IntentEnvelope",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/IntentEnvelope",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate1",
+      "producer": "gate1_core",
+      "required_fields": [
+        "schema",
+        "intent_id",
+        "tenant_id",
+        "actor_identity",
+        "conversation_ref",
+        "ingress_digest",
+        "received_at",
+        "modality",
+        "owner_text",
+        "voice",
+        "status",
+        "domain",
+        "action",
+        "entities",
+        "period",
+        "source_scope",
+        "requested_outputs",
+        "proposed_effects",
+        "confidence",
+        "ambiguities",
+        "clarification",
+        "context",
+        "policy_version",
+        "route_registry_version",
+        "intent_revision"
+      ],
+      "schema_id": "nobus.intent.v1",
+      "source_ref": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"
+      ],
+      "consumers": [
+        "gate3",
+        "gate5",
+        "gate6"
+      ],
+      "contract_name": "DocumentRef",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/DocumentRef",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2",
+      "producer": "gate2_core",
+      "required_fields": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "document_ref_id",
+        "source_scope_id",
+        "backend",
+        "source_id",
+        "display_name",
+        "document_kind",
+        "media_type",
+        "classification",
+        "size_bytes",
+        "revision",
+        "content_digest",
+        "provenance",
+        "expires_at"
+      ],
+      "schema_id": "nobus.document_ref.v1",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"
+      ],
+      "consumers": [
+        "gate3",
+        "gate5"
+      ],
+      "contract_name": "DocumentQuery",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/DocumentQuery",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2",
+      "producer": "gate2_core",
+      "required_fields": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "query_id",
+        "source_scope_ids",
+        "query_text",
+        "name_hints",
+        "folder_hints",
+        "period",
+        "document_kinds",
+        "media_types",
+        "classifications",
+        "max_candidates",
+        "max_pages",
+        "metadata_timeout_ms"
+      ],
+      "schema_id": "nobus.document_query.v1",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"
+      ],
+      "consumers": [
+        "gate5",
+        "gate6"
+      ],
+      "contract_name": "DocumentReadPlan",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/DocumentReadPlan",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2",
+      "producer": "gate2_core",
+      "required_fields": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "read_plan_id",
+        "documents",
+        "purpose",
+        "max_source_bytes_per_document",
+        "max_source_bytes_total",
+        "max_extracted_chars_per_document",
+        "max_extracted_chars_total",
+        "max_parser_seconds_per_document",
+        "max_parser_seconds_total",
+        "dlp_profile",
+        "prompt_profile"
+      ],
+      "schema_id": "nobus.document_read_plan.v1",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"
+      ],
+      "consumers": [
+        "gate6"
+      ],
+      "contract_name": "AnalysisRequest",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/AnalysisRequest",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2",
+      "producer": "gate2_core",
+      "required_fields": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "analysis_id",
+        "idempotency_key",
+        "read_plan_digest",
+        "sources",
+        "question",
+        "sku_or_articles",
+        "period",
+        "metrics",
+        "grouping",
+        "calculation_rules",
+        "requested_outputs",
+        "limitations",
+        "processing_policy_ref",
+        "limits",
+        "maximum_classification"
+      ],
+      "schema_id": "nobus.analysis_request.v1",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"
+      ],
+      "consumers": [
+        "gate7"
+      ],
+      "contract_name": "ArtifactPlan",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/ArtifactPlan",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2",
+      "producer": "gate2_core",
+      "required_fields": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "artifact_plan_id",
+        "analysis_digest",
+        "title",
+        "format",
+        "sections",
+        "content_digest",
+        "render_profile",
+        "target_backend",
+        "output_scope_id",
+        "destination_hint",
+        "collision_policy",
+        "provenance_refs"
+      ],
+      "schema_id": "nobus.artifact_plan.v1",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"
+      ],
+      "consumers": [
+        "gate7"
+      ],
+      "contract_name": "DocumentWritePlan",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/DocumentWritePlan",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2",
+      "producer": "gate2_core",
+      "required_fields": [
+        "schema",
+        "schema_version",
+        "schema_digest",
+        "contract_digest",
+        "created_at",
+        "tenant_id",
+        "project_ref",
+        "client_ref",
+        "policy_version",
+        "registry_bundle_digest",
+        "write_plan_id",
+        "artifact_plan_digest",
+        "artifact_ref",
+        "artifact_digest",
+        "backend",
+        "operation",
+        "output_scope_id",
+        "target",
+        "expected_revision",
+        "collision_policy",
+        "snapshot_required",
+        "strict_cas_required",
+        "idempotency_key",
+        "approval_binding",
+        "expires_at"
+      ],
+      "schema_id": "nobus.document_write_plan.v1",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    }
+  ],
+  "contract_families": [
+    {
+      "consumer_gates": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "contracts": [
+        "ProductContract",
+        "BaselineEvidencePack",
+        "CorpusCase",
+        "GateHandoff"
+      ],
+      "family": "baseline",
+      "owner_gate": 0,
+      "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "contracts": [
+        "IntentEnvelope",
+        "Intent",
+        "IntentDecision"
+      ],
+      "family": "intent",
+      "owner_gate": 1,
+      "source_ref": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      "contracts": [
+        "DocumentRef",
+        "DocumentQuery",
+        "DocumentReadPlan",
+        "DocumentSlice",
+        "DocumentReadResult",
+        "AnalysisRequest",
+        "ArtifactPlan",
+        "DocumentWritePlan"
+      ],
+      "family": "document",
+      "owner_gate": 2,
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        4,
+        6,
+        7,
+        8
+      ],
+      "contracts": [
+        "GoogleReadRequest",
+        "GoogleEffectRequest",
+        "GoogleEffectReceipt"
+      ],
+      "family": "google",
+      "owner_gate": 3,
+      "source_ref": "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        3,
+        5,
+        7,
+        8
+      ],
+      "contracts": [
+        "EffectRecord",
+        "EffectJob",
+        "EffectLifecycle",
+        "ProviderOutcome",
+        "ReconciliationRecord"
+      ],
+      "family": "effect",
+      "owner_gate": 4,
+      "source_ref": "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        2,
+        6,
+        7,
+        8
+      ],
+      "contracts": [
+        "SignedMessage",
+        "BridgeReadV1Capability",
+        "BridgeWriteV2Capability",
+        "DocumentExecutionProjection"
+      ],
+      "family": "bridge",
+      "owner_gate": 5,
+      "source_ref": "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        7,
+        8
+      ],
+      "contracts": [
+        "AnalysisExecutionPlan",
+        "NormalizedFact",
+        "SafeProvenanceView",
+        "AnalysisResult"
+      ],
+      "family": "analysis",
+      "owner_gate": 6,
+      "source_ref": "docs/gates/gate-06-multidocument-analytics/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        5,
+        8
+      ],
+      "contracts": [
+        "ArtifactDocument",
+        "ArtifactValue",
+        "ArtifactManifest",
+        "BridgeWriteRequestV2",
+        "BridgeWriteResultV2"
+      ],
+      "family": "artifact",
+      "owner_gate": 7,
+      "source_ref": "docs/gates/gate-07-artifact-factory-writeback/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [],
+      "contracts": [
+        "ReleaseManifest",
+        "CompositeHealth",
+        "RecoveryWatermark",
+        "PilotEvidence"
+      ],
+      "family": "release",
+      "owner_gate": 8,
+      "source_ref": "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
+      "status": "target"
+    }
+  ],
+  "contract_version": "1.0.0",
+  "design_base_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
+  "frozen_at": "2026-07-28T00:00:00Z",
+  "invariants": [
+    {
+      "fitness_ref": "G0-03",
+      "id": "PC-01",
+      "owner": "gate0",
+      "statement": "CURRENT, TARGET and each evidence layer remain distinct."
+    },
+    {
+      "fitness_ref": "G0-14",
+      "id": "PC-02",
+      "owner": "gate1",
+      "statement": "Unknown fields and unknown enum values fail closed."
+    },
+    {
+      "fitness_ref": "G0-15",
+      "id": "PC-03",
+      "owner": "gate1",
+      "statement": "Tenant, project and client bindings are never wildcarded."
+    },
+    {
+      "fitness_ref": "G0-16",
+      "id": "PC-04",
+      "owner": "gate4",
+      "statement": "Effect and durable job admission are one atomic decision."
+    },
+    {
+      "fitness_ref": "G0-16",
+      "id": "PC-05",
+      "owner": "gate4",
+      "statement": "Lifecycle and provider outcome use only Gate 4 vocabularies."
+    },
+    {
+      "fitness_ref": "G0-15",
+      "id": "PC-06",
+      "owner": "gate4",
+      "statement": "Provider unknown and delivery unknown are not interchangeable."
+    },
+    {
+      "fitness_ref": "G0-15",
+      "id": "PC-07",
+      "owner": "gate2",
+      "statement": "Local document identifiers are opaque and registry bound."
+    },
+    {
+      "fitness_ref": "G0-16",
+      "id": "PC-08",
+      "owner": "gate7",
+      "statement": "Bridge read v1 and write v2 are separately pinned and fenced."
+    },
+    {
+      "fitness_ref": "G0-15",
+      "id": "PC-09",
+      "owner": "gate4",
+      "statement": "External effects never use blind resend after ambiguous outcome."
+    },
+    {
+      "fitness_ref": "G0-10",
+      "id": "PC-10",
+      "owner": "gate0",
+      "statement": "Real owner or client payload is forbidden in Gate 0 fixtures."
+    },
+    {
+      "fitness_ref": "G0-18",
+      "id": "PC-11",
+      "owner": "gate0",
+      "statement": "A model grader cannot override deterministic contract checks."
+    },
+    {
+      "fitness_ref": "G0-20",
+      "id": "PC-12",
+      "owner": "gate8",
+      "statement": "Rollback of code is separate from external data recovery."
+    }
+  ],
+  "non_goals": [
+    "Gate 1 production IntentEnvelope implementation",
+    "provider calls or runtime deployment",
+    "new eval, agent, observability or specification framework",
+    "migration, backup, restore or owner-document processing"
+  ],
+  "owner": "nobus_space_owner",
+  "product_outcome": "MVP-1 accepts a natural text or voice request, derives a strict intent, executes only authorized effects, and returns evidence-bound results.",
+  "product_principles": [
+    "owner_bound_telegram",
+    "natural_language_first",
+    "text_and_confirmed_voice_semantic_equivalence",
+    "single_clarification_before_guessing",
+    "core_owns_policy_state_risk_idempotency",
+    "application_owned_effects",
+    "no_ambient_model_oauth_shell_or_filesystem",
+    "tenant_project_client_binding",
+    "metadata_first_exact_selection",
+    "revision_digest_bound_read_update",
+    "unknown_outcome_requires_reconciliation",
+    "deny_wins",
+    "independent_l1_l2_l3_and_action_bound_l4",
+    "current_target_evidence_separation",
+    "slash_commands_operational_fallback_only",
+    "common_google_local_document_lifecycle"
+  ],
+  "schema": "nobus.gate0.product_contract.v1",
+  "source_of_truth": [
+    "explicit owner decision",
+    "accepted ADR",
+    "current worktree TARGET architecture",
+    "fresh runtime evidence for CURRENT claims",
+    "historical handoff",
+    "Nobus Memory historical index"
+  ],
+  "status": "frozen_target",
+  "vocabularies": {
+    "actions": [
+      "none",
+      "answer",
+      "help",
+      "status",
+      "limit",
+      "cancel",
+      "search",
+      "read",
+      "list",
+      "summarize",
+      "compare",
+      "analyze",
+      "audit",
+      "report",
+      "remember",
+      "extract_tasks",
+      "create",
+      "update",
+      "complete",
+      "delete",
+      "deliver"
+    ],
+    "authorities": [
+      "direct_owner",
+      "l4_required",
+      "denied"
+    ],
+    "domains": [
+      "notes",
+      "calendar",
+      "tasks",
+      "documents",
+      "research",
+      "general"
+    ],
+    "effect_kinds": [
+      "read",
+      "create",
+      "update",
+      "complete",
+      "delete",
+      "deliver_owner",
+      "deliver_third_party",
+      "publish",
+      "change_access",
+      "money",
+      "push",
+      "deploy"
+    ],
+    "output_formats": [
+      "telegram_text",
+      "jpeg",
+      "html",
+      "xlsx",
+      "docx",
+      "pdf",
+      "google_doc",
+      "google_sheet"
+    ],
+    "risks": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "source_kinds": [
+      "none",
+      "public_web",
+      "nobus_memory",
+      "business_notes",
+      "google_calendar",
+      "google_tasks",
+      "google_drive",
+      "local_library",
+      "telegram_attachment"
+    ]
+  }
+}

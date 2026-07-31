@@ -1,0 +1,593 @@
+{
+  "case_count": 96,
+  "commit_under_test": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+  "corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
+  "corpus_version": "1.0.0",
+  "entries": [
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-001",
+      "expected_action": "analyze",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-002",
+      "expected_action": "analyze",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-003",
+      "expected_action": "compare",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-004",
+      "expected_action": "compare",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-005",
+      "expected_action": "audit",
+      "match": false
+    },
+    {
+      "actual_intent": "report",
+      "case_id": "G0-ANA-006",
+      "expected_action": "report",
+      "match": true
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-007",
+      "expected_action": "answer",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-008",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-009",
+      "expected_action": "summarize",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-010",
+      "expected_action": "analyze",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-ANA-011",
+      "expected_action": "help",
+      "match": false
+    },
+    {
+      "actual_intent": "report",
+      "case_id": "G0-ANA-012",
+      "expected_action": "report",
+      "match": true
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-001",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-002",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-003",
+      "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-004",
+      "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-005",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-006",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-007",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-008",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-009",
+      "expected_action": "delete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-010",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-011",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-CAL-012",
+      "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-001",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-002",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-003",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-004",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-005",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-006",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-007",
+      "expected_action": "analyze",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-008",
+      "expected_action": "analyze",
+      "match": false
+    },
+    {
+      "actual_intent": "report",
+      "case_id": "G0-DOC-009",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-010",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-011",
+      "expected_action": "deliver",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-012",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-013",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-014",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-015",
+      "expected_action": "analyze",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-016",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-017",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-018",
+      "expected_action": "deliver",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-019",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-020",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-021",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-022",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-023",
+      "expected_action": "deliver",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DOC-024",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-001",
+      "expected_action": "remember",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-002",
+      "expected_action": "remember",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-003",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-004",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-005",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-006",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-007",
+      "expected_action": "summarize",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-NOTES-008",
+      "expected_action": "extract_tasks",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-001",
+      "expected_action": "delete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-002",
+      "expected_action": "delete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-003",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-004",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-005",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-006",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-007",
+      "expected_action": "answer",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-008",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-009",
+      "expected_action": "deliver",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-010",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-011",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-012",
+      "expected_action": "answer",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-013",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-014",
+      "expected_action": "deliver",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-015",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-SEC-016",
+      "expected_action": "delete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-001",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-002",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-003",
+      "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-004",
+      "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-005",
+      "expected_action": "complete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-006",
+      "expected_action": "complete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-007",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-008",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-009",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-010",
+      "expected_action": "delete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-011",
+      "expected_action": "complete",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-TASK-012",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "status",
+      "case_id": "G0-VOICE-001",
+      "expected_action": "status",
+      "match": true
+    },
+    {
+      "actual_intent": "status",
+      "case_id": "G0-VOICE-002",
+      "expected_action": "status",
+      "match": true
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-003",
+      "expected_action": "cancel",
+      "match": false
+    },
+    {
+      "actual_intent": "report",
+      "case_id": "G0-VOICE-004",
+      "expected_action": "limit",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-005",
+      "expected_action": "read",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-006",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-007",
+      "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-008",
+      "expected_action": "help",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-009",
+      "expected_action": "answer",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-010",
+      "expected_action": "search",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-011",
+      "expected_action": "create",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-VOICE-012",
+      "expected_action": "deliver",
+      "match": false
+    }
+  ],
+  "llm_or_provider_calls_performed": false,
+  "matches": 4,
+  "observed_at": "2026-07-31T09:18:31.4790228Z",
+  "parser_profile": "literal_rule_fast_path_llm_disabled",
+  "parser_source_digest": "sha256:e52a9b5de3add2929b45df49f2b77d92d73cb7b86177e1890bdebfb97bc77b61",
+  "parser_source_ref": "src/orchestrator/intent_parser.py#IntentParser.PATTERNS",
+  "pass_rate": 0.041667,
+  "raw_text_persisted": false,
+  "schema": "nobus.gate0.current_corpus_baseline.v1"
+}

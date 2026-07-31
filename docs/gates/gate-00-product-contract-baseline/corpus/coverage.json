@@ -1,0 +1,210 @@
+{
+  "action_counts": {
+    "analyze": 6,
+    "answer": 4,
+    "audit": 1,
+    "cancel": 1,
+    "compare": 2,
+    "complete": 3,
+    "create": 9,
+    "delete": 5,
+    "deliver": 6,
+    "extract_tasks": 1,
+    "help": 2,
+    "limit": 1,
+    "list": 6,
+    "read": 18,
+    "remember": 2,
+    "report": 2,
+    "search": 9,
+    "status": 2,
+    "summarize": 2,
+    "update": 14
+  },
+  "corpus_version": "1.0.0",
+  "decision_counts": {
+    "accept": 57,
+    "clarify": 16,
+    "degraded": 4,
+    "reject": 13,
+    "require_l4": 6
+  },
+  "document_lifecycle_coverage": {
+    "google_drive": [
+      "analyze",
+      "create",
+      "deliver",
+      "read",
+      "search",
+      "select",
+      "update"
+    ],
+    "local_library": [
+      "analyze",
+      "create",
+      "deliver",
+      "read",
+      "search",
+      "select",
+      "update"
+    ]
+  },
+  "domain_counts": {
+    "calendar": 13,
+    "documents": 46,
+    "general": 10,
+    "notes": 8,
+    "research": 7,
+    "tasks": 12
+  },
+  "effect_counts": {
+    "change_access": 1,
+    "complete": 3,
+    "create": 12,
+    "delete": 5,
+    "deliver_owner": 5,
+    "deliver_third_party": 1,
+    "money": 1,
+    "read": 55,
+    "update": 13
+  },
+  "modality_counts": {
+    "text": 80,
+    "voice_transcript": 16
+  },
+  "multi_turn_or_clarification_cases": 20,
+  "negative_or_adversarial_cases": 39,
+  "primary_category_counts": {
+    "analytics_research_general": 12,
+    "business_notes": 8,
+    "calendar": 12,
+    "documents_google_local_lifecycle": 24,
+    "security_effect_tenant_provider_adversarial": 16,
+    "tasks": 12,
+    "voice_text_context_clarification": 12
+  },
+  "requirements": {
+    "minimum_cases": 80,
+    "minimum_multi_turn_or_clarification": 12,
+    "minimum_negative_or_adversarial": 30,
+    "minimum_text_voice_pairs": 16,
+    "required_document_stages": [
+      "search",
+      "select",
+      "read",
+      "analyze",
+      "create",
+      "update",
+      "deliver"
+    ],
+    "required_security_scenarios": [
+      "TENANT_MISMATCH",
+      "CROSS_PROJECT_DENIED",
+      "CROSS_CLIENT_DENIED",
+      "PROMPT_INJECTION_IGNORED",
+      "REPLAY_FENCED",
+      "SECRET_PATH_DENIED",
+      "PATH_TRAVERSAL_DENIED",
+      "REPARSE_POINT_DENIED",
+      "STALE_REVISION_DENIED",
+      "BRIDGE_OFFLINE",
+      "UNKNOWN_PROVIDER_OUTCOME"
+    ],
+    "target_cases": 96
+  },
+  "schema": "nobus.gate0.corpus_coverage.v1",
+  "security_scenario_coverage": [
+    "ACK_LOSS_NO_BLIND_RESEND",
+    "BRIDGE_CAPABILITY_MISMATCH",
+    "BRIDGE_OFFLINE",
+    "CAPABILITY_DIGEST_DOWNGRADE",
+    "CROSS_CLIENT_DENIED",
+    "CROSS_PROJECT_DENIED",
+    "L4_REQUIRED",
+    "MODEL_GRADER_OVERRIDE_FORBIDDEN",
+    "OPAQUE_PROVENANCE_REQUIRED",
+    "PATH_TRAVERSAL_DENIED",
+    "PROMPT_INJECTION_IGNORED",
+    "REAL_PAYLOAD_FORBIDDEN",
+    "REPARSE_POINT_DENIED",
+    "REPLAY_FENCED",
+    "SECRET_PATH_DENIED",
+    "SECRET_SCOPE_DENIED",
+    "STALE_REVISION_DENIED",
+    "TENANT_MISMATCH",
+    "UNKNOWN_PROVIDER_OUTCOME",
+    "UNREGISTERED_SOURCE",
+    "VERSION_PRECONDITION_REQUIRED"
+  ],
+  "tenant_counts": {
+    "tenant-a": 96
+  },
+  "text_voice_pair_count": 16,
+  "text_voice_pairs": [
+    [
+      "G0-ANA-001",
+      "G0-ANA-002"
+    ],
+    [
+      "G0-ANA-003",
+      "G0-ANA-004"
+    ],
+    [
+      "G0-CAL-001",
+      "G0-CAL-002"
+    ],
+    [
+      "G0-CAL-003",
+      "G0-CAL-004"
+    ],
+    [
+      "G0-CAL-005",
+      "G0-CAL-006"
+    ],
+    [
+      "G0-DOC-001",
+      "G0-DOC-002"
+    ],
+    [
+      "G0-DOC-003",
+      "G0-DOC-004"
+    ],
+    [
+      "G0-DOC-005",
+      "G0-DOC-006"
+    ],
+    [
+      "G0-DOC-007",
+      "G0-DOC-008"
+    ],
+    [
+      "G0-NOTES-001",
+      "G0-NOTES-002"
+    ],
+    [
+      "G0-NOTES-003",
+      "G0-NOTES-004"
+    ],
+    [
+      "G0-SEC-001",
+      "G0-SEC-002"
+    ],
+    [
+      "G0-TASK-001",
+      "G0-TASK-002"
+    ],
+    [
+      "G0-TASK-003",
+      "G0-TASK-004"
+    ],
+    [
+      "G0-TASK-005",
+      "G0-TASK-006"
+    ],
+    [
+      "G0-VOICE-001",
+      "G0-VOICE-002"
+    ]
+  ],
+  "total_cases": 96
+}

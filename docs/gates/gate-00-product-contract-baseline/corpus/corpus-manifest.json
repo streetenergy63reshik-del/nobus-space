@@ -1,0 +1,12 @@
+{
+  "case_ids_digest": "sha256:4a317b882941afa37df1adad39d9fb2a2e86042bee73795070f7dd1bd1cca8b3",
+  "contains_owner_or_client_payload": false,
+  "corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
+  "corpus_version": "1.0.0",
+  "coverage_digest": "sha256:3ca682bb64579494e3cdb0ed0ab3873f00a0b723aada3f7dc84a0ce0684fb6ca",
+  "encoding": "utf-8",
+  "line_count": 96,
+  "line_format": "canonical-json-plus-lf",
+  "provenance": "fully_synthetic",
+  "schema": "nobus.gate0.corpus_manifest.v1"
+}

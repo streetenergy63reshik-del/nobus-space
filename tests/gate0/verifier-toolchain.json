@@ -1,0 +1,21 @@
+{
+  "gitleaks": {
+    "asset_sha256": "sha256:d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e",
+    "asset_url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_windows_x64.zip",
+    "checksums_url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt",
+    "license": "MIT",
+    "version": "8.30.1"
+  },
+  "python": {
+    "implementation": "CPython",
+    "platform": "win_amd64",
+    "requirements_file": "tests/gate0/verifier-requirements.txt",
+    "version": "3.12"
+  },
+  "schema": "nobus.gate0.verifier_toolchain.v1",
+  "sources": {
+    "package_index": "https://pypi.org/simple/",
+    "require_hashes": true,
+    "wheels_only": true
+  }
+}

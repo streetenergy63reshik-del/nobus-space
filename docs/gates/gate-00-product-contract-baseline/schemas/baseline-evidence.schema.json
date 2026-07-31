@@ -1,0 +1,2495 @@
+{
+  "$defs": {
+    "BaselineScores": {
+      "additionalProperties": false,
+      "properties": {
+        "current_system": {
+          "$ref": "#/$defs/CurrentBaselineScore"
+        }
+      },
+      "required": [
+        "current_system"
+      ],
+      "title": "BaselineScores",
+      "type": "object"
+    },
+    "CapabilityClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "title": "Capability",
+          "type": "string"
+        },
+        "claim_id": {
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "contradictions": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Contradictions",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "fresh_until": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fresh Until"
+        },
+        "implementation_status": {
+          "enum": [
+            "CURRENT",
+            "PARTIAL",
+            "TARGET",
+            "DEFERRED"
+          ],
+          "title": "Implementation Status",
+          "type": "string"
+        },
+        "requires_layers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requires Layers",
+          "type": "array"
+        },
+        "statement": {
+          "title": "Statement",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim_id",
+        "capability",
+        "implementation_status",
+        "statement",
+        "requires_layers",
+        "evidence_refs",
+        "contradictions",
+        "fresh_until",
+        "verdict"
+      ],
+      "title": "CapabilityClaim",
+      "type": "object"
+    },
+    "Capture": {
+      "additionalProperties": false,
+      "properties": {
+        "collector_identity": {
+          "title": "Collector Identity",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "host_ref": {
+          "title": "Host Ref",
+          "type": "string"
+        },
+        "method_version": {
+          "title": "Method Version",
+          "type": "string"
+        },
+        "policy_version": {
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Started At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "started_at",
+        "completed_at",
+        "collector_identity",
+        "host_ref",
+        "policy_version",
+        "method_version"
+      ],
+      "title": "Capture",
+      "type": "object"
+    },
+    "ConfigurationEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "active_profile": {
+          "title": "Active Profile",
+          "type": "string"
+        },
+        "config_schema_version": {
+          "title": "Config Schema Version",
+          "type": "string"
+        },
+        "config_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Config Sources",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "model_profile_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Model Profile Digest",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "policy_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "registries": {
+          "$ref": "#/$defs/Registries"
+        },
+        "safe_config_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Safe Config Digest",
+          "type": "string"
+        },
+        "secret_store": {
+          "$ref": "#/$defs/SecretStore"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "config_schema_version",
+        "active_profile",
+        "safe_config_digest",
+        "secret_store",
+        "registries",
+        "policy_digest",
+        "model_profile_digest",
+        "config_sources",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "ConfigurationEvidence",
+      "type": "object"
+    },
+    "CountProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "title": "CountProfile",
+      "type": "object"
+    },
+    "CurrentBaselineScore": {
+      "additionalProperties": false,
+      "properties": {
+        "corpus_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Corpus Digest",
+          "type": "string"
+        },
+        "corpus_version": {
+          "title": "Corpus Version",
+          "type": "string"
+        },
+        "pass_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pass Rate"
+        },
+        "report_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        }
+      },
+      "required": [
+        "corpus_version",
+        "corpus_digest",
+        "report_ref",
+        "pass_rate"
+      ],
+      "title": "CurrentBaselineScore",
+      "type": "object"
+    },
+    "CurrentWorktreeDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "status": {
+          "const": "VERIFIED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "status"
+      ],
+      "title": "CurrentWorktreeDocument",
+      "type": "object"
+    },
+    "DatabaseEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "application_id": {
+          "title": "Application Id",
+          "type": "integer"
+        },
+        "content_exported": {
+          "const": false,
+          "title": "Content Exported",
+          "type": "boolean"
+        },
+        "database_ref": {
+          "title": "Database Ref",
+          "type": "string"
+        },
+        "database_role": {
+          "enum": [
+            "core",
+            "telegram_state",
+            "product_effects",
+            "checkpoint",
+            "legacy"
+          ],
+          "title": "Database Role",
+          "type": "string"
+        },
+        "engine": {
+          "const": "sqlite",
+          "title": "Engine",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "file_identity_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "File Identity Digest",
+          "type": "string"
+        },
+        "integrity": {
+          "$ref": "#/$defs/DatabaseIntegrity"
+        },
+        "journal_mode": {
+          "enum": [
+            "delete",
+            "wal",
+            "truncate",
+            "persist",
+            "memory",
+            "off",
+            "unknown"
+          ],
+          "title": "Journal Mode",
+          "type": "string"
+        },
+        "migration_inventory": {
+          "$ref": "#/$defs/MigrationInventory"
+        },
+        "modified_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Modified At",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "runtime_binding_reason": {
+          "title": "Runtime Binding Reason",
+          "type": "string"
+        },
+        "runtime_binding_status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Runtime Binding Status",
+          "type": "string"
+        },
+        "schema_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Schema Digest",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "source_profile": {
+          "title": "Source Profile",
+          "type": "string"
+        },
+        "state_aggregates": {
+          "$ref": "#/$defs/StateAggregates"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "user_version": {
+          "title": "User Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "database_role",
+        "database_ref",
+        "source_profile",
+        "runtime_binding_status",
+        "runtime_binding_reason",
+        "engine",
+        "file_identity_digest",
+        "size_bytes",
+        "modified_at",
+        "journal_mode",
+        "user_version",
+        "application_id",
+        "schema_digest",
+        "migration_inventory",
+        "integrity",
+        "state_aggregates",
+        "content_exported",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "DatabaseEvidence",
+      "type": "object"
+    },
+    "DatabaseIntegrity": {
+      "additionalProperties": false,
+      "properties": {
+        "foreign_key_check": {
+          "enum": [
+            "ok",
+            "failed",
+            "not_applicable",
+            "not_checked"
+          ],
+          "title": "Foreign Key Check",
+          "type": "string"
+        },
+        "quick_check": {
+          "enum": [
+            "ok",
+            "failed",
+            "not_checked"
+          ],
+          "title": "Quick Check",
+          "type": "string"
+        }
+      },
+      "required": [
+        "quick_check",
+        "foreign_key_check"
+      ],
+      "title": "DatabaseIntegrity",
+      "type": "object"
+    },
+    "DependencyEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "external_tools": {
+          "items": {
+            "$ref": "#/$defs/ExternalToolEvidence"
+          },
+          "title": "External Tools",
+          "type": "array"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "os": {
+          "$ref": "#/$defs/OSEvidence"
+        },
+        "pip": {
+          "$ref": "#/$defs/PipEvidence"
+        },
+        "pip_check": {
+          "$ref": "#/$defs/PipCheckEvidence"
+        },
+        "python": {
+          "$ref": "#/$defs/PythonEvidence"
+        },
+        "requirements": {
+          "$ref": "#/$defs/RequirementsEvidence"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "vulnerability_report": {
+          "$ref": "#/$defs/VulnerabilityReport"
+        }
+      },
+      "required": [
+        "os",
+        "python",
+        "pip",
+        "requirements",
+        "pip_check",
+        "external_tools",
+        "vulnerability_report",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "DependencyEvidence",
+      "type": "object"
+    },
+    "DirtyEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "content_omitted_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "secret_like",
+                "binary",
+                "unreadable",
+                "not_needed",
+                "covered_by_evidence_manifest"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Content Omitted Reason"
+        },
+        "owner": {
+          "enum": [
+            "preexisting",
+            "gate0"
+          ],
+          "title": "Owner",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "safe_content_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Safe Content Sha256"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "tracked": {
+          "title": "Tracked",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "status",
+        "tracked",
+        "safe_content_sha256",
+        "content_omitted_reason",
+        "owner"
+      ],
+      "title": "DirtyEntry",
+      "type": "object"
+    },
+    "DirtyState": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/DirtyEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "is_dirty": {
+          "title": "Is Dirty",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_dirty",
+        "entries"
+      ],
+      "title": "DirtyState",
+      "type": "object"
+    },
+    "DocumentBlob": {
+      "additionalProperties": false,
+      "properties": {
+        "git_blob": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Git Blob",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "git_blob",
+        "sha256",
+        "status"
+      ],
+      "title": "DocumentBlob",
+      "type": "object"
+    },
+    "DocumentationEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Canonical Commit",
+          "type": "string"
+        },
+        "current_worktree_documents": {
+          "items": {
+            "$ref": "#/$defs/CurrentWorktreeDocument"
+          },
+          "title": "Current Worktree Documents",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "head_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Commit",
+          "type": "string"
+        },
+        "head_matches_canonical": {
+          "title": "Head Matches Canonical",
+          "type": "boolean"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "required_documents": {
+          "items": {
+            "$ref": "#/$defs/DocumentBlob"
+          },
+          "title": "Required Documents",
+          "type": "array"
+        },
+        "source_hierarchy_version": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Source Hierarchy Version",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "canonical_commit",
+        "head_commit",
+        "head_matches_canonical",
+        "required_documents",
+        "current_worktree_documents",
+        "source_hierarchy_version",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "DocumentationEvidence",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "command_output",
+            "json_report",
+            "manifest",
+            "git_object",
+            "test_report",
+            "database_check",
+            "process_snapshot",
+            "scheduler_snapshot",
+            "external_receipt",
+            "review"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path_or_uri": {
+          "title": "Path Or Uri",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path_or_uri",
+        "sha256",
+        "media_type",
+        "bytes",
+        "classification",
+        "created_at"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "ExternalCapabilityEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "enum": [
+            "telegram_polling",
+            "codex_sdk",
+            "web_search",
+            "google_calendar",
+            "google_tasks",
+            "google_drive",
+            "google_docs",
+            "google_sheets",
+            "local_owner_files",
+            "local_library_bridge_read_v1",
+            "local_library_bridge_write_v2"
+          ],
+          "title": "Capability",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "fresh_evidence_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fresh Evidence At"
+        },
+        "implementation_status": {
+          "enum": [
+            "current",
+            "partial",
+            "target",
+            "deferred"
+          ],
+          "title": "Implementation Status",
+          "type": "string"
+        },
+        "last_success_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Success At"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "mode": {
+          "enum": [
+            "read_only",
+            "fake",
+            "metadata_only",
+            "not_applicable"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "provider_or_adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Or Adapter Version"
+        },
+        "safe_summary": {
+          "title": "Safe Summary",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_status": {
+          "enum": [
+            "verified_live",
+            "verified_fake",
+            "configured_not_called",
+            "unavailable",
+            "not_checked",
+            "unverifiable"
+          ],
+          "title": "Verification Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability",
+        "implementation_status",
+        "verification_status",
+        "mode",
+        "provider_or_adapter_version",
+        "last_success_at",
+        "fresh_evidence_at",
+        "safe_summary",
+        "limitations",
+        "status",
+        "evidence_refs"
+      ],
+      "title": "ExternalCapabilityEvidence",
+      "type": "object"
+    },
+    "ExternalToolEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "executable_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Executable Digest"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "executable_digest"
+      ],
+      "title": "ExternalToolEvidence",
+      "type": "object"
+    },
+    "MergeBases": {
+      "additionalProperties": false,
+      "properties": {
+        "docs_to_repo": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Docs To Repo"
+        },
+        "docs_to_runtime_release": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Docs To Runtime Release"
+        },
+        "repo_to_runtime_release": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Repo To Runtime Release"
+        }
+      },
+      "required": [
+        "docs_to_repo",
+        "docs_to_runtime_release",
+        "repo_to_runtime_release"
+      ],
+      "title": "MergeBases",
+      "type": "object"
+    },
+    "MigrationInventory": {
+      "additionalProperties": false,
+      "properties": {
+        "applied": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Applied",
+          "type": "array"
+        },
+        "pending": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pending",
+          "type": "array"
+        },
+        "unknown": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown",
+          "type": "array"
+        }
+      },
+      "required": [
+        "applied",
+        "pending",
+        "unknown"
+      ],
+      "title": "MigrationInventory",
+      "type": "object"
+    },
+    "ModeProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "ModeProfile",
+      "type": "object"
+    },
+    "OSEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "architecture": {
+          "title": "Architecture",
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "windows",
+            "linux"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "version",
+        "architecture"
+      ],
+      "title": "OSEvidence",
+      "type": "object"
+    },
+    "PipCheckEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "PipCheckEvidence",
+      "type": "object"
+    },
+    "PipEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "inspect_report_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Inspect Report Digest",
+          "type": "string"
+        },
+        "inspect_report_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "inspect_schema_version": {
+          "title": "Inspect Schema Version",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "inspect_schema_version",
+        "inspect_report_ref",
+        "inspect_report_digest"
+      ],
+      "title": "PipEvidence",
+      "type": "object"
+    },
+    "PollingCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "age_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Age Seconds"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Observed At"
+        },
+        "source_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "observed_at",
+        "age_seconds",
+        "source_ref"
+      ],
+      "title": "PollingCheckpoint",
+      "type": "object"
+    },
+    "ProcessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "expected_count": {
+          "minimum": 0,
+          "title": "Expected Count",
+          "type": "integer"
+        },
+        "instances": {
+          "items": {
+            "$ref": "#/$defs/ProcessInstance"
+          },
+          "title": "Instances",
+          "type": "array"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "observed_count": {
+          "minimum": 0,
+          "title": "Observed Count",
+          "type": "integer"
+        },
+        "polling_checkpoint": {
+          "$ref": "#/$defs/PollingCheckpoint"
+        },
+        "process_role": {
+          "enum": [
+            "telegram_runner",
+            "codex_app_server",
+            "bridge",
+            "helper"
+          ],
+          "title": "Process Role",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "process_role",
+        "expected_count",
+        "observed_count",
+        "instances",
+        "polling_checkpoint",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "ProcessEvidence",
+      "type": "object"
+    },
+    "ProcessInstance": {
+      "additionalProperties": false,
+      "properties": {
+        "argv_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Argv Digest",
+          "type": "string"
+        },
+        "argv_profile": {
+          "title": "Argv Profile",
+          "type": "string"
+        },
+        "config_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Config Digest"
+        },
+        "executable_ref": {
+          "title": "Executable Ref",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Executable Sha256",
+          "type": "string"
+        },
+        "executable_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Executable Version"
+        },
+        "health": {
+          "enum": [
+            "healthy",
+            "degraded",
+            "unhealthy",
+            "unknown"
+          ],
+          "title": "Health",
+          "type": "string"
+        },
+        "identity_ref": {
+          "title": "Identity Ref",
+          "type": "string"
+        },
+        "loaded_code_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Loaded Code Digest"
+        },
+        "loaded_release_commit": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Loaded Release Commit"
+        },
+        "parent_pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Pid"
+        },
+        "pid": {
+          "title": "Pid",
+          "type": "integer"
+        },
+        "started_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Started At",
+          "type": "string"
+        },
+        "working_directory_ref": {
+          "title": "Working Directory Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pid",
+        "parent_pid",
+        "started_at",
+        "executable_ref",
+        "executable_sha256",
+        "executable_version",
+        "argv_profile",
+        "argv_digest",
+        "working_directory_ref",
+        "identity_ref",
+        "loaded_release_commit",
+        "loaded_code_digest",
+        "config_digest",
+        "health"
+      ],
+      "title": "ProcessInstance",
+      "type": "object"
+    },
+    "PythonEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "executable_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Executable Digest",
+          "type": "string"
+        },
+        "implementation": {
+          "title": "Implementation",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "implementation",
+        "version",
+        "executable_digest"
+      ],
+      "title": "PythonEvidence",
+      "type": "object"
+    },
+    "Registries": {
+      "additionalProperties": false,
+      "properties": {
+        "deny": {
+          "$ref": "#/$defs/RegistryEvidence"
+        },
+        "google_folders": {
+          "$ref": "#/$defs/RegistryEvidence"
+        },
+        "output": {
+          "$ref": "#/$defs/RegistryEvidence"
+        },
+        "source": {
+          "$ref": "#/$defs/RegistryEvidence"
+        }
+      },
+      "required": [
+        "source",
+        "output",
+        "deny",
+        "google_folders"
+      ],
+      "title": "Registries",
+      "type": "object"
+    },
+    "RegistryEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Digest"
+        },
+        "entries_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Entries Count"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Schema Version"
+        }
+      },
+      "required": [
+        "schema_version",
+        "digest",
+        "entries_count"
+      ],
+      "title": "RegistryEvidence",
+      "type": "object"
+    },
+    "RepositoryEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "branch_or_detached": {
+          "title": "Branch Or Detached",
+          "type": "string"
+        },
+        "dirty": {
+          "$ref": "#/$defs/DirtyState"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "head_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Commit",
+          "type": "string"
+        },
+        "merge_bases": {
+          "$ref": "#/$defs/MergeBases"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "repo_ref": {
+          "title": "Repo Ref",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "upstream_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Upstream Ref"
+        },
+        "worktree_ref": {
+          "title": "Worktree Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo_ref",
+        "worktree_ref",
+        "head_commit",
+        "branch_or_detached",
+        "upstream_ref",
+        "merge_bases",
+        "dirty",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "RepositoryEvidence",
+      "type": "object"
+    },
+    "RequirementFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "RequirementFile",
+      "type": "object"
+    },
+    "RequirementsEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "items": {
+            "$ref": "#/$defs/RequirementFile"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "fully_pinned": {
+          "title": "Fully Pinned",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "files",
+        "fully_pinned"
+      ],
+      "title": "RequirementsEvidence",
+      "type": "object"
+    },
+    "RuntimeReleaseEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "docs_commit_is_ancestor": {
+          "title": "Docs Commit Is Ancestor",
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "expected_feature_commit": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expected Feature Commit"
+        },
+        "expected_feature_is_ancestor": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expected Feature Is Ancestor"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "release_artifact_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Release Artifact Digest"
+        },
+        "release_artifact_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runtime_branch_or_detached": {
+          "title": "Runtime Branch Or Detached",
+          "type": "string"
+        },
+        "runtime_code_manifest_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Code Manifest Digest"
+        },
+        "runtime_head_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Runtime Head Commit",
+          "type": "string"
+        },
+        "runtime_worktree_ref": {
+          "title": "Runtime Worktree Ref",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runtime_worktree_ref",
+        "runtime_head_commit",
+        "runtime_branch_or_detached",
+        "expected_feature_commit",
+        "expected_feature_is_ancestor",
+        "docs_commit_is_ancestor",
+        "release_artifact_ref",
+        "release_artifact_digest",
+        "runtime_code_manifest_digest",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "RuntimeReleaseEvidence",
+      "type": "object"
+    },
+    "SafeLimitation": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocking Criteria",
+          "type": "array"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "statement": {
+          "title": "Statement",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "status",
+        "blocking_criteria",
+        "statement",
+        "evidence_refs"
+      ],
+      "title": "SafeLimitation",
+      "type": "object"
+    },
+    "SchedulerEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "action_arguments_digest": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Action Arguments Digest"
+        },
+        "action_arguments_profile": {
+          "title": "Action Arguments Profile",
+          "type": "string"
+        },
+        "action_executable_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Action Executable Digest",
+          "type": "string"
+        },
+        "action_executable_ref": {
+          "title": "Action Executable Ref",
+          "type": "string"
+        },
+        "definition_changed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Definition Changed At"
+        },
+        "definition_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Definition Digest",
+          "type": "string"
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "last_result_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Result Code"
+        },
+        "last_run_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Run At"
+        },
+        "next_run_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Run At"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "principal_ref": {
+          "title": "Principal Ref",
+          "type": "string"
+        },
+        "restart_policy_profile": {
+          "$ref": "#/$defs/ModeProfile"
+        },
+        "scheduler_kind": {
+          "enum": [
+            "windows_task_scheduler",
+            "systemd",
+            "other"
+          ],
+          "title": "Scheduler Kind",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "ready",
+            "running",
+            "disabled",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "task_ref": {
+          "title": "Task Ref",
+          "type": "string"
+        },
+        "trigger_profile": {
+          "$ref": "#/$defs/CountProfile"
+        },
+        "working_directory_ref": {
+          "title": "Working Directory Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scheduler_kind",
+        "task_ref",
+        "enabled",
+        "state",
+        "action_executable_ref",
+        "action_executable_digest",
+        "action_arguments_profile",
+        "action_arguments_digest",
+        "working_directory_ref",
+        "principal_ref",
+        "trigger_profile",
+        "restart_policy_profile",
+        "last_run_at",
+        "last_result_code",
+        "next_run_at",
+        "definition_changed_at",
+        "definition_digest",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "SchedulerEvidence",
+      "type": "object"
+    },
+    "SecretStore": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "enum": [
+            "windows_credential_manager",
+            "environment_ref",
+            "vault",
+            "other"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "required_refs_present": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Required Refs Present"
+        },
+        "values_read": {
+          "const": false,
+          "title": "Values Read",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "provider",
+        "required_refs_present",
+        "values_read"
+      ],
+      "title": "SecretStore",
+      "type": "object"
+    },
+    "StateAggregates": {
+      "additionalProperties": false,
+      "properties": {
+        "dead_letters": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dead Letters"
+        },
+        "failed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Failed"
+        },
+        "in_progress": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "In Progress"
+        },
+        "orphaned_leases": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Orphaned Leases"
+        },
+        "pending": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pending"
+        },
+        "undelivered_outbox": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Undelivered Outbox"
+        },
+        "unreconciled_effects": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unreconciled Effects"
+        },
+        "waiting_human": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Waiting Human"
+        }
+      },
+      "required": [
+        "pending",
+        "in_progress",
+        "waiting_human",
+        "failed",
+        "dead_letters",
+        "orphaned_leases",
+        "unreconciled_effects",
+        "undelivered_outbox"
+      ],
+      "title": "StateAggregates",
+      "type": "object"
+    },
+    "TestCollection": {
+      "additionalProperties": false,
+      "properties": {
+        "collected_cases": {
+          "minimum": 0,
+          "title": "Collected Cases",
+          "type": "integer"
+        },
+        "collection_report_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "files": {
+          "minimum": 0,
+          "title": "Files",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "files",
+        "collected_cases",
+        "collection_report_ref"
+      ],
+      "title": "TestCollection",
+      "type": "object"
+    },
+    "TestEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_scores": {
+          "$ref": "#/$defs/BaselineScores"
+        },
+        "collection": {
+          "$ref": "#/$defs/TestCollection"
+        },
+        "commit_under_test": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit Under Test",
+          "type": "string"
+        },
+        "environment_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Environment Digest",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "runs": {
+          "items": {
+            "$ref": "#/$defs/TestRun"
+          },
+          "title": "Runs",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "VERIFIED",
+            "CONTRADICTORY",
+            "STALE",
+            "UNVERIFIABLE",
+            "NOT_APPLICABLE",
+            "NOT_CHECKED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "test_contract_version": {
+          "title": "Test Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "test_contract_version",
+        "commit_under_test",
+        "environment_digest",
+        "collection",
+        "runs",
+        "baseline_scores",
+        "status",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "title": "TestEvidence",
+      "type": "object"
+    },
+    "TestRun": {
+      "additionalProperties": false,
+      "properties": {
+        "command_profile": {
+          "title": "Command Profile",
+          "type": "string"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "failed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Failed"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "passed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Passed"
+        },
+        "profile": {
+          "enum": [
+            "gate0_docs",
+            "gate0_contracts",
+            "full_regression",
+            "property",
+            "architecture",
+            "release_security"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "report_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Report Digest",
+          "type": "string"
+        },
+        "report_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Seed"
+        },
+        "skipped": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Skipped"
+        },
+        "started_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Started At",
+          "type": "string"
+        },
+        "warnings": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Warnings"
+        }
+      },
+      "required": [
+        "profile",
+        "command_profile",
+        "started_at",
+        "finished_at",
+        "exit_code",
+        "passed",
+        "failed",
+        "skipped",
+        "warnings",
+        "seed",
+        "report_ref",
+        "report_digest"
+      ],
+      "title": "TestRun",
+      "type": "object"
+    },
+    "VulnerabilityReport": {
+      "additionalProperties": false,
+      "properties": {
+        "database_observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Database Observed At",
+          "type": "string"
+        },
+        "report_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "findings",
+            "unavailable",
+            "not_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool": {
+          "const": "pip-audit",
+          "title": "Tool",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "version",
+        "database_observed_at",
+        "status",
+        "report_ref"
+      ],
+      "title": "VulnerabilityReport",
+      "type": "object"
+    }
+  },
+  "$id": "urn:nobus:gate0:baseline:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "baseline_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Baseline Digest",
+      "type": "string"
+    },
+    "baseline_id": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "title": "Baseline Id",
+      "type": "string"
+    },
+    "capture": {
+      "$ref": "#/$defs/Capture"
+    },
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/CapabilityClaim"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "configuration": {
+      "$ref": "#/$defs/ConfigurationEvidence"
+    },
+    "databases": {
+      "items": {
+        "$ref": "#/$defs/DatabaseEvidence"
+      },
+      "title": "Databases",
+      "type": "array"
+    },
+    "dependencies": {
+      "$ref": "#/$defs/DependencyEvidence"
+    },
+    "documentation": {
+      "$ref": "#/$defs/DocumentationEvidence"
+    },
+    "evidence_manifest_ref": {
+      "$ref": "#/$defs/EvidenceRef"
+    },
+    "external_capabilities": {
+      "items": {
+        "$ref": "#/$defs/ExternalCapabilityEvidence"
+      },
+      "title": "External Capabilities",
+      "type": "array"
+    },
+    "gate": {
+      "title": "Gate",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/SafeLimitation"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "processes": {
+      "items": {
+        "$ref": "#/$defs/ProcessEvidence"
+      },
+      "title": "Processes",
+      "type": "array"
+    },
+    "repository": {
+      "$ref": "#/$defs/RepositoryEvidence"
+    },
+    "runtime_release": {
+      "$ref": "#/$defs/RuntimeReleaseEvidence"
+    },
+    "scheduler": {
+      "items": {
+        "$ref": "#/$defs/SchedulerEvidence"
+      },
+      "title": "Scheduler",
+      "type": "array"
+    },
+    "schema": {
+      "const": "nobus.gate0.baseline.v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "scope": {
+      "const": "nobus-space-mvp1",
+      "title": "Scope",
+      "type": "string"
+    },
+    "tests": {
+      "$ref": "#/$defs/TestEvidence"
+    }
+  },
+  "required": [
+    "schema",
+    "baseline_id",
+    "gate",
+    "scope",
+    "capture",
+    "documentation",
+    "repository",
+    "runtime_release",
+    "processes",
+    "scheduler",
+    "databases",
+    "configuration",
+    "dependencies",
+    "tests",
+    "external_capabilities",
+    "claims",
+    "limitations",
+    "evidence_manifest_ref",
+    "baseline_digest"
+  ],
+  "title": "Nobus Gate 0 Baseline Evidence Pack",
+  "type": "object"
+}

@@ -1,0 +1,371 @@
+{
+  "$defs": {
+    "ChangeControl": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_rule": {
+          "title": "Approval Rule",
+          "type": "string"
+        },
+        "corpus_rule": {
+          "title": "Corpus Rule",
+          "type": "string"
+        },
+        "required_inputs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Inputs",
+          "type": "array"
+        },
+        "version_rule": {
+          "title": "Version Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "required_inputs",
+        "version_rule",
+        "approval_rule",
+        "corpus_rule"
+      ],
+      "title": "ChangeControl",
+      "type": "object"
+    },
+    "ContractCatalogEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "closed_enum_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Closed Enum Refs",
+          "type": "array"
+        },
+        "consumers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Consumers",
+          "type": "array"
+        },
+        "contract_name": {
+          "title": "Contract Name",
+          "type": "string"
+        },
+        "golden_ref": {
+          "title": "Golden Ref",
+          "type": "string"
+        },
+        "invariant_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Invariant Refs",
+          "type": "array"
+        },
+        "owner": {
+          "title": "Owner",
+          "type": "string"
+        },
+        "producer": {
+          "title": "Producer",
+          "type": "string"
+        },
+        "required_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Fields",
+          "type": "array"
+        },
+        "schema_id": {
+          "title": "Schema Id",
+          "type": "string"
+        },
+        "source_ref": {
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "current",
+            "target"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "trust_boundary": {
+          "title": "Trust Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_name",
+        "schema_id",
+        "status",
+        "owner",
+        "producer",
+        "consumers",
+        "trust_boundary",
+        "required_fields",
+        "closed_enum_refs",
+        "invariant_refs",
+        "golden_ref",
+        "source_ref"
+      ],
+      "title": "ContractCatalogEntry",
+      "type": "object"
+    },
+    "ContractFamily": {
+      "additionalProperties": false,
+      "properties": {
+        "consumer_gates": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Consumer Gates",
+          "type": "array"
+        },
+        "contracts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Contracts",
+          "type": "array"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "owner_gate": {
+          "title": "Owner Gate",
+          "type": "integer"
+        },
+        "source_ref": {
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "current",
+            "target"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "owner_gate",
+        "contracts",
+        "status",
+        "source_ref",
+        "consumer_gates"
+      ],
+      "title": "ContractFamily",
+      "type": "object"
+    },
+    "Invariant": {
+      "additionalProperties": false,
+      "properties": {
+        "fitness_ref": {
+          "title": "Fitness Ref",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "owner": {
+          "title": "Owner",
+          "type": "string"
+        },
+        "statement": {
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "statement",
+        "owner",
+        "fitness_ref"
+      ],
+      "title": "Invariant",
+      "type": "object"
+    },
+    "Vocabulary": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "authorities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authorities",
+          "type": "array"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "effect_kinds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Effect Kinds",
+          "type": "array"
+        },
+        "output_formats": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Output Formats",
+          "type": "array"
+        },
+        "risks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Risks",
+          "type": "array"
+        },
+        "source_kinds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Kinds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domains",
+        "actions",
+        "source_kinds",
+        "output_formats",
+        "effect_kinds",
+        "authorities",
+        "risks"
+      ],
+      "title": "Vocabulary",
+      "type": "object"
+    }
+  },
+  "$id": "urn:nobus:gate0:product-contract:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "change_control": {
+      "$ref": "#/$defs/ChangeControl"
+    },
+    "contract_catalog": {
+      "items": {
+        "$ref": "#/$defs/ContractCatalogEntry"
+      },
+      "title": "Contract Catalog",
+      "type": "array"
+    },
+    "contract_families": {
+      "items": {
+        "$ref": "#/$defs/ContractFamily"
+      },
+      "title": "Contract Families",
+      "type": "array"
+    },
+    "contract_version": {
+      "const": "1.0.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "design_base_commit": {
+      "const": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
+      "title": "Design Base Commit",
+      "type": "string"
+    },
+    "frozen_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "title": "Frozen At",
+      "type": "string"
+    },
+    "invariants": {
+      "items": {
+        "$ref": "#/$defs/Invariant"
+      },
+      "title": "Invariants",
+      "type": "array"
+    },
+    "non_goals": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Non Goals",
+      "type": "array"
+    },
+    "owner": {
+      "const": "nobus_space_owner",
+      "title": "Owner",
+      "type": "string"
+    },
+    "product_outcome": {
+      "title": "Product Outcome",
+      "type": "string"
+    },
+    "product_principles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Product Principles",
+      "type": "array"
+    },
+    "schema": {
+      "const": "nobus.gate0.product_contract.v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "source_of_truth": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Of Truth",
+      "type": "array"
+    },
+    "status": {
+      "const": "frozen_target",
+      "title": "Status",
+      "type": "string"
+    },
+    "vocabularies": {
+      "$ref": "#/$defs/Vocabulary"
+    }
+  },
+  "required": [
+    "schema",
+    "contract_version",
+    "status",
+    "frozen_at",
+    "owner",
+    "design_base_commit",
+    "product_outcome",
+    "non_goals",
+    "source_of_truth",
+    "product_principles",
+    "vocabularies",
+    "invariants",
+    "contract_families",
+    "contract_catalog",
+    "change_control"
+  ],
+  "title": "Nobus Gate 0 Product Contract",
+  "type": "object"
+}

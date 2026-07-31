@@ -1,0 +1,26 @@
+{
+  "core_digest": "sha256:35d619d25bd0e20063a3aa883cab19e1a7550fa05e34e12dedf55a5554623d4d",
+  "entries": [
+    {
+      "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
+      "sha256": "sha256:6e858460eb22f01488c210d90a06cb65ef93e97a9ce2b837d7e0f4ed036fc79b"
+    },
+    {
+      "path": "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
+      "sha256": "sha256:3ca682bb64579494e3cdb0ed0ab3873f00a0b723aada3f7dc84a0ce0684fb6ca"
+    },
+    {
+      "path": "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
+      "sha256": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a"
+    },
+    {
+      "path": "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
+      "sha256": "sha256:2bd6368ac13a63dc973cb21989347c5e55c6a63ff315c879e6cdb1b0bcefc8ef"
+    },
+    {
+      "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
+      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9"
+    }
+  ],
+  "schema": "nobus.gate0.core_digests.v1"
+}

@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "command_output",
+            "json_report",
+            "manifest",
+            "git_object",
+            "test_report",
+            "database_check",
+            "process_snapshot",
+            "scheduler_snapshot",
+            "external_receipt",
+            "review"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path_or_uri": {
+          "title": "Path Or Uri",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path_or_uri",
+        "sha256",
+        "media_type",
+        "bytes",
+        "classification",
+        "created_at"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    }
+  },
+  "$id": "urn:nobus:gate0:capability-claim:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "capability": {
+      "title": "Capability",
+      "type": "string"
+    },
+    "claim_id": {
+      "title": "Claim Id",
+      "type": "string"
+    },
+    "contradictions": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Contradictions",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "fresh_until": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Fresh Until"
+    },
+    "implementation_status": {
+      "enum": [
+        "CURRENT",
+        "PARTIAL",
+        "TARGET",
+        "DEFERRED"
+      ],
+      "title": "Implementation Status",
+      "type": "string"
+    },
+    "requires_layers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Requires Layers",
+      "type": "array"
+    },
+    "statement": {
+      "title": "Statement",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "VERIFIED",
+        "CONTRADICTORY",
+        "STALE",
+        "UNVERIFIABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "claim_id",
+    "capability",
+    "implementation_status",
+    "statement",
+    "requires_layers",
+    "evidence_refs",
+    "contradictions",
+    "fresh_until",
+    "verdict"
+  ],
+  "title": "Nobus Gate 0 Capability Claim",
+  "type": "object"
+}

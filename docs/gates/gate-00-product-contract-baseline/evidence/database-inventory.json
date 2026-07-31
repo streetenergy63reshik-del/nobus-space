@@ -1,0 +1,350 @@
+{
+  "databases": [
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:business_notes",
+      "database_role": "business_notes",
+      "engine": "sqlite",
+      "expected_schema_object_count": 2,
+      "genesis_baseline": null,
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "delete",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "migration_lineage_status": "verified_absent",
+      "modified_at": "2026-07-30T10:25:28.896452Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "verified",
+      "safe_state_aggregates": {},
+      "schema_digest": "sha256:2d06f646e2e3decdbea0ec888601d7a66b71a83622ef4acd19f352a1480d1073",
+      "size_bytes": 24576,
+      "snapshot": {
+        "concurrent_file_activity_observed": false,
+        "consistent": true,
+        "data_version_stable": true,
+        "file_markers_stable": true,
+        "mode": "sqlite_read_transaction",
+        "wal_aware": true
+      },
+      "source_migrations": [],
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "source_schema_match": true,
+      "tables": [
+        {
+          "columns": [
+            "chat_id",
+            "created_at",
+            "message_id",
+            "payload",
+            "payload_digest",
+            "tenant_id",
+            "thread_id",
+            "update_id"
+          ],
+          "rows": 8,
+          "safe_status_counts": null,
+          "table": "business_notes"
+        }
+      ],
+      "user_version": 0
+    },
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:core",
+      "database_role": "core",
+      "engine": "sqlite",
+      "expected_schema_object_count": 8,
+      "genesis_baseline": null,
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "wal",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "migration_lineage_status": "verified_absent",
+      "modified_at": "2026-07-27T16:01:25.720104Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "verified",
+      "safe_state_aggregates": {
+        "task_snapshots": {
+          "COMPLETED": 1,
+          "FAILED": 28,
+          "OTHER": 39
+        }
+      },
+      "schema_digest": "sha256:35b1f2c09f1bc6fa756568bac7c6a479c8d014c252edf6b51b0dd1bc26b2d6a2",
+      "size_bytes": 630784,
+      "snapshot": {
+        "concurrent_file_activity_observed": true,
+        "consistent": true,
+        "data_version_stable": true,
+        "file_markers_stable": false,
+        "mode": "sqlite_read_transaction",
+        "wal_aware": true
+      },
+      "source_migrations": [],
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "source_schema_match": true,
+      "tables": [
+        {
+          "columns": [
+            "attempt_id",
+            "contract_digest",
+            "event_digest",
+            "event_id",
+            "event_json",
+            "sequence",
+            "task_id",
+            "tenant_id",
+            "worker_identity"
+          ],
+          "rows": 132,
+          "safe_status_counts": null,
+          "table": "audit_events"
+        },
+        {
+          "columns": [
+            "claim_binding_digest",
+            "claimed_at",
+            "idempotency_key",
+            "ingress_fingerprint",
+            "ingress_id",
+            "task_id",
+            "tenant_id"
+          ],
+          "rows": 68,
+          "safe_status_counts": null,
+          "table": "ingress_claims"
+        },
+        {
+          "columns": [
+            "attempt_count",
+            "created_at",
+            "lease_expires_at",
+            "lease_id",
+            "lease_owner",
+            "max_attempts",
+            "message_digest",
+            "message_fingerprint",
+            "message_id",
+            "message_json",
+            "next_attempt_at",
+            "state_revision",
+            "status",
+            "task_id",
+            "task_projection_digest",
+            "task_revision",
+            "tenant_id",
+            "updated_at"
+          ],
+          "rows": 66,
+          "safe_status_counts": {
+            "ACKED": 66
+          },
+          "table": "outbox_messages"
+        },
+        {
+          "columns": [
+            "attempt_count",
+            "lease_id",
+            "message_id",
+            "receipt_digest",
+            "receipt_id",
+            "receipt_json",
+            "receipt_type",
+            "received_at",
+            "tenant_id"
+          ],
+          "rows": 66,
+          "safe_status_counts": null,
+          "table": "outbox_receipts"
+        },
+        {
+          "columns": [
+            "contract_digest",
+            "projection_digest",
+            "projection_json",
+            "revision",
+            "task_id",
+            "tenant_id",
+            "updated_at"
+          ],
+          "rows": 68,
+          "safe_status_counts": null,
+          "table": "task_snapshots"
+        }
+      ],
+      "user_version": 0
+    },
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:checkpoint",
+      "database_role": "checkpoint",
+      "engine": "sqlite",
+      "expected_schema_object_count": 1,
+      "genesis_baseline": null,
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "wal",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "migration_lineage_status": "verified_absent",
+      "modified_at": "2026-07-31T09:18:09.422750Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "verified",
+      "safe_state_aggregates": {},
+      "schema_digest": "sha256:16d4dd2b3769aac24f2be6e9431fc19e0053d95e4cf000103cee727db28184bf",
+      "size_bytes": 12288,
+      "snapshot": {
+        "concurrent_file_activity_observed": true,
+        "consistent": true,
+        "data_version_stable": true,
+        "file_markers_stable": false,
+        "mode": "sqlite_read_transaction",
+        "wal_aware": true
+      },
+      "source_migrations": [],
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "source_schema_match": true,
+      "tables": [
+        {
+          "columns": [
+            "consumer_id",
+            "lease_expires_at",
+            "lease_id",
+            "lease_owner",
+            "offset",
+            "revision",
+            "state_digest",
+            "updated_at"
+          ],
+          "rows": 1,
+          "safe_status_counts": null,
+          "table": "telegram_polling_checkpoints"
+        }
+      ],
+      "user_version": 0
+    },
+    {
+      "application_id": 0,
+      "content_exported": false,
+      "database_ref": "runtime-db:telegram_state",
+      "database_role": "telegram_state",
+      "engine": "sqlite",
+      "expected_schema_object_count": 5,
+      "genesis_baseline": {
+        "authority_ref": "owner-authority:gate0-evidence-closure-2026-07-29",
+        "durable_ledger_deferred_to_gate": 2,
+        "genesis_id": "genesis_baseline:telegram_state_current_schema",
+        "historical_legacy_migration_proven": false,
+        "production_database_mutated": false,
+        "schema_digest": "sha256:180fc13b1cdd6a349f8d942f2d363050dd8fdd40a829ef56432afdd5305758bf"
+      },
+      "integrity": {
+        "foreign_key_check": "ok",
+        "quick_check": "ok"
+      },
+      "journal_mode": "wal",
+      "migration_inventory": {
+        "applied": [],
+        "pending": [],
+        "unknown": []
+      },
+      "migration_lineage_status": "genesis_baseline_verified",
+      "modified_at": "2026-07-27T16:01:25.831314Z",
+      "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
+      "runtime_binding_status": "verified",
+      "safe_state_aggregates": {},
+      "schema_digest": "sha256:180fc13b1cdd6a349f8d942f2d363050dd8fdd40a829ef56432afdd5305758bf",
+      "size_bytes": 81920,
+      "snapshot": {
+        "concurrent_file_activity_observed": true,
+        "consistent": true,
+        "data_version_stable": true,
+        "file_markers_stable": false,
+        "mode": "sqlite_read_transaction",
+        "wal_aware": true
+      },
+      "source_migrations": [
+        {
+          "historical_application_recorded": false,
+          "migration_id": "unrecorded_source_migration:telegram_jobs_legacy_to_current",
+          "source_ref": "src/application/durable_telegram_state.py",
+          "source_sha256": "sha256:9f1a6e82feed0f75dee6dfba01528588a76fbadaa3f1446cb41ca8443d6d8ae7"
+        }
+      ],
+      "source_profile": "scheduler_bound_registered_runtime_directory",
+      "source_schema_match": true,
+      "tables": [
+        {
+          "columns": [
+            "created_at",
+            "expires_at",
+            "kind",
+            "payload",
+            "payload_digest",
+            "tenant_id",
+            "token_digest"
+          ],
+          "rows": 0,
+          "safe_status_counts": null,
+          "table": "telegram_capabilities"
+        },
+        {
+          "columns": [
+            "attempt_count",
+            "binding_digest",
+            "created_at",
+            "failure_code",
+            "job_id",
+            "kind",
+            "lease_expires_at",
+            "lease_id",
+            "lease_owner",
+            "payload",
+            "payload_digest",
+            "status",
+            "task_id",
+            "tenant_id",
+            "updated_at"
+          ],
+          "rows": 0,
+          "safe_status_counts": {},
+          "table": "telegram_jobs"
+        },
+        {
+          "columns": [
+            "chat_id",
+            "message_id",
+            "task_id",
+            "tenant_id",
+            "updated_at"
+          ],
+          "rows": 0,
+          "safe_status_counts": null,
+          "table": "telegram_progress"
+        }
+      ],
+      "user_version": 0
+    }
+  ],
+  "observed_at": "2026-07-31T09:18:31.426935Z"
+}

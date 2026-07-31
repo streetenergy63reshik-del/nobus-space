@@ -1,0 +1,1020 @@
+{
+  "installed_count": 80,
+  "lock_sources": [
+    {
+      "ref": "requirements.txt",
+      "sha256": "sha256:610392d35b038e0b827ee9596edf6f7d791aecd06d0ac8981b20980ecbf6df3c"
+    }
+  ],
+  "observed_at": "2026-07-29T17:04:11.525626Z",
+  "os": {
+    "architecture": "AMD64",
+    "family": "windows",
+    "version": "10.0.26200"
+  },
+  "packages": [
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "annotated-doc",
+      "requested": false,
+      "version": "0.0.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "annotated-types",
+      "requested": false,
+      "version": "0.7.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "anyio",
+      "requested": false,
+      "version": "4.14.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "av",
+      "requested": false,
+      "version": "18.0.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "cachetools",
+      "requested": false,
+      "version": "5.5.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+      "name": "certifi",
+      "requested": false,
+      "version": "2026.6.17"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "charset-normalizer",
+      "requested": false,
+      "version": "3.4.9"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "click",
+      "requested": false,
+      "version": "8.4.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: BSD License",
+      "name": "colorama",
+      "requested": false,
+      "version": "0.4.6"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "ctranslate2",
+      "requested": false,
+      "version": "4.8.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "distro",
+      "requested": false,
+      "version": "1.9.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "fastapi",
+      "requested": true,
+      "version": "0.139.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "faster-whisper",
+      "requested": true,
+      "version": "1.2.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "filelock",
+      "requested": false,
+      "version": "3.32.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "flatbuffers",
+      "requested": false,
+      "version": "25.12.19"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "fsspec",
+      "requested": false,
+      "version": "2026.6.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "google-api-core",
+      "requested": false,
+      "version": "2.33.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "google-api-python-client",
+      "requested": true,
+      "version": "2.198.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "google-auth",
+      "requested": true,
+      "version": "2.29.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "google-auth-httplib2",
+      "requested": false,
+      "version": "0.4.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "googleapis-common-protos",
+      "requested": false,
+      "version": "1.75.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "h11",
+      "requested": false,
+      "version": "0.16.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "Apache-2.0",
+      "name": "hf-xet",
+      "requested": false,
+      "version": "1.5.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "httpcore",
+      "requested": false,
+      "version": "1.0.9"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "httplib2",
+      "requested": false,
+      "version": "0.32.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "httptools",
+      "requested": false,
+      "version": "0.8.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: BSD License",
+      "name": "httpx",
+      "requested": true,
+      "version": "0.28.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "huggingface_hub",
+      "requested": false,
+      "version": "1.24.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "idna",
+      "requested": false,
+      "version": "3.18"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "iniconfig",
+      "requested": false,
+      "version": "2.3.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: BSD License",
+      "name": "jsonpatch",
+      "requested": false,
+      "version": "1.33"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: BSD License",
+      "name": "jsonpointer",
+      "requested": false,
+      "version": "3.1.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "langchain-core",
+      "requested": true,
+      "version": "1.4.9"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "langchain-protocol",
+      "requested": false,
+      "version": "0.0.18"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "langgraph",
+      "requested": true,
+      "version": "1.2.9"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "langgraph-checkpoint",
+      "requested": false,
+      "version": "4.1.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "langgraph-prebuilt",
+      "requested": false,
+      "version": "1.1.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "langgraph-sdk",
+      "requested": false,
+      "version": "0.4.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "langsmith",
+      "requested": false,
+      "version": "0.10.5"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "name": "numpy",
+      "requested": false,
+      "version": "2.5.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "onnxruntime",
+      "requested": false,
+      "version": "1.27.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "Apache-2.0",
+      "name": "openai-codex",
+      "requested": true,
+      "version": "0.144.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "openai-codex-cli-bin",
+      "requested": false,
+      "version": "0.144.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MPL-2.0 AND (Apache-2.0 OR MIT)",
+      "name": "orjson",
+      "requested": false,
+      "version": "3.11.9"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "Apache-2.0 OR MIT",
+      "name": "ormsgpack",
+      "requested": false,
+      "version": "1.12.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "name": "packaging",
+      "requested": false,
+      "version": "26.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "pip",
+      "requested": true,
+      "version": "25.0.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "pluggy",
+      "requested": false,
+      "version": "1.6.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "proto-plus",
+      "requested": false,
+      "version": "1.28.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "protobuf",
+      "requested": false,
+      "version": "7.35.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "pyasn1",
+      "requested": false,
+      "version": "0.6.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: BSD License",
+      "name": "pyasn1_modules",
+      "requested": false,
+      "version": "0.4.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "pydantic",
+      "requested": true,
+      "version": "2.13.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "pydantic-settings",
+      "requested": true,
+      "version": "2.14.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "pydantic_core",
+      "requested": false,
+      "version": "2.46.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-2-Clause",
+      "name": "Pygments",
+      "requested": false,
+      "version": "2.20.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "pyparsing",
+      "requested": false,
+      "version": "3.3.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "pytest",
+      "requested": true,
+      "version": "9.1.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "Apache-2.0",
+      "name": "pytest-asyncio",
+      "requested": true,
+      "version": "1.4.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "python-dotenv",
+      "requested": false,
+      "version": "1.2.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "PyYAML",
+      "requested": false,
+      "version": "6.0.3"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "requests",
+      "requested": false,
+      "version": "2.34.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "requests-toolbelt",
+      "requested": false,
+      "version": "1.0.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "rsa",
+      "requested": false,
+      "version": "4.9.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "setuptools",
+      "requested": false,
+      "version": "83.0.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "sniffio",
+      "requested": false,
+      "version": "1.3.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "starlette",
+      "requested": false,
+      "version": "1.3.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "tenacity",
+      "requested": false,
+      "version": "9.1.4"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: Apache Software License",
+      "name": "tokenizers",
+      "requested": false,
+      "version": "0.23.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "tqdm",
+      "requested": false,
+      "version": "4.69.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "typing-inspection",
+      "requested": false,
+      "version": "0.4.2"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "PSF-2.0",
+      "name": "typing_extensions",
+      "requested": false,
+      "version": "4.16.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "uritemplate",
+      "requested": false,
+      "version": "4.2.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "MIT",
+      "name": "urllib3",
+      "requested": false,
+      "version": "2.7.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "uuid_utils",
+      "requested": false,
+      "version": "0.17.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "uvicorn",
+      "requested": true,
+      "version": "0.51.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: MIT License",
+      "name": "watchfiles",
+      "requested": false,
+      "version": "1.2.0"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "License :: OSI Approved :: BSD License",
+      "name": "websockets",
+      "requested": false,
+      "version": "15.0.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "UNDECLARED",
+      "name": "xxhash",
+      "requested": false,
+      "version": "3.8.1"
+    },
+    {
+      "direct_url_present": false,
+      "editable": false,
+      "license": "BSD-3-Clause",
+      "name": "zstandard",
+      "requested": false,
+      "version": "0.25.0"
+    }
+  ],
+  "pip": {
+    "inspect_version": "1",
+    "raw_report_digest": "sha256:634a00e64ce2be09de0719dca598fab8ab373f6d85ef77a342bf94aa8b8bf3b4",
+    "version": "25.0.1"
+  },
+  "pip_check": {
+    "output_digest": "sha256:9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+    "raw_output_persisted": false,
+    "return_code": 0,
+    "status": "pass"
+  },
+  "pydantic_present": true,
+  "pytest_present": true,
+  "python": {
+    "executable_digest": "sha256:0b471133e110cfb53a061cad528ce8e517d7b9ac41a0a396c39ad795a487fc14",
+    "implementation": "CPython",
+    "version": "3.12.10"
+  },
+  "required_tools": {
+    "hypothesis": null,
+    "import_linter": null,
+    "jsonschema": null,
+    "pydantic": "2.13.4",
+    "pytest": "9.1.1"
+  },
+  "secret_scan": {
+    "finding_count": 0,
+    "findings": [],
+    "raw_report_sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "scanned_file_count": 310,
+    "status": "passed",
+    "tool": "gitleaks",
+    "triage": {
+      "candidate_fix_status": "implemented_verified",
+      "classification": "synthetic_test_fixtures",
+      "files_changed": 3,
+      "raw_match_values_persisted": false
+    }
+  },
+  "verification_toolchain": {
+    "absolute_paths_persisted": false,
+    "candidate_binding": {
+      "authority_ref": "owner-authority:gate0-final-candidate-local-verification-2026-07-31",
+      "canonical_venv_mutated": false,
+      "checks": {
+        "gitleaks": {
+          "finished_at": "2026-07-31T08:15:39.3593735Z",
+          "report_sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+          "started_at": "2026-07-31T08:15:38.8807047Z",
+          "status": "passed",
+          "tool_version": "8.30.1"
+        },
+        "hypothesis": {
+          "finished_at": "2026-07-31T08:19:47.5734685Z",
+          "report_sha256": "sha256:1417a84bd0f142627d078219e78d6c4bbf585314301b2bdd511e162a870a044c",
+          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+          "started_at": "2026-07-31T08:16:57.4823310Z",
+          "status": "passed",
+          "tool_version": "6.163.0"
+        },
+        "import_linter": {
+          "finished_at": "2026-07-31T08:15:39.8193088Z",
+          "report_sha256": "sha256:e0ea42886297fe57c12c01ac371ffd267920ffab6c89d4c4404931f1944c9107",
+          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+          "started_at": "2026-07-31T08:15:39.8193088Z",
+          "status": "passed",
+          "tool_version": "2.13"
+        },
+        "jsonschema": {
+          "finished_at": "2026-07-31T08:19:47.5734685Z",
+          "report_sha256": "sha256:1417a84bd0f142627d078219e78d6c4bbf585314301b2bdd511e162a870a044c",
+          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+          "started_at": "2026-07-31T08:16:57.4823310Z",
+          "status": "passed",
+          "tool_version": "4.26.0"
+        },
+        "pip_audit": {
+          "finished_at": "2026-07-31T08:16:11.8729126Z",
+          "report_sha256": "sha256:25e7feed61f22db53406d6d16ecc3b919a44bcb949bdb2c834c430fcda5a38e8",
+          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+          "started_at": "2026-07-31T08:16:11.8719124Z",
+          "status": "passed",
+          "tool_version": "2.10.1"
+        }
+      },
+      "hashes_verified": true,
+      "input_generated_at": "2026-07-31T08:13:41.595605Z",
+      "input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+      "isolated_environment_digest": "sha256:c433d8e1ab306d21f39a0d3a6b499602418af023f0719c356196d3c4d771772f",
+      "lock_refs": [
+        "tests/gate0/verifier-requirements.txt",
+        "tests/gate0/verifier-toolchain.json"
+      ],
+      "network_or_install_performed": true,
+      "official_sources_only": true,
+      "reason_code": null,
+      "status": "verified"
+    },
+    "dev_checks": {
+      "hypothesis": "passed",
+      "import_linter": "passed",
+      "jsonschema": "passed"
+    },
+    "gitleaks": {
+      "finding_count": 0,
+      "findings": [],
+      "raw_report_sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "scanned_file_count": 310,
+      "status": "passed"
+    },
+    "gitleaks_asset_sha256": "sha256:d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e",
+    "gitleaks_asset_source": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_windows_x64.zip",
+    "gitleaks_checksum_verified": true,
+    "gitleaks_checksums_source": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt",
+    "gitleaks_official_checksum": "sha256:d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e",
+    "licenses": {
+      "gitleaks": "MIT",
+      "hypothesis": "MPL-2.0",
+      "import_linter": "BSD License classifier",
+      "jsonschema": "MIT",
+      "pip_audit": "Apache-2.0"
+    },
+    "package_sources": {
+      "hypothesis": "https://pypi.org/project/hypothesis/6.163.0/",
+      "import_linter": "https://pypi.org/project/import-linter/2.13/",
+      "jsonschema": "https://pypi.org/project/jsonschema/4.26.0/",
+      "pip_audit": "https://pypi.org/project/pip-audit/2.10.1/"
+    },
+    "pip_audit": {
+      "finding_count": 0,
+      "findings": [],
+      "package_count": 66,
+      "raw_report_sha256": "sha256:25e7feed61f22db53406d6d16ecc3b919a44bcb949bdb2c834c430fcda5a38e8",
+      "status": "passed"
+    },
+    "profile": "isolated_temp_official_artifacts",
+    "raw_reports_persisted": false,
+    "release_environment": {
+      "canonical_venv_mutated": false,
+      "pip": "26.1.2",
+      "python": "3.12.10"
+    },
+    "secret_values_persisted": false,
+    "versions": {
+      "gitleaks": "8.30.1",
+      "hypothesis": "6.163.0",
+      "import_linter": "2.13",
+      "jsonschema": "4.26.0",
+      "pip_audit": "2.10.1"
+    },
+    "wheel_manifest": [
+      {
+        "filename": "attrs-26.1.0-py3-none-any.whl",
+        "sha256": "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "boolean_py-5.0-py3-none-any.whl",
+        "sha256": "sha256:ef28a70bd43115208441b53a045d1549e2f0ec6e3d08a9d142cbc41c1938e8d9",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "cachecontrol-0.14.4-py3-none-any.whl",
+        "sha256": "sha256:b7ac014ff72ee199b5f8af1de29d60239954f223e948196fa3d84adaffc71d2b",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "certifi-2026.7.22-py3-none-any.whl",
+        "sha256": "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "charset_normalizer-3.4.9-cp312-cp312-win_amd64.whl",
+        "sha256": "sha256:4b3dac63058cc36820b0dd072f89898604e2d39686fe05321729d00d8ac185a0",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "click-8.4.2-py3-none-any.whl",
+        "sha256": "sha256:e6f9f66136c816745b9d65817da91d61d957fb16e02e4dcd0552553c5a197b76",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "colorama-0.4.6-py2.py3-none-any.whl",
+        "sha256": "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "cyclonedx_python_lib-11.11.0-py3-none-any.whl",
+        "sha256": "sha256:3049fc83e06a059b5c5907a527625a8ed5073caab10607ed4c9e5503b590fd44",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "defusedxml-0.7.1-py2.py3-none-any.whl",
+        "sha256": "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "filelock-3.32.0-py3-none-any.whl",
+        "sha256": "sha256:d396bea984af47333ef05e50eae7eff88c84256de6112aea0ec48a233c064fe3",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "grimp-3.15-cp312-cp312-win_amd64.whl",
+        "sha256": "sha256:13be2285e358a7687c0f3b798ac9d4819f275976ad8d651297966e5a75bfafb9",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "hypothesis-6.163.0-cp312-cp312-win_amd64.whl",
+        "sha256": "sha256:7ca7b20bf38d51e15f7808b0239791c4792b1709ce0c63093acaff56a09c31e6",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "idna-3.18-py3-none-any.whl",
+        "sha256": "sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "import_linter-2.13-py3-none-any.whl",
+        "sha256": "sha256:c0372e7ee5e15657bc06a8e841445e13237afd738a672d26863dc927af9f0bf5",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "jsonschema-4.26.0-py3-none-any.whl",
+        "sha256": "sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "jsonschema_specifications-2025.9.1-py3-none-any.whl",
+        "sha256": "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "license_expression-30.4.4-py3-none-any.whl",
+        "sha256": "sha256:421788fdcadb41f049d2dc934ce666626265aeccefddd25e162a26f23bcbf8a4",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "markdown_it_py-4.2.0-py3-none-any.whl",
+        "sha256": "sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "mdurl-0.1.2-py3-none-any.whl",
+        "sha256": "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "msgpack-1.2.1-cp312-cp312-win_amd64.whl",
+        "sha256": "sha256:5c24aa15d5963051e1a5c62b12c50cd705992502b5ec1f3bece6046f33c9fc24",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "packageurl_python-0.17.6-py3-none-any.whl",
+        "sha256": "sha256:31a85c2717bc41dd818f3c62908685ff9eebcb68588213745b14a6ee9e7df7c9",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "packaging-26.2-py3-none-any.whl",
+        "sha256": "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "pip-26.1.2-py3-none-any.whl",
+        "sha256": "sha256:382ff9f685ee3bc25864f820aa50505825f10f5458ffff07e30a6d96e5715cab",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "pip_api-0.0.34-py3-none-any.whl",
+        "sha256": "sha256:8b2d7d7c37f2447373aa2cf8b1f60a2f2b27a84e1e9e0294a3f6ef10eb3ba6bb",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "pip_audit-2.10.1-py3-none-any.whl",
+        "sha256": "sha256:99ef3f600a317c1945f1e89e227ef26e1c2d618429b8bd3fa6f4f7c440c4611a",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "pip_requirements_parser-32.0.1-py3-none-any.whl",
+        "sha256": "sha256:4659bc2a667783e7a15d190f6fccf8b2486685b6dba4c19c3876314769c57526",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "platformdirs-4.11.0-py3-none-any.whl",
+        "sha256": "sha256:360ccded2b7fce0af0ff80cc8f5942a1c5d99b0e856033acb030bfc634709e74",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "py_serializable-2.1.0-py3-none-any.whl",
+        "sha256": "sha256:b56d5d686b5a03ba4f4db5e769dc32336e142fc3bd4d68a8c25579ebb0a67304",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "pygments-2.20.0-py3-none-any.whl",
+        "sha256": "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "pyparsing-3.3.2-py3-none-any.whl",
+        "sha256": "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "referencing-0.37.0-py3-none-any.whl",
+        "sha256": "sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "requests-2.34.2-py3-none-any.whl",
+        "sha256": "sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "rich-15.0.0-py3-none-any.whl",
+        "sha256": "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "rpds_py-2026.6.3-cp312-cp312-win_amd64.whl",
+        "sha256": "sha256:2c958bf94822e9290a40aaf2a822d4bc5c88099093e3948ad6c571eca9272e5f",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "sortedcontainers-2.4.0-py2.py3-none-any.whl",
+        "sha256": "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "tomli-2.4.1-cp312-cp312-win_amd64.whl",
+        "sha256": "sha256:52c8ef851d9a240f11a88c003eacb03c31fc1c9c4ec64a99a0f922b93874fda9",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "tomli_w-1.2.0-py3-none-any.whl",
+        "sha256": "sha256:188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+        "sha256": "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+        "source": "https://pypi.org/simple/"
+      },
+      {
+        "filename": "urllib3-2.7.0-py3-none-any.whl",
+        "sha256": "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897",
+        "source": "https://pypi.org/simple/"
+      }
+    ]
+  },
+  "vulnerability_check": {
+    "finding_count": 0,
+    "findings": [],
+    "package_count": 66,
+    "raw_report_sha256": "sha256:25e7feed61f22db53406d6d16ecc3b919a44bcb949bdb2c834c430fcda5a38e8",
+    "status": "passed",
+    "tool": "pip-audit",
+    "triage": {
+      "affected_component": "pip_packaging_tool",
+      "canonical_environment_mutated": false,
+      "minimum_all_findings_fixed_version": "26.1.2",
+      "production_imported": false
+    }
+  }
+}

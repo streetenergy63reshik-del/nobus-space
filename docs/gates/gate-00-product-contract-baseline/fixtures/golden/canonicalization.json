@@ -1,0 +1,9 @@
+{
+  "canonical_utf8": "{\"a\":\"тест\",\"flag\":false,\"z\":1}",
+  "input": {
+    "a": "тест",
+    "flag": false,
+    "z": 1
+  },
+  "sha256": "sha256:f08b7f81eb4056293948eaacd111b71ae2c646d0aa65ed39a0029abf24e8a704"
+}

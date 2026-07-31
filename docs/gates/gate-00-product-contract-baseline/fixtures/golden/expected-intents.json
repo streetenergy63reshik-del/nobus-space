@@ -1,0 +1,65 @@
+{
+  "entries": [
+    {
+      "case_id": "G0-ANA-001",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:812d317b68c6b58e0a5142a2672b2a4fcaafe82633d6956c9c254b58d556caea"
+    },
+    {
+      "case_id": "G0-ANA-009",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:6c130eb120fce5be68d94bc2e5230bd7d62a37d7c21e3a8c0ea177538c345537"
+    },
+    {
+      "case_id": "G0-CAL-005",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:020fb98b4e637b9ebf8ffe61f58fc2563db338a5357497b4cf5cb2765607ff89"
+    },
+    {
+      "case_id": "G0-DOC-001",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:c7bd547d701e5990a217e6700b9695835ef9c0e0a5aa088b885210b7a36f59c1"
+    },
+    {
+      "case_id": "G0-DOC-009",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:53ec5fe6762b598240bbe07d261439e731f6202e69abaefe88dc91d8d4dc55b6"
+    },
+    {
+      "case_id": "G0-DOC-017",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:27f34b82ec7c892de4163ae3ac9d9ef74677b1dc1d9b9961bc0ae04de024de3d"
+    },
+    {
+      "case_id": "G0-NOTES-001",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:ffd710b4babfeceb68b3df92130005b7ae12b129166c62019c882ae3cd8cd028"
+    },
+    {
+      "case_id": "G0-SEC-001",
+      "decision_sha256": "sha256:9d13b1bce40a105f17fefd9e747a8acda007392d70c2cdcb35e8227b1e9195a7",
+      "intent_sha256": "sha256:07b12b26e59e73315357d35e57caebbcc803f7f4ca5349bf6a1d19ad9d5efcb8"
+    },
+    {
+      "case_id": "G0-SEC-009",
+      "decision_sha256": "sha256:d0020fe368b75d4cb6647c7723aeecce0dd21dd936acd9cde5148378e8f214e0",
+      "intent_sha256": "sha256:ff2eeecd37d08a947fbcf6690dc82179c0abb910550fa78d5a569d3a53466f66"
+    },
+    {
+      "case_id": "G0-TASK-001",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:0333474416d2cdece239ba05899353e587b2f84dbfd1407bd51b11ff7339ef5e"
+    },
+    {
+      "case_id": "G0-TASK-009",
+      "decision_sha256": "sha256:2faed1418d56b08b21a2d29fdac2030e7e87272342c23a144a4d52554c23a182",
+      "intent_sha256": "sha256:f8e54cb0280fedc11fd5008e3fb3493c61c43a41cdcf9539806fcd391c775148"
+    },
+    {
+      "case_id": "G0-VOICE-005",
+      "decision_sha256": "sha256:29ff9811343443fc15ff261b56aa3292bc97f09fd4c738dd1feb9f929215d8dd",
+      "intent_sha256": "sha256:000999728fe597a01d4b63c33d1427643ee49f907977023316ddd35c516ab954"
+    }
+  ],
+  "schema": "nobus.gate0.expected_intents.v1"
+}

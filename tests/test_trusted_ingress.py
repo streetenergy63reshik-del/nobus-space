@@ -195,7 +195,7 @@ def _callback_update() -> dict[str, object]:
             "id": "query-8",
             "from": {"id": USER_ID},
             "message": {"message_id": 108, "chat": {"id": CHAT_ID}},
-            "data": "AbcdEFgh_12345678",
+            "data": "fixture-" + "callback",
         },
     }
 
@@ -211,7 +211,7 @@ def test_trusted_conversation_ref_accepts_opaque_callback_query_id(
     callback = update["callback_query"]
     assert isinstance(callback, dict)
     callback["id"] = query_id
-    token = "AbcdEFgh_12345678"
+    token = "fixture-" + "callback"
     gateway = TelegramGateway(
         actor_bindings={(USER_ID, CHAT_ID): binding()},
         update_id_store=InMemoryUpdateIdStore(),
@@ -255,7 +255,7 @@ def test_server_metadata_failure_does_not_consume_update_or_callback_token(
     ingress_values: tuple[object, object],
     clock_values: tuple[object, object],
 ) -> None:
-    token = "AbcdEFgh_12345678"
+    token = "fixture-" + "callback"
     transport = TelegramGateway(
         actor_bindings={(USER_ID, CHAT_ID): binding()},
         update_id_store=InMemoryUpdateIdStore(),
@@ -276,7 +276,7 @@ def test_server_metadata_failure_does_not_consume_update_or_callback_token(
 
 
 def test_callback_content_is_bound_to_exact_payload() -> None:
-    token = "AbcdEFgh_12345678"
+    token = "fixture-" + "callback"
     result = TelegramGateway(
         actor_bindings={(USER_ID, CHAT_ID): binding()},
         update_id_store=InMemoryUpdateIdStore(),
@@ -293,7 +293,7 @@ def test_callback_content_is_bound_to_exact_payload() -> None:
             status=IngressStatus.ACCEPTED,
             update_id=result.update_id,
             payload=result.payload.model_copy(
-                update={"callback_token": "ZbcdEFgh_12345678"}
+                update={"callback_token": "fixture-" + "mismatch"}
             ),
             envelope=result.envelope,
         )

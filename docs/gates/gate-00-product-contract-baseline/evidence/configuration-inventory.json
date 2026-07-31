@@ -1,0 +1,67 @@
+{
+  "credential_presence": {
+    "reason_code": "SECRET_METADATA_QUERY_NOT_AUTHORIZED",
+    "status": "unverifiable"
+  },
+  "observed_at": "2026-07-29T17:04:07.919588Z",
+  "profile": "local_owner_runtime",
+  "safe_projection": {
+    "credential_names_read": false,
+    "current_contract_policy_digest": "sha256:6484b7fbac3fd45703de046dd76b058d5ba994a43363da3bc1af7eb1a25f11ba",
+    "current_contract_policy_files": [
+      {
+        "ref": "src/contracts/models.py",
+        "sha256": "sha256:8e5bbd29fd0db5e140f9cd103dcbe026699ac7a89053965cb70dda2dfe4d1406"
+      },
+      {
+        "ref": "src/core/policy.py",
+        "sha256": "sha256:25d29e32a80128c87eb9ab98bddd9558de6957453e13ca77008f8ac815b83e53"
+      },
+      {
+        "ref": "src/storage/sqlite_store.py",
+        "sha256": "sha256:662077da33c2abe54088b3a86f32ed413ad570b0cf62ac5f1c661ed2e88892eb"
+      },
+      {
+        "ref": "src/application/durable_runtime.py",
+        "sha256": "sha256:d7afe3757e832d15083904a532765ac40f6361d25f23fa6367b37d15562d7544"
+      },
+      {
+        "ref": "src/application/product_effects.py",
+        "sha256": "sha256:257150614d23cb54d0cb4b59c02425bcf5859cd6fd6bb605467fe1a2301846c8"
+      },
+      {
+        "ref": "src/application/business_notes.py",
+        "sha256": "sha256:6506a685176e01b76f6e28beaac0a017ed390cf17ee42ecc129594a28745714f"
+      },
+      {
+        "ref": "src/application/durable_telegram_state.py",
+        "sha256": "sha256:9f1a6e82feed0f75dee6dfba01528588a76fbadaa3f1446cb41ca8443d6d8ae7"
+      }
+    ],
+    "raw_config_values_read": false,
+    "secret_values_read": false
+  },
+  "schema": "nobus.gate0.configuration_inventory.v1",
+  "target_registries": [
+    {
+      "registry": "source_registry",
+      "status": "target_not_implemented"
+    },
+    {
+      "registry": "destination_registry",
+      "status": "target_not_implemented"
+    },
+    {
+      "registry": "effect_policy_registry",
+      "status": "target_not_implemented"
+    },
+    {
+      "registry": "provider_registry",
+      "status": "target_not_implemented"
+    },
+    {
+      "registry": "device_registry",
+      "status": "target_not_implemented"
+    }
+  ]
+}

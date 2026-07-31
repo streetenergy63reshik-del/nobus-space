@@ -1,0 +1,15 @@
+{
+  "counts": {
+    "directories": 6,
+    "files": 3,
+    "hidden": 0,
+    "protected_entries_excluded": 2,
+    "reparse_points": 0
+  },
+  "descendants_read": false,
+  "mode": "metadata_only_top_level",
+  "names_persisted": false,
+  "observed_at": "2026-07-29T16:49:54.849955Z",
+  "root_identity_digest": "sha256:233fe8e0d031d641e139f13c81492dd6adb68e05ac4ef870d17f6fba31a9abff",
+  "root_ref": "owner-library-root:v1"
+}

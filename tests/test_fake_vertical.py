@@ -33,7 +33,7 @@ from src.workers import CodexCliAdapter, ProcessOutput
 
 USER_ID = 111
 CHAT_ID = 222
-CALLBACK_TOKEN = "AbcdEFgh_12345678"
+CALLBACK_TOKEN = "fixture-" + "callback"
 BASE_TIME = datetime(2026, 7, 21, tzinfo=UTC)
 AUTH_CONTEXT_REF = "sha256:" + "a" * 64
 

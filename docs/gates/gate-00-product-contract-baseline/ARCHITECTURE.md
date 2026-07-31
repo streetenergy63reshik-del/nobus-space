@@ -7,6 +7,15 @@
 **Владелец решения:** владелец продукта Nobus Space
 **Исследовательское основание:** [`RESEARCH.md`](RESEARCH.md)
 
+## 0.1. Интеграционное изменение ADR 0020
+
+Gate 0 обязан включить в Product Contract и corpus обязательный Gate 2A:
+полноценный Mini App, `development` intent, specialist worker profiles,
+Agent Registry и ранний server foundation. Текущий exact fingerprint/evidence,
+созданный до синхронизации канонических документов 12–13, не является основанием
+для commit/PASS и должен быть заново сгенерирован и проверен тем же Gate 0
+pipeline. Это изменение TARGET, а не доказательство реализации.
+
 ## 1. Нормативный язык
 
 В этом документе:
@@ -346,7 +355,7 @@ state: ready | running | disabled | unknown
 action_executable_ref: opaque ref
 action_executable_digest: digest
 action_arguments_profile: closed safe profile
-action_arguments_digest: digest
+action_arguments_digest: digest | null
 working_directory_ref: opaque ref
 principal_ref: opaque ref
 trigger_profile: closed bounded object
@@ -364,6 +373,122 @@ evidence_refs: [EvidenceRef]
 Scheduler evidence собирается read-only. Exported XML допускается только после
 санитизации и не должен содержать credentials.
 
+Collector MUST NOT access raw Scheduler arguments when the active L4 boundary
+forbids raw command-line reads. In that case `action_arguments_profile` MUST be
+`not_read_forbidden`, `action_arguments_digest` MUST be `null`, the Scheduler
+record MUST be `UNVERIFIABLE`, and `G0-04` remains blocked. `definition_digest`
+then binds only an explicitly labelled safe definition projection that excludes
+arguments; it MUST NOT be described as a digest of the complete Scheduler
+definition. A digest is mandatory only when an authorized safe projection can be
+obtained without reading forbidden raw values or expanding L4 authority.
+
+For the 2026-07-29 evidence-closure capture, action-bound owner L4
+`owner-authority:gate0-evidence-closure-2026-07-29` explicitly authorizes one
+transient read of Scheduler `Action.Arguments` and process command lines only for
+candidates first matched to the Scheduler-selected executable. Raw values remain
+collector-memory-only; environment values are not read; secret-shaped candidates
+are rejected; persisted evidence contains only a closed sanitized projection,
+path-free digests, booleans and timestamps. This exception does not authorize
+ambient process command-line reads and does not survive this capture.
+
+#### 5.7.1. Legacy Windows Scheduler supervision limitation
+
+The current Scheduler launcher can leave a detached Nobus runner after the task
+returns to `ready`. Gate 0 therefore treats Scheduler state alone as insufficient
+runtime evidence. The test-only maintenance helper classifies every runner
+candidate by opaque identity and fails closed on any unapproved profile. Its
+owner-authorized remediation path is bounded to an exact stable candidate set. It
+opens creation-time-bound native handles for every root and descendant and
+validates parent chronology before any termination. It must then prove
+`candidate_count=0` plus a free production mutex after one termination.
+
+This is maintenance evidence, not the durable supervision design. The current
+launcher remains unchanged in Gate 0; WinSW/service-identity supervision and
+bounded restart semantics belong to the runtime/deployment Gate.
+
+The 2026-07-30 sanitized revalidation supersedes the earlier assumed runtime
+worktree binding: CURRENT Scheduler action, runner and all four SQLite databases
+are bound to the canonical candidate worktree. The separate `telegram-live`
+isolation remains TARGET for the runtime/deployment Gate. Gate 0 neither migrates
+runtime state nor changes Scheduler, launcher or credentials.
+
+The single-start boundary is frozen before any live action. The pre-capture core
+binds the canonical repository HEAD and branch, a sanitized Git-status digest,
+the exact tracked repository closure (excluding `.nobus-quality` ledgers), and
+every existing file below `ops`, `scripts`, `src` and `tests`. This makes
+`scripts/run_telegram_mvp1.py`, `src/application/windows_singleton.py` and the
+full pytest tree explicit immutable inputs.
+
+Traversal is no-follow and reject-before-read. Every path component is checked
+with link/reparse-aware metadata before content access; symlink, junction or
+other reparse topology fails closed. Credential/secret names, SQLite database
+files and their WAL/SHM companions, plus `.runtime` state are rejected before a
+digest or dirty-manifest read. This rule applies to both tracked and discovered
+inputs, so Git tracking cannot downgrade the security boundary. Content hashes
+use atomic validated file handles: the opened device/inode/type, size and
+modification marker must equal the pre-open `lstat` identity before the first
+content read and remain stable through EOF. A path-to-reparse swap therefore
+fails before external bytes can be consumed.
+
+Readback recomputes those safe inputs and the Git identity/status without
+writing. A changed, added or removed relevant file fails closed before Scheduler
+start. Raw argv/env, absolute paths, credentials, database bytes and payloads
+are not persisted.
+
+The start helper then validates the exact whole ignored launcher against the
+installer template, the exact Scheduler task/action/settings/principal/trigger
+contract, and the canonical Python/runner/action artifact digests. It performs
+identity comparison by the same resolved Windows SID, never by suffix or
+substring. Scheduler arguments are parsed into a closed eight-token action
+contract represented by a single-command AST without control tokens or
+redirections. Representation-only case and whitespace normalization is
+accepted; launcher quoting is optional but limited to a single matching outer
+quote pair. An unresolved identity or any missing, changed or extra token fails
+closed.
+The internal start path requires all eight expected digests before its first
+read. In one process it executes the fixed
+`core/live/core/core/live/start` sequence. The two live
+`ready / 0 candidates / mutex free` classifications must be stable, and all
+three frozen core readbacks must equal the expected opaque digests. The final
+live read occurs immediately before the single literal `Start-ScheduledTask`
+call, so no frozen readback can leave stale live authority at the launch
+boundary. Each live definition must also carry a strictly boolean true
+`ActionIdContractExact`, derived from installer-equivalent empty `Action.Id`;
+missing, non-boolean or false blocks even when all digests match. Mismatch or
+error blocks without start or retry; a separate precheck
+cannot authorize launch. A task-contract failure persists only a closed
+20-field boolean task match bitmap. When `action_arguments=false`, it may also
+emit one fixed 20-field structural action bitmap. Raw Scheduler values,
+arguments and paths are never persisted; secret-shaped input stops before
+parsing. Executable resolution has a separate stage.
+
+#### 5.7.3. One-shot Scheduler action repair
+
+The owner-authorized Gate 0 repair may replace only `Action.Arguments`. Before
+mutation, two stable repair observations must be coherent across the task object
+and exported XML and match the exact Inspect C bitmap, canonical shifted
+`-File` target, approved PowerShell executable, canonical launcher,
+installer-equivalent empty `Action.Id` and the complete non-argument task
+contract. An exclusive named mutex prevents concurrent sanctioned repair
+helpers. After constructing the in-memory replacement Action, a third final
+coherent freshness observation must still equal the accepted authority
+immediately before one literal `Set-ScheduledTask`. The repair never calls stop
+or start.
+
+An in-memory Scheduler XML projection replaces only the argument node with a
+fixed sentinel and excludes volatile registration date metadata. Its opaque
+non-argument definition digest must be stable before mutation and unchanged
+after it. The postcondition requires every task and action contract predicate
+to be true and the action executable and working directory to remain equal.
+Any precondition, mutation or postcondition error stops without retry. Raw
+Scheduler XML, arguments, identities and paths are never persisted.
+
+Windows Task Scheduler exposes no OS-level compare-and-swap for task
+definitions. The final read minimizes but cannot eliminate a concurrent write
+from an unsanctioned external administrator in the interval before mutation.
+Live repair therefore requires explicit owner acceptance of that residual
+threat-model assumption.
+
 ### 5.8. DatabaseEvidence
 
 Для каждой известной runtime DB:
@@ -371,6 +496,9 @@ Scheduler evidence собирается read-only. Exported XML допускае
 ```yaml
 database_role: core | telegram_state | product_effects | checkpoint | legacy
 database_ref: opaque allowlisted ref
+source_profile: closed observed-location profile
+runtime_binding_status: EvidenceStatus
+runtime_binding_reason: closed reason code
 engine: sqlite
 file_identity_digest: digest
 size_bytes: integer
@@ -410,6 +538,18 @@ evidence_refs: [EvidenceRef]
   создающим inconsistent WAL snapshot;
 - payload, note text, Telegram text, file content и credentials не экспортируются;
 - orphan/unreconciled значения не превращаются в ноль при ошибке чтения.
+- найденный в candidate-worktree SQLite-файл не объявляется live runtime DB без отдельной проверяемой привязки runner→database; отсутствие такой привязки — `UNVERIFIABLE`.
+
+Owner decision `owner-authority:gate0-evidence-closure-2026-07-29` принимает
+текущую Telegram SQLite schema как **genesis baseline** только если один fresh
+capture одновременно доказывает runner→DB binding, source-schema digest match,
+WAL-aware consistent read transaction, `quick_check=ok` и пустой
+`foreign_key_check`. Это не доказывает, что historical legacy migration когда-либо
+исполнялась: historical application record остаётся `not_proven` и исключается из
+genesis-forward lineage claim. Gate 2 MUST создать durable migration ledger,
+привязанный к exact genesis schema digest, до первой post-genesis migration.
+Любое mismatch/inconsistent snapshot/unknown post-genesis migration оставляет
+`G0-05` в `CONTRADICTORY/BLOCKED`.
 
 ### 5.9. ConfigurationEvidence и registries
 
@@ -419,7 +559,7 @@ active_profile: closed profile
 safe_config_digest: digest
 secret_store:
   provider: windows_credential_manager | environment_ref | vault | other
-  required_refs_present: boolean
+  required_refs_present: boolean | null
   values_read: false
 registries:
   source:
@@ -448,6 +588,7 @@ evidence_refs: [EvidenceRef]
 
 До Gate 2 отсутствующий production registry фиксируется как TARGET gap, а не
 заполняется вымышленным digest.
+Если presence secret refs не разрешено проверять без чтения credential metadata, `required_refs_present` остаётся `null`; `false` допустимо только как доказанное отсутствие.
 
 `deny` имеет приоритет над source/output. Модель не получает absolute owner
 root, credentials или raw registry internals.
@@ -540,7 +681,8 @@ Gate 0 фиксирует baseline score CURRENT, но не обязан зас�
 capability:
   telegram_polling | codex_sdk | web_search | google_calendar |
   google_tasks | google_drive | google_docs | google_sheets |
-  local_owner_files | local_library_bridge
+  local_owner_files | local_library_bridge_read_v1 |
+  local_library_bridge_write_v2
 implementation_status:
   current | partial | target | deferred
 verification_status:
@@ -776,6 +918,12 @@ Real production failure может породить новый case только
 - rework инвалидирует score/evidence предыдущего digest;
 - baseline report всегда хранит `corpus_version` и `corpus_digest`.
 
+Exact-byte artifacts MUST оставаться LF после Git clean/smudge при
+`core.autocrlf=true`. Repository policy MUST быть узко ограничена только
+`docs/gates/gate-00-product-contract-baseline/**`, `tests/gate0/**` и самой
+`.gitattributes`; глобальный `* text eol=lf` запрещён. L1 обязан проверять
+`git check-attr` positive/negative cases и clean-checkout manifest readback.
+
 ### 7.5. Ownership
 
 - Product Owner утверждает product semantics и authority changes.
@@ -891,23 +1039,35 @@ Model judge не может отменить failure уровней 1–6.
 
 ### 10.2. Dev-only
 
-Планируемые exact pins перед реализацией:
+Зафиксированные exact pins из изолированного L4 verifier 29 июля 2026:
 
 - python-jsonschema `4.26.0`;
-- Hypothesis `6.161.7`;
-- Import Linter `2.11`.
+- Hypothesis `6.163.0`;
+- Import Linter `2.13`.
 
 Они не импортируются production package и не запускаются в live runtime.
+Воспроизводимый verifier создаётся только в одном owner-authorized
+`C:\\tmp\\nobus-gate0-verifiers-<uuid>`, использует Python `3.12.10` и pip
+`26.1.2`, устанавливает 39 wheel artifacts через `--require-hashes
+--only-binary=:all:` и не изменяет canonical `.venv`.
 
 ### 10.3. Release checks
 
 - `pip check`;
-- pip-audit `2.10.0`, report-only, без auto-fix;
-- Gitleaks `8.28.x`, exact binary/version/digest pin;
+- pip-audit `2.10.1`, report-only, без auto-fix;
+- Gitleaks `8.30.1`, exact binary/version/digest pin;
 - full pytest;
 - schema/corpus/architecture checks;
 - `git diff --check`;
 - manifest/secret/link validation.
+
+Gitleaks `scanned_file_count` must equal the exact immutable
+`pre-capture-core.input_entries` count. The self-referential receipt files are
+not copied into the scanner tree; instead, their exact bytes are bound by
+`receipt_entries` and `frozen_tree_digest`. After receipt bind, targeted Gate 0
+and full pytest suites run again against the final materialized tree. Their
+post-bind success is required before independent L1/L2/L3 and before Scheduler
+start; any failure invalidates the freeze.
 
 Network failure pip-audit даёт `UNVERIFIABLE`, а не успешный audit. Release
 policy решает, блокирует ли недоступная advisory DB конкретный internal Gate;

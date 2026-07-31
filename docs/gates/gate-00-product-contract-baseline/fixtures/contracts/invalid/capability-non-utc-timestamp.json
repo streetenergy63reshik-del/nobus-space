@@ -1,0 +1,33 @@
+{
+  "capability": "mvp1_integrated_contract",
+  "claim_id": "target.mvp1.product",
+  "contradictions": [],
+  "evidence_refs": [
+    {
+      "bytes": 4913,
+      "classification": "internal",
+      "created_at": "2026-07-31T09:18:31.4790228Z",
+      "kind": "json_report",
+      "media_type": "application/json",
+      "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
+      "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+    },
+    {
+      "bytes": 2138,
+      "classification": "internal",
+      "created_at": "2026-07-31T09:18:31.4790228Z",
+      "kind": "test_report",
+      "media_type": "application/json",
+      "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
+      "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+    }
+  ],
+  "fresh_until": "2030-01-10T03:00:00+03:00",
+  "implementation_status": "TARGET",
+  "requires_layers": [
+    "documentation",
+    "tests"
+  ],
+  "statement": "Gate 1 through Gate 8 consume the frozen Product Contract.",
+  "verdict": "VERIFIED"
+}

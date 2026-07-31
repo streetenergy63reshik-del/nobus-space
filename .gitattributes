@@ -1,0 +1,6 @@
+.gitattributes text eol=lf
+docs/gates/gate-00-product-contract-baseline/** text eol=lf
+tests/gate0/** text eol=lf
+tests/test_fake_vertical.py text eol=lf
+tests/test_telegram_gateway.py text eol=lf
+tests/test_trusted_ingress.py text eol=lf

@@ -1,0 +1,41 @@
+{
+  "blocking_criteria": [],
+  "candidate_core_digest": "sha256:3d244890ecf81a5d5314380775eb50f2c22418f8376d219da3b7b82d875870fd",
+  "capture_digest": "sha256:e81c8c7f344d6493ef3e0c22ee648d2ce87ba30441dbec7d80873e075f640931",
+  "checks": [
+    {
+      "id": "stale_and_false_ready_attack",
+      "status": "pass"
+    },
+    {
+      "id": "secret_path_and_real_payload_attack",
+      "status": "pass"
+    },
+    {
+      "id": "tenant_unknown_field_and_manifest_attack",
+      "status": "pass"
+    },
+    {
+      "id": "eol_clean_checkout_and_tool_lockin_attack",
+      "status": "pass"
+    },
+    {
+      "id": "migration_genesis_scope_attack",
+      "status": "pass"
+    },
+    {
+      "id": "gate_1_8_drift_attack",
+      "status": "pass"
+    }
+  ],
+  "findings": [],
+  "frozen_tree_digest": "sha256:e4c6530d8e4f0c0554995a8f59d6c54b5df4a5474cf2c2d06b04272fc403f672",
+  "hidden_reasoning_persisted": false,
+  "level": "L3",
+  "observed_at": "2026-07-31T09:21:17.3148015Z",
+  "release_blockers": [],
+  "review_tree_digest": "sha256:6d9e56834cc9a52641316c9e248aceb5eb3be0e9ae6e0b57cde1adcde181eeeb",
+  "schema": "nobus.gate0.verification_receipt.v1",
+  "stage": "post_capture",
+  "verdict": "accept"
+}

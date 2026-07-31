@@ -1,0 +1,325 @@
+{
+  "$id": "urn:nobus:gate0:handoff:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "acceptance": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "id": {
+            "pattern": "^G0-[0-9]{2}$",
+            "type": "string"
+          },
+          "reason_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "blocked",
+              "pending"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "evidence_refs",
+          "reason_code"
+        ],
+        "type": "object"
+      },
+      "minItems": 22,
+      "type": "array"
+    },
+    "applied_contract_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "applied_contract_version": {
+      "type": "string"
+    },
+    "applied_corpus_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "applied_corpus_version": {
+      "type": "string"
+    },
+    "artifact_manifest_ref": {
+      "type": "string"
+    },
+    "base_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "baseline_ref": {
+      "type": "string"
+    },
+    "blocking_criteria": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "consumer_handoffs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "gate": {
+            "maximum": 8,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "not_precompleted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "required_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "gate",
+          "name",
+          "required_inputs",
+          "not_precompleted"
+        ],
+        "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "type": "array"
+    },
+    "corpus_manifest_ref": {
+      "type": "string"
+    },
+    "current_after": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_evidence": {
+          "type": "string"
+        },
+        "corpus": {
+          "type": "string"
+        },
+        "gate_status": {
+          "enum": [
+            "ready",
+            "blocked"
+          ],
+          "type": "string"
+        },
+        "product_contract": {
+          "type": "string"
+        },
+        "runtime_mutated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "product_contract",
+        "corpus",
+        "baseline_evidence",
+        "runtime_mutated",
+        "gate_status"
+      ],
+      "type": "object"
+    },
+    "current_before": {
+      "additionalProperties": false,
+      "properties": {
+        "database_migration_status": {
+          "type": "string"
+        },
+        "database_runtime_binding_status": {
+          "type": "string"
+        },
+        "documentation_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "repository_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "runner_status": {
+          "type": "string"
+        },
+        "runtime_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "server_profile_status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "documentation_commit",
+        "repository_commit",
+        "runtime_commit",
+        "runner_status",
+        "database_migration_status",
+        "database_runtime_binding_status",
+        "server_profile_status"
+      ],
+      "type": "object"
+    },
+    "evidence_manifest_ref": {
+      "type": "string"
+    },
+    "gate": {
+      "const": 0
+    },
+    "generated_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+      "type": "string"
+    },
+    "l4_ref": {
+      "type": "string"
+    },
+    "mutations": {
+      "additionalProperties": false,
+      "properties": {
+        "backups": {
+          "type": "boolean"
+        },
+        "external_effects": {
+          "type": "boolean"
+        },
+        "migrations": {
+          "type": "boolean"
+        },
+        "runtime": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "migrations",
+        "backups",
+        "external_effects",
+        "runtime"
+      ],
+      "type": "object"
+    },
+    "next_gate": {
+      "const": 1
+    },
+    "product_contract_ref": {
+      "type": "string"
+    },
+    "release_readiness_blockers": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "result_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema": {
+      "const": "nobus.gate0.handoff.v1"
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "blocked"
+      ],
+      "type": "string"
+    },
+    "target_remaining": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "unresolved_risks": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "verification_refs": {
+      "additionalProperties": false,
+      "properties": {
+        "l1": {
+          "type": "string"
+        },
+        "l2": {
+          "type": "string"
+        },
+        "l3": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "l1",
+        "l2",
+        "l3"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "gate",
+    "status",
+    "product_contract_ref",
+    "baseline_ref",
+    "corpus_manifest_ref",
+    "evidence_manifest_ref",
+    "acceptance",
+    "blocking_criteria",
+    "next_gate",
+    "result_commit",
+    "generated_at",
+    "base_commit",
+    "artifact_manifest_ref",
+    "current_before",
+    "current_after",
+    "release_readiness_blockers",
+    "target_remaining",
+    "applied_contract_version",
+    "applied_contract_digest",
+    "applied_corpus_version",
+    "applied_corpus_digest",
+    "verification_refs",
+    "mutations",
+    "l4_ref",
+    "unresolved_risks",
+    "consumer_handoffs"
+  ],
+  "title": "Nobus Gate 0 Handoff",
+  "type": "object"
+}

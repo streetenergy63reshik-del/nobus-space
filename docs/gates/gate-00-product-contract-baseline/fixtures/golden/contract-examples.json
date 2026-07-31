@@ -1,0 +1,536 @@
+{
+  "examples": {
+    "AnalysisRequest": {
+      "instance": {
+        "analysis_id": "66666666-6666-4666-8666-666666666666",
+        "calculation_rules": [],
+        "client_ref": null,
+        "contract_digest": "sha256:54b004d1ab59dbdbf0e54c0a1a51c54ad4b6868363f8658d81580265e38e9535",
+        "created_at": "2030-01-10T00:00:00Z",
+        "grouping": [
+          "source"
+        ],
+        "idempotency_key": "tenant-a:analysis:synthetic-1",
+        "limitations": [],
+        "limits": {
+          "max_cells": 100,
+          "max_documents": 1,
+          "max_extracted_characters": 4000,
+          "max_model_input_bytes": 4000,
+          "max_pages": 10,
+          "max_provider_calls": 0,
+          "max_source_bytes": 2048
+        },
+        "maximum_classification": "internal",
+        "metrics": [
+          "count"
+        ],
+        "period": null,
+        "policy_version": "policy.v1",
+        "processing_policy_ref": "processing.v1",
+        "project_ref": "project-synthetic",
+        "question": "Summarize the synthetic document.",
+        "read_plan_digest": "sha256:b09841479fca862a4694c300dbb91371f525f3294f8e6e087770cbc31657e80f",
+        "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_outputs": [
+          "telegram_text"
+        ],
+        "schema": "nobus.analysis_request.v1",
+        "schema_digest": "sha256:29982b4df5164eaaee19dff560ea2d35cc5294c05c576ebd67b92b3995a870f7",
+        "schema_version": "1",
+        "sku_or_articles": [],
+        "sources": [
+          {
+            "backend": "local",
+            "classification": "internal",
+            "client_ref": null,
+            "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "contract_digest": "sha256:97eba12ed10630c5232f779b0fecf82544a14bdc4d164644ae5202d23d212102",
+            "created_at": "2030-01-10T00:00:00Z",
+            "display_name": "synthetic-document.md",
+            "document_kind": "markdown",
+            "document_ref_id": "22222222-2222-4222-8222-222222222222",
+            "expires_at": "2030-01-10T01:00:00Z",
+            "media_type": "text/markdown",
+            "policy_version": "policy.v1",
+            "project_ref": "project-synthetic",
+            "provenance": {
+              "adapter": "windows_bridge",
+              "metadata_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "observed_at": "2030-01-10T00:00:00Z",
+              "parent_scope_id": "scope.synthetic.local",
+              "selection_method": "exact_id"
+            },
+            "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "revision": {
+              "file_id_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "kind": "local_sha256",
+              "observed_at": "2030-01-10T00:00:00Z",
+              "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "volume_id_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "schema": "nobus.document_ref.v1",
+            "schema_digest": "sha256:ac5a97b9b7a174a2ce97349de05815d5a058a9ed34bec0e5b9a6380c8db8652e",
+            "schema_version": "1",
+            "size_bytes": 128,
+            "source_id": "33333333-3333-4333-8333-333333333333",
+            "source_scope_id": "scope.synthetic.local",
+            "tenant_id": "tenant-a"
+          }
+        ],
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:b97ea3f1a9c3c7d6312d0ad5f31bfee2252d30e0ea75c598cbee3d7a5d5e16c8",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/AnalysisRequest",
+      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "ArtifactPlan": {
+      "instance": {
+        "analysis_digest": "sha256:54b004d1ab59dbdbf0e54c0a1a51c54ad4b6868363f8658d81580265e38e9535",
+        "artifact_plan_id": "77777777-7777-4777-8777-777777777777",
+        "client_ref": null,
+        "collision_policy": "new_version",
+        "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "contract_digest": "sha256:ab9af26826165eee4cd906debdbba335800f8f78c9a691f11a440ff7909fafb6",
+        "created_at": "2030-01-10T00:00:00Z",
+        "destination_hint": "synthetic-report",
+        "format": "docx",
+        "output_scope_id": "output.synthetic.local",
+        "policy_version": "policy.v1",
+        "project_ref": "project-synthetic",
+        "provenance_refs": [
+          "88888888-8888-4888-8888-888888888888"
+        ],
+        "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "render_profile": "render.docx.v1",
+        "schema": "nobus.artifact_plan.v1",
+        "schema_digest": "sha256:a8fb54fa092f35730039bdf1e37eaf1381320592b48fa3ab1eaa615403e1086b",
+        "schema_version": "1",
+        "sections": [
+          {
+            "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "content_ref": "content.synthetic.1",
+            "heading": "Summary",
+            "section_kind": "text"
+          }
+        ],
+        "target_backend": "local",
+        "tenant_id": "tenant-a",
+        "title": "Synthetic report"
+      },
+      "instance_digest": "sha256:2c064ca78f0cf3aff3ad88f70a61940821b9ed524375ef630afaf0a1ba0a0b6c",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/ArtifactPlan",
+      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "DocumentQuery": {
+      "instance": {
+        "classifications": [
+          "internal"
+        ],
+        "client_ref": null,
+        "contract_digest": "sha256:30fad077a0cc6b3563c883021d97789492cffe06e6bf5ed95cd2f76fd8b4e0e6",
+        "created_at": "2030-01-10T00:00:00Z",
+        "document_kinds": [
+          "markdown"
+        ],
+        "folder_hints": [],
+        "max_candidates": 20,
+        "max_pages": 2,
+        "media_types": [
+          "text/markdown"
+        ],
+        "metadata_timeout_ms": 1000,
+        "name_hints": [
+          "synthetic-document.md"
+        ],
+        "period": null,
+        "policy_version": "policy.v1",
+        "project_ref": "project-synthetic",
+        "query_id": "44444444-4444-4444-8444-444444444444",
+        "query_text": "synthetic document",
+        "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "schema": "nobus.document_query.v1",
+        "schema_digest": "sha256:28b7bf37e83d7ecb6a53b7d5043cd48f5b9650e1f3891cea2bc7518657bb34f3",
+        "schema_version": "1",
+        "source_scope_ids": [
+          "scope.synthetic.local"
+        ],
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:def1d6f71118896478662b9cdb61de4adceea4ba2fcf714dc197128a26d4e561",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentQuery",
+      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "DocumentReadPlan": {
+      "instance": {
+        "client_ref": null,
+        "contract_digest": "sha256:b09841479fca862a4694c300dbb91371f525f3294f8e6e087770cbc31657e80f",
+        "created_at": "2030-01-10T00:00:00Z",
+        "dlp_profile": "dlp.v1",
+        "documents": [
+          {
+            "document_ref": {
+              "backend": "local",
+              "classification": "internal",
+              "client_ref": null,
+              "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "contract_digest": "sha256:97eba12ed10630c5232f779b0fecf82544a14bdc4d164644ae5202d23d212102",
+              "created_at": "2030-01-10T00:00:00Z",
+              "display_name": "synthetic-document.md",
+              "document_kind": "markdown",
+              "document_ref_id": "22222222-2222-4222-8222-222222222222",
+              "expires_at": "2030-01-10T01:00:00Z",
+              "media_type": "text/markdown",
+              "policy_version": "policy.v1",
+              "project_ref": "project-synthetic",
+              "provenance": {
+                "adapter": "windows_bridge",
+                "metadata_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "observed_at": "2030-01-10T00:00:00Z",
+                "parent_scope_id": "scope.synthetic.local",
+                "selection_method": "exact_id"
+              },
+              "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": {
+                "file_id_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "kind": "local_sha256",
+                "observed_at": "2030-01-10T00:00:00Z",
+                "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "volume_id_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              },
+              "schema": "nobus.document_ref.v1",
+              "schema_digest": "sha256:ac5a97b9b7a174a2ce97349de05815d5a058a9ed34bec0e5b9a6380c8db8652e",
+              "schema_version": "1",
+              "size_bytes": 128,
+              "source_id": "33333333-3333-4333-8333-333333333333",
+              "source_scope_id": "scope.synthetic.local",
+              "tenant_id": "tenant-a"
+            },
+            "selection_kind": "whole_document"
+          }
+        ],
+        "max_extracted_chars_per_document": 2000,
+        "max_extracted_chars_total": 4000,
+        "max_parser_seconds_per_document": 5,
+        "max_parser_seconds_total": 10,
+        "max_source_bytes_per_document": 1024,
+        "max_source_bytes_total": 2048,
+        "policy_version": "policy.v1",
+        "project_ref": "project-synthetic",
+        "prompt_profile": "prompt.tool-less.v1",
+        "purpose": "summarize",
+        "read_plan_id": "55555555-5555-4555-8555-555555555555",
+        "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "schema": "nobus.document_read_plan.v1",
+        "schema_digest": "sha256:a02933be3e801f61f19328bc1d3b7996e307f3c56b74dc9f4cd3918bb1aa1578",
+        "schema_version": "1",
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:f0b9c6baef73fe8d1a96d134ecce26ab82c5eb9c4f00255934707dfdaa95dbae",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentReadPlan",
+      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "DocumentRef": {
+      "instance": {
+        "backend": "local",
+        "classification": "internal",
+        "client_ref": null,
+        "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "contract_digest": "sha256:97eba12ed10630c5232f779b0fecf82544a14bdc4d164644ae5202d23d212102",
+        "created_at": "2030-01-10T00:00:00Z",
+        "display_name": "synthetic-document.md",
+        "document_kind": "markdown",
+        "document_ref_id": "22222222-2222-4222-8222-222222222222",
+        "expires_at": "2030-01-10T01:00:00Z",
+        "media_type": "text/markdown",
+        "policy_version": "policy.v1",
+        "project_ref": "project-synthetic",
+        "provenance": {
+          "adapter": "windows_bridge",
+          "metadata_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observed_at": "2030-01-10T00:00:00Z",
+          "parent_scope_id": "scope.synthetic.local",
+          "selection_method": "exact_id"
+        },
+        "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": {
+          "file_id_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "kind": "local_sha256",
+          "observed_at": "2030-01-10T00:00:00Z",
+          "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "volume_id_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "schema": "nobus.document_ref.v1",
+        "schema_digest": "sha256:ac5a97b9b7a174a2ce97349de05815d5a058a9ed34bec0e5b9a6380c8db8652e",
+        "schema_version": "1",
+        "size_bytes": 128,
+        "source_id": "33333333-3333-4333-8333-333333333333",
+        "source_scope_id": "scope.synthetic.local",
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:0e7a54cda95dac6d1c0ffb207db494affe291824e10f87c2673087197323d27f",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentRef",
+      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "DocumentWritePlan": {
+      "instance": {
+        "approval_binding": {
+          "approval_kind": "exact_owner_request",
+          "ingress_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "intent_digest": "sha256:ae6d0154461880024356b810e091cee0d05bc6dc5e8fd6e38b544f05886d8bb6",
+          "unchanged_destination_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "unchanged_payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "artifact_plan_digest": "sha256:ab9af26826165eee4cd906debdbba335800f8f78c9a691f11a440ff7909fafb6",
+        "artifact_ref": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "backend": "local",
+        "client_ref": null,
+        "collision_policy": "new_version",
+        "contract_digest": "sha256:c8e7422829c34df8c0f272ad061303e644b3e11e37d1ad4efeafacad4d1b0357",
+        "created_at": "2030-01-10T00:00:00Z",
+        "expected_revision": null,
+        "expires_at": "2030-01-10T01:00:00Z",
+        "idempotency_key": "tenant-a:write:synthetic-1",
+        "operation": "create",
+        "output_scope_id": "output.synthetic.local",
+        "policy_version": "policy.v1",
+        "project_ref": "project-synthetic",
+        "registry_bundle_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "schema": "nobus.document_write_plan.v1",
+        "schema_digest": "sha256:4964c331b40c3d1cbcf96906028cf5bbcff21b841b356dec7ceebd43867f8a2f",
+        "schema_version": "1",
+        "snapshot_required": false,
+        "strict_cas_required": false,
+        "target": {
+          "destination_name": "synthetic-report.docx",
+          "target_kind": "new_document"
+        },
+        "tenant_id": "tenant-a",
+        "write_plan_id": "99999999-9999-4999-8999-999999999999"
+      },
+      "instance_digest": "sha256:25ca0f58ff4fc59ab0cf3c650eb40d2c4c8326fdcaecefcc9be1874538a013b3",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentWritePlan",
+      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "HumanApprovalRecord": {
+      "instance": {
+        "approved_at": "2030-01-10T00:02:00Z",
+        "approver_identity": "owner:synthetic",
+        "contract_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "evidence_ref": "telegram/callback/synthetic",
+        "result_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "result_revision": 1,
+        "task_id": "22222222-2222-4222-8222-222222222222",
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:7ec3c503949b69e57615356d7579e8e8ceed1f50bc62294683d81ef1ae8ffaa1",
+      "schema_ref": null,
+      "source_digest": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "validation_profile": "current_model_validation"
+    },
+    "IntentEnvelope": {
+      "instance": {
+        "action": "read",
+        "actor_identity": "owner:synthetic",
+        "ambiguities": [],
+        "clarification": null,
+        "confidence": 9500,
+        "context": {
+          "expires_at": null,
+          "frame_id": null,
+          "frame_revision": null,
+          "parent_intent_id": null,
+          "relation": "none"
+        },
+        "conversation_ref": "conversation:synthetic",
+        "domain": "documents",
+        "entities": [
+          {
+            "confidence": 10000,
+            "kind": "document",
+            "normalized": "synthetic-document",
+            "raw": "synthetic-document",
+            "resolution": "exact",
+            "resolved_ref": "document.synthetic.1"
+          }
+        ],
+        "ingress_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "intent_id": "11111111-1111-4111-8111-111111111111",
+        "intent_revision": "sha256:ae6d0154461880024356b810e091cee0d05bc6dc5e8fd6e38b544f05886d8bb6",
+        "modality": "text",
+        "owner_text": "Read the selected synthetic document.",
+        "period": null,
+        "policy_version": "policy.v1",
+        "proposed_effects": [
+          {
+            "authority": "direct_owner",
+            "idempotency_scope": null,
+            "kind": "read",
+            "requires_confirmation": false,
+            "risk": "low",
+            "source": "local_library",
+            "summary": "Read the selected synthetic document.",
+            "target_hint": null,
+            "target_ref": "document.synthetic.1"
+          }
+        ],
+        "received_at": "2030-01-10T00:00:00Z",
+        "requested_outputs": [
+          "telegram_text"
+        ],
+        "route_registry_version": "routes.v1",
+        "schema": "nobus.intent.v1",
+        "source_scope": [
+          {
+            "access": "content",
+            "explicit": true,
+            "scope_ref": "scope.synthetic.local",
+            "selector": null,
+            "source": "local_library"
+          }
+        ],
+        "status": "ready",
+        "tenant_id": "tenant-a",
+        "voice": null
+      },
+      "instance_digest": "sha256:0a8f4477f4b597c1b30d290745f486d161ec19195bbbc34bebb5184e3e426cf0",
+      "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/IntentEnvelope",
+      "source_digest": "sha256:b85a3845fe746968f854ab1b9315e5dee1112b7c7621561bb93c0b70a34b4143",
+      "source_ref": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+      "status": "target",
+      "validation_profile": "target_owner_contract_structural_golden_no_production_model"
+    },
+    "ProductEffectChallenge": {
+      "instance": {
+        "kind": "google_drive",
+        "preview": "Synthetic Google Drive effect preview.",
+        "token": "synthetic-effect-challenge"
+      },
+      "instance_digest": "sha256:175238da1a0e713f8d562e605feca6b0018132aa338617dade0010d8809a1e44",
+      "schema_ref": null,
+      "source_digest": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "validation_profile": "current_model_validation"
+    },
+    "TaskContract": {
+      "instance": {
+        "acceptance_criteria": [
+          "Return synthetic evidence references."
+        ],
+        "allowed_paths": [
+          "workspace/synthetic-input"
+        ],
+        "conversation_ref": "telegram:cccccccccccccccccccccccccccccccccccccccc",
+        "idempotency_key": "tenant-a:synthetic:1",
+        "ingress_digest": "sha256:a6b097b87cb3830c6c4bb49d74dd2ad490fc365077c15cf72132fbeecd86dcd6",
+        "instruction": "Analyze the synthetic test snapshot.",
+        "permissions": [
+          "read"
+        ],
+        "quality_profile": "standard",
+        "risk": "low",
+        "schema_version": "1",
+        "source": "api",
+        "task_id": "22222222-2222-4222-8222-222222222222",
+        "tenant_id": "tenant-a",
+        "timeout_seconds": 60
+      },
+      "instance_digest": "sha256:b1e1eb0cea40f17651e39d7e3aab87f88f241476735f10dc44d8e4a03b7247a5",
+      "schema_ref": null,
+      "source_digest": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "validation_profile": "current_model_validation"
+    },
+    "TrustedIngressEnvelope": {
+      "instance": {
+        "actor_identity": "api:synthetic-owner",
+        "auth_context_ref": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "content_ref": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "envelope_revision": "sha256:a6b097b87cb3830c6c4bb49d74dd2ad490fc365077c15cf72132fbeecd86dcd6",
+        "external_message_id": "request:synthetic-1",
+        "idempotency_key": "tenant-a:synthetic:1",
+        "ingress_id": "11111111-1111-4111-8111-111111111111",
+        "kind": "system_job",
+        "received_at": "2030-01-10T00:00:00Z",
+        "schema_version": "1",
+        "source": "api",
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:85090d34a63cef77db3748401b39b0040a0a79ed1dbe70b796da86a84e2ef8da",
+      "schema_ref": null,
+      "source_digest": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "validation_profile": "current_model_validation"
+    },
+    "VerificationBundle": {
+      "instance": {
+        "contract_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "executor_identity": "executor:synthetic",
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "result_revision": 1,
+        "schema_version": "1",
+        "status": "draft",
+        "task_id": "22222222-2222-4222-8222-222222222222",
+        "tenant_id": "tenant-a"
+      },
+      "instance_digest": "sha256:0c8bad4eee6d6272bd1d19eec0024d1c53d1d1cd72c5c2d68d4600fbe58c3744",
+      "schema_ref": null,
+      "source_digest": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "validation_profile": "current_model_validation"
+    },
+    "WorkerEvent": {
+      "instance": {
+        "attempt_id": "44444444-4444-4444-8444-444444444444",
+        "contract_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "emitted_at": "2030-01-10T00:01:00Z",
+        "event_id": "33333333-3333-4333-8333-333333333333",
+        "event_type": "progress",
+        "payload": {
+          "percent": 25,
+          "stage": "synthetic"
+        },
+        "schema_version": "1",
+        "sequence": 1,
+        "task_id": "22222222-2222-4222-8222-222222222222",
+        "tenant_id": "tenant-a",
+        "worker_identity": "worker:synthetic"
+      },
+      "instance_digest": "sha256:d6120c342b104c2fd5b548271251a54e3e83c6ac9fb72bd65f76a06d2ba9a018",
+      "schema_ref": null,
+      "source_digest": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "source_ref": "docs/05-Спецификации-контрактов.md",
+      "status": "current",
+      "validation_profile": "current_model_validation"
+    }
+  },
+  "schema": "nobus.gate0.contract_examples.v1"
+}
