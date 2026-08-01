@@ -6,6 +6,7 @@ import ast
 import collections
 import copy
 import datetime as dt
+import functools
 import hashlib
 import importlib.util
 import json
@@ -21,7 +22,6 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 
 from collect_gate0_snapshot import _snapshot_evidence
-from gate0_precapture import STATUS_VOLATILE_PATHS
 from gate0_lifecycle import capture_lifecycle, database_capture_lifecycle
 from normative_models import (
     BaselineEvidence,
@@ -37,13 +37,6 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 GATE = ROOT / "docs/gates/gate-00-product-contract-baseline"
 CORPUS = GATE / "corpus/requests.v1.jsonl"
 DESIGN_BASE = "9d816b35d3f419b42e24ad09ae6aadc92c33db43"
-REPO_HEAD = subprocess.run(
-    ["git", "rev-parse", "HEAD"],
-    cwd=ROOT,
-    check=True,
-    capture_output=True,
-    text=True,
-).stdout.strip()
 RUNTIME_HEAD = "1ac52a00fd22b25cb6fcbd9f694688157c900cc8"
 
 
@@ -75,6 +68,107 @@ def load_json(path: pathlib.Path) -> Any:
     assert not raw.startswith(b"\xef\xbb\xbf"), path
     assert b"\r\n" not in raw, path
     return json.loads(raw.decode("utf-8"), object_pairs_hook=no_duplicates)
+
+
+@functools.cache
+def historical_capture_base_commit() -> str:
+    manifest = load_json(GATE / "evidence/evidence-manifest.json")
+    commit = manifest["base_commit"]
+    assert isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit)
+    return commit
+
+
+@functools.cache
+def historical_evidence_commit() -> str:
+    acceptance = load_json(GATE / "GATE-0-ACCEPTANCE.json")
+    result_commit = acceptance["result_commit"]
+    assert isinstance(result_commit, str) and re.fullmatch(
+        r"[0-9a-f]{40}", result_commit
+    )
+    assert acceptance["status"] == "accepted"
+    assert subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            historical_capture_base_commit(),
+            result_commit,
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    ).returncode == 0
+    return result_commit
+
+
+def historical_bytes(relative: str) -> bytes:
+    path = pathlib.PurePosixPath(relative)
+    assert not path.is_absolute() and ".." not in path.parts
+    return subprocess.run(
+        ["git", "cat-file", "blob", f"{historical_evidence_commit()}:{path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+@functools.cache
+def historical_manifest_paths() -> list[str]:
+    result = subprocess.run(
+        [
+            "git",
+            "-c",
+            "core.quotePath=false",
+            "ls-tree",
+            "-r",
+            "--name-only",
+            historical_evidence_commit(),
+            "--",
+            ".gitattributes",
+            GATE.relative_to(ROOT).as_posix(),
+            "tests/gate0",
+            "tests/test_fake_vertical.py",
+            "tests/test_telegram_gateway.py",
+            "tests/test_trusted_ingress.py",
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="strict",
+    )
+    return sorted(result.stdout.splitlines())
+
+
+@functools.cache
+def accepted_result_paths() -> list[str]:
+    result = subprocess.run(
+        [
+            "git",
+            "-c",
+            "core.quotePath=false",
+            "ls-tree",
+            "-r",
+            "--name-only",
+            historical_evidence_commit(),
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="strict",
+    )
+    return sorted(result.stdout.splitlines())
+
+
+@functools.cache
+def sealed_capture_completed_at() -> dt.datetime:
+    baseline = load_json(GATE / "evidence/baseline-evidence.json")
+    return dt.datetime.fromisoformat(
+        baseline["capture"]["completed_at"].replace("Z", "+00:00")
+    )
 
 
 def load_cases() -> list[dict[str, Any]]:
@@ -591,7 +685,9 @@ def test_artifacts_contain_no_secret_pii_or_absolute_local_path_patterns() -> No
 def test_baseline_keeps_docs_repo_runtime_process_layers_separate() -> None:
     baseline = load_json(GATE / "evidence/baseline-evidence.json")
     assert baseline["documentation"]["canonical_commit"] == DESIGN_BASE
-    assert baseline["repository"]["head_commit"] == REPO_HEAD
+    assert (
+        baseline["repository"]["head_commit"] == historical_capture_base_commit()
+    )
     assert baseline["runtime_release"]["runtime_head_commit"] == RUNTIME_HEAD
     assert baseline["documentation"]["head_matches_canonical"] is False
     assert baseline["runtime_release"]["docs_commit_is_ancestor"] is False
@@ -655,7 +751,7 @@ def test_capture_interval_encloses_all_persisted_observations() -> None:
 
 def test_dirty_manifest_preserves_preexisting_ownership() -> None:
     dirty = load_json(GATE / "evidence/dirty-manifest.json")
-    assert dirty["head_commit"] == REPO_HEAD
+    assert dirty["head_commit"] == historical_capture_base_commit()
     assert dirty["runtime_release"]["head_commit"] == RUNTIME_HEAD
     assert dirty["runtime_release"]["design_base_is_ancestor"] is False
     assert dirty["ownership_rule"]["protected_entries_modified_by_gate0"] is False
@@ -721,8 +817,12 @@ def test_dirty_manifest_preserves_preexisting_ownership() -> None:
         if status[0] in {"R", "C"} and index < len(fields):
             index += 1
     frozen_paths = {entry["path"] for entry in dirty["entries"]}
-    assert frozen_paths - STATUS_VOLATILE_PATHS == current_paths - STATUS_VOLATILE_PATHS
-    assert frozen_paths.symmetric_difference(current_paths) <= STATUS_VOLATILE_PATHS
+    frozen_gate0_paths = {
+        entry["path"] for entry in dirty["entries"] if entry["owner"] == "gate0"
+    }
+    assert frozen_gate0_paths <= set(accepted_result_paths())
+    assert ".nobus-quality/cases.ndjson" in frozen_paths
+    assert ".nobus-quality/cases.ndjson" in current_paths
 
 
 def test_database_evidence_is_sanitized_and_genesis_is_bounded() -> None:
@@ -755,6 +855,7 @@ def test_database_evidence_is_sanitized_and_genesis_is_bounded() -> None:
     database_state = database_capture_lifecycle(
         raw,
         load_json(GATE / "evidence/runtime-inventory.json"),
+        as_of=sealed_capture_completed_at(),
     )
     if all_snapshots_consistent:
         assert telegram["migration_inventory"] == {
@@ -876,7 +977,9 @@ def test_runtime_scheduler_capture_is_authorized_sanitized_and_bounded() -> None
         )
         assert scheduler["status"] == "verified"
         assert runtime["database_binding"]["status"] == "verified"
-        runtime_state = capture_lifecycle(runtime)
+        runtime_state = capture_lifecycle(
+            runtime, as_of=sealed_capture_completed_at()
+        )
         expected_status = "VERIFIED" if runtime_state == "FRESH" else runtime_state
         assert baseline["processes"][0]["status"] == expected_status
         assert baseline["scheduler"][0]["status"] == expected_status
@@ -892,7 +995,9 @@ def test_runtime_scheduler_capture_is_authorized_sanitized_and_bounded() -> None
         assert runtime["database_binding"]["status"] == "verified"
         expected_status = (
             "STALE"
-            if capture_lifecycle(runtime) == "STALE"
+            if capture_lifecycle(
+                runtime, as_of=sealed_capture_completed_at()
+            ) == "STALE"
             else "CONTRADICTORY"
         )
         assert baseline["processes"][0]["status"] == expected_status
@@ -1331,23 +1436,52 @@ def test_component_manifest_binds_non_recursive_baseline_inputs() -> None:
     )
 
 
+def test_post_seal_evidence_manifest_binds_historical_git_bytes() -> None:
+    acceptance = load_json(GATE / "GATE-0-ACCEPTANCE.json")
+    manifest = load_json(GATE / "evidence/evidence-manifest.json")
+    result_commit = historical_evidence_commit()
+    current_head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    assert acceptance["status"] == "accepted"
+    assert historical_capture_base_commit() == manifest["base_commit"]
+    assert result_commit == acceptance["result_commit"]
+    assert result_commit != current_head
+    assert subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            manifest["base_commit"],
+            result_commit,
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    ).returncode == 0
+    for entry in manifest["entries"]:
+        assert entry["sha256"] == sha256(historical_bytes(entry["path"]))
+
+
 def test_evidence_manifest_exact_set_roles_hashes_and_digest() -> None:
     path = GATE / "evidence/evidence-manifest.json"
     manifest = load_json(path)
-    expected = {
-        artifact.relative_to(ROOT).as_posix()
-        for artifact in manifest_paths()
-        if artifact != path
-    }
+    expected = set(historical_manifest_paths())
+    expected.remove(path.relative_to(ROOT).as_posix())
     entries = {entry["path"]: entry for entry in manifest["entries"]}
     assert set(entries) == expected
     assert manifest["schema"] == "nobus.gate0.evidence_manifest.v1"
-    assert manifest["base_commit"] == REPO_HEAD
+    assert manifest["base_commit"] == historical_capture_base_commit()
     assert manifest["result_commit"] is None
     for relative, entry in entries.items():
-        artifact = ROOT / relative
-        assert entry["sha256"] == sha256(artifact.read_bytes())
-        assert entry["bytes"] == artifact.stat().st_size
+        data = historical_bytes(relative)
+        assert entry["sha256"] == sha256(data)
+        assert entry["bytes"] == len(data)
         assert entry["role"] in {
             "research",
             "architecture",
@@ -1403,15 +1537,14 @@ def test_clean_checkout_with_autocrlf_preserves_manifest_bytes(
     checkout = tmp_path / "checkout"
     source.mkdir()
 
-    copied = [manifest_path] + [
-        ROOT / pathlib.PurePosixPath(entry["path"])
+    relative_paths = [manifest_path.relative_to(ROOT)] + [
+        pathlib.PurePosixPath(entry["path"])
         for entry in manifest["entries"]
     ]
-    for path in copied:
-        relative = path.relative_to(ROOT)
+    for relative in relative_paths:
         destination = source / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(path, destination)
+        destination.write_bytes(historical_bytes(relative.as_posix()))
 
     def git(cwd: pathlib.Path, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -1465,7 +1598,7 @@ def test_handoff_has_all_acceptance_ids_and_honest_blockers() -> None:
     rows = {row["id"]: row for row in handoff["acceptance"]}
     assert set(rows) == {f"G0-{number:02d}" for number in range(1, 23)}
     assert handoff["result_commit"] is None
-    assert handoff["base_commit"] == REPO_HEAD
+    assert handoff["base_commit"] == historical_capture_base_commit()
     product = load_json(GATE / "product/product-contract.json")
     corpus = load_json(GATE / "corpus/corpus-manifest.json")
     assert handoff["applied_contract_digest"] == sha256(canonical_bytes(product))

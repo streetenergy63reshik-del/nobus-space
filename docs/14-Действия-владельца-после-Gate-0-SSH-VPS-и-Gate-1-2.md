@@ -11,20 +11,21 @@ Gate 0 завершён и immutable accepted:
 - result tree: `2e3248eb295b1627d36f196c26dfc21c6ebd90fd`;
 - acceptance: [`gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json`](gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json).
 
-Следующий разрешённый этап — Gate 1. Gate 2 ожидает accepted handoff Gate 1.
-Gate 2A ожидает accepted Gate 2. Точный CURRENT ведётся в
+PRE-G1 accepted по
+[`ADR 0021`](adr/0021-post-gate0-agent-roles-and-downstream-integration.md).
+Gate 1 READY TO START и является следующим отдельным cycle. Gate 2 остаётся
+`BLOCKED` до accepted Gate 1, Gate 2A — `BLOCKED` до accepted Gate 2. Точный
+CURRENT ведётся в
 [`CURRENT-STATUS`](handoffs/CURRENT-STATUS.md).
 
 
 ### Известная post-seal validation note
 
-Focused повторный запуск Gate 0 после acceptance даёт `6 passed, 2 failed`;
-оба FAIL относятся к helper/test-harness: `prepare_precapture()` удаляет уже tracked независимые submissions, а
-следующий tracked-topology scan ожидает эти файлы на месте. Это не меняет exact
-Gate 0 acceptance и не связано с содержанием этого runbook, но повторное
-использование precapture generator из sealed checkout требует отдельного
-TDD maintenance cycle. Следующая разработка не должна скрывать эти FAIL или
-«лечить» их перезаписью immutable Gate 0 evidence.
+Helper defect воспроизведён на temporary copied fixtures и закрыт отдельным TDD
+commit `9dd03e8abd85178cda503e457df202526589c597`: tracked independent submissions
+сохраняются, helper-focused suite даёт `42 passed, 1 skipped`. Immutable Gate 0
+acceptance, catalog, evidence и required sources не изменялись и не
+регенерировались.
 ## 2. Не смешивать три разных контура
 
 | Контур | Когда нужен | Для чего | Не является |
@@ -42,8 +43,8 @@ fingerprint и opaque resource identifier.
 
 VPS, domain, DNS, TLS, BotFather и Git remote для Gate 1 не требуются.
 
-1. Оставить Gate 0 acceptance неизменным.
-2. Передать разработке следующий L4:
+1. Сохранить immutable Gate 0 и accepted PRE-G1/ADR 0021 без изменений.
+2. Передать разработке Gate 1 отдельный L4:
 
 ```text
 Разрешаю Gate 1 MVP-1 Nobus Space.
@@ -232,7 +233,8 @@ recurring ceiling, renewal/termination condition, одну mutation без retry
 
 ```text
 Gate 0 accepted
-  -> выдать локальный L4 Gate 1
+  -> PRE-G1 accepted; Gate 1 READY TO START
+  -> выдать отдельный локальный L4 Gate 1
   -> принять Gate 1 handoff
   -> подтвердить metadata-only root/TestTemp и выдать L4 Gate 2
   -> принять Gate 2 handoff

@@ -10,8 +10,15 @@ result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 
 Acceptance: [`../gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json`](../gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json).
 Формальный handoff содержит trusted canonical runtime evidence и независимые
-L1/L2/L3 без blockers. Gate 1 больше не заблокирован predecessor Gate 0, но
-выполняется отдельным change/review/acceptance cycle. Remediation record:
+L1/L2/L3 без blockers. PRE-G1 `ACCEPTED`: принятый
+[ADR 0021](../adr/0021-post-gate0-agent-roles-and-downstream-integration.md)
+зафиксировал шесть specialist roles, независимую verification и Gate 5–8
+boundaries как post-seal overlay. Immutable Gate 0 не открывался, acceptance,
+catalog и все digest-bound источники остались byte-identical. Gate 1 теперь
+`READY TO START`, но его implementation ещё не начинался и требует отдельного
+L4/change/review/acceptance cycle. PRE-G1 contract:
+[`PRE-GATE-1-ARCHITECTURE-INTEGRATION.md`](PRE-GATE-1-ARCHITECTURE-INTEGRATION.md).
+Remediation record:
 [`../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md`](../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
 
 Остальной документ ниже — исторический runtime snapshot предыдущей итерации.
@@ -20,26 +27,34 @@ L1/L2/L3 без blockers. Gate 1 больше не заблокирован pred
 
 | Этап | CURRENT | Что требуется от владельца |
 |---|---|---|
+| PRE-G1 | `ACCEPTED` | Сохранять ADR 0021 и immutable Gate 0 binding; новых действий не требуется |
 | Gate 1 | `READY TO START` | Выдать отдельный Gate 1 L4; SSH/VPS не нужны |
 | Gate 2 | `BLOCKED` до accepted Gate 1 | После Gate 1 подтвердить metadata-only root и isolated `TestTemp\Gate2` |
 | Gate 2A offline | `BLOCKED` до accepted Gate 2 | Выдать отдельный offline L4; SSH/deploy/BotFather запрещены |
 | Gate 2A live | `BLOCKED` до offline PASS и owner inputs | Подготовить отдельные VPS SSH, domain/DNS/TLS, backup и identity bindings |
 
 Полный алгоритм: [`../14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md`](../14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
-Git remote в текущем repository не настроен; это не блокирует локальные Gate 1
-и Gate 2. Добавление remote/push и live VPS activation являются отдельными
+Git remote в текущем repository не настроен; это не блокирует PRE-G1, Gate 1
+или Gate 2. Добавление remote/push и live VPS activation являются отдельными
 внешними действиями и требуют собственного action-bound L4.
 
 
 **Post-seal validation note:** documentation L1 on 1 August 2026 reproduced
-`6 passed, 2 failed` in a focused Gate 0 regression slice. Both failures occur
-only when `prepare_precapture()` deletes already tracked
-`verification/submissions/l1–l3.json` and the following tracked-topology scan
-requires those paths to still exist. The changed documentation and sealed
-normative sources are not involved. Immutable Gate 0 acceptance remains bound
-to its exact result commit/tree; any reuse of the precapture generator from an
-already sealed checkout must first close this helper/test-harness issue through
-a separate TDD maintenance cycle.
+`2 failed, 5 passed` before the helper fix. Root cause: `prepare_precapture()`
+deleted tracked independent submissions before its own topology scan. Separate
+TDD commit `9dd03e8abd85178cda503e457df202526589c597` removed only that deletion
+and made copied fixtures model the pre-seal tree; focused helper verification is
+`42 passed, 1 skipped`. Gate 0 acceptance and sealed normative sources were not
+modified or regenerated.
+PRE-G1 focused regression: `7 passed`. Forward-only historical binding и весь
+Gate 0 normative profile: `58 passed, 3 skipped`; capture metadata привязана к
+base commit `0a0f56e8b6f77deccba2b51239a3fe1f207da349`, artifact bytes — к accepted
+result commit `f5086b2a71a9ae22be3c858ff69453287f6925da`, а freshness вычисляется на
+sealed capture completion. Официальный unfiltered `full_read_only` из
+`verification-profiles.json`: `1521 passed, 6 skipped, 1 warning`. Exact
+acceptance binding и все 20 `required_sources` совпадают; Gate 0 evidence,
+catalog, fixtures и verification receipts не изменялись и не
+регенерировались.
 **Дата:** 2026-07-28
 **Runtime feature commit:** `b69e846`
 **Live runtime commit:** `b69e846`

@@ -9,8 +9,11 @@ result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 - замечания независимого аудита закрыты в Product Contract/corpus v2,
   digest-bound normative catalog, ADR 0020, Gate 2A и domain `development`;
 - независимые L1/L2/L3 привязаны к exact candidate и trusted canonical runtime;
-- Gate 1 больше не заблокирован predecessor Gate 0, но требует собственного
-  change manifest, проверок и acceptance;
+- PRE-G1 `ACCEPTED`: [ADR 0021](docs/adr/0021-post-gate0-agent-roles-and-downstream-integration.md)
+  фиксирует шесть roles и Gate 5–8 boundaries как post-seal overlay; immutable
+  Gate 0 acceptance и все digest-bound sources сохранены;
+- Gate 1 `READY TO START`, implementation ещё не начат и требует отдельного
+  L4, change manifest, проверок и accepted handoff;
 - Gate 2 начинается только после принятого Gate 1; SSH/VPS впервые требуются
   не для Gate 1–2, а для отдельной live-активации Gate 2A;
 - в репозитории пока нет настроенного Git remote; push и deploy не выполнялись.
@@ -22,6 +25,10 @@ result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 [пакет Gate 0–8](docs/gates/README.md). Действия владельца после Gate 0,
 включая разделение Git SSH, VPS SSH и Gate 2A, собраны в
 [owner-runbook](docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
+Точный контракт обязательной подготовки Gate 1 находится в
+[pre-Gate-1 architecture integration](docs/handoffs/PRE-GATE-1-ARCHITECTURE-INTEGRATION.md).
+Его принятый post-seal authority —
+[ADR 0021](docs/adr/0021-post-gate0-agent-roles-and-downstream-integration.md).
 
 ## Архив: локальная runtime-итерация до текущей дорожной карты Gate 0–8
 

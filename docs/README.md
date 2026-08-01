@@ -5,9 +5,12 @@
 Эта папка — единственный канонический комплект документации платформы Nobus Space. Черновики, исследовательские материалы и старые копии не являются нормативными источниками.
 
 **CURRENT на 1 августа 2026 года:** Gate 0 immutable accepted (`22/22`),
-Gate 1 готов к отдельному циклу разработки, Gate 2 ожидает accepted handoff
-Gate 1, Gate 2A ожидает Gate 2 и owner-bound infrastructure inputs. SSH/VPS не
-нужны для Gate 1 или Gate 2. Точные статусы находятся в
+PRE-G1 `ACCEPTED`, Gate 1 `READY TO START`. Принятый
+[ADR 0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md)
+закрывает role-vocabulary и Gate 5–8 integration debt как post-seal overlay
+без изменения digest-bound источников Gate 0. Gate 2 `BLOCKED` до accepted
+Gate 1, Gate 2A `BLOCKED` до accepted Gate 2. SSH/VPS не нужны для Gate 1 или
+Gate 2. Точные статусы находятся в
 [CURRENT-STATUS](handoffs/CURRENT-STATUS.md), а следующие действия владельца —
 в [owner-runbook](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
 
@@ -30,6 +33,7 @@ Gate 1, Gate 2A ожидает Gate 2 и owner-bound infrastructure inputs. SSH/
 Детальные исследования и архитектуры каждого Gate собраны в
 [архитектурном пакете Gate 0–8, включая Gate 2A](gates/README.md).
 14. [Действия владельца после Gate 0](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) — последовательность Gate 1/2/2A, отдельные Git SSH и VPS SSH, owner inputs и безопасный live cutover.
+15. [Pre-Gate-1 architecture integration](handoffs/PRE-GATE-1-ARCHITECTURE-INTEGRATION.md) — принятый локальный precondition; нормативный overlay находится в [ADR 0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md), Gate 1 готов к отдельному cycle.
 
 Фактическое состояние реализации ведётся отдельно в [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 История причин и исправлений собрана в [реестре проблем MVP-1](handoffs/MVP-1-ISSUES.md),

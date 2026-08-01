@@ -3,8 +3,8 @@
 **Статус:** TARGET DESIGN
 
 **CURRENT implementation на 1 августа 2026 года:** Gate 0 READY и immutable
-accepted; Gate 1 `READY TO START`; Gate 2 и Gate 2A ещё заблокированы
-непройденными predecessors
+accepted; PRE-G1 `ACCEPTED`; Gate 1 `READY TO START`; Gate 2 `BLOCKED` до
+accepted Gate 1, Gate 2A `BLOCKED` до accepted Gate 2
 
 result_commit: f5086b2a71a9ae22be3c858ff69453287f6925da
 result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
@@ -24,6 +24,7 @@ independent L1/L2/L3 и отдельный immutable acceptance binding.
 | Gate | Статус | Evidence | Следующий шаг |
 |---:|---|---|---|
 | 0 | `READY`, immutable accepted | [ACCEPTANCE](gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json), [HANDOFF](gate-00-product-contract-baseline/HANDOFF.md), [remediation](gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md) | Сохранять result commit/tree неизменными |
+| PRE-G1 | `ACCEPTED` | [precondition contract](../handoffs/PRE-GATE-1-ARCHITECTURE-INTEGRATION.md), [ADR 0021](../adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Сохранять post-seal overlay и Gate 0 binding неизменными |
 | 1 | `READY TO START`, implementation ещё не начат | [ARCHITECTURE](gate-01-natural-language-voice/ARCHITECTURE.md) | Выдать отдельный Gate 1 L4; VPS/SSH не требуются |
 | 2 | `BLOCKED` до accepted Gate 1 | [ARCHITECTURE](gate-02-scope-document-contracts/ARCHITECTURE.md) | После Gate 1 подтвердить metadata-only owner root и TestTemp Gate 2 |
 | 2A | `BLOCKED` до accepted Gate 2 | [ARCHITECTURE](gate-02a-miniapp-development-control/ARCHITECTURE.md) | Сначала offline candidate; VPS/SSH/DNS/TLS — только отдельное live L4 после PASS |
@@ -66,3 +67,8 @@ independent L1/L2/L3 и отдельный immutable acceptance binding.
    L1/L2/L3 и accepted handoff. Документная готовность не переносится на код.
 7. Gate 2A выполняется после accepted Gate 2 и до Gate 3. Он является первым
    bounded server/Mini App release, но не заменяет финальный Gate 8 pilot.
+8. Digest-bound источники принятого Gate 0 не редактируются задним числом.
+   Post-seal vocabulary и downstream integration закреплены принятым
+   [ADR 0021](../adr/0021-post-gate0-agent-roles-and-downstream-integration.md)
+   и [PRE-G1](../handoffs/PRE-GATE-1-ARCHITECTURE-INTEGRATION.md); они открывают
+   отдельный Gate 1 cycle, но не разрешают его implementation.

@@ -27,6 +27,7 @@
 | [0018](adr/0018-cross-gate-mvp1-integration.md) | Единая интеграция Gate 0–8: atomic effects, opaque document identity, честные Google preconditions, single-node SQLite и global poller fencing | ACCEPTED | TARGET |
 | [0019](adr/0019-owner-service-filesystem-and-runtime-decisions.md) | Owner decisions: CLI-first Codex, Drive-wide read, controlled full owner-root workspace, Healthchecks.io → Gmail и benchmark-gated paid services | ACCEPTED | TARGET |
 | [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Полноценный Telegram Mini App и Server/Development Control вводятся в Gate 2A; Nobus остаётся единым orchestrator, глубокие домены выполняют закрытые specialist worker profiles | ACCEPTED | TARGET |
+| [0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Post-seal overlay фиксирует шесть closed roles, независимую verification, отдельные Development Worker/Document Bridge boundaries и Gate 6–8 handoffs без изменения immutable Gate 0 | ACCEPTED | TARGET |
 
 ## Правила статусов ADR
 
