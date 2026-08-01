@@ -491,10 +491,6 @@ def _write_verification_templates(
 
 def prepare_precapture(root: pathlib.Path) -> dict[str, Any]:
     gate = root / GATE_REL
-    for level in ("l1", "l2", "l3"):
-        stale_submission = gate / "verification" / "submissions" / f"{level}.json"
-        if stale_submission.is_file():
-            stale_submission.unlink()
     # Materialize deterministic contract upgrades before hashing frozen inputs.
     normalize(root, gate)
     write_json(gate / "decisions" / "decision-register.json", decision_register())

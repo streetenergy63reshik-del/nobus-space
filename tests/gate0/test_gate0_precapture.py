@@ -337,6 +337,19 @@ def _copy_candidate(tmp_path: pathlib.Path) -> pathlib.Path:
         destination = candidate / pathlib.PurePosixPath(entry["path"])
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
+    # PRE-capture fixtures model the tree before the later immutable acceptance
+    # binding. Keep that post-seal file out of both the copied worktree and index.
+    acceptance_relative = (
+        "docs/gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json"
+    )
+    subprocess.run(
+        ["git", "update-index", "--force-remove", "--", acceptance_relative],
+        cwd=candidate,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (candidate / acceptance_relative).unlink(missing_ok=True)
     return candidate
 
 
@@ -450,6 +463,26 @@ def _bind_synthetic_verifier(candidate: pathlib.Path) -> dict[str, object]:
             },
         },
     )
+
+
+def test_precapture_preserves_tracked_independent_submissions(
+    tmp_path: pathlib.Path,
+) -> None:
+    candidate = _copy_candidate(tmp_path)
+    submissions = candidate / (
+        "docs/gates/gate-00-product-contract-baseline/verification/submissions"
+    )
+    before = {
+        level: (submissions / f"{level}.json").read_bytes()
+        for level in ("l1", "l2", "l3")
+    }
+
+    prepare_precapture(candidate)
+
+    assert {
+        level: (submissions / f"{level}.json").read_bytes()
+        for level in ("l1", "l2", "l3")
+    } == before
 
 
 def _fresh_snapshot(candidate: pathlib.Path) -> dict[str, object]:
