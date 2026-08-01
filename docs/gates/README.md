@@ -2,15 +2,16 @@
 
 **Статус:** TARGET DESIGN
 
-**CURRENT implementation:** Gate 0 READY и immutable accepted; Gate 1 может
-начинаться только как отдельный Gate с собственными проверками и acceptance
+**CURRENT implementation на 1 августа 2026 года:** Gate 0 READY и immutable
+accepted; Gate 1 `READY TO START`; Gate 2 и Gate 2A ещё заблокированы
+непройденными predecessors
 
 result_commit: f5086b2a71a9ae22be3c858ff69453287f6925da
 result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 
 **База исследования:** `9d816b35d3f419b42e24ad09ae6aadc92c33db43`
 
-**Дата:** 28 июля 2026 года
+**Дата исследования:** 28 июля 2026 года
 
 Эта папка содержит исследовательское основание и детальную архитектуру каждого
 Gate MVP-1. Исследование и архитектура сами по себе не доказывают реализацию,
@@ -23,8 +24,13 @@ independent L1/L2/L3 и отдельный immutable acceptance binding.
 | Gate | Статус | Evidence | Следующий шаг |
 |---:|---|---|---|
 | 0 | `READY`, immutable accepted | [ACCEPTANCE](gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json), [HANDOFF](gate-00-product-contract-baseline/HANDOFF.md), [remediation](gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md) | Сохранять result commit/tree неизменными |
-| 1 | `NOT STARTED`, predecessor Gate 0 принят | [ARCHITECTURE](gate-01-natural-language-voice/ARCHITECTURE.md) | Начать отдельный Gate 1 change/review/acceptance cycle |
-| 2–8, включая 2A | `TARGET` | Research/Architecture ниже | Выполнять только после accepted handoff предыдущего Gate |
+| 1 | `READY TO START`, implementation ещё не начат | [ARCHITECTURE](gate-01-natural-language-voice/ARCHITECTURE.md) | Выдать отдельный Gate 1 L4; VPS/SSH не требуются |
+| 2 | `BLOCKED` до accepted Gate 1 | [ARCHITECTURE](gate-02-scope-document-contracts/ARCHITECTURE.md) | После Gate 1 подтвердить metadata-only owner root и TestTemp Gate 2 |
+| 2A | `BLOCKED` до accepted Gate 2 | [ARCHITECTURE](gate-02a-miniapp-development-control/ARCHITECTURE.md) | Сначала offline candidate; VPS/SSH/DNS/TLS — только отдельное live L4 после PASS |
+| 3–8 | `TARGET` | Research/Architecture ниже | Выполнять последовательно после accepted handoff predecessor |
+
+Практический порядок действий владельца, включая независимые Git SSH и VPS SSH,
+описан в [owner-runbook](../14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
 
 | Gate | Результат | Исследование | Архитектура |
 |---:|---|---|---|

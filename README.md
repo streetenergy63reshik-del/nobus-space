@@ -11,13 +11,17 @@ result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 - независимые L1/L2/L3 привязаны к exact candidate и trusted canonical runtime;
 - Gate 1 больше не заблокирован predecessor Gate 0, но требует собственного
   change manifest, проверок и acceptance;
-- remote, push и deploy не выполнялись.
+- Gate 2 начинается только после принятого Gate 1; SSH/VPS впервые требуются
+  не для Gate 1–2, а для отдельной live-активации Gate 2A;
+- в репозитории пока нет настроенного Git remote; push и deploy не выполнялись.
 
 Точный текущий источник статуса: [Gate 0 acceptance](docs/gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json),
 [Gate 0 HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md) и
 [audit remediation record](docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
 Каноническая навигация: [индекс документации](docs/README.md) и
-[пакет Gate 0–8](docs/gates/README.md).
+[пакет Gate 0–8](docs/gates/README.md). Действия владельца после Gate 0,
+включая разделение Git SSH, VPS SSH и Gate 2A, собраны в
+[owner-runbook](docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
 
 ## Архив: локальная runtime-итерация до текущей дорожной карты Gate 0–8
 

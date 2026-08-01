@@ -4,6 +4,13 @@
 
 Эта папка — единственный канонический комплект документации платформы Nobus Space. Черновики, исследовательские материалы и старые копии не являются нормативными источниками.
 
+**CURRENT на 1 августа 2026 года:** Gate 0 immutable accepted (`22/22`),
+Gate 1 готов к отдельному циклу разработки, Gate 2 ожидает accepted handoff
+Gate 1, Gate 2A ожидает Gate 2 и owner-bound infrastructure inputs. SSH/VPS не
+нужны для Gate 1 или Gate 2. Точные статусы находятся в
+[CURRENT-STATUS](handoffs/CURRENT-STATUS.md), а следующие действия владельца —
+в [owner-runbook](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
+
 ## Как читать
 
 1. [Единый документ проекта](01-Единый-документ-проекта.md) — цели, границы MVP и принципы.
@@ -22,6 +29,7 @@
 
 Детальные исследования и архитектуры каждого Gate собраны в
 [архитектурном пакете Gate 0–8, включая Gate 2A](gates/README.md).
+14. [Действия владельца после Gate 0](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) — последовательность Gate 1/2/2A, отдельные Git SSH и VPS SSH, owner inputs и безопасный live cutover.
 
 Фактическое состояние реализации ведётся отдельно в [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 История причин и исправлений собрана в [реестре проблем MVP-1](handoffs/MVP-1-ISSUES.md),
@@ -31,6 +39,12 @@
 ## Статусы и приоритет источников
 
 В документах применяются независимые признаки:
+
+Принятый Gate 0 является immutable evidence snapshot. Документы и архитектуры,
+перечисленные в его digest-bound normative catalog, сохраняют принятый TARGET
+на точных байтах result commit. Их заголовки не используются как оперативная
+доска статусов; будущая разработка берёт CURRENT из этого индекса,
+`CURRENT-STATUS` и accepted handoff соответствующего Gate.
 
 - **Статус документа:** `CANONICAL`, `DRAFT` или `SUPERSEDED`.
 - **Статус ADR:** `PROPOSED`, `ACCEPTED`, `SUPERSEDED` или `REJECTED`.

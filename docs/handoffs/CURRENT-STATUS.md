@@ -16,6 +16,30 @@ L1/L2/L3 без blockers. Gate 1 больше не заблокирован pred
 
 Остальной документ ниже — исторический runtime snapshot предыдущей итерации.
 
+### Следующее действие
+
+| Этап | CURRENT | Что требуется от владельца |
+|---|---|---|
+| Gate 1 | `READY TO START` | Выдать отдельный Gate 1 L4; SSH/VPS не нужны |
+| Gate 2 | `BLOCKED` до accepted Gate 1 | После Gate 1 подтвердить metadata-only root и isolated `TestTemp\Gate2` |
+| Gate 2A offline | `BLOCKED` до accepted Gate 2 | Выдать отдельный offline L4; SSH/deploy/BotFather запрещены |
+| Gate 2A live | `BLOCKED` до offline PASS и owner inputs | Подготовить отдельные VPS SSH, domain/DNS/TLS, backup и identity bindings |
+
+Полный алгоритм: [`../14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md`](../14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
+Git remote в текущем repository не настроен; это не блокирует локальные Gate 1
+и Gate 2. Добавление remote/push и live VPS activation являются отдельными
+внешними действиями и требуют собственного action-bound L4.
+
+
+**Post-seal validation note:** documentation L1 on 1 August 2026 reproduced
+`6 passed, 2 failed` in a focused Gate 0 regression slice. Both failures occur
+only when `prepare_precapture()` deletes already tracked
+`verification/submissions/l1–l3.json` and the following tracked-topology scan
+requires those paths to still exist. The changed documentation and sealed
+normative sources are not involved. Immutable Gate 0 acceptance remains bound
+to its exact result commit/tree; any reuse of the precapture generator from an
+already sealed checkout must first close this helper/test-harness issue through
+a separate TDD maintenance cycle.
 **Дата:** 2026-07-28
 **Runtime feature commit:** `b69e846`
 **Live runtime commit:** `b69e846`
