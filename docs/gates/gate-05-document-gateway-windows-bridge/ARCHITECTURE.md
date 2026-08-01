@@ -1,9 +1,9 @@
 # Gate 5 — Unified Document Gateway and Windows Local Library Bridge Architecture
 
-**Document status:** normative TARGET architecture for Gate 5
+**Document status:** normative TARGET architecture / ARCHITECTURE READY
 **Canonical repository commit:** `9d816b35d3f419b42e24ad09ae6aadc92c33db43`
 **Implementation status:** not implemented
-**Security status:** design verified; implementation and live acceptance pending
+**Security status:** design verified by fresh exact-delta L1/L2/L3 `CASE-20260728-OWNER-DECISIONS-151422`; implementation and live acceptance pending
 **Research basis:** [`RESEARCH.md`](RESEARCH.md)
 
 ## 1. Decision and normative language
@@ -1347,8 +1347,9 @@ For every local read:
 7. Query final path, volume serial, file ID, link count, type, size, and
    timestamps from the opened handle.
 8. Prove final path containment and equality to the registered mapping.
-9. Conservatively reject multiple hard links unless a later policy can prove
-   the alias set is contained.
+9. Reject when `NumberOfLinks > 1` or identity evidence proves a hard-link
+   alias; `NumberOfLinks = 1` is the normal allowed NTFS case. ADR 0019 permits
+   no multiple-link exception in MVP-1.
 10. Recheck lease/cancellation.
 11. Copy only from that opened handle into the protected staging file while
     hashing and enforcing the source-byte limit.
@@ -2143,5 +2144,6 @@ Adversarial review must explicitly pass:
 - Docs full-fetch overflow;
 - offline reconnect and provider partial result.
 
-Architecture status after independent review: **`ARCHITECTURE READY`**.
+Architecture status: **`ARCHITECTURE READY`**. Fresh exact-delta evidence:
+`CASE-20260728-OWNER-DECISIONS-151422`; old evidence was not reused.
 Implementation and release remain unpassed.

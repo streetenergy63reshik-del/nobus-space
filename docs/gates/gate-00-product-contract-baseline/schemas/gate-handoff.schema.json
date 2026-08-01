@@ -80,9 +80,16 @@
         "additionalProperties": false,
         "properties": {
           "gate": {
-            "maximum": 8,
-            "minimum": 1,
-            "type": "integer"
+            "oneOf": [
+              {
+                "maximum": 8,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "const": "2a"
+              }
+            ]
           },
           "name": {
             "type": "string"
@@ -110,8 +117,8 @@
         ],
         "type": "object"
       },
-      "maxItems": 8,
-      "minItems": 8,
+      "maxItems": 9,
+      "minItems": 9,
       "type": "array"
     },
     "corpus_manifest_ref": {

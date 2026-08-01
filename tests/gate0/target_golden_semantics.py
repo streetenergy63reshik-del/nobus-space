@@ -10,7 +10,9 @@ import hashlib
 import json
 import re
 import uuid
-from typing import Any
+from typing import Any, get_args
+
+from normative_models import Action, Domain, EffectKind, SourceKind
 
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -138,15 +140,8 @@ def _validate_intent(instance: dict[str, Any]) -> None:
     assert instance["status"] in {
         "ready", "needs_clarification", "unsupported", "rejected",
     }
-    assert instance["domain"] in {
-        "notes", "calendar", "tasks", "documents", "research", "general",
-    }
-    assert instance["action"] in {
-        "none", "answer", "help", "status", "limit", "cancel", "search",
-        "read", "list", "summarize", "compare", "analyze", "audit", "report",
-        "remember", "extract_tasks", "create", "update", "complete", "delete",
-        "deliver",
-    }
+    assert instance["domain"] in set(get_args(Domain))
+    assert instance["action"] in set(get_args(Action))
     assert (instance["modality"] == "voice") == (instance["voice"] is not None)
     _assert_int(instance["confidence"], 0, 10_000)
     assert isinstance(instance["owner_text"], str) and 1 <= len(instance["owner_text"]) <= 2000
@@ -165,10 +160,7 @@ def _validate_intent(instance: dict[str, Any]) -> None:
         _assert_int(entity["confidence"], 0, 10_000)
     for selector in instance["source_scope"]:
         assert set(selector) == {"source", "access", "selector", "scope_ref", "explicit"}
-        assert selector["source"] in {
-            "none", "public_web", "nobus_memory", "business_notes", "google_calendar",
-            "google_tasks", "google_drive", "local_library", "telegram_attachment",
-        }
+        assert selector["source"] in set(get_args(SourceKind))
         assert selector["access"] in {"metadata", "content"}
         assert type(selector["explicit"]) is bool
     for effect in instance["proposed_effects"]:
@@ -176,10 +168,8 @@ def _validate_intent(instance: dict[str, Any]) -> None:
             "kind", "source", "target_hint", "target_ref", "summary", "risk",
             "authority", "requires_confirmation", "idempotency_scope",
         }
-        assert effect["kind"] in {
-            "read", "create", "update", "complete", "delete", "deliver_owner",
-            "deliver_third_party", "publish", "change_access", "money", "push", "deploy",
-        }
+        assert effect["kind"] in set(get_args(EffectKind))
+        assert effect["source"] in set(get_args(SourceKind))
         assert effect["risk"] in {"low", "medium", "high", "critical"}
         assert effect["authority"] in {"direct_owner", "l4_required", "denied"}
         assert type(effect["requires_confirmation"]) is bool
@@ -195,9 +185,77 @@ def _validate_intent(instance: dict[str, Any]) -> None:
         )
     )
 
+_GATE2A_SCHEMAS = {
+    "AgentProfile": "nobus.agent_profile.v1",
+    "AgentDispatch": "nobus.agent_dispatch.v1",
+    "ApprovalChallenge": "nobus.approval_challenge.v1",
+    "CodeTaskContract": "nobus.code_task.v1",
+    "CodePlan": "nobus.code_plan.v1",
+    "PatchCandidate": "nobus.patch_candidate.v1",
+    "CandidateCommitReceipt": "nobus.candidate_commit_receipt.v1",
+}
+
+
+def _assert_commit(value: Any) -> None:
+    assert isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value)
+
+
+def _validate_gate2a(name: str, instance: dict[str, Any]) -> None:
+    assert instance["schema"] == _GATE2A_SCHEMAS[name]
+    for key, value in instance.items():
+        if key.endswith("_digest"):
+            _assert_digest(value)
+    if name == "AgentProfile":
+        assert instance["role"] in {
+            "general_orchestrator_worker", "google_workspace_specialist",
+            "research_analytics_specialist", "content_studio_specialist",
+            "development_specialist", "verification_specialist",
+        }
+        assert instance["accepted_task_kinds"] == ["development"]
+        assert instance["host_class"] == "windows_development"
+        assert type(instance["enabled"]) is bool
+    elif name == "AgentDispatch":
+        for key in ("dispatch_id", "task_id", "attempt_id"):
+            _assert_uuid(instance[key])
+        _assert_utc(instance["deadline_at"])
+        _assert_int(instance["lease_generation"], 1, 1_000_000)
+        _assert_int(instance["maximum_events"], 1, 10_000)
+        _assert_int(instance["maximum_output_bytes"], 1, 10_000_000)
+    elif name == "ApprovalChallenge":
+        _assert_uuid(instance["task_id"])
+        assert instance["action_kind"] == "local_candidate_commit"
+        assert instance["risk"] in {"low", "medium", "high", "critical"}
+        assert instance["single_use"] is True
+        assert _assert_utc(instance["expires_at"]) > _assert_utc(instance["issued_at"])
+    elif name == "CodeTaskContract":
+        _assert_uuid(instance["task_id"])
+        _assert_commit(instance["expected_base_commit"])
+        assert instance["operation"] in {"inspect", "audit", "change"}
+        assert instance["credential_profile_ref"] == "no_production_credentials"
+        _assert_int(instance["maximum_files"], 1, 10_000)
+        _assert_int(instance["maximum_patch_bytes"], 1, 100_000_000)
+        _assert_utc(instance["deadline_at"])
+    elif name == "CodePlan":
+        _assert_uuid(instance["task_id"])
+        _assert_commit(instance["base_commit"])
+        assert instance["target_paths"] and instance["steps"] and instance["tests"]
+        assert type(instance["requires_approval"]) is bool
+    elif name == "PatchCandidate":
+        _assert_uuid(instance["task_id"])
+        _assert_uuid(instance["attempt_id"])
+        _assert_commit(instance["base_commit"])
+        assert instance["changed_files"]
+        assert isinstance(instance["delete_manifest"], list)
+    else:
+        _assert_uuid(instance["task_id"])
+        _assert_uuid(instance["effect_id"])
+        _assert_commit(instance["base_commit"])
+        _assert_commit(instance["candidate_commit"])
+        _assert_utc(instance["created_at"])
+
 
 def validate_target_contract_golden(name: str, instance: dict[str, Any]) -> None:
-    """Assert semantic validity against the exact owning Gate 1/2 contracts."""
+    """Assert semantic validity against the exact owning Gate 1/2/2A contracts."""
 
     _assert_no_floats(instance)
     if name == "IntentEnvelope":
@@ -205,6 +263,9 @@ def validate_target_contract_golden(name: str, instance: dict[str, Any]) -> None
         return
     if name == "DocumentRef":
         _validate_document_ref(instance)
+        return
+    if name in _GATE2A_SCHEMAS:
+        _validate_gate2a(name, instance)
         return
 
     schema = {

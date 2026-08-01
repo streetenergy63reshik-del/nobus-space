@@ -1,44 +1,49 @@
 {
   "entries": [
     {
+      "path": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
+      "sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578",
+      "size_bytes": 4054
+    },
+    {
       "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
-      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9",
-      "size_bytes": 24019
+      "sha256": "sha256:081b8897df0f3a3c81419bf0bc0ef83edc2b1d121dd6b92196a336b1e1799af3",
+      "size_bytes": 33022
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
-      "sha256": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
-      "size_bytes": 151449
+      "sha256": "sha256:bb97f72d76c83edffd17378d5929564d76177131104a34fd858186675c4c7c26",
+      "size_bytes": 163899
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
-      "sha256": "sha256:3ca682bb64579494e3cdb0ed0ab3873f00a0b723aada3f7dc84a0ce0684fb6ca",
-      "size_bytes": 4008
+      "sha256": "sha256:2d18afcb5ae0706453316f31ac49d46198c481d8567d3fd33f4349cb4cea13a1",
+      "size_bytes": 4363
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
-      "sha256": "sha256:6e858460eb22f01488c210d90a06cb65ef93e97a9ce2b837d7e0f4ed036fc79b",
-      "size_bytes": 530
+      "sha256": "sha256:b0f61f5514b4a4efbc6a5014cbabca30a77b1c5f7e140b3af85f7f3f0b488469",
+      "size_bytes": 531
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
-      "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504",
-      "size_bytes": 4913
+      "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c",
+      "size_bytes": 4416
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
-      "sha256": "sha256:bacfaf8b661c8d199e743d3ecad1172874e6226dc0a1a245f782678d33f29df9",
-      "size_bytes": 31119
+      "sha256": "sha256:2949262f169cb507967de1211e51191217c7e77f844b81fda96adae68d429fb7",
+      "size_bytes": 25324
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
-      "sha256": "sha256:4b6ebaa619c254f4b0faabf2b0650e5f20c08b913a404357c59f269ff09b5bb2",
-      "size_bytes": 3983
+      "sha256": "sha256:10d7b120525547d50eb7ef323746a584e67cc754dadb561dfbea4c27ea4e4cc2",
+      "size_bytes": 3984
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
-      "sha256": "sha256:b9f17b8d43c7b748ffd5d820306847b6cd710eecdb39d3096210a10bc2b61fa1",
-      "size_bytes": 10264
+      "sha256": "sha256:4d8f1dfbad8cf774aa08bbe095dee51d69f039676a48dfff0ff93ad465b454e7",
+      "size_bytes": 10265
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/configuration-inventory.json",
@@ -47,18 +52,18 @@
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
-      "sha256": "sha256:bb4eae9c10329e25402f10a61a7a5791c33147238f46a58916bfc0db20d4eccc",
-      "size_bytes": 31232
+      "sha256": "sha256:f5940e71cda72c93da264505a370139d59980e83a7504f3c3489708d3383cad0",
+      "size_bytes": 31209
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
-      "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7",
+      "sha256": "sha256:fe12bd2d211d609230d643e215f0b10773bc2f439199353f74450daef74dc63e",
       "size_bytes": 2138
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/current-corpus-baseline.json",
-      "sha256": "sha256:8df7b22b3643559e34eff33c3480f3bdffea7020af4ed977ed35f05bb2c7e6ba",
-      "size_bytes": 13582
+      "sha256": "sha256:6dfca2bd4513ea0c43a4220834dc2b4a05e662a93e5af8b695234bee1ca40f4f",
+      "size_bytes": 14655
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/external-capabilities.json",
@@ -71,7 +76,7 @@
       "size_bytes": 420
     }
   ],
-  "manifest_digest": "sha256:08e479e08e284826c0d8ee0c15ddd98284a0cfc0f437a839d7d270a819889fa2",
-  "observed_at": "2026-07-31T09:18:31.4790228Z",
+  "manifest_digest": "sha256:fb324cd4a3b79eaf1d91378c9ceda5e4caceba5a5d813c3685e6090fa9266434",
+  "observed_at": "2026-08-01T07:08:59.7350624Z",
   "schema": "nobus.gate0.component_manifest.v1"
 }

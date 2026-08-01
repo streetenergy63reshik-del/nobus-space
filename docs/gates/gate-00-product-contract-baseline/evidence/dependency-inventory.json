@@ -683,7 +683,7 @@
     "finding_count": 0,
     "findings": [],
     "raw_report_sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-    "scanned_file_count": 310,
+    "scanned_file_count": 325,
     "status": "passed",
     "tool": "gitleaks",
     "triage": {
@@ -696,54 +696,54 @@
   "verification_toolchain": {
     "absolute_paths_persisted": false,
     "candidate_binding": {
-      "authority_ref": "owner-authority:gate0-final-candidate-local-verification-2026-07-31",
+      "authority_ref": "owner-authority:gate0-full-commit-2026-07-31",
       "canonical_venv_mutated": false,
       "checks": {
         "gitleaks": {
-          "finished_at": "2026-07-31T08:15:39.3593735Z",
+          "finished_at": "2026-08-01T06:24:31.7711999Z",
           "report_sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-          "started_at": "2026-07-31T08:15:38.8807047Z",
+          "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+          "started_at": "2026-08-01T06:24:30.8695077Z",
           "status": "passed",
           "tool_version": "8.30.1"
         },
         "hypothesis": {
-          "finished_at": "2026-07-31T08:19:47.5734685Z",
-          "report_sha256": "sha256:1417a84bd0f142627d078219e78d6c4bbf585314301b2bdd511e162a870a044c",
-          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-          "started_at": "2026-07-31T08:16:57.4823310Z",
+          "finished_at": "2026-08-01T06:12:13.2146755Z",
+          "report_sha256": "sha256:7a9928c55b2007e40deccd7f429d379fd51de854e8fc4e745cadad5d8fb08f17",
+          "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+          "started_at": "2026-08-01T06:06:55.0394898Z",
           "status": "passed",
           "tool_version": "6.163.0"
         },
         "import_linter": {
-          "finished_at": "2026-07-31T08:15:39.8193088Z",
+          "finished_at": "2026-08-01T06:22:48.2747920Z",
           "report_sha256": "sha256:e0ea42886297fe57c12c01ac371ffd267920ffab6c89d4c4404931f1944c9107",
-          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-          "started_at": "2026-07-31T08:15:39.8193088Z",
+          "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+          "started_at": "2026-08-01T06:22:47.5819365Z",
           "status": "passed",
           "tool_version": "2.13"
         },
         "jsonschema": {
-          "finished_at": "2026-07-31T08:19:47.5734685Z",
-          "report_sha256": "sha256:1417a84bd0f142627d078219e78d6c4bbf585314301b2bdd511e162a870a044c",
-          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-          "started_at": "2026-07-31T08:16:57.4823310Z",
+          "finished_at": "2026-08-01T06:12:13.2146755Z",
+          "report_sha256": "sha256:7a9928c55b2007e40deccd7f429d379fd51de854e8fc4e745cadad5d8fb08f17",
+          "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+          "started_at": "2026-08-01T06:06:55.0394898Z",
           "status": "passed",
           "tool_version": "4.26.0"
         },
         "pip_audit": {
-          "finished_at": "2026-07-31T08:16:11.8729126Z",
-          "report_sha256": "sha256:25e7feed61f22db53406d6d16ecc3b919a44bcb949bdb2c834c430fcda5a38e8",
-          "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-          "started_at": "2026-07-31T08:16:11.8719124Z",
+          "finished_at": "2026-08-01T06:22:55.4645160Z",
+          "report_sha256": "sha256:f5d28cfe2b986daebc79b5d079f2f94508031d96bb6d2e0515e08bafb80b4850",
+          "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+          "started_at": "2026-08-01T06:22:52.2121533Z",
           "status": "passed",
           "tool_version": "2.10.1"
         }
       },
       "hashes_verified": true,
-      "input_generated_at": "2026-07-31T08:13:41.595605Z",
-      "input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-      "isolated_environment_digest": "sha256:c433d8e1ab306d21f39a0d3a6b499602418af023f0719c356196d3c4d771772f",
+      "input_generated_at": "2026-08-01T06:06:05.842187Z",
+      "input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+      "isolated_environment_digest": "sha256:e6aa26138481f0c3b7722cb95a6028ebf23a5d9af6c576fc1e2f3e86cd978be0",
       "lock_refs": [
         "tests/gate0/verifier-requirements.txt",
         "tests/gate0/verifier-toolchain.json"
@@ -762,7 +762,7 @@
       "finding_count": 0,
       "findings": [],
       "raw_report_sha256": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-      "scanned_file_count": 310,
+      "scanned_file_count": 325,
       "status": "passed"
     },
     "gitleaks_asset_sha256": "sha256:d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e",
@@ -786,8 +786,8 @@
     "pip_audit": {
       "finding_count": 0,
       "findings": [],
-      "package_count": 66,
-      "raw_report_sha256": "sha256:25e7feed61f22db53406d6d16ecc3b919a44bcb949bdb2c834c430fcda5a38e8",
+      "package_count": 15,
+      "raw_report_sha256": "sha256:f5d28cfe2b986daebc79b5d079f2f94508031d96bb6d2e0515e08bafb80b4850",
       "status": "passed"
     },
     "profile": "isolated_temp_official_artifacts",
@@ -1006,8 +1006,8 @@
   "vulnerability_check": {
     "finding_count": 0,
     "findings": [],
-    "package_count": 66,
-    "raw_report_sha256": "sha256:25e7feed61f22db53406d6d16ecc3b919a44bcb949bdb2c834c430fcda5a38e8",
+    "package_count": 15,
+    "raw_report_sha256": "sha256:f5d28cfe2b986daebc79b5d079f2f94508031d96bb6d2e0515e08bafb80b4850",
     "status": "passed",
     "tool": "pip-audit",
     "triage": {

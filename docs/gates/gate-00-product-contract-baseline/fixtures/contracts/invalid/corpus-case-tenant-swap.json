@@ -5,7 +5,7 @@
     "deterministic_expected_output"
   ],
   "case_id": "G0-ANA-001",
-  "corpus_version": "1.0.0",
+  "corpus_version": "2.0.0",
   "expected": {
     "decision": "accept",
     "effects": [

@@ -30,6 +30,8 @@ from gate0_precapture import (
     verify_precapture,
 )
 from gate0_lifecycle import verifier_binding_verified
+from gate0_normative_catalog import load_normative_catalog
+from synthetic_review_fixture import write_synthetic_review_submission
 from generate_gate0_artifacts import (
     file_digest,
     record_review,
@@ -328,6 +330,11 @@ def _copy_candidate(tmp_path: pathlib.Path) -> pathlib.Path:
         ROOT / "docs/gates/gate-00-product-contract-baseline",
     ):
         destination = candidate / source.relative_to(ROOT)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+    for entry in load_normative_catalog(ROOT)["required_sources"]:
+        source = ROOT / pathlib.PurePosixPath(entry["path"])
+        destination = candidate / pathlib.PurePosixPath(entry["path"])
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
     return candidate
@@ -1045,10 +1052,15 @@ def test_full_bounded_projection_review_seal_and_tamper_rejection(
     verify_precapture(candidate)
 
     for level in ("l1", "l2", "l3"):
+        observed_at = dt.datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        submission_path = write_synthetic_review_submission(
+            candidate, level=level, observed_at=observed_at
+        )
         record_review(
             candidate,
             level=level,
-            observed_at=dt.datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            observed_at=observed_at,
+            submission_path=submission_path,
         )
         receipt = _load(gate / "verification" / f"{level}.json")
         assert receipt["stage"] == "post_capture"

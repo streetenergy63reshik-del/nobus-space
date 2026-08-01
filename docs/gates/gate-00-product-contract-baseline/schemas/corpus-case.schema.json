@@ -25,6 +25,7 @@
             "change_access",
             "money",
             "push",
+            "local_candidate_commit",
             "deploy"
           ],
           "title": "Kind",
@@ -243,7 +244,9 @@
               "update",
               "complete",
               "delete",
-              "deliver"
+              "deliver",
+              "commit",
+              "deploy"
             ],
             "type": "string"
           },
@@ -272,6 +275,7 @@
               "tasks",
               "documents",
               "research",
+              "development",
               "general"
             ],
             "type": "string"
@@ -293,6 +297,7 @@
               "change_access",
               "money",
               "push",
+              "local_candidate_commit",
               "deploy"
             ],
             "type": "string"
@@ -335,7 +340,9 @@
             "update",
             "complete",
             "delete",
-            "deliver"
+            "deliver",
+            "commit",
+            "deploy"
           ],
           "title": "Action",
           "type": "string"
@@ -356,6 +363,7 @@
             "tasks",
             "documents",
             "research",
+            "development",
             "general"
           ],
           "title": "Domain",
@@ -388,6 +396,7 @@
               "change_access",
               "money",
               "push",
+              "local_candidate_commit",
               "deploy"
             ],
             "type": "string"
@@ -428,7 +437,9 @@
               "google_tasks",
               "google_drive",
               "local_library",
-              "telegram_attachment"
+              "telegram_attachment",
+              "registered_repository",
+              "control_plane"
             ],
             "type": "string"
           },
@@ -645,7 +656,7 @@
       "type": "string"
     },
     "corpus_version": {
-      "const": "1.0.0",
+      "const": "2.0.0",
       "title": "Corpus Version",
       "type": "string"
     },
@@ -714,10 +725,12 @@
         "enum": [
           "adversarial",
           "analysis",
+          "authority_boundary",
           "analyze",
           "bridge_offline",
           "category.analytics_research_general",
           "category.business_notes",
+          "category.development_miniapp_control",
           "category.calendar",
           "category.documents_google_local_lifecycle",
           "category.security_effect_tenant_provider_adversarial",
@@ -729,6 +742,7 @@
           "cross_client_denied",
           "cross_project_denied",
           "deliver",
+          "gate2a",
           "delivery_unknown",
           "google",
           "half_open_time",
@@ -751,6 +765,7 @@
           "secret_path_denied",
           "security",
           "select",
+          "specialist_worker",
           "share",
           "stale_revision_denied",
           "tenant_isolation",

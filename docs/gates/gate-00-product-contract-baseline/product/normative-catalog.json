@@ -1,0 +1,68 @@
+{
+  "agent_roles": [
+    "general_orchestrator_worker",
+    "google_workspace_specialist",
+    "research_analytics_specialist",
+    "content_studio_specialist",
+    "development_specialist",
+    "verification_specialist"
+  ],
+  "contract_version": "2.0.0",
+  "corpus_version": "2.0.0",
+  "development_requirements": {
+    "minimum_cases": 8,
+    "required_error_codes": [
+      "MODEL_AUTHORITY_DENIED",
+      "L4_REQUIRED",
+      "SELF_DEPLOYMENT_DENIED"
+    ],
+    "required_modalities": [
+      "text",
+      "voice_transcript"
+    ]
+  },
+  "domains": [
+    "notes",
+    "calendar",
+    "tasks",
+    "documents",
+    "research",
+    "development",
+    "general"
+  ],
+  "gate_ids": [
+    "0",
+    "1",
+    "2",
+    "2a",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+  ],
+  "required_sources": [
+    {"path": "docs/05-Спецификации-контрактов.md", "sha256": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6"},
+    {"path": "docs/06-Регламент-качества-L1-L4.md", "sha256": "sha256:9aed0e4d84a61b959e54520b6d6631220f64b14225c713807ec03b6af288fb10"},
+    {"path": "docs/07-Правила-внешней-записи.md", "sha256": "sha256:aa867c0a2ec4f959c49103985b131012ceffaa566a9af676b39e817bcdff3da5"},
+    {"path": "docs/10-Политика-памяти.md", "sha256": "sha256:1d2b42e6f83f0194b1b8aa26b5278a6215412db65e1e9941befe6f7b8232d4c5"},
+    {"path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md", "sha256": "sha256:454b77465f514082a9517b28db9dd6bcb8a4a70161d904cd119993eef1496626"},
+    {"path": "docs/13-Интегрированная-архитектура-MVP-1.md", "sha256": "sha256:36a1121cf860c4794a133c1d9b6093e302ef7bce4fe30377d6ec1e52db3f40cc"},
+    {"path": "docs/adr/0017-hybrid-natural-google-local-document-plane.md", "sha256": "sha256:dc58d5be0d0d1805be39c0cb2e6b49cbff961408561d18dc51ebf2dc32781e9d"},
+    {"path": "docs/adr/0018-cross-gate-mvp1-integration.md", "sha256": "sha256:8f6c3a6a0b3ce15f73266c34023e557e2b69fe6ebee7fb93a9cc64b2e63041bb"},
+    {"path": "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md", "sha256": "sha256:0e663d30e78050272d78a2be66b28449495671348f70b2c5677df70e8bc7a5ba"},
+    {"path": "docs/adr/0020-early-miniapp-and-specialist-workers.md", "sha256": "sha256:206821459482092ba61a80f6b7efc8d846a4ced51affda335a4fdc8a504824a8"},
+    {"path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md", "sha256": "sha256:5d08bdc1333d5d3ab7ea3cfe78d86243d48c3da7da7defc6829b356846175a19"},
+    {"path": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md", "sha256": "sha256:9c6e9fa39d00984b58d3faad7648c9256729ba08b90858bd835bf03bf2c2e4d6"},
+    {"path": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md", "sha256": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301"},
+    {"path": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md", "sha256": "sha256:d2222cc5050de339127f1b079c8259fdd6fb4f6e59d782bf9a388d0ca5307e0c"},
+    {"path": "docs/gates/gate-03-google-foundation/ARCHITECTURE.md", "sha256": "sha256:599755c46c78e29a65e14001cf9d550aa31072ffb8fde35b9a401f676a9727d4"},
+    {"path": "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md", "sha256": "sha256:301d081588bfdeceb0bac267cf2417876992ebbad1a5a62db52037044adf256c"},
+    {"path": "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md", "sha256": "sha256:2ed3887d88ca16443861193702501ce10cdf25fd51a6644b46c083fcf425cb8e"},
+    {"path": "docs/gates/gate-06-multidocument-analytics/ARCHITECTURE.md", "sha256": "sha256:14a64dfa5f13792b5fca70b2aa75fc43074af72f7ee17b25c0b5d9aa5dae29bd"},
+    {"path": "docs/gates/gate-07-artifact-factory-writeback/ARCHITECTURE.md", "sha256": "sha256:dec2aecb8380740a5928ed74ec01d03bacb0c835f533ff82f9e4b55335bd51f7"},
+    {"path": "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md", "sha256": "sha256:39dc8989bef0d5855b5d762a108883efd4fa7ffb784feed5223b706b5cd781ff"}
+  ],
+  "schema": "nobus.gate0.normative_catalog.v1"
+}

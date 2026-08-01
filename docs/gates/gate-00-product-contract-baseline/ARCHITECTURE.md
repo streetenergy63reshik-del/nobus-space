@@ -1,9 +1,10 @@
 # Gate 0 — Product Contract и Baseline Evidence Architecture
 
 **Статус документа:** TARGET DESIGN
-**Статус Gate 0:** NOT IMPLEMENTED / NOT PASS
+**Источник implementation status:** только `HANDOFF.md` вместе с отдельным
+immutable acceptance binding; этот TARGET-документ сам по себе PASS не объявляет
 **Каноническая база design:** `9d816b35d3f419b42e24ad09ae6aadc92c33db43`
-**Дата:** 28 июля 2026 года
+**Дата актуализации:** 31 июля 2026 года
 **Владелец решения:** владелец продукта Nobus Space
 **Исследовательское основание:** [`RESEARCH.md`](RESEARCH.md)
 
@@ -48,7 +49,7 @@ Gate 0 создаёт:
 - канонический обезличенный corpus natural text/voice requests;
 - contract/eval fixtures и golden outputs;
 - architecture fitness contracts;
-- формальный handoff Gate 1–8.
+- формальный handoff Gate 1–8, включая обязательный Gate 2A.
 
 ### 2.2. Пользовательская ценность
 
@@ -105,6 +106,22 @@ Gate 0 MUST NOT:
 6. кодовые комментарии, research и исторические материалы.
 
 Research объясняет решение, но не становится каноном автоматически.
+### 4.1.1. Закрытый нормативный input catalog
+
+Gate 0 MUST использовать один закрытый
+`product/normative-catalog.json`, который:
+
+- перечисляет exact accepted ADR и TARGET architecture sources;
+- привязывает каждый source к SHA-256 его exact bytes;
+- фиксирует закрытые domain, Gate и specialist-role vocabularies;
+- задаёт minimum coverage для `development` и authority-boundary cases;
+- fail-closed отклоняет missing, duplicate-key, non-finite и digest-mismatched
+  input.
+
+Product Contract, documentation inventory, corpus и consumer handoff MUST
+производиться из этого catalog либо независимо сверяться с ним. Добавление
+значения только в generator enum не является полным изменением контракта.
+
 
 ### 4.2. Иерархия фактов CURRENT
 
@@ -761,7 +778,7 @@ Gate 0 MUST зафиксировать:
 - text и подтверждённый voice как семантически равные owner inputs;
 - slash-команды только как operational fallback;
 - один понятный clarification вместо угадывания;
-- домены `notes`, `calendar`, `tasks`, `documents`, `research`, `general`;
+- домены `notes`, `calendar`, `tasks`, `documents`, `research`, `development`, `general`;
 - общий Google/local document lifecycle;
 - закрытые actions, requested outputs и proposed effects;
 - Core как владелец policy, state, risk и idempotency;
@@ -802,7 +819,7 @@ Pydantic-реализация и migrations принадлежат Gate 2.
 - изменение domain/action/effect/error semantics, trust boundary или expected
   outcome → major Product Contract/corpus revision;
 - удаление case заменяется tombstone/deprecation, не бесследным удалением;
-- любое incompatible contract change требует impact analysis, Gate 1–8
+- любое incompatible contract change требует impact analysis, Gate 1–8, включая Gate 2A,
   consumer map, L1/L2/L3 и при необходимости ADR;
 - изменение authority, external action, data retention, cost или production
   behavior требует владельца/L4;
@@ -812,7 +829,7 @@ Pydantic-реализация и migrations принадлежат Gate 2.
 
 ### 7.1. Размер и taxonomy
 
-Минимум — 80 cases. Нормативный стартовый target — **96 cases**:
+Минимум — 80 cases. Нормативный стартовый target — **104 cases**:
 
 | Категория | Cases |
 |---|---:|
@@ -823,7 +840,8 @@ Pydantic-реализация и migrations принадлежат Gate 2.
 | Analytics/research/general | 12 |
 | Voice/text/context/clarification | 12 |
 | Security/effect/tenant/provider/adversarial | 16 |
-| **Итого** | **96** |
+| Development/Mini App/worker authority | 8 |
+| **Итого** | **104** |
 
 Дополнительные coverage requirements:
 
@@ -836,6 +854,9 @@ Pydantic-реализация и migrations принадлежат Gate 2.
 - cross-tenant/project/client, prompt injection, replay, secret-path, traversal,
   reparse и stale revision представлены.
 
+- `development` представлен text/voice pairs для model-authority denial,
+  action-bound local candidate commit, self-deployment denial и sanitized
+  status без remote/push/deploy authority.
 Один case может иметь несколько tags, но не используется для искусственного
 выполнения количественных квот двух первичных категорий одновременно.
 
@@ -1238,12 +1259,48 @@ manifest_digest: digest
 Manifest не перечисляет secrets/runtime databases как copied artifacts. Для
 них остаются sanitized evidence refs.
 
+### 12.2. Immutable acceptance binding
+
+`result_commit` не может корректно ссылаться на commit, внутри которого он
+находится. Поэтому READY seal и immutable Git acceptance разделяются:
+
+1. result commit содержит exact sealed Gate 0 tree и может сохранять
+   `result_commit=null` как честное self-reference limitation;
+2. следующий отдельный acceptance commit содержит
+   `GATE-0-ACCEPTANCE.json`, который связывает exact result commit и его tree
+   object;
+
+```yaml
+schema: nobus.gate0.acceptance.v1
+gate: 0
+status: accepted
+result_commit: exact 40-hex parent commit
+result_tree: exact 40-hex Git tree of result_commit
+result_handoff_ref: docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/gate-handoff.json
+result_handoff_sha256: exact digest of the handoff blob in result_commit
+accepted_at: UTC datetime
+accepted_by: identified owner authority
+```
+
+Acceptance commit MUST изменять только этот record и три status-проекции:
+root `README.md`, `docs/gates/README.md`, `docs/handoffs/CURRENT-STATUS.md`.
+Каждая status-проекция MUST содержать exact `result_commit` и `result_tree`.
+3. Gate 1 потребляет только пару `result_commit` + `result_tree`, указанную в
+   accepted binding, и независимо сверяет оба Git object;
+4. изменение sealed result требует нового candidate, review chain и нового
+   acceptance binding; перенос старого READY запрещён.
+
+README и status-документы могут объявить Gate 0 READY только в acceptance
+commit либо позже. До этого seal является candidate evidence, а не
+каноническим integration authority.
+
 ## 13. Gate 1–8 interface и handoff
 
 | Gate | Обязательные входы Gate 0 | Что нельзя считать выполненным заранее |
 |---|---|---|
 | 1 Intent/Voice | corpus version/digest, intent vocabulary, ambiguity/effect rules, baseline score | parser/prompt/confidence/context implementation |
 | 2 Contracts/Registries | contract catalog, schema/golden fixtures, registry semantics, fitness rules | production models, migrations, registry data |
+| 2A Mini App/Development | development cases, specialist roles, Agent Registry and control contracts, no-self-deploy/L4 rules | production Mini App, server deployment, worker runtime |
 | 3 Google/Gemini | provider/data policy, external capability baseline, event fields | model/provider selection, cost cap, adapter implementation |
 | 4 Notes/Calendar/Tasks | domain cases, authority and idempotency rules | end-to-end effects |
 | 5 Documents/Bridge | lifecycle, deny/source/output semantics, path/adversarial cases | Bridge protocol/auth/indexer/parser |
@@ -1342,13 +1399,14 @@ Gate 0 implementation MUST NOT переносить существующие tes
 
 - сформировать machine-readable Product Contract;
 - зафиксировать vocabularies, authority, trust boundaries и Gate ownership;
-- сверить с docs 05/06/12 и ADR 0017.
+- сверить с закрытым normative catalog, включая ADR 0020, Gate 2A и exact
+  digests всех required sources.
 
 **Exit:** нет противоречий или они явно `BLOCKED`.
 
 ### Slice 3 — Corpus
 
-- создать 96 synthetic/sanitized cases;
+- создать 104 synthetic/sanitized cases, включая 8 development cases;
 - проверить taxonomy/coverage;
 - провести product и security review expected decisions;
 - сформировать corpus digest.
@@ -1384,9 +1442,11 @@ Gate 0 implementation MUST NOT переносить существующие tes
 
 ### Slice 7 — Verification and handoff
 
-- L1 deterministic;
-- L2 independent reproduction from exact inputs;
-- L3 adversarial audit;
+- L1 deterministic через внешний candidate-bound submission;
+- L2 independent reproduction from exact inputs через отдельного reviewer;
+- L3 adversarial audit через третьего reviewer;
+- валидировать identity, method, evidence refs, exact bindings и уникальность
+  трёх reviewer IDs, не присваивая verdict внутри generator;
 - manifest review;
 - создать handoff.
 
@@ -1407,7 +1467,7 @@ Gate 0 implementation MUST NOT переносить существующие tes
 | G0-08 | pytest collection и full result привязаны к environment | TestEvidence | Да |
 | G0-09 | External capabilities имеют отдельный status/freshness | ExternalCapabilityEvidence | Да |
 | G0-10 | Product Contract machine-readable и непротиворечив | Contract + L2 review | Да |
-| G0-11 | Corpus ≥80; target 96 и coverage выполнен | Corpus manifest/coverage | Да |
+| G0-11 | Corpus ≥80; target 104 и coverage выполнен | Corpus manifest/coverage | Да |
 | G0-12 | Нет real owner/client payload и secrets | Data/secret scan | Да |
 | G0-13 | Positive/negative/adversarial expected decisions reviewed | Fixtures + reviews | Да |
 | G0-14 | Pydantic/jsonschema/golden agreement | Contract reports | Да |
@@ -1446,7 +1506,8 @@ Gate 0 implementation MUST NOT переносить существующие tes
 - собирает baseline другим процессом или из raw command evidence;
 - пересчитывает artifact/corpus/manifest digests;
 - сравнивает code map с actual imports/requirements/tests;
-- проверяет Product Contract по docs 05/06/12 и ADR 0017;
+- проверяет Product Contract по closed normative catalog, ADR 0020, Gate 2A и
+  accepted sources независимо от итоговой сводки автора;
 - повторяет corpus schema/coverage без использования итоговой сводки автора;
 - сверяет primary source versions/licenses для добавляемых dependencies.
 
@@ -1471,6 +1532,27 @@ Gate 0 implementation MUST NOT переносить существующие tes
 
 L3 PASS не заменяет L1/L2.
 
+
+### 18.4. External review receipt contract и safe profiles
+
+`record-review` MUST только валидировать и сохранять внешний submission. Он
+MUST NOT создавать `pass`/`accept`, findings или check results за reviewer.
+Каждый submission обязан содержать:
+
+- exact lowercase level `l1`, `l2` либо `l3`;
+- отдельные `reviewer_id` и reviewer type, method и attestations разделения;
+- exact candidate/frozen/capture/review tree bindings;
+- исполнимые check results и repository-relative evidence refs;
+- пустые blockers только как результат фактически выполненной проверки.
+
+Seal повторно валидирует форму receipts и требует три уникальных reviewer IDs.
+Отсутствующий submission, повтор identity, mismatch или неполный check set
+fail-closed блокируют READY.
+
+Default read-only profile перечисляет только pure contract/evidence test files.
+Live-capable `manage_runtime_maintenance.ps1` не входит в его argv и запускается
+только напрямую по exact action-bound L4. Mocked maintenance contract tests и
+реальное live action не должны описываться одним verification profile.
 ## 19. Definition of Done
 
 Gate 0 считается реализованным только когда:
@@ -1478,19 +1560,20 @@ Gate 0 считается реализованным только когда:
 1. все artifacts раздела 12 существуют и входят в manifest;
 2. evidence pack относится к свежему exact environment;
 3. Product Contract и corpus приняты на одной revision;
-4. минимум 80 cases есть, target 96 и все coverage requirements выполнены;
+4. минимум 80 cases есть, target 104 и все coverage requirements выполнены;
 5. real owner/client payload отсутствует;
 6. baseline claims не смешивают docs/repo/runtime/process/DB/config;
 7. все mandatory acceptance IDs PASS;
-8. L1/L2/L3 имеют независимые evidence;
+8. L1/L2/L3 имеют внешние candidate-bound receipts с тремя уникальными identities;
 9. все contradictions reconciled либо Gate имеет `BLOCKED`;
-10. создан Gate handoff с exact inputs Gate 1;
-11. root integration/владелец явно принимает handoff;
-12. только после этого статус может быть изменён на PASS в каноническом
+10. создан Gate handoff с exact inputs Gate 1 и Gate 2A;
+11. result commit и tree зафиксированы отдельным immutable acceptance binding;
+12. root integration/владелец явно принимает этот binding;
+13. только после этого статус может быть изменён на PASS в каноническом
     integration change-set.
 
-Текущая ФАЗА 2 выполняет только TARGET design и поэтому не удовлетворяет этим
-условиям автоматически.
+Ни TARGET design, ни generated seal сами по себе не удовлетворяют этим
+условиям: implementation truth устанавливает только accepted Git binding.
 
 ## 20. Открытые решения владельца
 

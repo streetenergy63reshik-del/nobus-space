@@ -1,5 +1,17 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
+## Gate 0–8 architecture iteration — 31 июля 2026
+
+Gate 0 `Product Contract and Baseline Evidence` имеет статус `REWORK`.
+Независимый аудит отозвал READY у commit
+`0a0f56e8b6f77deccba2b51239a3fe1f207da349`: старый baseline не включал ADR
+0020/Gate 2A/`development`, а его L2/L3 receipts не доказывали независимое
+происхождение. Gate 1 integration и commit заблокированы до нового sealed
+result commit и отдельного immutable acceptance binding. Текущий remediation
+record: [`../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md`](../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
+
+Остальной документ ниже — исторический runtime snapshot предыдущей итерации.
+
 **Дата:** 2026-07-28
 **Runtime feature commit:** `b69e846`
 **Live runtime commit:** `b69e846`
@@ -17,7 +29,14 @@
   сквозная architecture — в [`../13-Интегрированная-архитектура-MVP-1.md`](../13-Интегрированная-архитектура-MVP-1.md);
   детальные исследования/design — в [`../gates`](../gates/README.md); решения —
   [ADR 0017](../adr/0017-hybrid-natural-google-local-document-plane.md) и
-  [ADR 0018](../adr/0018-cross-gate-mvp1-integration.md).
+  [ADR 0018](../adr/0018-cross-gate-mvp1-integration.md), а owner-selected
+  сервисы, filesystem authority и runtime parameters —
+  [ADR 0019](../adr/0019-owner-service-filesystem-and-runtime-decisions.md).
+- Владелец выбрал CLI-first persistent Codex app-server/SDK без OpenAI API по
+  умолчанию, My Drive + обычные shared items, controlled full owner-root
+  workspace `C:\Хранилище\АГЕНТ`, Healthchecks.io → Gmail и benchmark-gated
+  платные fallback. Эти решения остаются TARGET до реализации соответствующих
+  Gate.
 - Архитектура теперь требует opaque local handles, atomic effect+job admission,
   раздельные provider/delivery unknown и честные Google preconditions: Docs CAS,
   Sheets/Drive new-version-or-deny.

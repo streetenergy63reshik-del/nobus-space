@@ -28,10 +28,31 @@ GATE0_CLOSURE_AUTHORITY = "owner-authority:gate0-evidence-closure-2026-07-29"
 TELEGRAM_GENESIS_ID = "genesis_baseline:telegram_state_current_schema"
 GATE0_OWNED_FILES = {
     ".gitattributes",
+    "README.md",
+    "docs/04-\u0416\u0443\u0440\u043d\u0430\u043b-ADR.md",
+    "docs/07-\u041f\u0440\u0430\u0432\u0438\u043b\u0430-\u0432\u043d\u0435\u0448\u043d\u0435\u0439-\u0437\u0430\u043f\u0438\u0441\u0438.md",
+    "docs/12-\u042d\u0442\u0430\u043b\u043e\u043d-MVP-1-\u0438-\u0434\u043e\u0440\u043e\u0436\u043d\u0430\u044f-\u043a\u0430\u0440\u0442\u0430.md",
+    "docs/13-\u0418\u043d\u0442\u0435\u0433\u0440\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f-\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0430-MVP-1.md",
+    "docs/README.md",
+    "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+    "docs/adr/0020-early-miniapp-and-specialist-workers.md",
+    "docs/gates/README.md",
+    "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+    "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+    "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
+    "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
+    "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md",
+    "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
+    "docs/handoffs/CURRENT-STATUS.md",
     "tests/test_fake_vertical.py",
     "tests/test_telegram_gateway.py",
     "tests/test_trusted_ingress.py",
 }
+GATE0_OWNED_PREFIXES = (
+    "docs/gates/gate-00-product-contract-baseline/",
+    "docs/gates/gate-02a-miniapp-development-control/",
+    "tests/gate0/",
+)
 
 
 def _unsafe_artifact_reason(relative: str) -> str | None:
@@ -224,11 +245,8 @@ def _status_entries(repo: pathlib.Path) -> list[dict[str, Any]]:
             path = fields[index]
             index += 1
         normalized = pathlib.PurePath(path).as_posix()
-        gate0_owned = normalized in GATE0_OWNED_FILES or normalized.startswith(
-            (
-                "docs/gates/gate-00-product-contract-baseline/",
-                "tests/gate0/",
-            )
+        gate0_owned = (
+            normalized in GATE0_OWNED_FILES or normalized.startswith(GATE0_OWNED_PREFIXES)
         )
         tracked = status != "??"
         safe_hash: str | None = None

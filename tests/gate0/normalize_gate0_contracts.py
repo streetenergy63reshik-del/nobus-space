@@ -11,8 +11,9 @@ import pathlib
 import re
 import subprocess
 import uuid
-from typing import Any
+from typing import Any, get_args
 
+from gate0_normative_catalog import EXACT_SEMANTIC_SETS, source_document_inventory
 from gate0_lifecycle import (
     authoritative_database_set,
     capture_lifecycle,
@@ -22,7 +23,8 @@ from gate0_lifecycle import (
     test_binding_verified,
     verifier_binding_verified,
 )
-from normative_models import BaselineEvidence, CapabilityClaim, CorpusCase, ProductContract
+from gate0_product_v2 import reconcile_product_v2
+from normative_models import Action, BaselineEvidence, CapabilityClaim, CorpusCase, Domain, EffectKind, ProductContract, SourceKind
 
 
 DESIGN_BASE = "9d816b35d3f419b42e24ad09ae6aadc92c33db43"
@@ -163,7 +165,7 @@ def normalize_case(old: dict[str, Any]) -> dict[str, Any]:
     tags = sorted(set(old["secondary_tags"] + [f"category.{category}"]))
     return {
         "schema": "nobus.gate0.corpus_case.v1",
-        "corpus_version": "1.0.0",
+        "corpus_version": "2.0.0",
         "case_id": old["case_id"],
         "status": old["status"],
         "locale": old["input"]["locale"],
@@ -322,7 +324,7 @@ def build_coverage(cases: list[dict[str, Any]]) -> dict[str, Any]:
     )
     return {
         "schema": "nobus.gate0.corpus_coverage.v1",
-        "corpus_version": "1.0.0",
+        "corpus_version": "2.0.0",
         "total_cases": len(cases),
         "primary_category_counts": counts(category_of),
         "modality_counts": counts(lambda case: case["modality"]),
@@ -341,7 +343,7 @@ def build_coverage(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "document_lifecycle_coverage": lifecycle,
         "security_scenario_coverage": security_codes,
         "requirements": {
-            "target_cases": 96,
+            "target_cases": 104,
             "minimum_cases": 80,
             "minimum_negative_or_adversarial": 30,
             "minimum_text_voice_pairs": 16,
@@ -595,6 +597,13 @@ def product_catalog(product: dict[str, Any]) -> None:
         ("AnalysisRequest", "nobus.analysis_request.v1", "gate2_core", ["gate6"]),
         ("ArtifactPlan", "nobus.artifact_plan.v1", "gate2_core", ["gate7"]),
         ("DocumentWritePlan", "nobus.document_write_plan.v1", "gate2_core", ["gate7"]),
+        ("AgentProfile", "nobus.agent_profile.v1", "gate2a_core", ["miniapp", "worker_runtime"]),
+        ("AgentDispatch", "nobus.agent_dispatch.v1", "gate2a_core", ["worker_runtime"]),
+        ("ApprovalChallenge", "nobus.approval_challenge.v1", "gate2a_core", ["miniapp", "effect_adapter"]),
+        ("CodeTaskContract", "nobus.code_task.v1", "gate2a_core", ["development_worker"]),
+        ("CodePlan", "nobus.code_plan.v1", "development_worker", ["gate2a_core", "miniapp"]),
+        ("PatchCandidate", "nobus.patch_candidate.v1", "development_worker", ["gate2a_core", "miniapp"]),
+        ("CandidateCommitReceipt", "nobus.candidate_commit_receipt.v1", "git_effect_adapter", ["gate2a_core", "miniapp"]),
     ]
     catalog = []
     for name, schema_id, producer, consumers in current + target:
@@ -604,7 +613,7 @@ def product_catalog(product: dict[str, Any]) -> None:
                 "contract_name": name,
                 "schema_id": schema_id,
                 "status": "target" if is_target else "current",
-                "owner": "gate2" if is_target and name != "IntentEnvelope" else "gate1" if name == "IntentEnvelope" else "current_core",
+                "owner": "gate2a" if name in {"AgentProfile", "AgentDispatch", "ApprovalChallenge", "CodeTaskContract", "CodePlan", "PatchCandidate", "CandidateCommitReceipt"} else "gate2" if is_target and name != "IntentEnvelope" else "gate1" if name == "IntentEnvelope" else "current_core",
                 "producer": producer,
                 "consumers": consumers,
                 "trust_boundary": "strict_tenant_project_client_bound",
@@ -617,6 +626,8 @@ def product_catalog(product: dict[str, Any]) -> None:
                 "source_ref": (
                     "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md"
                     if name == "IntentEnvelope"
+                    else "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md"
+                    if name in {"AgentProfile", "AgentDispatch", "ApprovalChallenge", "CodeTaskContract", "CodePlan", "PatchCandidate", "CandidateCommitReceipt"}
                     else "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md"
                     if is_target
                     else "docs/05-\u0421\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u0438-\u043a\u043e\u043d\u0442\u0440\u0430\u043a\u0442\u043e\u0432.md"
@@ -628,6 +639,7 @@ def product_catalog(product: dict[str, Any]) -> None:
 
 def component_manifest(root: pathlib.Path, gate: pathlib.Path, observed_at: str) -> dict[str, Any]:
     relatives = [
+        "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
         "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
         "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
         "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
@@ -954,7 +966,7 @@ def normalized_baseline(root: pathlib.Path, gate: pathlib.Path) -> dict[str, Any
         ],
         "baseline_scores": {
             "current_system": {
-                "corpus_version": "1.0.0",
+                "corpus_version": "2.0.0",
                 "corpus_digest": digest((gate / "corpus/requests.v1.jsonl").read_bytes()),
                 "report_ref": tests_ref,
                 "pass_rate": None,
@@ -1187,8 +1199,8 @@ def normalize_legacy(root: pathlib.Path, gate: pathlib.Path) -> None:
     write(gate / "corpus/coverage.json", coverage)
     corpus_manifest = {
         "schema": "nobus.gate0.corpus_manifest.v1",
-        "corpus_version": "1.0.0",
-        "line_count": 96,
+        "corpus_version": "2.0.0",
+        "line_count": len(cases),
         "corpus_digest": digest(jsonl),
         "coverage_digest": digest((gate / "corpus/coverage.json").read_bytes()),
         "case_ids_digest": digest(canonical([case["case_id"] for case in cases])),
@@ -1317,9 +1329,16 @@ _TARGET_ENUMS: dict[str, list[str]] = {
     "purpose": ["summarize", "answer", "extract_facts", "analyze", "preview"],
     "modality": ["text", "voice"],
     "status": ["ready", "needs_clarification", "unsupported", "rejected"],
-    "domain": ["notes", "calendar", "tasks", "documents", "research", "general"],
-    "action": ["none", "answer", "help", "status", "limit", "cancel", "search", "read", "list", "summarize", "compare", "analyze", "audit", "report", "remember", "extract_tasks", "create", "update", "complete", "delete", "deliver"],
+    "domain": list(get_args(Domain)),
+    "action": list(get_args(Action)),
+    "source": list(get_args(SourceKind)),
+    "effect_kind": list(get_args(EffectKind)),
     "access": ["metadata", "content"],
+    "role": EXACT_SEMANTIC_SETS["agent_roles"],
+    "host_class": ["server", "windows_development", "windows_document"],
+    "data_class_ceiling": ["public", "internal", "confidential", "restricted"],
+    "code_operation": ["inspect", "audit", "change"],
+    "action_kind": list(get_args(EffectKind)),
     "resolution": ["unresolved", "exact", "ambiguous", "not_found"],
     "risk": ["low", "medium", "high", "critical"],
     "authority": ["direct_owner", "l4_required", "denied"],
@@ -1374,10 +1393,16 @@ def target_golden_schema_projection(value: Any, path: tuple[str, ...] = ()) -> d
             return {"type": "string", "const": value}
         if key == "schema_version":
             return {"type": "string", "const": "1"}
+        if key == "operation" and "CodeTaskContract" in path:
+            return {"type": "string", "enum": _TARGET_ENUMS["code_operation"]}
         if key in _TARGET_ENUMS:
             return {"type": "string", "enum": _TARGET_ENUMS[key]}
+        if key == "kind" and "proposed_effects" in path:
+            return {"type": "string", "enum": _TARGET_ENUMS["effect_kind"]}
         if key == "kind":
             return {"type": "string", "const": value}
+        if key.endswith("_commit"):
+            return {"type": "string", "pattern": "^[0-9a-f]{40}$"}
         if key.endswith("_digest") or key in {"intent_revision", "ingress_digest"}:
             return {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
         if key.endswith("_at"):
@@ -1395,12 +1420,12 @@ def target_golden_schema_projection(value: Any, path: tuple[str, ...] = ()) -> d
 
 
 def target_schema_document(name: str, instance: dict[str, Any]) -> dict[str, Any]:
-    body = target_golden_schema_projection(instance)
+    body = target_golden_schema_projection(instance, (name,))
     return schema_header(
         f"urn:nobus:gate0:target-golden-projection:{name}:v1",
         f"{name} exact synthetic golden structural projection",
         {
-            "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+            "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
             **body,
         },
     )
@@ -1656,10 +1681,123 @@ def target_contract_instances() -> dict[str, dict[str, Any]]:
             "expires_at": "2030-01-10T01:00:00Z",
         },
     )
+    gate2a = {
+        "AgentProfile": {
+            "schema": "nobus.agent_profile.v1",
+            "agent_profile_ref": "agent-profile:development-v1",
+            "role": "development_specialist",
+            "implementation_ref": "worker:development@v1",
+            "enabled": False,
+            "host_class": "windows_development",
+            "accepted_task_kinds": ["development"],
+            "capability_profile_ref": "capability:development-v1",
+            "data_class_ceiling": "internal",
+            "network_profile_ref": "network:no-network-v1",
+            "tool_profile_ref": "tools:development-v1",
+            "budget_profile_ref": "budget:development-v1",
+            "deadline_profile_ref": "deadline:development-v1",
+            "output_schema_ref": "schema:code-plan-v1",
+            "verification_profile_ref": "verification:gate2a-v1",
+            "profile_digest": digest_a,
+        },
+        "AgentDispatch": {
+            "schema": "nobus.agent_dispatch.v1",
+            "dispatch_id": "11111111-1111-4111-8111-111111111121",
+            "tenant_id": "tenant-a",
+            "task_id": "11111111-1111-4111-8111-111111111122",
+            "attempt_id": "11111111-1111-4111-8111-111111111123",
+            "contract_digest": digest_a,
+            "agent_profile_ref": "agent-profile:development-v1",
+            "capability_profile_ref": "capability:development-v1",
+            "input_refs": ["artifact:synthetic-input"],
+            "deadline_at": "2030-01-10T01:00:00Z",
+            "lease_generation": 1,
+            "maximum_events": 32,
+            "maximum_output_bytes": 65536,
+            "dispatch_digest": digest_b,
+        },
+        "ApprovalChallenge": {
+            "schema": "nobus.approval_challenge.v1",
+            "challenge_ref": "approval:synthetic-1",
+            "tenant_id": "tenant-a",
+            "owner_identity_ref": "owner:synthetic",
+            "task_id": "11111111-1111-4111-8111-111111111122",
+            "task_revision": digest_a,
+            "action_kind": "local_candidate_commit",
+            "target_ref": "repository:synthetic",
+            "payload_digest": digest_b,
+            "precondition_digest": digest_c,
+            "risk": "high",
+            "issued_at": "2030-01-10T00:00:00Z",
+            "expires_at": "2030-01-10T00:05:00Z",
+            "single_use": True,
+            "approval_digest": digest_a,
+        },
+        "CodeTaskContract": {
+            "schema": "nobus.code_task.v1",
+            "task_id": "11111111-1111-4111-8111-111111111122",
+            "tenant_id": "tenant-a",
+            "owner_request_digest": digest_a,
+            "repository_ref": "repository:synthetic",
+            "expected_base_commit": "a" * 40,
+            "allowed_target_paths_ref": "scope:synthetic-code",
+            "operation": "change",
+            "goal": "Apply the bounded synthetic change.",
+            "acceptance_criteria": ["tests-pass"],
+            "test_profile_ref": "tests:gate2a-v1",
+            "network_profile_ref": "no_network",
+            "credential_profile_ref": "no_production_credentials",
+            "maximum_files": 4,
+            "maximum_patch_bytes": 65536,
+            "deadline_at": "2030-01-10T01:00:00Z",
+            "contract_digest": digest_a,
+        },
+        "CodePlan": {
+            "schema": "nobus.code_plan.v1",
+            "task_id": "11111111-1111-4111-8111-111111111122",
+            "contract_digest": digest_a,
+            "base_commit": "a" * 40,
+            "target_paths": ["tests/synthetic.py"],
+            "steps": ["apply bounded change"],
+            "tests": ["tests:gate2a-v1"],
+            "risks": ["bounded-local-change"],
+            "requires_approval": True,
+            "plan_digest": digest_b,
+        },
+        "PatchCandidate": {
+            "schema": "nobus.patch_candidate.v1",
+            "task_id": "11111111-1111-4111-8111-111111111122",
+            "attempt_id": "11111111-1111-4111-8111-111111111123",
+            "base_commit": "a" * 40,
+            "plan_digest": digest_a,
+            "changed_files": ["tests/synthetic.py"],
+            "patch_digest": digest_b,
+            "delete_manifest": [],
+            "worktree_state_digest": digest_c,
+            "candidate_digest": digest_a,
+        },
+        "CandidateCommitReceipt": {
+            "schema": "nobus.candidate_commit_receipt.v1",
+            "task_id": "11111111-1111-4111-8111-111111111122",
+            "effect_id": "11111111-1111-4111-8111-111111111124",
+            "repository_ref": "repository:synthetic",
+            "base_commit": "a" * 40,
+            "candidate_commit": "b" * 40,
+            "candidate_ref": "candidate:synthetic-1",
+            "tree_digest": digest_a,
+            "patch_digest": digest_b,
+            "verification_bundle_digest": digest_c,
+            "approval_digest": digest_a,
+            "readback_digest": digest_b,
+            "created_at": "2030-01-10T00:01:00Z",
+            "receipt_digest": digest_c,
+        },
+    }
     return {
         "IntentEnvelope": intent,
         "DocumentRef": document_ref,
         "DocumentQuery": document_query,
+        **gate2a,
         "DocumentReadPlan": read_plan,
         "AnalysisRequest": analysis,
         "ArtifactPlan": artifact,
@@ -1768,6 +1906,8 @@ def contract_examples(root: pathlib.Path, catalog: list[dict[str, Any]], target_
 def fix_product(root: pathlib.Path, gate: pathlib.Path) -> dict[str, Any]:
     path = gate / "product/product-contract.json"
     product = load(path)
+    product_catalog(product)
+    product = reconcile_product_v2(root, product)
     for principle in (
         "slash_commands_operational_fallback_only",
         "common_google_local_document_lifecycle",
@@ -1793,6 +1933,10 @@ def fix_product(root: pathlib.Path, gate: pathlib.Path) -> dict[str, Any]:
         "ArtifactPlan": common_gate2 + ["artifact_plan_id", "analysis_digest", "title", "format", "sections", "content_digest", "render_profile", "target_backend", "output_scope_id", "destination_hint", "collision_policy", "provenance_refs"],
         "DocumentWritePlan": common_gate2 + ["write_plan_id", "artifact_plan_digest", "artifact_ref", "artifact_digest", "backend", "operation", "output_scope_id", "target", "expected_revision", "collision_policy", "snapshot_required", "strict_cas_required", "idempotency_key", "approval_binding", "expires_at"],
     }
+    gate2a_names = set(target_contract_instances()) - {"IntentEnvelope", "DocumentRef", "DocumentQuery", "DocumentReadPlan", "AnalysisRequest", "ArtifactPlan", "DocumentWritePlan"}
+    required_fields.update({
+        name: list(instance) for name, instance in target_contract_instances().items() if name in gate2a_names
+    })
     current_schema_ids = {
         "TrustedIngressEnvelope": "python-symbol:src/contracts/models.py#TrustedIngressEnvelope@1",
         "TaskContract": "python-symbol:src/contracts/models.py#TaskContract@1",
@@ -1823,7 +1967,9 @@ def fix_product(root: pathlib.Path, gate: pathlib.Path) -> dict[str, Any]:
             entry["schema_id"] = current_schema_ids[name]
         entry["closed_enum_refs"] = current_enum_refs.get(
             name,
-            ["docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md#5.2"]
+            ["docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"]
+            if name in gate2a_names
+            else ["docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md#5.2"]
             if name == "IntentEnvelope"
             else ["docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md#7"],
         )
@@ -1848,6 +1994,7 @@ def fix_product(root: pathlib.Path, gate: pathlib.Path) -> dict[str, Any]:
             "authoritative_sources": [
                 "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
                 "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+                "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
             ],
             "schemas": target_schemas,
         },
@@ -1900,7 +2047,7 @@ def fix_cases(gate: pathlib.Path, product: dict[str, Any]) -> list[dict[str, Any
         gate / "corpus/corpus-manifest.json",
         {
             "schema": "nobus.gate0.corpus_manifest.v1",
-            "corpus_version": "1.0.0",
+            "corpus_version": "2.0.0",
             "line_count": len(cases),
             "corpus_digest": digest(raw),
             "coverage_digest": digest(
@@ -2033,7 +2180,7 @@ def write_current_parser_baseline(
         "parser_source_ref": "src/orchestrator/intent_parser.py#IntentParser.PATTERNS",
         "parser_source_digest": digest(source_path.read_bytes()),
         "commit_under_test": str(git(root, "rev-parse", "HEAD")),
-        "corpus_version": "1.0.0",
+        "corpus_version": "2.0.0",
         "corpus_digest": digest((gate / "corpus/requests.v1.jsonl").read_bytes()),
         "case_count": len(entries),
         "matches": matches,
@@ -2130,6 +2277,22 @@ def normalize_v2(root: pathlib.Path, gate: pathlib.Path) -> None:
     )
     if "input" in first_case:
         normalize_legacy(root, gate)
+    elif first_case.get("corpus_version") != "2.0.0":
+        from generate_gate0_artifacts import build_corpus
+
+        upgraded = [normalize_case(case) for case in build_corpus()]
+        enhance_security(upgraded)
+        upgraded.sort(key=lambda case: case["case_id"])
+        cases_path.write_bytes(
+            b"".join(canonical(case) + b"\n" for case in upgraded)
+        )
+    documentation_path = gate / "evidence/documentation-inventory.json"
+    documentation = json.loads(documentation_path.read_text(encoding="utf-8"))
+    documentation["current_worktree_documents"] = source_document_inventory(
+        root
+    )
+    write(documentation_path, documentation)
+
     product = fix_product(root, gate)
     cases = fix_cases(gate, product)
     fix_baseline(root, gate, cases)
@@ -2160,6 +2323,20 @@ CONSUMER_HANDOFFS = [
         ],
         "not_precompleted": [
             "production models, migrations or registry data",
+        ],
+    },
+    {
+        "gate": "2a",
+        "name": "miniapp_development_control",
+        "required_inputs": [
+            "normative catalog version and digest",
+            "development and Mini App corpus cases",
+            "agent role and model authority boundaries",
+            "action-bound candidate commit and no-self-deploy rules",
+        ],
+        "not_precompleted": [
+            "server, Mini App, worker runtime or deployment",
+            "registered repository data or production credentials",
         ],
     },
     {
@@ -2349,6 +2526,51 @@ def fix_capture_enclosure(root: pathlib.Path, gate: pathlib.Path) -> None:
         write(gate / "fixtures/contracts/invalid" / name, invalid_capability)
 
 
+def genesis_handoff_projection(
+    proof_status: str,
+    *,
+    accepted: bool,
+) -> dict[str, Any]:
+    if proof_status not in {"VERIFIED", "STALE", "CONTRADICTORY"}:
+        raise ValueError("genesis proof status is invalid")
+    if accepted and proof_status != "VERIFIED":
+        raise ValueError("genesis acceptance requires verified proof")
+    if accepted:
+        return {
+            "database_migration_status": "GENESIS_BASELINE_VERIFIED",
+            "target_remaining": [
+                "Gate 2 must start its durable migration ledger at the accepted genesis before any post-genesis migration",
+            ],
+            "risk": (
+                "Historical Telegram legacy migration execution is not proven; only "
+                "the accepted current schema is the genesis baseline"
+            ),
+        }
+    if proof_status == "VERIFIED":
+        return {
+            "database_migration_status": "GENESIS_PROOF_VERIFIED_ACCEPTANCE_PENDING",
+            "target_remaining": [
+                "Complete the Gate 0 independent review and READY seal before accepting the verified genesis proof",
+                "Gate 2 may start the durable ledger only from a subsequently accepted genesis baseline",
+            ],
+            "risk": (
+                "Current Telegram schema proof is verified; genesis acceptance remains "
+                "pending until the Gate 0 READY seal"
+            ),
+        }
+    return {
+        "database_migration_status": proof_status,
+        "target_remaining": [
+            "Obtain one fresh consistent source-matched telegram_state capture before accepting a genesis baseline",
+            "Gate 2 may start the durable ledger only from a subsequently accepted genesis baseline",
+        ],
+        "risk": (
+            "No genesis baseline is accepted because the saved Telegram database "
+            "proof is stale or contradictory"
+        ),
+    }
+
+
 def fix_handoff(gate: pathlib.Path) -> None:
     baseline = load(gate / "evidence/baseline-evidence.json")
     corpus = load(gate / "corpus/corpus-manifest.json")
@@ -2464,6 +2686,14 @@ def fix_handoff(gate: pathlib.Path) -> None:
         if database_capture_state == "STALE"
         else "CONTRADICTORY"
     )
+    genesis_projection = genesis_handoff_projection(
+        "VERIFIED"
+        if genesis_verified
+        else "STALE"
+        if telegram_status == "STALE"
+        else "CONTRADICTORY",
+        accepted=False,
+    )
     handoff.update(
         {
             "status": "blocked",
@@ -2475,13 +2705,7 @@ def fix_handoff(gate: pathlib.Path) -> None:
                 "repository_commit": baseline["repository"]["head_commit"],
                 "runtime_commit": baseline["runtime_release"]["runtime_head_commit"],
                 "runner_status": baseline["processes"][0]["status"],
-                "database_migration_status": (
-                    "GENESIS_BASELINE_VERIFIED"
-                    if genesis_verified
-                    else "STALE"
-                    if telegram_status == "STALE"
-                    else "CONTRADICTORY"
-                ),
+                "database_migration_status": genesis_projection["database_migration_status"],
                 "database_runtime_binding_status": database_binding_status,
                 "server_profile_status": "NOT_APPLICABLE_VERIFIED",
             },
@@ -2493,17 +2717,8 @@ def fix_handoff(gate: pathlib.Path) -> None:
                 "gate_status": "blocked",
             },
             "release_readiness_blockers": release_blockers,
-            "target_remaining": (
-                [
-                    "Gate 2 must start its durable migration ledger at the accepted genesis before any post-genesis migration",
-                ]
-                if genesis_verified
-                else [
-                    "Obtain one fresh consistent source-matched telegram_state capture before accepting a genesis baseline",
-                    "Gate 2 may start the durable ledger only from a subsequently accepted genesis baseline",
-                ]
-            ),
-            "applied_contract_version": "1.0.0",
+            "target_remaining": genesis_projection["target_remaining"],
+            "applied_contract_version": product["contract_version"],
             "applied_contract_digest": digest(canonical(product)),
             "applied_corpus_version": corpus["corpus_version"],
             "applied_corpus_digest": corpus["corpus_digest"],
@@ -2520,11 +2735,7 @@ def fix_handoff(gate: pathlib.Path) -> None:
             },
             "l4_ref": "owner-authority:gate0-evidence-closure-2026-07-29",
             "unresolved_risks": [
-                (
-                    "Historical Telegram legacy migration execution is not proven; only the accepted current schema is the genesis baseline"
-                    if genesis_verified
-                    else "No genesis baseline is accepted because the saved Telegram database proof is stale or contradictory"
-                ),
+                genesis_projection["risk"],
                 *[
                     f"{criterion}: {reason}"
                     for criterion, reason in sorted(criterion_reasons.items())
@@ -2601,11 +2812,16 @@ def fix_handoff(gate: pathlib.Path) -> None:
             "unresolved_risks": handoff_string_array(),
             "consumer_handoffs": {
                 "type": "array",
-                "minItems": 8,
-                "maxItems": 8,
+                "minItems": 9,
+                "maxItems": 9,
                 "items": strict_object(
                     {
-                        "gate": {"type": "integer", "minimum": 1, "maximum": 8},
+                        "gate": {
+                            "oneOf": [
+                                {"type": "integer", "minimum": 1, "maximum": 8},
+                                {"const": "2a"},
+                            ]
+                        },
                         "name": {"type": "string"},
                         "required_inputs": handoff_string_array(),
                         "not_precompleted": handoff_string_array(),

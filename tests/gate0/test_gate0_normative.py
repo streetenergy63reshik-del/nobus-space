@@ -21,6 +21,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 
 from collect_gate0_snapshot import _snapshot_evidence
+from gate0_precapture import STATUS_VOLATILE_PATHS
 from gate0_lifecycle import capture_lifecycle, database_capture_lifecycle
 from normative_models import (
     BaselineEvidence,
@@ -36,7 +37,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 GATE = ROOT / "docs/gates/gate-00-product-contract-baseline"
 CORPUS = GATE / "corpus/requests.v1.jsonl"
 DESIGN_BASE = "9d816b35d3f419b42e24ad09ae6aadc92c33db43"
-REPO_HEAD = "d11eda855a4e2ff88096dc536f36374daacc4de6"
+REPO_HEAD = subprocess.run(
+    ["git", "rev-parse", "HEAD"],
+    cwd=ROOT,
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout.strip()
 RUNTIME_HEAD = "1ac52a00fd22b25cb6fcbd9f694688157c900cc8"
 
 
@@ -155,7 +162,7 @@ class Mutations(ClosedModel):
 
 
 class ConsumerHandoff(ClosedModel):
-    gate: StrictInt
+    gate: StrictInt | Literal["2a"]
     name: str
     required_inputs: list[str]
     not_precompleted: list[str]
@@ -237,7 +244,7 @@ def test_all_json_and_jsonl_are_utf8_lf_without_duplicate_keys() -> None:
         if path.suffix == ".json":
             load_json(path)
     cases = load_cases()
-    assert len(cases) == 96
+    assert len(cases) == 104
     assert CORPUS.read_bytes() == b"".join(
         canonical_bytes(case) + b"\n" for case in cases
     )
@@ -307,8 +314,9 @@ def test_corpus_has_exact_architecture_distribution() -> None:
         "analytics_research_general": 12,
         "voice_text_context_clarification": 12,
         "security_effect_tenant_provider_adversarial": 16,
+        "development_miniapp_control": 8,
     }
-    assert len({case["case_id"] for case in cases}) == 96
+    assert len({case["case_id"] for case in cases}) == 104
 
 def test_reworked_corpus_oracles_are_explicitly_grounded() -> None:
     cases = {case["case_id"]: case for case in load_cases()}
@@ -369,7 +377,7 @@ def test_text_voice_pairs_are_reciprocal_and_semantically_equal() -> None:
         for case_id, case in cases.items()
         if case["pair_ref"]
     }
-    assert len(pairs) == 16
+    assert len(pairs) == 20
     for left_id, right_id in pairs:
         left, right = cases[left_id], cases[right_id]
         assert left["pair_ref"] == right_id and right["pair_ref"] == left_id
@@ -388,6 +396,8 @@ def test_natural_corpus_oracles_are_grounded_in_each_request() -> None:
         "local_library": ("локальн", "bridge"),
         "public_web": ("публичн",),
         "telegram_attachment": ("telegram attachment",),
+        "registered_repository": ("модель", "candidate commit"),
+        "control_plane": ("live service", "mini app"),
     }
     action_cues = {
         "remember": ("запомни", "сохрани"),
@@ -405,11 +415,13 @@ def test_natural_corpus_oracles_are_grounded_in_each_request() -> None:
         "analyze": ("проанализируй", "оцени"),
         "audit": ("аудит",),
         "report": ("отчёт",),
-        "status": ("статус",),
+        "status": ("статус", "status"),
         "cancel": ("отмени",),
         "limit": ("ограничь",),
         "help": ("помоги", "доступные"),
         "answer": ("объясни", "ответь", "покупк", "policy"),
+        "commit": ("commit",),
+        "deploy": ("deploy",),
     }
     for case in cases:
         request = case["turns"][-1]["text"].casefold()
@@ -476,7 +488,7 @@ def test_coverage_is_recalculated_not_trusted() -> None:
 
 def test_corpus_manifest_binds_exact_bytes() -> None:
     manifest = load_json(GATE / "corpus/corpus-manifest.json")
-    assert manifest["line_count"] == 96
+    assert manifest["line_count"] == 104
     assert manifest["corpus_digest"] == sha256(CORPUS.read_bytes())
     assert manifest["coverage_digest"] == sha256(
         (GATE / "corpus/coverage.json").read_bytes()
@@ -657,12 +669,38 @@ def test_dirty_manifest_preserves_preexisting_ownership() -> None:
     assert all(
         entry["owner"] in {"preexisting", "gate0"} for entry in dirty["entries"]
     )
-    assert set(dirty["ownership_rule"]["gate0_exact_files"]) == {
+    expected_exact_files = {
         ".gitattributes",
+        "README.md",
+        "docs/04-Журнал-ADR.md",
+        "docs/07-Правила-внешней-записи.md",
+        "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+        "docs/13-Интегрированная-архитектура-MVP-1.md",
+        "docs/README.md",
+        "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+        "docs/adr/0020-early-miniapp-and-specialist-workers.md",
+        "docs/gates/README.md",
+        "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+        "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+        "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
+        "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
+        "docs/gates/gate-05-document-gateway-windows-bridge/ARCHITECTURE.md",
+        "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
+        "docs/handoffs/CURRENT-STATUS.md",
         "tests/test_fake_vertical.py",
         "tests/test_telegram_gateway.py",
         "tests/test_trusted_ingress.py",
     }
+    assert set(dirty["ownership_rule"]["gate0_exact_files"]) == expected_exact_files
+    assert set(dirty["ownership_rule"]["gate0_prefixes"]) == {
+        "docs/gates/gate-00-product-contract-baseline/",
+        "docs/gates/gate-02a-miniapp-development-control/",
+        "tests/gate0/",
+    }
+    assert {
+        entry["path"] for entry in dirty["entries"]
+        if entry["owner"] == "preexisting"
+    } == {".nobus-quality/cases.ndjson"}
 
     raw = subprocess.run(
         ["git", "status", "--porcelain=v1", "--untracked-files=all", "-z"],
@@ -682,7 +720,9 @@ def test_dirty_manifest_preserves_preexisting_ownership() -> None:
         index += 1
         if status[0] in {"R", "C"} and index < len(fields):
             index += 1
-    assert {entry["path"] for entry in dirty["entries"]} == current_paths
+    frozen_paths = {entry["path"] for entry in dirty["entries"]}
+    assert frozen_paths - STATUS_VOLATILE_PATHS == current_paths - STATUS_VOLATILE_PATHS
+    assert frozen_paths.symmetric_difference(current_paths) <= STATUS_VOLATILE_PATHS
 
 
 def test_database_evidence_is_sanitized_and_genesis_is_bounded() -> None:
@@ -1022,7 +1062,14 @@ def test_product_contract_freezes_one_owner_and_catalog_binding() -> None:
     product = load_json(GATE / "product/product-contract.json")
     families = product["contract_families"]
     assert len({family["family"] for family in families}) == len(families)
-    assert all(isinstance(family["owner_gate"], int) for family in families)
+    assert {
+        family["owner_gate"]
+        for family in families
+        if not isinstance(family["owner_gate"], int)
+    } == {"2a"}
+    assert product["contract_version"] == "2.0.0"
+    assert product["normative_input"]["source_count"] == 20
+    assert "development_specialist" in product["vocabularies"]["agent_roles"]
     catalog = product["contract_catalog"]
     assert {entry["contract_name"] for entry in catalog} >= {
         "TrustedIngressEnvelope",
@@ -1119,7 +1166,6 @@ def test_contract_goldens_are_dereferenceable_bound_and_current_models_validate(
 
 def test_documentation_inventory_binds_current_worktree_and_all_gate_sources() -> None:
     expected = {
-        "docs/README.md",
         "docs/05-Спецификации-контрактов.md",
         "docs/06-Регламент-качества-L1-L4.md",
         "docs/07-Правила-внешней-записи.md",
@@ -1129,8 +1175,8 @@ def test_documentation_inventory_binds_current_worktree_and_all_gate_sources() -
         "docs/adr/0017-hybrid-natural-google-local-document-plane.md",
         "docs/adr/0018-cross-gate-mvp1-integration.md",
         "docs/adr/0019-owner-service-filesystem-and-runtime-decisions.md",
+        "docs/adr/0020-early-miniapp-and-specialist-workers.md",
         "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
-        "docs/gates/gate-00-product-contract-baseline/RESEARCH.md",
         *{f"docs/gates/gate-{gate:02d}-{slug}/ARCHITECTURE.md" for gate, slug in [
             (1, "natural-language-voice"),
             (2, "scope-document-contracts"),
@@ -1141,9 +1187,7 @@ def test_documentation_inventory_binds_current_worktree_and_all_gate_sources() -
             (7, "artifact-factory-writeback"),
             (8, "hybrid-release-pilot"),
         ]},
-        "docs/handoffs/CURRENT-STATUS.md",
-        "docs/handoffs/MVP-1-ISSUES.md",
-        "docs/handoffs/WORKSPACE-INVENTORY.md",
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
     }
     inventory = load_json(GATE / "evidence/documentation-inventory.json")
     records = {entry["path"]: entry for entry in inventory["current_worktree_documents"]}
@@ -1181,7 +1225,7 @@ def test_current_parser_baseline_is_independently_recomputed_without_import() ->
         entries.append({"case_id": case["case_id"], "expected_action": expected_action, "actual_intent": actual, "match": actual == expected_action})
     assert report["entries"] == entries
     assert report["matches"] == sum(entry["match"] for entry in entries)
-    assert report["pass_rate"] == round(report["matches"] / 96, 6)
+    assert report["pass_rate"] == round(report["matches"] / len(entries), 6)
     assert report["parser_source_digest"] == sha256(source_path.read_bytes())
     assert report["corpus_digest"] == sha256(CORPUS.read_bytes())
     assert report["llm_or_provider_calls_performed"] is False
@@ -1426,7 +1470,7 @@ def test_handoff_has_all_acceptance_ids_and_honest_blockers() -> None:
     corpus = load_json(GATE / "corpus/corpus-manifest.json")
     assert handoff["applied_contract_digest"] == sha256(canonical_bytes(product))
     assert handoff["applied_corpus_digest"] == corpus["corpus_digest"]
-    assert {item["gate"] for item in handoff["consumer_handoffs"]} == set(range(1, 9))
+    assert {item["gate"] for item in handoff["consumer_handoffs"]} == {*range(1, 9), "2a"}
     assert all(value is False for value in handoff["mutations"].values())
     receipts = {
         level: load_json(GATE / f"verification/{level}.json")
@@ -1520,6 +1564,19 @@ def test_no_document_declares_false_gate0_ready_or_pass() -> None:
     else:
         assert "**Status:** `GATE 0 BLOCKED`" in handoff
         assert "GATE 0 READY" not in handoff
+
+
+def test_handoff_evidence_boundaries_use_observed_layer_commits() -> None:
+    baseline = load_json(GATE / "evidence/baseline-evidence.json")
+    handoff = (GATE / "HANDOFF.md").read_text(encoding="utf-8")
+    expected = " ".join((
+        f"- candidate repository is `{baseline['repository']['head_commit']}`, "
+        "runtime release is "
+        f"  `{baseline['runtime_release']['runtime_head_commit']}`, and design base is "
+        f"`{DESIGN_BASE}`;"
+    ).split())
+    assert expected in " ".join(handoff.split())
+    assert "| 2A | development intent" in handoff
 
 def test_json_schema_required_arrays_are_unique() -> None:
     def verify(value: object, location: str) -> None:

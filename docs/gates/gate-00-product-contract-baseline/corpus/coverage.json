@@ -4,11 +4,13 @@
     "answer": 4,
     "audit": 1,
     "cancel": 1,
+    "commit": 2,
     "compare": 2,
     "complete": 3,
     "create": 9,
     "delete": 5,
     "deliver": 6,
+    "deploy": 2,
     "extract_tasks": 1,
     "help": 2,
     "limit": 1,
@@ -17,17 +19,17 @@
     "remember": 2,
     "report": 2,
     "search": 9,
-    "status": 2,
+    "status": 4,
     "summarize": 2,
-    "update": 14
+    "update": 16
   },
-  "corpus_version": "1.0.0",
+  "corpus_version": "2.0.0",
   "decision_counts": {
-    "accept": 57,
+    "accept": 59,
     "clarify": 16,
     "degraded": 4,
-    "reject": 13,
-    "require_l4": 6
+    "reject": 17,
+    "require_l4": 8
   },
   "document_lifecycle_coverage": {
     "google_drive": [
@@ -51,6 +53,7 @@
   },
   "domain_counts": {
     "calendar": 13,
+    "development": 8,
     "documents": 46,
     "general": 10,
     "notes": 8,
@@ -64,20 +67,23 @@
     "delete": 5,
     "deliver_owner": 5,
     "deliver_third_party": 1,
+    "deploy": 2,
+    "local_candidate_commit": 2,
     "money": 1,
-    "read": 55,
-    "update": 13
+    "read": 57,
+    "update": 15
   },
   "modality_counts": {
-    "text": 80,
-    "voice_transcript": 16
+    "text": 84,
+    "voice_transcript": 20
   },
   "multi_turn_or_clarification_cases": 20,
-  "negative_or_adversarial_cases": 39,
+  "negative_or_adversarial_cases": 45,
   "primary_category_counts": {
     "analytics_research_general": 12,
     "business_notes": 8,
     "calendar": 12,
+    "development_miniapp_control": 8,
     "documents_google_local_lifecycle": 24,
     "security_effect_tenant_provider_adversarial": 16,
     "tasks": 12,
@@ -110,7 +116,7 @@
       "BRIDGE_OFFLINE",
       "UNKNOWN_PROVIDER_OUTCOME"
     ],
-    "target_cases": 96
+    "target_cases": 104
   },
   "schema": "nobus.gate0.corpus_coverage.v1",
   "security_scenario_coverage": [
@@ -137,9 +143,9 @@
     "VERSION_PRECONDITION_REQUIRED"
   ],
   "tenant_counts": {
-    "tenant-a": 96
+    "tenant-a": 104
   },
-  "text_voice_pair_count": 16,
+  "text_voice_pair_count": 20,
   "text_voice_pairs": [
     [
       "G0-ANA-001",
@@ -160,6 +166,22 @@
     [
       "G0-CAL-005",
       "G0-CAL-006"
+    ],
+    [
+      "G0-DEV-001",
+      "G0-DEV-002"
+    ],
+    [
+      "G0-DEV-003",
+      "G0-DEV-004"
+    ],
+    [
+      "G0-DEV-005",
+      "G0-DEV-006"
+    ],
+    [
+      "G0-DEV-007",
+      "G0-DEV-008"
     ],
     [
       "G0-DOC-001",
@@ -206,5 +228,5 @@
       "G0-VOICE-002"
     ]
   ],
-  "total_cases": 96
+  "total_cases": 104
 }

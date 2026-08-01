@@ -238,25 +238,39 @@ foreach ($candidate in $safeCandidates) {
         "SELECT ProcessId,ParentProcessId,CommandLine,CreationDate FROM Win32_Process WHERE ProcessId=" +
         [int] $candidate.ProcessId
     )
+    if (
+        -not $withCommand -or
+        [int] $withCommand.ProcessId -ne [int] $candidate.ProcessId -or
+        [datetime] $withCommand.CreationDate -ne [datetime] $candidate.CreationDate
+    ) {
+        throw "Runner candidate identity changed during sanitized capture."
+    }
     $rawCommandLine = [string] $withCommand.CommandLine
-    if ($runnerPath -and $rawCommandLine.IndexOf(
-        $runnerPath,
-        [System.StringComparison]::OrdinalIgnoreCase
-    ) -ge 0) {
-        $secretShaped = [regex]::IsMatch($rawCommandLine, $secretPattern)
+    $profile = New-RunnerCandidateProfile `
+        -CommandLine $rawCommandLine `
+        -ExecutablePath $pythonPath `
+        -ExecutableDigest $pythonDigest `
+        -Definition $firstRuntimeAuthority
+    if (
+        -not [bool] $profile.secret_shape_absent -and
+        [bool] $profile.exact_runner_script_match
+    ) {
+        throw "Secret-shaped runner candidate is not eligible for capture."
+    }
+    if ([bool] $profile.verified) {
         $instances += [ordered]@{
             pid = [int] $withCommand.ProcessId
             parent_pid = [int] $withCommand.ParentProcessId
             started_at = ([datetime] $withCommand.CreationDate).ToUniversalTime().ToString("o")
             executable_digest = $pythonDigest
-            argv_profile = if ($secretShaped) { "rejected_secret_shaped" } else { "scheduler_bound_runner" }
+            argv_profile = "scheduler_bound_runner"
             argv_digest = Get-SafeDigest ([ordered]@{
                 runner_ref = "script:run-telegram-mvp1"
                 argument_profile = $argumentProjection
             })
-            loaded_commit = if ($secretShaped) { $null } else { $scheduledCommit }
-            loaded_code_digest = if ($secretShaped) { $null } else { $runnerCodeDigest }
-            secret_shaped_fragment_detected = $secretShaped
+            loaded_commit = $scheduledCommit
+            loaded_code_digest = $runnerCodeDigest
+            secret_shaped_fragment_detected = $false
         }
     }
 }

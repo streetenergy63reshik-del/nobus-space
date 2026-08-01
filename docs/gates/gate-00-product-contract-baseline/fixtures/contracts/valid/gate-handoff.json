@@ -221,12 +221,12 @@
       "status": "pass"
     }
   ],
-  "applied_contract_digest": "sha256:17f143380a2bae1fa32bc0dbf5a91f06a0001f4b1d8b68b0b0021d31af754c8b",
-  "applied_contract_version": "1.0.0",
-  "applied_corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
-  "applied_corpus_version": "1.0.0",
+  "applied_contract_digest": "sha256:fce548f851e93cb5b43dbd3ab0e108e449e17e5ce84f1e9c0d94c436bd293313",
+  "applied_contract_version": "2.0.0",
+  "applied_corpus_digest": "sha256:bb97f72d76c83edffd17378d5929564d76177131104a34fd858186675c4c7c26",
+  "applied_corpus_version": "2.0.0",
   "artifact_manifest_ref": "evidence/evidence-manifest.json",
-  "base_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+  "base_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
   "baseline_ref": "evidence/baseline-evidence.json",
   "blocking_criteria": [],
   "consumer_handoffs": [
@@ -254,6 +254,20 @@
         "schema and golden fixtures",
         "registry semantics",
         "architecture fitness rules"
+      ]
+    },
+    {
+      "gate": "2a",
+      "name": "miniapp_development_control",
+      "not_precompleted": [
+        "server, Mini App, worker runtime or deployment",
+        "registered repository data or production credentials"
+      ],
+      "required_inputs": [
+        "normative catalog version and digest",
+        "development and Mini App corpus cases",
+        "agent role and model authority boundaries",
+        "action-bound candidate commit and no-self-deploy rules"
       ]
     },
     {
@@ -342,14 +356,14 @@
     "database_migration_status": "GENESIS_BASELINE_VERIFIED",
     "database_runtime_binding_status": "VERIFIED",
     "documentation_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
-    "repository_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "repository_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
     "runner_status": "VERIFIED",
     "runtime_commit": "1ac52a00fd22b25cb6fcbd9f694688157c900cc8",
     "server_profile_status": "NOT_APPLICABLE_VERIFIED"
   },
   "evidence_manifest_ref": "evidence/evidence-manifest.json",
   "gate": 0,
-  "generated_at": "2026-07-31T09:21:47.793676Z",
+  "generated_at": "2026-08-01T07:13:09.068053Z",
   "l4_ref": "owner-authority:gate0-evidence-closure-2026-07-29",
   "mutations": {
     "backups": false,

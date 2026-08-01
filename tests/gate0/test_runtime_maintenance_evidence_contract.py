@@ -140,6 +140,18 @@ def test_runtime_collector_accepts_only_canonical_current_root() -> None:
         not in source
     )
 
+def test_runtime_collector_reuses_exact_runner_candidate_profile() -> None:
+    source = (
+        ROOT / "tests/gate0/collect_runtime_snapshot.ps1"
+    ).read_text(encoding="utf-8")
+
+    assert "New-RunnerCandidateProfile" in source
+    assert "[bool] $profile.exact_runner_script_match" in source
+    assert "[bool] $profile.secret_shape_absent" in source
+    assert "if ([bool] $profile.verified)" in source
+    assert "Runner candidate identity changed" in source
+    assert "$rawCommandLine.IndexOf(" not in source
+
 
 def test_normalizer_labels_canonical_current_and_target_isolation() -> None:
     source = (

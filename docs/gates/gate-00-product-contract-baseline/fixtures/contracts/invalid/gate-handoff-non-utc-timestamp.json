@@ -221,12 +221,12 @@
       "status": "pass"
     }
   ],
-  "applied_contract_digest": "sha256:17f143380a2bae1fa32bc0dbf5a91f06a0001f4b1d8b68b0b0021d31af754c8b",
-  "applied_contract_version": "1.0.0",
-  "applied_corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
-  "applied_corpus_version": "1.0.0",
+  "applied_contract_digest": "sha256:fce548f851e93cb5b43dbd3ab0e108e449e17e5ce84f1e9c0d94c436bd293313",
+  "applied_contract_version": "2.0.0",
+  "applied_corpus_digest": "sha256:bb97f72d76c83edffd17378d5929564d76177131104a34fd858186675c4c7c26",
+  "applied_corpus_version": "2.0.0",
   "artifact_manifest_ref": "evidence/evidence-manifest.json",
-  "base_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+  "base_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
   "baseline_ref": "evidence/baseline-evidence.json",
   "blocking_criteria": [
     "G0-19"
@@ -256,6 +256,20 @@
         "schema and golden fixtures",
         "registry semantics",
         "architecture fitness rules"
+      ]
+    },
+    {
+      "gate": "2a",
+      "name": "miniapp_development_control",
+      "not_precompleted": [
+        "server, Mini App, worker runtime or deployment",
+        "registered repository data or production credentials"
+      ],
+      "required_inputs": [
+        "normative catalog version and digest",
+        "development and Mini App corpus cases",
+        "agent role and model authority boundaries",
+        "action-bound candidate commit and no-self-deploy rules"
       ]
     },
     {
@@ -341,10 +355,10 @@
     "runtime_mutated": false
   },
   "current_before": {
-    "database_migration_status": "GENESIS_BASELINE_VERIFIED",
+    "database_migration_status": "GENESIS_PROOF_VERIFIED_ACCEPTANCE_PENDING",
     "database_runtime_binding_status": "VERIFIED",
     "documentation_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
-    "repository_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "repository_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
     "runner_status": "VERIFIED",
     "runtime_commit": "1ac52a00fd22b25cb6fcbd9f694688157c900cc8",
     "server_profile_status": "NOT_APPLICABLE_VERIFIED"
@@ -366,10 +380,11 @@
   "schema": "nobus.gate0.handoff.v1",
   "status": "blocked",
   "target_remaining": [
-    "Gate 2 must start its durable migration ledger at the accepted genesis before any post-genesis migration"
+    "Complete the Gate 0 independent review and READY seal before accepting the verified genesis proof",
+    "Gate 2 may start the durable ledger only from a subsequently accepted genesis baseline"
   ],
   "unresolved_risks": [
-    "Historical Telegram legacy migration execution is not proven; only the accepted current schema is the genesis baseline"
+    "Current Telegram schema proof is verified; genesis acceptance remains pending until the Gate 0 READY seal"
   ],
   "verification_refs": {
     "l1": "verification/l1.json",

@@ -2,7 +2,7 @@
 
 **Status:** `GATE 0 READY`
 
-**Candidate generated:** `2026-07-31T09:21:47.793676Z`
+**Candidate generated:** `2026-08-01T07:13:09.068053Z`
 
 All G0-01..G0-22 criteria and independent L1/L2/L3 evidence are sealed.
 
@@ -86,8 +86,9 @@ All G0-01..G0-22 criteria and independent L1/L2/L3 evidence are sealed.
 
 - documentation, candidate repository, runtime release, process, Scheduler, DB,
   configuration, dependencies and external capabilities remain separate layers;
-- candidate repository is `d11eda855a4e2ff88096dc536f36374daacc4de6`, runtime release is
-  `d11eda855a4e2ff88096dc536f36374daacc4de6`, and design base is `9d816b35d3f419b42e24ad09ae6aadc92c33db43`;
+- candidate repository is `0a0f56e8b6f77deccba2b51239a3fe1f207da349`, runtime release is
+  `1ac52a00fd22b25cb6fcbd9f694688157c900cc8`, and design base is
+  `9d816b35d3f419b42e24ad09ae6aadc92c33db43`;
 - raw argv, environment, connection strings, secrets, owner/client payloads and
   absolute local paths are not persisted;
 - no provider call, DB mutation, backup, deployment or remote Git action
@@ -108,6 +109,7 @@ record a sanitized case only after accepting the Gate 0 commit.
 | 1 | corpus digest, intent vocabulary, ambiguity/effect rules, CURRENT score | parser/prompt implementation |
 | 2 | catalog, schemas/golden fixtures, registry and fitness rules | production models/migrations |
 | 3 | provider/data policy and external capability baseline | provider adapters/cost cap |
+| 2A | development intent, Agent Registry, worker/control and candidate-commit contracts | Mini App/runtime worker implementation or deploy authority |
 | 4 | authority, idempotency and unknown-outcome cases | end-to-end effects |
 | 5 | document lifecycle and deny/source/output cases | Bridge/indexer/parser |
 | 6 | AnalysisRequest/provenance/calculation cases | formulas/datasets/metrics |

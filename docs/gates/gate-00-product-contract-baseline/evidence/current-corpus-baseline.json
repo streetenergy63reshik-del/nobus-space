@@ -1,8 +1,8 @@
 {
-  "case_count": 96,
-  "commit_under_test": "d11eda855a4e2ff88096dc536f36374daacc4de6",
-  "corpus_digest": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a",
-  "corpus_version": "1.0.0",
+  "case_count": 104,
+  "commit_under_test": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
+  "corpus_digest": "sha256:bb97f72d76c83edffd17378d5929564d76177131104a34fd858186675c4c7c26",
+  "corpus_version": "2.0.0",
   "entries": [
     {
       "actual_intent": "unknown",
@@ -146,6 +146,54 @@
       "actual_intent": "unknown",
       "case_id": "G0-CAL-012",
       "expected_action": "list",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-001",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-002",
+      "expected_action": "update",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-003",
+      "expected_action": "commit",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-004",
+      "expected_action": "commit",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-005",
+      "expected_action": "deploy",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-006",
+      "expected_action": "deploy",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-007",
+      "expected_action": "status",
+      "match": false
+    },
+    {
+      "actual_intent": "unknown",
+      "case_id": "G0-DEV-008",
+      "expected_action": "status",
       "match": false
     },
     {
@@ -583,11 +631,11 @@
   ],
   "llm_or_provider_calls_performed": false,
   "matches": 4,
-  "observed_at": "2026-07-31T09:18:31.4790228Z",
+  "observed_at": "2026-08-01T07:08:59.7350624Z",
   "parser_profile": "literal_rule_fast_path_llm_disabled",
   "parser_source_digest": "sha256:e52a9b5de3add2929b45df49f2b77d92d73cb7b86177e1890bdebfb97bc77b61",
   "parser_source_ref": "src/orchestrator/intent_parser.py#IntentParser.PATTERNS",
-  "pass_rate": 0.041667,
+  "pass_rate": 0.038462,
   "raw_text_persisted": false,
   "schema": "nobus.gate0.current_corpus_baseline.v1"
 }

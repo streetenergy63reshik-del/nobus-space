@@ -1,5 +1,5 @@
 {
-  "capture_started_at": "2026-07-31T09:18:30.5207945Z",
+  "capture_started_at": "2026-08-01T07:08:58.8551279Z",
   "clock": {
     "source": "windows_system_clock",
     "trusted": true,
@@ -8,7 +8,7 @@
   "collector_constraints": {
     "access_profile": "one_time_transient_prefiltered",
     "authority_ref": "owner-authority:gate0-evidence-closure-2026-07-29",
-    "candidate_wait_milliseconds": 151,
+    "candidate_wait_milliseconds": 144,
     "environment_values_read": false,
     "process_command_lines_read_for_prefiltered_candidates": true,
     "process_match_basis": "scheduler_python_plus_exact_runner_path",
@@ -21,13 +21,13 @@
   },
   "database_binding": {
     "root_profile": "canonical-repo",
-    "scheduled_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "scheduled_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
     "source_contract": "scheduler-runner-root/.runtime/four-pinned-sqlite-files",
     "status": "verified"
   },
-  "fresh_until": "2026-07-31T09:23:31.4790228Z",
+  "fresh_until": "2026-08-01T07:13:59.7350624Z",
   "host_ref": "windows-owner-pc",
-  "observed_at": "2026-07-31T09:18:31.4790228Z",
+  "observed_at": "2026-08-01T07:08:59.7350624Z",
   "processes": [
     {
       "instances": [
@@ -36,19 +36,19 @@
           "argv_profile": "scheduler_bound_runner",
           "executable_digest": "sha256:0b471133e110cfb53a061cad528ce8e517d7b9ac41a0a396c39ad795a487fc14",
           "loaded_code_digest": "sha256:27a79d92ce6645d68d1f9c8ab1d374e93c47ed40e7b5dc4fd7e4e6e220761de9",
-          "loaded_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
-          "parent_pid": 19940,
-          "pid": 8676,
+          "loaded_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
+          "parent_pid": 26108,
+          "pid": 17412,
           "secret_shaped_fragment_detected": false,
-          "started_at": "2026-07-31T07:07:47.0456880Z"
+          "started_at": "2026-08-01T05:26:11.7518990Z"
         }
       ],
-      "loaded_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+      "loaded_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
       "observed_count": 1,
       "process_role": "telegram_runner",
       "reason_code": "EXACT_SCHEDULER_BOUND_RUNNER_OBSERVED",
       "root_profile": "canonical-repo",
-      "scheduled_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+      "scheduled_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
       "status": "verified"
     },
     {
@@ -67,9 +67,9 @@
     }
   ],
   "runtime_claim": {
-    "process_loaded_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "process_loaded_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
     "reason_code": "SCHEDULER_BOUND_RUNNER_OBSERVED",
-    "scheduled_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "scheduled_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
     "status": "verified"
   },
   "scheduler": {
@@ -82,12 +82,12 @@
     "definition_digest": "sha256:a8f93de509b81251717037fdf79a96ab1b1c6827b8a663652862762bb51c9bd7",
     "enabled": true,
     "last_result_code": 267009,
-    "last_run_at": "2026-07-31T07:07:46.0000000Z",
+    "last_run_at": "2026-08-01T05:26:11.0000000Z",
     "logon_type": "Interactive",
     "next_run_at": null,
     "root_profile": "canonical-repo",
     "run_level": "Limited",
-    "scheduled_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
+    "scheduled_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
     "state": "running",
     "status": "verified",
     "task_ref": "scheduler-task:nobus-space-bot",

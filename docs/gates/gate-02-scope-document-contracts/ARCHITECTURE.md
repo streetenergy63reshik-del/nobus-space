@@ -7,6 +7,18 @@
 
 `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative in this document.
 
+## 0.1. Integration addendum — ADR 0020
+
+Gate 2 additionally owns the closed registered-repository/code-scope policy
+consumed by Gate 2A. It MUST define opaque repository/worktree references,
+allowed branch/base constraints, mutation boundaries, denied operations and
+digest-bound preconditions without executing code changes.
+
+Gate 2A imports these definitions for its Development Worker and code-candidate
+flow. It MUST NOT create a competing scope registry or interpret a model-proposed
+path as authority. Gate 2 still performs no filesystem mutation, Codex run,
+server deployment, remote operation or push.
+
 ## 1. Purpose
 
 Gate 2 defines one safe document authority model for local and Google
@@ -144,13 +156,13 @@ The model MUST NOT receive:
 | ADS | Colon forbidden in all relative components |
 | Reserved/case alias | Windows reserved-name and ordinal case policy plus handle identity |
 | Symlink/junction/reparse | Root, every ancestor, and final object rejected on any reparse tag |
-| Hard-link alias | Multiple-link local documents/targets denied by default |
+| Hard-link alias | `NumberOfLinks > 1` or proven alias always denied in MVP-1 |
 | Ancestor/final replacement | Parent-relative handle opens and file/volume identity checks |
 | Concurrent content mutation | Share-mode control, before/after identity/size/timestamp, digest/revision |
 | Google folder escape | Private ID mapping, verified ancestry, shortcuts denied |
 | MIME lie/polyglot | Extension + declared MIME + magic/parser agreement |
 | Decompression bomb | Compressed/uncompressed, entry, depth, ratio, time and memory limits |
-| Secret exposure | Metadata/path deny, local scanner, optional Gitleaks, no model call |
+| Secret exposure | Metadata/path deny, mandatory runtime scanner, no model call; Gitleaks is release/test-only |
 | Prompt injection | Document labelled data; no tools; closed output validation |
 | Model exfiltration | Post-model DLP/verbatim overlap checks |
 | Duplicate/stale write | Idempotency, expected revision/digest, approval binding and readback |
@@ -656,8 +668,20 @@ Common fields:
 
 - `local`: private absolute `root_path`, expected local fixed-volume policy,
   provisioned root identity digest, and Bridge device ID;
-- `google`: private folder ID, OAuth binding ref, allowed Drive scope family,
-  shared-drive ID or null, and shortcut policy fixed to `deny`.
+- `google_folder`: private folder ID, OAuth binding ref, allowed Drive scope
+  family, shared-drive ID or null, and shortcut policy fixed to `deny`;
+- `google_file`: exact private file ID, OAuth binding ref, expected owner/member
+  proof, revision/version binding and shortcut policy fixed to `deny`.
+
+The broad OAuth grant is never a source registry scope. Drive-wide owner search
+uses a separate metadata-only discovery capability with a release-bound OAuth
+identity, bounded query/pages/candidates and no content/model authority. My Drive
+and ordinary shared-with-owner items may appear even when they have no common
+folder ancestry. A selected result receives an exact tenant/project/client-bound
+`google_file` or `google_folder` registry/ref binding before content read,
+extraction or model access. Missing/ambiguous selection, identity drift, shortcut
+or revision drift fails closed. Discovery metadata may be shown to the owner for
+selection but cannot itself authorize content access or cross-project reuse.
 
 The model-safe projection excludes `private_locator`.
 
@@ -683,6 +707,35 @@ Common fields:
 
 Local private locator contains the private output root and Bridge device.
 Google private locator contains the output folder ID and OAuth binding.
+
+### 15.5a. Code patch scope and trusted Git profile
+
+A code scope is an exact repository registry entry bound to tenant/project/client,
+repository identity, allowed target paths and an expected local ref. It never
+grants shell or ambient `.git` access to a model.
+
+Before preparation, a pre-state manifest records HEAD, expected-old ref OID,
+index-tree digest, worktree-status digest and per-target-path digests. Unrelated
+dirty paths remain untouched and excluded. Any staged/uncommitted overlap with a
+target path, unknown ownership, index drift or ref drift fails closed; automatic
+stash/reset/checkout is forbidden.
+
+Validation uses a disposable OS sandbox with read-only source snapshot, no
+credentials/network/owner-root writes and bounded temp/output. L1/L2/L3 evidence
+is bound to the exact patch and pre-state. After action-bound L4, an exact-argv
+Git plumbing adapter disables hooks, signing, pager, fsmonitor, external diff and
+clean/smudge filters; it ignores executable system/global/repository config and
+uses no porcelain that can invoke them. The adapter starts from a closed
+environment allowlist: inherited `GIT_*` variables are scrubbed and only exact
+validated repository/worktree/index/temp paths are set. Git dir, common dir,
+object/index/worktree/temp directories must resolve inside their registered
+boundaries. `objects/info/alternates`, alternate object directories, grafts,
+replace refs and any environment/config object redirection are denied. It builds
+the commit tree with no-filter plumbing, creates a candidate commit/ref by
+expected-old-value CAS, and does not mutate the caller worktree/index. Active-branch/working-tree integration requires
+an exact clean precondition in the same L4; otherwise the candidate ref is left
+for owner decision. Post-commit tree, diff, ref and file-manifest readback must
+match the L4 evidence. Git config/hooks/remotes/submodules/network are denied.
 
 ### 15.6. Deny registry entry
 
@@ -720,11 +773,13 @@ lookaround rules are forbidden.
 Required always-deny coverage includes:
 
 - VPN data;
-- arbitrary `Системные`;
+- ambient or unregistered `Системные`; allowlisted ordinary code/tool resources
+  are available only through exact registry entries;
 - Nobus Memory backups;
-- VCS, runtime, virtual environment, cache, log and temp locations;
+- VCS internals, runtime, virtual environment, cache, log and temp locations;
 - secret/token/credential-like names;
-- every reparse point;
+- every file with `NumberOfLinks > 1`, proven hard-link alias and reparse
+  point; `NumberOfLinks = 1` is the normal allowed NTFS case;
 - non-local/UNC/device volumes;
 - Google shortcuts that could cross folder scope.
 
@@ -1069,11 +1124,12 @@ scanners.
 6. Enforce compressed/source byte limits.
 7. Validate extension, declared MIME, magic and parser kind.
 8. Perform bounded extraction.
-9. Run mandatory current scanner.
-10. Optionally run pinned Gitleaks via stdin with full redaction.
-11. Apply classification/provider policy.
-12. Build ephemeral tool-less model context.
-13. Validate output and run exfiltration checks.
+9. Run mandatory runtime scanner.
+10. Apply classification/provider policy.
+11. Build ephemeral tool-less model context.
+12. Validate output and run exfiltration checks.
+
+Gitleaks is not invoked in this runtime pipeline; it remains a release/test tool.
 
 ### 20.3. Required limits profile
 
@@ -1120,14 +1176,10 @@ policy/version review.
 
 ### 20.5. DLP
 
-The current scanner is mandatory. Gitleaks MAY run as a pinned local process
-only when:
-
-- input is supplied by stdin;
-- `--redact=100` and safe log level are enforced;
-- no report containing matched text is persisted;
-- binary/config checksum and rule-config digest are pinned;
-- timeout and input bytes are bounded.
+The current runtime scanner is mandatory. Gitleaks is release/test-only and
+MUST NOT receive owner document contents or run in the runtime read pipeline.
+Release/test use pins binary/config digests, uses synthetic/source/artifact
+inputs only, fully redacts output and persists no matched value.
 
 Presidio is not active until an owner-approved PII taxonomy, languages,
 thresholds, false-positive handling, regression corpus, and provider policy
@@ -1381,8 +1433,9 @@ Each slice is independently reviewed and remains TARGET until verified.
    interface with synthetic/TestTemp tests only.
 6. **Google boundary contract:** private ref record, adapter capabilities and
    synthetic response tests only; no live Google calls in Gate 2.
-7. **DLP/resource profiles:** current scanner integration contract,
-   decompression/MIME limits and optional Gitleaks interface.
+7. **DLP/resource profiles:** current runtime scanner integration contract and
+   decompression/MIME limits; Gitleaks remains outside runtime as a release/test
+   check.
 8. **Migration:** current draft source/permissions inventory and in-place
    pre-wire migration.
 9. **Cross-Gate handoff:** schema/registry/policy digests, evidence manifest,
@@ -1585,13 +1638,28 @@ returned.
 - token/key/password/cookie/private-key patterns;
 - high entropy, chunked base64/hex and encoded variants;
 - raw scanner match absent from logs/errors;
-- optional Gitleaks receives stdin and redacts output;
+- release/test Gitleaks receives only synthetic/source/artifact input, fully
+  redacts output and cannot access owner documents;
 - DLP unavailable/timeout returns fail-closed;
 - model answer repeats forbidden excerpt;
 - transformed/verbatim overlap exfiltration;
 - cross-document reconstruction of a secret.
 
-### 28.9. Prompt/MCP authority tests
+### 28.9. Code patch trust-boundary tests
+
+- dirty unrelated paths survive and are absent from the candidate commit;
+- staged/uncommitted target overlap and pre-state drift fail closed;
+- malicious hooks, filters, signing helper, pager, fsmonitor and Git config are
+  not executed;
+- inherited `GIT_*`, external object/index/worktree/temp redirection,
+  `objects/info/alternates`, grafts and replace refs fail closed;
+- every explicit Git path resolves inside the registered boundary;
+- sandbox has no credentials/network/owner-root write authority;
+- expected-old-value CAS rejects ref races;
+- post-commit tree/diff/readback equals the L4-bound manifest;
+- active branch/worktree is not mutated without the exact clean precondition.
+
+### 28.10. Prompt/MCP authority tests
 
 Document text attempts to:
 
@@ -1659,33 +1727,34 @@ Gate 2 implementation is PASS only when:
 
 Documentation alone does not make any TARGET behavior CURRENT.
 
-## 30. Unresolved owner decisions
+## 30. Owner decisions and remaining implementation parameters
 
-Defaults are fail-closed. These decisions do not block the architecture but
-must be resolved before their implementation slice:
+[ADR 0019](../../adr/0019-owner-service-filesystem-and-runtime-decisions.md)
+resolved the owner choices:
 
-1. Whether clientless owner work remains `client_ref=null` as in the canon or
-   moves to an explicit reserved owner client in the first frozen wire version.
-2. Exact local source/output scopes, fixed NTFS volume, Bridge OS account and
-   filesystem ACLs.
-3. Registry signing-key owner, offline storage, rotation, revocation and
-   emergency rollback approver.
-4. Whether every local hard link remains denied or an owner-approved
-   provisioned exception is ever needed.
-5. Exact Google OAuth mode per source: owner Picker/`drive.file`, shared test
-   folder, service account, or restricted `drive.readonly`.
-6. Whether `restricted` documents are always local-only in MVP-1.
-7. Final allowed MIME/format list and whether password-protected documents are
-   permanently unsupported.
-8. Whether Gitleaks is deployed in Bridge/Core or remains a release/test
-   reinforcement.
-9. Google Sheets write policy: create-only, explicit weaker confirmed update in
-   a future version, or no update.
-10. Registry expiry duration and emergency operation when the signer is
-    unavailable.
-11. Exact metadata/ref-store encryption and retention profile.
-12. Property-test dependency choice versus a repository-native generated test
-    corpus.
+- clientless owner work uses `client_ref=null` only for an explicit
+  clientless registry entry; it is not a wildcard;
+- the maximum NTFS owner root is `C:\Хранилище\АГЕНТ`, while actual
+  project/client and output scopes remain versioned registry entries; agent is
+  an execution role inside that scope, not a separate MVP-1 authority boundary;
+- files with `NumberOfLinks > 1` and proven hard-link aliases have no exception;
+- Google discovery uses `drive.readonly` for My Drive and normal shared items;
+- the accepted format list and password-protected denial are fixed;
+- Gitleaks remains release/test-only;
+- Sheets/Drive use create/new-version or fail closed unless a strict provider
+  precondition is separately proven.
+
+Fail-closed implementation parameters remain for Gate 2/5/8 and cannot widen
+ADR 0019:
+
+1. Exact Bridge OS identity and ACL manifest.
+2. Signing-key offline custody, rotation and revocation.
+3. `RESTRICTED`/source route registry.
+4. Registry expiry and emergency operation when the signer is unavailable.
+5. Exact metadata/ref-store encryption profile; retention follows
+   `docs/10-Политика-памяти.md` and ADR 0019.
+6. Property-test dependency choice versus a repository-native generated test
+   corpus.
 
 ## 31. Architecture verification
 

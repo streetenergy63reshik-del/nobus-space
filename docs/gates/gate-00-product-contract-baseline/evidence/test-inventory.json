@@ -1,30 +1,30 @@
 {
   "candidate_binding": {
     "canonical_venv_mutated": false,
-    "environment_digest": "sha256:f2cc2b252286df87a7b091123d90ff860342390e16642d853c01b402cc0587e7",
-    "input_generated_at": "2026-07-31T08:13:41.595605Z",
-    "input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
+    "environment_digest": "sha256:76d375d781aa1f35e2cce73cdac2bdedf0dc224dc325c6b3b511149636d13da3",
+    "input_generated_at": "2026-08-01T06:06:05.842187Z",
+    "input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
     "network_or_provider_calls_performed": false,
     "reason_code": null,
     "runs": {
       "full_pytest": {
         "failed": 0,
-        "finished_at": "2026-07-31T08:24:10.3397523Z",
-        "passed": 1484,
-        "report_sha256": "sha256:97f8ced766571a6fd2cc9d5647e2bce9583eb1ac47e7a49c079b955bc218a909",
-        "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-        "skipped": 3,
-        "started_at": "2026-07-31T08:20:04.5707310Z",
+        "finished_at": "2026-08-01T06:20:09.4433658Z",
+        "passed": 1512,
+        "report_sha256": "sha256:586610037f5bb14f4d8313c1aabab6aa7dead7abc81cdc6273e38862a34d18a9",
+        "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+        "skipped": 6,
+        "started_at": "2026-08-01T06:12:50.6538665Z",
         "status": "pass"
       },
       "targeted_gate0": {
         "failed": 0,
-        "finished_at": "2026-07-31T08:19:47.5734685Z",
-        "passed": 179,
-        "report_sha256": "sha256:1417a84bd0f142627d078219e78d6c4bbf585314301b2bdd511e162a870a044c",
-        "scanned_input_tree_digest": "sha256:9e8d3c560c77f0905f29bb0dcb56da74d91206d4174ad475bb087763d7178986",
-        "skipped": 1,
-        "started_at": "2026-07-31T08:16:57.4823310Z",
+        "finished_at": "2026-08-01T06:12:13.2146755Z",
+        "passed": 122,
+        "report_sha256": "sha256:7a9928c55b2007e40deccd7f429d379fd51de854e8fc4e745cadad5d8fb08f17",
+        "scanned_input_tree_digest": "sha256:ccdd7bfe20ec5878be4dbb18ca3942ecffdcb97705cf0dd344502e203b0fb3cc",
+        "skipped": 4,
+        "started_at": "2026-08-01T06:06:55.0394898Z",
         "status": "pass"
       }
     },
@@ -40,14 +40,14 @@
   },
   "full_pytest": {
     "failed": 0,
-    "finished_at": "2026-07-31T08:24:10.3397523Z",
-    "passed": 1484,
-    "skipped": 3,
-    "started_at": "2026-07-31T08:20:04.5707310Z",
+    "finished_at": "2026-08-01T06:20:09.4433658Z",
+    "passed": 1512,
+    "skipped": 6,
+    "started_at": "2026-08-01T06:12:50.6538665Z",
     "status": "pass"
   },
   "missing_mandatory_dev_checks": [],
-  "observed_at": "2026-07-31T08:27:41.6117724Z",
+  "observed_at": "2026-08-01T06:20:09.4433658Z",
   "release_checks": {
     "gitleaks": "passed",
     "pip_audit": "passed"
@@ -55,10 +55,10 @@
   "schema": "nobus.gate0.test_inventory.v1",
   "targeted_gate0": {
     "failed": 0,
-    "finished_at": "2026-07-31T08:19:47.5734685Z",
-    "passed": 179,
-    "skipped": 1,
-    "started_at": "2026-07-31T08:16:57.4823310Z",
+    "finished_at": "2026-08-01T06:12:13.2146755Z",
+    "passed": 122,
+    "skipped": 4,
+    "started_at": "2026-08-01T06:06:55.0394898Z",
     "status": "pass"
   }
 }

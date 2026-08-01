@@ -15,7 +15,7 @@ creation, secret access, backup, migration, runtime start or deployment.
 
 | Layer | Status | Meaning |
 |---|---|---|
-| TARGET architecture | **ARCHITECTURE READY** | Root decisions are normative and document-level L1/L2/L3 pass |
+| TARGET architecture | **ARCHITECTURE READY** | Fresh exact-delta L1/L2/L3: `CASE-20260728-OWNER-DECISIONS-151422`; implementation remains blocked |
 | Gate 8 implementation/pilot | **BLOCKED** | Prerequisite implementations, exact L4 actions and runtime evidence are absent |
 | Gate 8 PASS | **NOT CLAIMED** | Full smoke, restore evidence and unchanged 72-hour pilot have not run |
 
@@ -208,6 +208,17 @@ The manifest is canonical JSON and contains at least:
   "migration_ids": [],
   "compatible_previous_release": "<commit+artifact>",
   "required_peer_protocols": {},
+  "ai_readiness": {
+    "codex_required": true,
+    "codex_profile_id_digest": "<sha256>",
+    "codex_profile_digest": "<sha256>",
+    "google_model_route_ids": [],
+    "google_model_route_set_digest": "<sha256>",
+    "probe_policy_digest": "<sha256>",
+    "probe_budget_ref": "<bound-ref>",
+    "maximum_probe_calls": 0,
+    "maximum_estimated_cost": "0"
+  },
   "source_evidence_refs": [],
   "verification_summary_digests": {}
 }
@@ -221,7 +232,14 @@ Rules:
 - `release_commit` alone is insufficient; commit and artifact digest are inseparable;
 - SBOM, scan reports and external binaries are themselves digest-bound;
 - the manifest contains identifiers/evidence only, never secrets;
-- Core and Bridge manifests pin mutually compatible protocol versions.
+- Core and Bridge manifests pin mutually compatible protocol versions;
+- `codex_profile_digest` binds the exact Codex worker binary/protocol, account
+  entitlement class, model/route, reasoning profile, sandbox/tool policy and
+  closed-output schema; a default or substituted profile cannot satisfy it;
+- `google_model_route_ids` is the exact unique release-required set, not a
+  discovery result. When Vertex is on the release critical path it cannot be
+  empty. Its canonical set digest, probe policy, maximum call count and cost
+  ceiling are L4-bound; missing price/budget evidence fails pilot admission.
 
 ### 6.3 Dependency and supply-chain gates
 
@@ -470,10 +488,11 @@ The content-free snapshot uses a versioned schema:
     "schema_set_digest": "<sha256>",
     "db_inventory_digest": "<sha256>",
     "db_transaction_epoch": 0,
+    "expected_google_model_route_set_digest": "<sha256>",
     "probe_refs": ["<signed content-free evidence ref>"],
     "collector_signature": "<signature>"
   },
-  "overall": "STARTING|HEALTHY|DEGRADED_LOCAL|DEGRADED_GOOGLE|FAIL_STOP",
+  "overall": "STARTING|HEALTHY|DEGRADED_AI|DEGRADED_LOCAL|DEGRADED_GOOGLE|FAIL_STOP",
   "ready": false,
   "release": {"commit": "", "artifact_sha256": "", "manifest_ok": true},
   "core": {"service_identity": "", "uptime_s": 0, "loop_fresh_s": 0},
@@ -495,6 +514,28 @@ The content-free snapshot uses a versioned schema:
     "wal_bytes": 0
   },
   "google": {"auth": "ok|stale|fail", "sentinel_age_s": 0},
+  "codex_worker": {
+    "auth": "ok|stale|fail",
+    "entitlement": "ok|exhausted|unknown",
+    "app_server_generation": 0,
+    "observed_profile_digest": "<sha256>",
+    "observed_model_route_digest": "<sha256>",
+    "observed_reasoning_profile_digest": "<sha256>",
+    "session_probe": "ok|fail",
+    "last_successful_turn_age_s": 0,
+    "circuit": "closed|open"
+  },
+  "google_model_routes": [
+    {
+      "route_id_digest": "",
+      "required": true,
+      "auth": "ok|stale|fail",
+      "budget": "ok|exhausted|disabled",
+      "probe_kind": "fixed_public_synthetic",
+      "sentinel_age_s": 0,
+      "circuit": "closed|open"
+    }
+  ],
   "bridge": {
     "expected": true,
     "device_id_digest": "",
@@ -528,8 +569,14 @@ subject or payload appears.
 `overall`, `ready` and all precomputed booleans are display projections, never
 PASS inputs. A separately supervised read-only evaluator with a pinned identity
 reads the underlying signed/content-free poller lease, process, DB inventory and
-transaction epoch, Gate 4 invariant counts, Google/Bridge probes and recovery
-manifests, verifies their freshness and chain, and recomputes each pilot sample.
+transaction epoch, Gate 4 invariant counts, Codex worker and all required
+Google model-route probes, Google/Bridge probes and recovery manifests. It
+requires equality of the observed Codex profile/model-route/reasoning digests
+with the L4-bound Codex profile and exact set equality between the release
+manifest and observed unique Google route IDs. It rejects substituted/default
+Codex profiles and missing/extra/duplicate Google routes, verifies every digest,
+freshness and chain, and recomputes each pilot sample. If a Google model route is
+release-critical, an empty expected or observed set fails closed.
 It does not call the aggregator's `overall` decision. Replayed sequence/boot ID,
 broken sample chain, missing DB/probe, release/config/schema/inventory digest
 drift or contradictory counts fail the sample closed. The external heartbeat
@@ -546,21 +593,37 @@ Pilot defaults:
 | Core event loop | 60 seconds |
 | Poll lease and last successful long poll | 90 seconds |
 | Google read-only sentinel | 10 minutes |
+| Codex auth/entitlement/session probe and bounded synthetic turn | Manifest cadence, never more often than 10 minutes |
+| Required Google model-route synthetic sentinel | Manifest cadence, never more often than 10 minutes |
 | Online Bridge heartbeat | 120 seconds |
 | Off-host recovery point | 20 minutes for 15-minute RPO |
 | Restore drill at pilot entry | 24 hours |
 | Clock skew | 30 seconds |
 
+Provider-call probes use only a fixed versioned `PUBLIC` synthetic payload and
+closed output assertion; business/user content, filenames and IDs are forbidden.
+Every call uses Gate 3 reservation/settlement and counts against the L4-bound
+probe call/cost ceiling. Budget `0`, missing price, missing reservation or an
+exhausted ceiling forbids the call and blocks pilot admission/healthy time; the
+monitor never silently spends to prove health. Codex subscription/quota probes
+are likewise bounded in the manifest even when no per-call invoice exists.
+
 State rules:
 
-- `HEALTHY`: Core, poller, DB, Google and expected Bridge are fresh; zero orphan,
-  unknown and unreconciled.
-- `DEGRADED_LOCAL`: Bridge is offline/unavailable, but Core/poller/DB/Google remain
-  safe. Local jobs wait within bounded TTL.
+- `HEALTHY`: Core, poller, DB, Codex worker, Google, every release-required
+  model route and expected Bridge are fresh; zero orphan, unknown and
+  unreconciled.
+- `DEGRADED_AI`: Core/poller/DB remain safe, but Codex auth, entitlement,
+  app-server/session probe, bounded-turn freshness or a required specialist route
+  is unavailable. New AI work is rejected/degraded; deterministic read-safe work
+  may continue. This state never counts as Gate 8 healthy time.
+- `DEGRADED_LOCAL`: Bridge is offline/unavailable, but Core/poller/DB and AI
+  readiness remain safe. Local jobs wait within bounded TTL.
 - `DEGRADED_GOOGLE`: Google is unavailable; Telegram/local read-safe work may
   continue, Google writes do not.
-- `FAIL_STOP`: integrity/schema/digest/tenant/singleton/auth/reconciliation conflict,
-  stale Core/poller, orphan effect, unrequested effect or unknown write.
+- `FAIL_STOP`: integrity/schema/digest/tenant/singleton/auth/reconciliation
+  conflict, stale Core/poller, orphan effect, unrequested effect or unknown
+  write.
 
 Gate 8 PASS requires `HEALTHY`; degraded operation may be correct runtime behavior but
 does not count as pilot healthy time except an approved offline-Bridge observation
@@ -573,6 +636,8 @@ The owner sees:
 - exact release short ID/digest;
 - Core and poller freshness/singleton;
 - Google and Bridge state/last seen;
+- Codex worker and exact required Google model-route set/readiness;
+- probe call count, reserved/settled usage, cost ceiling and remaining budget;
 - DB and recovery state;
 - running/queued/dead-letter/orphan/unknown counts and oldest eligible wait;
 - last successful backup and restore drill;
@@ -941,6 +1006,9 @@ window.
 | Bridge online heartbeat | >= 99% while PC is scheduled online |
 | Offline classification | 100% `DEGRADED_LOCAL`; Google/Telegram continue |
 | Google read sentinel | >= 99%; no blind write retry |
+| Codex worker readiness | Exact manifest-bound probe set; >= 99%; no unbudgeted call |
+| Required Google model-route readiness | Exact nonempty manifest set where critical; >= 99%; zero missing/extra/duplicate routes |
+| AI probe privacy/budget | 100% fixed PUBLIC payload; every call reserved/settled; call and cost ceilings never exceeded |
 | Backup recovery points | 100% schedule; gap never exceeds approved RPO |
 | Alert detection | <= 2 minutes for stale Core/poller |
 | Owner notification | <= 5 minutes through an independent channel |
@@ -958,6 +1026,8 @@ Immediate fail-stop/owner alert:
 - second poller/split brain;
 - integrity/schema/manifest mismatch;
 - stale Core/poller;
+- Codex or release-required Google model route missing/stale, route-set mismatch,
+  duplicate route, unbudgeted probe or probe privacy-policy violation;
 - device auth/replay/key-revocation event;
 - orphan, unrequested effect or unreconciled unknown;
 - backup RPO breach or corrupt recovery point;
@@ -967,6 +1037,7 @@ Warning/degraded:
 
 - Bridge offline;
 - Google read sentinel failure;
+- AI probe budget approaching the L4 ceiling;
 - queue pressure/dead letter;
 - approaching backup/disk/WAL threshold.
 
@@ -983,6 +1054,8 @@ The bundle contains only metadata/evidence:
 - singleton/token-custody proof;
 - device certificate fingerprint/generation and grant digest;
 - health samples and SLO calculation;
+- exact Codex/Google AI route-set digest, content-free probe receipts,
+  reservation/settlement totals and L4-bound call/cost ceiling evidence;
 - queue/effect/reconciliation summaries;
 - smoke created-object/cleanup ledger;
 - backup/restic snapshot and portable restore evidence;
@@ -1182,9 +1255,11 @@ The design is `ARCHITECTURE READY` when:
 - topology, authority, release, dynamic DB inventory, credential re-enrollment,
   health, backup, migration, rollback, smoke and pilot contracts are complete;
 - Gate 0–7 design handoffs are represented by the corresponding `docs/gates` set;
-- document-level L1/L2/L3 pass and no runtime execution is claimed.
+- fresh document-level L1/L2/L3 are recorded for the current exact delta and
+  no runtime execution is claimed.
 
-These design conditions are satisfied by this revision.
+The contract content is complete and fresh exact-delta L1/L2/L3 is recorded as
+`CASE-20260728-OWNER-DECISIONS-151422`. This does not prove implementation or runtime.
 
 ### 24.2 Gate 8 implementation/pilot PASS DoD — not yet satisfied
 
@@ -1221,7 +1296,8 @@ The following approvals remain execution gates, not architecture blockers:
 1. approve or revise measured Core DB and VPS-loss RPO/RTO after the portable drill;
 2. approve backup retention and the exact off-host provider/account boundary;
 3. approve BotFather rotation for any cutover where old-host custody is uncertain;
-4. approve the independent alert channel and its content-free data boundary;
+4. create/configure the accepted TARGET channel `Healthchecks.io → owner
+   Gmail`, approve its exact account/setup/content-free manifest and any cost;
 5. issue exact action-bound L4 for each release/migration/restore/pilot action;
 6. after pilot PASS, separately approve bounded restart/autostart policy.
 
@@ -1240,8 +1316,9 @@ Required deterministic checks:
 - examples contain placeholders only;
 - secret-pattern scan finds no token, credential, cookie, private key, host secret or
   customer payload;
-- document contains ARCHITECTURE READY but no claim that implementation,
-  deployment, backup, restore, pilot or Gate 8 PASS was executed.
+- document contains `ARCHITECTURE READY` only with fresh exact-delta evidence
+  `CASE-20260728-OWNER-DECISIONS-151422`, and still does not claim implementation, deployment, backup,
+  restore, pilot or Gate 8 PASS.
 
 ### 26.2 L2 — disaster and release semantics walkthrough
 
@@ -1322,8 +1399,8 @@ Open execution/PASS blockers:
 - action-bound L4, full natural smoke, cleanup/reconciliation evidence;
 - unchanged 72-hour pilot and separate approval for post-pilot supervision.
 
-**Architecture verdict: ARCHITECTURE READY.** Document-level L1/L2/L3 design checks
-pass after this root rework.
+**Architecture verdict: ARCHITECTURE READY.** Fresh exact-delta evidence:
+`CASE-20260728-OWNER-DECISIONS-151422`; no old review evidence is reused.
 
 **Gate verdict: GATE 8 IMPLEMENTATION/PILOT BLOCKED.** No deployment, runtime smoke,
 restore drill, 72-hour pilot or Gate 8 PASS is claimed by this document.

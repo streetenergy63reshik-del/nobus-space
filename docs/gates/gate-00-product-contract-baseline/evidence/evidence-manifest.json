@@ -1,6 +1,6 @@
 {
-  "base_commit": "d11eda855a4e2ff88096dc536f36374daacc4de6",
-  "created_at": "2026-07-31T09:21:47.795670Z",
+  "base_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
+  "created_at": "2026-08-01T07:13:09.071053Z",
   "entries": [
     {
       "bytes": 239,
@@ -11,60 +11,60 @@
       "sha256": "sha256:1e1dda98b992ec92fe3b33d2b230cdc85feddea9f1352f59379fd68613cfd02f"
     },
     {
-      "bytes": 66552,
+      "bytes": 72276,
       "classification": "internal",
       "media_type": "text/markdown",
       "path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
       "role": "architecture",
-      "sha256": "sha256:6dc727b253a8a2e33da64311092125bfae9f37dcf95a1c8530228f19461cbdde"
+      "sha256": "sha256:5d08bdc1333d5d3ab7ea3cfe78d86243d48c3da7da7defc6829b356846175a19"
     },
     {
-      "bytes": 530,
+      "bytes": 531,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
       "role": "corpus",
-      "sha256": "sha256:6e858460eb22f01488c210d90a06cb65ef93e97a9ce2b837d7e0f4ed036fc79b"
+      "sha256": "sha256:b0f61f5514b4a4efbc6a5014cbabca30a77b1c5f7e140b3af85f7f3f0b488469"
     },
     {
-      "bytes": 4008,
+      "bytes": 4363,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
       "role": "corpus",
-      "sha256": "sha256:3ca682bb64579494e3cdb0ed0ab3873f00a0b723aada3f7dc84a0ce0684fb6ca"
+      "sha256": "sha256:2d18afcb5ae0706453316f31ac49d46198c481d8567d3fd33f4349cb4cea13a1"
     },
     {
-      "bytes": 151449,
+      "bytes": 163899,
       "classification": "internal",
       "media_type": "application/x-ndjson",
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
       "role": "corpus",
-      "sha256": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a"
+      "sha256": "sha256:bb97f72d76c83edffd17378d5929564d76177131104a34fd858186675c4c7c26"
     },
     {
-      "bytes": 6649,
+      "bytes": 6983,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/decisions/decision-register.json",
       "role": "product_contract",
-      "sha256": "sha256:1230402c5ee845c1cafc8854289c47e448d0d7709836a309f52384fd88de863f"
+      "sha256": "sha256:42c8ea22724a1845eb71b4e7d1f3edaf965995dc4735662f62ec7330101a54ea"
     },
     {
-      "bytes": 73470,
+      "bytes": 65451,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
       "role": "evidence",
-      "sha256": "sha256:2bd6368ac13a63dc973cb21989347c5e55c6a63ff315c879e6cdb1b0bcefc8ef"
+      "sha256": "sha256:2518d1715cd0b396bf84959eaadeb342c82ba729911eb33151e07de2204d3410"
     },
     {
-      "bytes": 3341,
+      "bytes": 3563,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/component-manifest.json",
       "role": "evidence",
-      "sha256": "sha256:b97b8e93b2ad961d7c4c53107634a28cd8eb6040edc7aaae21d5749666cab57c"
+      "sha256": "sha256:449d4ad6952ffa7b01073e66815aec2944ce8b51c235ca98ca6b6e3557d3516b"
     },
     {
       "bytes": 2156,
@@ -75,44 +75,44 @@
       "sha256": "sha256:b881f0ca0100f55a7b06ed39229ea31c7a7c86f73fb9f18ffeee54e3a0d10ddd"
     },
     {
-      "bytes": 13582,
+      "bytes": 14655,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/current-corpus-baseline.json",
       "role": "evidence",
-      "sha256": "sha256:8df7b22b3643559e34eff33c3480f3bdffea7020af4ed977ed35f05bb2c7e6ba"
+      "sha256": "sha256:6dfca2bd4513ea0c43a4220834dc2b4a05e662a93e5af8b695234bee1ca40f4f"
     },
     {
-      "bytes": 10264,
+      "bytes": 10265,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json",
       "role": "evidence",
-      "sha256": "sha256:b9f17b8d43c7b748ffd5d820306847b6cd710eecdb39d3096210a10bc2b61fa1"
+      "sha256": "sha256:4d8f1dfbad8cf774aa08bbe095dee51d69f039676a48dfff0ff93ad465b454e7"
     },
     {
-      "bytes": 31232,
+      "bytes": 31209,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/dependency-inventory.json",
       "role": "evidence",
-      "sha256": "sha256:bb4eae9c10329e25402f10a61a7a5791c33147238f46a58916bfc0db20d4eccc"
+      "sha256": "sha256:f5940e71cda72c93da264505a370139d59980e83a7504f3c3489708d3383cad0"
     },
     {
-      "bytes": 31119,
+      "bytes": 25324,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json",
       "role": "evidence",
-      "sha256": "sha256:bacfaf8b661c8d199e743d3ecad1172874e6226dc0a1a245f782678d33f29df9"
+      "sha256": "sha256:2949262f169cb507967de1211e51191217c7e77f844b81fda96adae68d429fb7"
     },
     {
-      "bytes": 4913,
+      "bytes": 4416,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
       "role": "evidence",
-      "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+      "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c"
     },
     {
       "bytes": 3575,
@@ -131,20 +131,20 @@
       "sha256": "sha256:ca1f09738f13c3c94d3f329ee1cad64b5aa91c0ac594e0548a1e5af8a6be1869"
     },
     {
-      "bytes": 59950,
+      "bytes": 62761,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/pre-capture-core.json",
       "role": "evidence",
-      "sha256": "sha256:f0d9fb32456caffee9a4555b10b2d54c58433b8aa3128fd8ec0f68ca5f2b8f35"
+      "sha256": "sha256:127c4a709dfe335be478e2d6c27cb30a535ee59dbdc4d4e95cef1550c5eb43e8"
     },
     {
-      "bytes": 3983,
+      "bytes": 3984,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
       "role": "evidence",
-      "sha256": "sha256:4b6ebaa619c254f4b0faabf2b0650e5f20c08b913a404357c59f269ff09b5bb2"
+      "sha256": "sha256:10d7b120525547d50eb7ef323746a584e67cc754dadb561dfbea4c27ea4e4cc2"
     },
     {
       "bytes": 2138,
@@ -152,31 +152,31 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
       "role": "evidence",
-      "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+      "sha256": "sha256:fe12bd2d211d609230d643e215f0b10773bc2f439199353f74450daef74dc63e"
     },
     {
-      "bytes": 73474,
+      "bytes": 65455,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-bool-as-int.json",
       "role": "fixture",
-      "sha256": "sha256:6eb6547ec961cd15518033ff4442d5ea4fc3b6ac2729434d1a5fd34fa716f037"
+      "sha256": "sha256:33d353bde2758b551685ab34cddbbce75f2cf485bde547f99320f8ffc9e4a2b4"
     },
     {
-      "bytes": 73462,
+      "bytes": 65443,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-naive-timestamp.json",
       "role": "fixture",
-      "sha256": "sha256:012506e3ca1f6a4ec1efea2eb31dd7ca6772a87f8279ada700acf73c9d71357f"
+      "sha256": "sha256:2e29ac9e4aec4bf21b117407715ea79b8d46782756475694e31f6c83dc121fa7"
     },
     {
-      "bytes": 73467,
+      "bytes": 65448,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/baseline-non-utc-timestamp.json",
       "role": "fixture",
-      "sha256": "sha256:2ff95efbc304b5213716c6b217382919e1610f5a23f61022abc84114a4117508"
+      "sha256": "sha256:0aa94cd292c199c238031346dac07ea8231e8e01c05d56132eb733b2d19868ef"
     },
     {
       "bytes": 1140,
@@ -184,7 +184,7 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/capability-naive-timestamp.json",
       "role": "fixture",
-      "sha256": "sha256:c3fc7ada20aa49ea0e97b0006ff596df1ce92232158990b703db9a29abc9e4e7"
+      "sha256": "sha256:2dc97c0c508aaebf9d5a751d38a2f519f592af68d2f6471cf4877de1bf697fea"
     },
     {
       "bytes": 1146,
@@ -192,7 +192,7 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/capability-non-utc-timestamp.json",
       "role": "fixture",
-      "sha256": "sha256:68fad755a29ba168244a769d51cb294c8cd148acac4ed7ed2efc9078eb5baaaf"
+      "sha256": "sha256:b1d711c6424ce675c49090ee7f890c0cff6951151dfb6d9dc0d915fd5d7e282e"
     },
     {
       "bytes": 2022,
@@ -200,7 +200,7 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-naive-datetime.json",
       "role": "fixture",
-      "sha256": "sha256:1de8ffcd4163c5a3d474a0b9c081aaaa5ea3ad748fb41b78578f138c3e7803eb"
+      "sha256": "sha256:7cc37c871a5e133b7835b46cdf7ffd485107c4ebfd8712fba795a5dbbf04853f"
     },
     {
       "bytes": 2026,
@@ -208,7 +208,7 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-real-payload-flag.json",
       "role": "fixture",
-      "sha256": "sha256:d2b534270ef2fadff222070d2b91d0efe744b4d5c28977c81934173051b48ba8"
+      "sha256": "sha256:4bd8cab1a8148e9c0d14846d5c4dd4927dd18966bdab63d22db1ffc10368d604"
     },
     {
       "bytes": 2023,
@@ -216,7 +216,7 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-tenant-swap.json",
       "role": "fixture",
-      "sha256": "sha256:2811d591fb50c3d12be6f08acbc9e50862f140230a00a739f3ad53862b8bd175"
+      "sha256": "sha256:4e309edf2e57d9ad912d528f3ad6cb69b2051abae64bba0015b85f8209703f7d"
     },
     {
       "bytes": 2029,
@@ -224,7 +224,7 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-unknown-enum.json",
       "role": "fixture",
-      "sha256": "sha256:6f6f3dd20c77c86a3e6050c17fa73a1a86b11b5aca7cc91d0487dee663e80522"
+      "sha256": "sha256:142e66f7e29b1accab1fc91810684715d7a7f39d6c342c81bdf52af482eb86e4"
     },
     {
       "bytes": 2045,
@@ -232,39 +232,39 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/corpus-case-unknown-field.json",
       "role": "fixture",
-      "sha256": "sha256:48bf19e02b101ea415d36c17c21894f2e3e0b9028cbe94289f2723dd41c70cdd"
+      "sha256": "sha256:38a05b94e006193b2146c486314ebb134e59933695c5de88f80a22ab6951664e"
     },
     {
-      "bytes": 9368,
+      "bytes": 9944,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/gate-handoff-naive-timestamp.json",
       "role": "fixture",
-      "sha256": "sha256:6f290d532f0c8a4ff7cf6caa7802fb2e755b2aa72c69a47cb06aa0aec96c8e63"
+      "sha256": "sha256:ce72cb86f6e702cdaec1936e1ecf3d4a021558cf10cfdff6d89bd2af7e6b7598"
     },
     {
-      "bytes": 9374,
+      "bytes": 9950,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/gate-handoff-non-utc-timestamp.json",
       "role": "fixture",
-      "sha256": "sha256:3e6ddc3cfdd8bdd497f0c3142b0e7519ca094761a504d260f79334abffa9a6c1"
+      "sha256": "sha256:c801d2da6f89acb5c92ba6a47a154a673cdb2c5289e4b4e9f2d8141a582c1fed"
     },
     {
-      "bytes": 24044,
+      "bytes": 33047,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/invalid/product-contract-unknown-field.json",
       "role": "fixture",
-      "sha256": "sha256:651a2692f50a2dc25b766274c99bb838bff8836486fb28318610a4bcd41527a3"
+      "sha256": "sha256:3f278933a9822514057d6d1f71bd35bd669240dba3d9754e5f0282435db0693d"
     },
     {
-      "bytes": 73470,
+      "bytes": 65451,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/baseline-evidence.json",
       "role": "fixture",
-      "sha256": "sha256:2bd6368ac13a63dc973cb21989347c5e55c6a63ff315c879e6cdb1b0bcefc8ef"
+      "sha256": "sha256:2518d1715cd0b396bf84959eaadeb342c82ba729911eb33151e07de2204d3410"
     },
     {
       "bytes": 2023,
@@ -272,23 +272,23 @@
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/corpus-case.json",
       "role": "fixture",
-      "sha256": "sha256:f7194932bbee15efcb4f9f9eaada15b168578fb70fe3775eef287632abd860ed"
+      "sha256": "sha256:46db630621decbaffcfc16f72353a80e4e863c124d1baa6de5d4f10b29a60f50"
     },
     {
-      "bytes": 9330,
+      "bytes": 9816,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/gate-handoff.json",
       "role": "fixture",
-      "sha256": "sha256:045661d8dc9b081dd20a8c8bee7a482f0708d6ac1023a7e4f26a0e38e48f6a81"
+      "sha256": "sha256:04b8221abd6efc79e3f9440970a9388324f9b7479d974075cb07a9e223120ccc"
     },
     {
-      "bytes": 24019,
+      "bytes": 33022,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/product-contract.json",
       "role": "fixture",
-      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9"
+      "sha256": "sha256:081b8897df0f3a3c81419bf0bc0ef83edc2b1d121dd6b92196a336b1e1799af3"
     },
     {
       "bytes": 226,
@@ -299,28 +299,28 @@
       "sha256": "sha256:37915a03f5707428bdab2032b2bedd9fd67ee887d6abe83db9a75b67292e8aaa"
     },
     {
-      "bytes": 25175,
+      "bytes": 35120,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/contract-examples.json",
       "role": "fixture",
-      "sha256": "sha256:a68583dfeace5d420b81ab22486e7f86af16b34cb7c852558579998259d07db8"
+      "sha256": "sha256:459d0e18cee5bdc1781ac3fcd6182be24dd9474463b883ef3837ae820ea4bb56"
     },
     {
-      "bytes": 1118,
+      "bytes": 1314,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/core-digests.json",
       "role": "fixture",
-      "sha256": "sha256:3d244890ecf81a5d5314380775eb50f2c22418f8376d219da3b7b82d875870fd"
+      "sha256": "sha256:0d37391b09960e390020c83dc4bdfc3e5c33deea91d6811d6d3d40f2d0cd9edb"
     },
     {
-      "bytes": 2967,
+      "bytes": 3208,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/expected-intents.json",
       "role": "fixture",
-      "sha256": "sha256:c775058619c709967ae80df8e6e5c295c5b0e2f70ed4e4eceb1a07492b988d84"
+      "sha256": "sha256:12baebdc68925fc3f32a968785b48b41d89a3198c5974ab3ef610ad366f37e70"
     },
     {
       "bytes": 230,
@@ -331,28 +331,44 @@
       "sha256": "sha256:6bb65c6ab6daef4d7218679dfc199cdf010c89014d9ddfc574a09b4e086fda4a"
     },
     {
-      "bytes": 52432,
+      "bytes": 71325,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/fixtures/golden/target-contract-schema-projections.json",
       "role": "fixture",
-      "sha256": "sha256:b0d235dac1db34024b19d3bb281e3f67f711c74fb51701c38e020185d2d75fcd"
+      "sha256": "sha256:5d31711e7e3d3063a4702c88df3ad6db3e9734ba0b8aceb48640e575399d5676"
     },
     {
-      "bytes": 6810,
+      "bytes": 6964,
       "classification": "internal",
       "media_type": "text/markdown",
       "path": "docs/gates/gate-00-product-contract-baseline/HANDOFF.md",
       "role": "handoff",
-      "sha256": "sha256:4080c20541a48fb477af05e6817499a22db5ba3aabc6a1cea41049a5ab8bdfd3"
+      "sha256": "sha256:baff9217d396ffd4b805a5ee84151d36c2d7a4b342f46b2f9bca829e8dfde88f"
     },
     {
-      "bytes": 24019,
+      "bytes": 3592,
+      "classification": "internal",
+      "media_type": "text/markdown",
+      "path": "docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md",
+      "role": "verification",
+      "sha256": "sha256:6d4e172798accb2d56347221f869f5ba4c313651aedce30106fcfc4174cbfa12"
+    },
+    {
+      "bytes": 4054,
+      "classification": "internal",
+      "media_type": "application/json",
+      "path": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
+      "role": "product_contract",
+      "sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578"
+    },
+    {
+      "bytes": 33022,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
       "role": "product_contract",
-      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9"
+      "sha256": "sha256:081b8897df0f3a3c81419bf0bc0ef83edc2b1d121dd6b92196a336b1e1799af3"
     },
     {
       "bytes": 25482,
@@ -379,68 +395,108 @@
       "sha256": "sha256:e5eaf95a50c77970ef854889f022ccc2bf8d0f7e93b75eedd4beb8530a810d7a"
     },
     {
-      "bytes": 18151,
+      "bytes": 18620,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/schemas/corpus-case.schema.json",
       "role": "schema",
-      "sha256": "sha256:701a6dedd54e10e46eaa765949d41d8a5815f00f2ef608f7b06978b39f9f30c4"
+      "sha256": "sha256:961a4aa89d52440f3466a42c660fd9b55442eb741114764affb13afa9f1f118c"
     },
     {
-      "bytes": 6965,
+      "bytes": 7109,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/schemas/gate-handoff.schema.json",
       "role": "schema",
-      "sha256": "sha256:a54782d03629ee7203a348a7a63d1620ec25f7eba6fff955760f6efba69f498a"
+      "sha256": "sha256:99d5061a0a66a884fe79e199c8cf3a34d8b9aafb3b3ccc3e81e86a726bc6c7a9"
     },
     {
-      "bytes": 8250,
+      "bytes": 9757,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/schemas/product-contract.schema.json",
       "role": "schema",
-      "sha256": "sha256:a59b0661eb564c41eef3b38ef6262b963cba50653a223700967d61396090d365"
+      "sha256": "sha256:1fb5d06ab6f1bca59553275f776d97786e5cc67fbf89bc5719555374b1ca0ec3"
     },
     {
-      "bytes": 993,
+      "bytes": 2861,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/verification/l1.json",
       "role": "verification",
-      "sha256": "sha256:a8e841b2f5774adda63798cbb66a82b9f56f368af62a23348a8b33105f8d6563"
+      "sha256": "sha256:30cd71fa69f849ad9582108bb6cd7b067aedb1ee59900170a8272dbdf01e3502"
     },
     {
-      "bytes": 1090,
+      "bytes": 3459,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/verification/l2.json",
       "role": "verification",
-      "sha256": "sha256:d3e6c591a56003177fad6424346ae2c873bc767f58484a31017bccb5027ff3e9"
+      "sha256": "sha256:06c69e76e574bea8e6f9eeef53ab23d028d118bbc63c8a37dd731dbe73437618"
     },
     {
-      "bytes": 1200,
+      "bytes": 3573,
       "classification": "internal",
       "media_type": "application/json",
       "path": "docs/gates/gate-00-product-contract-baseline/verification/l3.json",
       "role": "verification",
-      "sha256": "sha256:7e40523955f6e7383cadc7028bbe9afe4459a9b26ee3fa19d7e3a394dffda3d2"
+      "sha256": "sha256:b6a09bb513c1db537d39ac200186eb386d9a468e6db340b4acee073cbab4bb35"
     },
     {
-      "bytes": 28940,
+      "bytes": 2439,
+      "classification": "internal",
+      "media_type": "application/json",
+      "path": "docs/gates/gate-00-product-contract-baseline/verification/submissions/l1.json",
+      "role": "verification",
+      "sha256": "sha256:468431febac12fe47622a0b60a1d3d60dc1c1b562ccbc16200b4730bfda6c3ac"
+    },
+    {
+      "bytes": 3269,
+      "classification": "internal",
+      "media_type": "application/json",
+      "path": "docs/gates/gate-00-product-contract-baseline/verification/submissions/l2.json",
+      "role": "verification",
+      "sha256": "sha256:9cdec325240b561b84103d1175781ce13c47bc64b8359d2c2e0ba76c2ec25598"
+    },
+    {
+      "bytes": 3383,
+      "classification": "internal",
+      "media_type": "application/json",
+      "path": "docs/gates/gate-00-product-contract-baseline/verification/submissions/l3.json",
+      "role": "verification",
+      "sha256": "sha256:590dd1dcaa3683b5739b2b9004dc74f8dd03d5e073db63cbafe820531d06644e"
+    },
+    {
+      "bytes": 30166,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/collect_gate0_snapshot.py",
       "role": "verification",
-      "sha256": "sha256:4d8623b044504c53fcbb65df31e0c227b8596280e39d74e9bb8d71d81e9c8987"
+      "sha256": "sha256:c19a171f4bc9827894d7dd845b730745e594f452ed8ccbcff97dc992d79dff44"
     },
     {
-      "bytes": 17393,
+      "bytes": 17770,
       "classification": "internal",
       "media_type": "text/x-powershell",
       "path": "tests/gate0/collect_runtime_snapshot.ps1",
       "role": "verification",
-      "sha256": "sha256:fdb117ff07b473240671e26013a180f2ceb00249ac4c1ba87c46d1da1f349e2f"
+      "sha256": "sha256:74424f17fc0d3742568bee266a0c012d9b34f0fb047488e2ba407b70a6fc04bf"
+    },
+    {
+      "bytes": 10670,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/gate0_acceptance.py",
+      "role": "verification",
+      "sha256": "sha256:e9d518373a922a2dd665a016af8d667c66cd075a1239d1f59baafe75d04cc156"
+    },
+    {
+      "bytes": 787,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/gate0_core_paths.py",
+      "role": "verification",
+      "sha256": "sha256:e0c389e123500dfc863bb0af74547dd73a664a2d7250b5975e9d3a4b23f02ed1"
     },
     {
       "bytes": 18752,
@@ -451,20 +507,52 @@
       "sha256": "sha256:c6c1e0320c2ceeb0b90ba24db7f531d6b54c69f80e0aa806b5562da39db6c93a"
     },
     {
-      "bytes": 33685,
+      "bytes": 6345,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/gate0_normative_catalog.py",
+      "role": "verification",
+      "sha256": "sha256:01ae8f9fbd9068b07650a4dbe2a8445a2e06268ab12467d5afba84fb228d9a05"
+    },
+    {
+      "bytes": 34451,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/gate0_precapture.py",
       "role": "verification",
-      "sha256": "sha256:9d3bdc4d65ad0aadb79c6e2724a2dd1387723c779d439fd603706f1a9761494b"
+      "sha256": "sha256:f3089f1a77687724036f2e4336ae361b02420f0f582db8dc032dbc2ee4191637"
     },
     {
-      "bytes": 136704,
+      "bytes": 3163,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/gate0_product_v2.py",
+      "role": "verification",
+      "sha256": "sha256:1964f6377fcf63b82fc1bae29ec6c049f8cb9b7231da596672e53ea7e6b64213"
+    },
+    {
+      "bytes": 3585,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/gate0_review_origin.py",
+      "role": "verification",
+      "sha256": "sha256:5e0ddb8de6e5881e6af62b1ff51fc72b67b4cb97607de6e230512a53155ad0ce"
+    },
+    {
+      "bytes": 7421,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/gate0_review_submission.py",
+      "role": "verification",
+      "sha256": "sha256:1ba103cc48c74ec4da88609741fa690c79efe17fd05f13afe92c86dc956cad53"
+    },
+    {
+      "bytes": 139852,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/generate_gate0_artifacts.py",
       "role": "verification",
-      "sha256": "sha256:443a4d7f06e5eec245c08f9a985d63cf520a5d14a942f038d37a45062f379978"
+      "sha256": "sha256:1055da3bf47b7bf4804ced719b558debef6aaa63b07c0f032ef4438482a7d7fb"
     },
     {
       "bytes": 1574,
@@ -491,20 +579,20 @@
       "sha256": "sha256:8d43541bba2f93ab6b515a783d8b331038da10c2d90b703a1ff616c899c37984"
     },
     {
-      "bytes": 109455,
+      "bytes": 119606,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/normalize_gate0_contracts.py",
       "role": "verification",
-      "sha256": "sha256:a512833f2aac546a9abb0e90456531cdd92136477ddf490d3beaa8f67595ee22"
+      "sha256": "sha256:6ade57b07397cd750898f53d865fa50fbae5e22687eb3e316273276bce56edfa"
     },
     {
-      "bytes": 27579,
+      "bytes": 28249,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/normative_models.py",
       "role": "verification",
-      "sha256": "sha256:9637bc9ec3795cb4238bb7bdf5ca31a9a051bc9ecff852992e735f4be6f8507b"
+      "sha256": "sha256:e4a1d1a1c3e20ec7c6712716ec2e29548f32876d5102a26b5d2eb6d726ab5aef"
     },
     {
       "bytes": 765,
@@ -515,20 +603,36 @@
       "sha256": "sha256:092aeedb04be7512926005c0e062b657a14f082dc9cc8eeea8ef1d9332c603c8"
     },
     {
-      "bytes": 14454,
+      "bytes": 2008,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/synthetic_review_fixture.py",
+      "role": "verification",
+      "sha256": "sha256:3283ff8ad012b0150688b1e42f028e57e5d64ceef9f33222ddc00b81403ccbe5"
+    },
+    {
+      "bytes": 17233,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/target_golden_semantics.py",
       "role": "verification",
-      "sha256": "sha256:d21c4b3f725562eb7135d79ed3910057903f1f07e26478f68c9d68dccba2672e"
+      "sha256": "sha256:074c211a3d4f215f3a6ff87284c9f2a5651e195d2154c6f6b700000b1dc894a5"
     },
     {
-      "bytes": 2679,
+      "bytes": 5113,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/test_gate0_acceptance.py",
+      "role": "verification",
+      "sha256": "sha256:f6e45e77d909d3d153d3e50a108da732db6b0704945549fd1367f056105615fc"
+    },
+    {
+      "bytes": 5358,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/test_gate0_handoff_lifecycle.py",
       "role": "verification",
-      "sha256": "sha256:b86e558f550ac1f95e8278d7c61998623d953fed155b5687d8e9266e2f37c0fe"
+      "sha256": "sha256:ce2d95544fad2d3fa0f8df6173cce50f8631baf03e05b0cfa3c187024cb82a4f"
     },
     {
       "bytes": 4324,
@@ -539,20 +643,36 @@
       "sha256": "sha256:31649fd9e9c6881d8326520194fd3ac2e4dacd72d897286e197796a71496d341"
     },
     {
-      "bytes": 71981,
+      "bytes": 74649,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/test_gate0_normative.py",
       "role": "verification",
-      "sha256": "sha256:f16d4e4623fcb74046123e7b028250ac4dcc4233e353e39e2f556bd8ba834102"
+      "sha256": "sha256:71273bc3babe55987b79b0054bea9c4349874cc64cb7348659eb85b78e77ffa8"
     },
     {
-      "bytes": 37970,
+      "bytes": 38616,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/test_gate0_precapture.py",
       "role": "verification",
-      "sha256": "sha256:69b9a06e035b926972c715b1d9637b01a0f7523e50a90e3dfd98024e1e7077a1"
+      "sha256": "sha256:6db1099988e5351650e3a20244168217c1a486725035b1a8dbb5a73c5be2a422"
+    },
+    {
+      "bytes": 16751,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/test_independent_audit_closure.py",
+      "role": "verification",
+      "sha256": "sha256:bab80e695e2b3e9cdfcd8a5f368808e33190166fecbc8f14a368a5a50be1d10a"
+    },
+    {
+      "bytes": 5144,
+      "classification": "internal",
+      "media_type": "text/x-python",
+      "path": "tests/gate0/test_independent_audit_regressions.py",
+      "role": "verification",
+      "sha256": "sha256:ea3c63c303e172a3e5956d5d17ea4f420510247cd1c0f6eefbe2c21d0bca6d55"
     },
     {
       "bytes": 3134,
@@ -603,12 +723,12 @@
       "sha256": "sha256:90379020baade4b78d9cf76711d02a6f8fc2918bb392cbc58d10b739faf9189b"
     },
     {
-      "bytes": 7953,
+      "bytes": 8474,
       "classification": "internal",
       "media_type": "text/x-python",
       "path": "tests/gate0/test_runtime_maintenance_evidence_contract.py",
       "role": "verification",
-      "sha256": "sha256:5440fdd2254cb4b3989910f554ff7fea6f799a55216b01dc2474c4f930498556"
+      "sha256": "sha256:f9fe9699eb242481fb9e71108e152641162600db8d3f312145ec9222e1137b23"
     },
     {
       "bytes": 6513,
@@ -715,6 +835,14 @@
       "sha256": "sha256:c246f874e9eee908fcd409209d3d100bb86e10ab107a9deebf5d094d0460a3cb"
     },
     {
+      "bytes": 1191,
+      "classification": "internal",
+      "media_type": "application/json",
+      "path": "tests/gate0/verification-profiles.json",
+      "role": "verification",
+      "sha256": "sha256:5dbfe6a5811494ecd51a833fca073e7388d97de8eb21294a6d09e44bd5fbc196"
+    },
+    {
       "bytes": 4036,
       "classification": "internal",
       "media_type": "text/plain",
@@ -759,9 +887,9 @@
   "limitations": [
     "evidence-manifest.json excludes its own bytes to prevent cryptographic self-reference"
   ],
-  "manifest_digest": "sha256:6fa3e60c6a7b163aebd08c654cf3e7c6813d61f78a28dfa12b64ee95fe960bf5",
+  "manifest_digest": "sha256:54fe397c2119e9b7fb0f4464f676c4230752c7f382dafbc1525315ad65bef718",
   "result_commit": null,
-  "result_tree_digest": "sha256:6df56095df15d78edeaefa43effe7a6e1c2bf6dd02e33d19dde152c3ff702ece",
+  "result_tree_digest": "sha256:70e0be2fbeaa9e6c16b15894e734982b66556b8a9ef0eb7ba2566240a6f4da02",
   "schema": "nobus.gate0.evidence_manifest.v1",
   "tool_versions": {
     "git": "git version 2.55.0.windows.2",

@@ -19,12 +19,12 @@
         "unknown": []
       },
       "migration_lineage_status": "verified_absent",
-      "modified_at": "2026-07-30T10:25:28.896452Z",
+      "modified_at": "2026-07-31T16:38:38.865388Z",
       "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
       "runtime_binding_status": "verified",
       "safe_state_aggregates": {},
       "schema_digest": "sha256:2d06f646e2e3decdbea0ec888601d7a66b71a83622ef4acd19f352a1480d1073",
-      "size_bytes": 24576,
+      "size_bytes": 28672,
       "snapshot": {
         "concurrent_file_activity_observed": false,
         "consistent": true,
@@ -48,7 +48,7 @@
             "thread_id",
             "update_id"
           ],
-          "rows": 8,
+          "rows": 12,
           "safe_status_counts": null,
           "table": "business_notes"
         }
@@ -207,7 +207,7 @@
         "unknown": []
       },
       "migration_lineage_status": "verified_absent",
-      "modified_at": "2026-07-31T09:18:09.422750Z",
+      "modified_at": "2026-08-01T07:08:32.245210Z",
       "runtime_binding_reason": "SCHEDULER_RUNNER_ROOT_BOUND_IN_SINGLE_CAPTURE",
       "runtime_binding_status": "verified",
       "safe_state_aggregates": {},
@@ -346,5 +346,5 @@
       "user_version": 0
     }
   ],
-  "observed_at": "2026-07-31T09:18:31.426935Z"
+  "observed_at": "2026-08-01T07:08:59.689712Z"
 }

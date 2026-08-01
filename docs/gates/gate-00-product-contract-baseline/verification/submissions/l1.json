@@ -1,0 +1,29 @@
+{
+  "blocking_criteria": [],
+  "candidate_core_digest": "sha256:0d37391b09960e390020c83dc4bdfc3e5c33deea91d6811d6d3d40f2d0cd9edb",
+  "capture_digest": "sha256:b32ba89c178268cc5b2814d8974ed426a523ac9f7c27125279e174abc596189d",
+  "checks": [
+    {"evidence_refs": ["docs/gates/gate-00-product-contract-baseline/evidence/pre-capture-core.json", "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json", "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json"], "id": "bounded_projection", "status": "pass"},
+    {"evidence_refs": ["docs/gates/gate-00-product-contract-baseline/evidence/evidence-manifest.json", "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json"], "id": "exact_manifest_readback", "status": "pass"},
+    {"evidence_refs": ["docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json", "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json", "docs/gates/gate-00-product-contract-baseline/verification/l1.json"], "id": "capture_freshness_and_binding", "status": "pass"},
+    {"evidence_refs": ["docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md", "docs/gates/gate-00-product-contract-baseline/fixtures/golden/gate-acceptance-score.json"], "id": "acceptance_recalculation", "status": "pass"}
+  ],
+  "findings": [],
+  "frozen_tree_digest": "sha256:c89ffe63f11435451fb781009f53574919977a5e949460e1414350f89128abde",
+  "hidden_reasoning_persisted": false,
+  "level": "l1",
+  "observed_at": "2026-08-01T07:10:08.7154705Z",
+  "release_blockers": [],
+  "review_tree_digest": "sha256:ffdc2ef4d68a94533dff0c3dc9701566d748125884f5c974bb311c7cc7a5d49a",
+  "reviewer": {
+    "evidence_refs": ["docs/gates/gate-00-product-contract-baseline/evidence/evidence-manifest.json", "docs/gates/gate-00-product-contract-baseline/evidence/pre-capture-core.json", "docs/gates/gate-00-product-contract-baseline/verification/l1.json"],
+    "executor_separation_attested": true,
+    "independence_attested": true,
+    "method": "Independent deterministic V12 reproduction of exact candidate bindings, fresh sanitized projection, manifest bytes, test and verifier receipts, and pre-review acceptance arithmetic.",
+    "reviewer_id": "independent-l1-formal-20260801-v12",
+    "reviewer_type": "deterministic_reviewer"
+  },
+  "schema": "nobus.gate0.independent_review_submission.v1",
+  "stage": "post_capture",
+  "verdict": "pass"
+}

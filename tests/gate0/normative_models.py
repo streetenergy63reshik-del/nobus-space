@@ -41,7 +41,15 @@ EvidenceStatus = Literal[
     "NOT_CHECKED",
     "FAILED",
 ]
-Domain = Literal["notes", "calendar", "tasks", "documents", "research", "general"]
+Domain = Literal[
+    "notes",
+    "calendar",
+    "tasks",
+    "documents",
+    "research",
+    "development",
+    "general",
+]
 Action = Literal[
     "none",
     "answer",
@@ -64,6 +72,8 @@ Action = Literal[
     "complete",
     "delete",
     "deliver",
+    "commit",
+    "deploy",
 ]
 SourceKind = Literal[
     "none",
@@ -75,6 +85,8 @@ SourceKind = Literal[
     "google_drive",
     "local_library",
     "telegram_attachment",
+    "registered_repository",
+    "control_plane",
 ]
 OutputFormat = Literal[
     "telegram_text",
@@ -89,10 +101,12 @@ OutputFormat = Literal[
 CorpusTag = Literal[
     "adversarial",
     "analysis",
+    "authority_boundary",
     "analyze",
     "bridge_offline",
     "category.analytics_research_general",
     "category.business_notes",
+    "category.development_miniapp_control",
     "category.calendar",
     "category.documents_google_local_lifecycle",
     "category.security_effect_tenant_provider_adversarial",
@@ -104,6 +118,7 @@ CorpusTag = Literal[
     "cross_client_denied",
     "cross_project_denied",
     "deliver",
+    "gate2a",
     "delivery_unknown",
     "google",
     "half_open_time",
@@ -126,6 +141,7 @@ CorpusTag = Literal[
     "secret_path_denied",
     "security",
     "select",
+    "specialist_worker",
     "share",
     "stale_revision_denied",
     "tenant_isolation",
@@ -148,6 +164,7 @@ EffectKind = Literal[
     "change_access",
     "money",
     "push",
+    "local_candidate_commit",
     "deploy",
 ]
 
@@ -282,7 +299,7 @@ class CorpusProvenance(ClosedModel):
 
 class CorpusCase(ClosedModel):
     schema_value: Literal["nobus.gate0.corpus_case.v1"] = Field(alias="schema")
-    corpus_version: Literal["1.0.0"]
+    corpus_version: Literal["2.0.0"]
     case_id: str = Field(pattern=r"^G0-[A-Z]+-[0-9]{3}$")
     status: Literal["active", "deprecated", "tombstone"]
     locale: Literal["ru-RU"]
@@ -316,6 +333,7 @@ class Vocabulary(ClosedModel):
     domains: list[str]
     actions: list[str]
     source_kinds: list[str]
+    agent_roles: list[str]
     output_formats: list[str]
     effect_kinds: list[str]
     authorities: list[str]
@@ -331,11 +349,20 @@ class Invariant(ClosedModel):
 
 class ContractFamily(ClosedModel):
     family: str
-    owner_gate: StrictInt
+    owner_gate: StrictInt | Literal["2a"]
     contracts: list[str]
     status: Literal["current", "target"]
     source_ref: str
-    consumer_gates: list[StrictInt]
+    consumer_gates: list[StrictInt | Literal["2a"]]
+
+
+class NormativeInput(ClosedModel):
+    catalog_ref: Literal[
+        "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json"
+    ]
+    catalog_sha256: str = Field(pattern=DIGEST_PATTERN)
+    source_count: StrictInt = Field(ge=1)
+    source_set_sha256: str = Field(pattern=DIGEST_PATTERN)
 
 
 class ContractCatalogEntry(ClosedModel):
@@ -362,11 +389,12 @@ class ChangeControl(ClosedModel):
 
 class ProductContract(ClosedModel):
     schema_value: Literal["nobus.gate0.product_contract.v1"] = Field(alias="schema")
-    contract_version: Literal["1.0.0"]
+    contract_version: Literal["2.0.0"]
     status: Literal["frozen_target"]
     frozen_at: AwareTimestamp
     owner: Literal["nobus_space_owner"]
     design_base_commit: Literal[DESIGN_BASE]
+    normative_input: NormativeInput
     product_outcome: str
     non_goals: list[str]
     source_of_truth: list[str]

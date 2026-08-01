@@ -542,6 +542,268 @@
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "miniapp",
+        "worker_runtime"
+      ],
+      "contract_name": "AgentProfile",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/AgentProfile",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "gate2a_core",
+      "required_fields": [
+        "schema",
+        "agent_profile_ref",
+        "role",
+        "implementation_ref",
+        "enabled",
+        "host_class",
+        "accepted_task_kinds",
+        "capability_profile_ref",
+        "data_class_ceiling",
+        "network_profile_ref",
+        "tool_profile_ref",
+        "budget_profile_ref",
+        "deadline_profile_ref",
+        "output_schema_ref",
+        "verification_profile_ref",
+        "profile_digest"
+      ],
+      "schema_id": "nobus.agent_profile.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "worker_runtime"
+      ],
+      "contract_name": "AgentDispatch",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/AgentDispatch",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "gate2a_core",
+      "required_fields": [
+        "schema",
+        "dispatch_id",
+        "tenant_id",
+        "task_id",
+        "attempt_id",
+        "contract_digest",
+        "agent_profile_ref",
+        "capability_profile_ref",
+        "input_refs",
+        "deadline_at",
+        "lease_generation",
+        "maximum_events",
+        "maximum_output_bytes",
+        "dispatch_digest"
+      ],
+      "schema_id": "nobus.agent_dispatch.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "miniapp",
+        "effect_adapter"
+      ],
+      "contract_name": "ApprovalChallenge",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/ApprovalChallenge",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "gate2a_core",
+      "required_fields": [
+        "schema",
+        "challenge_ref",
+        "tenant_id",
+        "owner_identity_ref",
+        "task_id",
+        "task_revision",
+        "action_kind",
+        "target_ref",
+        "payload_digest",
+        "precondition_digest",
+        "risk",
+        "issued_at",
+        "expires_at",
+        "single_use",
+        "approval_digest"
+      ],
+      "schema_id": "nobus.approval_challenge.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "development_worker"
+      ],
+      "contract_name": "CodeTaskContract",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/CodeTaskContract",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "gate2a_core",
+      "required_fields": [
+        "schema",
+        "task_id",
+        "tenant_id",
+        "owner_request_digest",
+        "repository_ref",
+        "expected_base_commit",
+        "allowed_target_paths_ref",
+        "operation",
+        "goal",
+        "acceptance_criteria",
+        "test_profile_ref",
+        "network_profile_ref",
+        "credential_profile_ref",
+        "maximum_files",
+        "maximum_patch_bytes",
+        "deadline_at",
+        "contract_digest"
+      ],
+      "schema_id": "nobus.code_task.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "gate2a_core",
+        "miniapp"
+      ],
+      "contract_name": "CodePlan",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/CodePlan",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "development_worker",
+      "required_fields": [
+        "schema",
+        "task_id",
+        "contract_digest",
+        "base_commit",
+        "target_paths",
+        "steps",
+        "tests",
+        "risks",
+        "requires_approval",
+        "plan_digest"
+      ],
+      "schema_id": "nobus.code_plan.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "gate2a_core",
+        "miniapp"
+      ],
+      "contract_name": "PatchCandidate",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/PatchCandidate",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "development_worker",
+      "required_fields": [
+        "schema",
+        "task_id",
+        "attempt_id",
+        "base_commit",
+        "plan_digest",
+        "changed_files",
+        "patch_digest",
+        "delete_manifest",
+        "worktree_state_digest",
+        "candidate_digest"
+      ],
+      "schema_id": "nobus.patch_candidate.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
+    },
+    {
+      "closed_enum_refs": [
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md#6"
+      ],
+      "consumers": [
+        "gate2a_core",
+        "miniapp"
+      ],
+      "contract_name": "CandidateCommitReceipt",
+      "golden_ref": "fixtures/golden/contract-examples.json#/examples/CandidateCommitReceipt",
+      "invariant_refs": [
+        "PC-02",
+        "PC-03",
+        "PC-10"
+      ],
+      "owner": "gate2a",
+      "producer": "git_effect_adapter",
+      "required_fields": [
+        "schema",
+        "task_id",
+        "effect_id",
+        "repository_ref",
+        "base_commit",
+        "candidate_commit",
+        "candidate_ref",
+        "tree_digest",
+        "patch_digest",
+        "verification_bundle_digest",
+        "approval_digest",
+        "readback_digest",
+        "created_at",
+        "receipt_digest"
+      ],
+      "schema_id": "nobus.candidate_commit_receipt.v1",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "status": "target",
+      "trust_boundary": "strict_tenant_project_client_bound"
     }
   ],
   "contract_families": [
@@ -549,6 +811,7 @@
       "consumer_gates": [
         1,
         2,
+        "2a",
         3,
         4,
         5,
@@ -570,6 +833,7 @@
     {
       "consumer_gates": [
         2,
+        "2a",
         3,
         4,
         5,
@@ -589,6 +853,7 @@
     },
     {
       "consumer_gates": [
+        "2a",
         3,
         5,
         6,
@@ -608,6 +873,32 @@
       "family": "document",
       "owner_gate": 2,
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+      "status": "target"
+    },
+    {
+      "consumer_gates": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "contracts": [
+        "AgentProfile",
+        "AgentDispatch",
+        "WorkerResultEnvelope",
+        "ControlTaskView",
+        "ControlEventView",
+        "ApprovalChallenge",
+        "CodeTaskContract",
+        "CodePlan",
+        "PatchCandidate",
+        "CandidateCommitReceipt"
+      ],
+      "family": "miniapp_development_control",
+      "owner_gate": "2a",
+      "source_ref": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
       "status": "target"
     },
     {
@@ -711,7 +1002,7 @@
       "status": "target"
     }
   ],
-  "contract_version": "1.0.0",
+  "contract_version": "2.0.0",
   "design_base_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
   "frozen_at": "2026-07-28T00:00:00Z",
   "invariants": [
@@ -786,6 +1077,12 @@
       "id": "PC-12",
       "owner": "gate8",
       "statement": "Rollback of code is separate from external data recovery."
+    },
+    {
+      "fitness_ref": "G0-15",
+      "id": "PC-13",
+      "owner": "gate2a",
+      "statement": "A model or worker cannot expand authority or deploy itself."
     }
   ],
   "non_goals": [
@@ -794,6 +1091,12 @@
     "new eval, agent, observability or specification framework",
     "migration, backup, restore or owner-document processing"
   ],
+  "normative_input": {
+    "catalog_ref": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
+    "catalog_sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578",
+    "source_count": 20,
+    "source_set_sha256": "sha256:58dcb38ce8a2ecde02a2be03892357c7d2476c8f3f16c673b0498f92c989217d"
+  },
   "owner": "nobus_space_owner",
   "product_outcome": "MVP-1 accepts a natural text or voice request, derives a strict intent, executes only authorized effects, and returns evidence-bound results.",
   "product_principles": [
@@ -846,7 +1149,17 @@
       "update",
       "complete",
       "delete",
-      "deliver"
+      "deliver",
+      "commit",
+      "deploy"
+    ],
+    "agent_roles": [
+      "general_orchestrator_worker",
+      "google_workspace_specialist",
+      "research_analytics_specialist",
+      "content_studio_specialist",
+      "development_specialist",
+      "verification_specialist"
     ],
     "authorities": [
       "direct_owner",
@@ -859,6 +1172,7 @@
       "tasks",
       "documents",
       "research",
+      "development",
       "general"
     ],
     "effect_kinds": [
@@ -873,6 +1187,7 @@
       "change_access",
       "money",
       "push",
+      "local_candidate_commit",
       "deploy"
     ],
     "output_formats": [
@@ -900,7 +1215,9 @@
       "google_tasks",
       "google_drive",
       "local_library",
-      "telegram_attachment"
+      "telegram_attachment",
+      "registered_repository",
+      "control_plane"
     ]
   }
 }

@@ -1,4 +1,26 @@
-# Product MVP-1 — persistent mobile Codex release candidate
+# Nobus Space MVP-1 — актуальный статус архитектурной итерации
+
+**CURRENT на 31 июля 2026 года:** независимый аудит отозвал READY у Gate 0
+commit `0a0f56e8b6f77deccba2b51239a3fe1f207da349`. Gate 0 находится в
+`REWORK`; Gate 1 integration/commit заблокирован до нового result commit и
+отдельного immutable acceptance binding.
+
+- причина: старый контракт пропустил accepted ADR 0020, Gate 2A и domain
+  `development`, а прежние L2/L3 receipts были self-stamped;
+- remediation candidate использует digest-bound normative catalog, Product
+  Contract/corpus v2, внешние reviewer submissions и отдельный pure profile;
+- старые `22/22` и runtime evidence являются историческими, не CURRENT;
+- remote, push и deploy в remediation не выполняются.
+
+Точный текущий источник статуса: [Gate 0 HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md)
+и [audit remediation record](docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
+Каноническая навигация: [индекс документации](docs/README.md) и
+[пакет Gate 0–8](docs/gates/README.md).
+
+## Архив: локальная runtime-итерация до текущей дорожной карты Gate 0–8
+
+> Все статусы, Gate-номера, commits и runtime-утверждения ниже относятся только
+> к предыдущей локальной итерации и не определяют CURRENT для Gate 0–8.
 
 Feature commit `33b35f7` replaces the one-shot `codex exec --json/ephemeral`
 production worker with the official persistent `openai-codex` SDK/app-server.
@@ -12,28 +34,34 @@ until the backup/switch/startup-probe/owner-smoke sequence is complete. Active
 semantics:
 [ADR 0016](docs/adr/0016-persistent-mobile-codex-runtime.md).
 
-The readiness statements and test counts below this release-candidate header are historical snapshots. Where they conflict, this header, ADR 0011 and the leading section of `docs/handoffs/CURRENT-STATUS.md` are authoritative.
+The readiness statements and test counts in this historical snapshot describe
+the preceding local-runtime iteration. For the current Gate 0–8 architecture
+iteration, the leading section of this README and the sealed Gate 0 handoff are
+authoritative.
 
-# Nobus Space — Telegram Orchestrator MVP
+### Историческая сводка локального Telegram Orchestrator MVP
 
-`nobus-orchestrator-dev` — единственный канонический репозиторий MVP платформы Nobus Space. Цель ближайшего релиза: безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
+На момент этого snapshot `nobus-orchestrator-dev` использовался как канонический репозиторий локального MVP платформы Nobus Space. Целью той итерации было безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
 
-Реализация MVP-1 завершена и независимо принята. Reliability-релиз `36c17e4` с обязательным startup probe реального Codex CLI, безопасными диагностическими кодами и тихим продуктовым UX активирован в `agent/telegram-live`: startup probe прошёл, polling lease получена, desktop-runner работает. Production-readiness (OS supervisor, monitoring, backup/restore и deployment) остаётся отдельным Gate 5B после функционального MVP-1.
+В той итерации функциональный MVP-1 был объявлен завершённым и независимо принятым. Reliability-релиз `36c17e4` с обязательным startup probe реального Codex CLI, безопасными диагностическими кодами и тихим продуктовым UX был активирован в `agent/telegram-live`: startup probe прошёл, polling lease была получена, desktop-runner работал. Эти сведения не доказывают CURRENT topology новой дорожной карты; отдельная telegram-live isolation остаётся TARGET соответствующего runtime/deployment Gate.
 
-## Текущее состояние
+### Историческое состояние предыдущей итерации
 
-- Gate 0 и Documentation baseline приняты: `ea5bd51`, `364e6ab`.
-- Gate 1–2: Core contracts/policy, Telegram ingress и безопасный voice preview приняты.
-- Gate 3A/3B: Codex CLI boundary и Windows process-tree hardening приняты, включая `007640b`.
-- Gate 4A–4F: trusted ingress, SQLite tasks/events/outbox, voice confirmation и durable recovery E2E приняты.
-- Gate 5A.1–5A.3: authenticated owner-bound Telegram receive/send и live fake-task smoke приняты.
-- Gate 5A.4: product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit приняты; reliability-релиз добавляет fail-fast startup probe и не показывает служебные подтверждения для обычных задач.
-- Reliability verification: `127` target, `190 passed, 1 skipped` adversarial, `727 passed, 2 skipped, 1 warning` full; независимый verdict: `ACCEPT`, P0/P1/P2 отсутствуют.
-- Gate 5B / Queue 1–2: локальный supervisor, health alerts, строгие backup/restore и durable effects реализованы в текущем unreleased release candidate; локальные L2/L3 дали ACCEPT; live-активация выполняется по уже выданному ограниченному L4.
+- Прежние Gate 0 и Documentation baseline были приняты в `ea5bd51` и `364e6ab`.
+- Прежние Gate 1–2 включали Core contracts/policy, Telegram ingress и voice preview.
+- Прежние Gate 3A/3B включали Codex CLI boundary и Windows process-tree hardening, включая `007640b`.
+- Прежние Gate 4A–4F включали trusted ingress, SQLite tasks/events/outbox, voice confirmation и durable recovery E2E.
+- Прежние Gate 5A.1–5A.3 включали authenticated owner-bound Telegram receive/send и live fake-task smoke.
+- Прежний Gate 5A.4 включал product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit.
+- Историческая reliability verification: `127` target, `190 passed, 1 skipped` adversarial, `727 passed, 2 skipped, 1 warning` full; verdict `ACCEPT`, P0/P1/P2 отсутствовали.
+- Прежний Gate 5B / Queue 1–2 описывал локальный supervisor, health alerts, backup/restore и durable effects в unreleased candidate.
 
-Подробный воспроизводимый снимок: [docs/handoffs/CURRENT-STATUS.md](docs/handoffs/CURRENT-STATUS.md).
+Этот архив не является CURRENT authority. Точный статус текущего Gate 0 находится
+в [запечатанном HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md),
+а подробная хронология прежнего runtime — в
+[историческом CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md).
 
-## Документация
+### Документация исторического snapshot
 
 Канонический индекс: [docs/README.md](docs/README.md). В документах всегда разделены:
 
@@ -41,7 +69,7 @@ The readiness statements and test counts below this release-candidate header are
 - `TARGET` — обязательная целевая архитектура;
 - статус решения (`CANONICAL`/ADR `ACCEPTED`) — правило, которое может быть ещё не реализовано.
 
-## План MVP
+### План исторического snapshot
 
 ```text
 authenticated Telegram ingress
@@ -57,7 +85,7 @@ authenticated Telegram ingress
 
 Текстовые задачи запускают read-only подготовку сразу. Голосовые задачи требуют подтверждения транскрипта. Любое изменение кода дополнительно требует owner-bound L4 и фиксируется только в `agent/telegram-live`; merge, push и внешние эффекты не выполняются.
 
-## Структура
+### Структура исторического snapshot
 
 ```text
 src/
@@ -79,7 +107,7 @@ tests/               # unit, policy and API tests
 
 Gate 5A.4 соединяет authenticated Telegram ingress, обычный текст как задачу, voice transcription/confirmation, read-only Codex draft, exact diff, L1/L2/L3, owner-bound L4 и локальный CAS commit в изолированной ветке. Pre-apply journal и restart reconciliation предотвращают тихую потерю или дублирование эффекта. Runner остаётся desktop-процессом, а не production service.
 
-## Локальная проверка
+### Локальная проверка исторического snapshot
 
 Требуется Python 3.12. Виртуальное окружение создаётся локально и не добавляется в Git.
 
@@ -92,7 +120,7 @@ $env:DEBUG='false'
 
 Если Python 3.12 недоступен, окружение считается неподготовленным; не следует подменять это production-ready инструкцией.
 
-## Безопасность разработки
+### Безопасность разработки исторического snapshot
 
 - Не записывать в репозиторий Telegram token, API keys, credentials, cookies, `.env`, сырые voice-файлы, логи или клиентские данные.
 - Не считать `.env` защищённым secret store.

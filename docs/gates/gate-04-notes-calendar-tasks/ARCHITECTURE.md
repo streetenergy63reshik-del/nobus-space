@@ -5,6 +5,19 @@ Canonical baseline: `9d816b35d3f419b42e24ad09ae6aadc92c33db43`
 Research basis: [RESEARCH.md](RESEARCH.md)
 Normative scope: Gate 4 target behavior only. This document does not claim CURRENT implementation, migration execution, live provider proof or runtime PASS.
 
+## 0.1. Integration addendum — ADR 0020
+
+Gate 4 does **not** own or create a second generic effect engine. Gate 2A owns
+the generic durable task/job/effect admission, lifecycle storage, approval
+binding, delivery outbox and base reconciliation protocol.
+
+Gate 4 imports that implementation and specializes it with exact Business
+Notes, Calendar and Google Tasks payloads, provider-outcome evidence,
+operation-specific reconciliation and orphan rules. All references below to
+the Gate 4 "effect plane" mean this specialization of the single Gate 2A plane;
+they do not authorize duplicate tables, queues, state machines or journals.
+Accepted Gate 2A is therefore a hard prerequisite for Gate 4 integration.
+
 ## 1. Normative verdict
 
 Gate 4 SHALL:

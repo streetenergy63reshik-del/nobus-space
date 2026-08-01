@@ -1,25 +1,29 @@
 {
-  "core_digest": "sha256:35d619d25bd0e20063a3aa883cab19e1a7550fa05e34e12dedf55a5554623d4d",
+  "core_digest": "sha256:249da62ff0a028c0852fd309d98d1eb8c45d0f2d55e4bde8a83e6b3e13bb948b",
   "entries": [
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
-      "sha256": "sha256:6e858460eb22f01488c210d90a06cb65ef93e97a9ce2b837d7e0f4ed036fc79b"
+      "sha256": "sha256:b0f61f5514b4a4efbc6a5014cbabca30a77b1c5f7e140b3af85f7f3f0b488469"
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json",
-      "sha256": "sha256:3ca682bb64579494e3cdb0ed0ab3873f00a0b723aada3f7dc84a0ce0684fb6ca"
+      "sha256": "sha256:2d18afcb5ae0706453316f31ac49d46198c481d8567d3fd33f4349cb4cea13a1"
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/requests.v1.jsonl",
-      "sha256": "sha256:3f61893d57b6feca5d6d02016f8fcc9548997a3fdaf6577e7eb9455a3b7c7f6a"
+      "sha256": "sha256:bb97f72d76c83edffd17378d5929564d76177131104a34fd858186675c4c7c26"
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
-      "sha256": "sha256:2bd6368ac13a63dc973cb21989347c5e55c6a63ff315c879e6cdb1b0bcefc8ef"
+      "sha256": "sha256:2518d1715cd0b396bf84959eaadeb342c82ba729911eb33151e07de2204d3410"
+    },
+    {
+      "path": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
+      "sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578"
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
-      "sha256": "sha256:80dcdfd09fa3dfc594c9af27059672472179af1e205149622c38ed1be46619f9"
+      "sha256": "sha256:081b8897df0f3a3c81419bf0bc0ef83edc2b1d121dd6b92196a336b1e1799af3"
     }
   ],
   "schema": "nobus.gate0.core_digests.v1"

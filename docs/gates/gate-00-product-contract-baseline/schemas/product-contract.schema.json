@@ -122,7 +122,15 @@
       "properties": {
         "consumer_gates": {
           "items": {
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "const": "2a",
+                "type": "string"
+              }
+            ]
           },
           "title": "Consumer Gates",
           "type": "array"
@@ -139,8 +147,16 @@
           "type": "string"
         },
         "owner_gate": {
-          "title": "Owner Gate",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "const": "2a",
+              "type": "string"
+            }
+          ],
+          "title": "Owner Gate"
         },
         "source_ref": {
           "title": "Source Ref",
@@ -195,6 +211,39 @@
       "title": "Invariant",
       "type": "object"
     },
+    "NormativeInput": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_ref": {
+          "const": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
+          "title": "Catalog Ref",
+          "type": "string"
+        },
+        "catalog_sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Catalog Sha256",
+          "type": "string"
+        },
+        "source_count": {
+          "minimum": 1,
+          "title": "Source Count",
+          "type": "integer"
+        },
+        "source_set_sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Set Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalog_ref",
+        "catalog_sha256",
+        "source_count",
+        "source_set_sha256"
+      ],
+      "title": "NormativeInput",
+      "type": "object"
+    },
     "Vocabulary": {
       "additionalProperties": false,
       "properties": {
@@ -203,6 +252,13 @@
             "type": "string"
           },
           "title": "Actions",
+          "type": "array"
+        },
+        "agent_roles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Agent Roles",
           "type": "array"
         },
         "authorities": {
@@ -252,6 +308,7 @@
         "domains",
         "actions",
         "source_kinds",
+        "agent_roles",
         "output_formats",
         "effect_kinds",
         "authorities",
@@ -283,7 +340,7 @@
       "type": "array"
     },
     "contract_version": {
-      "const": "1.0.0",
+      "const": "2.0.0",
       "title": "Contract Version",
       "type": "string"
     },
@@ -311,6 +368,9 @@
       },
       "title": "Non Goals",
       "type": "array"
+    },
+    "normative_input": {
+      "$ref": "#/$defs/NormativeInput"
     },
     "owner": {
       "const": "nobus_space_owner",
@@ -356,6 +416,7 @@
     "frozen_at",
     "owner",
     "design_base_commit",
+    "normative_input",
     "product_outcome",
     "non_goals",
     "source_of_truth",

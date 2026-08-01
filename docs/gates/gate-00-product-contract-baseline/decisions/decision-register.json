@@ -77,9 +77,15 @@
       "id": "G0-D013",
       "source_ref": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
       "status": "accepted"
+    },
+    {
+      "decision": "Gate 2A adds the development domain, Agent Registry and specialist worker/control contracts; model authority cannot expand itself and autonomous self-deploy remains denied.",
+      "id": "G0-D014",
+      "source_ref": "docs/adr/0020-early-miniapp-and-specialist-workers.md",
+      "status": "accepted"
     }
   ],
   "schema": "nobus.gate0.decision_register.v1",
   "updated_at": "2026-07-28T00:00:00Z",
-  "version": "1.0.0"
+  "version": "2.0.0"
 }

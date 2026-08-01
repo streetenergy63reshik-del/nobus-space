@@ -1,37 +1,77 @@
 {
   "blocking_criteria": [],
-  "candidate_core_digest": "sha256:3d244890ecf81a5d5314380775eb50f2c22418f8376d219da3b7b82d875870fd",
-  "capture_digest": "sha256:e81c8c7f344d6493ef3e0c22ee648d2ce87ba30441dbec7d80873e075f640931",
+  "candidate_core_digest": "sha256:0d37391b09960e390020c83dc4bdfc3e5c33deea91d6811d6d3d40f2d0cd9edb",
+  "capture_digest": "sha256:b32ba89c178268cc5b2814d8974ed426a523ac9f7c27125279e174abc596189d",
   "checks": [
     {
+      "evidence_refs": [
+        "docs/gates/gate-00-product-contract-baseline/fixtures/golden/core-digests.json",
+        "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json"
+      ],
       "id": "exact_core_recalculation",
       "status": "pass"
     },
     {
+      "evidence_refs": [
+        "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
+        "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
+        "docs/gates/gate-00-product-contract-baseline/corpus/coverage.json"
+      ],
       "id": "contract_and_corpus_consistency",
       "status": "pass"
     },
     {
+      "evidence_refs": [
+        "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
+        "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+        "docs/gates/gate-00-product-contract-baseline/evidence/database-inventory.json"
+      ],
       "id": "evidence_layer_separation",
       "status": "pass"
     },
     {
+      "evidence_refs": [
+        "docs/gates/gate-00-product-contract-baseline/evidence/pre-capture-core.json",
+        "docs/gates/gate-00-product-contract-baseline/evidence/evidence-manifest.json",
+        "docs/gates/gate-00-product-contract-baseline/evidence/dirty-manifest.json"
+      ],
       "id": "manifest_and_clean_checkout_binding",
       "status": "pass"
     },
     {
-      "id": "gate_1_8_handoff_scope",
+      "evidence_refs": [
+        "docs/gates/gate-00-product-contract-baseline/HANDOFF.md",
+        "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
+        "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+        "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md"
+      ],
+      "id": "gate_1_2a_8_handoff_scope",
       "status": "pass"
     }
   ],
   "findings": [],
-  "frozen_tree_digest": "sha256:e4c6530d8e4f0c0554995a8f59d6c54b5df4a5474cf2c2d06b04272fc403f672",
+  "frozen_tree_digest": "sha256:c89ffe63f11435451fb781009f53574919977a5e949460e1414350f89128abde",
   "hidden_reasoning_persisted": false,
-  "level": "L2",
-  "observed_at": "2026-07-31T09:21:15.3253509Z",
+  "level": "l2",
+  "observed_at": "2026-08-01T07:10:04.0909316Z",
   "release_blockers": [],
-  "review_tree_digest": "sha256:6d9e56834cc9a52641316c9e248aceb5eb3be0e9ae6e0b57cde1adcde181eeeb",
+  "review_tree_digest": "sha256:ffdc2ef4d68a94533dff0c3dc9701566d748125884f5c974bb311c7cc7a5d49a",
+  "reviewer": {
+    "evidence_refs": [
+      "docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md",
+      "docs/gates/gate-00-product-contract-baseline/fixtures/golden/core-digests.json",
+      "docs/gates/gate-00-product-contract-baseline/evidence/runtime-inventory.json",
+      "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/gate-handoff.json"
+    ],
+    "executor_separation_attested": true,
+    "independence_attested": true,
+    "method": "Independent standalone read-only V12 SHA and JSON reproduction of frozen core, catalog, corpus, evidence layers, manifest binding, lifecycle, and Gate 1/2A/8 handoffs.",
+    "reviewer_id": "independent-l2-functional-20260801-v12",
+    "reviewer_type": "independent_reviewer"
+  },
   "schema": "nobus.gate0.verification_receipt.v1",
   "stage": "post_capture",
+  "submission_ref": "docs/gates/gate-00-product-contract-baseline/verification/submissions/l2.json",
+  "submission_sha256": "sha256:9cdec325240b561b84103d1175781ce13c47bc64b8359d2c2e0ba76c2ec25598",
   "verdict": "accept"
 }

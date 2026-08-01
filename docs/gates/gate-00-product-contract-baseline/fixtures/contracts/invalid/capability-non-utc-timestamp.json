@@ -4,22 +4,22 @@
   "contradictions": [],
   "evidence_refs": [
     {
-      "bytes": 4913,
+      "bytes": 4416,
       "classification": "internal",
-      "created_at": "2026-07-31T09:18:31.4790228Z",
+      "created_at": "2026-08-01T07:08:59.7350624Z",
       "kind": "json_report",
       "media_type": "application/json",
       "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
-      "sha256": "sha256:4b0ea2b6f05f87bbe971f61d6ea0a38a90b363f87c1244588679a78eb532a504"
+      "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c"
     },
     {
       "bytes": 2138,
       "classification": "internal",
-      "created_at": "2026-07-31T09:18:31.4790228Z",
+      "created_at": "2026-08-01T07:08:59.7350624Z",
       "kind": "test_report",
       "media_type": "application/json",
       "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/test-inventory.json",
-      "sha256": "sha256:db6bb79def6107f182b6a2647b5c97004ddff3b0dbfee8b9f86e9eeb338fe0e7"
+      "sha256": "sha256:fe12bd2d211d609230d643e215f0b10773bc2f439199353f74450daef74dc63e"
     }
   ],
   "fresh_until": "2030-01-10T03:00:00+03:00",

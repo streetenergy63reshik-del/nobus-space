@@ -1,13 +1,211 @@
 {
   "authoritative_sources": [
     "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
-    "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md"
+    "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
+    "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md"
   ],
   "profile": "test_only_closed_exact_golden_shape_no_production_model",
   "schema": "nobus.gate0.target_contract_schema_projections.v1",
   "schemas": {
+    "AgentDispatch": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:AgentDispatch:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "agent_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "attempt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "capability_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "deadline_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "dispatch_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "input_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "lease_generation": {
+          "type": "integer"
+        },
+        "maximum_events": {
+          "type": "integer"
+        },
+        "maximum_output_bytes": {
+          "type": "integer"
+        },
+        "schema": {
+          "const": "nobus.agent_dispatch.v1",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "dispatch_id",
+        "tenant_id",
+        "task_id",
+        "attempt_id",
+        "contract_digest",
+        "agent_profile_ref",
+        "capability_profile_ref",
+        "input_refs",
+        "deadline_at",
+        "lease_generation",
+        "maximum_events",
+        "maximum_output_bytes",
+        "dispatch_digest"
+      ],
+      "title": "AgentDispatch exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "AgentProfile": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:AgentProfile:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "accepted_task_kinds": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "agent_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "budget_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "capability_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "data_class_ceiling": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ],
+          "type": "string"
+        },
+        "deadline_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "host_class": {
+          "enum": [
+            "server",
+            "windows_development",
+            "windows_document"
+          ],
+          "type": "string"
+        },
+        "implementation_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "network_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "output_schema_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "general_orchestrator_worker",
+            "google_workspace_specialist",
+            "research_analytics_specialist",
+            "content_studio_specialist",
+            "development_specialist",
+            "verification_specialist"
+          ],
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.agent_profile.v1",
+          "type": "string"
+        },
+        "tool_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "verification_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "agent_profile_ref",
+        "role",
+        "implementation_ref",
+        "enabled",
+        "host_class",
+        "accepted_task_kinds",
+        "capability_profile_ref",
+        "data_class_ceiling",
+        "network_profile_ref",
+        "tool_profile_ref",
+        "budget_profile_ref",
+        "deadline_profile_ref",
+        "output_schema_ref",
+        "verification_profile_ref",
+        "profile_digest"
+      ],
+      "title": "AgentProfile exact synthetic golden structural projection",
+      "type": "object"
+    },
     "AnalysisRequest": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:AnalysisRequest:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -437,8 +635,115 @@
       "title": "AnalysisRequest exact synthetic golden structural projection",
       "type": "object"
     },
+    "ApprovalChallenge": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:ApprovalChallenge:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "action_kind": {
+          "enum": [
+            "read",
+            "create",
+            "update",
+            "complete",
+            "delete",
+            "deliver_owner",
+            "deliver_third_party",
+            "publish",
+            "change_access",
+            "money",
+            "push",
+            "local_candidate_commit",
+            "deploy"
+          ],
+          "type": "string"
+        },
+        "approval_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "challenge_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "owner_identity_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "payload_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "precondition_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.approval_challenge.v1",
+          "type": "string"
+        },
+        "single_use": {
+          "type": "boolean"
+        },
+        "target_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "task_revision": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "challenge_ref",
+        "tenant_id",
+        "owner_identity_ref",
+        "task_id",
+        "task_revision",
+        "action_kind",
+        "target_ref",
+        "payload_digest",
+        "precondition_digest",
+        "risk",
+        "issued_at",
+        "expires_at",
+        "single_use",
+        "approval_digest"
+      ],
+      "title": "ApprovalChallenge exact synthetic golden structural projection",
+      "type": "object"
+    },
     "ArtifactPlan": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:ArtifactPlan:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -614,8 +919,277 @@
       "title": "ArtifactPlan exact synthetic golden structural projection",
       "type": "object"
     },
+    "CandidateCommitReceipt": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:CandidateCommitReceipt:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "approval_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "base_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "candidate_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "candidate_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "effect_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "patch_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "readback_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "receipt_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "repository_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.candidate_commit_receipt.v1",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "tree_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "verification_bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "task_id",
+        "effect_id",
+        "repository_ref",
+        "base_commit",
+        "candidate_commit",
+        "candidate_ref",
+        "tree_digest",
+        "patch_digest",
+        "verification_bundle_digest",
+        "approval_digest",
+        "readback_digest",
+        "created_at",
+        "receipt_digest"
+      ],
+      "title": "CandidateCommitReceipt exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "CodePlan": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:CodePlan:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "base_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "plan_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "requires_approval": {
+          "type": "boolean"
+        },
+        "risks": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "schema": {
+          "const": "nobus.code_plan.v1",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "target_paths": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "tests": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema",
+        "task_id",
+        "contract_digest",
+        "base_commit",
+        "target_paths",
+        "steps",
+        "tests",
+        "risks",
+        "requires_approval",
+        "plan_digest"
+      ],
+      "title": "CodePlan exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "CodeTaskContract": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:CodeTaskContract:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_criteria": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "allowed_target_paths_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "credential_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "deadline_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "type": "string"
+        },
+        "expected_base_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "goal": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "maximum_files": {
+          "type": "integer"
+        },
+        "maximum_patch_bytes": {
+          "type": "integer"
+        },
+        "network_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "inspect",
+            "audit",
+            "change"
+          ],
+          "type": "string"
+        },
+        "owner_request_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "repository_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.code_task.v1",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "test_profile_ref": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "task_id",
+        "tenant_id",
+        "owner_request_digest",
+        "repository_ref",
+        "expected_base_commit",
+        "allowed_target_paths_ref",
+        "operation",
+        "goal",
+        "acceptance_criteria",
+        "test_profile_ref",
+        "network_profile_ref",
+        "credential_profile_ref",
+        "maximum_files",
+        "maximum_patch_bytes",
+        "deadline_at",
+        "contract_digest"
+      ],
+      "title": "CodeTaskContract exact synthetic golden structural projection",
+      "type": "object"
+    },
     "DocumentQuery": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:DocumentQuery:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -774,7 +1348,7 @@
       "type": "object"
     },
     "DocumentReadPlan": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:DocumentReadPlan:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -1122,7 +1696,7 @@
       "type": "object"
     },
     "DocumentRef": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:DocumentRef:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -1337,7 +1911,7 @@
       "type": "object"
     },
     "DocumentWritePlan": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:DocumentWritePlan:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -1530,7 +2104,7 @@
       "type": "object"
     },
     "IntentEnvelope": {
-      "$comment": "Test-only closed projection; owning Gate 1/2 architecture remains authoritative and no production model is defined here.",
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
       "$id": "urn:nobus:gate0:target-golden-projection:IntentEnvelope:v1",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
@@ -1557,7 +2131,9 @@
             "update",
             "complete",
             "delete",
-            "deliver"
+            "deliver",
+            "commit",
+            "deploy"
           ],
           "type": "string"
         },
@@ -1619,6 +2195,7 @@
             "tasks",
             "documents",
             "research",
+            "development",
             "general"
           ],
           "type": "string"
@@ -1716,7 +2293,21 @@
                 "type": "null"
               },
               "kind": {
-                "const": "read",
+                "enum": [
+                  "read",
+                  "create",
+                  "update",
+                  "complete",
+                  "delete",
+                  "deliver_owner",
+                  "deliver_third_party",
+                  "publish",
+                  "change_access",
+                  "money",
+                  "push",
+                  "local_candidate_commit",
+                  "deploy"
+                ],
                 "type": "string"
               },
               "requires_confirmation": {
@@ -1732,7 +2323,19 @@
                 "type": "string"
               },
               "source": {
-                "minLength": 1,
+                "enum": [
+                  "none",
+                  "public_web",
+                  "nobus_memory",
+                  "business_notes",
+                  "google_calendar",
+                  "google_tasks",
+                  "google_drive",
+                  "local_library",
+                  "telegram_attachment",
+                  "registered_repository",
+                  "control_plane"
+                ],
                 "type": "string"
               },
               "summary": {
@@ -1821,7 +2424,19 @@
                 "type": "null"
               },
               "source": {
-                "minLength": 1,
+                "enum": [
+                  "none",
+                  "public_web",
+                  "nobus_memory",
+                  "business_notes",
+                  "google_calendar",
+                  "google_tasks",
+                  "google_drive",
+                  "local_library",
+                  "telegram_attachment",
+                  "registered_repository",
+                  "control_plane"
+                ],
                 "type": "string"
               }
             },
@@ -1883,6 +2498,73 @@
         "intent_revision"
       ],
       "title": "IntentEnvelope exact synthetic golden structural projection",
+      "type": "object"
+    },
+    "PatchCandidate": {
+      "$comment": "Test-only closed projection; owning Gate 1/2/2A architecture remains authoritative and no production model is defined here.",
+      "$id": "urn:nobus:gate0:target-golden-projection:PatchCandidate:v1",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "base_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "candidate_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "changed_files": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "delete_manifest": {
+          "maxItems": 0,
+          "type": "array"
+        },
+        "patch_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "plan_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "schema": {
+          "const": "nobus.patch_candidate.v1",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "worktree_state_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "task_id",
+        "attempt_id",
+        "base_commit",
+        "plan_digest",
+        "changed_files",
+        "patch_digest",
+        "delete_manifest",
+        "worktree_state_digest",
+        "candidate_digest"
+      ],
+      "title": "PatchCandidate exact synthetic golden structural projection",
       "type": "object"
     }
   }

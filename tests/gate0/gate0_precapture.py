@@ -22,6 +22,8 @@ from collect_gate0_snapshot import (
     digest_bytes,
     git,
 )
+from gate0_core_paths import core_artifact_paths
+from gate0_normative_catalog import load_normative_catalog
 from gate0_lifecycle import (
     REQUIRED_VERIFIER_CHECKS,
     authoritative_database_set,
@@ -34,6 +36,7 @@ from gate0_lifecycle import (
 )
 from generate_gate0_artifacts import (
     build_manifest,
+    decision_register,
     file_digest,
     handoff_markdown,
     normalized_dirty,
@@ -83,11 +86,16 @@ CAPTURE_DEPENDENT_PATHS = {
     f"{GATE_REL}/verification/l3.json",
 }
 POST_CAPTURE_CHANGED_PATHS = sorted(CAPTURE_DEPENDENT_PATHS)
+REVIEW_SUBMISSION_PATHS = {
+    f"{GATE_REL}/verification/submissions/{level}.json"
+    for level in ("l1", "l2", "l3")
+}
 REVIEW_MUTABLE_PATHS = {
     f"{GATE_REL}/evidence/evidence-manifest.json",
     f"{GATE_REL}/verification/l1.json",
     f"{GATE_REL}/verification/l2.json",
     f"{GATE_REL}/verification/l3.json",
+    *REVIEW_SUBMISSION_PATHS,
 }
 
 RUNTIME_TEST_ROOTS = ("ops", "scripts", "src", "tests")
@@ -95,6 +103,7 @@ TRACKED_INPUT_EXCLUDED_PREFIXES = (".nobus-quality/",)
 STATUS_VOLATILE_PATHS = {
     *CAPTURE_DEPENDENT_PATHS,
     *RECEIPT_PATHS,
+    *REVIEW_SUBMISSION_PATHS,
     PRECATURE_REL,
 }
 
@@ -233,6 +242,11 @@ def authoritative_external_paths(
             if relative:
                 relatives.add(relative)
 
+    for source in load_normative_catalog(root)["required_sources"]:
+        if not isinstance(source, dict):
+            raise ValueError("normative source entry is not an object")
+        add_ref(source.get("path"))
+
     documentation = _load(gate / "evidence/documentation-inventory.json")
     for entry in documentation.get("current_worktree_documents", []):
         if isinstance(entry, dict):
@@ -286,7 +300,12 @@ def _freeze_paths(root: pathlib.Path, gate: pathlib.Path) -> list[pathlib.Path]:
 
 
 def _input_entries(root: pathlib.Path, gate: pathlib.Path) -> list[dict[str, Any]]:
-    excluded = {*CAPTURE_DEPENDENT_PATHS, *RECEIPT_PATHS, PRECATURE_REL}
+    excluded = {
+        *CAPTURE_DEPENDENT_PATHS,
+        *RECEIPT_PATHS,
+        *REVIEW_SUBMISSION_PATHS,
+        PRECATURE_REL,
+    }
     return [
         _entry(root, path)
         for path in _freeze_paths(root, gate)
@@ -454,7 +473,7 @@ def _write_verification_templates(
             gate / "verification" / f"{level}.json",
             {
                 "schema": "nobus.gate0.verification_receipt.v1",
-                "level": level.upper(),
+                "level": level,
                 "stage": "post_capture" if capture_digest else "pre_capture",
                 "verdict": "pending",
                 "observed_at": handoff["generated_at"],
@@ -472,6 +491,13 @@ def _write_verification_templates(
 
 def prepare_precapture(root: pathlib.Path) -> dict[str, Any]:
     gate = root / GATE_REL
+    for level in ("l1", "l2", "l3"):
+        stale_submission = gate / "verification" / "submissions" / f"{level}.json"
+        if stale_submission.is_file():
+            stale_submission.unlink()
+    # Materialize deterministic contract upgrades before hashing frozen inputs.
+    normalize(root, gate)
+    write_json(gate / "decisions" / "decision-register.json", decision_register())
     # Reject unsafe topology before dirty/evidence metadata can be written.
     _freeze_paths(root, gate)
     _refresh_dirty(root, gate)
@@ -779,13 +805,7 @@ def projection_plan(
 
 
 def _rewrite_core_digest(root: pathlib.Path, gate: pathlib.Path) -> None:
-    paths = [
-        gate / "product/product-contract.json",
-        gate / "corpus/requests.v1.jsonl",
-        gate / "corpus/coverage.json",
-        gate / "corpus/corpus-manifest.json",
-        gate / "evidence/baseline-evidence.json",
-    ]
+    paths = core_artifact_paths(root)
     entries = [
         {"path": path.relative_to(root).as_posix(), "sha256": file_digest(path)}
         for path in sorted(paths)

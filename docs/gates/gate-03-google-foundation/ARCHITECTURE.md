@@ -1,9 +1,21 @@
 # Gate 3 Architecture — Google Foundation
 
-Status: `TARGET / DESIGN ONLY`
+Status: `TARGET / DESIGN ONLY / ARCHITECTURE READY`
 Normative baseline: repository commit `9d816b35d3f419b42e24ad09ae6aadc92c33db43`
 Evidence: [RESEARCH.md](./RESEARCH.md)
 Vocabulary: `MUST`, `MUST NOT`, `SHOULD` and `MAY` are normative.
+
+## 0.1. Integration addendum — ADR 0020
+
+Gate 3 starts only after accepted Gate 2A and extends its one Core, Agent
+Registry, Control API and generic durable effect plane. The
+`google_workspace_specialist` is a closed logical worker profile, not a second
+bot, backend or OAuth principal. It may propose Workspace plans and return
+bounded analytical content, but it receives no refresh/access token and cannot
+execute Calendar, Tasks, Drive, Docs or Sheets effects.
+
+Only Core-owned operation-specific adapters receive provider credentials and
+execute effects. Gate 3 MUST NOT introduce another queue, journal or effect engine.
 
 ## 1. Product decision
 
@@ -46,7 +58,8 @@ Gate 3 does not:
 - permit autonomous model writes;
 - provide multi-tenant domain administration or domain-wide delegation;
 - declare runtime, OAuth, billing or release readiness;
-- choose final owner budget numbers or a Drive-wide discovery product UX without owner input;
+- choose final owner budget numbers or widen/change the ADR 0019 Drive-wide
+  metadata-discovery contract without owner input;
 - modify current code in this design phase.
 
 ## 3. CURRENT, reuse and TARGET
@@ -289,7 +302,7 @@ The Workspace owner grant and Cloud workload identity MUST never be interchangea
 | Tasks write | `tasks.readonly` | `tasks` | `tasks.write` | Separate Gate 4 write enablement |
 | Drive metadata | `drive.metadata.readonly` | — | `drive.metadata.read` | Gate 5 |
 | Selected-file content | `drive.file` | `drive.file` | `drive.file.read/write` | Preferred Gate 5/7 path |
-| Drive-wide content search | `drive.readonly` | — | `drive.global.read` | Owner decision; restricted scope |
+| Drive-wide metadata discovery and exact-bound content read | `drive.readonly` | — | `drive.global.read` | Accepted TARGET; restricted-scope verification; Gate 2 exact file/folder binding before content |
 | Docs | `documents.readonly` | `documents` or selected-file `drive.file` | `docs.read/write` | Gate 5 read, Gate 7 write |
 | Sheets | `spreadsheets.readonly` | `spreadsheets` or selected-file `drive.file` | `sheets.read/write` | Gate 5 read, Gate 7 write |
 
@@ -579,10 +592,13 @@ Controls:
 |---|---|---|---|---|---|
 | `PUBLIC` | Public web/reference material | Allowed | Allowed if paid route configured | Transient allowed with registry/TTL | Explicit research mode |
 | `INTERNAL` | Non-sensitive Nobus operational content | Allowed | Owner-configured, paid/non-training route only | Off by default; explicit TTL allowed | Off by default |
-| `CONFIDENTIAL` | Owner documents, calendar/task content, business records | Vertex strict project only | Denied | Denied by default; project-level implicit cache disabled | Denied |
-| `RESTRICTED` | Credentials, secrets, regulated/high-impact data | Model route denied by default | Denied | Denied | Denied |
+| `CONFIDENTIAL` | Allowed owner data other than domain/source deny entries | Only strict Vertex project **and** exact source-registry route `vertex_strict` | Denied | Denied; implicit cache disabled | Denied |
+| `RESTRICTED` / `SECRET` | Credentials, secrets, regulated/high-impact or explicitly denied data | Denied | Denied | Denied | Denied |
 
-Credential-like data is always `RESTRICTED` regardless of caller label. Core classification can only raise sensitivity, never lower it automatically.
+Classification alone never authorizes a provider call. Raw Business Notes and any
+other domain/source deny entry remain local-only even if labelled `CONFIDENTIAL`.
+Credential-like data is always `RESTRICTED` regardless of caller label. Core
+classification can only raise sensitivity, never lower it automatically.
 
 ### 9.3 Retention policy
 
@@ -942,7 +958,7 @@ No slice promotes MCP/CLI or the model into production authority.
 | G3-P01 | Worst-case request exceeds task/day/month budget | Denied before provider call |
 | G3-P02 | Usage settlement | Reservation and observed provider usage reconcile within defined tolerance |
 | G3-P02a | Parallel reservations and stale price | Atomic ceiling holds; missing/stale route price fails closed |
-| G3-P03 | Confidential model route | Vertex only; logging/cache/Files/grounding disabled |
+| G3-P03 | Confidential model route | Exact source registry says `vertex_strict`; strict Vertex only; logging/cache/Files/grounding disabled; raw Business Notes denied |
 | G3-P04 | Files/explicit cache allowed route | Registry, TTL, eager deletion and expiry alert verified |
 | G3-P05 | Telemetry capture | Contains operational fields only; content/IDs/tokens absent |
 | G3-P06 | Price/model alias drift | Unreviewed alias or price-table version fails deployment validation |
@@ -982,20 +998,33 @@ Gate 3 implementation is done only when:
 
 Until these conditions pass, this document is architecture-ready but Gate 3 runtime is not complete.
 
-## 20. Owner decisions required before implementation/release
+## 20. Owner decisions and implementation parameters
 
-These are the only unresolved product/configuration decisions identified by this architecture:
+[ADR 0019](../../adr/0019-owner-service-filesystem-and-runtime-decisions.md)
+resolves the product choices:
 
-1. **Drive discovery:** selected-file onboarding with `drive.file` (recommended default) versus Drive-wide search requiring `drive.readonly` and its restricted-scope verification burden.
-2. **Cloud location and retention:** required Vertex location/data-residency policy and whether strict ZDR settings are mandatory for every non-public model call (recommended: yes for confidential data).
-3. **Cost ceilings:** exact per-task, daily and monthly Google AI budgets and who may raise them.
-4. **Fallback:** whether the paid Gemini Developer API may process `PUBLIC`/`INTERNAL` data during Vertex degradation (recommended: opt-in, never `CONFIDENTIAL`).
+1. Drive-wide metadata discovery uses `drive.readonly` for My Drive and ordinary
+   shared-with-owner items. It provides no content authority: Gate 2 requires an
+   exact project/client-bound file/folder registry binding before content read.
+2. Non-public Google routing prefers an available EU/EEA route. `CONFIDENTIAL`
+   requires both strict Vertex controls and explicit source registry
+   `vertex_strict`; raw Business Notes stay local-only and `RESTRICTED/SECRET`
+   are model-denied.
+3. Only the owner may raise budgets. New paid production routes remain at budget
+   zero until benchmark, three cost scenarios where requested, and action-bound L4.
+4. Gemini Developer API fallback is opt-in for `PUBLIC/INTERNAL` only and never
+   accepts `CONFIDENTIAL`.
 
-These choices parameterize the architecture; none changes Core authority or permits model effects.
+Fail-closed implementation parameters remain: exact region/model availability,
+OAuth verification and consent-screen evidence, per-task/day/month ceilings,
+price-table version, probe budget, and source-route registry entries. None of
+these parameters changes Core authority or authorizes billing, OAuth publication
+or model effects by this document.
 
 ## 21. Architecture readiness
 
 The document resolves the Gate 3 authority, identity, call-path, resilience, retention and handoff model without presenting TARGET as CURRENT or introducing a parallel framework.
 
-Design status: **ARCHITECTURE READY**.
+Design status: **ARCHITECTURE READY**. Fresh exact-delta L1/L2/L3 evidence:
+`CASE-20260728-OWNER-DECISIONS-151422`; old evidence was not reused.
 Runtime/OAuth/billing/release status: **NOT IMPLEMENTED / NOT AUTHORIZED BY THIS PHASE**.

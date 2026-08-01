@@ -7,6 +7,17 @@
 **Gate owner:** Nobus Core
 **Дата:** 28 июля 2026 года
 
+## 0.1. Интеграционное изменение ADR 0020
+
+Gate 1 MUST включить `development` в закрытый domain vocabulary и может вернуть
+только Core-validated `worker_profile` proposal. Выбор specialist worker не
+даёт модели authority и не меняет effect/scope/L4. Gate 2A является прямым
+потребителем `IntentEnvelope` для Telegram и Mini App; оба ingress обязаны
+получать одинаковую семантику, clarification и policy re-derivation.
+
+Gate 1 не выполняет server deployment. Первый bounded server/Mini App release
+принадлежит Gate 2A, финальный integrated release — Gate 8.
+
 ## 1. Решение
 
 Gate 1 вводит один и только один routing contract:
@@ -108,7 +119,7 @@ Gate 1 не:
 - реализует Bridge или document extraction Gate 5;
 - выполняет многодокументные расчёты Gate 6;
 - создаёт renderer/writeback Gate 7;
-- переносит runtime на server и не выпускает Gate 8;
+- переносит runtime на server, разворачивает Mini App или выпускает Gate 2A/8;
 - даёт model tools, OAuth, shell, filesystem или MCP;
 - строит long-term semantic memory;
 - добавляет diarization;
@@ -182,12 +193,12 @@ JSON Schema компилируется из Pydantic, затем адаптир�
 |---|---|
 | `Modality` | `text`, `voice` |
 | `IntentStatus` | `ready`, `needs_clarification`, `unsupported`, `rejected` |
-| `Domain` | `notes`, `calendar`, `tasks`, `documents`, `research`, `general` |
-| `Action` | `none`, `answer`, `help`, `status`, `limit`, `cancel`, `search`, `read`, `list`, `summarize`, `compare`, `analyze`, `audit`, `report`, `remember`, `extract_tasks`, `create`, `update`, `complete`, `delete`, `deliver` |
-| `SourceKind` | `none`, `public_web`, `nobus_memory`, `business_notes`, `google_calendar`, `google_tasks`, `google_drive`, `local_library`, `telegram_attachment` |
+| `Domain` | `notes`, `calendar`, `tasks`, `documents`, `research`, `development`, `general` |
+| `Action` | `none`, `answer`, `help`, `status`, `limit`, `cancel`, `search`, `read`, `list`, `summarize`, `compare`, `analyze`, `audit`, `report`, `remember`, `extract_tasks`, `create`, `update`, `complete`, `delete`, `deliver`, `commit`, `deploy` |
+| `SourceKind` | `none`, `public_web`, `nobus_memory`, `business_notes`, `google_calendar`, `google_tasks`, `google_drive`, `local_library`, `telegram_attachment`, `registered_repository`, `control_plane` |
 | `SourceAccess` | `metadata`, `content` |
 | `OutputKind` | `telegram_text`, `jpeg`, `html`, `xlsx`, `docx`, `pdf`, `google_doc`, `google_sheet` |
-| `EffectKind` | `read`, `create`, `update`, `complete`, `delete`, `deliver_owner`, `deliver_third_party`, `publish`, `change_access`, `money`, `push`, `deploy` |
+| `EffectKind` | `read`, `create`, `update`, `complete`, `delete`, `deliver_owner`, `deliver_third_party`, `publish`, `change_access`, `money`, `push`, `local_candidate_commit`, `deploy` |
 | `AuthorityDecision` | `direct_owner`, `l4_required`, `denied` |
 | `RiskLevel` | `low`, `medium`, `high`, `critical` |
 | `ResolutionStatus` | `unresolved`, `exact`, `ambiguous`, `not_found` |
@@ -206,6 +217,7 @@ route registry задаёт допустимые пары, например:
 - `documents/search|read|analyze|create|update|deliver`;
 - `research/search|summarize|compare`;
 - `notes/read|remember|summarize|extract_tasks` с обязательным `SourceKind`;
+- `development/read|analyze|audit|commit|deploy`, где `commit` требует L4, а self-deploy всегда denied;
 - `general/audit|report` с обязательной marketplace entity;
 - `general/answer`.
 

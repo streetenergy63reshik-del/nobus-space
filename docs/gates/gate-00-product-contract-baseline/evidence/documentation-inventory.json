@@ -2,11 +2,6 @@
   "current_and_target_mixed": false,
   "current_worktree_documents": [
     {
-      "path": "docs/README.md",
-      "sha256": "sha256:e83fbcbcacd65a133aad737ffb9f8871bb873af8bfc96a6a0d5f10ea592c72bb",
-      "status": "VERIFIED"
-    },
-    {
       "path": "docs/05-Спецификации-контрактов.md",
       "sha256": "sha256:5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
       "status": "VERIFIED"
@@ -28,7 +23,7 @@
     },
     {
       "path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
-      "sha256": "sha256:6df73d2511220ef27b4ad2a5199a4269361fc4581e42eb3b61a594f82a1990ed",
+      "sha256": "sha256:454b77465f514082a9517b28db9dd6bcb8a4a70161d904cd119993eef1496626",
       "status": "VERIFIED"
     },
     {
@@ -52,23 +47,28 @@
       "status": "VERIFIED"
     },
     {
-      "path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
-      "sha256": "sha256:6dc727b253a8a2e33da64311092125bfae9f37dcf95a1c8530228f19461cbdde",
+      "path": "docs/adr/0020-early-miniapp-and-specialist-workers.md",
+      "sha256": "sha256:206821459482092ba61a80f6b7efc8d846a4ced51affda335a4fdc8a504824a8",
       "status": "VERIFIED"
     },
     {
-      "path": "docs/gates/gate-00-product-contract-baseline/RESEARCH.md",
-      "sha256": "sha256:4ad0a29442265669355157c6a9670c10601931e556c1fe967af885bca8878ca0",
+      "path": "docs/gates/gate-00-product-contract-baseline/ARCHITECTURE.md",
+      "sha256": "sha256:5d08bdc1333d5d3ab7ea3cfe78d86243d48c3da7da7defc6829b356846175a19",
       "status": "VERIFIED"
     },
     {
       "path": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
-      "sha256": "sha256:b85a3845fe746968f854ab1b9315e5dee1112b7c7621561bb93c0b70a34b4143",
+      "sha256": "sha256:9c6e9fa39d00984b58d3faad7648c9256729ba08b90858bd835bf03bf2c2e4d6",
       "status": "VERIFIED"
     },
     {
       "path": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "sha256": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "status": "VERIFIED"
+    },
+    {
+      "path": "docs/gates/gate-02a-miniapp-development-control/ARCHITECTURE.md",
+      "sha256": "sha256:d2222cc5050de339127f1b079c8259fdd6fb4f6e59d782bf9a388d0ca5307e0c",
       "status": "VERIFIED"
     },
     {
@@ -100,25 +100,10 @@
       "path": "docs/gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md",
       "sha256": "sha256:39dc8989bef0d5855b5d762a108883efd4fa7ffb784feed5223b706b5cd781ff",
       "status": "VERIFIED"
-    },
-    {
-      "path": "docs/handoffs/CURRENT-STATUS.md",
-      "sha256": "sha256:974d31fa11701429a4b5a30a6d7693198f6db2b111e0cc40f6f1c80f3c8e2f18",
-      "status": "VERIFIED"
-    },
-    {
-      "path": "docs/handoffs/MVP-1-ISSUES.md",
-      "sha256": "sha256:de644284f2731fd507974e597ba10cd71e84da8306144d0d73151552878b6460",
-      "status": "VERIFIED"
-    },
-    {
-      "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
-      "sha256": "sha256:937898d658c4816ff96a887b8756f5a9efd93470b27f7abdbdfee384e0d29761",
-      "status": "VERIFIED"
     }
   ],
   "design_base_commit": "9d816b35d3f419b42e24ad09ae6aadc92c33db43",
   "historical_memory_used_as_current_proof": false,
-  "observed_at": "2026-07-30T21:16:43.153074Z",
+  "observed_at": "2026-07-31T16:28:24.387759Z",
   "schema": "nobus.gate0.documentation_inventory.v1"
 }

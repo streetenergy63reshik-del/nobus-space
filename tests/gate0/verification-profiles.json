@@ -1,0 +1,42 @@
+{
+  "full_read_only": {
+    "argv": [
+      ".venv/Scripts/python.exe",
+      "-m",
+      "pytest",
+      "-p",
+      "tests.gate0.pytest_mutex_namespace",
+      "-q"
+    ],
+    "external_network": false,
+    "production_credentials": false,
+    "production_mutex_contended": false,
+    "runtime_database_mutation": false,
+    "runtime_or_scheduler_mutation": false
+  },
+  "live_maintenance": {
+    "direct_invocation_only": true,
+    "helper": "tests/gate0/manage_runtime_maintenance.ps1",
+    "included_in_pure_profile": false,
+    "requires_action_bound_l4": true
+  },
+  "pure": {
+    "argv": [
+      ".venv/Scripts/python.exe",
+      "-m",
+      "pytest",
+      "tests/gate0/test_gate0_normative.py",
+      "tests/gate0/test_gate0_handoff_lifecycle.py",
+      "tests/gate0/test_gate0_precapture.py",
+      "tests/gate0/test_gate0_acceptance.py",
+      "tests/gate0/test_independent_audit_regressions.py",
+      "tests/gate0/test_independent_audit_closure.py",
+      "-q"
+    ],
+    "external_network": false,
+    "production_credentials": false,
+    "runtime_database_mutation": false,
+    "runtime_or_scheduler_mutation": false
+  },
+  "schema": "nobus.gate0.verification_profiles.v1"
+}

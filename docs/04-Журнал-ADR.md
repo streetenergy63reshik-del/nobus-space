@@ -25,6 +25,8 @@
 | [0016](adr/0016-persistent-mobile-codex-runtime.md) | Production worker использует persistent официальный Codex SDK/app-server; threads разделены по owner chat/topic, а effects остаются application-owned | ACCEPTED | RELEASE CANDIDATE |
 | [0017](adr/0017-hybrid-natural-google-local-document-plane.md) | Natural Language First; hybrid Server Core + Windows Local Library Bridge; единый Google/local document lifecycle и application-owned writeback | ACCEPTED | TARGET |
 | [0018](adr/0018-cross-gate-mvp1-integration.md) | Единая интеграция Gate 0–8: atomic effects, opaque document identity, честные Google preconditions, single-node SQLite и global poller fencing | ACCEPTED | TARGET |
+| [0019](adr/0019-owner-service-filesystem-and-runtime-decisions.md) | Owner decisions: CLI-first Codex, Drive-wide read, controlled full owner-root workspace, Healthchecks.io → Gmail и benchmark-gated paid services | ACCEPTED | TARGET |
+| [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Полноценный Telegram Mini App и Server/Development Control вводятся в Gate 2A; Nobus остаётся единым orchestrator, глубокие домены выполняют закрытые specialist worker profiles | ACCEPTED | TARGET |
 
 ## Правила статусов ADR
 
