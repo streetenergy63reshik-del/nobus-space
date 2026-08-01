@@ -1,19 +1,21 @@
 # Nobus Space MVP-1 — актуальный статус архитектурной итерации
 
-**CURRENT на 31 июля 2026 года:** независимый аудит отозвал READY у Gate 0
-commit `0a0f56e8b6f77deccba2b51239a3fe1f207da349`. Gate 0 находится в
-`REWORK`; Gate 1 integration/commit заблокирован до нового result commit и
-отдельного immutable acceptance binding.
+**CURRENT на 1 августа 2026 года:** Gate 0 READY, sealed `22/22` и принят
+отдельным immutable acceptance commit.
 
-- причина: старый контракт пропустил accepted ADR 0020, Gate 2A и domain
-  `development`, а прежние L2/L3 receipts были self-stamped;
-- remediation candidate использует digest-bound normative catalog, Product
-  Contract/corpus v2, внешние reviewer submissions и отдельный pure profile;
-- старые `22/22` и runtime evidence являются историческими, не CURRENT;
-- remote, push и deploy в remediation не выполняются.
+result_commit: f5086b2a71a9ae22be3c858ff69453287f6925da
+result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 
-Точный текущий источник статуса: [Gate 0 HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md)
-и [audit remediation record](docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
+- замечания независимого аудита закрыты в Product Contract/corpus v2,
+  digest-bound normative catalog, ADR 0020, Gate 2A и domain `development`;
+- независимые L1/L2/L3 привязаны к exact candidate и trusted canonical runtime;
+- Gate 1 больше не заблокирован predecessor Gate 0, но требует собственного
+  change manifest, проверок и acceptance;
+- remote, push и deploy не выполнялись.
+
+Точный текущий источник статуса: [Gate 0 acceptance](docs/gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json),
+[Gate 0 HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md) и
+[audit remediation record](docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
 Каноническая навигация: [индекс документации](docs/README.md) и
 [пакет Gate 0–8](docs/gates/README.md).
 

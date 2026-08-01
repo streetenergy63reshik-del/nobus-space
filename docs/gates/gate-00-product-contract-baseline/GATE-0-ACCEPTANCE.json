@@ -1,0 +1,11 @@
+{
+  "accepted_at": "2026-08-01T07:24:08.7431423Z",
+  "accepted_by": "owner-gate0-l4",
+  "gate": 0,
+  "result_commit": "f5086b2a71a9ae22be3c858ff69453287f6925da",
+  "result_handoff_ref": "docs/gates/gate-00-product-contract-baseline/fixtures/contracts/valid/gate-handoff.json",
+  "result_handoff_sha256": "sha256:04b8221abd6efc79e3f9440970a9388324f9b7479d974075cb07a9e223120ccc",
+  "result_tree": "2e3248eb295b1627d36f196c26dfc21c6ebd90fd",
+  "schema": "nobus.gate0.acceptance.v1",
+  "status": "accepted"
+}

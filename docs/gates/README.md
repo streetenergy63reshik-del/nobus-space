@@ -2,8 +2,11 @@
 
 **Статус:** TARGET DESIGN
 
-**CURRENT implementation:** Gate 0 `REWORK`; Gate 1 integration/commit
-заблокирован до нового immutable Gate 0 acceptance binding
+**CURRENT implementation:** Gate 0 READY и immutable accepted; Gate 1 может
+начинаться только как отдельный Gate с собственными проверками и acceptance
+
+result_commit: f5086b2a71a9ae22be3c858ff69453287f6925da
+result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
 
 **База исследования:** `9d816b35d3f419b42e24ad09ae6aadc92c33db43`
 
@@ -11,15 +14,16 @@
 
 Эта папка содержит исследовательское основание и детальную архитектуру каждого
 Gate MVP-1. Исследование и архитектура сами по себе не доказывают реализацию,
-работающий runtime или PASS соответствующего Gate. Прежний Gate 0 READY отозван
-независимым аудитом; текущий handoff до повторного seal обязан быть BLOCKED.
+работающий runtime или PASS соответствующего Gate. Gate 0 READY повторно
+доказан после независимого аудита: sealed `22/22`, trusted runtime capture,
+independent L1/L2/L3 и отдельный immutable acceptance binding.
 
 ## Текущий implementation status
 
 | Gate | Статус | Evidence | Следующий шаг |
 |---:|---|---|---|
-| 0 | `REWORK`, прежний READY отозван | [HANDOFF](gate-00-product-contract-baseline/HANDOFF.md), [remediation](gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md) | Завершить v2 regeneration, independent L1/L2/L3, result commit и acceptance binding |
-| 1 | `BLOCKED`, isolated WIP не является integration candidate | [ARCHITECTURE](gate-01-natural-language-voice/ARCHITECTURE.md) | Не связывать Gate 0 digests до accepted binding |
+| 0 | `READY`, immutable accepted | [ACCEPTANCE](gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json), [HANDOFF](gate-00-product-contract-baseline/HANDOFF.md), [remediation](gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md) | Сохранять result commit/tree неизменными |
+| 1 | `NOT STARTED`, predecessor Gate 0 принят | [ARCHITECTURE](gate-01-natural-language-voice/ARCHITECTURE.md) | Начать отдельный Gate 1 change/review/acceptance cycle |
 | 2–8, включая 2A | `TARGET` | Research/Architecture ниже | Выполнять только после accepted handoff предыдущего Gate |
 
 | Gate | Результат | Исследование | Архитектура |

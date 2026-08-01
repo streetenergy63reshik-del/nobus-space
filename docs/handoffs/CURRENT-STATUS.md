@@ -1,14 +1,18 @@
 # Nobus Space Telegram Orchestrator — CURRENT STATUS
 
-## Gate 0–8 architecture iteration — 31 июля 2026
+## Gate 0–8 architecture iteration — 1 августа 2026
 
-Gate 0 `Product Contract and Baseline Evidence` имеет статус `REWORK`.
-Независимый аудит отозвал READY у commit
-`0a0f56e8b6f77deccba2b51239a3fe1f207da349`: старый baseline не включал ADR
-0020/Gate 2A/`development`, а его L2/L3 receipts не доказывали независимое
-происхождение. Gate 1 integration и commit заблокированы до нового sealed
-result commit и отдельного immutable acceptance binding. Текущий remediation
-record: [`../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md`](../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
+Gate 0 READY: `Product Contract and Baseline Evidence` sealed `22/22` и
+immutable accepted после закрытия замечаний независимого аудита.
+
+result_commit: f5086b2a71a9ae22be3c858ff69453287f6925da
+result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
+
+Acceptance: [`../gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json`](../gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json).
+Формальный handoff содержит trusted canonical runtime evidence и независимые
+L1/L2/L3 без blockers. Gate 1 больше не заблокирован predecessor Gate 0, но
+выполняется отдельным change/review/acceptance cycle. Remediation record:
+[`../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md`](../gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
 
 Остальной документ ниже — исторический runtime snapshot предыдущей итерации.
 
