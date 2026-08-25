@@ -1,8 +1,9 @@
 # Nobus Space — CURRENT
 
 **Актуально на:** 25 августа 2026 года
-**Lifecycle:** `GATE_CANDIDATE` — architecture rebaseline published in an open
-PR; post-publication status refresh is local until separately authorized push
+**Lifecycle rule:** containing revision outside protected GitHub `main` is
+`GATE_CANDIDATE`; after an authorized merge and exact reachability readback it
+is part of `ACCEPTED_PUBLISHED_BASELINE`
 **Active decision:** [ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
 
 Telegram Mini App и Telegram-оркестратор обязательны в MVP-1. Они используют
@@ -14,22 +15,21 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Поле | Значение |
 |---|---|
 | Repository | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
-| Branch | `docs/mvp1-thin-architecture` |
-| Published protected `main` | `8b896fbca9b23c8751d651d14a122506338b5827` |
-| Local main | `420c9a6d4fcdb8f73fc71e23257fa319dafb6354`; ancestor of safe base |
+| Candidate branch record | `docs/mvp1-thin-architecture` |
+| Baseline `main` at candidate freeze | `8b896fbca9b23c8751d651d14a122506338b5827` |
 | Stage-1 checkpoint | `6f2fa50` (`AGENTS.md` only) |
-| Published architecture candidate | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
-| Pull request | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1), `OPEN`, not merged |
-| Local status-refresh candidate | exact branch tip after the final local commit; resolve with `git rev-parse HEAD` |
-| Origin | public GitHub repository; remote-tracking refs confirmed; branch upstream not configured |
-| `main` protection | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
+| Initial PR head before refresh | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
+| Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
+| Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
+| Origin | public GitHub repository; live refs are not duplicated in this document |
+| Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
 
 Git commit не может содержать собственный hash без циклической ссылки. Поэтому
-этот файл фиксирует exact published refs и воспроизводимую команду binding;
-literal final refresh commit SHA фиксируется в итоговом handoff задачи сразу
-после commit. Защищённая GitHub `main` @ `8b896f...` остаётся текущим принятым
-опубликованным каноном. Кандидат PR #1 не становится каноном до отдельно
-разрешённого merge и последующего readback exact `main` SHA.
+этот файл фиксирует исходный snapshot и воспроизводимое правило binding, а не
+самоаттестацию. Literal candidate commit/tree и независимый verdict фиксируются
+во внешнем task/PR handoff. Текущий канон определяется live readback защищённой
+remote `main` и проверкой достижимости содержащей revision; постоянный документ
+не копирует подвижные PR/ref значения.
 
 Git-репозиторий — источник истины для code/tests/ADR/CURRENT/docs. Nobus Memory
 сохраняет только pointer/status/decision/freshness и не переопределяет Git.
@@ -68,32 +68,25 @@ coherent L1/L2/L3 по frozen bytes.
 
 | Уровень | Проверка | Статус |
 |---|---|---|
-| Architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | `PASS` @ `d3a235e...` / `bf503ae...` |
-| Refresh L1 | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans | `PASS` on final refresh tree |
-| Refresh L2 | distinct independent identity; remote/local/document-state reproduction | `PASS` on final refresh tree |
-| Refresh L3 | separate adversarial identity; authority, recovery and stale-claim challenge | `PASS` on final refresh tree |
+| Initial architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | historical `PASS` @ `d3a235e...` / `bf503ae...` |
+| Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
 
-Статусы выше относятся к exact tree и локальному commit этого
-handoff, а не к промежуточному WIP. Команды, counts, literal commit/tree
-и reviewer verdict фиксируются в task handoff: commit не может
-содержать собственный hash.
+Новая revision не объявляет собственный независимый verdict. Команды, counts,
+literal commit/tree и reviewer verdict фиксируются в task/PR handoff,
+привязанном к exact candidate SHA.
 
 ## Blockers and risks
 
 - Способ public HTTPS ingress/hostname не выбран; это один bounded
   implementation input следующего slice, не разрешение на VPS Core migration.
-- PR #1 открыт и не слит; push обновлённого head и merge требуют отдельных
-  точных разрешений. Текущий канон `main` остаётся на `8b896f...`.
-- Описание публичного GitHub-репозитория всё ещё называет его private; это
-  отдельная внешняя запись и не исправляется без точного разрешения.
+- Push, merge и другие внешние изменения всегда требуют отдельной точной
+  авторизации; документ или локальный commit её не создаёт.
 - Dirty Gate 1 WIP может содержать полезные изменения и debt; нужен отдельный
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
-- Активные записи Nobus Memory содержат stale wording «изменения ещё не
-  применены» и неверно продвигают Gate 1 WIP. Официальный bridge доступен
-  только для чтения; исправление требует отдельного разрешения и должно
-  ссылаться на текущую `main` и открытый PR, не объявляя PR каноном.
+- Nobus Memory должна получать live Git pointer/status/freshness и никогда не
+  продвигать candidate PR в канон без merge + exact `main` readback.
 
 ## Next vertical slice
 
@@ -114,14 +107,13 @@ Agent Registry, Web IDE/shell/self-deploy и live publication.
 ## Proposed Nobus Memory pointer sync
 
 ```text
-Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space;
-protected main @ 8b896fb... is the current accepted published canon. PR #1 is
-open and unmerged: docs/mvp1-thin-architecture, initial accepted head
-d3a235e..., tree bf503ae...; it contains the thin Telegram Mini App + existing
-Core roadmap, but is not main canon until separately authorized merge and SHA
-readback. Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished.
-Freshness: 2026-08-25.
+Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space.
+Accepted published canon = <exact protected main SHA from live readback>.
+ADR 0022 status = active only if its containing revision is reachable from
+that SHA; otherwise candidate. Mention PR #1 only after live readback and only
+while it is open. Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished.
+Freshness = <readback timestamp>.
 ```
 
-Memory update, push обновлённого head, изменение GitHub description, merge,
-deploy, recovery, deletion и live/provider actions этой задачей не выполняются.
+Этот шаблон не разрешает Memory update, push, изменение GitHub description,
+merge, deploy, recovery, deletion или live/provider actions.

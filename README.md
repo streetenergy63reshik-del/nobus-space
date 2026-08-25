@@ -7,17 +7,23 @@ runtime.
 Активное архитектурное решение:
 [ADR 0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
 
-## CURRENT — 25 августа 2026 года
+## Publication binding — 25 августа 2026 года
 
-- текущий принятый опубликованный канон — защищённая GitHub `main` @
+- репозиторий `streetenergy63reshik-del/nobus-space` публичный;
+- принятый опубликованный канон — exact revision, достижимая из защищённой
+  GitHub `main` после live readback; этот файл не дублирует подвижный SHA;
+- содержащая этот файл revision вне защищённой `main` является
+  `GATE_CANDIDATE`; после разрешённого merge и проверки достижимости та же
+  revision становится частью `ACCEPTED_PUBLISHED_BASELINE`;
+- baseline `main` при заморозке архитектурного кандидата:
   `8b896fbca9b23c8751d651d14a122506338b5827`;
-- репозиторий `streetenergy63reshik-del/nobus-space` публичный; для `main`
-  требуется pull request и закрытие всех обсуждений, запрещены bypass,
-  force-push и удаление ветки; обязательные status checks пока не настроены;
-- PR [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1)
-  из `docs/mvp1-thin-architecture` открыт и не слит; исходный принятый
-  опубликованный head —
-  `d3a235e4db2257826d5a5c5661a709c442be981e`;
+- исходный head PR [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1)
+  до post-publication refresh:
+  `d3a235e4db2257826d5a5c5661a709c442be981e`; живой статус PR и head читать
+  в GitHub, а не из постоянного документа;
+- снимок защиты `main` на 25 августа 2026 года: требуется pull request и
+  закрытие всех обсуждений, запрещены bypass, force-push и удаление ветки;
+  обязательные status checks не настроены;
 - локальный owner-bound Telegram/Core/Codex runtime существует; точное live
   состояние процессов в этой docs-задаче не проверялось;
 - Gate 0 принят как исторический sealed snapshot @
@@ -27,9 +33,7 @@ runtime.
   `HOLD / NOT_ACCEPTED` WIP в отдельном worktree; его нельзя считать каноном;
 - Telegram Mini App и Telegram-оркестратор обязательны в MVP-1 и используют
   один Core, одну queue/state model и одну effect authority;
-- полный распределённый Gate 2A — **FROZEN / NOT CURRENT**;
-- архитектурный кандидат PR #1 не является каноном `main` до отдельно
-  разрешённого merge и проверки exact remote SHA.
+- полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
 
 Git-репозиторий — источник истины для code/tests/ADR/CURRENT/docs. Nobus Memory
 хранит только pointer, короткий status, decisions и freshness и не
@@ -76,9 +80,9 @@ VPS и не вводит второй state store.
 git diff --check
 ```
 
-Product/runtime-код этим rebaseline и последующим обновлением статуса не
-изменяется. Push нового head, merge, deploy, recovery, удаление и запись в
-Nobus Memory не входят в локальный кандидат и требуют отдельного точного
-разрешения.
+Product/runtime-код этим rebaseline и обновлением publication binding не
+изменяется. Наличие commit или PR само по себе не разрешает push, merge,
+deploy, recovery, удаление или запись в Nobus Memory: каждое внешнее действие
+требует отдельной точной авторизации владельца.
 
 Локальные правила разработки: [AGENTS.md](AGENTS.md).

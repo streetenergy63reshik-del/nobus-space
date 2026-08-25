@@ -12,25 +12,25 @@
 | Поле | Значение |
 |---|---|
 | Local repository | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
-| Architecture branch | `docs/mvp1-thin-architecture` |
-| Safe base | `8b896fbca9b23c8751d651d14a122506338b5827` |
-| Local main | `420c9a6d4fcdb8f73fc71e23257fa319dafb6354` |
+| Candidate branch record | `docs/mvp1-thin-architecture` |
+| Baseline main at refresh freeze | `8b896fbca9b23c8751d651d14a122506338b5827` |
+| Initial PR head before refresh | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
 | Origin | `https://github.com/streetenergy63reshik-del/nobus-space.git` |
-| Visibility | `public` |
-| Remote metadata | `origin/main` @ `8b896fb...`; `origin/docs/mvp1-thin-architecture` @ `d3a235e...`; branch upstream not configured |
-| Pull request | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1), open and unmerged |
-| Main protection | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
+| Remote snapshot before refresh publication | `main` @ `8b896fb...`; architecture branch @ `d3a235e...`; branch upstream not configured |
+| Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
+| Visibility snapshot, 2026-08-25 | `public` |
+| Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. GitHub
-защищённая `main` @ `8b896f...` является текущим принятым опубликованным
-каноном. Кандидат PR #1 не заменяет его до отдельно разрешённого merge и
-проверки exact remote SHA. Nobus Memory хранит pointer/status, а не копию
-репозитория.
+принятый опубликованный канон определяется exact revision из live readback
+защищённой `main`. Содержащая этот документ revision является каноном только
+если она достижима из прочитанной remote `main`; подвижные refs/PR status здесь
+не дублируются. Nobus Memory хранит pointer/status, а не копию репозитория.
 
 ## 2. Working tree ownership
 
-- Current task owns only `.gitignore`, `README.md`, this inventory and
-  `CURRENT-STATUS.md`; product/runtime code and tests are not changed.
+- This refresh changes only `.gitignore`, `README.md`, this inventory and
+  `CURRENT-STATUS.md`; product/runtime code and tests are unchanged.
 - `.nobus-quality/cases.ndjson` is a pre-existing user change (+22 lines);
   do not modify, stage or commit it.
 - Product/runtime code, runtime tests, `.runtime`, credentials, tokens, audio,
@@ -42,7 +42,7 @@ Initial preflight found 16 registered worktrees. Their roles:
 
 | Worktree/ref | Role | Rule |
 |---|---|---|
-| canonical repo / `docs/mvp1-thin-architecture` | architecture candidate + local post-publication status refresh | only current explicit docs/ignore scope |
+| canonical repo / `docs/mvp1-thin-architecture` | architecture baseline revision; acceptance follows containing protected-main revision | only current explicit docs/ignore scope |
 | `C:\tmp\nobus-v2-l2-rework` / `agent/v2-l2-rework` | pre-existing rework | not current; no mutation |
 | four detached Codex worktrees `24cc/5e4c/bee5/fe98` @ `8b896f...` | Codex detached worktrees | no removal/move |
 | `agent/bot-memory-contour` | separate bot-memory WIP | no cross-contour changes |
