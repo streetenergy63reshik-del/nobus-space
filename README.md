@@ -1,144 +1,88 @@
-# Nobus Space MVP-1 — актуальный статус архитектурной итерации
+# Nobus Space MVP-1
 
-**CURRENT на 1 августа 2026 года:** Gate 0 READY, sealed `22/22` и принят
-отдельным immutable acceptance commit.
+Nobus Space развивается как owner-bound Telegram-оркестратор с обязательным
+тонким Telegram Mini App поверх существующего локального Windows Core/Codex
+runtime.
 
-result_commit: f5086b2a71a9ae22be3c858ff69453287f6925da
-result_tree: 2e3248eb295b1627d36f196c26dfc21c6ebd90fd
+Активное архитектурное решение:
+[ADR 0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
 
-- замечания независимого аудита закрыты в Product Contract/corpus v2,
-  digest-bound normative catalog, ADR 0020, Gate 2A и domain `development`;
-- независимые L1/L2/L3 привязаны к exact candidate и trusted canonical runtime;
-- PRE-G1 `ACCEPTED`: [ADR 0021](docs/adr/0021-post-gate0-agent-roles-and-downstream-integration.md)
-  фиксирует шесть roles и Gate 5–8 boundaries как post-seal overlay; immutable
-  Gate 0 acceptance и все digest-bound sources сохранены;
-- Gate 1 `READY TO START`, implementation ещё не начат и требует отдельного
-  L4, change manifest, проверок и accepted handoff;
-- Gate 2 начинается только после принятого Gate 1; SSH/VPS впервые требуются
-  не для Gate 1–2, а для отдельной live-активации Gate 2A;
-- в репозитории пока нет настроенного Git remote; push и deploy не выполнялись.
+## Publication binding — 25 августа 2026 года
 
-Точный текущий источник статуса: [Gate 0 acceptance](docs/gates/gate-00-product-contract-baseline/GATE-0-ACCEPTANCE.json),
-[Gate 0 HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md) и
-[audit remediation record](docs/gates/gate-00-product-contract-baseline/INDEPENDENT-AUDIT-REMEDIATION.md).
-Каноническая навигация: [индекс документации](docs/README.md) и
-[пакет Gate 0–8](docs/gates/README.md). Действия владельца после Gate 0,
-включая разделение Git SSH, VPS SSH и Gate 2A, собраны в
-[owner-runbook](docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md).
-Точный контракт обязательной подготовки Gate 1 находится в
-[pre-Gate-1 architecture integration](docs/handoffs/PRE-GATE-1-ARCHITECTURE-INTEGRATION.md).
-Его принятый post-seal authority —
-[ADR 0021](docs/adr/0021-post-gate0-agent-roles-and-downstream-integration.md).
+- репозиторий `streetenergy63reshik-del/nobus-space` публичный;
+- принятый опубликованный канон — exact revision, достижимая из защищённой
+  GitHub `main` после live readback; этот файл не дублирует подвижный SHA;
+- содержащая этот файл revision вне защищённой `main` является
+  `GATE_CANDIDATE`; после разрешённого merge и проверки достижимости та же
+  revision становится частью `ACCEPTED_PUBLISHED_BASELINE`;
+- baseline `main` при заморозке архитектурного кандидата:
+  `8b896fbca9b23c8751d651d14a122506338b5827`;
+- исходный head PR [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1)
+  до post-publication refresh:
+  `d3a235e4db2257826d5a5c5661a709c442be981e`; живой статус PR и head читать
+  в GitHub, а не из постоянного документа;
+- снимок защиты `main` на 25 августа 2026 года: требуется pull request и
+  закрытие всех обсуждений, запрещены bypass, force-push и удаление ветки;
+  обязательные status checks не настроены;
+- локальный owner-bound Telegram/Core/Codex runtime существует; точное live
+  состояние процессов в этой docs-задаче не проверялось;
+- Gate 0 принят как исторический sealed snapshot @
+  `f5086b2a71a9ae22be3c858ff69453287f6925da`; его 20 digest-bound sources
+  не изменяются;
+- Gate 1 implementation существует только как dirty
+  `HOLD / NOT_ACCEPTED` WIP в отдельном worktree; его нельзя считать каноном;
+- Telegram Mini App и Telegram-оркестратор обязательны в MVP-1 и используют
+  один Core, одну queue/state model и одну effect authority;
+- полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
 
-## Архив: локальная runtime-итерация до текущей дорожной карты Gate 0–8
+Git-репозиторий — источник истины для code/tests/ADR/CURRENT/docs. Nobus Memory
+хранит только pointer, короткий status, decisions и freshness и не
+переопределяет exact Git revision.
 
-> Все статусы, Gate-номера, commits и runtime-утверждения ниже относятся только
-> к предыдущей локальной итерации и не определяют CURRENT для Gate 0–8.
+Точный фактический статус:
+[CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Иерархия источников и
+навигация: [docs/README.md](docs/README.md).
 
-Feature commit `33b35f7` replaces the one-shot `codex exec --json/ephemeral`
-production worker with the official persistent `openai-codex` SDK/app-server.
-It adds separate resumable threads for the owner chat and Telegram topics,
-`gpt-5.6-sol/high/Fast`, a three-hour task deadline, bounded cancellation,
-complete Google Tasks pagination, durable voice recovery and exact owner-command
-authorization while preserving application-owned snapshot/diff/atomic effects.
-The clean-worktree L2 reproduction is `1088 passed, 2 skipped`; the focused L3
-fault-injection slice is `208 passed, 2 skipped`. Live publication is not claimed
-until the backup/switch/startup-probe/owner-smoke sequence is complete. Active
-semantics:
-[ADR 0016](docs/adr/0016-persistent-mobile-codex-runtime.md).
-
-The readiness statements and test counts in this historical snapshot describe
-the preceding local-runtime iteration. For the current Gate 0–8 architecture
-iteration, the leading section of this README and the sealed Gate 0 handoff are
-authoritative.
-
-### Историческая сводка локального Telegram Orchestrator MVP
-
-На момент этого snapshot `nobus-orchestrator-dev` использовался как канонический репозиторий локального MVP платформы Nobus Space. Целью той итерации было безопасно принять текстовую или голосовую команду владельца в Telegram, показать понятное превью, создать проверяемую задачу, выполнить её через локальный worker и вернуть результат только после требуемых проверок.
-
-В той итерации функциональный MVP-1 был объявлен завершённым и независимо принятым. Reliability-релиз `36c17e4` с обязательным startup probe реального Codex CLI, безопасными диагностическими кодами и тихим продуктовым UX был активирован в `agent/telegram-live`: startup probe прошёл, polling lease была получена, desktop-runner работал. Эти сведения не доказывают CURRENT topology новой дорожной карты; отдельная telegram-live isolation остаётся TARGET соответствующего runtime/deployment Gate.
-
-### Историческое состояние предыдущей итерации
-
-- Прежние Gate 0 и Documentation baseline были приняты в `ea5bd51` и `364e6ab`.
-- Прежние Gate 1–2 включали Core contracts/policy, Telegram ingress и voice preview.
-- Прежние Gate 3A/3B включали Codex CLI boundary и Windows process-tree hardening, включая `007640b`.
-- Прежние Gate 4A–4F включали trusted ingress, SQLite tasks/events/outbox, voice confirmation и durable recovery E2E.
-- Прежние Gate 5A.1–5A.3 включали authenticated owner-bound Telegram receive/send и live fake-task smoke.
-- Прежний Gate 5A.4 включал product text/voice UX, read-only Codex, verified answers, exact diff, L1/L2/L3, owner L4 и CAS commit.
-- Историческая reliability verification: `127` target, `190 passed, 1 skipped` adversarial, `727 passed, 2 skipped, 1 warning` full; verdict `ACCEPT`, P0/P1/P2 отсутствовали.
-- Прежний Gate 5B / Queue 1–2 описывал локальный supervisor, health alerts, backup/restore и durable effects в unreleased candidate.
-
-Этот архив не является CURRENT authority. Точный статус текущего Gate 0 находится
-в [запечатанном HANDOFF](docs/gates/gate-00-product-contract-baseline/HANDOFF.md),
-а подробная хронология прежнего runtime — в
-[историческом CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md).
-
-### Документация исторического snapshot
-
-Канонический индекс: [docs/README.md](docs/README.md). В документах всегда разделены:
-
-- `CURRENT` — подтверждённое поведение существующего кода;
-- `TARGET` — обязательная целевая архитектура;
-- статус решения (`CANONICAL`/ADR `ACCEPTED`) — правило, которое может быть ещё не реализовано.
-
-### План исторического snapshot
+## Обязательный MVP-путь
 
 ```text
-authenticated Telegram ingress
-  -> text or voice preview
-  -> explicit confirmation when needed
-  -> trusted TaskContract
-  -> persisted task and ordered WorkerEvents
-  -> persistent official Codex SDK/app-server
-  -> result-bound L1 / L2 / L3 evidence
-  -> L4 for every external mutation
-  -> concise Telegram response
+Telegram Mini App -> owner authentication / Telegram initData
+  -> existing Nobus Core -> local Codex/runtime
+  -> authoritative state -> Telegram/Mini App status/result/artifact
 ```
 
-Текстовые задачи запускают read-only подготовку сразу. Голосовые задачи требуют подтверждения транскрипта. Любое изменение кода дополнительно требует owner-bound L4 и фиксируется только в `agent/telegram-live`; merge, push и внешние эффекты не выполняются.
+Первый новый deployment unit — один `Mini App Web Boundary`: static UI,
+Telegram auth/session и тонкий API adapter за публичным HTTPS ingress. У него
+нет собственной БД, queue, policy/effect authority или Agent Registry.
 
-### Структура исторического snapshot
+## Что дальше
 
-```text
-src/
-├── application/     # durable runtime, Telegram product UX и Gate 5A.4
-├── agents/          # replaceable workers; сейчас только прототип AuditAgent
-├── contracts/       # локальные versioned Core contracts
-├── core/            # deterministic policy guards
-├── memory/          # локальный codebase-search prototype
-├── models/          # текущая runtime Task model
-├── orchestrator/    # parsing, routing, graph and state manager
-├── skills/          # rule-based helpers
-├── storage/         # durable SQLite checkpoints/events/outbox
-├── transport/       # Telegram normalization и ограниченный Bot API client
-├── voice/           # bounded download, faster-whisper и confirmation
-└── workers/         # persistent Codex SDK, legacy boundary и exact patch parser
-docs/                # каноническая документация и ADR
-tests/               # unit, policy and API tests
-```
+Следующий самостоятельный slice:
+**thin Mini App owner authentication + read-only список/карточка задач**.
+Он не создаёт задачи, не выполняет effects, не переносит Core/token/poller на
+VPS и не вводит второй state store.
 
-Gate 5A.4 соединяет authenticated Telegram ingress, обычный текст как задачу, voice transcription/confirmation, read-only Codex draft, exact diff, L1/L2/L3, owner-bound L4 и локальный CAS commit в изолированной ветке. Pre-apply journal и restart reconciliation предотвращают тихую потерю или дублирование эффекта. Runner остаётся desktop-процессом, а не production service.
+Критерии slice:
 
-### Локальная проверка исторического snapshot
+1. backend проверяет bounded Telegram `initData`, exact bot/owner, freshness и
+   replay;
+2. короткая opaque session не попадает в URL, `localStorage` или logs;
+3. список/карточка читаются из существующего authoritative state;
+4. cross-owner/task ref и client-selected authority отклоняются;
+5. при недоступном локальном Core UI fail-closed и ничего не исполняет.
 
-Требуется Python 3.12. Виртуальное окружение создаётся локально и не добавляется в Git.
+## Локальная проверка документационного кандидата
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-$env:DEBUG='false'
-.\.venv\Scripts\python.exe -m pytest -q
+& '.\.venv\Scripts\python.exe' -m pytest -q -p no:cacheprovider `
+  tests/test_pre_gate1_architecture_integration.py `
+  tests/test_documentation.py
+git diff --check
 ```
 
-Если Python 3.12 недоступен, окружение считается неподготовленным; не следует подменять это production-ready инструкцией.
+Product/runtime-код этим rebaseline и обновлением publication binding не
+изменяется. Наличие commit или PR само по себе не разрешает push, merge,
+deploy, recovery, удаление или запись в Nobus Memory: каждое внешнее действие
+требует отдельной точной авторизации владельца.
 
-### Безопасность разработки исторического snapshot
-
-- Не записывать в репозиторий Telegram token, API keys, credentials, cookies, `.env`, сырые voice-файлы, логи или клиентские данные.
-- Не считать `.env` защищённым secret store.
-- Не выполнять push, deploy, публикацию и внешние изменения без отдельного явного подтверждения владельца.
-- Любой результат остаётся `DRAFT` до независимых L1/L2/L3; все внешние записи дополнительно требуют связанного L4.
-- При rework старая ревизия результата и её доказательства не переиспользуются.
-
-Локальные правила исполнителей: [AGENTS.md](AGENTS.md).
+Локальные правила разработки: [AGENTS.md](AGENTS.md).

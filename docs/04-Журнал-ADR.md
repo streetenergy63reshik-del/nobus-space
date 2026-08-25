@@ -19,15 +19,15 @@
 | [0011](adr/0011-durable-owner-effects-and-web-profiles.md) | Durable Telegram admission, explicit owner effects и закрытые web/network profiles | ACCEPTED | IMPLEMENTED |
 | [0012](adr/0012-owner-command-authority-and-calendar.md) | Точная owner-команда разрешает обратимые действия; удаление и иные необратимые эффекты сохраняют exact L4 | ACCEPTED | IMPLEMENTED |
 | [0013](adr/0013-business-notes-memory.md) | Telegram «Заметки бизнеса» хранятся локально зашифрованно, изолируются по tenant/chat/topic и не передаются внешней LLM | ACCEPTED | IMPLEMENTED |
-
 | [0014](adr/0014-natural-product-router-and-bounded-context.md) | Естественные owner-команды маршрутизируются в закрытые профили; project/file context передаётся минимально и без прямого доступа LLM к диску | ACCEPTED | IMPLEMENTED |
 | [0015](adr/0015-nobus-memory-progressive-retrieval.md) | Nobus Memory подключается через server-side progressive retrieval; exact owner save создаёт только pending-review Inbox note | ACCEPTED | IMPLEMENTED |
 | [0016](adr/0016-persistent-mobile-codex-runtime.md) | Production worker использует persistent официальный Codex SDK/app-server; threads разделены по owner chat/topic, а effects остаются application-owned | ACCEPTED | RELEASE CANDIDATE |
-| [0017](adr/0017-hybrid-natural-google-local-document-plane.md) | Natural Language First; hybrid Server Core + Windows Local Library Bridge; единый Google/local document lifecycle и application-owned writeback | ACCEPTED | TARGET |
-| [0018](adr/0018-cross-gate-mvp1-integration.md) | Единая интеграция Gate 0–8: atomic effects, opaque document identity, честные Google preconditions, single-node SQLite и global poller fencing | ACCEPTED | TARGET |
-| [0019](adr/0019-owner-service-filesystem-and-runtime-decisions.md) | Owner decisions: CLI-first Codex, Drive-wide read, controlled full owner-root workspace, Healthchecks.io → Gmail и benchmark-gated paid services | ACCEPTED | TARGET |
-| [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Полноценный Telegram Mini App и Server/Development Control вводятся в Gate 2A; Nobus остаётся единым orchestrator, глубокие домены выполняют закрытые specialist worker profiles | ACCEPTED | TARGET |
-| [0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Post-seal overlay фиксирует шесть closed roles, независимую verification, отдельные Development Worker/Document Bridge boundaries и Gate 6–8 handoffs без изменения immutable Gate 0 | ACCEPTED | TARGET |
+| [0017](adr/0017-hybrid-natural-google-local-document-plane.md) | Natural Language First; hybrid Server Core + Windows Local Library Bridge; единый Google/local document lifecycle и application-owned writeback | ACCEPTED; scoped by 0022 | PARTIAL / DEFERRED |
+| [0018](adr/0018-cross-gate-mvp1-integration.md) | Единая интеграция Gate 0–8: atomic effects, opaque document identity, честные Google preconditions, single-node SQLite и global poller fencing | ACCEPTED; scoped by 0022 | PARTIAL / DEFERRED |
+| [0019](adr/0019-owner-service-filesystem-and-runtime-decisions.md) | Owner decisions: CLI-first Codex, Drive-wide read, controlled full owner-root workspace, Healthchecks.io → Gmail и benchmark-gated paid services | ACCEPTED; scoped by 0022 | PARTIAL / DEFERRED |
+| [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Telegram Mini App is required; historical Server/Development Control Gate 2A topology is scoped by ADR 0022 | ACCEPTED; scoped by 0022 | THIN MVP ACTIVE / FULL 2A FROZEN |
+| [0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Historical post-seal role/verification overlay; active process and roadmap are scoped by ADR 0022 | ACCEPTED; scoped by 0022 | HISTORICAL / PARTIAL |
+| [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen; one candidate-bound delivery workflow | ACCEPTED | CURRENT PROCESS / TARGET PRODUCT |
 
 ## Правила статусов ADR
 
@@ -36,4 +36,28 @@
 - `SUPERSEDED` — заменено более новым ADR; старый файл сохраняется для истории.
 - `REJECTED` — рассмотрено и не принято.
 
-Статус реализации ведётся отдельно, потому что принятое решение может ещё не быть реализовано. Изменение статуса ADR требует даты, причины и независимого L2/L3 review. Высокорисковое решение дополнительно требует L4.
+Статус реализации ведётся отдельно, потому что принятое решение может ещё не
+быть реализовано. `ACCEPTED; scoped by 0022` означает, что
+обязателен только незаменённый scope старого решения; исторический ADR не
+переписывается.
+
+## Scoped supersession by ADR 0022
+
+| Source | Retained | Superseded / deferred |
+|---|---|---|
+| docs 06/07 | product/runtime approval semantics | nothing |
+| docs 12/13 | sealed historical baseline; security, tenant, effect, evidence and recovery invariants | Gate 0–8 topology, full rollout and delivery sequence |
+| ADR 0017 | Natural Language First, deterministic Core, application-owned effects | early Server Core/document-platform sequence |
+| ADR 0018 | Core reuse, atomic admission/outbox, idempotency and poller fencing | Gate 0–8 integration sequence as active MVP roadmap |
+| ADR 0019 | owner/secret/filesystem boundaries and recovery discipline | mandatory server/Bridge steps outside the vertical slice |
+| ADR 0020 | Mini App required, one Core/state/effect authority, client not authority | full Server Control Plane, universal Agent Registry and Gate 2A sequence |
+| ADR 0021 | Gate 0 binding, worker distrust and independent frozen-candidate review | six-role runtime registry, Gate 1→2→2A→3–8 order and platform handoffs |
+| full Gate 2A | narrow security requirements reused by ADR 0022 | **FROZEN / NOT CURRENT** topology, deployment and acceptance matrix |
+
+Security, tenant isolation, effect authority, idempotency, evidence binding,
+audit trail and recovery invariants remain active.
+
+Нормативное изменение получает owner decision и candidate-bound review по
+своему риску. Обычные локальные docs/code/tests/commit не требуют formal
+quality-L4. Product/runtime `ApprovalRequest/ApprovalDecision` и внешние
+авторизации остаются отдельными правилами.

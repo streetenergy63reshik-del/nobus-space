@@ -20,6 +20,9 @@ local.settings.*
 *.local.yml
 *.local.toml
 
+# Machine-local Codex configuration
+/.codex/
+
 # Python environment and caches
 .venv/
 __pycache__/
