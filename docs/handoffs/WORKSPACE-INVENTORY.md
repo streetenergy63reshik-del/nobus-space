@@ -1,111 +1,94 @@
-# Карта файлов и инструментов Nobus Space
+# Nobus Space — workspace inventory
 
 **Статус:** CANONICAL OPERATIONS INVENTORY
-**Актуально на:** 24 июля 2026 года
+**Актуально на:** 25 августа 2026 года
 
-## Канонические расположения
+Активная topology и delivery workflow:
+[ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
+Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
 
-| Назначение | Путь |
+## 1. Canonical repository role
+
+| Поле | Значение |
 |---|---|
-| основной репозиторий Nobus Space | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
-| каноническая документация | `<repo>\docs` |
-| активный runtime-worktree бота | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\worktrees\telegram-live` |
-| owner workspace бота | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\NOBUS SPACE BOT` |
-| проверенные резервные копии | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Backups` |
-| проектные skills-источники | `C:\Хранилище\АГЕНТ\PROстранство\.skills` |
-| runtime Nobus | `<repo>\.runtime` и `<telegram-live>\.runtime`, Git-ignored |
-| Telegram binding | Git-ignored локальная конфигурация репозитория |
-| bot token | Windows Credential Manager, не файл проекта |
+| Local repository | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
+| Architecture branch | `docs/mvp1-thin-architecture` |
+| Safe base | `8b896fbca9b23c8751d651d14a122506338b5827` |
+| Local main | `420c9a6d4fcdb8f73fc71e23257fa319dafb6354` |
+| Origin | `https://github.com/streetenergy63reshik-del/nobus-space.git` |
+| Remote metadata | no remote-tracking refs; no upstream confirmed |
 
-`main` и `telegram-live` — не дубли. Первый является рабочей веткой разработки,
-второй — отдельным Git worktree запущенной версии. Старые чистые worktree
-`codex-gate4e` и `kimi-telegram` удалены 24 июля 2026 года штатной командой
-`git worktree remove`; их ветки и Git-история сохранены.
+Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. GitHub
+`main`/release tags являются опубликованным каноном только после разрешённого
+merge/release и проверки remote SHA. Nobus Memory хранит pointer/status, а не
+копию репозитория.
 
-## Системные каталоги, которые не переносятся
+## 2. Working tree ownership
 
-| Каталог | Назначение | Решение |
+- Current task owns only the explicitly listed active docs/governance test and
+  the already committed Stage-1 `AGENTS.md`.
+- `.nobus-quality/cases.ndjson` is a pre-existing user change (+22 lines);
+  do not modify, stage or commit it.
+- Product/runtime code, runtime tests, `.runtime`, credentials, tokens, audio,
+  caches and logs are outside this docs candidate.
+
+## 3. Registered worktrees
+
+Initial preflight found 16 registered worktrees. Their roles:
+
+| Worktree/ref | Role | Rule |
 |---|---|---|
-| `C:\Users\CGC1ub\.codex` | сессии, плагины, логи, runtime и установленные skills Codex | оставить на штатном месте |
-| `C:\Users\CGC1ub\.cache\codex-runtimes` | кэш окружений Codex | оставить; удаление вызовет повторную загрузку |
-| `C:\Users\CGC1ub\.kimi`, `.kimi-code`, `.kimi-work` | конфигурация, индексы и кэш Kimi | оставить на штатном месте |
-| `C:\Users\CGC1ub\plugins` | установленные локальные плагины | оставить; это deployment, не источник проекта |
+| canonical repo / `docs/mvp1-thin-architecture` | current architecture candidate | only current explicit docs scope |
+| `C:\tmp\nobus-v2-l2-rework` / `agent/v2-l2-rework` | pre-existing rework | not current; no mutation |
+| four detached Codex worktrees `24cc/5e4c/bee5/fe98` @ `8b896f...` | Codex detached worktrees | no removal/move |
+| `agent/bot-memory-contour` | separate bot-memory WIP | no cross-contour changes |
+| `agent/docs-governance-20260809` | historical docs-governance worktree | not active authority |
+| `agent/gate-01-acceptance` @ `db0a24e...` | 86-path dirty Gate 1 WIP | `HOLD / NOT_ACCEPTED`; preserve |
+| detached `gate-01-candidate` @ `d11eda8...` | historical Gate 1 candidate | preserve |
+| `agent/gate-01-integration` @ `db0a24e...` | Gate 1 integration branch | not accepted/canonical |
+| detached `gate-02-candidate` @ `d11eda8...` | historical Gate 2 candidate | preserve |
+| `agent/mvp1-notes-protocol-fix` | separate protocol-fix WIP | no mutation |
+| `agent/nobus-memory` | separate Memory contour | Memory remains read-only here |
+| `agent/orchestrator-v2` | historical orchestrator-v2 worktree | not active topology |
+| `agent/telegram-live` | historical/local runtime worktree | no live/release action |
 
-Установленная копия skill и его проектный исходник имеют разные роли:
-`.skills` — source of truth, `.codex\skills` — deployment Codex. Удалять deployment
-как «дубль» нельзя.
+Ни один worktree этой задачей не создаётся, не удаляется, не перемещается и не
+очищается.
 
-## Проектные skills и LLM-конфигурации
+## 4. Gate 1 recovery
 
-- `PROстранство\.skills` — общие источники skills проекта;
-- `ОРКЕСТРАТОР\Code\.kimi\skills` — workspace-конфигурации Kimi;
-- `ОРКЕСТРАТОР\Навыки и промты` — пакет `ozon-audit-prostranstvo`;
-- `ОРКЕСТРАТОР\СКИЛЛЫ\Инфографика маркетплейсов` — семейство `mp-*` и общий журнал;
-- `ОРКЕСТРАТОР\СКИЛЛЫ\SpaceNobus` — исторические материалы проектирования;
-- `ОРКЕСТРАТОР\СКИЛЛЫ\11_Агент поддержки маркетплейсов` — план, не исполняемый skill.
+Preserved safety refs:
 
-Проверка SHA-256 не обнаружила точных дубликатов `SKILL.md` среди проектных
-источников. Механически объединять эти каталоги нельзя: относительные ссылки и
-общие журналы могут перестать работать. Миграция в `.skills` выполняется отдельным
-change-set с manifest, link-check, smoke каждого skill и L4.
+- `refs/nobus-safety/gate1-canonical-dirty-preimage-20260822` @
+  `a3ca39aa...`;
+- `refs/nobus-safety/gate1-canonical-dirty-stash-20260822` @
+  `8270192a...`;
+- `refs/nobus-safety/gate1-wip-pause-20260822` @ `560413fe...`;
+- `refs/nobus-safety/gate1-wip-pause-20260822-02` @ `c181876a...`;
+- `refs/nobus-safety/gate1-wip-pause-20260822-03` @ `4a97d02e...`;
+- `refs/nobus-safety/gate1-wip-pause-20260822-04` @
+  `73958b72a17cda01f435905c12d1e6118477d299`.
 
-## Выполненная консолидация
+Initial read-only audit matched six recovery bundles to these refs and verified
+them with `git bundle verify`. Recovery refs, bundles, stash and the 86-path
+working tree are data sources for a later recovery/reuse cycle, not current
+accepted code.
 
-24 июля 2026 года:
+## 5. Historical sealed evidence
 
-- удалены 160 временных файлов и 47 временных каталогов Nobus/Queue12 из `C:\tmp`;
-- удалены четыре диагностических junction без обхода их целевых каталогов;
-- удалены устаревшие чистые worktree `codex-gate4e` и `kimi-telegram`;
-- удалены доступные `__pycache__` и `.pytest_cache`;
-- уникальный legacy-архив `C:\Хранилище\АГЕНТ\LLM платформа` перенесён с
-  проверкой SHA-256 в
-  `ОРКЕСТРАТОР\Backups\2026-07-24 Documentation consolidation\legacy-llm-platform`;
-- исходный `C:\Хранилище\АГЕНТ\LLM платформа` после проверки удалён;
-- `C:\Хранилище\WORK` не читался и не изменялся.
+- Gate 0 result commit:
+  `f5086b2a71a9ae22be3c858ff69453287f6925da`;
+- result tree:
+  `2e3248eb295b1627d36f196c26dfc21c6ebd90fd`;
+- 20 `required_sources` in the unchanged normative catalog;
+- all Gate 0 acceptance/evidence/manifests/corpus/verification remain
+  historical and immutable.
 
-## Осознанно сохранённые исключения
+No Gate 0 artifact is regenerated by ADR 0022.
 
-### Legacy runtime-БД
+## 6. Cleanup boundary
 
-`<repo>\nobus-runtime.local.sqlite3` и
-`<repo>\telegram-runtime.local.sqlite3` пока использует deprecated
-`scripts\run_telegram_control.py`. Их можно удалить только после вывода этого
-runner из эксплуатации или миграции его на `.runtime`.
-
-### Google OAuth-материалы
-
-В `ОРКЕСТРАТОР\Интеграции\google_api_integration` присутствуют локальные
-credentials, token, auth-code/log и flow-state файлы. Их содержимое не читалось и
-не переносилось. Это не документация и не Git-артефакты; миграция в защищённое
-credential-хранилище и отзыв старых токенов являются отдельным L4-действием.
-
-### Каталоги с повреждёнными ACL
-
-Стандартными правами текущего пользователя не удаляются:
-
-- `PROстранство\.tmp-tests`;
-- `ОРКЕСТРАТОР\TestTemp`;
-- `ОРКЕСТРАТОР\Code\tmpsl53tj6e`;
-- `ОРКЕСТРАТОР\Code\tmpwmof9fbx`.
-
-Это остатки adversarial-тестов прав доступа, не source of truth. Попытки
-`Remove-Item`, сброса ACL и принятия владения корректно завершились отказом
-Windows. Удаление возможно только из повышенной сессии Administrator после
-повторной проверки абсолютных путей.
-
-## Правило временных файлов
-
-Временными считаются `C:\tmp\nobus-*`, `C:\tmp\queue12-*`, `.tmp-tests`,
-`TestTemp`, `Code\tmp*`, `__pycache__`, `.pytest_cache` и `.pyc` вне активного
-виртуального окружения. Перед удалением обязательно проверить:
-
-1. Git и документация на путь не ссылаются;
-2. абсолютный путь остаётся внутри разрешённого каталога;
-3. reparse point удаляется как ссылка, без обхода target;
-4. активный runner путь не использует;
-5. уникальный результат предварительно получает manifest и backup.
-
-## Запрет
-
-`C:\Хранилище\WORK` находится вне области консолидации. Его нельзя читать,
-перемещать, переименовывать или удалять в рамках работ Nobus Space.
+This inventory is not a deletion manifest. Worktree removal, ref/bundle/stash
+cleanup, recovery archive, cache cleanup and filesystem deletion require a
+separate exact target audit and applicable authorization. Broad recursive
+deletion and destructive Git history operations are prohibited.

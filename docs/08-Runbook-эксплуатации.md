@@ -1,11 +1,11 @@
-> **TARGET hybrid runbook — 28 июля 2026.** Полная последовательность Gate 0–8,
-> самостоятельные L4-сообщения, server/Windows Bridge preflight, composite
-> health, rollback и 72-часовой pilot находятся в
-> [`12-Эталон-MVP-1-и-дорожная-карта.md`](12-Эталон-MVP-1-и-дорожная-карта.md),
-> [`13-Интегрированная-архитектура-MVP-1.md`](13-Интегрированная-архитектура-MVP-1.md)
-> и детальном [`Gate 8`](gates/gate-08-hybrid-release-pilot/ARCHITECTURE.md).
-> Этот TARGET не отменяет расположенные ниже CURRENT operational overrides до
-> принятого Gate 8 release.
+> **ACTIVE OVERLAY — 25 августа 2026.** Текущую MVP topology и delivery
+> workflow определяет
+> [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
+> thin Telegram Mini App поверх existing local Core. Полный распределённый
+> Gate 2A — **FROZEN / NOT CURRENT**. Sealed docs 12/13 и Gate 0–8 ниже
+> сохраняются как historical baseline, а не active release sequence.
+> Runtime safety, backup, recovery и product approval semantics этого runbook
+> сохраняются, пока не superseded отдельным проверенным runtime change.
 >
 
 ## Operational override 2026-07-25 — persistent Codex SDK candidate
@@ -168,7 +168,8 @@ public web research и owner-L4 effects определены ADR 0011.
 - миграции и проверенный план rollback;
 - L1/L2/L3 verification bundle;
 - changelog, известные ограничения и ответственный;
-- L4 на конкретный production deployment.
+- отдельная явная action-bound live-авторизация на конкретный
+  production deployment.
 
 ### Preflight
 
@@ -185,7 +186,10 @@ public web research и owner-L4 effects определены ADR 0011.
 
 ### Deployment
 
-1. Получить action-bound L4 с TTL на конкретную среду и artifact digest.
+1. Получить отдельную явную action-bound live-авторизацию с TTL на
+   конкретную среду и artifact digest. Это не formal quality-L4 самого
+   deployment; runtime approval для отдельного effect или destructive
+   restore применяется отдельно по его policy.
 2. Включить maintenance/read-only режим, если этого требует миграция.
 3. Создать свежий pre-change backup через ранее проверенный механизм и проверить его manifest. Если для изменяемого компонента нет успешного restore drill, deployment блокируется; новый непроверенный архив не считается защитой.
 4. Развернуть сначала canary/один экземпляр, выполнить smoke tests.
@@ -317,7 +321,9 @@ Fallback считается успешным только при наличии 
 
 ### Локальная проверка Windows Job guard
 
-Runner разрешено запускать только после отдельного L4 на локальные child processes:
+Runner разрешено запускать только после отдельной явной live-авторизации на
+локальные child processes. Это external/runtime authorization, а не formal
+quality-L4 обычного local development checkpoint:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\live_windows_job_probe.py --json
@@ -408,20 +414,20 @@ Production запрещён, пока отсутствует хотя бы од�
 - утверждённые и воспроизведённые RPO/RTO;
 - проверенный backup/restore и rollback;
 - staging E2E и security review;
-- L4 на конкретный deployment.
+- явная авторизация конкретного production deployment.
 
 Правила внешних действий описаны в `07-Правила-внешней-записи.md`, evidence и релизные gates — в `06-Регламент-качества-L1-L4.md`, отчёты — в `09-Стандарты-отчётов.md`.
 
 ## Queue 1/2 activation runbook
 
-### До L4
+### До live-авторизации
 
 1. `DEBUG=false python -m pytest -q --disable-warnings`.
 2. `python -m compileall -q src scripts tests`.
 3. `git diff --check`, `pip check`, независимый L2/L3.
 4. Убедиться, что live worktree и scheduled task не изменялись.
 
-### Точный L4 activation
+### Точная live-авторизация activation
 
 1. Остановить существующий `NobusSpaceBot`.
 2. Создать owner workspace через `scripts/initialize_owner_workspace.py` с exact
@@ -444,7 +450,9 @@ Production запрещён, пока отсутствует хотя бы од�
   он фиксируется только после owner L4.
 ## Final MVP-1 release checklist
 
-1. Убедиться, что candidate worktree чист после локального commit и не имеет remote.
+1. Убедиться, что candidate worktree чист после локального commit; проверить
+   exact branch/HEAD и не считать наличие или отсутствие remote доказательством
+   публикации.
 2. Выполнить полный pytest, compileall, `pip check`, `git diff --check`, secret scan
    и независимые L2/L3.
 3. Остановить Task Scheduler job и создать проверенный backup всех четырёх
