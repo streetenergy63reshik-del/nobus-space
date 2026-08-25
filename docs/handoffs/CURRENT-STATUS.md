@@ -1,8 +1,8 @@
 # Nobus Space — CURRENT
 
 **Актуально на:** 25 августа 2026 года
-**Lifecycle:** `GATE_CANDIDATE` — one consolidated rework integrated;
-candidate-bound L1/L2/L3 accepted at the local docs commit
+**Lifecycle:** `GATE_CANDIDATE` — architecture rebaseline published in an open
+PR; post-publication status refresh is local until separately authorized push
 **Active decision:** [ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
 
 Telegram Mini App и Telegram-оркестратор обязательны в MVP-1. Они используют
@@ -15,17 +15,21 @@ existing local Core, одну queue/state model и одну effect authority. П
 |---|---|
 | Repository | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
 | Branch | `docs/mvp1-thin-architecture` |
-| Safe base | `8b896fbca9b23c8751d651d14a122506338b5827` |
+| Published protected `main` | `8b896fbca9b23c8751d651d14a122506338b5827` |
 | Local main | `420c9a6d4fcdb8f73fc71e23257fa319dafb6354`; ancestor of safe base |
 | Stage-1 checkpoint | `6f2fa50` (`AGENTS.md` only) |
-| Docs candidate | exact branch tip after the final local docs commit; resolve with `git rev-parse HEAD` |
-| Origin | configured; no remote-tracking refs/upstream confirmed |
+| Published architecture candidate | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
+| Pull request | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1), `OPEN`, not merged |
+| Local status-refresh candidate | exact branch tip after the final local commit; resolve with `git rev-parse HEAD` |
+| Origin | public GitHub repository; remote-tracking refs confirmed; branch upstream not configured |
+| `main` protection | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
 
 Git commit не может содержать собственный hash без циклической ссылки. Поэтому
-этот файл фиксирует exact branch/base/checkpoint и воспроизводимую команду
-binding; literal final docs commit SHA фиксируется в итоговом handoff задачи
-сразу после commit. До разрешённых push/PR/merge и remote SHA readback GitHub `main`
-не является каноном этого candidate.
+этот файл фиксирует exact published refs и воспроизводимую команду binding;
+literal final refresh commit SHA фиксируется в итоговом handoff задачи сразу
+после commit. Защищённая GitHub `main` @ `8b896f...` остаётся текущим принятым
+опубликованным каноном. Кандидат PR #1 не становится каноном до отдельно
+разрешённого merge и последующего readback exact `main` SHA.
 
 Git-репозиторий — источник истины для code/tests/ADR/CURRENT/docs. Nobus Memory
 сохраняет только pointer/status/decision/freshness и не переопределяет Git.
@@ -64,10 +68,10 @@ coherent L1/L2/L3 по frozen bytes.
 
 | Уровень | Проверка | Статус |
 |---|---|---|
-| WIP L1 | links + ADR overlay: `11 passed`; diff/path set; 20 hashes; targeted secret patterns | `PASS` |
-| Candidate L1 | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans | `PASS` on final tree |
-| L2 | distinct independent L2 identity; decision-map reproduction after one rework package | `PASS` on final tree |
-| L3 | separate adversarial L3 identity, different from L2; scenarios 3/5 plus auth/recovery target recheck | `PASS` on final tree |
+| Architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | `PASS` @ `d3a235e...` / `bf503ae...` |
+| Refresh L1 | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans | `PASS` on final refresh tree |
+| Refresh L2 | distinct independent identity; remote/local/document-state reproduction | `PASS` on final refresh tree |
+| Refresh L3 | separate adversarial identity; authority, recovery and stale-claim challenge | `PASS` on final refresh tree |
 
 Статусы выше относятся к exact tree и локальному commit этого
 handoff, а не к промежуточному WIP. Команды, counts, literal commit/tree
@@ -78,13 +82,18 @@ handoff, а не к промежуточному WIP. Команды, counts, li
 
 - Способ public HTTPS ingress/hostname не выбран; это один bounded
   implementation input следующего slice, не разрешение на VPS Core migration.
-- Remote state не проверялся сетью; push/fetch/pull запрещены текущей задачей.
+- PR #1 открыт и не слит; push обновлённого head и merge требуют отдельных
+  точных разрешений. Текущий канон `main` остаётся на `8b896f...`.
+- Описание публичного GitHub-репозитория всё ещё называет его private; это
+  отдельная внешняя запись и не исправляется без точного разрешения.
 - Dirty Gate 1 WIP может содержать полезные изменения и debt; нужен отдельный
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
-- Nobus Memory содержит stale wording «изменения ещё не применены»; Memory
-  read-only и не обновляется до принятия Git-кандидата.
+- Активные записи Nobus Memory содержат stale wording «изменения ещё не
+  применены» и неверно продвигают Gate 1 WIP. Официальный bridge доступен
+  только для чтения; исправление требует отдельного разрешения и должно
+  ссылаться на текущую `main` и открытый PR, не объявляя PR каноном.
 
 ## Next vertical slice
 
@@ -102,14 +111,17 @@ Acceptance:
 Out of scope: task create, approvals/effects, Core/token/poller migration,
 Agent Registry, Web IDE/shell/self-deploy и live publication.
 
-## Proposed Nobus Memory sync after accepted merge
+## Proposed Nobus Memory pointer sync
 
 ```text
-Nobus Space: ADR 0022 accepted in Git; thin Telegram Mini App + existing local
-Core is active MVP-1 roadmap. Full distributed Gate 2A is frozen; Gate 1 WIP
-remains HOLD/NOT_ACCEPTED. Source: accepted Git main SHA; next slice is
-owner-auth + read-only task list/detail. Freshness: 2026-08-25.
+Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space;
+protected main @ 8b896fb... is the current accepted published canon. PR #1 is
+open and unmerged: docs/mvp1-thin-architecture, initial accepted head
+d3a235e..., tree bf503ae...; it contains the thin Telegram Mini App + existing
+Core roadmap, but is not main canon until separately authorized merge and SHA
+readback. Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished.
+Freshness: 2026-08-25.
 ```
 
-Memory update, push, PR, merge, deploy, deletion и live/provider actions этой
-задачей не выполняются.
+Memory update, push обновлённого head, изменение GitHub description, merge,
+deploy, recovery, deletion и live/provider actions этой задачей не выполняются.

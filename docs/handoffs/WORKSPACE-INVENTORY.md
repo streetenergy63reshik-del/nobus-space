@@ -16,17 +16,21 @@
 | Safe base | `8b896fbca9b23c8751d651d14a122506338b5827` |
 | Local main | `420c9a6d4fcdb8f73fc71e23257fa319dafb6354` |
 | Origin | `https://github.com/streetenergy63reshik-del/nobus-space.git` |
-| Remote metadata | no remote-tracking refs; no upstream confirmed |
+| Visibility | `public` |
+| Remote metadata | `origin/main` @ `8b896fb...`; `origin/docs/mvp1-thin-architecture` @ `d3a235e...`; branch upstream not configured |
+| Pull request | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1), open and unmerged |
+| Main protection | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. GitHub
-`main`/release tags являются опубликованным каноном только после разрешённого
-merge/release и проверки remote SHA. Nobus Memory хранит pointer/status, а не
-копию репозитория.
+защищённая `main` @ `8b896f...` является текущим принятым опубликованным
+каноном. Кандидат PR #1 не заменяет его до отдельно разрешённого merge и
+проверки exact remote SHA. Nobus Memory хранит pointer/status, а не копию
+репозитория.
 
 ## 2. Working tree ownership
 
-- Current task owns only the explicitly listed active docs/governance test and
-  the already committed Stage-1 `AGENTS.md`.
+- Current task owns only `.gitignore`, `README.md`, this inventory and
+  `CURRENT-STATUS.md`; product/runtime code and tests are not changed.
 - `.nobus-quality/cases.ndjson` is a pre-existing user change (+22 lines);
   do not modify, stage or commit it.
 - Product/runtime code, runtime tests, `.runtime`, credentials, tokens, audio,
@@ -38,7 +42,7 @@ Initial preflight found 16 registered worktrees. Their roles:
 
 | Worktree/ref | Role | Rule |
 |---|---|---|
-| canonical repo / `docs/mvp1-thin-architecture` | current architecture candidate | only current explicit docs scope |
+| canonical repo / `docs/mvp1-thin-architecture` | architecture candidate + local post-publication status refresh | only current explicit docs/ignore scope |
 | `C:\tmp\nobus-v2-l2-rework` / `agent/v2-l2-rework` | pre-existing rework | not current; no mutation |
 | four detached Codex worktrees `24cc/5e4c/bee5/fe98` @ `8b896f...` | Codex detached worktrees | no removal/move |
 | `agent/bot-memory-contour` | separate bot-memory WIP | no cross-contour changes |

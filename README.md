@@ -9,10 +9,15 @@ runtime.
 
 ## CURRENT — 25 августа 2026 года
 
-- исходная безопасная Git-точка:
-  `agent/mobile-codex-runtime` @
+- текущий принятый опубликованный канон — защищённая GitHub `main` @
   `8b896fbca9b23c8751d651d14a122506338b5827`;
-- архитектурная ветка: `docs/mvp1-thin-architecture`;
+- репозиторий `streetenergy63reshik-del/nobus-space` публичный; для `main`
+  требуется pull request и закрытие всех обсуждений, запрещены bypass,
+  force-push и удаление ветки; обязательные status checks пока не настроены;
+- PR [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1)
+  из `docs/mvp1-thin-architecture` открыт и не слит; исходный принятый
+  опубликованный head —
+  `d3a235e4db2257826d5a5c5661a709c442be981e`;
 - локальный owner-bound Telegram/Core/Codex runtime существует; точное live
   состояние процессов в этой docs-задаче не проверялось;
 - Gate 0 принят как исторический sealed snapshot @
@@ -23,9 +28,8 @@ runtime.
 - Telegram Mini App и Telegram-оркестратор обязательны в MVP-1 и используют
   один Core, одну queue/state model и одну effect authority;
 - полный распределённый Gate 2A — **FROZEN / NOT CURRENT**;
-- `origin` настроен, но remote-tracking refs/upstream не подтверждены.
-  GitHub `main` не является опубликованным каноном этого кандидата до
-  разрешённых push/PR/merge и проверки remote SHA.
+- архитектурный кандидат PR #1 не является каноном `main` до отдельно
+  разрешённого merge и проверки exact remote SHA.
 
 Git-репозиторий — источник истины для code/tests/ADR/CURRENT/docs. Nobus Memory
 хранит только pointer, короткий status, decisions и freshness и не
@@ -72,7 +76,9 @@ VPS и не вводит второй state store.
 git diff --check
 ```
 
-Product/runtime-код этим rebaseline не изменяется. Push, pull, fetch, PR,
-merge, deploy, публикация и внешние записи не входят в эту задачу.
+Product/runtime-код этим rebaseline и последующим обновлением статуса не
+изменяется. Push нового head, merge, deploy, recovery, удаление и запись в
+Nobus Memory не входят в локальный кандидат и требуют отдельного точного
+разрешения.
 
 Локальные правила разработки: [AGENTS.md](AGENTS.md).
