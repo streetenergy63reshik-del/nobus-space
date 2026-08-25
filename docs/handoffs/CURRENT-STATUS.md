@@ -66,8 +66,8 @@ coherent L1/L2/L3 по frozen bytes.
 |---|---|---|
 | WIP L1 | links + ADR overlay: `11 passed`; diff/path set; 20 hashes; targeted secret patterns | `PASS` |
 | Candidate L1 | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans | `PASS` on final tree |
-| L2 | same independent reviewer; decision-map reproduction after one rework package | `PASS` on final tree |
-| L3 | same adversarial reviewer; scenarios 3/5 plus auth/recovery target recheck | `PASS` on final tree |
+| L2 | distinct independent L2 identity; decision-map reproduction after one rework package | `PASS` on final tree |
+| L3 | separate adversarial L3 identity, different from L2; scenarios 3/5 plus auth/recovery target recheck | `PASS` on final tree |
 
 Статусы выше относятся к exact tree и локальному commit этого
 handoff, а не к промежуточному WIP. Команды, counts, literal commit/tree
