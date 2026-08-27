@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 25 августа 2026 года
+**Актуально на:** 27 августа 2026 года
 **Lifecycle rule:** containing revision outside protected GitHub `main` is
 `GATE_CANDIDATE`; after an authorized merge and exact reachability readback it
 is part of `ACCEPTED_PUBLISHED_BASELINE`
@@ -20,6 +20,8 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Stage-1 checkpoint | `6f2fa50` (`AGENTS.md` only) |
 | Initial PR head before refresh | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
 | Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
+| Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
+| Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
@@ -57,9 +59,10 @@ Git-репозиторий — источник истины для code/tests/A
 - Шесть `refs/nobus-safety/*` и соответствующие verified bundles сохранены;
   latest WIP pause: `73958b72a17cda01f435905c12d1e6118477d299`.
 - Path-limited recovery stash `8270192a...` сохранён.
-- Worktrees, refs, bundles, stash и recovery files этой задачей не изменяются.
-- `.nobus-quality/cases.ndjson` содержит pre-existing +22-line user change,
-  остаётся unstaged и не входит в candidate.
+- Финальный реестр Git содержит только канонический `main` и этот сохранённый
+  worktree. `gate-01-integration` удалён; его ветка оставлена.
+- Recovery refs, bundles и stash сохранены. До этого документационного
+  checkpoint рабочий каталог был чист; checkpoint меняет только два handoff.
 
 ## Verification state
 
@@ -108,11 +111,11 @@ Agent Registry, Web IDE/shell/self-deploy и live publication.
 
 ```text
 Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space.
-Accepted published canon = <exact protected main SHA from live readback>.
-ADR 0022 status = active only if its containing revision is reachable from
-that SHA; otherwise candidate. Mention PR #1 only after live readback and only
-while it is open. Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished.
-Freshness = <readback timestamp>.
+Accepted published canon = adf3bfbb601a12182c420a720b16459c15970da4
+from 2026-08-27 local/remote readback. ADR 0022 is active; architecture commit
+ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03 is reachable from accepted main.
+Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished. Registered
+worktrees: canonical main + preserved gate-01-acceptance.
 ```
 
 Этот шаблон не разрешает Memory update, push, изменение GitHub description,

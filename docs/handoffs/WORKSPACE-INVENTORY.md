@@ -1,7 +1,7 @@
 # Nobus Space — workspace inventory
 
 **Статус:** CANONICAL OPERATIONS INVENTORY
-**Актуально на:** 25 августа 2026 года
+**Актуально на:** 27 августа 2026 года
 
 Активная topology и delivery workflow:
 [ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
@@ -18,6 +18,7 @@
 | Origin | `https://github.com/streetenergy63reshik-del/nobus-space.git` |
 | Remote snapshot before refresh publication | `main` @ `8b896fb...`; architecture branch @ `d3a235e...`; branch upstream not configured |
 | Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
+| Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
 | Visibility snapshot, 2026-08-25 | `public` |
 | Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
 
@@ -29,35 +30,29 @@ Git-репозиторий — source of truth для code/tests/ADR/CURRENT/doc
 
 ## 2. Working tree ownership
 
-- This refresh changes only `.gitignore`, `README.md`, this inventory and
-  `CURRENT-STATUS.md`; product/runtime code and tests are unchanged.
-- `.nobus-quality/cases.ndjson` is a pre-existing user change (+22 lines);
-  do not modify, stage or commit it.
-- Product/runtime code, runtime tests, `.runtime`, credentials, tokens, audio,
-  caches and logs are outside this docs candidate.
+- Финальное обновление меняет только этот inventory и `CURRENT-STATUS.md`;
+  product/runtime code и tests не затронуты.
+- Канонический `main` перед обновлением документации был чист и совпадал с
+  `origin/main`; содержащая revision остаётся локальным документальным WIP до
+  отдельной публикации.
+- Credentials, tokens, live runtime, refs, bundles, stash и recovery не
+  изменяются.
 
 ## 3. Registered worktrees
 
-Initial preflight found 16 registered worktrees. Their roles:
+Снимок 25 августа содержал 16 зарегистрированных worktree. Финальный readback
+27 августа содержит ровно два:
 
 | Worktree/ref | Role | Rule |
 |---|---|---|
-| canonical repo / `docs/mvp1-thin-architecture` | architecture baseline revision; acceptance follows containing protected-main revision | only current explicit docs/ignore scope |
-| `C:\tmp\nobus-v2-l2-rework` / `agent/v2-l2-rework` | pre-existing rework | not current; no mutation |
-| four detached Codex worktrees `24cc/5e4c/bee5/fe98` @ `8b896f...` | Codex detached worktrees | no removal/move |
-| `agent/bot-memory-contour` | separate bot-memory WIP | no cross-contour changes |
-| `agent/docs-governance-20260809` | historical docs-governance worktree | not active authority |
-| `agent/gate-01-acceptance` @ `db0a24e...` | 86-path dirty Gate 1 WIP | `HOLD / NOT_ACCEPTED`; preserve |
-| detached `gate-01-candidate` @ `d11eda8...` | historical Gate 1 candidate | preserve |
-| `agent/gate-01-integration` @ `db0a24e...` | Gate 1 integration branch | not accepted/canonical |
-| detached `gate-02-candidate` @ `d11eda8...` | historical Gate 2 candidate | preserve |
-| `agent/mvp1-notes-protocol-fix` | separate protocol-fix WIP | no mutation |
-| `agent/nobus-memory` | separate Memory contour | Memory remains read-only here |
-| `agent/orchestrator-v2` | historical orchestrator-v2 worktree | not active topology |
-| `agent/telegram-live` | historical/local runtime worktree | no live/release action |
+| canonical repo / `main` @ `adf3bfbb...` | принятый опубликованный источник истины | обычная разработка ведётся только здесь или в новом краткоживущем task-worktree |
+| `agent/gate-01-acceptance` @ `db0a24e...` | 86-path dirty Gate 1 WIP | `HOLD / NOT_ACCEPTED`; сохранить замороженным, целиком не сливать |
 
-Ни один worktree этой задачей не создаётся, не удаляется, не перемещается и не
-очищается.
+`gate-01-integration` больше не зарегистрирован и физически отсутствует; его
+ветка сохранена. Остальные исторические worktree из первоначального снимка
+также не зарегистрированы. Успешный recovery восьми последних сведённых
+worktree сохранён в TaskArtifacts. Это текущее состояние, а не разрешение на
+удаление оставшегося `gate-01-acceptance`.
 
 ## 4. Gate 1 recovery
 
