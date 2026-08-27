@@ -270,16 +270,59 @@ class DurableFakeRuntime(FakeVertical):
         self, instruction: str, envelope: TrustedIngressEnvelope
     ) -> PreparedTask:
         """Persist a content-free PENDING task without starting the worker."""
-        trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump(mode="json"))
+        prepared = await self.build_instruction(instruction, envelope)
+        await self.admit_prepared(prepared, envelope)
+        return prepared
+
+    async def build_instruction(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> PreparedTask:
+        """Build an exact contract without mutating task or outbox state."""
+        trusted = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
         if trusted.tenant_id not in self._destination_refs:
             raise ValueError("tenant delivery is not configured")
         if self._store.read_ingress_claim(trusted) is not None:
             raise DuplicateIdempotencyKeyError("durable ingress already claimed")
         contract = self._contract(instruction, trusted)
+        return PreparedTask(
+            contract=contract,
+            envelope_revision=trusted.envelope_revision,
+        )
+
+    async def admit_prepared(
+        self, prepared: PreparedTask, envelope: TrustedIngressEnvelope
+    ) -> bool:
+        """Persist one exact prepared contract after its durable job exists."""
+        prepared = PreparedTask.validate(prepared)
+        trusted = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
+        contract = prepared.contract
+        if (
+            trusted.tenant_id not in self._destination_refs
+            or prepared.envelope_revision != trusted.envelope_revision
+            or contract.tenant_id != trusted.tenant_id
+            or contract.idempotency_key != trusted.idempotency_key
+            or contract.ingress_digest != trusted.envelope_revision
+        ):
+            raise ValueError("prepared admission binding mismatch")
+        existing = self._store.read_ingress_claim(trusted)
+        if existing is not None:
+            if (
+                existing.projection.task_id != contract.task_id
+                or existing.projection.contract_digest
+                != task_contract_digest(contract)
+            ):
+                raise DuplicateIdempotencyKeyError(
+                    "durable ingress already claimed"
+                )
+            return False
         task = await self._begin_task(contract, trusted)
         if task.status is not TaskStatus.PENDING:
             raise RuntimeError("prepared task is not pending")
-        return PreparedTask(contract=contract, envelope_revision=trusted.envelope_revision)
+        return True
 
     async def execute_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse:
         """Execute only the exact in-memory contract bound to the durable draft."""

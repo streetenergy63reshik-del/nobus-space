@@ -18,7 +18,7 @@ from src.security.dpapi import protect_current_user, unprotect_current_user
 
 
 _ENTROPY = b"nobus-space:telegram-runtime:v1"
-_JOB_KINDS = frozenset({"draft", "patch", "effect"})
+_JOB_KINDS = frozenset({"draft", "miniapp_draft", "patch", "effect"})
 _JOB_STATUSES = frozenset({"pending", "leased", "failed"})
 _CAPABILITY_KINDS = frozenset({"task", "patch", "action"})
 _DPAPI_MAGIC = b"NBDP1"
@@ -186,6 +186,8 @@ class SQLiteTelegramState:
                         or row["payload_digest"] != payload_digest
                     ):
                         raise DurableTelegramStateError("runtime_job_conflict")
+                    if row["status"] == "failed":
+                        raise DurableTelegramStateError("runtime_job_failed")
                     return job
                 count = connection.execute(
                     "SELECT COUNT(*) FROM telegram_jobs"
@@ -615,6 +617,34 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError, TypeError, ValueError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def has_runnable_job(
+        self,
+        *,
+        kind: str,
+        tenant_id: str,
+        task_id: UUID,
+        binding_digest: str,
+    ) -> bool:
+        kind, tenant_id, binding_digest = self._job_binding(
+            kind, tenant_id, task_id, binding_digest
+        )
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT binding_digest,status FROM telegram_jobs
+                       WHERE tenant_id=? AND task_id=? AND kind=?""",
+                    (tenant_id, str(task_id), kind),
+                ).fetchone()
+                if row is None:
+                    return False
+                if row["binding_digest"] != binding_digest:
+                    raise DurableTelegramStateError("runtime_job_conflict")
+                return row["status"] in {"pending", "leased"}
+        except DurableTelegramStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, TypeError, ValueError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
     def dead_letter_count(self) -> int:
         try:
             with closing(self._connect()) as connection:
@@ -921,7 +951,9 @@ class SQLiteTelegramState:
         job_schema = """
             CREATE TABLE telegram_jobs (
                 job_id TEXT PRIMARY KEY,
-                kind TEXT NOT NULL CHECK(kind IN ('draft','patch','effect')),
+                kind TEXT NOT NULL CHECK(
+                    kind IN ('draft','miniapp_draft','patch','effect')
+                ),
                 tenant_id TEXT NOT NULL,
                 task_id TEXT NOT NULL,
                 binding_digest TEXT NOT NULL,
@@ -963,12 +995,19 @@ class SQLiteTelegramState:
                 current = (
                     expected | {"failure_code"} == columns
                     and "'effect'" in sql
+                    and "'miniapp_draft'" in sql
+                    and "'failed'" in sql
+                )
+                previous = (
+                    expected | {"failure_code"} == columns
+                    and "'effect'" in sql
+                    and "'miniapp_draft'" not in sql
                     and "'failed'" in sql
                 )
                 legacy = columns == expected
-                if not current and not legacy:
+                if not current and not previous and not legacy:
                     raise sqlite3.DatabaseError("unexpected telegram_jobs schema")
-                if legacy:
+                if previous or legacy:
                     connection.execute("BEGIN IMMEDIATE")
                     try:
                         connection.execute(
@@ -978,17 +1017,18 @@ class SQLiteTelegramState:
                             "ALTER TABLE telegram_jobs RENAME TO telegram_jobs_legacy"
                         )
                         connection.execute(job_schema)
+                        failure_code = "failure_code" if previous else "NULL"
                         connection.execute(
-                            """INSERT INTO telegram_jobs
-                               (job_id,kind,tenant_id,task_id,binding_digest,
-                                payload_digest,payload,status,attempt_count,
-                                failure_code,lease_id,lease_owner,
-                                lease_expires_at,created_at,updated_at)
-                               SELECT job_id,kind,tenant_id,task_id,binding_digest,
-                                      payload_digest,payload,status,attempt_count,
-                                      NULL,lease_id,lease_owner,lease_expires_at,
-                                      created_at,updated_at
-                               FROM telegram_jobs_legacy"""
+                            f"""INSERT INTO telegram_jobs
+                                (job_id,kind,tenant_id,task_id,binding_digest,
+                                 payload_digest,payload,status,attempt_count,
+                                 failure_code,lease_id,lease_owner,
+                                 lease_expires_at,created_at,updated_at)
+                                SELECT job_id,kind,tenant_id,task_id,binding_digest,
+                                       payload_digest,payload,status,attempt_count,
+                                       {failure_code},lease_id,lease_owner,
+                                       lease_expires_at,created_at,updated_at
+                                FROM telegram_jobs_legacy"""
                         )
                         connection.execute("DROP TABLE telegram_jobs_legacy")
                         connection.commit()

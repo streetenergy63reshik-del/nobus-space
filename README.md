@@ -58,7 +58,8 @@ authority, bot secret или Agent Registry.
 
 ## Локальный thin Mini App candidate — 27 августа 2026 года
 
-В содержащей локальной revision реализован самостоятельный read-only slice:
+В содержащей локальной revision реализованы owner-authenticated read-only
+projection и следующий самостоятельный task-create slice:
 
 - `MiniAppCore` проверяет Telegram signature для exact bot, exact owner,
   `auth_date`, TTL/future skew и durable replay digest;
@@ -67,21 +68,36 @@ authority, bot secret или Agent Registry.
   существующего `task-runtime.sqlite3`;
 - `POST /api/session`, `GET /api/tasks` и `GET /api/tasks/{task_id}` не
   принимают client-selected authority и возвращают только allowlisted поля;
-- static HTML/CSS/ES module UI хранит bearer только в памяти и показывает
+- `POST /api/tasks` принимает только bounded JSON instruction и один
+  `Idempotency-Key`; Core сам выводит owner/tenant/actor и связывает request с
+  текущей session и content digest;
+- admission переиспользует `prepare_instruction` существующего runtime и
+  `telegram_jobs` существующего `SQLiteTelegramState`; encrypted job
+  фиксируется до Core task, а restart допускает тот же exact prepared contract
+  из job, поэтому enqueue failure не создаёт task/outbox и crash не оставляет
+  невосстановимую PENDING task;
+- server-derived task id детерминирован по tenant и request id, а exact
+  session/request envelope стабилен; поэтому повтор в crash-window
+  использует одну job и возвращает ту же task, а rebinding другого
+  текста или session fail closed; exhausted dead-letter тоже блокирует
+  Core admission и не оставляет orphan PENDING task;
+- static HTML/CSS/ES module UI хранит bearer и pending request id только в
+  памяти, не делает blind retry и показывает
   `Nobus Space временно недоступен` при отказе Core;
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 
 Это локальный кандидат, а не live Mini App: HTTPS ingress/hostname, BotFather,
 Telegram menu button, запуск live runtime, push/PR/merge и deploy не
-выполнялись. Следующий вертикальный slice после принятия кандидата — создание
-одной текстовой задачи из Mini App через существующий Core.
+выполнялись. Следующий вертикальный slice после принятия кандидата — единый
+status и безопасное получение результата/артефакта через Telegram и Mini App.
 
 ## Локальная проверка документационного кандидата
 
 ```powershell
 & '.\.venv\Scripts\python.exe' -m pytest -q -p no:cacheprovider `
   tests/test_miniapp.py `
+  tests/test_durable_telegram_state.py `
   tests/test_sqlite_store.py `
   tests/test_main.py `
   tests/test_pre_gate1_architecture_integration.py `

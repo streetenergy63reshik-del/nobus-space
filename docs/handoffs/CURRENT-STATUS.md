@@ -22,7 +22,7 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
 | Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
 | Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
-| Thin Mini App source revision | local `main` base `efb6be0324f70260284bb59e48cc798e37cd2fca`; containing checkpoint resolves with `git rev-parse HEAD` |
+| Thin Mini App source revisions | initial local base `efb6be0324f70260284bb59e48cc798e37cd2fca`; read-only checkpoint `3771b1eac5a0a215d0fa65a60a9addaf7a72ab9a`; containing task-create checkpoint resolves with `git rev-parse HEAD` |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
@@ -53,6 +53,18 @@ Git-репозиторий — источник истины для code/tests/A
   unavailable UI.
 - Новый boundary читает существующий `SQLiteStore`/`DurableTaskProjection`, не
   создаёт вторую БД, queue, policy/effect plane и не использует `src/main.py`.
+- В содержащей локальной revision `POST /api/tasks` создаёт одну bounded
+  natural-text task через server-derived owner/tenant/actor, session-bound
+  idempotency, существующий Core admission и существующую
+  `SQLiteTelegramState` queue; retry возвращает ту же task, rebinding fail closed.
+- Mini App admission фиксирует encrypted job до Core task; enqueue failure не
+  создаёт task/outbox, а restart повторно валидирует binding и восстанавливает
+  exact prepared contract из существующего job.
+- Server-derived task id детерминирован по tenant/request, а exact
+  session/request envelope стабилен; точный retry до admission не размножает
+  durable jobs, а content/session rebinding fail closed.
+- Exhausted dead-letter не повторяет Core admission: exact retry даёт safe
+  unavailable без task/outbox и orphan PENDING state.
 - Live HTTPS/provider/BotFather/Telegram menu/runtime не проверялись и не
   изменялись.
 
@@ -80,7 +92,9 @@ coherent L1/L2/L3 по frozen bytes.
 | Уровень | Проверка | Статус |
 |---|---|---|
 | Initial architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | historical `PASS` @ `d3a235e...` / `bf503ae...` |
-| Thin Mini App WIP L1 | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local WIP only |
+| Thin Mini App read-only checkpoint | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local checkpoint `3771b1e...` |
+| Mini App task-create pre-fix full audit | full canonical `tests/`: `1500 passed`, `6 skipped`, `43 failed` outside changed layer (`39` historical Gate 0 verifier/stale-context, `1` checkout EOL, `3` Windows runtime-layout/permission) | exact pre-fix `4159accc4c9cd07656a8231529f67af4bb60ecfe`; evidence не переиспользуется после byte changes |
+| Mini App task-create final-fix L1 | target Mini App: `24 passed`; Mini App/runtime/queue/recovery groups: `316 passed`; checkpoint set: `99 passed`, `1 failed` на описанном ниже Gate 0 `SPECIFICATION_CONFLICT` | local candidate; independent verdict фиксируется в exact task handoff |
 | Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
 
 Новая revision не объявляет собственный независимый verdict. Команды, counts,
@@ -97,12 +111,18 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
+- Gate 0 byte verifier имеет подтверждённый `SPECIFICATION_CONFLICT`: clean
+  checkout с обязательным LF совпадает с catalog только для 13/20 sources;
+  три ожидаемых SHA соответствуют CRLF вопреки LF-требованию, ещё четыре не
+  совпадают ни с LF, ни с CRLF и не встречаются в Git history. Sealed docs,
+  catalog и ожидаемые SHA в этом slice не изменялись.
 - Nobus Memory должна получать live Git pointer/status/freshness и никогда не
   продвигать candidate PR в канон без merge + exact `main` readback.
 
 ## Completed local vertical slice
 
-**Thin Mini App owner authentication + read-only task list/detail.**
+**Thin Mini App owner authentication + read-only task list/detail + создание
+одной обычной текстовой задачи.**
 
 Acceptance:
 
@@ -111,19 +131,23 @@ Acceptance:
 2. short-lived opaque session хранится только in-memory;
 3. list/detail читаются из existing authoritative state, без второй DB/queue;
 4. cross-owner/task ref и client-selected authority fail closed;
-5. local Core unavailable не создаёт task/effect и даёт safe UI state.
+5. task create использует server-derived authority, session-bound request id и
+   существующие Core admission/authoritative state/durable queue;
+6. same-request retry возвращает ту же task, rebinding отклоняется, а local Core
+   unavailable не создаёт task/effect и даёт safe UI state.
 
-Out of scope: task create, approvals/effects, Core/token/poller migration,
-Agent Registry, Web IDE/shell/self-deploy и live publication.
+Out of scope: единая result/artifact delivery, approvals/effects,
+Core/token/poller migration, Agent Registry, Web IDE/shell/self-deploy и live
+publication.
 
 До candidate-bound L1/L2/L3 и внешнего принятия это локальный кандидат, не
 опубликованный baseline и не live release.
 
 ## Next vertical slice
 
-**Создание одной обычной текстовой задачи из Mini App через существующий
-Core** с end-to-end owner/session/idempotency binding и без второго admission,
-queue или effect authority.
+**Единый статус и безопасное получение результата/артефакта через Telegram и
+Mini App** с owner/tenant/task/revision binding и без раскрытия локального пути,
+raw payload или данных другого tenant.
 
 ## Proposed Nobus Memory pointer sync
 

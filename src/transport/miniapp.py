@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 from typing import Protocol
@@ -18,8 +19,11 @@ from src.application.miniapp import (
     MiniAppAuthenticationError,
     MiniAppCoreUnavailableError,
     MiniAppSessionGrant,
+    MiniAppTaskConflictError,
+    MiniAppTaskCreation,
     MiniAppTaskDetail,
     MiniAppTaskNotFoundError,
+    MiniAppTaskRequestError,
     MiniAppTaskSummary,
 )
 
@@ -48,6 +52,10 @@ class MiniAppCoreBoundary(Protocol):
 
     def task_detail(self, bearer: str, task_id: UUID) -> MiniAppTaskDetail: ...
 
+    async def create_task(
+        self, bearer: str, instruction: str, idempotency_key: str
+    ) -> MiniAppTaskCreation: ...
+
 
 def create_miniapp_app(
     core: MiniAppCoreBoundary,
@@ -55,6 +63,7 @@ def create_miniapp_app(
     allowed_host: str,
     allowed_origin: str,
     max_init_data_bytes: int = 4096,
+    max_task_request_bytes: int = 16_384,
     init_data_read_timeout_seconds: float = 5.0,
 ) -> FastAPI:
     """Create a stateless boundary; every authority decision stays in Core."""
@@ -85,6 +94,12 @@ def create_miniapp_app(
         or not 0 < init_data_read_timeout_seconds <= 30
     ):
         raise ValueError("init_data_read_timeout_seconds is invalid")
+    if (
+        isinstance(max_task_request_bytes, bool)
+        or not isinstance(max_task_request_bytes, int)
+        or not 2_048 <= max_task_request_bytes <= 32_768
+    ):
+        raise ValueError("max_task_request_bytes is invalid")
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=[host])
@@ -179,6 +194,66 @@ def create_miniapp_app(
         except Exception:
             return _core_unavailable()
 
+    @app.post("/api/tasks", status_code=202)
+    async def create_task(request: Request) -> object:
+        if request.query_params:
+            return _invalid_request()
+        media_type = request.headers.get("content-type", "").split(";", 1)[0]
+        if media_type.strip().lower() != "application/json":
+            return JSONResponse({"detail": "unsupported_media_type"}, status_code=415)
+        request_ids = request.headers.getlist("idempotency-key")
+        if len(request_ids) != 1:
+            return _invalid_request()
+        content_length = request.headers.get("content-length")
+        if content_length is not None:
+            try:
+                parsed_content_length = int(content_length)
+                if parsed_content_length < 0:
+                    return _invalid_request()
+                if parsed_content_length > max_task_request_bytes:
+                    return JSONResponse(
+                        {"detail": "request_too_large"}, status_code=413
+                    )
+            except ValueError:
+                return _invalid_request()
+        try:
+            raw = await _read_bounded_body(
+                request,
+                max_bytes=max_task_request_bytes,
+                timeout_seconds=float(init_data_read_timeout_seconds),
+            )
+        except _RequestBodyTooLarge:
+            return JSONResponse({"detail": "request_too_large"}, status_code=413)
+        except TimeoutError:
+            return JSONResponse({"detail": "request_timeout"}, status_code=408)
+        try:
+            payload = json.loads(
+                raw.decode("utf-8", errors="strict"),
+                object_pairs_hook=_unique_object,
+            )
+            if not isinstance(payload, dict) or set(payload) != {"instruction"}:
+                raise ValueError
+            instruction = payload["instruction"]
+            if not isinstance(instruction, str):
+                raise ValueError
+        except (UnicodeError, ValueError, json.JSONDecodeError):
+            return _invalid_request()
+        try:
+            result = await core.create_task(
+                _bearer(request), instruction, request_ids[0]
+            )
+            return JSONResponse(result.model_dump(mode="json"), status_code=202)
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except MiniAppTaskRequestError:
+            return _invalid_request()
+        except MiniAppTaskConflictError:
+            return JSONResponse({"detail": "request_conflict"}, status_code=409)
+        except MiniAppCoreUnavailableError:
+            return _core_unavailable()
+        except Exception:
+            return _core_unavailable()
+
     @app.get("/api/tasks/{task_id}")
     async def task_detail(request: Request, task_id: str) -> object:
         if request.query_params:
@@ -225,6 +300,15 @@ def _bearer(request: Request) -> str:
     if len(parts) != 2 or parts[0] != "Bearer" or not 32 <= len(parts[1]) <= 128:
         raise MiniAppAuthenticationError("unauthorized")
     return parts[1]
+
+
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
 
 
 def _query_is(request: Request, *, allowed: str) -> bool:

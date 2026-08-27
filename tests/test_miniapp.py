@@ -15,10 +15,13 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 
+from src.application.durable_product import DurableProductTelegramControlPlane
+from src.application.durable_telegram_state import DurableJob, SQLiteTelegramState
 from src.application.miniapp import (
     MiniAppAuthenticationError,
     MiniAppCore,
     MiniAppCoreUnavailableError,
+    MiniAppTaskConflictError,
     MiniAppSessionGrant,
 )
 from src.application.runtime_maintenance import validate_runtime_database
@@ -27,6 +30,7 @@ from src.contracts.models import canonical_json_digest
 from src.orchestrator.state_manager import StateManager
 from src.storage import SQLiteStore
 from src.transport.miniapp import create_miniapp_app
+from tests.test_telegram_task_control import TENANT_ID, build_harness
 
 
 BOT_TOKEN = "123456:exact-test-bot-token"
@@ -388,6 +392,438 @@ def test_init_data_body_read_has_total_timeout() -> None:
     assert recorder.received == []
 
 
+def _queue_codec(value: object) -> bytes:
+    return json.dumps(
+        value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode()
+
+
+def _miniapp_admission(
+    tmp_path: Path,
+) -> tuple[SQLiteStore, SQLiteTelegramState, DurableProductTelegramControlPlane]:
+    harness = build_harness(tmp_path)
+    queue = SQLiteTelegramState(
+        tmp_path / "telegram-state.sqlite3",
+        encode=_queue_codec,
+        decode=json.loads,
+    )
+    admission = object.__new__(DurableProductTelegramControlPlane)
+    admission._closing = False
+    admission._telegram_state = queue
+    admission._product_runtime = harness.runtime
+    admission._execution_workers = ()
+
+    async def start() -> None:
+        return None
+
+    admission.start = start  # type: ignore[method-assign]
+    admission._wake = lambda: None  # type: ignore[method-assign]
+    return SQLiteStore(harness.db_path), queue, admission
+
+
+def test_create_task_is_session_bound_idempotent_and_uses_existing_queue(
+    tmp_path: Path,
+) -> None:
+    store, queue, admission = _miniapp_admission(tmp_path)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="create"))
+    request_id = "request-00000000-0000-4000-8000-000000000001"
+
+    created = asyncio.run(
+        service.create_task(token, "  Проверь локальный статус  ", request_id)
+    )
+    repeated = asyncio.run(
+        service.create_task(token, "Проверь локальный статус", request_id)
+    )
+
+    assert repeated == created
+    assert created.status == "pending"
+    assert queue.queue_counts() == (0, 1)
+    task = store.read_task(TENANT_ID, created.task_id)
+    assert task is not None
+    job = queue.claim(lease_owner=UUID("00000000-0000-4000-8000-000000000099"))
+    assert job is not None
+    assert job.kind == "miniapp_draft"
+    assert job.task_id == created.task_id
+    assert job.payload["envelope"]["tenant_id"] == TENANT_ID
+    assert job.payload["envelope"]["source"] == "api"
+    assert job.payload["envelope"]["actor_identity"] == "telegram:owner"
+    assert job.payload["envelope"]["idempotency_key"] == request_id
+    assert token not in repr(job.payload)
+
+    class RecoveryRuntime:
+        recovered: tuple[object, object] | None = None
+        drafted: list[object] = []
+
+        async def recover_prepared(self, prepared: object, envelope: object) -> bool:
+            self.recovered = (prepared, envelope)
+            return True
+
+        async def draft_prepared(self, prepared: object) -> object:
+            self.drafted.append(prepared)
+
+            class Outcome:
+                task_id = created.task_id
+
+            return Outcome()
+
+    recovery_runtime = RecoveryRuntime()
+    recovery = object.__new__(DurableProductTelegramControlPlane)
+    recovery._product_runtime = recovery_runtime
+    restored = asyncio.run(recovery._restore(job))
+    assert restored is not None
+    assert restored.prepared.contract.task_id == created.task_id
+    assert recovery_runtime.recovered == (restored.prepared, restored.envelope)
+
+    delivered = 0
+
+    async def hold_lease(_: object) -> None:
+        await asyncio.Event().wait()
+
+    async def deliver_pending() -> int:
+        nonlocal delivered
+        delivered += 1
+        return delivered
+
+    recovery._renew = hold_lease
+    recovery.deliver_pending = deliver_pending
+    asyncio.run(recovery._execute_with_lease(job, restored))
+    assert recovery_runtime.drafted == [restored.prepared]
+    assert delivered == 1
+
+    tampered = DurableJob(
+        job.job_id,
+        job.kind,
+        "foreign",
+        job.task_id,
+        job.binding_digest,
+        job.payload,
+        job.attempt_count,
+        job.lease_id,
+    )
+    with pytest.raises(RuntimeError, match="binding mismatch"):
+        asyncio.run(recovery._restore(tampered))
+
+
+def test_create_task_rejects_idempotency_rebinding_and_missing_queue_proof(
+    tmp_path: Path,
+) -> None:
+    store, queue, admission = _miniapp_admission(tmp_path)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="first-session"))
+    request_id = "request-00000000-0000-4000-8000-000000000002"
+    created = asyncio.run(service.create_task(token, "Первая задача", request_id))
+
+    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
+        asyncio.run(service.create_task(token, "Подменённая задача", request_id))
+
+    second_token = authorize(service, signed_init_data(query_id="second-session"))
+    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
+        asyncio.run(service.create_task(second_token, "Первая задача", request_id))
+
+    leased = queue.claim(lease_owner=UUID("00000000-0000-4000-8000-000000000098"))
+    assert leased is not None and leased.task_id == created.task_id
+    queue.ack(
+        leased,
+        lease_owner=UUID("00000000-0000-4000-8000-000000000098"),
+    )
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        asyncio.run(service.create_task(token, "Первая задача", request_id))
+
+
+def test_concurrent_same_request_creates_one_task_and_one_queue_job(
+    tmp_path: Path,
+) -> None:
+    store, queue, admission = _miniapp_admission(tmp_path)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="concurrent-create"))
+    request_id = "request-00000000-0000-4000-8000-000000000005"
+
+    async def create_twice() -> tuple[object, object]:
+        first, second = await asyncio.gather(
+            service.create_task(token, "Одна задача", request_id),
+            service.create_task(token, "Одна задача", request_id),
+        )
+        return first, second
+
+    first, second = asyncio.run(create_twice())
+
+    assert first == second
+    assert len(store.list_tasks(TENANT_ID, limit=20)) == 1
+    assert queue.queue_counts() == (0, 1)
+
+
+def test_queue_failure_happens_before_task_or_outbox_persistence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, queue, admission = _miniapp_admission(tmp_path)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="queue-failure"))
+
+    def fail_enqueue(**_: object) -> object:
+        raise OSError("synthetic queue failure")
+
+    monkeypatch.setattr(queue, "enqueue", fail_enqueue)
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        asyncio.run(
+            service.create_task(
+                token,
+                "Не должна сохраниться",
+                "request-00000000-0000-4000-8000-000000000006",
+            )
+        )
+
+    assert store.list_tasks(TENANT_ID, limit=20) == ()
+    with sqlite3.connect(tmp_path / "gate5a3.sqlite3") as connection:
+        outbox_count = connection.execute(
+            "SELECT count(*) FROM outbox_messages"
+        ).fetchone()
+    assert outbox_count == (0,)
+
+
+def test_restart_recovers_core_task_from_queue_first_admission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class SimulatedCrash(BaseException):
+        pass
+
+    store, queue, admission = _miniapp_admission(tmp_path)
+    runtime = admission._product_runtime
+    original_admit = runtime.admit_prepared
+
+    async def crash_before_core_admission(*_: object) -> bool:
+        raise SimulatedCrash
+
+    monkeypatch.setattr(runtime, "admit_prepared", crash_before_core_admission)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="queue-first-crash"))
+    request_id = "request-00000000-0000-4000-8000-000000000007"
+
+    with pytest.raises(SimulatedCrash):
+        asyncio.run(service.create_task(token, "Восстанови задачу", request_id))
+    with pytest.raises(SimulatedCrash):
+        asyncio.run(service.create_task(token, "Восстанови задачу", request_id))
+    assert store.list_tasks(TENANT_ID, limit=20) == ()
+    assert queue.queue_counts() == (0, 1)
+
+    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
+        asyncio.run(service.create_task(token, "Другая задача", request_id))
+    second_token = authorize(
+        service,
+        signed_init_data(query_id="queue-first-second-session"),
+    )
+    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
+        asyncio.run(
+            service.create_task(
+                second_token,
+                "Восстанови задачу",
+                request_id,
+            )
+        )
+    assert queue.queue_counts() == (0, 1)
+
+    monkeypatch.setattr(runtime, "admit_prepared", original_admit)
+    durable = queue.claim(
+        lease_owner=UUID("00000000-0000-4000-8000-000000000097")
+    )
+    assert durable is not None
+    restored = asyncio.run(admission._restore(durable))
+    assert restored is not None
+    snapshot = store.read_task(TENANT_ID, durable.task_id)
+    assert snapshot is not None
+    assert snapshot.projection.status.value == "pending"
+
+    repeated = asyncio.run(
+        service.create_task(token, "Восстанови задачу", request_id)
+    )
+    assert repeated.task_id == durable.task_id
+
+
+def test_exhausted_queue_first_intent_fails_before_core_admission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class SimulatedCrash(BaseException):
+        pass
+
+    store, queue, admission = _miniapp_admission(tmp_path)
+    runtime = admission._product_runtime
+    original_admit = runtime.admit_prepared
+
+    async def crash_before_core_admission(*_: object) -> bool:
+        raise SimulatedCrash
+
+    monkeypatch.setattr(runtime, "admit_prepared", crash_before_core_admission)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="queue-first-exhausted"))
+    request_id = "request-00000000-0000-4000-8000-000000000008"
+
+    with pytest.raises(SimulatedCrash):
+        asyncio.run(service.create_task(token, "Не оставляй orphan", request_id))
+
+    lease_owner = UUID("00000000-0000-4000-8000-000000000096")
+    for attempt in range(1, 4):
+        durable = queue.claim(lease_owner=lease_owner)
+        assert durable is not None
+        assert durable.attempt_count == attempt
+        queue.release(durable, lease_owner=lease_owner)
+    assert queue.queue_counts() == (0, 0)
+    assert queue.dead_letter_count() == 1
+
+    monkeypatch.setattr(runtime, "admit_prepared", original_admit)
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        asyncio.run(service.create_task(token, "Не оставляй orphan", request_id))
+
+    assert store.list_tasks(TENANT_ID, limit=20) == ()
+    assert queue.dead_letter_count() == 1
+    with sqlite3.connect(tmp_path / "gate5a3.sqlite3") as connection:
+        outbox_count = connection.execute(
+            "SELECT count(*) FROM outbox_messages"
+        ).fetchone()
+    assert outbox_count == (0,)
+
+
+def test_create_task_boundary_rejects_unknown_authority_and_reuses_request_id(
+    tmp_path: Path,
+) -> None:
+    store, _, admission = _miniapp_admission(tmp_path)
+    service = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="boundary-create"))
+    app = create_miniapp_app(service, allowed_host="testserver", allowed_origin=ORIGIN)
+    mutation_headers = {
+        **headers(token),
+        "Content-Type": "application/json",
+        "Idempotency-Key": "request-00000000-0000-4000-8000-000000000003",
+    }
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/tasks",
+            json={"instruction": "Покажи состояние проекта"},
+            headers=mutation_headers,
+        )
+        repeated = client.post(
+            "/api/tasks",
+            json={"instruction": "Покажи состояние проекта"},
+            headers=mutation_headers,
+        )
+        conflict = client.post(
+            "/api/tasks",
+            json={"instruction": "Подменённый запрос"},
+            headers=mutation_headers,
+        )
+        authority = client.post(
+            "/api/tasks",
+            json={"instruction": "Покажи состояние", "tenant_id": "foreign"},
+            headers=mutation_headers,
+        )
+        missing_key = client.post(
+            "/api/tasks",
+            json={"instruction": "Покажи состояние"},
+            headers={**headers(token), "Content-Type": "application/json"},
+        )
+        duplicate_field = client.post(
+            "/api/tasks",
+            content='{"instruction":"one","instruction":"two"}',
+            headers=mutation_headers,
+        )
+        oversized = client.post(
+            "/api/tasks",
+            content=b"x" * 16_385,
+            headers=mutation_headers,
+        )
+
+    assert created.status_code == repeated.status_code == 202
+    assert created.json() == repeated.json()
+    assert conflict.status_code == 409
+    assert mutation_headers["Idempotency-Key"] not in conflict.text
+    assert authority.status_code == missing_key.status_code == 400
+    assert duplicate_field.status_code == 400
+    assert oversized.status_code == 413
+    assert "foreign" not in authority.text
+
+
+def test_create_task_core_unavailable_does_not_mutate_state(tmp_path: Path) -> None:
+    class UnavailableAdmission:
+        async def submit_miniapp_task(self, instruction: str, envelope: object) -> UUID:
+            raise RuntimeError("private failure")
+
+        def miniapp_task_submitted(
+            self, tenant_id: str, task_id: UUID, contract_digest: str
+        ) -> bool:
+            return False
+
+    store = SQLiteStore(tmp_path / "state.sqlite3")
+    service = MiniAppCore(
+        store=store,
+        task_admission=UnavailableAdmission(),
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="unavailable-create"))
+
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        asyncio.run(
+            service.create_task(
+                token,
+                "Не должна сохраниться",
+                "request-00000000-0000-4000-8000-000000000004",
+            )
+        )
+
+    assert store.list_tasks(TENANT_ID, limit=20) == ()
+
+
 def test_bearer_is_header_only_and_never_echoed_or_logged(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -529,3 +965,9 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
     assert "Nobus Space временно недоступен" in page.text
     assert "localStorage" not in script.text
     assert "initDataUnsafe" not in script.text
+    assert "Idempotency-Key" in script.text
+    assert "crypto.randomUUID()" in script.text
+    assert "Задача принята. Статус временно недоступен." in script.text
+    assert script.text.index("let created;") > script.text.index(
+        'createTask.addEventListener("submit"'
+    )

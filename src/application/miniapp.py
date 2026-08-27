@@ -2,20 +2,37 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Protocol
 from urllib.parse import parse_qsl
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
-from src.storage import DurableTaskProjection, SQLiteStore, StoreCorruptionError
+from src.application.task_confirmation import MAX_TASK_INSTRUCTION_LENGTH
+from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
+from src.contracts.models import canonical_json_digest
+from src.core.policy import DuplicateIdempotencyKeyError
+from src.models.task import TaskStatus
+from src.storage import (
+    DurableTaskProjection,
+    IngressClaimConflictError,
+    SQLiteStore,
+    StoreCorruptionError,
+    StoredTaskSnapshot,
+)
+
+
+_IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._~-]{16,128}")
 
 
 class MiniAppAuthenticationError(ValueError):
@@ -28,6 +45,14 @@ class MiniAppTaskNotFoundError(LookupError):
 
 class MiniAppCoreUnavailableError(RuntimeError):
     """The authoritative local state cannot be read safely."""
+
+
+class MiniAppTaskConflictError(ValueError):
+    """One request id was rebound to another trusted request."""
+
+
+class MiniAppTaskRequestError(ValueError):
+    """A task mutation request is syntactically invalid."""
 
 
 class MiniAppSessionGrant(BaseModel):
@@ -53,10 +78,28 @@ class MiniAppTaskDetail(MiniAppTaskSummary):
     has_result: bool
 
 
+class MiniAppTaskCreation(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    task_id: UUID
+    status: str
+
+
+class MiniAppTaskAdmission(Protocol):
+    async def submit_miniapp_task(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> UUID: ...
+
+    def miniapp_task_submitted(
+        self, tenant_id: str, task_id: UUID, contract_digest: str
+    ) -> bool: ...
+
+
 @dataclass(frozen=True)
 class _Session:
     owner_user_id: int
     tenant_id: str
+    auth_context_ref: str
     expires_at: datetime
 
 
@@ -67,6 +110,7 @@ class MiniAppCore:
         self,
         *,
         store: SQLiteStore,
+        task_admission: MiniAppTaskAdmission | None = None,
         bot_token: str,
         owner_user_id: int,
         tenant_id: str,
@@ -104,7 +148,9 @@ class MiniAppCore:
         ):
             raise ValueError("max_init_data_bytes is invalid")
         self._store = store
+        self._task_admission = task_admission
         self._bot_token = bot_token.encode("utf-8")
+        self._bot_ref = canonical_json_digest({"bot_token": bot_token})
         self._owner_user_id = owner_user_id
         self._tenant_id = tenant
         self._clock = clock
@@ -114,6 +160,8 @@ class MiniAppCore:
         self._max_init_data_bytes = max_init_data_bytes
         self._sessions: dict[str, _Session] = {}
         self._lock = threading.Lock()
+        # ponytail: one owner, so one mutation lock is enough until measured concurrency needs more.
+        self._mutation_lock = asyncio.Lock()
 
     def authenticate(self, raw_init_data: str) -> MiniAppSessionGrant:
         now = self._now()
@@ -142,6 +190,13 @@ class MiniAppCore:
             self._sessions[token_digest] = _Session(
                 owner_user_id=owner_user_id,
                 tenant_id=self._tenant_id,
+                auth_context_ref=canonical_json_digest(
+                    {
+                        "bot_ref": self._bot_ref,
+                        "owner_user_id": owner_user_id,
+                        "session_nonce": secrets.token_hex(16),
+                    }
+                ),
                 expires_at=expires_at,
             )
         return MiniAppSessionGrant(
@@ -175,6 +230,138 @@ class MiniAppCore:
             result_revision=projection.result_revision,
             has_result=projection.result_digest is not None,
         )
+
+    async def create_task(
+        self, bearer: str, instruction: str, idempotency_key: str
+    ) -> MiniAppTaskCreation:
+        normalized = instruction.strip() if isinstance(instruction, str) else ""
+        if (
+            not normalized
+            or len(normalized) > MAX_TASK_INSTRUCTION_LENGTH
+            or "\x00" in normalized
+            or not isinstance(idempotency_key, str)
+            or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None
+        ):
+            raise MiniAppTaskRequestError("invalid_request")
+        async with self._mutation_lock:
+            session = self._session(bearer)
+            return await self._create_task(
+                session,
+                instruction=normalized,
+                idempotency_key=idempotency_key,
+            )
+
+    async def _create_task(
+        self,
+        session: _Session,
+        *,
+        instruction: str,
+        idempotency_key: str,
+    ) -> MiniAppTaskCreation:
+        admission = self._task_admission
+        if admission is None:
+            raise MiniAppCoreUnavailableError("core_unavailable")
+        envelope = self._task_envelope(
+            session,
+            instruction=instruction,
+            idempotency_key=idempotency_key,
+        )
+        existing = self._existing_creation(envelope, admission)
+        if existing is not None:
+            return existing
+        try:
+            task_id = await admission.submit_miniapp_task(instruction, envelope)
+        except (DuplicateIdempotencyKeyError, IngressClaimConflictError):
+            existing = self._existing_creation(envelope, admission)
+            if existing is not None:
+                return existing
+            raise MiniAppTaskConflictError("request_conflict") from None
+        except Exception:
+            existing = self._existing_creation(envelope, admission)
+            if existing is not None:
+                return existing
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        try:
+            snapshot = self._store.read_task(session.tenant_id, task_id)
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if snapshot is None or snapshot.projection.tenant_id != session.tenant_id:
+            raise MiniAppCoreUnavailableError("core_unavailable")
+        return self._creation(snapshot, admission)
+
+    def _existing_creation(
+        self,
+        envelope: TrustedIngressEnvelope,
+        admission: MiniAppTaskAdmission,
+    ) -> MiniAppTaskCreation | None:
+        try:
+            snapshot = self._store.read_ingress_claim(envelope)
+        except IngressClaimConflictError:
+            raise MiniAppTaskConflictError("request_conflict") from None
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        return None if snapshot is None else self._creation(snapshot, admission)
+
+    @staticmethod
+    def _creation(
+        snapshot: StoredTaskSnapshot,
+        admission: MiniAppTaskAdmission,
+    ) -> MiniAppTaskCreation:
+        projection = snapshot.projection
+        if projection.status is TaskStatus.PENDING:
+            try:
+                submitted = admission.miniapp_task_submitted(
+                    projection.tenant_id,
+                    projection.task_id,
+                    projection.contract_digest,
+                )
+            except Exception:
+                raise MiniAppCoreUnavailableError("core_unavailable") from None
+            if not submitted:
+                raise MiniAppCoreUnavailableError("core_unavailable")
+        return MiniAppTaskCreation(
+            task_id=projection.task_id,
+            status=projection.status.value,
+        )
+
+    def _task_envelope(
+        self,
+        session: _Session,
+        *,
+        instruction: str,
+        idempotency_key: str,
+    ) -> TrustedIngressEnvelope:
+        content_ref = canonical_json_digest({"instruction": instruction})
+        ingress_binding = canonical_json_digest(
+            {
+                "auth_context_ref": session.auth_context_ref,
+                "idempotency_key": idempotency_key,
+                "kind": IngressKind.TEXT.value,
+                "source": IngressSource.API.value,
+                "tenant_id": session.tenant_id,
+                "content_ref": content_ref,
+            }
+        )
+        values = {
+            "schema_version": "1",
+            "ingress_id": UUID(hex=ingress_binding[7:39], version=4),
+            "tenant_id": session.tenant_id,
+            "source": IngressSource.API,
+            "actor_identity": "telegram:owner",
+            "external_message_id": f"miniapp:task.create:{idempotency_key}",
+            "idempotency_key": idempotency_key,
+            "received_at": session.expires_at - self._session_ttl,
+            "kind": IngressKind.TEXT,
+            "content_ref": content_ref,
+            "auth_context_ref": session.auth_context_ref,
+        }
+        revision = canonical_json_digest(
+            TrustedIngressEnvelope.model_construct(
+                **values,
+                envelope_revision="sha256:" + "0" * 64,
+            ).model_dump(mode="json", exclude={"envelope_revision"})
+        )
+        return TrustedIngressEnvelope(**values, envelope_revision=revision)
 
     def _verify_init_data(
         self, raw_init_data: str, *, now: datetime

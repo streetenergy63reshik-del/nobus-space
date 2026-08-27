@@ -65,7 +65,7 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
         "table:telegram_capabilities":
             "647d83bf9edb15eb15feb109871151e9412e4b573d6c01a94d7a882248329190",
         "table:telegram_jobs":
-            "e2c9eb3c33b012a7c822e9d734fb5e0ce0a5d0eaea227ede5365bf446883a8cb",
+            "125b252ef8a4ee7e6954813e81e51edea1feee986bf6c308ba6eabe048062dc8",
         "table:telegram_progress":
             "93178455126f5edaeaa6ed3af42141e688b34d9d481bfa205900d4e9127e434b",
     },
@@ -285,7 +285,7 @@ def _validate_telegram_state_rows(path: Path) -> None:
         payload = codec.decode(bytes(row["payload"]))
         if (
             not _runtime_text(row["tenant_id"], 128)
-            or row["kind"] not in {"draft", "patch", "effect"}
+            or row["kind"] not in {"draft", "miniapp_draft", "patch", "effect"}
             or row["status"] not in {"pending", "leased", "failed"}
             or not _runtime_digest(row["binding_digest"])
             or not _runtime_digest(row["payload_digest"])

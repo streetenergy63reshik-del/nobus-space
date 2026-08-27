@@ -5,11 +5,16 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any, Callable
 from uuid import UUID, uuid4
 
 from src.application.durable_runtime import PreparedTask
-from src.application.durable_telegram_state import DurableJob, SQLiteTelegramState
+from src.application.durable_telegram_state import (
+    DurableJob,
+    DurableTelegramStateError,
+    SQLiteTelegramState,
+)
 from src.application.patch_confirmation import PatchProposal
 from src.application.telegram_product import (
     ProductTelegramControlPlane,
@@ -17,10 +22,11 @@ from src.application.telegram_product import (
     _QueuedEffect,
     _QueuedJob,
     _QueuedPatch,
+    _TERMINALIZE_ATTEMPTS,
 )
 from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
-from src.core.policy import task_contract_digest
+from src.core.policy import DuplicateIdempotencyKeyError, task_contract_digest
 from src.transport.telegram import (
     CallbackQuery,
     IngressStatus,
@@ -36,11 +42,28 @@ _MAX_JOB_ATTEMPTS = 3
 _PROGRESS_INTERVAL_SECONDS = 30
 
 
+@dataclass(frozen=True)
+class _QueuedMiniAppDraft:
+    prepared: PreparedTask
+    envelope: TrustedIngressEnvelope
+
+
 def _effect_task_id(tenant_id: str, token: str) -> UUID:
     return UUID(
         bytes=hashlib.sha256(f"{tenant_id}:{token}".encode()).digest()[:16],
         version=4,
     )
+
+
+def _miniapp_task_id(tenant_id: str, idempotency_key: str) -> UUID:
+    binding = canonical_json_digest(
+        {
+            "kind": "miniapp_task_create",
+            "tenant_id": tenant_id,
+            "idempotency_key": idempotency_key,
+        }
+    )
+    return UUID(hex=binding[7:39], version=4)
 
 
 class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
@@ -91,6 +114,64 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     raise RuntimeError(
                         "durable Telegram worker stopped"
                     ) from error
+
+    async def submit_miniapp_task(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> UUID:
+        """Admit one Mini App task through the existing Core and durable queue."""
+        if self._closing:
+            raise RuntimeError("runtime queue is closing")
+        trusted = TrustedIngressEnvelope.model_validate(
+            envelope.model_dump(mode="json")
+        )
+        prepared = await self._product_runtime.build_instruction(
+            instruction, trusted
+        )
+        contract_values = prepared.contract.model_dump(mode="python")
+        contract_values["task_id"] = _miniapp_task_id(
+            trusted.tenant_id, trusted.idempotency_key
+        )
+        prepared = PreparedTask(
+            contract=TaskContract.model_validate(contract_values),
+            envelope_revision=prepared.envelope_revision,
+        )
+        if self._closing:
+            raise RuntimeError("runtime queue is closing")
+        payload = {
+            "prepared": {
+                "contract": prepared.contract.model_dump(mode="json"),
+                "envelope_revision": prepared.envelope_revision,
+            },
+            "envelope": trusted.model_dump(mode="json"),
+        }
+        try:
+            self._telegram_state.enqueue(
+                kind="miniapp_draft",
+                tenant_id=prepared.contract.tenant_id,
+                task_id=prepared.contract.task_id,
+                binding_digest=task_contract_digest(prepared.contract),
+                payload=payload,
+            )
+        except DurableTelegramStateError as error:
+            if str(error) == "runtime_job_conflict":
+                raise DuplicateIdempotencyKeyError(
+                    "durable request conflict"
+                ) from None
+            raise
+        await self._product_runtime.admit_prepared(prepared, trusted)
+        await self.start()
+        self._wake()
+        return prepared.contract.task_id
+
+    def miniapp_task_submitted(
+        self, tenant_id: str, task_id: UUID, contract_digest: str
+    ) -> bool:
+        return self._telegram_state.has_runnable_job(
+            kind="miniapp_draft",
+            tenant_id=tenant_id,
+            task_id=task_id,
+            binding_digest=contract_digest,
+        )
 
     async def close(self) -> None:
         async with self._close_lock:
@@ -323,7 +404,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     self._execution_queue.task_done()
 
     async def _execute_with_lease(
-        self, durable: DurableJob, job: _QueuedJob
+        self, durable: DurableJob, job: _QueuedJob | _QueuedMiniAppDraft
     ) -> None:
         started_at = asyncio.get_running_loop().time()
         stage = "Проверяю контекст и границы доступа"
@@ -335,7 +416,14 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             await self._set_progress(job, self._progress_text(stage, elapsed))
 
         async def operation() -> None:
-            if isinstance(job, _QueuedDraft):
+            if isinstance(job, _QueuedMiniAppDraft):
+                outcome = await self._product_runtime.draft_prepared(
+                    job.prepared
+                )
+                if outcome.task_id != job.prepared.contract.task_id:
+                    raise RuntimeError("Mini App task execution binding mismatch")
+                await self.deliver_pending()
+            elif isinstance(job, _QueuedDraft):
                 await report(stage)
                 await self._draft_and_present(
                     job.prepared,
@@ -394,7 +482,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     async def _refresh_progress(
         self,
-        job: _QueuedJob,
+        job: _QueuedJob | _QueuedMiniAppDraft,
         stage: Callable[[], str],
         started_at: float,
     ) -> None:
@@ -557,8 +645,21 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         if not self._execution_queue.full():
             self._execution_queue.put_nowait(None)  # type: ignore[arg-type]
 
-    async def _restore(self, durable: DurableJob) -> _QueuedJob | None:
+    async def _restore(
+        self, durable: DurableJob
+    ) -> _QueuedJob | _QueuedMiniAppDraft | None:
         payload = durable.payload
+        if durable.kind == "miniapp_draft":
+            job = self._miniapp_draft_binding(durable)
+            admit = getattr(self._product_runtime, "admit_prepared", None)
+            if callable(admit):
+                await admit(job.prepared, job.envelope)
+            recover = getattr(self._product_runtime, "recover_prepared", None)
+            if callable(recover) and not await recover(
+                job.prepared, job.envelope
+            ):
+                return None
+            return job
         if durable.kind == "effect":
             from src.application.telegram_actions import TelegramAction
 
@@ -616,6 +717,31 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         return job
 
     @staticmethod
+    def _miniapp_draft_binding(durable: DurableJob) -> _QueuedMiniAppDraft:
+        payload = durable.payload
+        if set(payload) != {"prepared", "envelope"}:
+            raise RuntimeError("Mini App draft payload mismatch")
+        prepared_data = payload["prepared"]
+        prepared = PreparedTask.validate(
+            PreparedTask(
+                contract=TaskContract.model_validate(prepared_data["contract"]),
+                envelope_revision=str(prepared_data["envelope_revision"]),
+            )
+        )
+        envelope = TrustedIngressEnvelope.model_validate(payload["envelope"])
+        if (
+            durable.kind != "miniapp_draft"
+            or durable.tenant_id != prepared.contract.tenant_id
+            or durable.task_id != prepared.contract.task_id
+            or durable.binding_digest != task_contract_digest(prepared.contract)
+            or envelope.tenant_id != durable.tenant_id
+            or envelope.idempotency_key != prepared.contract.idempotency_key
+            or envelope.envelope_revision != prepared.envelope_revision
+        ):
+            raise RuntimeError("Mini App draft binding mismatch")
+        return _QueuedMiniAppDraft(prepared, envelope)
+
+    @staticmethod
     def _draft_binding(
         durable: DurableJob,
     ) -> tuple[_QueuedDraft, TrustedIngressEnvelope]:
@@ -666,11 +792,15 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         return _QueuedDraft(prepared, message, envelope), recovery_envelope
 
     async def _finalize_recovery_failure(self, durable: DurableJob) -> None:
-        if durable.kind != "draft":
+        if durable.kind not in {"draft", "miniapp_draft"}:
             await self._clear_durable_progress(durable)
             return
         try:
-            job, _ = self._draft_binding(durable)
+            job = (
+                self._miniapp_draft_binding(durable)
+                if durable.kind == "miniapp_draft"
+                else self._draft_binding(durable)[0]
+            )
             await self._terminalize_job(job)
             await self.deliver_pending()
         except Exception:
@@ -678,6 +808,29 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             return
         with suppress(Exception):
             await self._clear_progress(job)
+
+    async def _terminalize_job(
+        self, job: _QueuedJob | _QueuedMiniAppDraft
+    ) -> None:
+        if not isinstance(job, _QueuedMiniAppDraft):
+            await super()._terminalize_job(job)
+            return
+        last_error: Exception | None = None
+        contract = job.prepared.contract
+        digest = task_contract_digest(contract)
+        for _ in range(_TERMINALIZE_ATTEMPTS):
+            try:
+                await self._product_runtime.cancel_prepared(job.prepared)
+                if await self._product_runtime.is_task_terminal(
+                    contract.tenant_id, contract.task_id, digest
+                ):
+                    return
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                last_error = error
+            await asyncio.sleep(0)
+        raise RuntimeError("queued task could not be terminalized") from last_error
 
     async def _finish_progress_with_error(self, durable: DurableJob) -> None:
         ref = self._telegram_state.read_progress(
@@ -698,7 +851,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         except Exception:
             pass
 
-    async def _set_progress(self, job: _QueuedJob, text: str) -> None:
+    async def _set_progress(
+        self, job: _QueuedJob | _QueuedMiniAppDraft, text: str
+    ) -> None:
         if not isinstance(job, _QueuedDraft):
             return
         ref = self._telegram_state.read_progress(
@@ -710,7 +865,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             with suppress(Exception):
                 await edit(ref.chat_id, ref.message_id, text)
 
-    async def _clear_progress(self, job: _QueuedJob) -> None:
+    async def _clear_progress(
+        self, job: _QueuedJob | _QueuedMiniAppDraft
+    ) -> None:
         if not isinstance(job, _QueuedDraft):
             return
         await self._clear_progress_binding(

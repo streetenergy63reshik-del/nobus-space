@@ -15,6 +15,11 @@
         <h1>Задачи</h1>
       </header>
       <p id="state" role="status">Nobus Space временно недоступен</p>
+      <form id="create-task" hidden>
+        <label for="instruction">Новая задача</label>
+        <textarea id="instruction" maxlength="2000" rows="4" required></textarea>
+        <button type="submit">Создать задачу</button>
+      </form>
       <ol id="tasks" aria-label="Список задач"></ol>
       <section id="detail" aria-live="polite" hidden></section>
     </main>
