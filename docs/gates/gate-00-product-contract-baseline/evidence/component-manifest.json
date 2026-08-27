@@ -2,12 +2,12 @@
   "entries": [
     {
       "path": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
-      "sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578",
+      "sha256": "sha256:2112a9e03f1b0cef6df9c1716e22ec362e90bc5193a44a5f09cb2593dc3e2151",
       "size_bytes": 4054
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
-      "sha256": "sha256:081b8897df0f3a3c81419bf0bc0ef83edc2b1d121dd6b92196a336b1e1799af3",
+      "sha256": "sha256:acc10eb99342e77093d673a95f9bedd43aebcdb0fb003cd5d45dd950fd75f76c",
       "size_bytes": 33022
     },
     {
@@ -27,7 +27,7 @@
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
-      "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c",
+      "sha256": "sha256:8ab1c358b1c1b54acfe4daeb9656af614435220911668ee62c0cba5596bfb54d",
       "size_bytes": 4416
     },
     {
@@ -76,7 +76,7 @@
       "size_bytes": 420
     }
   ],
-  "manifest_digest": "sha256:fb324cd4a3b79eaf1d91378c9ceda5e4caceba5a5d813c3685e6090fa9266434",
+  "manifest_digest": "sha256:4e646e2c845621ac055c464f07b985819d49f14035720f0137937562b40357f7",
   "observed_at": "2026-08-01T07:08:59.7350624Z",
   "schema": "nobus.gate0.component_manifest.v1"
 }

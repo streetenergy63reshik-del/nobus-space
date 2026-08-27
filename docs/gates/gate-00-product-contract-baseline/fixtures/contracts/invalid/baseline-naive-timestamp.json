@@ -1,5 +1,5 @@
 {
-  "baseline_digest": "sha256:b437cae77e18ac20c9b584d16007e8f1942184886148a9e3d72005fe35b84c39",
+  "baseline_digest": "sha256:98ee8eb3800d68f6b72d5ad8d83dc837407853c8f9140c37cb37f4b5970e2c86",
   "baseline_id": "49c669e0-157f-549a-a830-271f41414da6",
   "capture": {
     "collector_identity": "gate0-test-only-collector.v1",
@@ -31,7 +31,7 @@
           "kind": "json_report",
           "media_type": "application/json",
           "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
-          "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c"
+          "sha256": "sha256:8ab1c358b1c1b54acfe4daeb9656af614435220911668ee62c0cba5596bfb54d"
         }
       ],
       "fresh_until": null,
@@ -80,7 +80,7 @@
           "kind": "json_report",
           "media_type": "application/json",
           "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
-          "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c"
+          "sha256": "sha256:8ab1c358b1c1b54acfe4daeb9656af614435220911668ee62c0cba5596bfb54d"
         },
         {
           "bytes": 2138,
@@ -470,17 +470,17 @@
       },
       {
         "path": "docs/10-Политика-памяти.md",
-        "sha256": "sha256:1d2b42e6f83f0194b1b8aa26b5278a6215412db65e1e9941befe6f7b8232d4c5",
+        "sha256": "sha256:983cb9672f30bd1821244d2096d39b777c6372cb32ccb3e890e1dc2f019168cd",
         "status": "VERIFIED"
       },
       {
         "path": "docs/12-Эталон-MVP-1-и-дорожная-карта.md",
-        "sha256": "sha256:454b77465f514082a9517b28db9dd6bcb8a4a70161d904cd119993eef1496626",
+        "sha256": "sha256:b15a9610656bb0640a5a0715e7dec86964d5a26ee2b07a5a0fd4f99bd3bf4025",
         "status": "VERIFIED"
       },
       {
         "path": "docs/13-Интегрированная-архитектура-MVP-1.md",
-        "sha256": "sha256:36a1121cf860c4794a133c1d9b6093e302ef7bce4fe30377d6ec1e52db3f40cc",
+        "sha256": "sha256:13688af7e11ce3789800b0bf4f2ace6c33e329946fa623670c66ee38e2d9cbf4",
         "status": "VERIFIED"
       },
       {
@@ -510,12 +510,12 @@
       },
       {
         "path": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
-        "sha256": "sha256:9c6e9fa39d00984b58d3faad7648c9256729ba08b90858bd835bf03bf2c2e4d6",
+        "sha256": "sha256:2ace8e7449304359393accb1ec77cfd6d30b0905b8ba5da334c09f295955671b",
         "status": "VERIFIED"
       },
       {
         "path": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
-        "sha256": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+        "sha256": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
         "status": "VERIFIED"
       },
       {
@@ -525,12 +525,12 @@
       },
       {
         "path": "docs/gates/gate-03-google-foundation/ARCHITECTURE.md",
-        "sha256": "sha256:599755c46c78e29a65e14001cf9d550aa31072ffb8fde35b9a401f676a9727d4",
+        "sha256": "sha256:48154420e0049f410ca6414e3631762b47e3b4f50ad650a10f4e1adfab7fd935",
         "status": "VERIFIED"
       },
       {
         "path": "docs/gates/gate-04-notes-calendar-tasks/ARCHITECTURE.md",
-        "sha256": "sha256:301d081588bfdeceb0bac267cf2417876992ebbad1a5a62db52037044adf256c",
+        "sha256": "sha256:e3e3ae3a4e366d5d6181a32f3e32d4592029c512ce7bf5c2b005b6f18d29e8fa",
         "status": "VERIFIED"
       },
       {
@@ -562,7 +562,7 @@
         "kind": "json_report",
         "media_type": "application/json",
         "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/documentation-inventory.json",
-        "sha256": "sha256:45f4ac6f9324d2852f218599c246b73d9be0a6fc4e0df71292de9e6cf810fe9c"
+        "sha256": "sha256:8ab1c358b1c1b54acfe4daeb9656af614435220911668ee62c0cba5596bfb54d"
       }
     ],
     "head_commit": "0a0f56e8b6f77deccba2b51239a3fe1f207da349",
@@ -628,7 +628,7 @@
     "kind": "manifest",
     "media_type": "application/json",
     "path_or_uri": "docs/gates/gate-00-product-contract-baseline/evidence/component-manifest.json",
-    "sha256": "sha256:449d4ad6952ffa7b01073e66815aec2944ce8b51c235ca98ca6b6e3557d3516b"
+    "sha256": "sha256:7ed50bcb75cbc59b2555fcbc3d315d8469d52d508bed4896fff8da1da5438456"
   },
   "external_capabilities": [
     {

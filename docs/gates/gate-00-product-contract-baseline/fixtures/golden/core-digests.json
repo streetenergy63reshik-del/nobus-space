@@ -1,5 +1,5 @@
 {
-  "core_digest": "sha256:249da62ff0a028c0852fd309d98d1eb8c45d0f2d55e4bde8a83e6b3e13bb948b",
+  "core_digest": "sha256:282702b7998deabc8b3737513512c5fde07b5a5ae96a6839ae99fbc6935cb414",
   "entries": [
     {
       "path": "docs/gates/gate-00-product-contract-baseline/corpus/corpus-manifest.json",
@@ -15,15 +15,15 @@
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/evidence/baseline-evidence.json",
-      "sha256": "sha256:2518d1715cd0b396bf84959eaadeb342c82ba729911eb33151e07de2204d3410"
+      "sha256": "sha256:ccd5f2ad897e0e9a202b10a756dbfcab36432f1d45676ac97c6fb090f9edf44d"
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
-      "sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578"
+      "sha256": "sha256:2112a9e03f1b0cef6df9c1716e22ec362e90bc5193a44a5f09cb2593dc3e2151"
     },
     {
       "path": "docs/gates/gate-00-product-contract-baseline/product/product-contract.json",
-      "sha256": "sha256:081b8897df0f3a3c81419bf0bc0ef83edc2b1d121dd6b92196a336b1e1799af3"
+      "sha256": "sha256:acc10eb99342e77093d673a95f9bedd43aebcdb0fb003cd5d45dd950fd75f76c"
     }
   ],
   "schema": "nobus.gate0.core_digests.v1"

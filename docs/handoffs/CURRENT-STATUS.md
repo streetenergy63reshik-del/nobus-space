@@ -95,6 +95,7 @@ coherent L1/L2/L3 по frozen bytes.
 | Thin Mini App read-only checkpoint | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local checkpoint `3771b1e...` |
 | Mini App task-create pre-fix full audit | full canonical `tests/`: `1500 passed`, `6 skipped`, `43 failed` outside changed layer (`39` historical Gate 0 verifier/stale-context, `1` checkout EOL, `3` Windows runtime-layout/permission) | exact pre-fix `4159accc4c9cd07656a8231529f67af4bb60ecfe`; evidence не переиспользуется после byte changes |
 | Mini App task-create final-fix L1 | target Mini App: `24 passed`; Mini App/runtime/queue/recovery groups: `316 passed`; checkpoint set: `99 passed`, `1 failed` на описанном ниже Gate 0 `SPECIFICATION_CONFLICT` | local candidate; independent verdict фиксируется в exact task handoff |
+| Gate 0 integrity repair WIP L1 | source verifier `20/20`; current worktree LF `20/20`; integrity/docs `11 passed`; impacted Gate 0 `27 passed`; checkpoint `100 passed`, `0 failed`, `1 warning` | **REPAIR CANDIDATE / AWAITING L2-L3**; **LOCAL / NOT PUBLISHED** |
 | Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
 
 Новая revision не объявляет собственный независимый verdict. Команды, counts,
@@ -111,11 +112,18 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
-- Gate 0 byte verifier имеет подтверждённый `SPECIFICATION_CONFLICT`: clean
-  checkout с обязательным LF совпадает с catalog только для 13/20 sources;
-  три ожидаемых SHA соответствуют CRLF вопреки LF-требованию, ещё четыре не
-  совпадают ни с LF, ни с CRLF и не встречаются в Git history. Sealed docs,
-  catalog и ожидаемые SHA в этом slice не изменялись.
+- Gate 0 byte verifier выявил `SPECIFICATION_CONFLICT`: catalog связывал три
+  source с CRLF-вариантами и ещё четыре с SHA, отсутствующими в истории пути,
+  тогда как Git blobs и `.gitattributes` требуют LF. Владелец нормативно выбрал
+  exact blobs, общие для `origin/main` @ `adf3bfbb601a12182c420a720b16459c15970da4`
+  и исходного HEAD `a13243c677d03a0a4415504c720635d3d97092aa`, с LF как canonical EOL и
+  разрешил исправить семь catalog SHA без изменения source content.
+- Repair WIP исправляет семь entries и их прямые current digest/component/golden
+  bindings; historical evidence, verdict и submissions не переиздаются. Все 20
+  source Git blobs остаются идентичны исходному HEAD и `origin/main`; current
+  worktree даёт LF `20/20` и exact catalog match `20/20`. Статус до независимой
+  проверки: **REPAIR CANDIDATE / AWAITING L2-L3**; publication state:
+  **LOCAL / NOT PUBLISHED**.
 - Nobus Memory должна получать live Git pointer/status/freshness и никогда не
   продвигать candidate PR в канон без merge + exact `main` readback.
 
