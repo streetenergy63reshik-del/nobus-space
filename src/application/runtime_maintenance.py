@@ -36,6 +36,8 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "49efdc53c50e91d899b3ee17f48e3f33f1deeb149c9e55ab6060e5184f3e1393",
     },
     "task-runtime.sqlite3": {
+        "index:idx_miniapp_auth_replays_expiry":
+            "9468112a0c4b4afbb54dfc0ab5c8984d41a8070cce1a209c61229e518d8ab280",
         "index:idx_outbox_expired":
             "3cff5fc64008af56366bbcdda2bbeba1db4e553ec11d2cb2fbcb3de2a90d8469",
         "index:idx_outbox_pending":
@@ -46,6 +48,8 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "07571fac9c3caf4d5b709f61817d624d24758c9ffacece6a4c1df606fa7dff2d",
         "table:ingress_claims":
             "b3b537e0a787c8d3baca03a6f1f583892dc90e7a0e30c1b21a8d7ed6ca8d554f",
+        "table:miniapp_auth_replays":
+            "457452b833664f228838673ed77b76f2819b42e332fbac61695e30a759ba1c72",
         "table:outbox_messages":
             "39174bc3721c2f0b4315be0efb3b224d9935a555c29d6e52cb1488bc5f0fb40d",
         "table:outbox_receipts":
@@ -200,6 +204,10 @@ def _validate_task_runtime_rows(path: Path) -> None:
         messages = connection.execute(
             "SELECT tenant_id,message_id FROM outbox_messages"
         ).fetchall()
+        replays = connection.execute(
+            """SELECT tenant_id,replay_digest,auth_expires_at,claimed_at
+               FROM miniapp_auth_replays"""
+        ).fetchall()
     for row in tasks:
         if store.read_task(row["tenant_id"], UUID(row["task_id"])) is None:
             raise RuntimeError("task snapshot is missing")
@@ -232,6 +240,21 @@ def _validate_task_runtime_rows(path: Path) -> None:
         if store.read_outbox_message(row["tenant_id"], message_id) is None:
             raise RuntimeError("outbox message is missing")
         store.read_outbox_receipts(row["tenant_id"], message_id)
+    for row in replays:
+        claimed = _aware(row["claimed_at"])
+        expires = _aware(row["auth_expires_at"])
+        tenant_id = row["tenant_id"]
+        if (
+            not isinstance(tenant_id, str)
+            or tenant_id != tenant_id.strip()
+            or not tenant_id
+            or len(tenant_id) > 128
+            or not _is_digest(row["replay_digest"])
+            or claimed.utcoffset() != timedelta(0)
+            or expires.utcoffset() != timedelta(0)
+            or not 0 < (expires - claimed).total_seconds() <= 1_020
+        ):
+            raise RuntimeError("miniapp auth replay binding mismatch")
 
 
 def _validate_telegram_state_rows(path: Path) -> None:

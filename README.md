@@ -52,37 +52,45 @@ Telegram Mini App -> owner authentication / Telegram initData
 ```
 
 Первый новый deployment unit — один `Mini App Web Boundary`: static UI,
-Telegram auth/session и тонкий API adapter за публичным HTTPS ingress. У него
-нет собственной БД, queue, policy/effect authority или Agent Registry.
+bounded pass-through Telegram `initData` и тонкий API adapter к Core за
+публичным HTTPS ingress. У него нет собственной БД, queue, policy/effect
+authority, bot secret или Agent Registry.
 
-## Что дальше
+## Локальный thin Mini App candidate — 27 августа 2026 года
 
-Следующий самостоятельный slice:
-**thin Mini App owner authentication + read-only список/карточка задач**.
-Он не создаёт задачи, не выполняет effects, не переносит Core/token/poller на
-VPS и не вводит второй state store.
+В содержащей локальной revision реализован самостоятельный read-only slice:
 
-Критерии slice:
+- `MiniAppCore` проверяет Telegram signature для exact bot, exact owner,
+  `auth_date`, TTL/future skew и durable replay digest;
+- opaque session живёт кратко и хранится в Core только по SHA-256 bearer;
+- `SQLiteStore.list_tasks` читает bounded stable tenant-scoped projection из
+  существующего `task-runtime.sqlite3`;
+- `POST /api/session`, `GET /api/tasks` и `GET /api/tasks/{task_id}` не
+  принимают client-selected authority и возвращают только allowlisted поля;
+- static HTML/CSS/ES module UI хранит bearer только в памяти и показывает
+  `Nobus Space временно недоступен` при отказе Core;
+- `src/main.py` не используется новым boundary и остаётся старым
+  демонстрационным API.
 
-1. backend проверяет bounded Telegram `initData`, exact bot/owner, freshness и
-   replay;
-2. короткая opaque session не попадает в URL, `localStorage` или logs;
-3. список/карточка читаются из существующего authoritative state;
-4. cross-owner/task ref и client-selected authority отклоняются;
-5. при недоступном локальном Core UI fail-closed и ничего не исполняет.
+Это локальный кандидат, а не live Mini App: HTTPS ingress/hostname, BotFather,
+Telegram menu button, запуск live runtime, push/PR/merge и deploy не
+выполнялись. Следующий вертикальный slice после принятия кандидата — создание
+одной текстовой задачи из Mini App через существующий Core.
 
 ## Локальная проверка документационного кандидата
 
 ```powershell
 & '.\.venv\Scripts\python.exe' -m pytest -q -p no:cacheprovider `
+  tests/test_miniapp.py `
+  tests/test_sqlite_store.py `
+  tests/test_main.py `
   tests/test_pre_gate1_architecture_integration.py `
   tests/test_documentation.py
 git diff --check
 ```
 
-Product/runtime-код этим rebaseline и обновлением publication binding не
-изменяется. Наличие commit или PR само по себе не разрешает push, merge,
-deploy, recovery, удаление или запись в Nobus Memory: каждое внешнее действие
-требует отдельной точной авторизации владельца.
+Наличие локального commit само по себе не разрешает push, merge, deploy,
+recovery, удаление или запись в Nobus Memory: каждое внешнее действие требует
+отдельной точной авторизации владельца.
 
 Локальные правила разработки: [AGENTS.md](AGENTS.md).

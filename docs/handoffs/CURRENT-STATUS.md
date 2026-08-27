@@ -22,6 +22,7 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
 | Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
 | Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
+| Thin Mini App source revision | local `main` base `efb6be0324f70260284bb59e48cc798e37cd2fca`; containing checkpoint resolves with `git rev-parse HEAD` |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
@@ -46,7 +47,14 @@ Git-репозиторий — источник истины для code/tests/A
   `result_tree=2e3248eb295b1627d36f196c26dfc21c6ebd90fd`.
 - Все 20 Gate 0 `required_sources` должны оставаться byte-identical.
 - Active roadmap — шесть коротких slices из ADR 0022, не Gate 0–8.
-- Mini App ещё не реализован; это TARGET следующего slice.
+- В содержащей локальной revision реализован thin Mini App read-only slice:
+  exact-bot/owner initData verification, freshness/future skew, durable replay
+  digest, short hashed in-memory session, tenant-scoped list/detail и safe
+  unavailable UI.
+- Новый boundary читает существующий `SQLiteStore`/`DurableTaskProjection`, не
+  создаёт вторую БД, queue, policy/effect plane и не использует `src/main.py`.
+- Live HTTPS/provider/BotFather/Telegram menu/runtime не проверялись и не
+  изменялись.
 
 ## Frozen WIP and recovery
 
@@ -72,6 +80,7 @@ coherent L1/L2/L3 по frozen bytes.
 | Уровень | Проверка | Статус |
 |---|---|---|
 | Initial architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | historical `PASS` @ `d3a235e...` / `bf503ae...` |
+| Thin Mini App WIP L1 | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local WIP only |
 | Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
 
 Новая revision не объявляет собственный независимый verdict. Команды, counts,
@@ -91,14 +100,14 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 - Nobus Memory должна получать live Git pointer/status/freshness и никогда не
   продвигать candidate PR в канон без merge + exact `main` readback.
 
-## Next vertical slice
+## Completed local vertical slice
 
 **Thin Mini App owner authentication + read-only task list/detail.**
 
 Acceptance:
 
-1. bounded Telegram `initData` проверяется для exact bot/owner, freshness и
-   replay;
+1. Telegram `initData` ограничивается по размеру/времени и проверяется для
+   exact bot/owner, freshness и replay;
 2. short-lived opaque session хранится только in-memory;
 3. list/detail читаются из existing authoritative state, без второй DB/queue;
 4. cross-owner/task ref и client-selected authority fail closed;
@@ -106,6 +115,15 @@ Acceptance:
 
 Out of scope: task create, approvals/effects, Core/token/poller migration,
 Agent Registry, Web IDE/shell/self-deploy и live publication.
+
+До candidate-bound L1/L2/L3 и внешнего принятия это локальный кандидат, не
+опубликованный baseline и не live release.
+
+## Next vertical slice
+
+**Создание одной обычной текстовой задачи из Mini App через существующий
+Core** с end-to-end owner/session/idempotency binding и без второго admission,
+queue или effect authority.
 
 ## Proposed Nobus Memory pointer sync
 

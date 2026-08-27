@@ -216,6 +216,7 @@ def test_schema_init_is_idempotent_and_configures_safety_pragmas(tmp_path: Path)
         ).fetchall() == [
             ("audit_events",),
             ("ingress_claims",),
+            ("miniapp_auth_replays",),
             ("outbox_messages",),
             ("outbox_receipts",),
             ("task_snapshots",),
