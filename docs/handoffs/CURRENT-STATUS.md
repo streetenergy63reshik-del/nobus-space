@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 27 августа 2026 года
+**Актуально на:** 28 августа 2026 года
 **Lifecycle rule:** containing revision outside protected GitHub `main` is
 `GATE_CANDIDATE`; after an authorized merge and exact reachability readback it
 is part of `ACCEPTED_PUBLISHED_BASELINE`
@@ -19,10 +19,10 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Baseline `main` at candidate freeze | `8b896fbca9b23c8751d651d14a122506338b5827` |
 | Stage-1 checkpoint | `6f2fa50` (`AGENTS.md` only) |
 | Initial PR head before refresh | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
-| Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
-| Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
+| Pull request records | Architecture [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); Mini App + Gate 0 integrity publication [#2](https://github.com/streetenergy63reshik-del/nobus-space/pull/2) |
+| Accepted product/integrity publication readback, 2026-08-28 | merge `205cd66d4094f59673e89aa8d616b7826f16f8b0`; exact Commit A and B reachable from protected `origin/main` after fetch/readback |
 | Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
-| Thin Mini App source revisions | initial local base `efb6be0324f70260284bb59e48cc798e37cd2fca`; read-only checkpoint `3771b1eac5a0a215d0fa65a60a9addaf7a72ab9a`; containing task-create checkpoint resolves with `git rev-parse HEAD` |
+| Thin Mini App source revisions | base `efb6be0324f70260284bb59e48cc798e37cd2fca`; read-only checkpoint `3771b1eac5a0a215d0fa65a60a9addaf7a72ab9a`; task-create checkpoint `a13243c677d03a0a4415504c720635d3d97092aa`; all reachable from the accepted publication merge |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
@@ -92,11 +92,11 @@ coherent L1/L2/L3 по frozen bytes.
 | Уровень | Проверка | Статус |
 |---|---|---|
 | Initial architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | historical `PASS` @ `d3a235e...` / `bf503ae...` |
-| Thin Mini App read-only checkpoint | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local checkpoint `3771b1e...` |
+| Thin Mini App read-only checkpoint | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | published checkpoint `3771b1e...`; reachable through PR #2 |
 | Mini App task-create pre-fix full audit | full canonical `tests/`: `1500 passed`, `6 skipped`, `43 failed` outside changed layer (`39` historical Gate 0 verifier/stale-context, `1` checkout EOL, `3` Windows runtime-layout/permission) | exact pre-fix `4159accc4c9cd07656a8231529f67af4bb60ecfe`; evidence не переиспользуется после byte changes |
-| Mini App task-create final-fix L1 | target Mini App: `24 passed`; Mini App/runtime/queue/recovery groups: `316 passed`; checkpoint set: `99 passed`, `1 failed` на описанном ниже Gate 0 `SPECIFICATION_CONFLICT` | local candidate; independent verdict фиксируется в exact task handoff |
-| Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **LOCAL / NOT PUBLISHED** |
-| Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
+| Mini App task-create final-fix L1 | target Mini App: `24 passed`; Mini App/runtime/queue/recovery groups: `316 passed`; checkpoint set: `99 passed`, `1 failed` на описанном ниже Gate 0 `SPECIFICATION_CONFLICT` | published checkpoint `a13243c...`; Gate 0 conflict subsequently closed; reachable through PR #2 |
+| Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **PUBLISHED** through PR #2; exact A/B reachability read back from `origin/main` |
+| Publication merge | pre-publication checkpoint `100 passed`, `1 warning`; PR head exact `0612f1456bf050e54aac8bb2afc2c4f9a5b99328`; non-force merge with commit preservation | `205cd66d4094f59673e89aa8d616b7826f16f8b0`; accepted product/integrity content anchor |
 
 Новая revision не объявляет собственный независимый verdict. Команды, counts,
 literal commit/tree и reviewer verdict фиксируются в task/PR handoff,
@@ -112,7 +112,7 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
-- `SPECIFICATION_CONFLICT: CLOSED` в локальном Commit A
+- `SPECIFICATION_CONFLICT: CLOSED` в опубликованном Commit A
   `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343`. Причина: catalog связывал три
   source с CRLF-вариантами и ещё четыре с SHA, отсутствующими в истории пути,
   тогда как Git blobs и `.gitattributes` требуют LF. Владелец нормативно выбрал
@@ -125,13 +125,15 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
   `origin/main`; current Windows worktree и clean checkout с
   `core.autocrlf=true` дают LF и exact catalog match `20/20`. L1, независимый L2
   и adversarial L3: `PASS`; Mini App, Core, runtime и queue не изменены.
-  Publication state: **LOCAL / NOT PUBLISHED**. Опубликованным repair станет
-  только после отдельно разрешённого push/merge, fetch/readback и подтверждения
-  достижимости exact Commit A и документационного Commit B из `origin/main`.
+  Publication state: **PUBLISHED** через PR #2 и merge
+  `205cd66d4094f59673e89aa8d616b7826f16f8b0`. Fetch/readback подтвердил
+  достижимость exact Commit A `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343`
+  и документационного Commit B
+  `0612f1456bf050e54aac8bb2afc2c4f9a5b99328` из `origin/main`.
 - Nobus Memory должна получать live Git pointer/status/freshness и никогда не
   продвигать candidate PR в канон без merge + exact `main` readback.
 
-## Completed local vertical slice
+## Completed published vertical slice
 
 **Thin Mini App owner authentication + read-only task list/detail + создание
 одной обычной текстовой задачи.**
@@ -152,8 +154,9 @@ Out of scope: единая result/artifact delivery, approvals/effects,
 Core/token/poller migration, Agent Registry, Web IDE/shell/self-deploy и live
 publication.
 
-До candidate-bound L1/L2/L3 и внешнего принятия это локальный кандидат, не
-опубликованный baseline и не live release.
+Срез опубликован в protected `main` через PR #2. Это подтверждённая Git
+publication, но не live runtime release, deploy или разрешение следующему
+срезу менять существующие Core/effect authority границы.
 
 ## Next vertical slice
 
@@ -165,9 +168,11 @@ raw payload или данных другого tenant.
 
 ```text
 Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space.
-Accepted published canon = adf3bfbb601a12182c420a720b16459c15970da4
-from 2026-08-27 local/remote readback. ADR 0022 is active; architecture commit
-ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03 is reachable from accepted main.
+Accepted product/integrity publication anchor =
+205cd66d4094f59673e89aa8d616b7826f16f8b0 from PR #2 and 2026-08-28
+fetch/readback. Exact Gate 0 repair A/B and Mini App checkpoints are reachable
+from protected main. ADR 0022 is active; architecture commit
+ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03 remains reachable.
 Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished. Registered
 worktrees: canonical main + preserved gate-01-acceptance.
 ```
