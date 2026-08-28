@@ -95,7 +95,7 @@ coherent L1/L2/L3 по frozen bytes.
 | Thin Mini App read-only checkpoint | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local checkpoint `3771b1e...` |
 | Mini App task-create pre-fix full audit | full canonical `tests/`: `1500 passed`, `6 skipped`, `43 failed` outside changed layer (`39` historical Gate 0 verifier/stale-context, `1` checkout EOL, `3` Windows runtime-layout/permission) | exact pre-fix `4159accc4c9cd07656a8231529f67af4bb60ecfe`; evidence не переиспользуется после byte changes |
 | Mini App task-create final-fix L1 | target Mini App: `24 passed`; Mini App/runtime/queue/recovery groups: `316 passed`; checkpoint set: `99 passed`, `1 failed` на описанном ниже Gate 0 `SPECIFICATION_CONFLICT` | local candidate; independent verdict фиксируется в exact task handoff |
-| Gate 0 integrity repair WIP L1 | source verifier `20/20`; current worktree LF `20/20`; integrity/docs `11 passed`; impacted Gate 0 `27 passed`; checkpoint `100 passed`, `0 failed`, `1 warning` | **REPAIR CANDIDATE / AWAITING L2-L3**; **LOCAL / NOT PUBLISHED** |
+| Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **LOCAL / NOT PUBLISHED** |
 | Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
 
 Новая revision не объявляет собственный независимый verdict. Команды, counts,
@@ -112,18 +112,22 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
-- Gate 0 byte verifier выявил `SPECIFICATION_CONFLICT`: catalog связывал три
+- `SPECIFICATION_CONFLICT: CLOSED` в локальном Commit A
+  `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343`. Причина: catalog связывал три
   source с CRLF-вариантами и ещё четыре с SHA, отсутствующими в истории пути,
   тогда как Git blobs и `.gitattributes` требуют LF. Владелец нормативно выбрал
   exact blobs, общие для `origin/main` @ `adf3bfbb601a12182c420a720b16459c15970da4`
   и исходного HEAD `a13243c677d03a0a4415504c720635d3d97092aa`, с LF как canonical EOL и
   разрешил исправить семь catalog SHA без изменения source content.
-- Repair WIP исправляет семь entries и их прямые current digest/component/golden
-  bindings; historical evidence, verdict и submissions не переиздаются. Все 20
-  source Git blobs остаются идентичны исходному HEAD и `origin/main`; current
-  worktree даёт LF `20/20` и exact catalog match `20/20`. Статус до независимой
-  проверки: **REPAIR CANDIDATE / AWAITING L2-L3**; publication state:
-  **LOCAL / NOT PUBLISHED**.
+- Commit A исправляет семь entries и только их прямые current
+  digest/component/golden bindings; historical evidence, verdict и submissions
+  не переизданы. Все 20 source Git blobs идентичны исходному HEAD и
+  `origin/main`; current Windows worktree и clean checkout с
+  `core.autocrlf=true` дают LF и exact catalog match `20/20`. L1, независимый L2
+  и adversarial L3: `PASS`; Mini App, Core, runtime и queue не изменены.
+  Publication state: **LOCAL / NOT PUBLISHED**. Опубликованным repair станет
+  только после отдельно разрешённого push/merge, fetch/readback и подтверждения
+  достижимости exact Commit A и документационного Commit B из `origin/main`.
 - Nobus Memory должна получать live Git pointer/status/freshness и никогда не
   продвигать candidate PR в канон без merge + exact `main` readback.
 
