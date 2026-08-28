@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -173,6 +174,19 @@ def test_queue_is_bounded_and_idempotent(tmp_path):
         payload={"instruction": "same"},
     )
     assert duplicate.job_id == first.job_id
+    assert store.has_runnable_job(
+        kind="draft",
+        tenant_id="owner",
+        task_id=first_id,
+        binding_digest=binding,
+    )
+    with pytest.raises(DurableTelegramStateError, match="runtime_job_conflict"):
+        store.has_runnable_job(
+            kind="draft",
+            tenant_id="owner",
+            task_id=first_id,
+            binding_digest="sha256:" + "f" * 64,
+        )
 
     second_id = uuid4()
     with pytest.raises(DurableTelegramStateError, match="runtime_queue_full"):
@@ -183,6 +197,73 @@ def test_queue_is_bounded_and_idempotent(tmp_path):
             binding_digest=canonical_json_digest({"task": str(second_id)}),
             payload={"instruction": "second"},
         )
+
+
+def test_existing_queue_schema_migrates_for_miniapp_jobs(tmp_path):
+    path = tmp_path / "runtime.sqlite3"
+    existing_task = uuid4()
+    existing_payload = {"safe": "existing"}
+    existing_binding = canonical_json_digest({"task": str(existing_task)})
+    existing_payload_digest = canonical_json_digest(existing_payload)
+    now = datetime.now(UTC).isoformat()
+    old_schema = """
+        CREATE TABLE telegram_jobs (
+            job_id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL CHECK(kind IN ('draft','patch','effect')),
+            tenant_id TEXT NOT NULL,
+            task_id TEXT NOT NULL,
+            binding_digest TEXT NOT NULL,
+            payload_digest TEXT NOT NULL,
+            payload BLOB NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('pending','leased','failed')),
+            attempt_count INTEGER NOT NULL CHECK(attempt_count>=0),
+            failure_code TEXT,
+            lease_id TEXT,
+            lease_owner TEXT,
+            lease_expires_at TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(tenant_id,task_id,kind)
+        )
+    """
+    with sqlite3.connect(path) as connection:
+        connection.execute(old_schema)
+        connection.execute(
+            """INSERT INTO telegram_jobs
+               (job_id,kind,tenant_id,task_id,binding_digest,payload_digest,
+                payload,status,attempt_count,failure_code,lease_id,lease_owner,
+                lease_expires_at,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,'pending',0,NULL,NULL,NULL,NULL,?,?)""",
+            (
+                str(uuid4()),
+                "draft",
+                "owner",
+                str(existing_task),
+                existing_binding,
+                existing_payload_digest,
+                _encode(existing_payload),
+                now,
+                now,
+            ),
+        )
+
+    state = _store(tmp_path)
+    assert state.has_runnable_job(
+        kind="draft",
+        tenant_id="owner",
+        task_id=existing_task,
+        binding_digest=existing_binding,
+    )
+    task_id = uuid4()
+    state.enqueue(
+        kind="miniapp_draft",
+        tenant_id="owner",
+        task_id=task_id,
+        binding_digest=canonical_json_digest({"task": str(task_id)}),
+        payload={"safe": True},
+    )
+
+    assert state.queue_counts() == (0, 2)
 
 
 def test_capability_is_encrypted_boundary_with_expiry_and_tenant_scope(tmp_path):

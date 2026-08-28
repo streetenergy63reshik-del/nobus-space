@@ -52,37 +52,61 @@ Telegram Mini App -> owner authentication / Telegram initData
 ```
 
 Первый новый deployment unit — один `Mini App Web Boundary`: static UI,
-Telegram auth/session и тонкий API adapter за публичным HTTPS ingress. У него
-нет собственной БД, queue, policy/effect authority или Agent Registry.
+bounded pass-through Telegram `initData` и тонкий API adapter к Core за
+публичным HTTPS ingress. У него нет собственной БД, queue, policy/effect
+authority, bot secret или Agent Registry.
 
-## Что дальше
+## Локальный thin Mini App candidate — 27 августа 2026 года
 
-Следующий самостоятельный slice:
-**thin Mini App owner authentication + read-only список/карточка задач**.
-Он не создаёт задачи, не выполняет effects, не переносит Core/token/poller на
-VPS и не вводит второй state store.
+В содержащей локальной revision реализованы owner-authenticated read-only
+projection и следующий самостоятельный task-create slice:
 
-Критерии slice:
+- `MiniAppCore` проверяет Telegram signature для exact bot, exact owner,
+  `auth_date`, TTL/future skew и durable replay digest;
+- opaque session живёт кратко и хранится в Core только по SHA-256 bearer;
+- `SQLiteStore.list_tasks` читает bounded stable tenant-scoped projection из
+  существующего `task-runtime.sqlite3`;
+- `POST /api/session`, `GET /api/tasks` и `GET /api/tasks/{task_id}` не
+  принимают client-selected authority и возвращают только allowlisted поля;
+- `POST /api/tasks` принимает только bounded JSON instruction и один
+  `Idempotency-Key`; Core сам выводит owner/tenant/actor и связывает request с
+  текущей session и content digest;
+- admission переиспользует `prepare_instruction` существующего runtime и
+  `telegram_jobs` существующего `SQLiteTelegramState`; encrypted job
+  фиксируется до Core task, а restart допускает тот же exact prepared contract
+  из job, поэтому enqueue failure не создаёт task/outbox и crash не оставляет
+  невосстановимую PENDING task;
+- server-derived task id детерминирован по tenant и request id, а exact
+  session/request envelope стабилен; поэтому повтор в crash-window
+  использует одну job и возвращает ту же task, а rebinding другого
+  текста или session fail closed; exhausted dead-letter тоже блокирует
+  Core admission и не оставляет orphan PENDING task;
+- static HTML/CSS/ES module UI хранит bearer и pending request id только в
+  памяти, не делает blind retry и показывает
+  `Nobus Space временно недоступен` при отказе Core;
+- `src/main.py` не используется новым boundary и остаётся старым
+  демонстрационным API.
 
-1. backend проверяет bounded Telegram `initData`, exact bot/owner, freshness и
-   replay;
-2. короткая opaque session не попадает в URL, `localStorage` или logs;
-3. список/карточка читаются из существующего authoritative state;
-4. cross-owner/task ref и client-selected authority отклоняются;
-5. при недоступном локальном Core UI fail-closed и ничего не исполняет.
+Это локальный кандидат, а не live Mini App: HTTPS ingress/hostname, BotFather,
+Telegram menu button, запуск live runtime, push/PR/merge и deploy не
+выполнялись. Следующий вертикальный slice после принятия кандидата — единый
+status и безопасное получение результата/артефакта через Telegram и Mini App.
 
 ## Локальная проверка документационного кандидата
 
 ```powershell
 & '.\.venv\Scripts\python.exe' -m pytest -q -p no:cacheprovider `
+  tests/test_miniapp.py `
+  tests/test_durable_telegram_state.py `
+  tests/test_sqlite_store.py `
+  tests/test_main.py `
   tests/test_pre_gate1_architecture_integration.py `
   tests/test_documentation.py
 git diff --check
 ```
 
-Product/runtime-код этим rebaseline и обновлением publication binding не
-изменяется. Наличие commit или PR само по себе не разрешает push, merge,
-deploy, recovery, удаление или запись в Nobus Memory: каждое внешнее действие
-требует отдельной точной авторизации владельца.
+Наличие локального commit само по себе не разрешает push, merge, deploy,
+recovery, удаление или запись в Nobus Memory: каждое внешнее действие требует
+отдельной точной авторизации владельца.
 
 Локальные правила разработки: [AGENTS.md](AGENTS.md).

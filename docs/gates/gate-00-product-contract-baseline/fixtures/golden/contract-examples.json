@@ -136,7 +136,7 @@
       },
       "instance_digest": "sha256:d150e207ce661c6911afd04821ccc81227e7223dc6abd901f97c83d16cc8be8a",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/AnalysisRequest",
-      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_digest": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"
@@ -202,7 +202,7 @@
       },
       "instance_digest": "sha256:b22062a89f0d037a3b430620f993399484c7097827fc34c856fbf743e04e055d",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/ArtifactPlan",
-      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_digest": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"
@@ -325,7 +325,7 @@
       },
       "instance_digest": "sha256:69aa4d95f7a187bdda7b3403cefa7469a05ce195f3f109038483313f01c4e686",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentQuery",
-      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_digest": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"
@@ -397,7 +397,7 @@
       },
       "instance_digest": "sha256:75940659b2e4d6dfcc880c02e78af914d3dae4ee0025f56ca61fc478e64fb067",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentReadPlan",
-      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_digest": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"
@@ -442,7 +442,7 @@
       },
       "instance_digest": "sha256:5b1c8639344e9a6efe7d7ecc5cc66df8065104adb24e701a6663d9377e52b000",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentRef",
-      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_digest": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"
@@ -486,7 +486,7 @@
       },
       "instance_digest": "sha256:6a5e74befcd7d342839d68e44cde36afa8852b8141fa325356ab3dcec5b4e669",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/DocumentWritePlan",
-      "source_digest": "sha256:cb7cb2e038920337950f5efa53f9b0fca5d66ec59b8bbe2ed979bcc03d7c2301",
+      "source_digest": "sha256:b4a33bd4f374d3729c0661a8b0da55b9ba2681e6f22fdfccdea36617434bb441",
       "source_ref": "docs/gates/gate-02-scope-document-contracts/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"
@@ -576,7 +576,7 @@
       },
       "instance_digest": "sha256:0a8f4477f4b597c1b30d290745f486d161ec19195bbbc34bebb5184e3e426cf0",
       "schema_ref": "fixtures/golden/target-contract-schema-projections.json#/schemas/IntentEnvelope",
-      "source_digest": "sha256:9c6e9fa39d00984b58d3faad7648c9256729ba08b90858bd835bf03bf2c2e4d6",
+      "source_digest": "sha256:2ace8e7449304359393accb1ec77cfd6d30b0905b8ba5da334c09f295955671b",
       "source_ref": "docs/gates/gate-01-natural-language-voice/ARCHITECTURE.md",
       "status": "target",
       "validation_profile": "target_owner_contract_structural_golden_no_production_model"

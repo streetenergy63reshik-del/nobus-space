@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 25 августа 2026 года
+**Актуально на:** 27 августа 2026 года
 **Lifecycle rule:** containing revision outside protected GitHub `main` is
 `GATE_CANDIDATE`; after an authorized merge and exact reachability readback it
 is part of `ACCEPTED_PUBLISHED_BASELINE`
@@ -20,6 +20,9 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Stage-1 checkpoint | `6f2fa50` (`AGENTS.md` only) |
 | Initial PR head before refresh | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
 | Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
+| Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
+| Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
+| Thin Mini App source revisions | initial local base `efb6be0324f70260284bb59e48cc798e37cd2fca`; read-only checkpoint `3771b1eac5a0a215d0fa65a60a9addaf7a72ab9a`; containing task-create checkpoint resolves with `git rev-parse HEAD` |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
@@ -44,7 +47,26 @@ Git-репозиторий — источник истины для code/tests/A
   `result_tree=2e3248eb295b1627d36f196c26dfc21c6ebd90fd`.
 - Все 20 Gate 0 `required_sources` должны оставаться byte-identical.
 - Active roadmap — шесть коротких slices из ADR 0022, не Gate 0–8.
-- Mini App ещё не реализован; это TARGET следующего slice.
+- В содержащей локальной revision реализован thin Mini App read-only slice:
+  exact-bot/owner initData verification, freshness/future skew, durable replay
+  digest, short hashed in-memory session, tenant-scoped list/detail и safe
+  unavailable UI.
+- Новый boundary читает существующий `SQLiteStore`/`DurableTaskProjection`, не
+  создаёт вторую БД, queue, policy/effect plane и не использует `src/main.py`.
+- В содержащей локальной revision `POST /api/tasks` создаёт одну bounded
+  natural-text task через server-derived owner/tenant/actor, session-bound
+  idempotency, существующий Core admission и существующую
+  `SQLiteTelegramState` queue; retry возвращает ту же task, rebinding fail closed.
+- Mini App admission фиксирует encrypted job до Core task; enqueue failure не
+  создаёт task/outbox, а restart повторно валидирует binding и восстанавливает
+  exact prepared contract из существующего job.
+- Server-derived task id детерминирован по tenant/request, а exact
+  session/request envelope стабилен; точный retry до admission не размножает
+  durable jobs, а content/session rebinding fail closed.
+- Exhausted dead-letter не повторяет Core admission: exact retry даёт safe
+  unavailable без task/outbox и orphan PENDING state.
+- Live HTTPS/provider/BotFather/Telegram menu/runtime не проверялись и не
+  изменялись.
 
 ## Frozen WIP and recovery
 
@@ -57,9 +79,10 @@ Git-репозиторий — источник истины для code/tests/A
 - Шесть `refs/nobus-safety/*` и соответствующие verified bundles сохранены;
   latest WIP pause: `73958b72a17cda01f435905c12d1e6118477d299`.
 - Path-limited recovery stash `8270192a...` сохранён.
-- Worktrees, refs, bundles, stash и recovery files этой задачей не изменяются.
-- `.nobus-quality/cases.ndjson` содержит pre-existing +22-line user change,
-  остаётся unstaged и не входит в candidate.
+- Финальный реестр Git содержит только канонический `main` и этот сохранённый
+  worktree. `gate-01-integration` удалён; его ветка оставлена.
+- Recovery refs, bundles и stash сохранены. До этого документационного
+  checkpoint рабочий каталог был чист; checkpoint меняет только два handoff.
 
 ## Verification state
 
@@ -69,6 +92,10 @@ coherent L1/L2/L3 по frozen bytes.
 | Уровень | Проверка | Статус |
 |---|---|---|
 | Initial architecture candidate | `11 passed`; 20/20 hashes; diff/path/link/secret/stale-claim scans; independent L2/L3 | historical `PASS` @ `d3a235e...` / `bf503ae...` |
+| Thin Mini App read-only checkpoint | `tests/test_miniapp.py`: `16 passed`; Mini App + SQLiteStore + legacy main subset: `81 passed`; replay/schema/backup focused set: `87 passed` | local checkpoint `3771b1e...` |
+| Mini App task-create pre-fix full audit | full canonical `tests/`: `1500 passed`, `6 skipped`, `43 failed` outside changed layer (`39` historical Gate 0 verifier/stale-context, `1` checkout EOL, `3` Windows runtime-layout/permission) | exact pre-fix `4159accc4c9cd07656a8231529f67af4bb60ecfe`; evidence не переиспользуется после byte changes |
+| Mini App task-create final-fix L1 | target Mini App: `24 passed`; Mini App/runtime/queue/recovery groups: `316 passed`; checkpoint set: `99 passed`, `1 failed` на описанном ниже Gate 0 `SPECIFICATION_CONFLICT` | local candidate; independent verdict фиксируется в exact task handoff |
+| Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **LOCAL / NOT PUBLISHED** |
 | Containing revision | docs tests; 20 hashes; diff/path/link/secret/stale-claim scans; distinct L2 and L3 | no self-verdict; read exact external handoff |
 
 Новая revision не объявляет собственный независимый verdict. Команды, counts,
@@ -85,34 +112,64 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
   recovery/reuse audit до любого merge/cleanup.
 - Existing local runtime и historical docs могут описывать разные revisions;
   exact Git revision и воспроизводимая проверка имеют приоритет.
+- `SPECIFICATION_CONFLICT: CLOSED` в локальном Commit A
+  `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343`. Причина: catalog связывал три
+  source с CRLF-вариантами и ещё четыре с SHA, отсутствующими в истории пути,
+  тогда как Git blobs и `.gitattributes` требуют LF. Владелец нормативно выбрал
+  exact blobs, общие для `origin/main` @ `adf3bfbb601a12182c420a720b16459c15970da4`
+  и исходного HEAD `a13243c677d03a0a4415504c720635d3d97092aa`, с LF как canonical EOL и
+  разрешил исправить семь catalog SHA без изменения source content.
+- Commit A исправляет семь entries и только их прямые current
+  digest/component/golden bindings; historical evidence, verdict и submissions
+  не переизданы. Все 20 source Git blobs идентичны исходному HEAD и
+  `origin/main`; current Windows worktree и clean checkout с
+  `core.autocrlf=true` дают LF и exact catalog match `20/20`. L1, независимый L2
+  и adversarial L3: `PASS`; Mini App, Core, runtime и queue не изменены.
+  Publication state: **LOCAL / NOT PUBLISHED**. Опубликованным repair станет
+  только после отдельно разрешённого push/merge, fetch/readback и подтверждения
+  достижимости exact Commit A и документационного Commit B из `origin/main`.
 - Nobus Memory должна получать live Git pointer/status/freshness и никогда не
   продвигать candidate PR в канон без merge + exact `main` readback.
 
-## Next vertical slice
+## Completed local vertical slice
 
-**Thin Mini App owner authentication + read-only task list/detail.**
+**Thin Mini App owner authentication + read-only task list/detail + создание
+одной обычной текстовой задачи.**
 
 Acceptance:
 
-1. bounded Telegram `initData` проверяется для exact bot/owner, freshness и
-   replay;
+1. Telegram `initData` ограничивается по размеру/времени и проверяется для
+   exact bot/owner, freshness и replay;
 2. short-lived opaque session хранится только in-memory;
 3. list/detail читаются из existing authoritative state, без второй DB/queue;
 4. cross-owner/task ref и client-selected authority fail closed;
-5. local Core unavailable не создаёт task/effect и даёт safe UI state.
+5. task create использует server-derived authority, session-bound request id и
+   существующие Core admission/authoritative state/durable queue;
+6. same-request retry возвращает ту же task, rebinding отклоняется, а local Core
+   unavailable не создаёт task/effect и даёт safe UI state.
 
-Out of scope: task create, approvals/effects, Core/token/poller migration,
-Agent Registry, Web IDE/shell/self-deploy и live publication.
+Out of scope: единая result/artifact delivery, approvals/effects,
+Core/token/poller migration, Agent Registry, Web IDE/shell/self-deploy и live
+publication.
+
+До candidate-bound L1/L2/L3 и внешнего принятия это локальный кандидат, не
+опубликованный baseline и не live release.
+
+## Next vertical slice
+
+**Единый статус и безопасное получение результата/артефакта через Telegram и
+Mini App** с owner/tenant/task/revision binding и без раскрытия локального пути,
+raw payload или данных другого tenant.
 
 ## Proposed Nobus Memory pointer sync
 
 ```text
 Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space.
-Accepted published canon = <exact protected main SHA from live readback>.
-ADR 0022 status = active only if its containing revision is reachable from
-that SHA; otherwise candidate. Mention PR #1 only after live readback and only
-while it is open. Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished.
-Freshness = <readback timestamp>.
+Accepted published canon = adf3bfbb601a12182c420a720b16459c15970da4
+from 2026-08-27 local/remote readback. ADR 0022 is active; architecture commit
+ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03 is reachable from accepted main.
+Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished. Registered
+worktrees: canonical main + preserved gate-01-acceptance.
 ```
 
 Этот шаблон не разрешает Memory update, push, изменение GitHub description,

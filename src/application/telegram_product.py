@@ -394,6 +394,14 @@ class ProductTelegramApi(Protocol):
 
 
 class ProductTaskRuntime(Protocol):
+    async def build_instruction(
+        self, instruction: str, envelope: TrustedIngressEnvelope
+    ) -> PreparedTask: ...
+
+    async def admit_prepared(
+        self, prepared: PreparedTask, envelope: TrustedIngressEnvelope
+    ) -> bool: ...
+
     async def prepare_instruction(
         self, instruction: str, envelope: TrustedIngressEnvelope
     ) -> PreparedTask: ...

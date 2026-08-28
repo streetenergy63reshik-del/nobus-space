@@ -1093,9 +1093,9 @@
   ],
   "normative_input": {
     "catalog_ref": "docs/gates/gate-00-product-contract-baseline/product/normative-catalog.json",
-    "catalog_sha256": "sha256:1d5e9812b265028fb3bad441e30eb1c3991aa5b49b84f2f387450efc62e15578",
+    "catalog_sha256": "sha256:2112a9e03f1b0cef6df9c1716e22ec362e90bc5193a44a5f09cb2593dc3e2151",
     "source_count": 20,
-    "source_set_sha256": "sha256:58dcb38ce8a2ecde02a2be03892357c7d2476c8f3f16c673b0498f92c989217d"
+    "source_set_sha256": "sha256:373040c98a03faaf22191450d5a84dea0b8cbdd979723add9b41f3ecccaeb59c"
   },
   "owner": "nobus_space_owner",
   "product_outcome": "MVP-1 accepts a natural text or voice request, derives a strict intent, executes only authorized effects, and returns evidence-bound results.",

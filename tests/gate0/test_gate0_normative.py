@@ -1425,6 +1425,45 @@ def test_canonical_and_core_golden_digests_are_stable() -> None:
     assert golden["core_digest"] == sha256(canonical_bytes(golden["entries"]))
 
 
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "evidence/baseline-evidence.json",
+        "fixtures/contracts/valid/baseline-evidence.json",
+        "fixtures/contracts/invalid/baseline-bool-as-int.json",
+        "fixtures/contracts/invalid/baseline-naive-timestamp.json",
+        "fixtures/contracts/invalid/baseline-non-utc-timestamp.json",
+    ],
+)
+def test_baseline_artifacts_bind_current_documentation_inventory(
+    relative_path: str,
+) -> None:
+    baseline = load_json(GATE / relative_path)
+    baseline_digest = baseline.pop("baseline_digest")
+    assert baseline_digest == sha256(canonical_bytes(baseline))
+
+    inventory_path = (
+        "docs/gates/gate-00-product-contract-baseline/"
+        "evidence/documentation-inventory.json"
+    )
+    expected_digest = sha256((ROOT / inventory_path).read_bytes())
+    references: list[dict[str, Any]] = []
+
+    def collect(node: Any) -> None:
+        if isinstance(node, dict):
+            if node.get("path_or_uri") == inventory_path:
+                references.append(node)
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for value in node:
+                collect(value)
+
+    collect(baseline)
+    assert len(references) == 3
+    assert {reference["sha256"] for reference in references} == {expected_digest}
+
+
 def test_component_manifest_binds_non_recursive_baseline_inputs() -> None:
     component = load_json(GATE / "evidence/component-manifest.json")
     for entry in component["entries"]:

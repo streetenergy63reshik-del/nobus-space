@@ -350,6 +350,14 @@ class SQLiteStore:
                         ON DELETE RESTRICT
                 );
 
+                CREATE TABLE IF NOT EXISTS miniapp_auth_replays (
+                    tenant_id TEXT NOT NULL,
+                    replay_digest TEXT NOT NULL,
+                    auth_expires_at TEXT NOT NULL,
+                    claimed_at TEXT NOT NULL,
+                    PRIMARY KEY (tenant_id, replay_digest)
+                );
+
                 CREATE TABLE IF NOT EXISTS outbox_messages (
                     tenant_id TEXT NOT NULL,
                     message_id TEXT NOT NULL,
@@ -404,6 +412,9 @@ class SQLiteStore:
 
                 CREATE INDEX IF NOT EXISTS idx_outbox_receipts
                     ON outbox_receipts (tenant_id, message_id, received_at);
+
+                CREATE INDEX IF NOT EXISTS idx_miniapp_auth_replays_expiry
+                    ON miniapp_auth_replays (tenant_id, auth_expires_at);
                 """
             )
 
@@ -906,6 +917,79 @@ class SQLiteStore:
         try:
             with closing(self._connect()) as connection:
                 return self._select_task(connection, tenant, task_id)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def list_tasks(
+        self, tenant_id: str, *, limit: int = 20
+    ) -> tuple[StoredTaskSnapshot, ...]:
+        """Read a bounded, stable tenant-scoped task list."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+            raise ValueError("limit must be an integer between 1 and 50")
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(
+                    """SELECT tenant_id, task_id, contract_digest, revision,
+                              updated_at, projection_digest, projection_json
+                       FROM task_snapshots
+                       WHERE tenant_id = ?
+                       ORDER BY julianday(updated_at) DESC, task_id ASC
+                       LIMIT ?""",
+                    (tenant, limit),
+                ).fetchall()
+                return tuple(
+                    self._snapshot_from_row(
+                        row, tenant_id=tenant, task_id=UUID(row["task_id"])
+                    )
+                    for row in rows
+                )
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def claim_miniapp_auth_replay(
+        self,
+        tenant_id: str,
+        replay_digest: str,
+        *,
+        auth_expires_at: datetime,
+        claimed_at: datetime,
+    ) -> bool:
+        """Atomically consume a signed initData digest without storing initData."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not _is_digest(replay_digest):
+            raise ValueError("replay_digest must be a sha256 reference")
+        if any(
+            not isinstance(value, datetime)
+            or value.tzinfo is None
+            or value.utcoffset() is None
+            for value in (auth_expires_at, claimed_at)
+        ):
+            raise ValueError("replay timestamps must be timezone-aware")
+        expires = auth_expires_at.astimezone(UTC)
+        claimed = claimed_at.astimezone(UTC)
+        if expires <= claimed:
+            raise ValueError("auth replay expiry must be in the future")
+        try:
+            with self._transaction() as connection:
+                connection.execute(
+                    """DELETE FROM miniapp_auth_replays
+                       WHERE tenant_id = ? AND auth_expires_at <= ?""",
+                    (tenant, claimed.isoformat()),
+                )
+                cursor = connection.execute(
+                    """INSERT INTO miniapp_auth_replays
+                       (tenant_id, replay_digest, auth_expires_at, claimed_at)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT (tenant_id, replay_digest) DO NOTHING""",
+                    (
+                        tenant,
+                        replay_digest,
+                        expires.isoformat(),
+                        claimed.isoformat(),
+                    ),
+                )
+                return cursor.rowcount == 1
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
 
