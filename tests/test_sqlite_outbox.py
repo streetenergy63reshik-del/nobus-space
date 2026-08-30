@@ -95,7 +95,10 @@ def test_schema_contains_outbox_tables_and_indexes(tmp_path: Path) -> None:
             )
         }
     assert {"outbox_messages", "outbox_receipts"} <= tables
-    assert {"idx_outbox_pending", "idx_outbox_expired"} <= indexes
+    assert {
+        "idx_outbox_pending",
+        "idx_outbox_expired",
+    } <= indexes
 
 
 def test_save_and_enqueue_is_one_atomic_transition(tmp_path: Path) -> None:

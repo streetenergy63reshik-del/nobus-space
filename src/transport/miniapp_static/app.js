@@ -6,14 +6,31 @@ const createTask = document.querySelector("#create-task");
 const instruction = document.querySelector("#instruction");
 let bearer = null;
 let pendingMutation = null;
+let pollTimer = null;
+let selectedTaskId = null;
+let requestGeneration = 0;
+
+function stopPolling() {
+  if (pollTimer !== null) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+}
 
 function showUnavailable() {
+  requestGeneration += 1;
+  stopPolling();
+  selectedTaskId = null;
   bearer = null;
   tasks.replaceChildren();
   detail.hidden = true;
   createTask.hidden = true;
   state.hidden = false;
   state.textContent = unavailable;
+}
+
+function selectionIsCurrent(taskId, generation) {
+  return selectedTaskId === taskId && requestGeneration === generation;
 }
 
 async function api(path) {
@@ -26,20 +43,53 @@ async function api(path) {
 }
 
 async function showTask(taskId) {
+  stopPolling();
+  selectedTaskId = taskId;
+  const generation = ++requestGeneration;
   try {
     const task = await api(`/api/tasks/${encodeURIComponent(taskId)}`);
+    if (!selectionIsCurrent(taskId, generation)) return;
+    const eventResult = await api(
+      `/api/tasks/${encodeURIComponent(taskId)}/events?limit=20`,
+    );
+    if (!selectionIsCurrent(taskId, generation)) return;
     detail.replaceChildren();
     const title = document.createElement("h2");
     title.textContent = `Задача ${task.task_id}`;
     const status = document.createElement("p");
-    status.textContent = `Статус: ${task.status}`;
+    status.textContent = `Статус: ${task.status_label}`;
     const updated = document.createElement("p");
     updated.className = "meta";
     updated.textContent = `Обновлена: ${new Date(task.updated_at).toLocaleString()}`;
     detail.append(title, status, updated);
+    if (eventResult.events.length > 0) {
+      const eventTitle = document.createElement("h3");
+      eventTitle.textContent = "Ход задачи";
+      const events = document.createElement("ol");
+      for (const event of eventResult.events) {
+        const item = document.createElement("li");
+        item.textContent = `${event.kind} · ${new Date(event.emitted_at).toLocaleString()}`;
+        events.append(item);
+      }
+      detail.append(eventTitle, events);
+    }
+    if (task.has_verified_answer) {
+      const result = await api(
+        `/api/tasks/${encodeURIComponent(taskId)}/result?revision=${encodeURIComponent(task.result_revision)}`,
+      );
+      if (!selectionIsCurrent(taskId, generation)) return;
+      const answerTitle = document.createElement("h3");
+      answerTitle.textContent = "Проверенный ответ";
+      const answer = document.createElement("pre");
+      answer.textContent = result.answer;
+      detail.append(answerTitle, answer);
+    }
     detail.hidden = false;
+    if (!task.terminal && selectionIsCurrent(taskId, generation)) {
+      pollTimer = setTimeout(() => showTask(taskId), 3_000);
+    }
   } catch {
-    showUnavailable();
+    if (selectionIsCurrent(taskId, generation)) showUnavailable();
   }
 }
 
@@ -50,7 +100,7 @@ async function loadTasks() {
       const item = document.createElement("li");
       const button = document.createElement("button");
       const title = document.createElement("strong");
-      title.textContent = task.status;
+      title.textContent = task.status_label;
       const meta = document.createElement("span");
       meta.className = "meta";
       meta.textContent = ` · ${new Date(task.updated_at).toLocaleString()}`;

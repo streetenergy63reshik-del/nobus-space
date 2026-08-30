@@ -17,3 +17,4 @@ textarea { box-sizing: border-box; width: 100%; resize: vertical; font: inherit;
 #tasks { display: grid; gap: 0.75rem; padding: 0; list-style: none; }
 button { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .meta { color: var(--tg-theme-hint-color, #606060); font-size: 0.85rem; }
+#detail pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }

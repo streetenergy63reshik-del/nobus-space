@@ -22,8 +22,10 @@ from src.application.miniapp import (
     MiniAppTaskConflictError,
     MiniAppTaskCreation,
     MiniAppTaskDetail,
+    MiniAppTaskEvent,
     MiniAppTaskNotFoundError,
     MiniAppTaskRequestError,
+    MiniAppTaskResult,
     MiniAppTaskSummary,
 )
 
@@ -51,6 +53,14 @@ class MiniAppCoreBoundary(Protocol):
     ) -> Sequence[MiniAppTaskSummary]: ...
 
     def task_detail(self, bearer: str, task_id: UUID) -> MiniAppTaskDetail: ...
+
+    def task_result(
+        self, bearer: str, task_id: UUID, *, result_revision: int
+    ) -> MiniAppTaskResult: ...
+
+    def task_events(
+        self, bearer: str, task_id: UUID, *, limit: int
+    ) -> Sequence[MiniAppTaskEvent]: ...
 
     async def create_task(
         self, bearer: str, instruction: str, idempotency_key: str
@@ -113,13 +123,21 @@ def create_miniapp_app(
         elif any(name in request.headers for name in _AUTHORITY_HEADERS):
             response = JSONResponse({"detail": "invalid_request"}, status_code=400)
         elif request.url.path.startswith("/api/"):
-            request_origin = request.headers.get("origin")
-            if request_origin != origin and not (
-                request.method in _SAFE_READ_METHODS and request_origin is None
+            if request.method in _SAFE_READ_METHODS and not await _body_is_empty(
+                request,
+                timeout_seconds=float(init_data_read_timeout_seconds),
             ):
-                response = JSONResponse({"detail": "forbidden"}, status_code=403)
+                response = _invalid_request()
             else:
-                response = await call_next(request)
+                request_origin = request.headers.get("origin")
+                if request_origin != origin and not (
+                    request.method in _SAFE_READ_METHODS and request_origin is None
+                ):
+                    response = JSONResponse(
+                        {"detail": "forbidden"}, status_code=403
+                    )
+                else:
+                    response = await call_next(request)
         else:
             response = await call_next(request)
         response.headers["Content-Security-Policy"] = (
@@ -273,6 +291,64 @@ def create_miniapp_app(
         except Exception:
             return _core_unavailable()
 
+    @app.get("/api/tasks/{task_id}/result")
+    async def task_result(request: Request, task_id: str) -> object:
+        if not _query_is(request, allowed="revision"):
+            return _invalid_request()
+        try:
+            parsed_task_id = UUID(task_id)
+            raw_revision = request.query_params.get("revision", "")
+            if not raw_revision.isascii() or not raw_revision.isdigit():
+                return _invalid_request()
+            revision = int(raw_revision)
+            if not 1 <= revision <= 2_147_483_647:
+                return _invalid_request()
+        except (TypeError, ValueError):
+            return _task_not_found()
+        try:
+            return core.task_result(
+                _bearer(request),
+                parsed_task_id,
+                result_revision=revision,
+            )
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except MiniAppTaskNotFoundError:
+            return _task_not_found()
+        except MiniAppCoreUnavailableError:
+            return _core_unavailable()
+        except Exception:
+            return _core_unavailable()
+
+    @app.get("/api/tasks/{task_id}/events")
+    async def task_events(request: Request, task_id: str) -> object:
+        if not _query_is(request, allowed="limit"):
+            return _invalid_request()
+        try:
+            parsed_task_id = UUID(task_id)
+            raw_limit = request.query_params.get("limit", "20")
+            if not raw_limit.isascii() or not raw_limit.isdigit():
+                return _invalid_request()
+            limit = int(raw_limit)
+            if not 1 <= limit <= 50:
+                return _invalid_request()
+        except (TypeError, ValueError):
+            return _task_not_found()
+        try:
+            return {
+                "events": list(
+                    core.task_events(_bearer(request), parsed_task_id, limit=limit)
+                )
+            }
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except MiniAppTaskNotFoundError:
+            return _task_not_found()
+        except MiniAppCoreUnavailableError:
+            return _core_unavailable()
+        except Exception:
+            return _core_unavailable()
+
     static_root = Path(__file__).with_name("miniapp_static")
     app.mount("/", StaticFiles(directory=static_root, html=True), name="miniapp")
     return app
@@ -292,6 +368,27 @@ async def _read_bounded_body(
                 raise _RequestBodyTooLarge
             body.extend(chunk)
     return bytes(body)
+
+
+async def _body_is_empty(request: Request, *, timeout_seconds: float) -> bool:
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) != 0:
+                return False
+        except ValueError:
+            return False
+    if "transfer-encoding" in request.headers:
+        return False
+    try:
+        await _read_bounded_body(
+            request,
+            max_bytes=0,
+            timeout_seconds=timeout_seconds,
+        )
+    except (_RequestBodyTooLarge, TimeoutError):
+        return False
+    return True
 
 
 def _bearer(request: Request) -> str:

@@ -809,7 +809,9 @@ async def test_product_status_sender_delivers_long_verified_answer_in_chunks() -
 
     assert len(sent) > 1
     assert all(len(item["text"]) <= 3_400 for item in sent)
-    assert "".join(item["text"] for item in sent).replace("\n", "") == answer.replace("\n", "")
+    assert "".join(item["text"] for item in sent).replace("\n", "") == (
+        "Готово" + answer.replace("\n", "")
+    )
 
 
 @pytest.mark.asyncio
@@ -836,6 +838,19 @@ def test_product_rejected_status_does_not_claim_owner_cancelled() -> None:
 
     assert "Не удалось подтвердить качество результата" in visible
     assert "Задача отменена" not in visible
+
+
+@pytest.mark.parametrize(
+    "status",
+    tuple(TaskStatus),
+)
+def test_product_sender_uses_channel_neutral_status(status: TaskStatus) -> None:
+    from src.application.product_status import product_task_state
+    from src.transport.telegram.bot_api import _status_text
+
+    visible = _status_text(outbox_message(status), technical_details=False)
+
+    assert product_task_state(status).label in visible
 
 
 @pytest.mark.asyncio

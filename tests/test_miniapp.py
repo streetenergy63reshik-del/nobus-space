@@ -444,7 +444,7 @@ def test_create_task_is_session_bound_idempotent_and_uses_existing_queue(
     )
 
     assert repeated == created
-    assert created.status == "pending"
+    assert created.status == "queued"
     assert queue.queue_counts() == (0, 1)
     task = store.read_task(TENANT_ID, created.task_id)
     assert task is not None
@@ -878,6 +878,8 @@ def test_list_is_tenant_scoped_bounded_stable_and_safe(tmp_path: Path) -> None:
     assert set(tasks[0].model_dump(mode="json")) == {
         "task_id",
         "status",
+        "status_label",
+        "terminal",
         "source",
         "risk",
         "created_at",

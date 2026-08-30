@@ -925,7 +925,11 @@ class SQLiteStore:
     ) -> tuple[StoredTaskSnapshot, ...]:
         """Read a bounded, stable tenant-scoped task list."""
         tenant = _required_text(tenant_id, "tenant_id")
-        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 50
+        ):
             raise ValueError("limit must be an integer between 1 and 50")
         try:
             with closing(self._connect()) as connection:
@@ -1176,6 +1180,56 @@ class SQLiteStore:
                         raise ValueError("worker event binding mismatch")
                     worker_identity = parsed.worker_identity
                     events.append(parsed)
+                return tuple(events)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def read_task_events(
+        self, tenant_id: str, task_id: UUID, *, limit: int = 20
+    ) -> tuple[WorkerEvent, ...]:
+        """Return the latest bounded tenant-scoped events in commit order."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 50
+        ):
+            raise ValueError("limit must be an integer between 1 and 50")
+        try:
+            with closing(self._connect()) as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                if snapshot is None:
+                    return ()
+                rows = connection.execute(
+                    """SELECT tenant_id, task_id, attempt_id, sequence, event_id,
+                              contract_digest, worker_identity, event_digest, event_json
+                       FROM audit_events
+                       WHERE tenant_id = ? AND task_id = ?
+                       ORDER BY rowid DESC LIMIT ?""",
+                    (tenant, str(task_id), limit),
+                ).fetchall()
+                events: list[WorkerEvent] = []
+                for row in reversed(rows):
+                    event = WorkerEvent.model_validate_json(row["event_json"])
+                    digest = canonical_json_digest(event.model_dump(mode="json"))
+                    if (
+                        row["tenant_id"] != tenant
+                        or row["task_id"] != str(task_id)
+                        or row["attempt_id"] != str(event.attempt_id)
+                        or row["sequence"] != event.sequence
+                        or row["event_id"] != str(event.event_id)
+                        or row["contract_digest"] != event.contract_digest
+                        or event.tenant_id != tenant
+                        or event.task_id != task_id
+                        or event.contract_digest
+                        != snapshot.projection.contract_digest
+                        or row["worker_identity"] != event.worker_identity
+                        or row["event_digest"] != digest
+                    ):
+                        raise ValueError("worker event binding mismatch")
+                    events.append(event)
                 return tuple(events)
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
@@ -1740,6 +1794,89 @@ class SQLiteStore:
         try:
             with closing(self._connect()) as connection:
                 return self._select_outbox_message(connection, tenant, message_id)
+        except OutboxCorruptionError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def read_verified_answer(
+        self,
+        tenant_id: str,
+        task_id: UUID,
+        *,
+        task_revision: int,
+        task_projection_digest: str,
+        contract_digest: str,
+        result_revision: int,
+        result_digest: str | None,
+    ) -> OutboxMessage | None:
+        """Read the one answer bound to an exact validated task snapshot."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        task_rev = _strict_revision(task_revision)
+        result_rev = _strict_revision(result_revision)
+        if not all(
+            _is_digest(value)
+            for value in (
+                task_projection_digest,
+                contract_digest,
+                result_digest,
+            )
+        ):
+            raise ValueError("verified answer binding is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                if snapshot is None:
+                    return None
+                if (
+                    snapshot.revision != task_rev
+                    or snapshot.snapshot_digest != task_projection_digest
+                    or snapshot.projection.contract_digest != contract_digest
+                    or snapshot.projection.result_revision != result_rev
+                    or snapshot.projection.result_digest != result_digest
+                    or snapshot.projection.status is not TaskStatus.ANSWERED
+                ):
+                    return None
+                rows = connection.execute(
+                    """SELECT tenant_id, message_id, message_fingerprint, task_id,
+                              task_revision, task_projection_digest, status,
+                              attempt_count, max_attempts, next_attempt_at,
+                              lease_id, lease_owner, lease_expires_at,
+                              state_revision, created_at, updated_at,
+                              message_digest, message_json
+                       FROM outbox_messages
+                       WHERE tenant_id = ? AND task_id = ? AND task_revision = ?
+                       ORDER BY message_id LIMIT 2""",
+                    (tenant, str(task_id), task_rev),
+                ).fetchall()
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise OutboxCorruptionError(
+                        "verified answer is not unique"
+                    )
+                message = self._outbox_from_row(
+                    rows[0],
+                    tenant_id=tenant,
+                    message_id=UUID(rows[0]["message_id"]),
+                )
+                if (
+                    message.task_id != task_id
+                    or message.task_revision != task_rev
+                    or message.task_projection_digest
+                    != task_projection_digest
+                    or message.contract_digest != contract_digest
+                    or message.result_revision != result_rev
+                    or message.result_digest != result_digest
+                    or message.task_status is not TaskStatus.ANSWERED
+                    or message.user_message is None
+                ):
+                    raise OutboxCorruptionError(
+                        "verified answer binding mismatch"
+                    )
+                return message
         except OutboxCorruptionError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):

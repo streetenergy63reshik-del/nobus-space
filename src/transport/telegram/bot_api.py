@@ -18,6 +18,7 @@ from uuid import UUID, uuid4
 import httpx
 from pydantic import SecretStr
 
+from src.application.product_status import product_task_state
 from src.models.task import TaskStatus
 from src.storage.outbox import OutboxMessage, OutboxStatus
 
@@ -755,30 +756,39 @@ class TelegramStatusSender:
 def _status_text(
     message: OutboxMessage, *, technical_details: bool = True
 ) -> str:
+    product_state = product_task_state(message.task_status)
     if technical_details:
         return (
             f"Task: {message.task_id}\n"
-            f"Status: {message.task_status.value}\n"
+            f"Status: {product_state.status.value}\n"
             f"Revision: {message.task_revision}\n"
             f"Event: {message.message_id}"
         )
     if message.task_status is TaskStatus.ANSWERED:
         assert message.user_message is not None
-        return message.user_message
+        return f"{product_state.label}\n\n{message.user_message}"
     if message.task_status is TaskStatus.COMPLETED:
         return (
+            f"{product_state.label}\n"
             "✅ Изменение проверено и сохранено в рабочей ветке. "
             "Merge и push не выполнялись."
         )
     if message.task_status is TaskStatus.REJECTED:
         return (
+            f"{product_state.label}\n"
             "⚠️ Не удалось подтвердить качество результата. Уточните задачу."
         )
     if message.task_status is TaskStatus.FAILED:
-        return "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
+        return (
+            f"{product_state.label}\n"
+            "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
+        )
     if message.task_status is TaskStatus.ESCALATE:
-        return "⚠️ Задача остановлена безопасно и требует проверки в Codex."
-    return "Статус задачи обновлён."
+        return (
+            f"{product_state.label}\n"
+            "⚠️ Задача остановлена безопасно и требует проверки в Codex."
+        )
+    return f"{product_state.label}\nСтатус задачи обновлён."
 
 
 def _utc_now() -> datetime:
