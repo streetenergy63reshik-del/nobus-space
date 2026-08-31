@@ -12,8 +12,10 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
+import uvicorn
 from codex_cli_bin import bundled_codex_path
 
 
@@ -51,6 +53,7 @@ from src.application.durable_confirmations import (  # noqa: E402
 )
 from src.application.durable_product import DurableProductTelegramControlPlane  # noqa: E402
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
+from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.owner_files import OwnerFileService  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
@@ -94,6 +97,8 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointError,
     SQLitePollingCheckpointStore,
 )
+from src.transport.miniapp import create_miniapp_app  # noqa: E402
+from src.storage import SQLiteStore  # noqa: E402
 from src.integrations import (  # noqa: E402
     GoogleCalendarClient,
     GoogleDriveClient,
@@ -165,10 +170,95 @@ _RUN_STAGES = frozenset(
         "product_effects",
         "control_construction",
         "control_start",
+        "miniapp_core",
+        "miniapp_server",
         "polling",
     }
 )
 
+
+
+class _MiniAppServer:
+    def __init__(self, app: object, *, host: str, port: int) -> None:
+        config = uvicorn.Config(
+            app,
+            host=host,
+            port=port,
+            log_level="warning",
+            access_log=False,
+            server_header=False,
+        )
+        self._server = uvicorn.Server(config)
+        self._task: asyncio.Task[None] | None = None
+
+    async def start(self) -> None:
+        if self._task is not None:
+            raise RuntimeError("miniapp server lifecycle is invalid")
+        self._task = asyncio.create_task(
+            self._server.serve(), name="nobus-miniapp-server"
+        )
+        try:
+            async with asyncio.timeout(15):
+                while not self._server.started:
+                    if self._task.done():
+                        await self._task
+                        raise RuntimeError("miniapp server failed to start")
+                    await asyncio.sleep(0.01)
+        except TimeoutError:
+            await self.close()
+            raise RuntimeError("miniapp server failed to start") from None
+
+    async def close(self) -> None:
+        task, self._task = self._task, None
+        if task is None:
+            return
+        self._server.should_exit = True
+        try:
+            async with asyncio.timeout(15):
+                await task
+        except TimeoutError:
+            self._server.force_exit = True
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+            raise RuntimeError("miniapp server failed to stop") from None
+
+
+def _miniapp_endpoint(values: argparse.Namespace) -> tuple[str, int, str, str]:
+    bind = getattr(values, "miniapp_bind", "127.0.0.1")
+    port = getattr(values, "miniapp_port", 8765)
+    origin = getattr(values, "miniapp_origin", None) or f"http://127.0.0.1:{port}"
+    host = urlsplit(origin).hostname or ""
+    if bind != "127.0.0.1" or type(port) is not int or not 1024 <= port <= 65535:
+        raise RuntimeError("miniapp endpoint is invalid")
+    if not host:
+        raise RuntimeError("miniapp endpoint is invalid")
+    return bind, port, origin, host
+
+
+def _create_miniapp_server(
+    *,
+    store: SQLiteStore,
+    task_admission: MiniAppTaskAdmission,
+    bot_token: str,
+    owner_user_id: int,
+    tenant_id: str,
+    values: argparse.Namespace,
+) -> _MiniAppServer:
+    core = MiniAppCore(
+        store=store,
+        task_admission=task_admission,
+        bot_token=bot_token,
+        owner_user_id=owner_user_id,
+        tenant_id=tenant_id,
+    )
+    bind, port, origin, host = _miniapp_endpoint(values)
+    app = create_miniapp_app(
+        core,
+        allowed_host=host,
+        allowed_origin=origin,
+        readiness=task_admission.assert_healthy,
+    )
+    return _MiniAppServer(app, host=bind, port=port)
 
 
 def _load_project_context() -> str:
@@ -201,10 +291,12 @@ async def _run(
     nobus_memory = NobusMemory(_NOBUS_MEMORY_ROOT)
 
     control: ProductTelegramControlPlane | None = None
+    miniapp_server: _MiniAppServer | None = None
     product_effects: ProductEffectService | None = None
     runtime = None
+    bot_token = credential.secret.get_secret_value()
     api = TelegramBotApi(
-        token=credential.secret.get_secret_value(),
+        token=bot_token,
         transport=httpx.AsyncHTTPTransport(retries=0, trust_env=False),
         request_timeout=60,
     )
@@ -361,6 +453,18 @@ async def _run(
         )
         report_stage("control_start")
         await control.start()
+        if not values.once:
+            report_stage("miniapp_core")
+            miniapp_server = _create_miniapp_server(
+                store=runtime.miniapp_store,
+                task_admission=control,
+                bot_token=bot_token,
+                owner_user_id=owner_binding.user_id,
+                tenant_id=owner_binding.tenant_id,
+                values=values,
+            )
+            report_stage("miniapp_server")
+            await miniapp_server.start()
 
         async def handle_with_binding(update: dict[str, object]) -> bool:
             nonlocal binding_config
@@ -433,18 +537,22 @@ async def _run(
         }
     finally:
         try:
-            if control is not None:
-                await control.close()
-            elif product_effects is not None:
-                await product_effects.close()
+            if miniapp_server is not None:
+                await miniapp_server.close()
         finally:
             try:
-                if runtime is not None:
-                    closer = getattr(runtime, "close", None)
-                    if callable(closer):
-                        await closer()
+                if control is not None:
+                    await control.close()
+                elif product_effects is not None:
+                    await product_effects.close()
             finally:
-                await api.aclose()
+                try:
+                    if runtime is not None:
+                        closer = getattr(runtime, "close", None)
+                        if callable(closer):
+                            await closer()
+                finally:
+                    await api.aclose()
 
 
 def _extension_version(executable: Path) -> tuple[int, ...]:

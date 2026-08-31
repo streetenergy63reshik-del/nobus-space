@@ -73,6 +73,11 @@ def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--announce", action="store_true")
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--bootstrap-next-offset", type=int)
+    parser.add_argument(
+        "--miniapp-bind", choices=("127.0.0.1",), default="127.0.0.1"
+    )
+    parser.add_argument("--miniapp-port", type=int, default=8765)
+    parser.add_argument("--miniapp-origin")
     values = parser.parse_args(argv)
     if not 0 <= values.timeout <= 50 or (values.serve and values.timeout == 0):
         parser.error("timeout must be 0..50 for once and 1..50 for serve")
@@ -80,6 +85,14 @@ def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
         0 < values.bootstrap_next_offset <= 9_223_372_036_854_775_807
     ):
         parser.error("bootstrap offset is out of range")
+    if not 1024 <= values.miniapp_port <= 65535:
+        parser.error("miniapp port is out of range")
+    if values.miniapp_origin is not None and not (
+        1 <= len(values.miniapp_origin) <= 512
+        and values.miniapp_origin == values.miniapp_origin.strip()
+        and "\x00" not in values.miniapp_origin
+    ):
+        parser.error("miniapp origin is invalid")
     return values
 
 

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import socket
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import httpx
 
 from scripts import run_telegram_mvp1 as runner
 
@@ -141,6 +144,152 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         "telegram-state.sqlite3",
         "business-notes.sqlite3",
     }
+
+
+def test_serve_arguments_expose_one_loopback_miniapp_endpoint() -> None:
+    values = runner._arguments(["--serve"])
+
+    assert values.miniapp_bind == "127.0.0.1"
+    assert values.miniapp_port == 8765
+    assert values.miniapp_origin is None
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--serve", "--miniapp-bind", "0.0.0.0"],
+        ["--serve", "--miniapp-port", "80"],
+    ],
+)
+def test_miniapp_arguments_fail_closed(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        runner._arguments(argv)
+
+
+@pytest.mark.asyncio
+async def test_miniapp_server_lifecycle_disables_access_logging(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    options: dict[str, object] = {}
+    instances: list[object] = []
+
+    def config(app: object, **values: object) -> object:
+        options.update(values)
+        return object()
+
+    class Server:
+        started = False
+        should_exit = False
+        force_exit = False
+
+        def __init__(self, configured: object) -> None:
+            instances.append(self)
+
+        async def serve(self) -> None:
+            self.started = True
+            while not self.should_exit:
+                await asyncio.sleep(0)
+
+    monkeypatch.setattr(runner.uvicorn, "Config", config)
+    monkeypatch.setattr(runner.uvicorn, "Server", Server)
+    server = runner._MiniAppServer(object(), host="127.0.0.1", port=8765)
+
+    await server.start()
+    await server.close()
+
+    assert len(instances) == 1
+    assert options == {
+        "host": "127.0.0.1",
+        "port": 8765,
+        "log_level": "warning",
+        "access_log": False,
+        "server_header": False,
+    }
+    assert instances[0].should_exit is True
+
+
+@pytest.mark.asyncio
+async def test_real_miniapp_server_serves_static_health_and_readiness() -> None:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = int(probe.getsockname()[1])
+    app = runner.create_miniapp_app(
+        object(),
+        allowed_host="127.0.0.1",
+        allowed_origin=f"http://127.0.0.1:{port}",
+        readiness=lambda: None,
+    )
+    server = runner._MiniAppServer(app, host="127.0.0.1", port=port)
+
+    await server.start()
+    try:
+        async with httpx.AsyncClient(
+            base_url=f"http://127.0.0.1:{port}", trust_env=False
+        ) as client:
+            health = await client.get("/healthz")
+            ready = await client.get("/readyz")
+            frontend = await client.get("/")
+    finally:
+        await server.close()
+
+    assert health.status_code == ready.status_code == frontend.status_code == 200
+    assert health.json() == {"status": "ok"}
+    assert ready.json() == {"status": "ready"}
+    assert "Nobus Space" in frontend.text
+
+
+def test_miniapp_composition_preserves_store_admission_and_owner_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = object()
+    admission = SimpleNamespace(assert_healthy=lambda: None)
+    captured: dict[str, object] = {}
+
+    def core(**values: object) -> object:
+        captured["core"] = values
+        return "core"
+
+    def app(core_value: object, **values: object) -> object:
+        captured["app"] = (core_value, values)
+        return "app"
+
+    def server(app_value: object, **values: object) -> object:
+        captured["server"] = (app_value, values)
+        return "server"
+
+    monkeypatch.setattr(runner, "MiniAppCore", core)
+    monkeypatch.setattr(runner, "create_miniapp_app", app)
+    monkeypatch.setattr(runner, "_MiniAppServer", server)
+
+    result = runner._create_miniapp_server(
+        store=store,
+        task_admission=admission,
+        bot_token="secret-not-printed",
+        owner_user_id=700000001,
+        tenant_id="owner",
+        values=runner._arguments(["--serve"]),
+    )
+
+    assert result == "server"
+    assert captured["core"] == {
+        "store": store,
+        "task_admission": admission,
+        "bot_token": "secret-not-printed",
+        "owner_user_id": 700000001,
+        "tenant_id": "owner",
+    }
+    assert captured["app"] == (
+        "core",
+        {
+            "allowed_host": "127.0.0.1",
+            "allowed_origin": "http://127.0.0.1:8765",
+            "readiness": admission.assert_healthy,
+        },
+    )
+    assert captured["server"] == (
+        "app",
+        {"host": "127.0.0.1", "port": 8765},
+    )
 
 
 @pytest.mark.asyncio

@@ -85,6 +85,7 @@ def create_miniapp_app(
     max_init_data_bytes: int = 4096,
     max_task_request_bytes: int = 16_384,
     init_data_read_timeout_seconds: float = 5.0,
+    readiness: Callable[[], None] | None = None,
 ) -> FastAPI:
     """Create a stateless boundary; every authority decision stays in Core."""
     host = allowed_host.strip() if isinstance(allowed_host, str) else ""
@@ -92,16 +93,24 @@ def create_miniapp_app(
     if not host or any(character in host for character in "/*"):
         raise ValueError("allowed_host must be exact")
     parsed_origin = urlsplit(origin)
+    local_http = parsed_origin.scheme == "http" and host == "127.0.0.1"
     if (
-        parsed_origin.scheme != "https"
-        or parsed_origin.netloc != host
+        (parsed_origin.scheme != "https" and not local_http)
+        or parsed_origin.hostname != host
         or parsed_origin.path
         or parsed_origin.query
         or parsed_origin.fragment
         or parsed_origin.username is not None
         or parsed_origin.password is not None
     ):
-        raise ValueError("allowed_origin must be an exact HTTPS origin")
+        raise ValueError(
+            "allowed_origin must be an exact HTTPS origin or loopback HTTP origin"
+        )
+    try:
+        if parsed_origin.port is not None and not 1 <= parsed_origin.port <= 65535:
+            raise ValueError
+    except ValueError:
+        raise ValueError("allowed_origin is invalid") from None
     if (
         isinstance(max_init_data_bytes, bool)
         or not isinstance(max_init_data_bytes, int)
@@ -158,9 +167,25 @@ def create_miniapp_app(
         )
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        if request.url.path.startswith("/api/"):
+        if request.url.path.startswith("/api/") or request.url.path in {
+            "/healthz",
+            "/readyz",
+        }:
             response.headers["Cache-Control"] = "no-store"
         return response
+
+    @app.get("/healthz")
+    async def health() -> object:
+        return {"status": "ok"}
+
+    @app.get("/readyz")
+    async def ready() -> object:
+        try:
+            if readiness is not None:
+                readiness()
+        except Exception:
+            return JSONResponse({"status": "unavailable"}, status_code=503)
+        return {"status": "ready"}
 
     @app.post("/api/session")
     async def create_session(request: Request) -> object:

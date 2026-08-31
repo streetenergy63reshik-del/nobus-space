@@ -296,6 +296,44 @@ def test_browser_reads_work_without_origin_but_wrong_origin_is_rejected(
     assert wrong_origin.status_code == session_without_origin.status_code == 403
 
 
+def test_loopback_http_origin_and_health_readiness_are_bounded() -> None:
+    recorder = RecordingCore()
+    ready = True
+
+    def readiness() -> None:
+        if not ready:
+            raise RuntimeError("private failure detail")
+
+    app = create_miniapp_app(
+        recorder,
+        allowed_host="127.0.0.1",
+        allowed_origin="http://127.0.0.1:8765",
+        readiness=readiness,
+    )
+
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        live = client.get("/healthz")
+        available = client.get("/readyz")
+        ready = False
+        unavailable = client.get("/readyz")
+
+    assert live.status_code == available.status_code == 200
+    assert live.json() == {"status": "ok"}
+    assert available.json() == {"status": "ready"}
+    assert unavailable.status_code == 503
+    assert unavailable.json() == {"status": "unavailable"}
+    assert "private" not in unavailable.text
+
+
+def test_plain_http_is_rejected_outside_exact_loopback() -> None:
+    with pytest.raises(ValueError, match="allowed_origin"):
+        create_miniapp_app(
+            RecordingCore(),
+            allowed_host="miniapp.example",
+            allowed_origin="http://miniapp.example",
+        )
+
+
 def test_chunked_init_data_stops_at_limit_before_buffering_remaining_chunks() -> None:
     recorder = RecordingCore()
     app = create_miniapp_app(recorder, allowed_host="testserver", allowed_origin=ORIGIN)

@@ -131,6 +131,11 @@ class DurableFakeRuntime(FakeVertical):
         self._revisions: dict[UUID, int] = {}
         self._attempts: dict[UUID, UUID] = {}
 
+    @property
+    def miniapp_store(self) -> SQLiteStore:
+        """Return the existing authoritative store for the same-process Mini App."""
+        return self._store
+
     async def handle(
         self,
         update: dict[str, Any],
