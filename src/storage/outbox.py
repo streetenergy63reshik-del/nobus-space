@@ -122,7 +122,6 @@ class OutboxMessage(BaseModel):
     user_message: str | None = Field(
         default=None, min_length=1, max_length=128 * 1024
     )
-    artifact: OutboxArtifact | None = None
     status: OutboxStatus
     attempt_count: StrictInt = Field(ge=0)
     max_attempts: StrictInt = Field(ge=1, le=10)
@@ -174,21 +173,8 @@ class OutboxMessage(BaseModel):
                 )
             ):
                 raise ValueError("answered notification requires a safe message")
-            if self.artifact is not None and (
-                self.artifact.tenant_id != self.tenant_id
-                or self.artifact.task_id != self.task_id
-                or self.artifact.task_revision != self.task_revision
-                or self.artifact.task_projection_digest
-                != self.task_projection_digest
-                or self.artifact.contract_digest != self.contract_digest
-                or self.artifact.result_revision != self.result_revision
-                or self.artifact.result_digest != self.result_digest
-                or self.artifact.content_bytes()
-                != self.user_message.encode("utf-8")
-            ):
-                raise ValueError("artifact does not match the answered result")
-        elif self.user_message is not None or self.artifact is not None:
-            raise ValueError("only answered notifications may carry result content")
+        elif self.user_message is not None:
+            raise ValueError("only answered notifications may carry a message")
         expected_fingerprint = message_fingerprint(
             tenant_id=self.tenant_id,
             task_id=self.task_id,
@@ -200,7 +186,6 @@ class OutboxMessage(BaseModel):
             destination_ref=self.destination_ref,
             task_status=self.task_status,
             user_message=self.user_message,
-            artifact=self.artifact,
         )
         if self.message_fingerprint != expected_fingerprint:
             raise ValueError("message fingerprint does not match its binding")
@@ -278,7 +263,6 @@ def message_fingerprint(
     destination_ref: str,
     task_status: TaskStatus,
     user_message: str | None = None,
-    artifact: OutboxArtifact | None = None,
 ) -> str:
     binding = {
             "contract_digest": contract_digest,
@@ -296,8 +280,6 @@ def message_fingerprint(
         binding["user_message_digest"] = canonical_json_digest(
             {"user_message": user_message}
         )
-    if artifact is not None:
-        binding["artifact_fingerprint"] = artifact.artifact_fingerprint
     return canonical_json_digest(binding)
 
 
@@ -385,4 +367,25 @@ def answer_artifact(
         size=len(content),
         content_digest=content_digest,
         content_base64=base64.b64encode(content).decode("ascii"),
+    )
+
+
+def artifact_for_message(message: OutboxMessage) -> OutboxArtifact | None:
+    validated = OutboxMessage.model_validate(message.model_dump(mode="json"))
+    if (
+        validated.task_status is not TaskStatus.ANSWERED
+        or validated.user_message is None
+        or validated.result_digest is None
+        or validated.result_revision < 1
+    ):
+        return None
+    return answer_artifact(
+        tenant_id=validated.tenant_id,
+        task_id=validated.task_id,
+        task_revision=validated.task_revision,
+        task_projection_digest=validated.task_projection_digest,
+        contract_digest=validated.contract_digest,
+        result_revision=validated.result_revision,
+        result_digest=validated.result_digest,
+        user_message=validated.user_message,
     )

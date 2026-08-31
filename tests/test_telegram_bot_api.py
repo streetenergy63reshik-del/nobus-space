@@ -735,8 +735,19 @@ def test_configuration_rejects_ambiguous_or_unbounded_values(options: dict[str, 
 @pytest.mark.asyncio
 async def test_product_status_sender_never_exposes_internal_identifiers() -> None:
     sent: list[dict[str, Any]] = []
+    documents: list[bytes] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url).endswith("/sendDocument"):
+            request.read()
+            documents.append(request.content)
+            return response(
+                {
+                    "message_id": 2,
+                    "chat": {"id": 42},
+                    "document": {"file_id": "id", "file_unique_id": "unique"},
+                }
+            )
         sent.append(json.loads(request.content))
         return response({"message_id": 1, "chat": {"id": 42}})
 
@@ -761,6 +772,8 @@ async def test_product_status_sender_never_exposes_internal_identifiers() -> Non
     assert "Изменение проверено" in visible
     assert "Не удалось выполнить задачу" in visible
     assert "Проверенный пользовательский ответ." in visible
+    assert len(documents) == 1
+    assert "Проверенный пользовательский ответ.".encode("utf-8") in documents[0]
     for marker in ("Task:", "Event:", "Revision:", str(failed.task_id)):
         assert marker not in visible
 
@@ -768,8 +781,19 @@ async def test_product_status_sender_never_exposes_internal_identifiers() -> Non
 @pytest.mark.asyncio
 async def test_product_status_sender_delivers_long_verified_answer_in_chunks() -> None:
     sent: list[dict[str, Any]] = []
+    documents: list[bytes] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url).endswith("/sendDocument"):
+            request.read()
+            documents.append(request.content)
+            return response(
+                {
+                    "message_id": len(sent) + 1,
+                    "chat": {"id": 42},
+                    "document": {"file_id": "id", "file_unique_id": "unique"},
+                }
+            )
         sent.append(json.loads(request.content))
         return response({"message_id": len(sent), "chat": {"id": 42}})
 
@@ -812,6 +836,8 @@ async def test_product_status_sender_delivers_long_verified_answer_in_chunks() -
     assert "".join(item["text"] for item in sent).replace("\n", "") == (
         "Готово" + answer.replace("\n", "")
     )
+    assert len(documents) == 1
+    assert answer.encode("utf-8") in documents[0]
 
 
 @pytest.mark.asyncio

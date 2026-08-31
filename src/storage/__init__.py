@@ -3,6 +3,7 @@
 from src.storage.outbox import (
     DeliveryReceipt,
     OutboxArtifact,
+    artifact_for_message,
     OutboxEnqueueResult,
     OutboxMessage,
     OutboxStatus,
@@ -42,4 +43,5 @@ __all__ = [
     "SnapshotConflictError",
     "StoreCorruptionError",
     "StoredTaskSnapshot",
+    "artifact_for_message",
 ]

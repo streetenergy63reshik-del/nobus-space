@@ -33,7 +33,6 @@ from src.storage.outbox import (
     OutboxMessage,
     OutboxStatus,
     ReceiptType,
-    answer_artifact,
     message_fingerprint,
     message_id_for,
 )
@@ -1243,10 +1242,7 @@ class SQLiteStore:
             raw_message = json.loads(row["message_json"])
             if not isinstance(raw_message, dict):
                 raise ValueError
-            legacy = (
-                "user_message" not in raw_message
-                or "artifact" not in raw_message
-            )
+            legacy = "user_message" not in raw_message
             message = OutboxMessage.model_validate(raw_message)
             digest = canonical_json_digest(
                 raw_message if legacy else message.model_dump(mode="json")
@@ -1417,22 +1413,6 @@ class SQLiteStore:
             event_digest = canonical_json_digest(event_data)
 
         task_revision = expected + 1
-        artifact = (
-            answer_artifact(
-                tenant_id=projection.tenant_id,
-                task_id=projection.task_id,
-                task_revision=task_revision,
-                task_projection_digest=projection_digest,
-                contract_digest=projection.contract_digest,
-                result_revision=projection.result_revision,
-                result_digest=projection.result_digest,
-                user_message=user_message,
-            )
-            if projection.status is TaskStatus.ANSWERED
-            and user_message is not None
-            and projection.result_digest is not None
-            else None
-        )
         fingerprint = message_fingerprint(
             tenant_id=projection.tenant_id,
             task_id=projection.task_id,
@@ -1444,7 +1424,6 @@ class SQLiteStore:
             destination_ref=destination_ref,
             task_status=projection.status,
             user_message=user_message,
-            artifact=artifact,
         )
         message_id = message_id_for(fingerprint)
         pending = OutboxMessage(
@@ -1461,7 +1440,6 @@ class SQLiteStore:
             template_id="task_status",
             task_status=projection.status,
             user_message=user_message,
-            artifact=artifact,
             status=OutboxStatus.PENDING,
             attempt_count=0,
             max_attempts=max_attempts,
@@ -1486,7 +1464,6 @@ class SQLiteStore:
                         or existing.destination_ref != destination_ref
                         or existing.task_status != projection.status
                         or existing.user_message != user_message
-                        or existing.artifact != artifact
                         or existing.max_attempts != max_attempts
                     ):
                         raise OutboxConflictError(

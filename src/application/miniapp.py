@@ -37,6 +37,7 @@ from src.storage import (
     SQLiteStore,
     StoreCorruptionError,
     StoredTaskSnapshot,
+    artifact_for_message,
 )
 
 
@@ -305,7 +306,7 @@ class MiniAppCore:
             if not has_verified_answer:
                 raise MiniAppCoreUnavailableError("core_unavailable")
             assert message is not None
-            artifact = message.artifact
+            artifact = artifact_for_message(message)
         return MiniAppTaskDetail(
             **self._summary(projection).model_dump(),
             task_revision=snapshot.revision,
@@ -353,6 +354,7 @@ class MiniAppCore:
         message = self._verified_answer(snapshot)
         if message is None or message.user_message is None:
             raise MiniAppCoreUnavailableError("core_unavailable")
+        artifact = artifact_for_message(message)
         return MiniAppTaskResult(
             task_id=task_id,
             task_revision=snapshot.revision,
@@ -361,9 +363,7 @@ class MiniAppCore:
             result_digest=snapshot.projection.result_digest,
             answer=message.user_message,
             artifact=(
-                self._artifact_summary(message.artifact)
-                if message.artifact is not None
-                else None
+                self._artifact_summary(artifact) if artifact is not None else None
             ),
         )
 
@@ -397,7 +397,7 @@ class MiniAppCore:
         ):
             raise MiniAppTaskNotFoundError("task_not_found")
         message = self._verified_answer(snapshot)
-        artifact = None if message is None else message.artifact
+        artifact = None if message is None else artifact_for_message(message)
         if artifact is None or artifact.artifact_id != artifact_id:
             raise MiniAppTaskNotFoundError("task_not_found")
         try:

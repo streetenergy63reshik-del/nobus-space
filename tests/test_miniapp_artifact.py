@@ -14,9 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.application.miniapp import MiniAppCoreUnavailableError
-from src.contracts.models import canonical_json_digest
-from src.storage import SQLiteStore
-from src.storage.outbox import message_fingerprint, message_id_for
+from src.storage import SQLiteStore, artifact_for_message
 from src.transport.miniapp import create_miniapp_app
 from src.transport.telegram.bot_api import TelegramStatusSender
 from tests.test_miniapp import ORIGIN, headers, signed_init_data
@@ -46,7 +44,7 @@ def test_answer_registers_one_immutable_task_bound_artifact(tmp_path: Path) -> N
     store, task, message = _answered_store(tmp_path / "state.sqlite3")
     snapshot = store.read_task(task.tenant_id, task.id)
     assert snapshot is not None
-    artifact = message.artifact
+    artifact = artifact_for_message(message)
     assert artifact is not None
     content = artifact.content_bytes()
 
@@ -85,7 +83,9 @@ def test_artifact_api_rechecks_task_revision_and_never_exposes_path(
     downloaded = client.get(url, headers=headers(token))
 
     assert downloaded.status_code == 200
-    assert downloaded.content == message.artifact.content_bytes()  # type: ignore[union-attr]
+    stored_artifact = artifact_for_message(message)
+    assert stored_artifact is not None
+    assert downloaded.content == stored_artifact.content_bytes()
     assert downloaded.headers["content-type"] == artifact.media_type
     assert downloaded.headers["content-disposition"] == (
         f'attachment; filename="{artifact.filename}"'
@@ -155,44 +155,20 @@ def test_artifact_is_repeatable_after_restart_without_new_state(tmp_path: Path) 
     assert before == after
 
 
-def test_existing_answer_without_artifact_remains_readable(tmp_path: Path) -> None:
+def test_answer_artifact_keeps_persisted_outbox_rollback_compatible(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "state.sqlite3"
     store, task, message = _answered_store(path)
-    legacy_fingerprint = message_fingerprint(
-        tenant_id=message.tenant_id,
-        task_id=message.task_id,
-        task_revision=message.task_revision,
-        task_projection_digest=message.task_projection_digest,
-        contract_digest=message.contract_digest,
-        result_revision=message.result_revision,
-        result_digest=message.result_digest,
-        destination_ref=message.destination_ref,
-        task_status=message.task_status,
-        user_message=message.user_message,
-    )
-    legacy = message.model_copy(
-        update={
-            "artifact": None,
-            "message_fingerprint": legacy_fingerprint,
-            "message_id": message_id_for(legacy_fingerprint),
-        }
-    )
-    data = legacy.model_dump(mode="json", exclude={"artifact"})
     with sqlite3.connect(path) as connection:
-        connection.execute(
-            """UPDATE outbox_messages
-               SET message_id = ?, message_fingerprint = ?,
-                   message_digest = ?, message_json = ?
-               WHERE tenant_id = ? AND message_id = ?""",
-            (
-                str(legacy.message_id),
-                legacy.message_fingerprint,
-                canonical_json_digest(data),
-                json.dumps(data, ensure_ascii=False, separators=(",", ":")),
-                message.tenant_id,
-                str(message.message_id),
-            ),
+        raw = json.loads(
+            connection.execute(
+                "SELECT message_json FROM outbox_messages WHERE message_id = ?",
+                (str(message.message_id),),
+            ).fetchone()[0]
         )
+    assert "artifact" not in raw
+    assert set(raw) == set(message.model_dump(mode="json"))
     service = _service(SQLiteStore(path))
     token = service.authenticate(
         signed_init_data(query_id="legacy-answer-after-upgrade")
@@ -204,14 +180,15 @@ def test_existing_answer_without_artifact_remains_readable(tmp_path: Path) -> No
     )
 
     assert result.answer == message.user_message
-    assert result.artifact is None
-    assert detail.has_artifact is False
+    assert result.artifact is not None
+    assert detail.has_artifact is True
 
 
 def test_artifact_content_tamper_is_safe_unavailable(tmp_path: Path) -> None:
     path = tmp_path / "state.sqlite3"
     _, task, message, service, token, _, detail = _authorized_client(path)
-    assert message.artifact is not None
+    artifact = artifact_for_message(message)
+    assert artifact is not None
     with sqlite3.connect(path) as connection:
         raw = json.loads(
             connection.execute(
@@ -219,7 +196,7 @@ def test_artifact_content_tamper_is_safe_unavailable(tmp_path: Path) -> None:
                 (str(message.message_id),),
             ).fetchone()[0]
         )
-        raw["artifact"]["content_base64"] = "AAAA"
+        raw["user_message"] = "tampered artifact bytes"
         connection.execute(
             "UPDATE outbox_messages SET message_json = ? WHERE message_id = ?",
             (json.dumps(raw, separators=(",", ":")), str(message.message_id)),
@@ -229,7 +206,7 @@ def test_artifact_content_tamper_is_safe_unavailable(tmp_path: Path) -> None:
         service.task_artifact(
             token,
             task.id,
-            message.artifact.artifact_id,
+            artifact.artifact_id,
             result_revision=detail.result_revision,
         )
 
@@ -283,7 +260,9 @@ def test_telegram_and_miniapp_deliver_identical_artifact_bytes(
         asyncio.run(api.aclose())
 
     document = next(call for call in calls if str(call.url).endswith("/sendDocument"))
-    assert download.content == message.artifact.content_bytes()  # type: ignore[union-attr]
+    stored_artifact = artifact_for_message(message)
+    assert stored_artifact is not None
+    assert download.content == stored_artifact.content_bytes()
     assert download.content in document.content
     assert hashlib.sha256(download.content).hexdigest() == artifact["content_digest"][7:]
 

@@ -20,7 +20,7 @@ from pydantic import SecretStr
 
 from src.application.product_status import product_task_state
 from src.models.task import TaskStatus
-from src.storage.outbox import OutboxMessage, OutboxStatus
+from src.storage.outbox import OutboxMessage, OutboxStatus, artifact_for_message
 
 
 _API_ROOT = "https://api.telegram.org"
@@ -750,11 +750,12 @@ class TelegramStatusSender:
         text = _status_text(validated, technical_details=self._technical_details)
         for chunk in _status_message_chunks(text):
             await self._api.send_message(binding[1], chunk)
-        if validated.artifact is not None:
+        artifact = artifact_for_message(validated)
+        if artifact is not None:
             await self._api.send_document(
                 binding[1],
-                validated.artifact.filename,
-                validated.artifact.content_bytes(),
+                artifact.filename,
+                artifact.content_bytes(),
             )
         return True
 
