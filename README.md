@@ -15,15 +15,18 @@ runtime.
 - содержащая этот файл revision вне защищённой `main` является
   `GATE_CANDIDATE`; после разрешённого merge и проверки достижимости та же
   revision становится частью `ACCEPTED_PUBLISHED_BASELINE`;
-- принятый published baseline до этой docs-only актуализации: protected
-  `main` @ `a363db032d4451b73c93b530a59ac1850364e710`, подтверждённый live
-  fetch/readback 31 августа 2026 года;
+- published base, от которой собран локальный product candidate:
+  protected `main` @ `d7e2b8275f20a1a261bbf541573f76db82240901`,
+  подтверждённый fetch/readback 31 августа 2026 года; актуальный tip `main`
+  определяется live readback и не дублируется в этом файле;
 - архитектура опубликована через PR
   [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1),
   Mini App auth/list/detail/create и Gate 0 integrity repair — через PR
   [#2](https://github.com/streetenergy63reshik-del/nobus-space/pull/2),
   publication readback — через PR
-  [#3](https://github.com/streetenergy63reshik-del/nobus-space/pull/3);
+  [#3](https://github.com/streetenergy63reshik-del/nobus-space/pull/3),
+  полная продуктовая граница MVP-1 — через PR
+  [#4](https://github.com/streetenergy63reshik-del/nobus-space/pull/4);
 - снимок защиты `main`, повторно прочитанный 31 августа 2026 года: требуется
   pull request и
   закрытие всех обсуждений, запрещены bypass, force-push и удаление ветки;
@@ -61,11 +64,14 @@ Git-репозиторий — источник истины для code/tests/A
 5. возвращает одну task identity, status, verified result и реальный artifact;
 6. проходит negative/restart/recovery, bounded owner smoke и release rollback.
 
-Локальный `VERIFIED LOCAL CANDIDATE`
-`f18a664f2fab2fbd193e894bc93d5624683badf2` добавляет status, events и
-verified-result projection и прошёл локальные L1/L2/L3, но не опубликован и не
-закрывает artifact, production composition, HTTPS/BotFather activation или
-owner acceptance.
+Локальная continuation branch от exact published base содержит status,
+bounded events, verified result, реальный tenant/task/result-bound artifact и
+same-process Telegram/Core/Mini App composition. G2–G6 прошли
+release-relevant suite, real Browser create/status/events/result/artifact,
+restart/recovery/rollback и coherent L1/L2/L3. Exact revisions и проверки
+зафиксированы в [CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Candidate не
+опубликован, не развёрнут за HTTPS и не прошёл Telegram owner acceptance,
+поэтому продуктовый verdict не повышается.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner
 publication hold и не входят в этот docs-only release.
 
@@ -113,23 +119,48 @@ authority, bot secret или Agent Registry.
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 
-Это опубликованный Git slice, но не live Mini App: production composition,
+Это опубликованный Git slice, но не live Mini App. Локальный continuation
+candidate дополняет его status/result/artifact и product composition;
 HTTPS ingress/hostname, BotFather menu button, deploy и live owner smoke не
-подтверждены. Следующий незакрытый продуктовый результат — безопасный реальный
-artifact, затем production wiring, activation, owner acceptance и release.
+подтверждены.
+
+## Локальный product composition
+
+Одна команда запускает существующий Telegram/Core/Codex runtime и Mini App в
+одном процессе, с одной authoritative task DB/queue:
+
+```powershell
+& '..\..\nobus-orchestrator-dev\.venv\Scripts\python.exe' `
+  scripts\run_telegram_mvp1.py --serve --timeout 30
+```
+
+После успешного fail-closed startup локальный frontend доступен по
+`http://127.0.0.1:8765/`, liveness — `/healthz`, readiness — `/readyz`.
+Loopback HTTP разрешён только для локальной проверки; любой нелокальный origin
+остаётся HTTPS-only. Остановка процесса сначала закрывает web admission, затем
+durable control workers, Core/runtime и Telegram API client.
+
+Verified answer даёт один детерминированный UTF-8 artifact. Его identity,
+revision, digest, MIME, размер и безопасное имя выводятся из существующего
+tamper-evident outbox result; отдельная artifact DB/queue не создаётся.
+Telegram `sendDocument` и Mini App download получают одинаковые bytes/digest,
+а path, foreign-tenant existence и stale/tampered refs не раскрываются.
+
+Для принятого owner journey отдельный ApprovalRequest не требуется: create,
+status, result и download являются Core admission/read-only delivery. Уже
+существующие approval/effect boundaries произвольных owner actions не менялись.
 
 ## Локальная проверка документационного кандидата
 
 ```powershell
 & '.\.venv\Scripts\python.exe' -m pytest -q -p no:cacheprovider `
-  tests/test_miniapp.py `
-  tests/test_durable_telegram_state.py `
-  tests/test_sqlite_store.py `
-  tests/test_main.py `
-  tests/test_pre_gate1_architecture_integration.py `
   tests/test_documentation.py
 git diff --check
 ```
+
+Полный frozen G6 evidence и независимый focused code recheck находятся в
+[CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Исторические Gate 0 verifier
+не используются как release gate текущего ADR 0022 candidate.
 
 Наличие локального commit само по себе не разрешает push, merge, deploy,
 recovery, удаление или запись в Nobus Memory: каждое внешнее действие требует

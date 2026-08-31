@@ -65,6 +65,9 @@ Research и Architecture объясняют старый TARGET, но не оп�
 - Gate 3–8 handoffs and full Gate 2A acceptance matrix;
 - Gate-specific L4 templates as instructions for local development.
 
-Active next slice:
-**thin Telegram Mini App owner authentication + read-only task list/detail over
-the existing local Core/state**.
+Active implementation truth находится в
+[CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
+Auth/list/detail/create опубликованы; G2–G6 проверены только локально. Следующий
+незакрытый product gate — отдельно авторизованный G7: public HTTPS ingress,
+Telegram menu activation и bounded live owner acceptance. G8 — publication,
+release tag и exact readback после принятия.

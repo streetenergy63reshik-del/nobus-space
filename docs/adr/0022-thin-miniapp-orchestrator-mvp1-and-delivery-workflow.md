@@ -2,9 +2,10 @@
 
 **Статус ADR:** ACCEPTED
 
-**Статус реализации:** CURRENT для процесса и опубликованных slices 1–3;
-VERIFIED LOCAL PARTIAL для slice 4 (status/events/verified result); TARGET для
-artifact и slices 5–6
+**Статус реализации:** CURRENT для процесса; auth/list/detail/create
+опубликованы; G2–G6 VERIFIED LOCAL / NOT PUBLISHED / NOT DEPLOYED; G7–G8 TARGET.
+Exact revision и evidence ведутся в
+[CURRENT-STATUS](../handoffs/CURRENT-STATUS.md).
 
 **Дата:** 25 августа 2026 года
 
@@ -344,13 +345,13 @@ RELEASE_PRODUCTION`
 2. Thin Mini App owner authentication + read-only список/карточка задач —
    DONE / PUBLISHED.
 3. Создание одной задачи из Mini App в существующем Core — DONE / PUBLISHED.
-4. Единый статус и получение результата/артефакта через Telegram и Mini App —
-   VERIFIED LOCAL PARTIAL: status/events/verified result в локальном
-   `f18a664` прошли L1/L2/L3; настоящий artifact остаётся TARGET.
-5. Минимальные runtime approvals и recovery только для реально нужных effects
-   — TARGET.
-6. Production composition, HTTPS/menu activation, ограниченный owner smoke и
-   release — TARGET.
+4. Единый status/result/artifact через Telegram и Mini App — VERIFIED LOCAL /
+   NOT PUBLISHED; одинаковые bytes/digest и negative refs проверены.
+5. Effect verdict, recovery, same-process composition и frozen assurance —
+   VERIFIED LOCAL / NOT DEPLOYED. Для принятого journey отдельный
+   `ApprovalRequest` не требуется; существующие effect boundaries сохранены.
+6. G7 public HTTPS/menu/deploy/owner acceptance и G8 publication/tag/readback —
+   TARGET.
 
 Каждый slice обязан работать самостоятельно. Google/document/analytics,
 multi-user и platform идеи остаются backlog до прямой нужды пути.
