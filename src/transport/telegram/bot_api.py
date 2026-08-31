@@ -750,6 +750,12 @@ class TelegramStatusSender:
         text = _status_text(validated, technical_details=self._technical_details)
         for chunk in _status_message_chunks(text):
             await self._api.send_message(binding[1], chunk)
+        if validated.artifact is not None:
+            await self._api.send_document(
+                binding[1],
+                validated.artifact.filename,
+                validated.artifact.content_bytes(),
+            )
         return True
 
 

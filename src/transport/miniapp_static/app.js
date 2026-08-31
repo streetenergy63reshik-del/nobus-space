@@ -42,6 +42,43 @@ async function api(path) {
   return response.json();
 }
 
+async function downloadArtifact(taskId, result, artifact, generation) {
+  try {
+    const path =
+      `/api/tasks/${encodeURIComponent(taskId)}/artifacts/` +
+      `${encodeURIComponent(artifact.artifact_id)}?revision=` +
+      encodeURIComponent(result.result_revision);
+    const response = await fetch(path, {
+      headers: { Authorization: `Bearer ${bearer}` },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("artifact_unavailable");
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength !== artifact.size) throw new Error("artifact_mismatch");
+    const digest = Array.from(
+      new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+      (value) => value.toString(16).padStart(2, "0"),
+    ).join("");
+    if (`sha256:${digest}` !== artifact.content_digest) {
+      throw new Error("artifact_mismatch");
+    }
+    if (!selectionIsCurrent(taskId, generation)) return;
+    const objectUrl = URL.createObjectURL(
+      new Blob([bytes], { type: artifact.media_type }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = artifact.filename;
+    anchor.rel = "noopener";
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+  } catch {
+    if (!selectionIsCurrent(taskId, generation)) return;
+    state.hidden = false;
+    state.textContent = "Артефакт временно недоступен.";
+  }
+}
+
 async function showTask(taskId) {
   stopPolling();
   selectedTaskId = taskId;
@@ -83,6 +120,21 @@ async function showTask(taskId) {
       const answer = document.createElement("pre");
       answer.textContent = result.answer;
       detail.append(answerTitle, answer);
+      if (result.artifact) {
+        const artifactTitle = document.createElement("h3");
+        artifactTitle.textContent = "Артефакт";
+        const artifactMeta = document.createElement("p");
+        artifactMeta.className = "meta";
+        artifactMeta.textContent =
+          `${result.artifact.filename} · ${result.artifact.size} байт`;
+        const download = document.createElement("button");
+        download.type = "button";
+        download.textContent = "Скачать артефакт";
+        download.addEventListener("click", () =>
+          downloadArtifact(taskId, result, result.artifact, generation),
+        );
+        detail.append(artifactTitle, artifactMeta, download);
+      }
     }
     detail.hidden = false;
     if (!task.terminal && selectionIsCurrent(taskId, generation)) {

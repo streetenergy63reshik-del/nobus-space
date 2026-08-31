@@ -19,6 +19,7 @@ from src.application.miniapp import (
     MiniAppAuthenticationError,
     MiniAppCoreUnavailableError,
     MiniAppSessionGrant,
+    MiniAppTaskArtifactDownload,
     MiniAppTaskConflictError,
     MiniAppTaskCreation,
     MiniAppTaskDetail,
@@ -57,6 +58,15 @@ class MiniAppCoreBoundary(Protocol):
     def task_result(
         self, bearer: str, task_id: UUID, *, result_revision: int
     ) -> MiniAppTaskResult: ...
+
+    def task_artifact(
+        self,
+        bearer: str,
+        task_id: UUID,
+        artifact_id: UUID,
+        *,
+        result_revision: int,
+    ) -> MiniAppTaskArtifactDownload: ...
 
     def task_events(
         self, bearer: str, task_id: UUID, *, limit: int
@@ -348,6 +358,50 @@ def create_miniapp_app(
             return _core_unavailable()
         except Exception:
             return _core_unavailable()
+
+    @app.get("/api/tasks/{task_id}/artifacts/{artifact_id}")
+    async def task_artifact(
+        request: Request, task_id: str, artifact_id: str
+    ) -> Response:
+        if not _query_is(request, allowed="revision"):
+            return _invalid_request()
+        try:
+            parsed_task_id = UUID(task_id)
+            parsed_artifact_id = UUID(artifact_id)
+            raw_revision = request.query_params.get("revision", "")
+            if not raw_revision.isascii() or not raw_revision.isdigit():
+                return _invalid_request()
+            revision = int(raw_revision)
+            if not 1 <= revision <= 2_147_483_647:
+                return _invalid_request()
+        except (TypeError, ValueError):
+            return _task_not_found()
+        try:
+            download = core.task_artifact(
+                _bearer(request),
+                parsed_task_id,
+                parsed_artifact_id,
+                result_revision=revision,
+            )
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except MiniAppTaskNotFoundError:
+            return _task_not_found()
+        except MiniAppCoreUnavailableError:
+            return _core_unavailable()
+        except Exception:
+            return _core_unavailable()
+        artifact = download.artifact
+        return Response(
+            content=download.content,
+            media_type=artifact.media_type,
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="{artifact.filename}"'
+                ),
+                "ETag": f'"{artifact.content_digest[7:]}"',
+            },
+        )
 
     static_root = Path(__file__).with_name("miniapp_static")
     app.mount("/", StaticFiles(directory=static_root, html=True), name="miniapp")

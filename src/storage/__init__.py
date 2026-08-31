@@ -2,6 +2,7 @@
 
 from src.storage.outbox import (
     DeliveryReceipt,
+    OutboxArtifact,
     OutboxEnqueueResult,
     OutboxMessage,
     OutboxStatus,
@@ -30,6 +31,7 @@ __all__ = [
     "IngressClaimConflictError",
     "OutboxConflictError",
     "OutboxCorruptionError",
+    "OutboxArtifact",
     "OutboxEnqueueResult",
     "OutboxLeaseError",
     "OutboxMessage",

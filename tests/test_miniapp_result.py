@@ -177,8 +177,17 @@ def test_core_result_rechecks_session_task_revision_and_safe_allowlist(
         "task_revision",
         "product_status",
         "result_revision",
-        "result_digest",
-        "answer",
+            "result_digest",
+            "answer",
+            "artifact",
+        }
+    assert result.artifact is not None
+    assert set(result.artifact.model_dump(mode="json")) == {
+        "artifact_id",
+        "filename",
+        "media_type",
+        "size",
+        "content_digest",
     }
     forbidden = (
         "tenant-a",
@@ -187,6 +196,8 @@ def test_core_result_rechecks_session_task_revision_and_safe_allowlist(
         "lease_id",
         "summary",
         "output_digest",
+        "content_base64",
+        "artifact_fingerprint",
     )
     assert all(value not in result.model_dump_json() for value in forbidden)
     for task_id, revision in (
