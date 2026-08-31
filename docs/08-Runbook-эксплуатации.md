@@ -8,6 +8,15 @@
 > сохраняются, пока не superseded отдельным проверенным runtime change.
 >
 
+> **MVP-1 activation boundary — 31 августа 2026.** Существующий Windows Task
+> Scheduler/autostart ниже относится к уже работающему Telegram runtime и не
+> доказывает activation Mini App. G2–G6 Mini App product composition проверены
+> только как локальный candidate; он не опубликован, не deployed и не подключён
+> через HTTPS/BotFather menu. Точный статус и evidence:
+> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Следующий шаг — отдельно
+> авторизованный G7, а не изменение существующего live runner «по умолчанию».
+>
+
 ## Operational override 2026-07-25 — persistent Codex SDK candidate
 
 Этот раздел отменяет ниже расположенные инструкции, где production worker

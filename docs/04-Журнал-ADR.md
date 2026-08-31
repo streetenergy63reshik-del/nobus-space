@@ -27,7 +27,7 @@
 | [0019](adr/0019-owner-service-filesystem-and-runtime-decisions.md) | Owner decisions: CLI-first Codex, Drive-wide read, controlled full owner-root workspace, Healthchecks.io → Gmail и benchmark-gated paid services | ACCEPTED; scoped by 0022 | PARTIAL / DEFERRED |
 | [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Telegram Mini App is required; historical Server/Development Control Gate 2A topology is scoped by ADR 0022 | ACCEPTED; scoped by 0022 | THIN MVP ACTIVE / FULL 2A FROZEN |
 | [0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Historical post-seal role/verification overlay; active process and roadmap are scoped by ADR 0022 | ACCEPTED; scoped by 0022 | HISTORICAL / PARTIAL |
-| [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen; one candidate-bound delivery workflow | ACCEPTED | CURRENT PROCESS + SLICES 1–3 PUBLISHED / SLICE 4 VERIFIED LOCAL PARTIAL / SLICES 5–6 TARGET |
+| [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen; one candidate-bound delivery workflow | ACCEPTED | CURRENT PROCESS; AUTH/LIST/DETAIL/CREATE PUBLISHED; G2–G6 VERIFIED LOCAL / NOT DEPLOYED; G7–G8 TARGET |
 
 ## Правила статусов ADR
 

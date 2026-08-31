@@ -1,13 +1,23 @@
 # Документация Nobus Space
 
 **Статус:** CANONICAL INDEX
-**Актуально на:** 25 августа 2026 года
+**Актуально на:** 31 августа 2026 года
 
 Активный курс задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
 тонкий Telegram Mini App и Telegram-оркестратор обязательны в MVP-1, используют
 существующий локальный Core и не создают второй queue/state/effect contour.
 Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
+
+Единственная подвижная реализационная проекция —
+[CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
+checks, blockers и следующий gate. На 31 августа G2–G6 имеют статус
+`VERIFIED LOCAL CANDIDATE / NOT PUBLISHED / NOT DEPLOYED`; G7–G8 не завершены,
+поэтому общий verdict — `MVP-1 IN PROGRESS / NOT PRODUCT READY`.
+
+Редакционная продуктовая roadmap и HTML-визуализация остаются локальным
+`HOLD / NOT PUBLISHED`, не входят в этот канонический комплект и здесь не
+публикуются.
 
 ## Иерархия источников
 
@@ -41,11 +51,15 @@ pointer, короткий status, decisions и freshness.
    — решения и supersession.
 5. [CURRENT-STATUS](handoffs/CURRENT-STATUS.md) — branch/revision, WIP,
    blockers, checks и следующий slice.
-6. [Workspace inventory](handoffs/WORKSPACE-INVENTORY.md) — роли repo,
-   worktrees и recovery.
-7. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
+6. [Runbook](08-Runbook-эксплуатации.md) — действующий Telegram runtime и
+   отдельная activation-граница Mini App.
+7. [Контекст продукта](11-Контекст-продукта.md) — безопасная coarse-проекция
+   без подвижных SHA.
+8. [Workspace inventory](handoffs/WORKSPACE-INVENTORY.md) — роли repo,
+   worktrees и recovery; точное live-состояние всегда читается из Git.
+9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-8. [Gate index](gates/README.md) — исторические sealed Gate и frozen WIP, не
+10. [Gate index](gates/README.md) — исторические sealed Gate и frozen WIP, не
    active roadmap.
 
 ## Сохранённые контракты

@@ -1,7 +1,7 @@
 # Nobus Space — workspace inventory
 
 **Статус:** CANONICAL OPERATIONS INVENTORY
-**Актуально на:** 27 августа 2026 года
+**Актуально на:** 31 августа 2026 года
 
 Активная topology и delivery workflow:
 [ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
@@ -12,15 +12,14 @@
 | Поле | Значение |
 |---|---|
 | Local repository | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
-| Candidate branch record | `docs/mvp1-thin-architecture` |
-| Baseline main at refresh freeze | `8b896fbca9b23c8751d651d14a122506338b5827` |
-| Initial PR head before refresh | `d3a235e4db2257826d5a5c5661a709c442be981e`; tree `bf503ae0bb7d243e083055e2631084987af3c1c0` |
+| Live local authority | `git worktree list --porcelain`, `git status --short --branch` и `git rev-parse HEAD` в exact worktree |
 | Origin | `https://github.com/streetenergy63reshik-del/nobus-space.git` |
-| Remote snapshot before refresh publication | `main` @ `8b896fb...`; architecture branch @ `d3a235e...`; branch upstream not configured |
-| Pull request record | [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1); live state and head must be read from GitHub |
-| Accepted published baseline readback, 2026-08-27 | `origin/main` = `adf3bfbb601a12182c420a720b16459c15970da4`; local `main` matched it before this documentation checkpoint |
-| Visibility snapshot, 2026-08-25 | `public` |
-| Protection snapshot, 2026-08-25 | PR + conversation resolution required; bypass, force-push and deletion disabled; required status checks not configured |
+| Product-candidate base | protected `main` @ `d7e2b8275f20a1a261bbf541573f76db82240901`, read back before continuation branch creation |
+| Product candidate | `codex/mvp1-release-continuation` @ `61b5a5ebbba100d666747cfc4c5b39b08a77a826`; frozen code `fc43edf098098e95099fa3882a0d97ca12ddf89b`; clean at audit; **NOT PUBLISHED / NOT DEPLOYED** |
+| Documentation sync | isolated `docs/mvp1-status-g7-ready` from exact `d7e2b827...`; active docs only, no product code/tests |
+| Published history before this sync | PR #1–#4 merged; no tags or releases; live `main` tip is read from GitHub and is not duplicated as a permanent “current” value |
+| Roadmap/HTML | local owner `HOLD / NOT PUBLISHED`; excluded from the docs sync |
+| Protection snapshot, 2026-08-31 | PR + conversation resolution required; admins enforced; bypass, force-push and deletion disabled; required status checks not configured |
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. GitHub
 принятый опубликованный канон определяется exact revision из live readback
@@ -30,29 +29,32 @@ Git-репозиторий — source of truth для code/tests/ADR/CURRENT/doc
 
 ## 2. Working tree ownership
 
-- Финальное обновление меняет только этот inventory и `CURRENT-STATUS.md`;
-  product/runtime code и tests не затронуты.
-- Канонический `main` перед обновлением документации был чист и совпадал с
-  `origin/main`; содержащая revision остаётся локальным документальным WIP до
-  отдельной публикации.
+- Документационная актуализация выполняется только в isolated docs worktree;
+  product/runtime code и tests не затрагиваются.
+- Локальный checkout `main` содержит пользовательский WIP и не используется как
+  publication source; его изменения не stash/reset/commit/merge этой задачей.
+- Product candidate и dirty Gate 1 WIP сохраняются в своих worktrees без
+  изменений.
 - Credentials, tokens, live runtime, refs, bundles, stash и recovery не
   изменяются.
 
 ## 3. Registered worktrees
 
-Снимок 25 августа содержал 16 зарегистрированных worktree. Финальный readback
-27 августа содержит ровно два:
+Этот раздел — snapshot ролей на 31 августа, а не обещание постоянного числа.
+Перед любой операцией точный состав повторно читается командой
+`git worktree list --porcelain`.
 
 | Worktree/ref | Role | Rule |
 |---|---|---|
-| canonical repo / `main` @ `adf3bfbb...` | принятый опубликованный источник истины | обычная разработка ведётся только здесь или в новом краткоживущем task-worktree |
+| canonical repo / local `main` @ `f18a664...` | 20-path mixed WIP, включая непубликуемые roadmap/HTML | preserve; не использовать для публикации и не переносить целиком |
+| `docs/mvp1-product-readiness` @ `c70738c...` | clean historical PR #4 worktree | reference only; behind protected `main` на snapshot |
+| `docs/mvp1-status-g7-ready` from `d7e2b827...` | isolated docs-only sync | разрешены только активные docs из exact allowlist |
 | `agent/gate-01-acceptance` @ `db0a24e...` | 86-path dirty Gate 1 WIP | `HOLD / NOT_ACCEPTED`; сохранить замороженным, целиком не сливать |
+| `codex/mvp1-release-continuation` @ `61b5a5e...` | clean G2–G6 product candidate | источник кода/evidence; не опубликован и не deployed |
 
 `gate-01-integration` больше не зарегистрирован и физически отсутствует; его
-ветка сохранена. Остальные исторические worktree из первоначального снимка
-также не зарегистрированы. Успешный recovery восьми последних сведённых
-worktree сохранён в TaskArtifacts. Это текущее состояние, а не разрешение на
-удаление оставшегося `gate-01-acceptance`.
+ветка сохранена. Успешный recovery ранее сведённых worktree сохранён в
+TaskArtifacts. Snapshot не разрешает удаление любого оставшегося worktree.
 
 ## 4. Gate 1 recovery
 
