@@ -208,6 +208,14 @@ class _MiniAppServer:
             await self.close()
             raise RuntimeError("miniapp server failed to start") from None
 
+    def assert_healthy(self) -> None:
+        task = self._task
+        if task is None or task.done():
+            error = None
+            if task is not None and not task.cancelled():
+                error = task.exception()
+            raise RuntimeError("miniapp server stopped") from error
+
     async def close(self) -> None:
         task, self._task = self._task, None
         if task is None:
@@ -252,13 +260,27 @@ def _create_miniapp_server(
         tenant_id=tenant_id,
     )
     bind, port, origin, host = _miniapp_endpoint(values)
+
+    def readiness() -> None:
+        task_admission.assert_healthy()
+        store.list_tasks(tenant_id, limit=1)
+
     app = create_miniapp_app(
         core,
         allowed_host=host,
         allowed_origin=origin,
-        readiness=task_admission.assert_healthy,
+        readiness=readiness,
     )
     return _MiniAppServer(app, host=bind, port=port)
+
+
+def _assert_product_healthy(
+    control: ProductTelegramControlPlane,
+    miniapp_server: _MiniAppServer | None,
+) -> None:
+    control.assert_healthy()
+    if miniapp_server is not None:
+        miniapp_server.assert_healthy()
 
 
 def _load_project_context() -> str:
@@ -521,14 +543,14 @@ async def _run(
                 polling, api, bindings, control=control,
                 timeout=values.timeout, announce=values.announce,
             )
-            control.assert_healthy()
+            _assert_product_healthy(control, miniapp_server)
             while True:
                 acknowledged += await _poll_with_unavailable_backoff(
                     polling, api, bindings, control=control,
                     timeout=values.timeout, announce=False,
                 )
-                control.assert_healthy()
-        control.assert_healthy()
+                _assert_product_healthy(control, miniapp_server)
+        _assert_product_healthy(control, miniapp_server)
         return {
             "status": "PASS",
             "mode": "once" if values.once else "serve",
@@ -646,7 +668,12 @@ def _required_executable(name: str) -> Path:
 
 def _validated_worktree() -> Path:
     root = _WORKTREE.resolve(strict=True)
-    if not root.is_dir() or root == ROOT:
+    current_is_isolated = (
+        root == ROOT
+        and root.parent.name.casefold() == "worktrees"
+        and (root / ".git").is_file()
+    )
+    if not root.is_dir() or (root == ROOT and not current_is_isolated):
         raise RuntimeError("isolated worktree is unavailable")
     return root
 

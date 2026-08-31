@@ -195,6 +195,7 @@ async def test_miniapp_server_lifecycle_disables_access_logging(
     server = runner._MiniAppServer(object(), host="127.0.0.1", port=8765)
 
     await server.start()
+    server.assert_healthy()
     await server.close()
 
     assert len(instances) == 1
@@ -206,6 +207,39 @@ async def test_miniapp_server_lifecycle_disables_access_logging(
         "server_header": False,
     }
     assert instances[0].should_exit is True
+
+
+@pytest.mark.asyncio
+async def test_miniapp_server_exit_fails_product_health(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    exit_server = asyncio.Event()
+
+    class Server:
+        started = False
+        should_exit = False
+        force_exit = False
+
+        def __init__(self, configured: object) -> None:
+            pass
+
+        async def serve(self) -> None:
+            self.started = True
+            await exit_server.wait()
+
+    monkeypatch.setattr(runner.uvicorn, "Config", lambda *args, **kwargs: object())
+    monkeypatch.setattr(runner.uvicorn, "Server", Server)
+    server = runner._MiniAppServer(object(), host="127.0.0.1", port=8765)
+    control = SimpleNamespace(assert_healthy=lambda: None)
+
+    await server.start()
+    exit_server.set()
+    for _ in range(10):
+        await asyncio.sleep(0)
+
+    with pytest.raises(RuntimeError, match="miniapp server stopped"):
+        runner._assert_product_healthy(control, server)
+    await server.close()
 
 
 @pytest.mark.asyncio
@@ -241,7 +275,10 @@ async def test_real_miniapp_server_serves_static_health_and_readiness() -> None:
 def test_miniapp_composition_preserves_store_admission_and_owner_binding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = object()
+    store_reads: list[tuple[str, int]] = []
+    store = SimpleNamespace(
+        list_tasks=lambda tenant_id, *, limit: store_reads.append((tenant_id, limit))
+    )
     admission = SimpleNamespace(assert_healthy=lambda: None)
     captured: dict[str, object] = {}
 
@@ -278,18 +315,23 @@ def test_miniapp_composition_preserves_store_admission_and_owner_binding(
         "owner_user_id": 700000001,
         "tenant_id": "owner",
     }
-    assert captured["app"] == (
-        "core",
-        {
-            "allowed_host": "127.0.0.1",
-            "allowed_origin": "http://127.0.0.1:8765",
-            "readiness": admission.assert_healthy,
-        },
-    )
+    app_core, app_values = captured["app"]
+    assert app_core == "core"
+    assert app_values["allowed_host"] == "127.0.0.1"
+    assert app_values["allowed_origin"] == "http://127.0.0.1:8765"
+    assert callable(app_values["readiness"])
     assert captured["server"] == (
         "app",
         {"host": "127.0.0.1", "port": 8765},
     )
+    readiness = app_values["readiness"]
+    readiness()
+    assert store_reads == [("owner", 1)]
+    store.list_tasks = lambda tenant_id, *, limit: (_ for _ in ()).throw(
+        RuntimeError("store unavailable")
+    )
+    with pytest.raises(RuntimeError, match="store unavailable"):
+        readiness()
 
 
 @pytest.mark.asyncio
@@ -471,3 +513,15 @@ def test_runtime_layout_discovers_canonical_named_ancestors(
     assert discovered_owner == owner
     assert discovered_orchestrator == orchestrator
     assert live == root
+
+
+def test_validated_worktree_accepts_only_an_isolated_release_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isolated = tmp_path / "worktrees" / "telegram-live"
+    isolated.mkdir(parents=True)
+    (isolated / ".git").write_text("gitdir: test", encoding="utf-8")
+    monkeypatch.setattr(runner, "ROOT", isolated)
+    monkeypatch.setattr(runner, "_WORKTREE", isolated)
+
+    assert runner._validated_worktree() == isolated.resolve()
