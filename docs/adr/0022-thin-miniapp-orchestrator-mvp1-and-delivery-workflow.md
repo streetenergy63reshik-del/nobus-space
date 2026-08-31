@@ -2,7 +2,9 @@
 
 **Статус ADR:** ACCEPTED
 
-**Статус реализации:** CURRENT для процесса разработки; TARGET для Mini App
+**Статус реализации:** CURRENT для процесса и опубликованных slices 1–3;
+VERIFIED LOCAL PARTIAL для slice 4 (status/events/verified result); TARGET для
+artifact и slices 5–6
 
 **Дата:** 25 августа 2026 года
 
@@ -338,12 +340,17 @@ RELEASE_PRODUCTION`
 
 ## 8. Ближайшие вертикальные slices
 
-1. Архитектурный rebaseline и единый Git-контур — этот ADR/candidate.
-2. Thin Mini App owner authentication + read-only список/карточка задач.
-3. Создание одной задачи из Mini App в существующем Core.
-4. Единый статус и получение результата/артефакта через Telegram и Mini App.
-5. Минимальные runtime approvals и recovery только для реально нужных effects.
-6. Ограниченный owner smoke и release после отдельной авторизации.
+1. Архитектурный rebaseline и единый Git-контур — DONE / PUBLISHED.
+2. Thin Mini App owner authentication + read-only список/карточка задач —
+   DONE / PUBLISHED.
+3. Создание одной задачи из Mini App в существующем Core — DONE / PUBLISHED.
+4. Единый статус и получение результата/артефакта через Telegram и Mini App —
+   VERIFIED LOCAL PARTIAL: status/events/verified result в локальном
+   `f18a664` прошли L1/L2/L3; настоящий artifact остаётся TARGET.
+5. Минимальные runtime approvals и recovery только для реально нужных effects
+   — TARGET.
+6. Production composition, HTTPS/menu activation, ограниченный owner smoke и
+   release — TARGET.
 
 Каждый slice обязан работать самостоятельно. Google/document/analytics,
 multi-user и platform идеи остаются backlog до прямой нужды пути.

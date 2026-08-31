@@ -7,7 +7,7 @@ runtime.
 Активное архитектурное решение:
 [ADR 0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
 
-## Publication binding — 25 августа 2026 года
+## Publication binding — 31 августа 2026 года
 
 - репозиторий `streetenergy63reshik-del/nobus-space` публичный;
 - принятый опубликованный канон — exact revision, достижимая из защищённой
@@ -15,13 +15,17 @@ runtime.
 - содержащая этот файл revision вне защищённой `main` является
   `GATE_CANDIDATE`; после разрешённого merge и проверки достижимости та же
   revision становится частью `ACCEPTED_PUBLISHED_BASELINE`;
-- baseline `main` при заморозке архитектурного кандидата:
-  `8b896fbca9b23c8751d651d14a122506338b5827`;
-- исходный head PR [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1)
-  до post-publication refresh:
-  `d3a235e4db2257826d5a5c5661a709c442be981e`; живой статус PR и head читать
-  в GitHub, а не из постоянного документа;
-- снимок защиты `main` на 25 августа 2026 года: требуется pull request и
+- принятый published baseline до этой docs-only актуализации: protected
+  `main` @ `a363db032d4451b73c93b530a59ac1850364e710`, подтверждённый live
+  fetch/readback 31 августа 2026 года;
+- архитектура опубликована через PR
+  [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1),
+  Mini App auth/list/detail/create и Gate 0 integrity repair — через PR
+  [#2](https://github.com/streetenergy63reshik-del/nobus-space/pull/2),
+  publication readback — через PR
+  [#3](https://github.com/streetenergy63reshik-del/nobus-space/pull/3);
+- снимок защиты `main`, повторно прочитанный 31 августа 2026 года: требуется
+  pull request и
   закрытие всех обсуждений, запрещены bypass, force-push и удаление ветки;
   обязательные status checks не настроены;
 - локальный owner-bound Telegram/Core/Codex runtime существует; точное live
@@ -29,8 +33,8 @@ runtime.
 - Gate 0 принят как исторический sealed snapshot @
   `f5086b2a71a9ae22be3c858ff69453287f6925da`; его 20 digest-bound sources
   не изменяются;
-- Gate 1 implementation существует только как dirty
-  `HOLD / NOT_ACCEPTED` WIP в отдельном worktree; его нельзя считать каноном;
+- отдельный historical Gate 1 implementation остаётся `HOLD / NOT_ACCEPTED`;
+  его нельзя вливать целиком или считать текущей архитектурой;
 - Telegram Mini App и Telegram-оркестратор обязательны в MVP-1 и используют
   один Core, одну queue/state model и одну effect authority;
 - полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
@@ -42,6 +46,28 @@ Git-репозиторий — источник истины для code/tests/A
 Точный фактический статус:
 [CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Иерархия источников и
 навигация: [docs/README.md](docs/README.md).
+
+## Продуктовый статус — 31 августа 2026 года
+
+**MVP-1: IN PROGRESS / NOT PRODUCT READY.**
+
+Опубликованные backend и static frontend source ещё не образуют готовый
+бизнес-продукт. `MVP-1 READY` допустим только когда один exact release:
+
+1. содержит согласованные backend и frontend;
+2. проходит полный local/integration journey;
+3. опубликован в protected GitHub `main` и прочитан обратно;
+4. активирован за HTTPS и открывается из Telegram exact owner;
+5. возвращает одну task identity, status, verified result и реальный artifact;
+6. проходит negative/restart/recovery, bounded owner smoke и release rollback.
+
+Локальный `VERIFIED LOCAL CANDIDATE`
+`f18a664f2fab2fbd193e894bc93d5624683badf2` добавляет status, events и
+verified-result projection и прошёл локальные L1/L2/L3, но не опубликован и не
+закрывает artifact, production composition, HTTPS/BotFather activation или
+owner acceptance.
+Редакционная продуктовая roadmap и её HTML-представление остаются на owner
+publication hold и не входят в этот docs-only release.
 
 ## Обязательный MVP-путь
 
@@ -56,10 +82,10 @@ bounded pass-through Telegram `initData` и тонкий API adapter к Core з�
 публичным HTTPS ingress. У него нет собственной БД, queue, policy/effect
 authority, bot secret или Agent Registry.
 
-## Локальный thin Mini App candidate — 27 августа 2026 года
+## Опубликованный thin Mini App Git slice — 28 августа 2026 года
 
-В содержащей локальной revision реализованы owner-authenticated read-only
-projection и следующий самостоятельный task-create slice:
+В protected `main` опубликованы owner-authenticated read-only projection и
+самостоятельный task-create slice:
 
 - `MiniAppCore` проверяет Telegram signature для exact bot, exact owner,
   `auth_date`, TTL/future skew и durable replay digest;
@@ -87,10 +113,10 @@ projection и следующий самостоятельный task-create slic
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 
-Это локальный кандидат, а не live Mini App: HTTPS ingress/hostname, BotFather,
-Telegram menu button, запуск live runtime, push/PR/merge и deploy не
-выполнялись. Следующий вертикальный slice после принятия кандидата — единый
-status и безопасное получение результата/артефакта через Telegram и Mini App.
+Это опубликованный Git slice, но не live Mini App: production composition,
+HTTPS ingress/hostname, BotFather menu button, deploy и live owner smoke не
+подтверждены. Следующий незакрытый продуктовый результат — безопасный реальный
+artifact, затем production wiring, activation, owner acceptance и release.
 
 ## Локальная проверка документационного кандидата
 
