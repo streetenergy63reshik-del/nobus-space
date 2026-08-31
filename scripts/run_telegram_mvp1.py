@@ -542,12 +542,18 @@ async def _run(
             acknowledged = await _poll_with_unavailable_backoff(
                 polling, api, bindings, control=control,
                 timeout=values.timeout, announce=values.announce,
+                health_check=lambda: _assert_product_healthy(
+                    control, miniapp_server
+                ),
             )
             _assert_product_healthy(control, miniapp_server)
             while True:
                 acknowledged += await _poll_with_unavailable_backoff(
                     polling, api, bindings, control=control,
                     timeout=values.timeout, announce=False,
+                    health_check=lambda: _assert_product_healthy(
+                        control, miniapp_server
+                    ),
                 )
                 _assert_product_healthy(control, miniapp_server)
         _assert_product_healthy(control, miniapp_server)

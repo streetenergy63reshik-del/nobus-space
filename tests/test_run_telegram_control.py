@@ -175,6 +175,35 @@ async def test_unavailable_poll_retries_with_capped_backoff() -> None:
     assert delays == [1.0, 2.0, 4.0, 8.0, 16.0, 30.0, 30.0]
     assert len(api.sent) == 1
 
+
+@pytest.mark.asyncio
+async def test_unavailable_poll_stops_when_product_health_fails() -> None:
+    api = FakeApi()
+    health_calls = 0
+
+    def health_check() -> None:
+        nonlocal health_calls
+        health_calls += 1
+        if health_calls == 2:
+            raise RuntimeError("miniapp server stopped")
+
+    async def forbidden_sleep(delay: float) -> None:
+        raise AssertionError("unhealthy product must not remain in backoff")
+
+    with pytest.raises(RuntimeError, match="miniapp server stopped"):
+        await _poll_with_unavailable_backoff(
+            FakePolling(failure=TelegramBotApiError("telegram_unavailable")),  # type: ignore[arg-type]
+            api,  # type: ignore[arg-type]
+            owner_bindings(),
+            timeout=30,
+            announce=True,
+            sleeper=forbidden_sleep,
+            health_check=health_check,
+        )
+
+    assert health_calls == 2
+    assert api.sent == []
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "code",

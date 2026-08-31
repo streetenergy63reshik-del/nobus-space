@@ -241,9 +241,11 @@ async def _poll_with_unavailable_backoff(
     timeout: int,
     announce: bool,
     sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    health_check: Callable[[], None] = lambda: None,
 ) -> int:
     failures = 0
     while True:
+        health_check()
         try:
             return await _poll_once_and_announce(
                 polling,
@@ -257,7 +259,9 @@ async def _poll_with_unavailable_backoff(
             if error.code != "telegram_unavailable":
                 raise
             failures += 1
+            health_check()
             await sleeper(min(30.0, float(2 ** min(failures - 1, 5))))
+            health_check()
 
 
 def _bootstrap_checkpoint(
