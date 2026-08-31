@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import subprocess
+import sys
 from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
@@ -62,7 +63,7 @@ def test_configure_profile_requires_explicit_apply_without_external_call() -> No
     root = Path(__file__).resolve().parents[1]
     result = subprocess.run(
         (
-            str(root / ".venv" / "Scripts" / "python.exe"),
+            sys.executable,
             str(root / "scripts" / "configure_telegram_profile.py"),
         ),
         cwd=root,
