@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import httpx
@@ -150,6 +151,23 @@ _QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
 _GOOGLE_CALENDAR_TOKEN = (
     _ORCHESTRATOR_ROOT / "Интеграции/google_api_integration/token.json"
 )
+_RUN_STAGES = frozenset(
+    {
+        "credentials",
+        "local_preflight",
+        "telegram_identity",
+        "bindings",
+        "runtime_stores",
+        "core_runtime",
+        "worker_probe",
+        "voice_warmup",
+        "rate_limit_provider",
+        "product_effects",
+        "control_construction",
+        "control_start",
+        "polling",
+    }
+)
 
 
 
@@ -163,13 +181,19 @@ def _load_project_context() -> str:
     return content
 
 
-async def _run(values: argparse.Namespace) -> dict[str, object]:
+async def _run(
+    values: argparse.Namespace,
+    *,
+    report_stage: Callable[[str], None] = lambda stage: None,
+) -> dict[str, object]:
+    report_stage("credentials")
     credential = read_generic_credential(_CREDENTIAL_TARGET)
     if credential.username.casefold() != f"@{_EXPECTED_USERNAME}".casefold():
         raise CredentialStoreError("credential_unavailable")
+    report_stage("local_preflight")
     executable = _required_codex_executable()
     git = _required_executable("git")
-    python = (ROOT / ".venv" / "Scripts" / "python.exe").resolve(strict=True)
+    python = Path(sys.executable).resolve(strict=True)
     worktree = _validated_worktree()
     _CODEX_TEMP.mkdir(parents=True, exist_ok=True)
     _ARTIFACT_SNAPSHOT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -185,9 +209,11 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
         request_timeout=60,
     )
     try:
+        report_stage("telegram_identity")
         identity = await api.get_me()
         if identity.username.casefold() != _EXPECTED_USERNAME.casefold():
             raise TelegramBotApiError("telegram_protocol_error")
+        report_stage("bindings")
         binding_config = TelegramBindingConfig.model_validate(
             json.loads(_BINDING_PATH.read_text(encoding="utf-8"))
         )
@@ -204,6 +230,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             expected_actor_identity="telegram:owner",
             expected_role="owner",
         )
+        report_stage("runtime_stores")
         checkpoint = SQLitePollingCheckpointStore(
             _CHECKPOINT_PATH,
             consumer_id="nobusspacebot-owner",
@@ -219,6 +246,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             callback_token_store=action_store,
         )
         destination_refs, sender_destinations = _task_destinations(bindings)
+        report_stage("core_runtime")
         runtime = build_gate5a4_runtime(
             gateway=gateway,
             sqlite_path=_TASK_RUNTIME_PATH,
@@ -240,7 +268,9 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git.parent,
             ),
         )
+        report_stage("worker_probe")
         await runtime.probe_worker()
+        report_stage("voice_warmup")
         voice_transcriber = FasterWhisperTranscriber(
             model_size="base",
             device="cpu",
@@ -256,6 +286,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             hotwords=_VOICE_HOTWORDS,
         )
         await voice_transcriber.warmup()
+        report_stage("rate_limit_provider")
         limit_provider = build_codex_rate_limit_client(
             workspace_root=worktree,
             executable=executable,
@@ -269,6 +300,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 git.parent,
             ),
         )
+        report_stage("product_effects")
         calendar = GoogleCalendarClient(_GOOGLE_CALENDAR_TOKEN)
         google_tasks = GoogleTasksClient(_GOOGLE_CALENDAR_TOKEN)
         google_drive = GoogleDriveClient(_GOOGLE_CALENDAR_TOKEN)
@@ -293,6 +325,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             google_tasks=google_tasks,
             google_drive=google_drive,
         )
+        report_stage("control_construction")
         control = DurableProductTelegramControlPlane(
             gateway,
             api,
@@ -326,6 +359,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
                 api, sender_destinations, technical_details=False
             ),
         )
+        report_stage("control_start")
         await control.start()
 
         async def handle_with_binding(update: dict[str, object]) -> bool:
@@ -371,6 +405,7 @@ async def _run(values: argparse.Namespace) -> dict[str, object]:
             )
             return True
 
+        report_stage("polling")
         polling = TelegramPollingBoundary(api, handle_with_binding, checkpoint)
         if values.once:
             acknowledged = await _poll_once_and_announce(
@@ -508,13 +543,25 @@ def _validated_worktree() -> Path:
     return root
 
 
+def _stage_failure_code(stage: str) -> str:
+    if stage not in _RUN_STAGES:
+        return "telegram_mvp1_failed"
+    return f"telegram_mvp1_{stage}_failed"
+
+
 def main() -> int:
     result: dict[str, object] | None = None
     failure = ""
+    stage = ""
+
+    def report_stage(value: str) -> None:
+        nonlocal stage
+        stage = value
+
     try:
         with WindowsNamedMutex():
             recover_interrupted_restore(_RUNTIME_ROOT)
-            result = asyncio.run(_run(_arguments()))
+            result = asyncio.run(_run(_arguments(), report_stage=report_stage))
     except RunnerAlreadyActive:
         result = {"status": "ALREADY_RUNNING"}
     except KeyboardInterrupt:
@@ -528,7 +575,7 @@ def main() -> int:
     except SQLitePollingCheckpointError:
         failure = "telegram_checkpoint_failed"
     except Exception:
-        failure = "telegram_mvp1_failed"
+        failure = _stage_failure_code(stage)
     if result is None:
         result = {"status": "FAIL", "code": failure or "telegram_mvp1_failed"}
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))

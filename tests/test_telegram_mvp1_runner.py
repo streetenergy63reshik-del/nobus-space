@@ -2,12 +2,43 @@
 
 from __future__ import annotations
 
+import json
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from scripts import run_telegram_mvp1 as runner
+
+
+@pytest.mark.parametrize(
+    ("reported_stage", "expected_code"),
+    [
+        ("worker_probe", "telegram_mvp1_worker_probe_failed"),
+        ("token=must-not-leak", "telegram_mvp1_failed"),
+    ],
+)
+def test_main_reports_only_allowlisted_startup_stage(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    reported_stage: str,
+    expected_code: str,
+) -> None:
+    async def fail(values: object, *, report_stage: object) -> object:
+        report_stage(reported_stage)  # type: ignore[operator]
+        raise RuntimeError("secret exception text must not leak")
+
+    monkeypatch.setattr(runner, "WindowsNamedMutex", nullcontext)
+    monkeypatch.setattr(runner, "recover_interrupted_restore", lambda path: None)
+    monkeypatch.setattr(runner, "_arguments", lambda: object())
+    monkeypatch.setattr(runner, "_run", fail)
+
+    assert runner.main() == 1
+    output = capsys.readouterr().out
+    assert json.loads(output) == {"status": "FAIL", "code": expected_code}
+    assert "secret" not in output
+    assert "token" not in output
 
 
 def _bundled_cli(home: Path, version: str) -> Path:
@@ -165,6 +196,7 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     api_instances: list[Api] = []
     control_constructed = False
     polling_constructed = False
+    reported_stages: list[str] = []
 
     def api_factory(**values: object) -> Api:
         instance = Api(**values)
@@ -191,6 +223,18 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(runner, "_validated_worktree", lambda: worktree)
     monkeypatch.setattr(runner, "NobusMemory", lambda path: object())
     monkeypatch.setattr(runner, "_CODEX_TEMP", tmp_path / "codex-temp")
+    binding_path = tmp_path / "telegram-bindings.local.json"
+    binding_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(runner, "_BINDING_PATH", binding_path)
+    monkeypatch.setattr(
+        runner,
+        "TelegramBindingConfig",
+        SimpleNamespace(
+            model_validate=lambda value: SimpleNamespace(
+                bindings=(SimpleNamespace(purpose="owner_private"),)
+            )
+        ),
+    )
     monkeypatch.setattr(runner, "TelegramBotApi", api_factory)
     monkeypatch.setattr(runner.httpx, "AsyncHTTPTransport", lambda **values: object())
     monkeypatch.setattr(
@@ -200,6 +244,15 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     )
     monkeypatch.setattr(
         runner, "SQLitePollingCheckpointStore", lambda *args, **kwargs: object()
+    )
+    telegram_state = object()
+    monkeypatch.setattr(
+        runner, "SQLiteTelegramState", lambda *args, **kwargs: telegram_state
+    )
+    monkeypatch.setattr(
+        runner,
+        "DurableTelegramActionStore",
+        lambda value: object() if value is telegram_state else None,
     )
     monkeypatch.setattr(runner, "InMemoryTelegramActionStore", lambda: object())
     monkeypatch.setattr(runner, "PollingCheckpointUpdateIdStore", lambda: object())
@@ -224,18 +277,21 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
                 once=False,
                 timeout=30,
                 announce=True,
-            )
+            ),
+            report_stage=reported_stages.append,
         )
 
     if failure_stage == "worker":
         assert caught.value.code == "worker_timeout"
         assert startup_events == ["worker_probe"]
+        assert reported_stages[-1] == "worker_probe"
     else:
         assert startup_events == [
             "worker_probe",
             "voice_constructed",
             "voice_warmup",
         ]
+        assert reported_stages[-1] == "voice_warmup"
     assert not control_constructed
     assert not polling_constructed
     assert len(api_instances) == 1
@@ -244,14 +300,13 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
 def test_runtime_layout_is_portable_and_defaults_to_current_root(
     tmp_path: Path,
 ) -> None:
-    root = tmp_path / "checkout"
-    root.mkdir()
+    root = Path(tmp_path.anchor) / "portable" / "checkout"
 
     owner, orchestrator, live = runner._runtime_layout(root)
 
     assert owner == root
-    assert orchestrator == tmp_path
-    assert live == tmp_path / "Code" / "worktrees" / "telegram-live"
+    assert orchestrator == root.parent
+    assert live == root.parent / "Code" / "worktrees" / "telegram-live"
 
 
 def test_runtime_layout_discovers_canonical_named_ancestors(
