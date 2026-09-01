@@ -8,13 +8,13 @@
 > сохраняются, пока не superseded отдельным проверенным runtime change.
 >
 
-> **MVP-1 activation boundary — 31 августа 2026.** Существующий Windows Task
-> Scheduler/autostart ниже относится к уже работающему Telegram runtime и не
-> доказывает activation Mini App. G2–G6 Mini App product composition проверены
-> только как локальный candidate; он не опубликован, не deployed и не подключён
-> через HTTPS/BotFather menu. Точный статус и evidence:
-> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Следующий шаг — отдельно
-> авторизованный G7, а не изменение существующего live runner «по умолчанию».
+> **MVP-1 activation boundary — 1 сентября 2026.** Public HTTPS
+> `app.nobusspace.com`, exact-owner Telegram menu и local-Core reverse relay
+> активированы. Synthetic owner-bound create/status/result/artifact и
+> Telegram byte parity прошли. Точный статус:
+> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). До фактического exact-owner
+> открытия в Telegram и publication/tag readback статус остаётся
+> `DEPLOYED / AWAITING OWNER SMOKE`, а не `MVP-1 READY`.
 >
 
 ## Operational override 2026-07-25 — persistent Codex SDK candidate
@@ -131,7 +131,7 @@ Do not run this command before the release candidate has independent L2/L3 `ACCE
 
 This section supersedes the older statement that the MVP has no autostart.
 
-The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. Its launcher is Git-ignored in the live worktree and runs the canonical repository `scripts/run_telegram_mvp1.py --serve --timeout 30 --announce`. Logs are local, bounded, and stored under live `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
+The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. For the public Mini App composition it runs tracked `scripts/run_nobus_space_live.py`, which owns the restricted reverse SSH and canonical runner in one kill-on-close Windows Job Object. Logs are local, bounded, and stored under canonical `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
 
 The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
 
@@ -278,6 +278,18 @@ Telegram не может быть единственным каналом опо
 $env:DEBUG='false'
 .\.venv\Scripts\python.exe scripts\run_telegram_mvp1.py --serve --timeout 30 --announce
 ```
+
+Активированная public composition из live worktree запускается одной
+командой под owner Windows account:
+
+```powershell
+& '..\..\nobus-orchestrator-dev\.venv\Scripts\python.exe' `
+  scripts\run_nobus_space_live.py
+```
+
+Она не переносит Core, SQLite, Telegram token или Codex на VPS. VPS-side
+Cloudflare Tunnel обращается только к `127.0.0.1:18765`, а restricted
+reverse SSH доставляет этот loopback к owner-PC `127.0.0.1:8765`.
 
 Preflight: чистые `main` и `agent/telegram-live`, exact owner binding, credential в Windows Credential Manager, Python 3.12 и точные четыре SQLite runtime-БД с ожидаемыми DDL fingerprints, application digests и `quick_check=ok`. Runner сверяет bot identity, выбирает CLI только после успешного `codex --version`, затем до объявления «готов к работе» выполняет через production `CodexCliAdapter` сетевой read-only sentinel: тот же Windows Job, auth, sandbox, environment и JSONL parser, но без durable Task. Probe использует tool-less `model.inference`: shell, shell snapshot, apps, MCP, web и local file tools выключены. Любой start/timeout/protocol/output failure останавливает запуск; ложный online-статус не публикуется.
 

@@ -50,7 +50,7 @@ Git-репозиторий — источник истины для code/tests/A
 [CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Иерархия источников и
 навигация: [docs/README.md](docs/README.md).
 
-## Продуктовый статус — 31 августа 2026 года
+## Продуктовый статус — 1 сентября 2026 года
 
 **MVP-1: IN PROGRESS / NOT PRODUCT READY.**
 
@@ -64,14 +64,16 @@ Git-репозиторий — источник истины для code/tests/A
 5. возвращает одну task identity, status, verified result и реальный artifact;
 6. проходит negative/restart/recovery, bounded owner smoke и release rollback.
 
-Локальная continuation branch от exact published base содержит status,
-bounded events, verified result, реальный tenant/task/result-bound artifact и
-same-process Telegram/Core/Mini App composition. G2–G6 прошли
-release-relevant suite, real Browser create/status/events/result/artifact,
-restart/recovery/rollback и coherent L1/L2/L3. Exact revisions и проверки
-зафиксированы в [CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Candidate не
-опубликован, не развёрнут за HTTPS и не прошёл Telegram owner acceptance,
-поэтому продуктовый verdict не повышается.
+Кандидат развёрнут за `https://app.nobusspace.com`, а exact-owner
+Telegram menu ссылается на этот Mini App. Core, SQLite и Codex
+остаются на owner Windows PC; VPS держит только Cloudflare
+Tunnel и restricted reverse relay. Public health/readiness, fail-closed `502`
+при остановке Core и synthetic owner-bound
+create/status/result/artifact с Telegram byte parity прошли. Candidate ещё
+не опубликован в protected `main`, не имеет release tag и не
+прошёл фактическое открытие exact owner из Telegram. Статус:
+`DEPLOYED / AWAITING OWNER SMOKE`, поэтому product verdict остаётся
+`MVP-1 IN PROGRESS / NOT PRODUCT READY`.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner
 publication hold и не входят в этот docs-only release.
 
@@ -102,16 +104,16 @@ authority, bot secret или Agent Registry.
   принимают client-selected authority и возвращают только allowlisted поля;
 - `POST /api/tasks` принимает только bounded JSON instruction и один
   `Idempotency-Key`; Core сам выводит owner/tenant/actor и связывает request с
-  текущей session и content digest;
+  exact bot/owner/tenant authentication context и content digest;
 - admission переиспользует `prepare_instruction` существующего runtime и
   `telegram_jobs` существующего `SQLiteTelegramState`; encrypted job
   фиксируется до Core task, а restart допускает тот же exact prepared contract
   из job, поэтому enqueue failure не создаёт task/outbox и crash не оставляет
   невосстановимую PENDING task;
 - server-derived task id детерминирован по tenant и request id, а exact
-  session/request envelope стабилен; поэтому повтор в crash-window
-  использует одну job и возвращает ту же task, а rebinding другого
-  текста или session fail closed; exhausted dead-letter тоже блокирует
+  verified-owner/request envelope стабилен между короткими сессиями;
+  поэтому повтор после restart использует одну job и возвращает ту же
+  task, а rebinding другого текста или authority fail closed; exhausted dead-letter тоже блокирует
   Core admission и не оставляет orphan PENDING task;
 - static HTML/CSS/ES module UI хранит bearer и pending request id только в
   памяти, не делает blind retry и показывает
@@ -119,10 +121,11 @@ authority, bot secret или Agent Registry.
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 
-Это опубликованный Git slice, но не live Mini App. Локальный continuation
-candidate дополняет его status/result/artifact и product composition;
-HTTPS ingress/hostname, BotFather menu button, deploy и live owner smoke не
-подтверждены.
+Этот исходный Git slice сам по себе не был live Mini App.
+Содержащий continuation candidate теперь добавляет
+status/result/artifact, product composition и активирован за
+public HTTPS. Он остаётся неопубликованным release candidate до
+owner smoke, protected-main publication и tag readback.
 
 ## Локальный product composition
 
@@ -139,6 +142,17 @@ HTTPS ingress/hostname, BotFather menu button, deploy и live owner smoke не
 Loopback HTTP разрешён только для локальной проверки; любой нелокальный origin
 остаётся HTTPS-only. Остановка процесса сначала закрывает web admission, затем
 durable control workers, Core/runtime и Telegram API client.
+
+Публичная owner-composition запускается одной отслеживаемой командой:
+
+```powershell
+& '..\..\nobus-orchestrator-dev\.venv\Scripts\python.exe' `
+  scripts\run_nobus_space_live.py
+```
+
+Она помещает reverse SSH и Core в один Windows Job Object, а его
+закрытие убивает оба process tree. Публичный frontend:
+`https://app.nobusspace.com/`.
 
 Verified answer даёт один детерминированный UTF-8 artifact. Его identity,
 revision, digest, MIME, размер и безопасное имя выводятся из существующего

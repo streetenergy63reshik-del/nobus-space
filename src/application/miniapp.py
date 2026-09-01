@@ -266,7 +266,7 @@ class MiniAppCore:
                     {
                         "bot_ref": self._bot_ref,
                         "owner_user_id": owner_user_id,
-                        "session_nonce": secrets.token_hex(16),
+                        "tenant_id": self._tenant_id,
                     }
                 ),
                 expires_at=expires_at,

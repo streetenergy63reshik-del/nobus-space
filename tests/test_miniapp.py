@@ -550,7 +550,7 @@ def test_create_task_is_session_bound_idempotent_and_uses_existing_queue(
         asyncio.run(recovery._restore(tampered))
 
 
-def test_create_task_rejects_idempotency_rebinding_and_missing_queue_proof(
+def test_create_task_reuses_idempotency_after_restart_and_rejects_rebinding(
     tmp_path: Path,
 ) -> None:
     store, queue, admission = _miniapp_admission(tmp_path)
@@ -569,9 +569,23 @@ def test_create_task_rejects_idempotency_rebinding_and_missing_queue_proof(
     with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
         asyncio.run(service.create_task(token, "Подменённая задача", request_id))
 
-    second_token = authorize(service, signed_init_data(query_id="second-session"))
-    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
-        asyncio.run(service.create_task(second_token, "Первая задача", request_id))
+    restarted = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    second_token = authorize(
+        restarted,
+        signed_init_data(query_id="second-session"),
+    )
+    repeated = asyncio.run(
+        restarted.create_task(second_token, "Первая задача", request_id)
+    )
+    assert repeated == created
+    assert queue.queue_counts() == (0, 1)
 
     leased = queue.claim(lease_owner=UUID("00000000-0000-4000-8000-000000000098"))
     assert leased is not None and leased.task_id == created.task_id
@@ -681,13 +695,21 @@ def test_restart_recovers_core_task_from_queue_first_admission(
 
     with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
         asyncio.run(service.create_task(token, "Другая задача", request_id))
+    restarted = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
     second_token = authorize(
-        service,
+        restarted,
         signed_init_data(query_id="queue-first-second-session"),
     )
-    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
+    with pytest.raises(SimulatedCrash):
         asyncio.run(
-            service.create_task(
+            restarted.create_task(
                 second_token,
                 "Восстанови задачу",
                 request_id,

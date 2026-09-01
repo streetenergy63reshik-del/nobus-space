@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 31 августа 2026 года
+**Актуально на:** 1 сентября 2026 года
 **Lifecycle rule:** containing revision outside protected GitHub `main` is
 `GATE_CANDIDATE`; after an authorized merge and exact reachability readback it
 is part of `ACCEPTED_PUBLISHED_BASELINE`
@@ -30,7 +30,7 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Accepted protected-main base for this continuation | `d7e2b8275f20a1a261bbf541573f76db82240901`; fetched/read back before branch creation 2026-08-31 |
 | Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
 | Thin Mini App source revisions | base `efb6be0324f70260284bb59e48cc798e37cd2fca`; read-only checkpoint `3771b1eac5a0a215d0fa65a60a9addaf7a72ab9a`; task-create checkpoint `a13243c677d03a0a4415504c720635d3d97092aa`; all reachable from the accepted publication merge |
-| Local product candidate | branch `codex/mvp1-release-continuation`; containing revision `61b5a5ebbba100d666747cfc4c5b39b08a77a826`, tree `761c907292e37a778d617b3001f0687ce2e326ae`; frozen code `fc43edf098098e95099fa3882a0d97ca12ddf89b`, tree `a7da9d682c21b08aa18fe5482aa0b81f134d067e`; G2–G6 **VERIFIED LOCAL CANDIDATE / NOT PUBLISHED / NOT DEPLOYED** |
+| Live activation continuation | branch `codex/mvp1-g7-activation`; pre-fix parent `3daffc397e98b508fc364def273850b38158a319`; containing revision resolves with `git rev-parse HEAD`; public runtime **DEPLOYED / AWAITING OWNER SMOKE**, containing Git candidate **NOT PUBLISHED** |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, read back 2026-08-31 | PR + conversation resolution required; admins enforced; bypass, force-push and deletion disabled; required status checks not configured |
@@ -48,8 +48,12 @@ Git-репозиторий — источник истины для code/tests/A
 ## CURRENT facts
 
 - В exact Git base существует owner-bound local Telegram/Core/Codex runtime.
-- Live process/provider/VPS/Telegram state в этой documentation-задаче не
-  проверялся и не изменялся.
+- Public Mini App отвечает по `https://app.nobusspace.com`; Cloudflare
+  Tunnel работает на Hostinger VPS, а restricted reverse SSH доставляет
+  трафик к owner-PC `127.0.0.1:8765`. Core, SQLite, Telegram token и
+  Codex на VPS не перенесены; existing x-ui/443 не изменены.
+- Exact-owner private Telegram menu содержит web-app button `Nobus Space`
+  на `https://app.nobusspace.com/`; default/global menu не изменялось.
 - Gate 0 исторически accepted:
   `result_commit=f5086b2a71a9ae22be3c858ff69453287f6925da`,
   `result_tree=2e3248eb295b1627d36f196c26dfc21c6ebd90fd`.
@@ -62,15 +66,16 @@ Git-репозиторий — источник истины для code/tests/A
 - Новый boundary читает существующий `SQLiteStore`/`DurableTaskProjection`, не
   создаёт вторую БД, queue, policy/effect plane и не использует `src/main.py`.
 - В содержащей локальной revision `POST /api/tasks` создаёт одну bounded
-  natural-text task через server-derived owner/tenant/actor, session-bound
+  natural-text task через server-derived owner/tenant/actor, verified-owner-context
   idempotency, существующий Core admission и существующую
   `SQLiteTelegramState` queue; retry возвращает ту же task, rebinding fail closed.
 - Mini App admission фиксирует encrypted job до Core task; enqueue failure не
   создаёт task/outbox, а restart повторно валидирует binding и восстанавливает
   exact prepared contract из существующего job.
 - Server-derived task id детерминирован по tenant/request, а exact
-  session/request envelope стабилен; точный retry до admission не размножает
-  durable jobs, а content/session rebinding fail closed.
+  verified-owner/request envelope стабилен между короткими bearer-сессиями;
+  точный retry после restart не размножает durable jobs, а content/authority
+  rebinding fail closed.
 - Exhausted dead-letter не повторяет Core admission: exact retry даёт safe
   unavailable без task/outbox и orphan PENDING state.
 - Локальный continuation candidate добавляет channel-neutral product status,
@@ -83,6 +88,16 @@ Git-репозиторий — источник истины для code/tests/A
   FastAPI/Uvicorn boundary и static frontend в один process lifecycle. Он
   слушает только `127.0.0.1:8765`, имеет `/healthz`/`/readyz`, bounded startup
   и graceful shutdown; использует тот же `SQLiteStore` и durable control queue.
+- `scripts/run_nobus_space_live.py` запускает Core и restricted reverse SSH
+  в одном kill-on-close Windows Job Object. Task Scheduler `NobusSpaceBot`
+  и health task активны; stop/start smoke доказал отсутствие orphan
+  processes и восстановление public readiness.
+- Synthetic live Mini App smoke создал task
+  `df41c71c-65a8-4ec1-9cf5-03bd2c5f83bb`: status `ready`, result revision `1`,
+  result digest `sha256:634c2077fc6b4f5f5c59e52d67900eb477af3118da1494cd61a689466e9cc961`,
+  artifact digest `sha256:2605fe75c9b69fe849e3f085f77530d3c28a383bd374cf06102818d60380875b`,
+  `24` bytes. Durable outbox/Telegram receipt `acked`; public download вернул
+  те же bytes/digest. Secrets/initData/bearer в evidence не записывались.
 - На неизменённых code bytes `fc43edf...` выполнен real Browser E2E через
   локальный Telegram SDK stub с подписанным test `initData`: create -> status ->
   bounded events -> verified answer -> artifact HTTP `200` -> client digest/size
@@ -91,13 +106,10 @@ Git-репозиторий — источник истины для code/tests/A
 - G4 verdict: отдельный external effect для принятого create/status/result/
   artifact journey не достижим, поэтому `ApprovalRequest NOT_REQUIRED`.
   Existing approval/effect/reconciliation boundaries не менялись.
-- Candidate не является GitHub publication, deploy или verdict о готовности
-  всего MVP-1. HTTPS, BotFather menu, activation readback и live owner smoke ещё
-  не завершены.
+- Candidate развёрнут и ожидает owner smoke, но ещё не является
+  GitHub publication, final release или verdict о готовности всего MVP-1.
 - Локальная редакционная roadmap и её HTML view остаются на owner publication
   hold; эта docs-only актуализация их не публикует и не меняет.
-- Live HTTPS/provider/BotFather/Telegram menu/runtime не проверялись и не
-  изменялись.
 
 ## Frozen WIP and recovery
 
@@ -146,11 +158,9 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 
 ## Blockers and risks
 
-- Главный product risk — спутать готовность отдельного backend/frontend slice с
-  готовностью MVP. До activation и owner acceptance используются только статусы
-  `WIP`, `LOCAL CHECKPOINT`, `GATE CANDIDATE` или `PUBLISHED SOURCE SLICE`.
-- Способ public HTTPS ingress/hostname не выбран; это один bounded
-  implementation input следующего slice, не разрешение на VPS Core migration.
+- Главный product risk — спутать успешный synthetic live smoke с
+  фактическим owner acceptance и опубликованным release. До этих границ
+  используется `DEPLOYED / AWAITING OWNER SMOKE`.
 - Push, merge и другие внешние изменения всегда требуют отдельной точной
   авторизации; документ или локальный commit её не создаёт.
 - Dirty Gate 1 WIP может содержать полезные изменения и debt; нужен отдельный
@@ -203,17 +213,17 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 
 ## MVP-1 product readiness
 
-| Product boundary | Статус на 2026-08-31 |
+| Product boundary | Статус на 2026-09-01 |
 |---|---|
 | Architecture / one Core, queue, state and effect authority | **ACCEPTED / PUBLISHED** |
 | Owner auth, list/detail, task create backend | **CODE READY / PUBLISHED** |
 | Static frontend for auth/list/detail/create | **CODE READY / PUBLISHED** |
-| Status/events/verified result | **VERIFIED LOCAL CANDIDATE / NOT PUBLISHED** |
-| Real artifact metadata/download and Telegram byte parity | **VERIFIED LOCAL CANDIDATE / NOT PUBLISHED** |
+| Status/events/verified result | **DEPLOYED / AWAITING OWNER SMOKE; NOT PUBLISHED** |
+| Real artifact metadata/download and Telegram byte parity | **DEPLOYED / synthetic live parity PASS; NOT PUBLISHED** |
 | Conditional approval/recovery for a reachable effect | **NOT_REQUIRED for accepted journey; existing effects unchanged** |
-| Production composition, runner, config, health and autostart | **VERIFIED LOCAL CANDIDATE / NOT DEPLOYED** |
-| HTTPS ingress and Telegram menu activation | **NOT ACTIVATED** |
-| Live owner create/status/result/artifact/restart smoke | **NO EVIDENCE** |
+| Production composition, runner, config, health and autostart | **DEPLOYED / restart smoke PASS** |
+| HTTPS ingress and Telegram menu activation | **ACTIVE / exact-owner menu read back** |
+| Live create/status/result/artifact/restart smoke | **synthetic owner-bound PASS; human owner open pending** |
 | Final GitHub release tag/readback | **ABSENT** |
 | Full MVP-1 business product | **IN PROGRESS / NOT PRODUCT READY** |
 
@@ -232,9 +242,10 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 7. exact SHA опубликован и активирован, owner smoke выполнен, health,
    backup/restore и rollback воспроизводимы, final tag прочитан обратно.
 
-G2–G6 собраны и проверены локально. Ближайшая последовательность: отдельно
-авторизованные HTTPS/menu/owner acceptance G7 -> release record/tag/readback G8.
-Срочность не разрешает пропуск этих границ.
+G2–G6 собраны; HTTPS/menu и synthetic G7 активированы.
+Ближайшая последовательность: exact-owner Telegram open/create smoke ->
+protected-main publication -> final release tag/readback. До этих трёх
+доказательств вердикт не повышается до `MVP-1 READY`.
 
 ## Completed published vertical slice
 
@@ -248,7 +259,7 @@ Acceptance:
 2. short-lived opaque session хранится только in-memory;
 3. list/detail читаются из existing authoritative state, без второй DB/queue;
 4. cross-owner/task ref и client-selected authority fail closed;
-5. task create использует server-derived authority, session-bound request id и
+5. task create использует server-derived authority, owner-context-bound request id и
    существующие Core admission/authoritative state/durable queue;
 6. same-request retry возвращает ту же task, rebinding отклоняется, а local Core
    unavailable не создаёт task/effect и даёт safe UI state.
@@ -261,23 +272,20 @@ publication.
 publication, но не live runtime release, deploy или разрешение следующему
 срезу менять существующие Core/effect authority границы.
 
-## Current local candidate and next vertical slice
+## Current deployed candidate and next boundary
 
-Локальная `codex/mvp1-release-continuation` закрывает G2–G6: status, events,
-verified result, real artifact parity, same-process product composition и
-frozen assurance. Следующий product gate — G7: отдельно авторизованные public
-HTTPS ingress/hostname, Telegram menu activation и bounded live owner smoke.
+`codex/mvp1-g7-activation` закрывает code path G2–G6 и развёрнут за
+public HTTPS. Оставшаяся граница G7 — фактическое открытие Mini App
+exact owner из Telegram. Затем требуются protected-main publication,
+final tag и readback одного exact release SHA.
 
 ## Proposed Nobus Memory pointer sync
 
 ```text
 Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space.
-Accepted protected-main base for the 2026-08-31 local continuation =
-d7e2b8275f20a1a261bbf541573f76db82240901. Architecture and published Mini App
-auth/list/detail/create checkpoints are reachable. Local G2-G6 product
-candidate 61b5a5ebbba100d666747cfc4c5b39b08a77a826, frozen code
-fc43edf098098e95099fa3882a0d97ca12ddf89b, is NOT PUBLISHED/NOT DEPLOYED and
-must not be promoted by Memory. ADR 0022 remains active; architecture commit
+Live activation branch codex/mvp1-g7-activation is deployed at
+https://app.nobusspace.com and AWAITING OWNER SMOKE, but is NOT PUBLISHED and
+must not be promoted by Memory to MVP-1 READY. ADR 0022 remains active; architecture commit
 ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03 remains reachable.
 Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished. Live worktree state
 must be read from Git; WORKSPACE-INVENTORY records roles and the last audit.
