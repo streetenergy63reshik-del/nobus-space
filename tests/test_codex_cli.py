@@ -212,6 +212,8 @@ async def test_executes_only_fixed_argv_and_utf8_prompt(
     assert "omit internal identifiers" in prompt["response_protocol"]
     assert "within 12000 characters" in prompt["response_protocol"]
     assert "Never modify files." in prompt["response_protocol"]
+    assert "internal product worker" in prompt["response_protocol"]
+    assert "nobus-notify" in prompt["response_protocol"]
 
 @pytest.mark.asyncio
 async def test_exact_write_permission_selects_workspace_write_profile(

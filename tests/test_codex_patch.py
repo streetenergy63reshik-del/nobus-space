@@ -95,6 +95,39 @@ def test_accepts_bounded_informational_answer(tmp_path: Path) -> None:
     assert draft == CodexAnswerDraft(answer="Готовность подтверждена.")
 
 
+def test_removes_internal_desktop_notification_marker_from_answer(
+    tmp_path: Path,
+) -> None:
+    draft = parse_codex_draft(
+        json.dumps(
+            {
+                "answer": (
+                    "Добрый день!\n\nОтвет для владельца.\n\n"
+                    "<!-- nobus-notify:complete|Техническое уведомление. -->"
+                )
+            },
+            ensure_ascii=False,
+        ),
+        tmp_path,
+    )
+
+    assert draft == CodexAnswerDraft(
+        answer="Добрый день!\n\nОтвет для владельца."
+    )
+
+
+def test_rejects_answer_containing_only_desktop_notification_marker(
+    tmp_path: Path,
+) -> None:
+    message = json.dumps(
+        {"answer": "<!-- nobus-notify:complete|Техническое уведомление. -->"},
+        ensure_ascii=False,
+    )
+
+    with pytest.raises(CodexPatchError):
+        parse_codex_draft(message, tmp_path)
+
+
 @pytest.mark.parametrize(
     "message",
     [

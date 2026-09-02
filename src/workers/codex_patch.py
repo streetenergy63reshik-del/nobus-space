@@ -40,6 +40,10 @@ _UUID_RE = re.compile(
     r"[89ab][0-9a-f]{3}-[0-9a-f]{12}\b",
     re.IGNORECASE,
 )
+_DESKTOP_NOTIFICATION_MARKER_RE = re.compile(
+    r"<!--\s*nobus-notify:complete\|.*?-->",
+    re.IGNORECASE | re.DOTALL,
+)
 _FORBIDDEN_LINES = (
     "GIT binary patch",
     "Binary files ",
@@ -100,7 +104,7 @@ class CodexAnswerDraft(BaseModel):
     @field_validator("answer")
     @classmethod
     def _safe_answer(cls, value: str) -> str:
-        normalized = value.strip()
+        normalized = _DESKTOP_NOTIFICATION_MARKER_RE.sub("", value).strip()
         if (
             not normalized
             or "\x00" in normalized
