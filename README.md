@@ -26,7 +26,9 @@ runtime.
   publication readback — через PR
   [#3](https://github.com/streetenergy63reshik-del/nobus-space/pull/3),
   полная продуктовая граница MVP-1 — через PR
-  [#4](https://github.com/streetenergy63reshik-del/nobus-space/pull/4);
+  [#4](https://github.com/streetenergy63reshik-del/nobus-space/pull/4),
+  финальный owner-product и изоляция внутренних уведомлений — через PR
+  [#6](https://github.com/streetenergy63reshik-del/nobus-space/pull/6);
 - снимок защиты `main`, повторно прочитанный 31 августа 2026 года: требуется
   pull request и
   закрытие всех обсуждений, запрещены bypass, force-push и удаление ветки;
@@ -52,10 +54,9 @@ Git-репозиторий — источник истины для code/tests/A
 
 ## Продуктовый статус — 2 сентября 2026 года
 
-**MVP-1: IN PROGRESS / NOT PRODUCT READY.**
+**MVP-1 READY.**
 
-Опубликованные backend и static frontend source ещё не образуют готовый
-бизнес-продукт. `MVP-1 READY` допустим только когда один exact release:
+Один опубликованный и активированный release:
 
 1. содержит согласованные backend и frontend;
 2. проходит полный local/integration journey;
@@ -64,27 +65,23 @@ Git-репозиторий — источник истины для code/tests/A
 5. возвращает одну task identity, status, verified result и реальный artifact;
 6. проходит negative/restart/recovery, bounded owner smoke и release rollback.
 
-Кандидат развёрнут за `https://app.nobusspace.com`, а exact-owner
-Telegram menu ссылается на этот Mini App. Core, SQLite и Codex
-остаются на owner Windows PC; VPS держит только Cloudflare
-Tunnel и restricted reverse relay. Public health/readiness, fail-closed `502`
-при остановке Core и synthetic owner-bound
-create/status/result/artifact с Telegram byte parity прошли. Exact owner
-открыл Mini App из Telegram и создал задачу; она поступила в существующий
-Core/Codex runtime и завершилась verified answer. Первый human smoke выявил
-блокирующий UX-дефект: строки списка нельзя было надёжно идентифицировать, а
-detail отрисовывался ниже длинного списка. Содержащая revision исправляет этот
-дефект: список показывает отдельное owner-visible название и устойчивый
-короткий номер,
-detail открывается как отдельная нижняя карточка, а форма создания появляется
-только по кнопке «Новая». В owner-card также показывается исходная инструкция;
-в списке она не раскрывается. Повторный public synthetic smoke на deployed
-correction подтвердил owner-detail, list redaction, Core/Codex, два события,
-verified result и тот же digest-bound artifact. Визуальное подтверждение
-обновлённой карточки exact owner в Telegram ещё требуется. Candidate ещё не
-опубликован в protected `main` и не имеет release tag. Статус:
-`DEPLOYED / AWAITING OWNER SMOKE`, поэтому product verdict остаётся
-`MVP-1 IN PROGRESS / NOT PRODUCT READY`.
+Release развёрнут за `https://app.nobusspace.com`, а exact-owner Telegram menu
+ссылается на этот Mini App. Core, SQLite и Codex остаются на owner Windows PC;
+VPS держит только Cloudflare Tunnel и restricted reverse relay. Public
+health/readiness, fail-closed `502` при остановке Core, owner-bound
+create/status/result/artifact, Telegram byte parity, restart/recovery и
+rollback прошли. Владелец открыл Mini App из Telegram, создал и просмотрел
+задачу и подтвердил итоговый интерфейс после исправлений списка, карточки,
+названия и формы «Новая».
+
+Внутренний Codex worker продукта отделён от глобального notifier основной
+Codex Desktop задачи: он не отправляет служебные уведомления в `Codex work`, а
+marker-like блоки удаляются или отклоняются до durable state, verifier,
+артефакта, Mini App и Telegram delivery. Глобальное правило уведомлений
+primary/root задач Codex Desktop не изменено. Exact code checkpoint
+`14c80131b2a702d75f92abb4fe22d49ea6aa975c` опубликован через PR #6 и
+прочитан обратно из protected `main`; release-relevant suite и независимые
+L2/L3 зелёные. Финальная публикация фиксируется тегом `v1.0.0`.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner
 publication hold и не входят в этот docs-only release.
 
@@ -140,11 +137,9 @@ authority, bot secret или Agent Registry.
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 
-Этот исходный Git slice сам по себе не был live Mini App.
-Содержащий continuation candidate теперь добавляет
-status/result/artifact, product composition и активирован за
-public HTTPS. Он остаётся неопубликованным release candidate до
-owner smoke, protected-main publication и tag readback.
+Исходный Git slice развёрнут в составе опубликованного MVP-1 вместе с
+status/result/artifact, product composition и public HTTPS. Актуальная
+release-привязка и результаты readback ведутся в `CURRENT-STATUS`.
 
 ## Локальный product composition
 
