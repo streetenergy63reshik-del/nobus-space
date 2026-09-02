@@ -96,7 +96,7 @@ def test_scheduler_whatif_writes_nothing(tmp_path: Path) -> None:
     (root / ".venv" / "Scripts").mkdir(parents=True)
     (root / "scripts").mkdir()
     (root / ".venv" / "Scripts" / "python.exe").touch()
-    (root / "scripts" / "run_telegram_mvp1.py").touch()
+    (root / "scripts" / "run_nobus_space_live.py").touch()
     (root / "scripts" / "check_telegram_health.py").touch()
     script = (
         Path(__file__).resolve().parents[1]
@@ -161,7 +161,7 @@ def test_health_rejects_lookalike_schema_without_constraints(
     assert result["databases"][path.name] == "unavailable"
 
 
-def test_health_reports_dead_letter_as_degraded_without_runner_restart(
+def test_health_reports_dead_letter_as_degraded_with_bounded_stopped_recovery(
     tmp_path: Path,
 ) -> None:
     from src.application.durable_telegram_state import SQLiteTelegramState
@@ -193,7 +193,15 @@ def test_health_reports_dead_letter_as_degraded_without_runner_restart(
     assert installer.count("-DontStopIfGoingOnBatteries") == 2
     assert "-RestartCount 999" not in installer
     assert "Stop-ScheduledTask" not in installer
-    assert "Start-ScheduledTask" not in installer
+    assert installer.count("Start-ScheduledTask") == 1
+    assert "`$task.State -eq 'Ready'" in installer
+    assert "run_nobus_space_live.py" in installer
+    assert "-WindowStyle Hidden" in installer
+    assert "-RepetitionInterval (New-TimeSpan -Minutes 1)" in installer
+    assert "http://127.0.0.1:8765/readyz" in installer
+    assert "https://app.nobusspace.com/readyz" in installer
+    assert "Generated health launcher is invalid." in installer
+    assert "[System.Text.UTF8Encoding]::new($true)" in installer
 
 
 def test_health_recomputes_checkpoint_digest(tmp_path: Path) -> None:
