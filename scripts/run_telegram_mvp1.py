@@ -23,11 +23,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.bind_business_notes import (  # noqa: E402
-    _atomic_write as _write_binding_config,
-    _candidate as _business_notes_candidate,
-    _v2_config as _business_notes_v2_config,
-)
 from scripts.run_telegram_control import (  # noqa: E402
     _BINDING_PATH,
     _CREDENTIAL_TARGET,
@@ -42,10 +37,6 @@ from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
 )
-from src.application.business_notes import (
-    BusinessNotesService,
-    SQLiteBusinessNotes,
-)
 from src.application.durable_confirmations import (  # noqa: E402
     DurablePatchConfirmationStore,
     DurableTaskConfirmationStore,
@@ -55,23 +46,12 @@ from src.application.durable_product import DurableProductTelegramControlPlane  
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
-from src.application.owner_files import OwnerFileService  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
     recover_interrupted_restore,
 )
-from src.application.owner_workspace import EdgePdfRenderer, OwnerWorkspace  # noqa: E402
-from src.application.network_commands import NetworkCommandRunner  # noqa: E402
-from src.application.network_tools import Quarantine, SafeDownloader  # noqa: E402
-from src.application.product_effects import (  # noqa: E402
-    DurableProductEffectVault,
-    ProductEffectService,
-)
 from src.application.task_confirmation import (  # noqa: E402
     MAX_TASK_INSTRUCTION_LENGTH,
-    InMemoryTaskConfirmationStore,
 )
-from src.application.patch_confirmation import InMemoryPatchConfirmationStore  # noqa: E402
-from src.application.telegram_actions import InMemoryTelegramActionStore  # noqa: E402
 from src.application.telegram_product import ProductTelegramControlPlane  # noqa: E402
 from src.application.windows_singleton import (  # noqa: E402
     RunnerAlreadyActive,
@@ -99,11 +79,6 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
 )
 from src.transport.miniapp import create_miniapp_app  # noqa: E402
 from src.storage import SQLiteStore  # noqa: E402
-from src.integrations import (  # noqa: E402
-    GoogleCalendarClient,
-    GoogleDriveClient,
-    GoogleTasksClient,
-)
 from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
@@ -135,27 +110,19 @@ _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
 _VOICE_INITIAL_PROMPT = (
     "Нобус Спейс — личный оркестратор. Компания называется PROстранство, "
     "про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, "
-    "Telegram, Google Drive, Google Calendar и Google Tasks. "
-    "Термины: MCP, idempotency key, L1, L2, L3, L4, субагент, Nobus Memory."
+    "Telegram и Nobus Space. "
+    "Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент."
 )
 _VOICE_HOTWORDS = (
     "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon "
-    "Google Drive Google Calendar Google Tasks MCP idempotency оркестратор "
-    "субагент Nobus Memory Нобус память"
+    "MCP idempotency оркестратор субагент"
 )
 _POLLING_LEASE_SECONDS = 240
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
 _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
-_BUSINESS_NOTES_PATH = _RUNTIME_ROOT / "business-notes.sqlite3"
 _PROJECT_CONTEXT_PATH = ROOT / "docs" / "11-Контекст-продукта.md"
 _NOBUS_MEMORY_ROOT = _OWNER_READ_ROOT / "Nobus memory"
-_ARTIFACT_SNAPSHOT_ROOT = _RUNTIME_ROOT / "artifact-snapshots"
-_OWNER_WRITE_ROOT = _ORCHESTRATOR_ROOT / "NOBUS SPACE BOT"
-_QUARANTINE_ROOT = _OWNER_WRITE_ROOT / "Загрузки"
-_GOOGLE_CALENDAR_TOKEN = (
-    _ORCHESTRATOR_ROOT / "Интеграции/google_api_integration/token.json"
-)
 _RUN_STAGES = frozenset(
     {
         "credentials",
@@ -167,7 +134,6 @@ _RUN_STAGES = frozenset(
         "worker_probe",
         "voice_warmup",
         "rate_limit_provider",
-        "product_effects",
         "control_construction",
         "control_start",
         "miniapp_core",
@@ -308,13 +274,11 @@ async def _run(
     python = Path(sys.executable).resolve(strict=True)
     worktree = _validated_worktree()
     _CODEX_TEMP.mkdir(parents=True, exist_ok=True)
-    _ARTIFACT_SNAPSHOT_ROOT.mkdir(parents=True, exist_ok=True)
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
     nobus_memory = NobusMemory(_NOBUS_MEMORY_ROOT)
 
     control: ProductTelegramControlPlane | None = None
     miniapp_server: _MiniAppServer | None = None
-    product_effects: ProductEffectService | None = None
     runtime = None
     bot_token = credential.secret.get_secret_value()
     api = TelegramBotApi(
@@ -414,31 +378,6 @@ async def _run(
                 git.parent,
             ),
         )
-        report_stage("product_effects")
-        calendar = GoogleCalendarClient(_GOOGLE_CALENDAR_TOKEN)
-        google_tasks = GoogleTasksClient(_GOOGLE_CALENDAR_TOKEN)
-        google_drive = GoogleDriveClient(_GOOGLE_CALENDAR_TOKEN)
-        product_effects = ProductEffectService(
-            vault=DurableProductEffectVault(telegram_state),
-            workspace=OwnerWorkspace(
-                _OWNER_WRITE_ROOT,
-                snapshot_root=_ARTIFACT_SNAPSHOT_ROOT,
-                pdf_renderer=EdgePdfRenderer(
-                    _required_edge_executable(),
-                    temp_root=_CODEX_TEMP,
-                ),
-            ),
-            downloader=SafeDownloader(),
-            quarantine=Quarantine(_QUARANTINE_ROOT),
-            network_runner=NetworkCommandRunner(
-                workspace_root=_OWNER_READ_ROOT,
-                git_executable=git,
-                python_executable=python,
-            ),
-            calendar=calendar,
-            google_tasks=google_tasks,
-            google_drive=google_drive,
-        )
         report_stage("control_construction")
         control = DurableProductTelegramControlPlane(
             gateway,
@@ -454,18 +393,7 @@ async def _run(
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
             ),
             limit_provider=limit_provider,
-            owner_files=OwnerFileService(_OWNER_READ_ROOT),
-            product_effects=product_effects,
-            calendar_planner=runtime,
-            calendar_service=calendar,
-            google_tasks_planner=runtime,
-            google_tasks_service=google_tasks,
-            google_drive_planner=runtime,
-            google_drive_service=google_drive,
-            business_notes=BusinessNotesService(
-                SQLiteBusinessNotes(_BUSINESS_NOTES_PATH)
-            ),
-            nobus_memory=nobus_memory,
+            enable_extended_routes=False,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
             task_tenants=destination_refs,
@@ -489,47 +417,7 @@ async def _run(
             await miniapp_server.start()
 
         async def handle_with_binding(update: dict[str, object]) -> bool:
-            nonlocal binding_config
-            selected = _business_notes_candidate(
-                [update], owner_user_id=owner_binding.user_id
-            )
-            if selected is None:
-                return await control.handle(update)
-            update_id, chat_id = selected
-            existing = next(
-                (
-                    item
-                    for item in binding_config.bindings
-                    if item.purpose == "business_notes"
-                ),
-                None,
-            )
-            if existing is not None:
-                if existing.chat_id == chat_id:
-                    await api.send_message(
-                        owner_binding.chat_id,
-                        "✅ «Заметки бизнеса» уже подключены.",
-                    )
-                return True
-            updated = _business_notes_v2_config(
-                binding_config, update_id=update_id, chat_id=chat_id
-            )
-            _write_binding_config(_BINDING_PATH, updated)
-            reloaded = load_telegram_bindings(
-                _BINDING_PATH,
-                expected_bot_id=updated.bot_id,
-                expected_bot_username=updated.bot_username,
-                expected_tenant_id=owner_binding.tenant_id,
-                expected_actor_identity=owner_binding.actor_identity,
-                expected_role=owner_binding.role,
-            )
-            gateway.replace_actor_bindings(reloaded)
-            binding_config = updated
-            await api.send_message(
-                owner_binding.chat_id,
-                "✅ «Заметки бизнеса» подключены. Новые сообщения и темы доступны Nobus.",
-            )
-            return True
+            return await control.handle(update)
 
         report_stage("polling")
         polling = TelegramPollingBoundary(api, handle_with_binding, checkpoint)
@@ -571,8 +459,6 @@ async def _run(
             try:
                 if control is not None:
                     await control.close()
-                elif product_effects is not None:
-                    await product_effects.close()
             finally:
                 try:
                     if runtime is not None:
@@ -648,21 +534,6 @@ def _required_codex_executable(home: Path | None = None) -> Path:
         except (OSError, RuntimeError, subprocess.SubprocessError):
             continue
     raise RuntimeError("working Codex CLI is unavailable")
-
-
-def _required_edge_executable() -> Path:
-    candidates = (
-        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
-        Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
-    )
-    for candidate in candidates:
-        try:
-            resolved = candidate.resolve(strict=True)
-            if resolved.is_file():
-                return resolved
-        except OSError:
-            continue
-    raise RuntimeError("local PDF renderer is unavailable")
 
 
 def _required_executable(name: str) -> Path:

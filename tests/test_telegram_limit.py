@@ -26,8 +26,12 @@ class FakeLimitProvider:
 
 def test_product_profile_keeps_menu_small_and_product_facing() -> None:
     assert ("limit", "Недельный лимит Codex") in _COMMANDS
-    assert all(command != "calendar" for command, _ in _COMMANDS)
-    assert len(_COMMANDS) == 6
+    assert {command for command, _ in _COMMANDS} == {
+        "start",
+        "status",
+        "limit",
+        "help",
+    }
 
 
 @pytest.mark.asyncio
@@ -64,5 +68,14 @@ async def test_limit_provider_failure_is_safe_and_not_a_task(tmp_path: Path) -> 
     assert harness.runtime.drafted == []
 
 
-def test_product_profile_includes_file_menu_command() -> None:
-    assert any(command == "file" for command, _ in _COMMANDS)
+def test_product_profile_excludes_unreleased_routes() -> None:
+    assert not {
+        "task",
+        "notes",
+        "file",
+        "calendar",
+        "research",
+        "document",
+        "download",
+        "network",
+    }.intersection(command for command, _ in _COMMANDS)

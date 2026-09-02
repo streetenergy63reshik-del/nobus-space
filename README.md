@@ -162,6 +162,13 @@ Loopback HTTP разрешён только для локальной прове
 остаётся HTTPS-only. Остановка процесса сначала закрывает web admission, затем
 durable control workers, Core/runtime и Telegram API client.
 
+Активная Telegram-поверхность MVP-1 ограничена обычными текстовыми и голосовыми
+задачами и командами `/start`, `/status`, `/limit`, `/help`. Маршруты `/task`,
+`/calendar`, `/research`, `/document`, `/download`, `/network`, `/file`, `/notes`
+и команды подтверждения future-effects не подключаются production runner и
+fail closed с явным сообщением. Наличие отдельных адаптеров или тестовых
+заготовок в исходниках не считается готовой функцией продукта.
+
 Публичная owner-composition запускается одной отслеживаемой командой:
 
 ```powershell
@@ -181,7 +188,8 @@ Telegram `sendDocument` и Mini App download получают одинаковы
 
 Для принятого owner journey отдельный ApprovalRequest не требуется: create,
 status, result и download являются Core admission/read-only delivery. Уже
-существующие approval/effect boundaries произвольных owner actions не менялись.
+существующие заготовки approval/effect для будущих срезов не входят в активную
+MVP-1 composition.
 
 ## Локальная проверка документационного кандидата
 

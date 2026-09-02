@@ -69,6 +69,11 @@ _EXECUTION_QUEUE_MAXSIZE = 40
 _GOOGLE_TASKS_CONTEXT_TTL_SECONDS = 10 * 60
 _TERMINALIZE_ATTEMPTS = 3
 _MOSCOW = timezone(timedelta(hours=3), "MSK")
+_MVP1_COMMANDS = frozenset({"/start", "/status", "/limit", "/help"})
+_MVP1_UNAVAILABLE_TEXT = (
+    "Эта функция пока не входит в MVP-1. Доступны обычные текстовые и "
+    "голосовые задачи, /status, /limit и /help."
+)
 _FILE_REQUEST_RE = re.compile(
     r"^\s*(?:\u043f\u0440\u0438\u0448\u043b\u0438|\u043e\u0442\u043f\u0440\u0430\u0432\u044c|"
     r"\u043d\u0430\u043f\u0440\u0430\u0432\u044c|\u0434\u0430\u0439)\s+"
@@ -317,6 +322,22 @@ _MEMORY_SAVE_RE = re.compile(
     r"\s*[:—-]\s*(.+?)\s*$",
     re.IGNORECASE | re.DOTALL,
 )
+
+
+def _is_unreleased_mvp1_intent(value: str) -> bool:
+    return bool(
+        value.casefold() in _BUSINESS_NOTES_BIND_REQUESTS
+        or _MEMORY_SAVE_RE.fullmatch(value)
+        or _NOTES_PRIVATE_HINT_RE.search(value)
+        or _file_request_query(value) is not None
+        or _FILE_ANALYSIS_RE.fullmatch(value)
+        or _RESEARCH_HINT_RE.search(value)
+        or _DOCUMENT_HINT_RE.search(value)
+        or _GOOGLE_DRIVE_HINT_RE.search(value)
+        or _GOOGLE_TASKS_HINT_RE.search(value)
+        or _is_google_tasks_list_mutation(value)
+        or _CALENDAR_HINT_RE.search(value)
+    )
 _MONTHS = (
     "", "января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря",
@@ -513,6 +534,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         google_drive_service: Any | None = None,
         business_notes: BusinessNotesService | None = None,
         nobus_memory: NobusMemory | None = None,
+        enable_extended_routes: bool = False,
         execution_concurrency: int = 0,
         **values: object,
     ) -> None:
@@ -627,6 +649,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     for name in ("retrieve", "remember")
                 )
             )
+            or not isinstance(enable_extended_routes, bool)
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
             or not 0 <= execution_concurrency <= 8
@@ -654,6 +677,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._google_drive_service = google_drive_service
         self._business_notes = business_notes
         self._nobus_memory = nobus_memory
+        self._enable_extended_routes = enable_extended_routes
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
             asyncio.Queue(maxsize=_EXECUTION_QUEUE_MAXSIZE)
@@ -880,7 +904,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return True
         payload = ingress.payload
         if payload.binding_purpose == "business_notes":
-            return await self._handle_business_notes(payload)
+            if self._enable_extended_routes:
+                return await self._handle_business_notes(payload)
+            return True
         await self._expire_task_drafts()
         if isinstance(payload, CallbackQuery):
             await self._handle_callback(payload, ingress.envelope)
@@ -892,6 +918,13 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return True
 
         command = _command(payload.text)
+        if (
+            not self._enable_extended_routes
+            and payload.text.startswith("/")
+            and command not in _MVP1_COMMANDS
+        ):
+            await self._api.send_message(payload.chat_id, _MVP1_UNAVAILABLE_TEXT)
+            return True
         profile = profile_for_command(command)
         if command == "/status":
             await self._api.send_message(payload.chat_id, self._status_text())
@@ -962,7 +995,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         else:
             file_query = _file_request_query(payload.text)
             if file_query is not None:
-                await self._send_owner_file(payload.chat_id, file_query)
+                if self._enable_extended_routes:
+                    await self._send_owner_file(payload.chat_id, file_query)
+                else:
+                    await self._api.send_message(
+                        payload.chat_id, _MVP1_UNAVAILABLE_TEXT
+                    )
             else:
                 await self._start_owner_instruction(
                     payload, ingress.envelope, payload.text
@@ -1014,6 +1052,21 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         )
 
     def _help_text(self) -> str:
+        if not self._enable_extended_routes:
+            return (
+                "Nobus Space готов к работе.\n\n"
+                "Напишите задачу обычным сообщением или продиктуйте её. "
+                "Голосовое сообщение распознаётся локально и передаётся в тот же "
+                "основной контур Nobus Space без отдельного предпросмотра.\n\n"
+                "Меню:\n"
+                "/status — состояние и очередь\n"
+                "/limit — недельный лимит Codex\n"
+                "/help — эта справка\n\n"
+                "Файлы с ПК, документы, интернет-исследование, Google, "
+                "Заметки бизнеса, Nobus Memory и сетевые команды пока не входят "
+                "в MVP-1.\n\n"
+                "Не отправляйте пароли, токены и клиентские персональные данные."
+            )
         return (
             "Nobus Space готов к работе.\n\n"
             "Напишите задачу обычным сообщением или продиктуйте её. Голосовое сообщение сначала "
@@ -1151,6 +1204,12 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 message.chat_id,
                 f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
             )
+            return
+        if (
+            not self._enable_extended_routes
+            and _is_unreleased_mvp1_intent(normalized)
+        ):
+            await self._api.send_message(message.chat_id, _MVP1_UNAVAILABLE_TEXT)
             return
         if normalized.casefold() in _BUSINESS_NOTES_BIND_REQUESTS:
             await self._api.send_message(
@@ -1612,6 +1671,17 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._api.send_message(
                 callback.chat_id, "Кнопка недействительна, уже использована или истекла."
             )
+            return
+        if (
+            not self._enable_extended_routes
+            and claimed.action
+            not in {TelegramAction.CONFIRM_VOICE, TelegramAction.CANCEL_VOICE}
+        ):
+            await _optional_callback_call(
+                self._api.answer_callback_query(callback.query_id),
+                _CALLBACK_ACK_TIMEOUT_SECONDS,
+            )
+            await self._api.send_message(callback.chat_id, _MVP1_UNAVAILABLE_TEXT)
             return
 
         async def execute_claimed_action() -> None:

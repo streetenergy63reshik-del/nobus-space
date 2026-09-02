@@ -134,7 +134,6 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         runner._CHECKPOINT_PATH,
         runner._TASK_RUNTIME_PATH,
         runner._TELEGRAM_STATE_PATH,
-        runner._BUSINESS_NOTES_PATH,
     )
 
     assert {path.parent for path in paths} == {runner._RUNTIME_ROOT}
@@ -142,8 +141,24 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         "telegram-checkpoint.sqlite3",
         "task-runtime.sqlite3",
         "telegram-state.sqlite3",
-        "business-notes.sqlite3",
     }
+
+
+def test_production_runtime_excludes_unreleased_effect_adapters() -> None:
+    assert "product_effects" not in runner._RUN_STAGES
+    for name in (
+        "BusinessNotesService",
+        "DurableProductEffectVault",
+        "GoogleCalendarClient",
+        "GoogleDriveClient",
+        "GoogleTasksClient",
+        "NetworkCommandRunner",
+        "OwnerFileService",
+        "OwnerWorkspace",
+        "ProductEffectService",
+        "SafeDownloader",
+    ):
+        assert not hasattr(runner, name)
 
 
 def test_serve_arguments_expose_one_loopback_miniapp_endpoint() -> None:
@@ -445,7 +460,6 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
         "DurableTelegramActionStore",
         lambda value: object() if value is telegram_state else None,
     )
-    monkeypatch.setattr(runner, "InMemoryTelegramActionStore", lambda: object())
     monkeypatch.setattr(runner, "PollingCheckpointUpdateIdStore", lambda: object())
     monkeypatch.setattr(runner, "TelegramGateway", lambda **values: object())
     monkeypatch.setattr(

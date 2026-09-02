@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from scripts.run_telegram_control import (
+    _ANNOUNCEMENT,
     _arguments,
     _bootstrap_checkpoint,
     _poll_once_and_announce,
@@ -23,6 +24,12 @@ from src.transport.telegram.sqlite_checkpoint import (
     SQLitePollingCheckpointError,
     SQLitePollingCheckpointStore,
 )
+
+
+def test_startup_announcement_matches_current_voice_and_menu_surface() -> None:
+    assert "распознаю локально и отправлю как задачу" in _ANNOUNCEMENT
+    assert "для подтверждения" not in _ANNOUNCEMENT
+    assert "состояние, лимит Codex и справка" in _ANNOUNCEMENT
 
 
 def test_bootstrap_sets_exact_offset_once(tmp_path: Path) -> None:

@@ -287,6 +287,7 @@ def _product(
     google_drive_service: object | None = None,
     business_notes: BusinessNotesService | None = None,
     nobus_memory: object | None = None,
+    extended_routes: bool = True,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -332,6 +333,7 @@ def _product(
         google_drive_service=google_drive_service,
         business_notes=business_notes,
         nobus_memory=nobus_memory,
+        enable_extended_routes=extended_routes,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
@@ -1310,6 +1312,93 @@ async def test_menu_commands_are_separate_from_default_task_text(tmp_path: Path)
     assert "Голос:" in harness.api.sent[0][1]
     assert "Напишите задачу обычным сообщением" in harness.api.sent[1][1]
     assert "Неизвестная команда" in harness.api.sent[2][1]
+    assert harness.runtime.drafted == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "command",
+    (
+        "/task выполнить задачу",
+        "/notes",
+        "/file report.pdf",
+        "/calendar покажи сегодня",
+        "/research рынок",
+        "/document report.docx|Отчёт|Текст",
+        "/download https://example.invalid/report.pdf",
+        "/network git-fetch|repo|origin|main",
+        "/confirm token",
+        "/cancel token",
+        "/apply token",
+        "/reject token",
+    ),
+)
+async def test_mvp1_surface_rejects_unreleased_slash_commands(
+    tmp_path: Path, command: str
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    assert await harness.control.handle(text_update(command, 1))
+
+    assert "не входит в MVP-1" in harness.api.sent[-1][1]
+    assert harness.runtime.drafted == []
+    assert harness.runtime.applied == []
+    assert harness.api.documents == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "Пришли мне файл report.pdf",
+        "Создай документ Word с итогом встречи",
+        "Покажи календарь на сегодня",
+        "Покажи актуальные задачи из Google Tasks",
+        "Найди файл в Google Drive",
+        "Проведи исследование в интернете о рынке",
+        "Собери резюме Заметок бизнеса",
+        "Сохрани в Nobus Memory: тестовый факт",
+    ),
+)
+async def test_mvp1_surface_rejects_unreleased_natural_effects(
+    tmp_path: Path, instruction: str
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    assert await harness.control.handle(text_update(instruction, 1))
+
+    assert "не входит в MVP-1" in harness.api.sent[-1][1]
+    assert harness.runtime.drafted == []
+    assert harness.runtime.applied == []
+    assert harness.api.documents == []
+
+
+@pytest.mark.asyncio
+async def test_mvp1_surface_keeps_plain_tasks_and_core_commands(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    await harness.control.handle(text_update("Объясни текущий статус проекта", 1))
+    await harness.control.handle(text_update("/status", 2))
+    await harness.control.handle(text_update("/help", 3))
+
+    assert len(harness.runtime.drafted) == 1
+    assert "Голос:" in harness.api.sent[-2][1]
+    assert "/status" in harness.api.sent[-1][1]
+    assert "/notes" not in harness.api.sent[-1][1]
+    assert "/file" not in harness.api.sent[-1][1]
+
+
+@pytest.mark.asyncio
+async def test_mvp1_surface_ignores_legacy_business_notes_binding(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    assert await harness.control.handle(notes_update("Старая заметка", 1))
+
+    assert harness.api.sent == []
     assert harness.runtime.drafted == []
 
 @pytest.mark.asyncio
