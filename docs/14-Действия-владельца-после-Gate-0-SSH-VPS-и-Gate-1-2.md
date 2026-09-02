@@ -1,7 +1,7 @@
 # 14. Реальные owner inputs для тонкого MVP-1
 
 **Статус документа:** CANONICAL OWNER INPUTS
-**Актуально на:** 31 августа 2026 года
+**Актуально на:** 2 сентября 2026 года
 
 Активное решение:
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
@@ -12,15 +12,17 @@ publication, credentials или live effect.
 
 ## 1. Что требуется сейчас
 
-ADR 0022 и auth/list/detail/create уже опубликованы. G2–G6 собраны и проверены
-локально: status/events/result, реальный artifact, Telegram/Mini App parity,
-same-process composition, recovery и frozen assurance. Candidate всё ещё
-`NOT PUBLISHED / NOT DEPLOYED`; общий verdict —
+ADR 0022 и базовый Telegram Mini App auth/list/detail/create уже опубликованы.
+G2–G6 собраны и проверены: status/events/result, реальный artifact,
+Telegram/Mini App parity, same-process composition, recovery и frozen
+assurance. Candidate развёрнут за public HTTPS и ожидает визуальный owner smoke,
+но всё ещё `NOT PUBLISHED`; общий verdict —
 `MVP-1 IN PROGRESS / NOT PRODUCT READY`.
 
 Exact revision, checks и blockers ведутся только в
-[CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Следующее решение владельца
-относится к G7, а не к повторному принятию архитектуры.
+[CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Оставшееся решение владельца —
+визуальное принятие обновлённой карточки и разрешение публикации exact release,
+а не повторное принятие архитектуры.
 
 Наличие настроенного `origin` не означает, что GitHub `main` содержит эту
 историю. Опубликованный канон появляется только после разрешённых push/PR/merge

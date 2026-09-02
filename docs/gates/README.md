@@ -15,7 +15,7 @@ baseline. Он не является active Definition of Done MVP-1. Полны
 | PRE-G1 / ADR 0021 | historical accepted overlay | сохранён byte-identical; active role/Gate sequence superseded ADR 0022 |
 | Gate 1 design | sealed historical TARGET | architecture file не доказывает implementation |
 | Gate 1 implementation WIP | `HOLD / NOT_ACCEPTED` | dirty 86-path worktree @ `db0a24e...`; preserve/reuse only by future exact diff |
-| Gate 2 | historical/deferred | не prerequisite ближайшего Mini App slice |
+| Gate 2 | historical/deferred | не prerequisite ближайшего Telegram Mini App slice |
 | Full Gate 2A | **FROZEN / NOT CURRENT** | security ideas reused narrowly; server Core/Agent Registry/Development Control topology не активна |
 | Gate 3–8 | historical/deferred | backlog до прямой потребности коммерческого vertical slice |
 
@@ -67,7 +67,6 @@ Research и Architecture объясняют старый TARGET, но не оп�
 
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
-Auth/list/detail/create опубликованы; G2–G6 проверены только локально. Следующий
-незакрытый product gate — отдельно авторизованный G7: public HTTPS ingress,
-Telegram menu activation и bounded live owner acceptance. G8 — publication,
-release tag и exact readback после принятия.
+Auth/list/detail/create опубликованы; G2–G6 проверены, а G7 public HTTPS ingress
+и Telegram menu activation развёрнуты. Остаются визуальный owner acceptance и
+G8 publication, release tag и exact readback после принятия.

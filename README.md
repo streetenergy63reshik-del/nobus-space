@@ -78,8 +78,11 @@ detail отрисовывался ниже длинного списка. Сод
 короткий номер,
 detail открывается как отдельная нижняя карточка, а форма создания появляется
 только по кнопке «Новая». В owner-card также показывается исходная инструкция;
-в списке она не раскрывается. Исправление ожидает повторного owner smoke. Candidate
-ещё не опубликован в protected `main` и не имеет release tag. Статус:
+в списке она не раскрывается. Повторный public synthetic smoke на deployed
+correction подтвердил owner-detail, list redaction, Core/Codex, два события,
+verified result и тот же digest-bound artifact. Визуальное подтверждение
+обновлённой карточки exact owner в Telegram ещё требуется. Candidate ещё не
+опубликован в protected `main` и не имеет release tag. Статус:
 `DEPLOYED / AWAITING OWNER SMOKE`, поэтому product verdict остаётся
 `MVP-1 IN PROGRESS / NOT PRODUCT READY`.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner

@@ -110,7 +110,15 @@ Git-репозиторий — источник истины для code/tests/A
   instruction входит в тот же encrypted payload и доступен только exact owner в
   detail; list его не получает, plaintext в SQLite не появляется, а legacy rows
   используют safe fallback.
-  Исправление требует повторного owner detail/result/artifact smoke.
+  Повторный public synthetic smoke на code checkpoint `06395e9...` создал task
+  `9243be1c-254e-4624-b8d8-b0e460e68e90`: owner detail вернул exact title и
+  instruction, list сохранил instruction redaction, статус прошёл
+  `queued -> ready`, получены два bounded events, expected verified answer и
+  artifact revision `1`, `22` bytes,
+  `sha256:7d470225e01ef8ce4faacd67974d02a9ecd1d41fff6f16a981c57bb630515b94`.
+  Public health/readiness после deployment вернули `200`; secrets, raw initData
+  и bearer в evidence не записывались. Остаётся визуальный owner smoke
+  обновлённой карточки внутри Telegram.
 - На неизменённых code bytes `fc43edf...` выполнен real Browser E2E через
   локальный Telegram SDK stub с подписанным test `initData`: create -> status ->
   bounded events -> verified answer -> artifact HTTP `200` -> client digest/size
@@ -119,7 +127,7 @@ Git-репозиторий — источник истины для code/tests/A
 - G4 verdict: отдельный external effect для принятого create/status/result/
   artifact journey не достижим, поэтому `ApprovalRequest NOT_REQUIRED`.
   Existing approval/effect/reconciliation boundaries не менялись.
-- Candidate развёрнут и ожидает owner smoke, но ещё не является
+- Candidate развёрнут и ожидает визуальный owner smoke, но ещё не является
   GitHub publication, final release или verdict о готовности всего MVP-1.
 - Локальная редакционная roadmap и её HTML view остаются на owner publication
   hold; эта docs-only актуализация их не публикует и не меняет.
@@ -162,7 +170,7 @@ coherent L1/L2/L3 по frozen bytes.
 | Local G2–G5 product candidate | G5 target/restart/rollback set: `207 passed`; real loopback Uvicorn static/health/readiness test: `PASS`; exact docs-inclusive `c8a59a3...` full `tests/`: `1551 passed`, `5 skipped`, `45 failed`; isolated historical Gate0/pre-Gate group with system temp: `188 passed`, `4 skipped`, `33 failed`; full release-relevant suite excluding only that historical group: `1374 passed`, `2 skipped` | historical G5 state; all `33` isolated failures classified below; superseded by the frozen G6 row |
 | Frozen G6 local candidate | exact `fc43edf...` release-relevant suite: `1377 passed`, `2 skipped`; Telegram polling/runtime health: `31 passed`; final adversarial focused recheck: `4 passed`; compileall, `pip check`, `git diff --check` and bounded secret scan: `PASS`; real Browser create/status/events/result/artifact and fail-safe unavailable state: `PASS` | coherent L1, independent L2 and adversarial L3: `PASS`; no known Critical/Major defect; **VERIFIED LOCAL CANDIDATE / NOT PUBLISHED / NOT DEPLOYED** |
 | Independent status-audit recheck, 2026-08-31 | focused auth/create/status/result/artifact/composition/Telegram/store set: `249 passed`, `1` known Starlette/httpx deprecation warning, explicit system temp; product worktree remained clean | reproduced on containing `61b5a5e...` with unchanged code checkpoint `fc43edf...`; complements, does not replace, the frozen G6 evidence |
-| Owner UI correction candidate, 2026-09-02 | task description/storage/API/UI target: `105 passed`; docs-inclusive target: `109 passed`; runtime/backup/restore integration after quiescent stop: `76 passed`; pre-migration verified backup, Python compileall, `git diff --check` and three real headless Edge renders (list/create/detail): `PASS` | containing revision; exact SHA/tree and final release rerun are recorded in task handoff |
+| Owner UI correction candidate, 2026-09-02 | exact code checkpoint `06395e9...`, tree `1c035c3...`: docs-inclusive target `109 passed`; full release-relevant suite `1381 passed`, `2 skipped`; adversarial recheck `7 passed`; runtime/backup/restore integration `76 passed`; verified backup, Python compileall, `git diff --check`, three real headless Edge renders and public task `9243be1c...` owner-detail/Core/Codex/result/artifact smoke: `PASS` | **DEPLOYED / AWAITING OWNER SMOKE**; no known Critical/Major implementation defect; not published in protected `main` |
 | Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **PUBLISHED** through PR #2; exact A/B reachability read back from `origin/main` |
 | Publication merge | pre-publication checkpoint `100 passed`, `1 warning`; PR head exact `0612f1456bf050e54aac8bb2afc2c4f9a5b99328`; non-force merge with commit preservation | `205cd66d4094f59673e89aa8d616b7826f16f8b0`; accepted product/integrity content anchor |
 
@@ -258,7 +266,7 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 
 G2–G6 собраны; HTTPS/menu и synthetic G7 активированы. Первый human smoke
 подтвердил open/create/Core/Codex и выявил исправленный UX-дефект.
-Ближайшая последовательность: repeat exact-owner detail/result/artifact smoke ->
+Ближайшая последовательность: visual exact-owner detail/result/artifact smoke ->
 protected-main publication -> final release tag/readback. До этих трёх
 доказательств вердикт не повышается до `MVP-1 READY`.
 
