@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from contextlib import closing, contextmanager
@@ -27,6 +28,11 @@ from src.core.policy import (
     task_contract_digest,
 )
 from src.models.task import Task, TaskSource, TaskStatus
+from src.security.dpapi import (
+    DpapiError,
+    protect_current_user,
+    unprotect_current_user,
+)
 from src.storage.outbox import (
     DeliveryReceipt,
     OutboxEnqueueResult,
@@ -72,6 +78,10 @@ class OutboxReceiptConflictError(ValueError):
 
 class OutboxCorruptionError(StoreCorruptionError):
     """Stored outbox state failed its row/JSON/digest checks."""
+
+
+_TASK_DISPLAY_ENTROPY = b"nobus-space:task-display:v1"
+_MAX_TASK_DISPLAY_TEXT = 120
 
 
 class DurableTaskProjection(BaseModel):
@@ -126,6 +136,9 @@ class StoredTaskSnapshot(BaseModel):
     updated_at: datetime
     snapshot_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     projection: DurableTaskProjection
+    display_text: str | None = Field(
+        default=None, min_length=1, max_length=_MAX_TASK_DISPLAY_TEXT
+    )
 
 
     @model_validator(mode="after")
@@ -172,6 +185,78 @@ def _is_digest(value: object) -> bool:
         and len(value) == 71
         and all(character in "0123456789abcdef" for character in value[7:])
     )
+
+
+def _task_display_text(value: str) -> str:
+    """Keep one bounded owner-visible description, never the Task payload."""
+    normalized = value.strip()
+    if len(normalized) <= _MAX_TASK_DISPLAY_TEXT:
+        return normalized
+    return normalized[: _MAX_TASK_DISPLAY_TEXT - 1].rstrip() + "…"
+
+
+def _task_display_digest(
+    *, tenant_id: str, task_id: UUID, contract_digest: str, payload: bytes
+) -> str:
+    return canonical_json_digest(
+        {
+            "tenant_id": tenant_id,
+            "task_id": str(task_id),
+            "contract_digest": contract_digest,
+            "payload_digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        }
+    )
+
+
+def _protect_task_display(
+    *, tenant_id: str, task_id: UUID, contract_digest: str, display_text: str
+) -> bytes:
+    try:
+        raw = _canonical_json(
+            {
+                "schema_version": 1,
+                "tenant_id": tenant_id,
+                "task_id": str(task_id),
+                "contract_digest": contract_digest,
+                "display_text": display_text,
+            }
+        ).encode("utf-8")
+        return protect_current_user(raw, entropy=_TASK_DISPLAY_ENTROPY)
+    except (DpapiError, UnicodeError):
+        raise ValueError("task display protection failed") from None
+
+
+def _unprotect_task_display(
+    *, tenant_id: str, task_id: UUID, contract_digest: str, payload: bytes
+) -> str:
+    try:
+        raw = unprotect_current_user(payload, entropy=_TASK_DISPLAY_ENTROPY)
+        value = json.loads(raw)
+    except (DpapiError, UnicodeError, json.JSONDecodeError):
+        raise ValueError("task display protection failed") from None
+    if not isinstance(value, dict):
+        raise ValueError("task display binding mismatch")
+    if set(value) != {
+        "schema_version",
+        "tenant_id",
+        "task_id",
+        "contract_digest",
+        "display_text",
+    }:
+        raise ValueError("task display binding mismatch")
+    display_text = value["display_text"]
+    if (
+        value["schema_version"] != 1
+        or value["tenant_id"] != tenant_id
+        or value["task_id"] != str(task_id)
+        or value["contract_digest"] != contract_digest
+        or not isinstance(display_text, str)
+        or display_text != display_text.strip()
+        or not display_text
+        or len(display_text) > _MAX_TASK_DISPLAY_TEXT
+    ):
+        raise ValueError("task display binding mismatch")
+    return display_text
 
 
 def _validate_task_projection(
@@ -417,6 +502,19 @@ class SQLiteStore:
                     ON miniapp_auth_replays (tenant_id, auth_expires_at);
                 """
             )
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(task_snapshots)")
+            }
+            if "display_payload" not in columns:
+                connection.execute(
+                    "ALTER TABLE task_snapshots ADD COLUMN display_payload BLOB"
+                )
+            if "display_digest" not in columns:
+                connection.execute(
+                    "ALTER TABLE task_snapshots ADD COLUMN display_digest TEXT"
+                )
+            connection.commit()
 
     @staticmethod
     def _snapshot_from_row(
@@ -427,6 +525,26 @@ class SQLiteStore:
         )
         updated_at = datetime.fromisoformat(row["updated_at"])
         expected_digest = canonical_json_digest(projection.model_dump(mode="json"))
+        display_payload = row["display_payload"]
+        display_digest = row["display_digest"]
+        display_text = None
+        display_valid = display_payload is None and display_digest is None
+        if isinstance(display_payload, bytes) and display_payload and _is_digest(
+            display_digest
+        ):
+            display_valid = display_digest == _task_display_digest(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                contract_digest=projection.contract_digest,
+                payload=display_payload,
+            )
+            if display_valid:
+                display_text = _unprotect_task_display(
+                    tenant_id=tenant_id,
+                    task_id=task_id,
+                    contract_digest=projection.contract_digest,
+                    payload=display_payload,
+                )
         if (
             row["tenant_id"] != tenant_id
             or row["task_id"] != str(task_id)
@@ -435,6 +553,7 @@ class SQLiteStore:
             or row["contract_digest"] != projection.contract_digest
             or updated_at != projection.updated_at
             or row["projection_digest"] != expected_digest
+            or not display_valid
         ):
             raise ValueError("task snapshot binding mismatch")
         return StoredTaskSnapshot(
@@ -442,6 +561,7 @@ class SQLiteStore:
             updated_at=updated_at,
             snapshot_digest=row["projection_digest"],
             projection=projection,
+            display_text=display_text,
         )
 
     @staticmethod
@@ -450,7 +570,8 @@ class SQLiteStore:
     ) -> StoredTaskSnapshot | None:
         row = connection.execute(
             """SELECT tenant_id, task_id, contract_digest, revision, updated_at,
-                      projection_digest, projection_json
+                      projection_digest, projection_json, display_payload,
+                      display_digest
                FROM task_snapshots WHERE tenant_id = ? AND task_id = ?""",
             (tenant_id, str(task_id)),
         ).fetchone()
@@ -486,6 +607,7 @@ class SQLiteStore:
             updated_at=projection.updated_at,
             snapshot_digest=digest,
             projection=projection,
+            display_text=None,
         )
 
     def read_ingress_claim(
@@ -859,6 +981,7 @@ class SQLiteStore:
             updated_at=projection.updated_at,
             snapshot_digest=digest,
             projection=projection,
+            display_text=existing.display_text,
         )
 
     def read_latest_event(
@@ -920,6 +1043,53 @@ class SQLiteStore:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
 
+    def bind_task_display_text(
+        self, tenant_id: str, task_id: UUID, display_text: str
+    ) -> StoredTaskSnapshot:
+        """Bind one encrypted owner-visible title without persisting Task intent."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        normalized = _task_display_text(display_text)
+        if not normalized:
+            raise ValueError("display_text must be a non-empty string")
+        try:
+            with self._transaction() as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                if snapshot is None:
+                    raise SnapshotConflictError("task snapshot is missing")
+                if snapshot.display_text is not None:
+                    if snapshot.display_text != normalized:
+                        raise SnapshotConflictError("task display binding mismatch")
+                    return snapshot
+                projection = snapshot.projection
+                payload = _protect_task_display(
+                    tenant_id=tenant,
+                    task_id=task_id,
+                    contract_digest=projection.contract_digest,
+                    display_text=normalized,
+                )
+                digest = _task_display_digest(
+                    tenant_id=tenant,
+                    task_id=task_id,
+                    contract_digest=projection.contract_digest,
+                    payload=payload,
+                )
+                cursor = connection.execute(
+                    """UPDATE task_snapshots
+                       SET display_payload = ?, display_digest = ?
+                       WHERE tenant_id = ? AND task_id = ?
+                         AND display_payload IS NULL AND display_digest IS NULL""",
+                    (payload, digest, tenant, str(task_id)),
+                )
+                if cursor.rowcount != 1:
+                    raise SnapshotConflictError("task display binding mismatch")
+                return snapshot.model_copy(update={"display_text": normalized})
+        except SnapshotConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
     def list_tasks(
         self, tenant_id: str, *, limit: int = 20
     ) -> tuple[StoredTaskSnapshot, ...]:
@@ -935,7 +1105,8 @@ class SQLiteStore:
             with closing(self._connect()) as connection:
                 rows = connection.execute(
                     """SELECT tenant_id, task_id, contract_digest, revision,
-                              updated_at, projection_digest, projection_json
+                              updated_at, projection_digest, projection_json,
+                              display_payload, display_digest
                        FROM task_snapshots
                        WHERE tenant_id = ?
                        ORDER BY julianday(updated_at) DESC, task_id ASC

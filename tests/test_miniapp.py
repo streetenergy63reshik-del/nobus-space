@@ -807,17 +807,36 @@ def test_create_task_boundary_rejects_unknown_authority_and_reuses_request_id(
     with TestClient(app) as client:
         created = client.post(
             "/api/tasks",
-            json={"instruction": "Покажи состояние проекта"},
+            json={
+                "display_title": "Состояние проекта",
+                "instruction": "Покажи состояние проекта",
+            },
             headers=mutation_headers,
         )
         repeated = client.post(
             "/api/tasks",
-            json={"instruction": "Покажи состояние проекта"},
+            json={
+                "display_title": "Состояние проекта",
+                "instruction": "Покажи состояние проекта",
+            },
             headers=mutation_headers,
         )
         conflict = client.post(
             "/api/tasks",
             json={"instruction": "Подменённый запрос"},
+            headers=mutation_headers,
+        )
+        title_conflict = client.post(
+            "/api/tasks",
+            json={
+                "display_title": "Другое название",
+                "instruction": "Покажи состояние проекта",
+            },
+            headers=mutation_headers,
+        )
+        oversized_title = client.post(
+            "/api/tasks",
+            json={"display_title": "x" * 121, "instruction": "Покажи состояние"},
             headers=mutation_headers,
         )
         authority = client.post(
@@ -840,15 +859,21 @@ def test_create_task_boundary_rejects_unknown_authority_and_reuses_request_id(
             content=b"x" * 16_385,
             headers=mutation_headers,
         )
+        detail = client.get(
+            f"/api/tasks/{created.json()['task_id']}", headers=headers(token)
+        )
 
     assert created.status_code == repeated.status_code == 202
     assert created.json() == repeated.json()
-    assert conflict.status_code == 409
+    assert conflict.status_code == title_conflict.status_code == 409
     assert mutation_headers["Idempotency-Key"] not in conflict.text
     assert authority.status_code == missing_key.status_code == 400
+    assert oversized_title.status_code == 400
     assert duplicate_field.status_code == 400
     assert oversized.status_code == 413
     assert "foreign" not in authority.text
+    assert detail.json()["description"] == "Состояние проекта"
+    assert detail.json()["description_available"] is True
 
 
 def test_create_task_core_unavailable_does_not_mutate_state(tmp_path: Path) -> None:
@@ -937,6 +962,8 @@ def test_list_is_tenant_scoped_bounded_stable_and_safe(tmp_path: Path) -> None:
     assert all(item.task_id != foreign_id for item in tasks)
     assert set(tasks[0].model_dump(mode="json")) == {
         "task_id",
+        "description",
+        "description_available",
         "status",
         "status_label",
         "terminal",
@@ -945,7 +972,11 @@ def test_list_is_tenant_scoped_bounded_stable_and_safe(tmp_path: Path) -> None:
         "created_at",
         "updated_at",
     }
+    assert tasks[0].description == "Задача #00000000"
+    assert tasks[0].description_available is False
     assert "private content" not in repr(tasks)
+    assert "workspace" not in repr(tasks)
+    assert "acceptance_criteria" not in repr(tasks)
 
 
 def test_detail_rechecks_session_tenant_and_task_binding(tmp_path: Path) -> None:
@@ -975,10 +1006,49 @@ def test_detail_rechecks_session_tenant_and_task_binding(tmp_path: Path) -> None
 
     assert own.status_code == 200
     assert own.json()["task_id"] == str(owner_task)
+    assert own.json()["description"] == "Задача #00000000"
+    assert own.json()["description_available"] is False
     assert foreign.status_code == unknown.status_code == malformed.status_code == 404
     assert foreign.json() == unknown.json() == malformed.json() == {
         "detail": "task_not_found"
     }
+
+
+def test_task_description_is_bound_and_legacy_rows_get_safe_fallback(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "state.sqlite3"
+    store = SQLiteStore(path)
+    task_id = UUID("00000000-0000-0000-0000-000000000013")
+    persist_task(store, tenant_id="owner", task_id=task_id, updated_at=NOW)
+    store.bind_task_display_text("owner", task_id, "Проверить статус проекта")
+    service = MiniAppCore(
+        store=store,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id="owner",
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="description-binding"))
+
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "UPDATE task_snapshots SET display_payload = ? WHERE task_id = ?",
+            (b"forged description", str(task_id)),
+        )
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        service.list_tasks(token, limit=20)
+
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """UPDATE task_snapshots
+               SET display_payload = NULL, display_digest = NULL
+               WHERE task_id = ?""",
+            (str(task_id),),
+        )
+    legacy = service.list_tasks(token, limit=20)[0]
+    assert legacy.description == "Задача #00000000"
+    assert legacy.description_available is False
 
 
 def test_unknown_fields_and_client_selected_authority_are_rejected(tmp_path: Path) -> None:
@@ -1021,6 +1091,7 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
         )
         page = client.get("/")
         script = client.get("/app.js")
+        styles = client.get("/styles.css")
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Nobus Space временно недоступен"}
@@ -1030,6 +1101,15 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
     assert "Idempotency-Key" in script.text
     assert "crypto.randomUUID()" in script.text
     assert "Задача принята. Статус временно недоступен." in script.text
+    assert 'id="new-task"' in page.text
+    assert 'id="composer-sheet"' in page.text
+    assert 'id="detail-sheet"' in page.text
+    assert "openComposer" in script.text
+    assert "openDetail" in script.text
+    assert "task.description" in script.text
+    assert "display_title" in script.text
+    assert "position: fixed" in styles.text
+    assert "backdrop-filter" in styles.text
     assert script.text.index("let created;") > script.text.index(
         'createTask.addEventListener("submit"'
     )

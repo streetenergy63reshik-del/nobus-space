@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 1 сентября 2026 года
+**Актуально на:** 2 сентября 2026 года
 **Lifecycle rule:** containing revision outside protected GitHub `main` is
 `GATE_CANDIDATE`; after an authorized merge and exact reachability readback it
 is part of `ACCEPTED_PUBLISHED_BASELINE`
@@ -98,6 +98,17 @@ Git-репозиторий — источник истины для code/tests/A
   artifact digest `sha256:2605fe75c9b69fe849e3f085f77530d3c28a383bd374cf06102818d60380875b`,
   `24` bytes. Durable outbox/Telegram receipt `acked`; public download вернул
   те же bytes/digest. Secrets/initData/bearer в evidence не записывались.
+- Human owner 2 сентября открыл Mini App через exact private Telegram menu и
+  создал task `729fec70-ecf1-4c70-8f7c-6e542fa0bba8`. Authoritative state
+  подтвердил переход в `answered`, result revision `1` и два bounded events:
+  задача реально прошла существующий Core/Codex, а не осталась только в UI.
+  Smoke выявил Major usability defect: list не позволял идентифицировать
+  задачу, а detail отрисовывался ниже длинного списка. Содержащая correction
+  revision выводит отдельный bounded owner-visible title и short task id,
+  открывает detail/create как отдельные bottom sheets и сохраняет title только в
+  DPAPI-protected tenant/task/contract-bound field той же task snapshot. Raw
+  instruction в SQLite не появляется; legacy rows используют safe fallback.
+  Исправление требует повторного owner detail/result/artifact smoke.
 - На неизменённых code bytes `fc43edf...` выполнен real Browser E2E через
   локальный Telegram SDK stub с подписанным test `initData`: create -> status ->
   bounded events -> verified answer -> artifact HTTP `200` -> client digest/size
@@ -149,6 +160,7 @@ coherent L1/L2/L3 по frozen bytes.
 | Local G2–G5 product candidate | G5 target/restart/rollback set: `207 passed`; real loopback Uvicorn static/health/readiness test: `PASS`; exact docs-inclusive `c8a59a3...` full `tests/`: `1551 passed`, `5 skipped`, `45 failed`; isolated historical Gate0/pre-Gate group with system temp: `188 passed`, `4 skipped`, `33 failed`; full release-relevant suite excluding only that historical group: `1374 passed`, `2 skipped` | historical G5 state; all `33` isolated failures classified below; superseded by the frozen G6 row |
 | Frozen G6 local candidate | exact `fc43edf...` release-relevant suite: `1377 passed`, `2 skipped`; Telegram polling/runtime health: `31 passed`; final adversarial focused recheck: `4 passed`; compileall, `pip check`, `git diff --check` and bounded secret scan: `PASS`; real Browser create/status/events/result/artifact and fail-safe unavailable state: `PASS` | coherent L1, independent L2 and adversarial L3: `PASS`; no known Critical/Major defect; **VERIFIED LOCAL CANDIDATE / NOT PUBLISHED / NOT DEPLOYED** |
 | Independent status-audit recheck, 2026-08-31 | focused auth/create/status/result/artifact/composition/Telegram/store set: `249 passed`, `1` known Starlette/httpx deprecation warning, explicit system temp; product worktree remained clean | reproduced on containing `61b5a5e...` with unchanged code checkpoint `fc43edf...`; complements, does not replace, the frozen G6 evidence |
+| Owner UI correction candidate, 2026-09-02 | task description/storage/API/UI target: `105 passed`; docs-inclusive target: `109 passed`; runtime/backup/restore integration after quiescent stop: `76 passed`; pre-migration verified backup, Python compileall, `git diff --check` and three real headless Edge renders (list/create/detail): `PASS` | containing revision; exact SHA/tree and final release rerun are recorded in task handoff |
 | Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **PUBLISHED** through PR #2; exact A/B reachability read back from `origin/main` |
 | Publication merge | pre-publication checkpoint `100 passed`, `1 warning`; PR head exact `0612f1456bf050e54aac8bb2afc2c4f9a5b99328`; non-force merge with commit preservation | `205cd66d4094f59673e89aa8d616b7826f16f8b0`; accepted product/integrity content anchor |
 
@@ -213,17 +225,17 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 
 ## MVP-1 product readiness
 
-| Product boundary | Статус на 2026-09-01 |
+| Product boundary | Статус на 2026-09-02 |
 |---|---|
 | Architecture / one Core, queue, state and effect authority | **ACCEPTED / PUBLISHED** |
 | Owner auth, list/detail, task create backend | **CODE READY / PUBLISHED** |
-| Static frontend for auth/list/detail/create | **CODE READY / PUBLISHED** |
+| Static frontend for auth/list/detail/create | **OWNER UX CORRECTION / DEPLOYED; repeat smoke pending; NOT PUBLISHED** |
 | Status/events/verified result | **DEPLOYED / AWAITING OWNER SMOKE; NOT PUBLISHED** |
 | Real artifact metadata/download and Telegram byte parity | **DEPLOYED / synthetic live parity PASS; NOT PUBLISHED** |
 | Conditional approval/recovery for a reachable effect | **NOT_REQUIRED for accepted journey; existing effects unchanged** |
 | Production composition, runner, config, health and autostart | **DEPLOYED / restart smoke PASS** |
 | HTTPS ingress and Telegram menu activation | **ACTIVE / exact-owner menu read back** |
-| Live create/status/result/artifact/restart smoke | **synthetic owner-bound PASS; human owner open pending** |
+| Live create/status/result/artifact/restart smoke | **synthetic owner-bound PASS; human open/create PASS; corrected detail/result/artifact repeat pending** |
 | Final GitHub release tag/readback | **ABSENT** |
 | Full MVP-1 business product | **IN PROGRESS / NOT PRODUCT READY** |
 
@@ -242,8 +254,9 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 7. exact SHA опубликован и активирован, owner smoke выполнен, health,
    backup/restore и rollback воспроизводимы, final tag прочитан обратно.
 
-G2–G6 собраны; HTTPS/menu и synthetic G7 активированы.
-Ближайшая последовательность: exact-owner Telegram open/create smoke ->
+G2–G6 собраны; HTTPS/menu и synthetic G7 активированы. Первый human smoke
+подтвердил open/create/Core/Codex и выявил исправленный UX-дефект.
+Ближайшая последовательность: repeat exact-owner detail/result/artifact smoke ->
 protected-main publication -> final release tag/readback. До этих трёх
 доказательств вердикт не повышается до `MVP-1 READY`.
 
@@ -275,8 +288,9 @@ publication, но не live runtime release, deploy или разрешение 
 ## Current deployed candidate and next boundary
 
 `codex/mvp1-g7-activation` закрывает code path G2–G6 и развёрнут за
-public HTTPS. Оставшаяся граница G7 — фактическое открытие Mini App
-exact owner из Telegram. Затем требуются protected-main publication,
+public HTTPS. Exact owner уже подтвердил Telegram open/create; оставшаяся
+граница G7 — повторная проверка исправленных detail/result/artifact экранов.
+Затем требуются protected-main publication,
 final tag и readback одного exact release SHA.
 
 ## Proposed Nobus Memory pointer sync

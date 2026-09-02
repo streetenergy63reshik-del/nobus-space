@@ -50,7 +50,7 @@ Git-репозиторий — источник истины для code/tests/A
 [CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Иерархия источников и
 навигация: [docs/README.md](docs/README.md).
 
-## Продуктовый статус — 1 сентября 2026 года
+## Продуктовый статус — 2 сентября 2026 года
 
 **MVP-1: IN PROGRESS / NOT PRODUCT READY.**
 
@@ -69,9 +69,16 @@ Telegram menu ссылается на этот Mini App. Core, SQLite и Codex
 остаются на owner Windows PC; VPS держит только Cloudflare
 Tunnel и restricted reverse relay. Public health/readiness, fail-closed `502`
 при остановке Core и synthetic owner-bound
-create/status/result/artifact с Telegram byte parity прошли. Candidate ещё
-не опубликован в protected `main`, не имеет release tag и не
-прошёл фактическое открытие exact owner из Telegram. Статус:
+create/status/result/artifact с Telegram byte parity прошли. Exact owner
+открыл Mini App из Telegram и создал задачу; она поступила в существующий
+Core/Codex runtime и завершилась verified answer. Первый human smoke выявил
+блокирующий UX-дефект: строки списка нельзя было надёжно идентифицировать, а
+detail отрисовывался ниже длинного списка. Содержащая revision исправляет этот
+дефект: список показывает отдельное owner-visible название и устойчивый
+короткий номер,
+detail открывается как отдельная нижняя карточка, а форма создания появляется
+только по кнопке «Новая». Исправление ожидает повторного owner smoke. Candidate
+ещё не опубликован в protected `main` и не имеет release tag. Статус:
 `DEPLOYED / AWAITING OWNER SMOKE`, поэтому product verdict остаётся
 `MVP-1 IN PROGRESS / NOT PRODUCT READY`.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner
@@ -116,8 +123,15 @@ authority, bot secret или Agent Registry.
   task, а rebinding другого текста или authority fail closed; exhausted dead-letter тоже блокирует
   Core admission и не оставляет orphan PENDING task;
 - static HTML/CSS/ES module UI хранит bearer и pending request id только в
-  памяти, не делает blind retry и показывает
+  памяти, открывает create/detail в отдельных нижних панелях, показывает
+  bounded owner-visible название, короткий task id, status и время, не делает
+  blind retry и показывает
   `Nobus Space временно недоступен` при отказе Core;
+- owner-visible короткое название хранится в той же task snapshot только как
+  DPAPI-protected payload, повторно связано с tenant/task/contract и digest;
+  оно передаётся отдельно от instruction; raw instruction не появляется в
+  SQLite, а legacy rows получают безопасный
+  fallback `Задача #<short-id>`;
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 

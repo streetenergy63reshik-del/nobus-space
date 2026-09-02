@@ -73,7 +73,12 @@ class MiniAppCoreBoundary(Protocol):
     ) -> Sequence[MiniAppTaskEvent]: ...
 
     async def create_task(
-        self, bearer: str, instruction: str, idempotency_key: str
+        self,
+        bearer: str,
+        instruction: str,
+        idempotency_key: str,
+        *,
+        display_title: str | None = None,
     ) -> MiniAppTaskCreation: ...
 
 
@@ -284,16 +289,26 @@ def create_miniapp_app(
                 raw.decode("utf-8", errors="strict"),
                 object_pairs_hook=_unique_object,
             )
-            if not isinstance(payload, dict) or set(payload) != {"instruction"}:
+            if (
+                not isinstance(payload, dict)
+                or set(payload)
+                not in ({"instruction"}, {"display_title", "instruction"})
+            ):
                 raise ValueError
             instruction = payload["instruction"]
-            if not isinstance(instruction, str):
+            display_title = payload.get("display_title")
+            if not isinstance(instruction, str) or (
+                display_title is not None and not isinstance(display_title, str)
+            ):
                 raise ValueError
         except (UnicodeError, ValueError, json.JSONDecodeError):
             return _invalid_request()
         try:
             result = await core.create_task(
-                _bearer(request), instruction, request_ids[0]
+                _bearer(request),
+                instruction,
+                request_ids[0],
+                display_title=display_title,
             )
             return JSONResponse(result.model_dump(mode="json"), status_code=202)
         except MiniAppAuthenticationError:
