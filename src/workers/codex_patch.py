@@ -40,9 +40,18 @@ _UUID_RE = re.compile(
     r"[89ab][0-9a-f]{3}-[0-9a-f]{12}\b",
     re.IGNORECASE,
 )
+_NOTIFICATION_GAP = r"[\s\u200b\u200c\u200d\u2060\ufeff]*"
+_NOTIFICATION_DASH = r"[-\u2010\u2011\u2012\u2013\u2014\u2015]"
 _DESKTOP_NOTIFICATION_MARKER_RE = re.compile(
-    r"<!--\s*nobus-notify:complete\|.*?-->",
+    rf"(?:<!--{_NOTIFICATION_GAP})?"
+    rf"nobus{_NOTIFICATION_GAP}{_NOTIFICATION_DASH}{_NOTIFICATION_GAP}"
+    rf"notify{_NOTIFICATION_GAP}:{_NOTIFICATION_GAP}"
+    rf"[a-z]{{1,32}}{_NOTIFICATION_GAP}\|.*?(?:-->|$)",
     re.IGNORECASE | re.DOTALL,
+)
+_DESKTOP_NOTIFICATION_TOKEN_RE = re.compile(
+    rf"nobus{_NOTIFICATION_GAP}{_NOTIFICATION_DASH}{_NOTIFICATION_GAP}notify",
+    re.IGNORECASE,
 )
 _FORBIDDEN_LINES = (
     "GIT binary patch",
@@ -86,6 +95,11 @@ class CodexPatchDraft(BaseModel):
     patch: str = Field(min_length=1, max_length=16 * 1024)
     paths: tuple[str, ...] = Field(min_length=1, max_length=20)
 
+    @field_validator("summary")
+    @classmethod
+    def _safe_summary(cls, value: str) -> str:
+        return _without_desktop_notification(value)
+
     @field_validator("paths", mode="before")
     @classmethod
     def _json_array_to_tuple(cls, value: object) -> object:
@@ -104,7 +118,7 @@ class CodexAnswerDraft(BaseModel):
     @field_validator("answer")
     @classmethod
     def _safe_answer(cls, value: str) -> str:
-        normalized = _DESKTOP_NOTIFICATION_MARKER_RE.sub("", value).strip()
+        normalized = _without_desktop_notification(value)
         if (
             not normalized
             or "\x00" in normalized
@@ -120,6 +134,16 @@ class CodexAnswerDraft(BaseModel):
         ):
             raise ValueError
         return normalized
+
+
+def _without_desktop_notification(value: str) -> str:
+    normalized = _DESKTOP_NOTIFICATION_MARKER_RE.sub("", value).strip()
+    if (
+        not normalized
+        or _DESKTOP_NOTIFICATION_TOKEN_RE.search(normalized) is not None
+    ):
+        raise ValueError
+    return normalized
 
 
 CodexDraft: TypeAlias = CodexPatchDraft | CodexAnswerDraft

@@ -129,6 +129,88 @@ def test_rejects_answer_containing_only_desktop_notification_marker(
 
 
 @pytest.mark.parametrize(
+    "marker",
+    [
+        "<!-- nobus-notify:complete |Техническое уведомление. -->",
+        "<!-- nobus-notify : complete|Техническое уведомление. -->",
+        "<!-- nobus-notify:complete\n|Техническое уведомление. -->",
+        "<!-- nobus-notify:\u200bcomplete|Техническое уведомление. -->",
+        "<!-- NOBUS–NOTIFY:COMPLETE|Техническое уведомление. -->",
+        "<!-- nobus\u200b-\u200bnotify:blocked|Техническое уведомление. -->",
+        "<!-- nobus-notify:complete|Незакрытое уведомление.",
+        "nobus-notify:complete|Техническое уведомление.",
+    ],
+)
+def test_removes_marker_like_notification_variants(
+    tmp_path: Path, marker: str
+) -> None:
+    draft = parse_codex_draft(
+        json.dumps(
+            {"answer": f"Полезный ответ.\n\n{marker}"},
+            ensure_ascii=False,
+        ),
+        tmp_path,
+    )
+
+    assert draft == CodexAnswerDraft(answer="Полезный ответ.")
+
+
+def test_rejects_unparseable_notification_token(tmp_path: Path) -> None:
+    message = json.dumps(
+        {"answer": "Полезный ответ.\n\nnobus-notify без протокола"},
+        ensure_ascii=False,
+    )
+
+    with pytest.raises(CodexPatchError):
+        parse_codex_draft(message, tmp_path)
+
+
+def test_removes_multiple_notification_markers(tmp_path: Path) -> None:
+    draft = parse_codex_draft(
+        json.dumps(
+            {
+                "answer": (
+                    "Полезный ответ.\n"
+                    "<!-- nobus-notify:complete|Первое. -->\n"
+                    "<!-- nobus-notify:complete|Второе. -->"
+                )
+            },
+            ensure_ascii=False,
+        ),
+        tmp_path,
+    )
+
+    assert draft == CodexAnswerDraft(answer="Полезный ответ.")
+
+
+def test_removes_notification_marker_from_patch_summary(tmp_path: Path) -> None:
+    patch = (
+        "diff --git a/src/safe.py b/src/safe.py\n"
+        "new file mode 100644\n"
+        "--- /dev/null\n"
+        "+++ b/src/safe.py\n"
+        "@@ -0,0 +1 @@\n"
+        "+SAFE = True\n"
+    )
+    message = json.dumps(
+        {
+            "summary": (
+                "Added one safe file.\n"
+                "<!-- nobus-notify : complete|Техническое уведомление. -->"
+            ),
+            "patch": patch,
+            "paths": ["src/safe.py"],
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+    draft = parse_codex_patch(message, tmp_path)
+
+    assert draft.summary == "Added one safe file."
+
+
+@pytest.mark.parametrize(
     "message",
     [
         '{"answer":"ok","extra":true}',
