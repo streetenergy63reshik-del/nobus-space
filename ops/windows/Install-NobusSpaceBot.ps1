@@ -14,10 +14,12 @@ else {
     (Resolve-Path -LiteralPath $RuntimeRoot).Path
 }
 $python = Join-Path $runtimeOwner '.venv\Scripts\python.exe'
+$pythonw = Join-Path $runtimeOwner '.venv\Scripts\pythonw.exe'
 $runner = Join-Path $root 'scripts\run_nobus_space_live.py'
 $health = Join-Path $root 'scripts\check_telegram_health.py'
 $healthTaskName = "$TaskName-Health"
 if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $pythonw -PathType Leaf) -or
     -not (Test-Path -LiteralPath $runner -PathType Leaf) -or
     -not (Test-Path -LiteralPath $health -PathType Leaf)) {
     throw 'Canonical runner, health probe or virtual environment is unavailable.'
@@ -106,7 +108,7 @@ if ($parseErrors.Count -ne 0) {
 }
 
 $action = New-ScheduledTaskAction `
-    -Execute $python `
+    -Execute $pythonw `
     -Argument "`"$runner`"" `
     -WorkingDirectory $root
 $healthAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
