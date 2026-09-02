@@ -77,7 +77,8 @@ detail отрисовывался ниже длинного списка. Сод
 дефект: список показывает отдельное owner-visible название и устойчивый
 короткий номер,
 detail открывается как отдельная нижняя карточка, а форма создания появляется
-только по кнопке «Новая». Исправление ожидает повторного owner smoke. Candidate
+только по кнопке «Новая». В owner-card также показывается исходная инструкция;
+в списке она не раскрывается. Исправление ожидает повторного owner smoke. Candidate
 ещё не опубликован в protected `main` и не имеет release tag. Статус:
 `DEPLOYED / AWAITING OWNER SMOKE`, поэтому product verdict остаётся
 `MVP-1 IN PROGRESS / NOT PRODUCT READY`.
@@ -127,9 +128,10 @@ authority, bot secret или Agent Registry.
   bounded owner-visible название, короткий task id, status и время, не делает
   blind retry и показывает
   `Nobus Space временно недоступен` при отказе Core;
-- owner-visible короткое название хранится в той же task snapshot только как
-  DPAPI-protected payload, повторно связано с tenant/task/contract и digest;
-  оно передаётся отдельно от instruction; raw instruction не появляется в
+- owner-visible короткое название и bounded instruction хранятся в той же task
+  snapshot только как единый DPAPI-protected payload, повторно связанный с
+  tenant/task/contract и digest; список получает только название, а instruction
+  возвращается exact owner только в task detail; открытый текст не появляется в
   SQLite, а legacy rows получают безопасный
   fallback `Задача #<short-id>`;
 - `src/main.py` не используется новым boundary и остаётся старым

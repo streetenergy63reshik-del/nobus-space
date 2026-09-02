@@ -987,26 +987,53 @@ def test_task_display_text_is_bounded_and_bound_to_the_snapshot_row(
 
     assert created is True
     assert snapshot.display_text is None
-    snapshot = store.bind_task_display_text(
+    legacy = store.bind_task_display_text(
         task.tenant_id, task.id, "Статус проекта"
     )
+    assert legacy.display_text == "Статус проекта"
+    assert legacy.display_instruction is None
+    restarted = SQLiteStore(path)
+    legacy_readback = restarted.read_task(task.tenant_id, task.id)
+    assert legacy_readback is not None
+    assert legacy_readback.display_instruction is None
+
+    snapshot = restarted.bind_task_display_text(
+        task.tenant_id,
+        task.id,
+        "Статус проекта",
+        display_instruction="Проверить текущий статус и вернуть краткий ответ",
+    )
     assert snapshot.display_text == "Статус проекта"
+    assert snapshot.display_instruction == (
+        "Проверить текущий статус и вернуть краткий ответ"
+    )
     assert (
         store.bind_task_display_text(task.tenant_id, task.id, "Статус проекта")
         == snapshot
     )
     with pytest.raises(SnapshotConflictError, match="display binding"):
         store.bind_task_display_text(task.tenant_id, task.id, "Другое название")
+    with pytest.raises(SnapshotConflictError, match="display binding"):
+        store.bind_task_display_text(
+            task.tenant_id,
+            task.id,
+            "Статус проекта",
+            display_instruction="Подменённая инструкция",
+        )
     restarted = SQLiteStore(path)
     readback = restarted.read_task(task.tenant_id, task.id)
     assert readback is not None
     assert readback.display_text == "Статус проекта"
+    assert readback.display_instruction == (
+        "Проверить текущий статус и вернуть краткий ответ"
+    )
     with sqlite3.connect(path) as connection:
         row = connection.execute(
             "SELECT display_payload, display_digest FROM task_snapshots"
         ).fetchone()
     assert isinstance(row[0], bytes)
     assert "Статус проекта".encode() not in row[0]
+    assert "Проверить текущий статус".encode() not in row[0]
     assert row[1].startswith("sha256:")
 
 

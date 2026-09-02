@@ -874,6 +874,8 @@ def test_create_task_boundary_rejects_unknown_authority_and_reuses_request_id(
     assert "foreign" not in authority.text
     assert detail.json()["description"] == "Состояние проекта"
     assert detail.json()["description_available"] is True
+    assert detail.json()["instruction"] == "Покажи состояние проекта"
+    assert detail.json()["instruction_available"] is True
 
 
 def test_create_task_core_unavailable_does_not_mutate_state(tmp_path: Path) -> None:
@@ -1008,6 +1010,8 @@ def test_detail_rechecks_session_tenant_and_task_binding(tmp_path: Path) -> None
     assert own.json()["task_id"] == str(owner_task)
     assert own.json()["description"] == "Задача #00000000"
     assert own.json()["description_available"] is False
+    assert own.json()["instruction"] is None
+    assert own.json()["instruction_available"] is False
     assert foreign.status_code == unknown.status_code == malformed.status_code == 404
     assert foreign.json() == unknown.json() == malformed.json() == {
         "detail": "task_not_found"
@@ -1021,7 +1025,12 @@ def test_task_description_is_bound_and_legacy_rows_get_safe_fallback(
     store = SQLiteStore(path)
     task_id = UUID("00000000-0000-0000-0000-000000000013")
     persist_task(store, tenant_id="owner", task_id=task_id, updated_at=NOW)
-    store.bind_task_display_text("owner", task_id, "Проверить статус проекта")
+    store.bind_task_display_text(
+        "owner",
+        task_id,
+        "Проверить статус проекта",
+        display_instruction="Покажи текущий статус проекта",
+    )
     service = MiniAppCore(
         store=store,
         bot_token=BOT_TOKEN,
@@ -1107,6 +1116,8 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
     assert "openComposer" in script.text
     assert "openDetail" in script.text
     assert "task.description" in script.text
+    assert "task.instruction" in script.text
+    assert "Содержание задачи" in script.text
     assert "display_title" in script.text
     assert "position: fixed" in styles.text
     assert "backdrop-filter" in styles.text

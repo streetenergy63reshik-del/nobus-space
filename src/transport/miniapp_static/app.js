@@ -195,6 +195,16 @@ async function showTask(taskId, initialTask = null) {
     detailTitle.textContent = task.description;
     detail.replaceChildren();
     detail.append(detailMeta(task));
+    if (task.instruction_available) {
+      const instructionCard = element("section", "instruction-card");
+      instructionCard.append(
+        element("h3", "", "Содержание задачи"),
+        element("p", "", task.instruction),
+      );
+      detail.append(instructionCard);
+    } else {
+      detail.append(element("p", "legacy-note", "Исходный текст недоступен для задач, созданных до обновления карточки."));
+    }
     if (!task.description_available) {
       detail.append(element("p", "legacy-note", "Описание этой задачи создано до обновления интерфейса. Для идентификации используется устойчивый номер."));
     }

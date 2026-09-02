@@ -106,8 +106,10 @@ Git-репозиторий — источник истины для code/tests/A
   задачу, а detail отрисовывался ниже длинного списка. Содержащая correction
   revision выводит отдельный bounded owner-visible title и short task id,
   открывает detail/create как отдельные bottom sheets и сохраняет title только в
-  DPAPI-protected tenant/task/contract-bound field той же task snapshot. Raw
-  instruction в SQLite не появляется; legacy rows используют safe fallback.
+  DPAPI-protected tenant/task/contract-bound field той же task snapshot. Bounded
+  instruction входит в тот же encrypted payload и доступен только exact owner в
+  detail; list его не получает, plaintext в SQLite не появляется, а legacy rows
+  используют safe fallback.
   Исправление требует повторного owner detail/result/artifact smoke.
 - На неизменённых code bytes `fc43edf...` выполнен real Browser E2E через
   локальный Telegram SDK stub с подписанным test `initData`: create -> status ->

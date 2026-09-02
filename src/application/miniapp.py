@@ -89,6 +89,10 @@ class MiniAppTaskSummary(BaseModel):
 
 
 class MiniAppTaskDetail(MiniAppTaskSummary):
+    instruction: str | None = Field(
+        default=None, min_length=1, max_length=MAX_TASK_INSTRUCTION_LENGTH
+    )
+    instruction_available: bool
     task_revision: StrictInt = Field(ge=1)
     result_revision: StrictInt = Field(ge=0)
     result_digest: str | None = Field(
@@ -313,6 +317,8 @@ class MiniAppCore:
             artifact = artifact_for_message(message)
         return MiniAppTaskDetail(
             **self._summary(snapshot).model_dump(),
+            instruction=snapshot.display_instruction,
+            instruction_available=snapshot.display_instruction is not None,
             task_revision=snapshot.revision,
             result_revision=(
                 projection.result_revision
@@ -493,7 +499,10 @@ class MiniAppCore:
             display_title=display_title,
         )
         existing = self._existing_creation(
-            envelope, admission, display_title=display_title
+            envelope,
+            admission,
+            display_title=display_title,
+            instruction=instruction,
         )
         if existing is not None:
             return existing
@@ -501,14 +510,20 @@ class MiniAppCore:
             task_id = await admission.submit_miniapp_task(instruction, envelope)
         except (DuplicateIdempotencyKeyError, IngressClaimConflictError):
             existing = self._existing_creation(
-                envelope, admission, display_title=display_title
+                envelope,
+                admission,
+                display_title=display_title,
+                instruction=instruction,
             )
             if existing is not None:
                 return existing
             raise MiniAppTaskConflictError("request_conflict") from None
         except Exception:
             existing = self._existing_creation(
-                envelope, admission, display_title=display_title
+                envelope,
+                admission,
+                display_title=display_title,
+                instruction=instruction,
             )
             if existing is not None:
                 return existing
@@ -519,7 +534,9 @@ class MiniAppCore:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
         if snapshot is None or snapshot.projection.tenant_id != session.tenant_id:
             raise MiniAppCoreUnavailableError("core_unavailable")
-        snapshot = self._bind_display_title(snapshot, display_title)
+        snapshot = self._bind_display_title(
+            snapshot, display_title, instruction=instruction
+        )
         return self._creation(snapshot, admission)
 
     def _existing_creation(
@@ -528,6 +545,7 @@ class MiniAppCore:
         admission: MiniAppTaskAdmission,
         *,
         display_title: str | None,
+        instruction: str,
     ) -> MiniAppTaskCreation | None:
         try:
             snapshot = self._store.read_ingress_claim(envelope)
@@ -538,11 +556,18 @@ class MiniAppCore:
         if snapshot is None:
             return None
         return self._creation(
-            self._bind_display_title(snapshot, display_title), admission
+            self._bind_display_title(
+                snapshot, display_title, instruction=instruction
+            ),
+            admission,
         )
 
     def _bind_display_title(
-        self, snapshot: StoredTaskSnapshot, display_title: str | None
+        self,
+        snapshot: StoredTaskSnapshot,
+        display_title: str | None,
+        *,
+        instruction: str,
     ) -> StoredTaskSnapshot:
         if display_title is None:
             return snapshot
@@ -551,6 +576,7 @@ class MiniAppCore:
                 snapshot.projection.tenant_id,
                 snapshot.projection.task_id,
                 display_title,
+                display_instruction=instruction,
             )
         except SnapshotConflictError:
             raise MiniAppTaskConflictError("request_conflict") from None
