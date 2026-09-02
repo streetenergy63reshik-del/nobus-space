@@ -1221,6 +1221,24 @@ class Gate5A4Runtime(DurableFakeRuntime):
 
                 worker_result = await execute_within_deadline(contract)
                 draft = parse_codex_draft(worker_result.message, self._pipeline.root)
+                normalized_message = (
+                    {"answer": draft.answer}
+                    if isinstance(draft, CodexAnswerDraft)
+                    else {
+                        "summary": draft.summary,
+                        "patch": draft.patch,
+                        "paths": list(draft.paths),
+                    }
+                )
+                worker_result = worker_result.model_copy(
+                    update={
+                        "message": json.dumps(
+                            normalized_message,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        )
+                    }
+                )
                 if "web.search" in contract.permissions and (
                     not isinstance(draft, CodexAnswerDraft)
                     or not _has_evidenced_public_source_url(

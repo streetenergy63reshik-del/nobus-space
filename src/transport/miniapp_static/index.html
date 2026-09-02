@@ -2,26 +2,79 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="dark light">
     <title>Nobus Space</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module" src="/app.js"></script>
   </head>
   <body>
-    <main>
-      <header>
-        <p class="eyebrow">Nobus Space</p>
-        <h1>Задачи</h1>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Nobus Space</p>
+          <h1>Задачи</h1>
+        </div>
+        <button id="new-task" class="new-task" type="button" hidden>
+          <span aria-hidden="true">＋</span><span>Новая</span>
+        </button>
       </header>
-      <p id="state" role="status">Nobus Space временно недоступен</p>
-      <form id="create-task" hidden>
-        <label for="instruction">Новая задача</label>
-        <textarea id="instruction" maxlength="2000" rows="4" required></textarea>
-        <button type="submit">Создать задачу</button>
-      </form>
-      <ol id="tasks" aria-label="Список задач"></ol>
-      <section id="detail" aria-live="polite" hidden></section>
+
+      <p id="state" class="state" role="status">Nobus Space временно недоступен</p>
+
+      <section id="task-panel" class="task-panel" hidden>
+        <div class="section-heading">
+          <h2>Последние задачи</h2>
+          <span id="task-count" class="task-count" aria-live="polite"></span>
+        </div>
+        <ol id="tasks" class="task-list" aria-label="Список задач"></ol>
+        <div id="empty" class="empty-state" hidden>
+          <span class="empty-mark" aria-hidden="true">N</span>
+          <h2>Здесь появятся ваши задачи</h2>
+          <p>Нажмите «Новая», опишите результат — Nobus передаст задачу в локальный Core и Codex.</p>
+        </div>
+      </section>
     </main>
+
+    <dialog id="composer-sheet" class="sheet" aria-labelledby="composer-title">
+      <form id="create-task" class="sheet-card">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <header class="sheet-header">
+          <div>
+            <p class="eyebrow">Новая задача</p>
+            <h2 id="composer-title">Что нужно сделать?</h2>
+          </div>
+          <button id="close-composer" class="icon-button" type="button" aria-label="Закрыть">×</button>
+        </header>
+        <label class="field-label" for="display-title">
+          Короткое название
+          <input id="display-title" maxlength="120" required placeholder="Например: Отчёт за неделю">
+        </label>
+        <label class="field-label" for="instruction">
+          Что нужно сделать
+          <textarea id="instruction" maxlength="2000" rows="6" required placeholder="Опишите задачу и ожидаемый результат…"></textarea>
+        </label>
+        <div class="composer-meta">
+          <span>Задача будет выполнена локальным Codex</span>
+          <span id="character-count">0 / 2000</span>
+        </div>
+        <button id="submit-task" class="primary-button" type="submit">Создать задачу</button>
+      </form>
+    </dialog>
+
+    <dialog id="detail-sheet" class="sheet detail-sheet" aria-labelledby="detail-title">
+      <article class="sheet-card detail-card">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <header class="sheet-header detail-header">
+          <div>
+            <p id="detail-reference" class="eyebrow">Задача</p>
+            <h2 id="detail-title">Загрузка…</h2>
+          </div>
+          <button id="close-detail" class="icon-button" type="button" aria-label="Закрыть">×</button>
+        </header>
+        <section id="detail" aria-live="polite"></section>
+      </article>
+    </dialog>
   </body>
 </html>

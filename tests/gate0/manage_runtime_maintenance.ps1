@@ -189,6 +189,26 @@ function Get-MaintenanceDigest {
     }
 }
 
+function Get-MaintenanceFileDigest {
+    param([Parameter(Mandatory = $true)][string] $LiteralPath)
+
+    $path = [System.IO.Path]::GetFullPath($LiteralPath)
+    if (-not [System.IO.File]::Exists($path)) {
+        throw "Maintenance digest input is unavailable."
+    }
+    $stream = [System.IO.File]::OpenRead($path)
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return "sha256:" + [System.BitConverter]::ToString(
+            $hasher.ComputeHash($stream)
+        ).Replace("-", "").ToLowerInvariant()
+    }
+    finally {
+        $hasher.Dispose()
+        $stream.Dispose()
+    }
+}
+
 function Get-VenvBasePythonDefinition {
     param([Parameter(Mandatory = $true)][string] $VenvPythonPath)
 
@@ -241,9 +261,7 @@ function Get-VenvBasePythonDefinition {
     }
     return [pscustomobject]@{
         Path = $basePython
-        Digest = "sha256:" + (
-            Get-FileHash -Algorithm SHA256 -LiteralPath $basePython
-        ).Hash.ToLowerInvariant()
+        Digest = Get-MaintenanceFileDigest -LiteralPath $basePython
     }
 }
 
@@ -1496,18 +1514,10 @@ function Get-RegisteredRuntimeDefinition {
     $script:MaintenanceTaskContractProfile = $null
     $script:MaintenanceActionContractProfile = $null
     Set-MaintenanceFailureStage -Stage "registered_digests"
-    $pythonDigest = "sha256:" + (
-        Get-FileHash -Algorithm SHA256 -LiteralPath $pythonPath
-    ).Hash.ToLowerInvariant()
-    $runnerDigest = "sha256:" + (
-        Get-FileHash -Algorithm SHA256 -LiteralPath $runnerPath
-    ).Hash.ToLowerInvariant()
-    $actionExecutableDigest = "sha256:" + (
-        Get-FileHash -Algorithm SHA256 -LiteralPath $actionExecutable
-    ).Hash.ToLowerInvariant()
-    $launcherDigest = "sha256:" + (
-        Get-FileHash -Algorithm SHA256 -LiteralPath $launcherPath
-    ).Hash.ToLowerInvariant()
+    $pythonDigest = Get-MaintenanceFileDigest -LiteralPath $pythonPath
+    $runnerDigest = Get-MaintenanceFileDigest -LiteralPath $runnerPath
+    $actionExecutableDigest = Get-MaintenanceFileDigest -LiteralPath $actionExecutable
+    $launcherDigest = Get-MaintenanceFileDigest -LiteralPath $launcherPath
     Set-MaintenanceFailureStage -Stage "pyvenv_base"
     $basePython = Get-VenvBasePythonDefinition -VenvPythonPath $pythonPath
     Set-MaintenanceFailureStage -Stage "registered_digests"
@@ -1699,9 +1709,7 @@ function Get-RunnerCandidates {
         }
 
         $executableDigest = if ($executablePath -and [System.IO.File]::Exists($executablePath)) {
-            "sha256:" + (
-                Get-FileHash -Algorithm SHA256 -LiteralPath $executablePath
-            ).Hash.ToLowerInvariant()
+            Get-MaintenanceFileDigest -LiteralPath $executablePath
         }
         else {
             ""

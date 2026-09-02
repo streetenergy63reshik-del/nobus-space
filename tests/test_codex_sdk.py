@@ -148,6 +148,12 @@ async def test_sdk_starts_persistent_named_thread_and_validates_result(
     assert client.started[0].name is not None
     assert client.started[0].name.startswith("nobus:")
     assert len(client.started[0].turns) == 1
+    developer_instructions = client.start_values[0]["developer_instructions"]
+    assert "internal product worker" in developer_instructions
+    assert "nobus-notify" in developer_instructions
+    prompt = json.loads(client.started[0].turns[0]["prompt"])
+    assert "internal product worker" in prompt["response_protocol"]
+    assert "nobus-notify" in prompt["response_protocol"]
 
 
 @pytest.mark.asyncio

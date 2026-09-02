@@ -55,7 +55,7 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
         "table:outbox_receipts":
             "6713069ee549076aa984fc8d0d72d834f0ba9c3e2f68f6453be0a8f48938e693",
         "table:task_snapshots":
-            "e5ec08239422f6d4c587d1840072b377d55aa152207f4ed7232657f3a4c84fc6",
+            "b1f338e3deff32d9507eda30384864f4a1baabce6b56d7f59cfdeffe65b5aef4",
     },
     "telegram-state.sqlite3": {
         "index:idx_telegram_capability_expiry":

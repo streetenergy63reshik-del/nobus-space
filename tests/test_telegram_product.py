@@ -34,7 +34,10 @@ from src.application.telegram_actions import (
     InMemoryTelegramActionStore,
     TelegramAction,
 )
-from src.application.telegram_product import ProductTelegramControlPlane
+from src.application.telegram_product import (
+    ProductTelegramControlPlane,
+    _task_display_title,
+)
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
 from src.integrations import (
@@ -144,6 +147,19 @@ class FakeProductRuntime:
 
     async def prepare_instruction(self, instruction: str, envelope: object) -> PreparedTask:
         return await self.base.prepare_instruction(instruction, envelope)
+
+    def bind_task_display_text(
+        self,
+        prepared: PreparedTask,
+        display_text: str,
+        *,
+        display_instruction: str,
+    ) -> None:
+        self.base.bind_task_display_text(
+            prepared,
+            display_text,
+            display_instruction=display_instruction,
+        )
 
     async def prepare_instruction_with_context(
         self,
@@ -287,6 +303,7 @@ def _product(
     google_drive_service: object | None = None,
     business_notes: BusinessNotesService | None = None,
     nobus_memory: object | None = None,
+    extended_routes: bool = True,
 ) -> ProductHarness:
     base = build_harness(tmp_path)
     clock = MutableClock()
@@ -332,6 +349,7 @@ def _product(
         google_drive_service=google_drive_service,
         business_notes=business_notes,
         nobus_memory=nobus_memory,
+        enable_extended_routes=extended_routes,
         execution_concurrency=execution_concurrency,
         task_tenants=(TENANT_ID,),
         task_status_sender=FakeStatusSender(),
@@ -391,6 +409,24 @@ def callback_update(token: str, update_id: int) -> dict[str, Any]:
             "data": token,
         },
     }
+
+
+@pytest.mark.parametrize(
+    ("instruction", "expected"),
+    (
+        ("Проверь текущий статус проекта", "Текущий статус проекта"),
+        ("Составь короткий отчёт", "Короткий отчёт"),
+        ("Отчёт", "Задача Отчёт"),
+        ("...", "Новая задача"),
+    ),
+)
+def test_owner_task_title_is_bounded_to_two_or_three_words(
+    instruction: str, expected: str
+) -> None:
+    title = _task_display_title(instruction)
+
+    assert title == expected
+    assert len(title.split()) in {2, 3}
 
 
 async def _issue_legacy_patch_apply(
@@ -1310,6 +1346,106 @@ async def test_menu_commands_are_separate_from_default_task_text(tmp_path: Path)
     assert "Голос:" in harness.api.sent[0][1]
     assert "Напишите задачу обычным сообщением" in harness.api.sent[1][1]
     assert "Неизвестная команда" in harness.api.sent[2][1]
+    assert harness.runtime.drafted == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "command",
+    (
+        "/task выполнить задачу",
+        "/notes",
+        "/file report.pdf",
+        "/calendar покажи сегодня",
+        "/research рынок",
+        "/document report.docx|Отчёт|Текст",
+        "/download https://example.invalid/report.pdf",
+        "/network git-fetch|repo|origin|main",
+        "/confirm token",
+        "/cancel token",
+        "/apply token",
+        "/reject token",
+    ),
+)
+async def test_mvp1_surface_rejects_unreleased_slash_commands(
+    tmp_path: Path, command: str
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    assert await harness.control.handle(text_update(command, 1))
+
+    assert "не входит в MVP-1" in harness.api.sent[-1][1]
+    assert harness.runtime.drafted == []
+    assert harness.runtime.applied == []
+    assert harness.api.documents == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "Пришли мне файл report.pdf",
+        "Создай документ Word с итогом встречи",
+        "Покажи календарь на сегодня",
+        "Покажи актуальные задачи из Google Tasks",
+        "Найди файл в Google Drive",
+        "Проведи исследование в интернете о рынке",
+        "Собери резюме Заметок бизнеса",
+        "Сохрани в Nobus Memory: тестовый факт",
+    ),
+)
+async def test_mvp1_surface_rejects_unreleased_natural_effects(
+    tmp_path: Path, instruction: str
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    assert await harness.control.handle(text_update(instruction, 1))
+
+    assert "не входит в MVP-1" in harness.api.sent[-1][1]
+    assert harness.runtime.drafted == []
+    assert harness.runtime.applied == []
+    assert harness.api.documents == []
+
+
+@pytest.mark.asyncio
+async def test_mvp1_surface_keeps_plain_tasks_and_core_commands(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    instruction = (
+        "Данное сообщение было направлено одному кандидату. "
+        "Нужно переработать это сообщение в обезличенное. "
+        "Чтобы можно было направлять его остальным кандидатам."
+    )
+    await harness.control.handle(text_update(instruction, 1))
+    await harness.control.handle(text_update("/status", 2))
+    await harness.control.handle(text_update("/help", 3))
+
+    assert len(harness.runtime.drafted) == 1
+    prepared = harness.runtime.drafted[0]
+    snapshot = harness.runtime.base.miniapp_store.read_task(
+        TENANT_ID, prepared.contract.task_id
+    )
+    assert snapshot is not None
+    assert snapshot.display_text == "Сообщение кандидатам"
+    assert snapshot.display_instruction == instruction
+    assert len(snapshot.display_text.split()) in {2, 3}
+    assert "Голос:" in harness.api.sent[-2][1]
+    assert "/status" in harness.api.sent[-1][1]
+    assert "/notes" not in harness.api.sent[-1][1]
+    assert "/file" not in harness.api.sent[-1][1]
+
+
+@pytest.mark.asyncio
+async def test_mvp1_surface_ignores_legacy_business_notes_binding(
+    tmp_path: Path,
+) -> None:
+    harness = _product(tmp_path, extended_routes=False)
+
+    assert await harness.control.handle(notes_update("Старая заметка", 1))
+
+    assert harness.api.sent == []
     assert harness.runtime.drafted == []
 
 @pytest.mark.asyncio

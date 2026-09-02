@@ -973,6 +973,70 @@ def test_read_task_rejects_tampered_row_bindings(
         store.read_task(task.tenant_id, task.id)
 
 
+def test_task_display_text_is_bounded_and_bound_to_the_snapshot_row(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "state.sqlite3"
+    store = SQLiteStore(path)
+    incoming = envelope()
+    instruction = "  Проверить   текущий статус\nи вернуть краткий ответ  "
+    contract = contract_for(incoming, instruction=instruction)
+    task = runtime_task(contract)
+
+    created, snapshot = store.claim_ingress_with_task(incoming, contract, task)
+
+    assert created is True
+    assert snapshot.display_text is None
+    legacy = store.bind_task_display_text(
+        task.tenant_id, task.id, "Статус проекта"
+    )
+    assert legacy.display_text == "Статус проекта"
+    assert legacy.display_instruction is None
+    restarted = SQLiteStore(path)
+    legacy_readback = restarted.read_task(task.tenant_id, task.id)
+    assert legacy_readback is not None
+    assert legacy_readback.display_instruction is None
+
+    snapshot = restarted.bind_task_display_text(
+        task.tenant_id,
+        task.id,
+        "Статус проекта",
+        display_instruction="Проверить текущий статус и вернуть краткий ответ",
+    )
+    assert snapshot.display_text == "Статус проекта"
+    assert snapshot.display_instruction == (
+        "Проверить текущий статус и вернуть краткий ответ"
+    )
+    assert (
+        store.bind_task_display_text(task.tenant_id, task.id, "Статус проекта")
+        == snapshot
+    )
+    with pytest.raises(SnapshotConflictError, match="display binding"):
+        store.bind_task_display_text(task.tenant_id, task.id, "Другое название")
+    with pytest.raises(SnapshotConflictError, match="display binding"):
+        store.bind_task_display_text(
+            task.tenant_id,
+            task.id,
+            "Статус проекта",
+            display_instruction="Подменённая инструкция",
+        )
+    restarted = SQLiteStore(path)
+    readback = restarted.read_task(task.tenant_id, task.id)
+    assert readback is not None
+    assert readback.display_text == "Статус проекта"
+    assert readback.display_instruction == (
+        "Проверить текущий статус и вернуть краткий ответ"
+    )
+    with sqlite3.connect(path) as connection:
+        row = connection.execute(
+            "SELECT display_payload, display_digest FROM task_snapshots"
+        ).fetchone()
+    assert isinstance(row[0], bytes)
+    assert "Статус проекта".encode() not in row[0]
+    assert "Проверить текущий статус".encode() not in row[0]
+    assert row[1].startswith("sha256:")
+
+
 @pytest.mark.parametrize(
     "field", ["tenant_id", "task_id", "contract_digest", "updated_at"]
 )

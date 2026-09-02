@@ -12,27 +12,38 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import Literal, Protocol
 from urllib.parse import parse_qsl
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from src.application.task_confirmation import MAX_TASK_INSTRUCTION_LENGTH
-from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
+from src.application.product_status import ProductTaskStatus, product_task_state
+from src.contracts import (
+    IngressKind,
+    IngressSource,
+    TrustedIngressEnvelope,
+    WorkerEventType,
+)
 from src.contracts.models import canonical_json_digest
 from src.core.policy import DuplicateIdempotencyKeyError
 from src.models.task import TaskStatus
 from src.storage import (
     DurableTaskProjection,
     IngressClaimConflictError,
+    OutboxArtifact,
+    OutboxMessage,
     SQLiteStore,
+    SnapshotConflictError,
     StoreCorruptionError,
     StoredTaskSnapshot,
+    artifact_for_message,
 )
 
 
 _IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._~-]{16,128}")
+MAX_TASK_DISPLAY_TITLE_LENGTH = 120
 
 
 class MiniAppAuthenticationError(ValueError):
@@ -66,7 +77,11 @@ class MiniAppTaskSummary(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     task_id: UUID
-    status: str
+    description: str = Field(min_length=1, max_length=120)
+    description_available: bool
+    status: ProductTaskStatus
+    status_label: str = Field(min_length=1, max_length=64)
+    terminal: bool
     source: str
     risk: str
     created_at: datetime
@@ -74,15 +89,74 @@ class MiniAppTaskSummary(BaseModel):
 
 
 class MiniAppTaskDetail(MiniAppTaskSummary):
+    instruction: str | None = Field(
+        default=None, min_length=1, max_length=MAX_TASK_INSTRUCTION_LENGTH
+    )
+    instruction_available: bool
+    task_revision: StrictInt = Field(ge=1)
     result_revision: StrictInt = Field(ge=0)
+    result_digest: str | None = Field(
+        default=None, pattern=r"^sha256:[0-9a-f]{64}$"
+    )
     has_result: bool
+    has_verified_answer: bool
+    has_artifact: bool = False
 
 
 class MiniAppTaskCreation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     task_id: UUID
-    status: str
+    status: ProductTaskStatus
+
+
+class MiniAppTaskArtifact(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_id: UUID
+    filename: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+    media_type: Literal["text/plain; charset=utf-8"]
+    size: StrictInt = Field(ge=1, le=1024 * 1024)
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+
+class MiniAppTaskResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    task_id: UUID
+    task_revision: StrictInt = Field(ge=1)
+    product_status: ProductTaskStatus
+    result_revision: StrictInt = Field(ge=1)
+    result_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    answer: str = Field(min_length=1, max_length=128 * 1024)
+    artifact: MiniAppTaskArtifact | None = None
+
+
+class MiniAppTaskEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal[
+        "started",
+        "progress",
+        "waiting_input",
+        "artifact_ready",
+        "result_ready",
+        "failed",
+        "stopped",
+    ]
+    emitted_at: datetime
+
+
+_SAFE_EVENT_KIND = {
+    WorkerEventType.STARTED: "started",
+    WorkerEventType.PROGRESS: "progress",
+    WorkerEventType.WAITING_INPUT: "waiting_input",
+    WorkerEventType.ARTIFACT_READY: "artifact_ready",
+    WorkerEventType.RESULT_READY: "result_ready",
+    WorkerEventType.USAGE: "progress",
+    WorkerEventType.FAILED: "failed",
+    WorkerEventType.CANCELLED: "stopped",
+}
 
 
 class MiniAppTaskAdmission(Protocol):
@@ -101,6 +175,12 @@ class _Session:
     tenant_id: str
     auth_context_ref: str
     expires_at: datetime
+
+
+@dataclass(frozen=True, repr=False)
+class MiniAppTaskArtifactDownload:
+    artifact: MiniAppTaskArtifact
+    content: bytes
 
 
 class MiniAppCore:
@@ -194,7 +274,7 @@ class MiniAppCore:
                     {
                         "bot_ref": self._bot_ref,
                         "owner_user_id": owner_user_id,
-                        "session_nonce": secrets.token_hex(16),
+                        "tenant_id": self._tenant_id,
                     }
                 ),
                 expires_at=expires_at,
@@ -212,7 +292,7 @@ class MiniAppCore:
             snapshots = self._store.list_tasks(session.tenant_id, limit=limit)
         except StoreCorruptionError:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
-        return tuple(self._summary(item.projection) for item in snapshots)
+        return tuple(self._summary(item) for item in snapshots)
 
     def task_detail(self, bearer: str, task_id: UUID) -> MiniAppTaskDetail:
         session = self._session(bearer)
@@ -225,20 +305,169 @@ class MiniAppCore:
         if snapshot is None or snapshot.projection.tenant_id != session.tenant_id:
             raise MiniAppTaskNotFoundError("task_not_found")
         projection = snapshot.projection
+        state = product_task_state(projection.status)
+        has_verified_answer = False
+        artifact: OutboxArtifact | None = None
+        if projection.status is TaskStatus.ANSWERED:
+            message = self._verified_answer(snapshot)
+            has_verified_answer = message is not None
+            if not has_verified_answer:
+                raise MiniAppCoreUnavailableError("core_unavailable")
+            assert message is not None
+            artifact = artifact_for_message(message)
         return MiniAppTaskDetail(
-            **self._summary(projection).model_dump(),
-            result_revision=projection.result_revision,
-            has_result=projection.result_digest is not None,
+            **self._summary(snapshot).model_dump(),
+            instruction=snapshot.display_instruction,
+            instruction_available=snapshot.display_instruction is not None,
+            task_revision=snapshot.revision,
+            result_revision=(
+                projection.result_revision
+                if state.status is ProductTaskStatus.READY
+                else 0
+            ),
+            result_digest=(
+                projection.result_digest
+                if state.status is ProductTaskStatus.READY
+                else None
+            ),
+            has_result=(
+                state.status is ProductTaskStatus.READY
+                and projection.result_digest is not None
+            ),
+            has_verified_answer=has_verified_answer,
+            has_artifact=artifact is not None,
+        )
+
+    def task_result(
+        self, bearer: str, task_id: UUID, *, result_revision: int
+    ) -> MiniAppTaskResult:
+        session = self._session(bearer)
+        if (
+            not isinstance(task_id, UUID)
+            or isinstance(result_revision, bool)
+            or not isinstance(result_revision, int)
+            or result_revision < 1
+        ):
+            raise MiniAppTaskNotFoundError("task_not_found")
+        try:
+            snapshot = self._store.read_task(session.tenant_id, task_id)
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if (
+            snapshot is None
+            or snapshot.projection.tenant_id != session.tenant_id
+            or snapshot.projection.status is not TaskStatus.ANSWERED
+            or snapshot.projection.result_revision != result_revision
+            or snapshot.projection.result_digest is None
+        ):
+            raise MiniAppTaskNotFoundError("task_not_found")
+        message = self._verified_answer(snapshot)
+        if message is None or message.user_message is None:
+            raise MiniAppCoreUnavailableError("core_unavailable")
+        artifact = artifact_for_message(message)
+        return MiniAppTaskResult(
+            task_id=task_id,
+            task_revision=snapshot.revision,
+            product_status=product_task_state(snapshot.projection.status).status,
+            result_revision=snapshot.projection.result_revision,
+            result_digest=snapshot.projection.result_digest,
+            answer=message.user_message,
+            artifact=(
+                self._artifact_summary(artifact) if artifact is not None else None
+            ),
+        )
+
+    def task_artifact(
+        self,
+        bearer: str,
+        task_id: UUID,
+        artifact_id: UUID,
+        *,
+        result_revision: int,
+    ) -> MiniAppTaskArtifactDownload:
+        session = self._session(bearer)
+        if (
+            not isinstance(task_id, UUID)
+            or not isinstance(artifact_id, UUID)
+            or isinstance(result_revision, bool)
+            or not isinstance(result_revision, int)
+            or result_revision < 1
+        ):
+            raise MiniAppTaskNotFoundError("task_not_found")
+        try:
+            snapshot = self._store.read_task(session.tenant_id, task_id)
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if (
+            snapshot is None
+            or snapshot.projection.tenant_id != session.tenant_id
+            or snapshot.projection.status is not TaskStatus.ANSWERED
+            or snapshot.projection.result_revision != result_revision
+            or snapshot.projection.result_digest is None
+        ):
+            raise MiniAppTaskNotFoundError("task_not_found")
+        message = self._verified_answer(snapshot)
+        artifact = None if message is None else artifact_for_message(message)
+        if artifact is None or artifact.artifact_id != artifact_id:
+            raise MiniAppTaskNotFoundError("task_not_found")
+        try:
+            content = artifact.content_bytes()
+        except ValueError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        return MiniAppTaskArtifactDownload(
+            artifact=self._artifact_summary(artifact),
+            content=content,
+        )
+
+    def task_events(
+        self, bearer: str, task_id: UUID, *, limit: int = 20
+    ) -> tuple[MiniAppTaskEvent, ...]:
+        session = self._session(bearer)
+        if not isinstance(task_id, UUID):
+            raise MiniAppTaskNotFoundError("task_not_found")
+        try:
+            snapshot = self._store.read_task(session.tenant_id, task_id)
+            if snapshot is None or snapshot.projection.tenant_id != session.tenant_id:
+                raise MiniAppTaskNotFoundError("task_not_found")
+            events = self._store.read_task_events(
+                session.tenant_id, task_id, limit=limit
+            )
+        except MiniAppTaskNotFoundError:
+            raise
+        except (StoreCorruptionError, ValueError):
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        return tuple(
+            MiniAppTaskEvent(
+                kind=_SAFE_EVENT_KIND[event.event_type],
+                emitted_at=event.emitted_at,
+            )
+            for event in events
         )
 
     async def create_task(
-        self, bearer: str, instruction: str, idempotency_key: str
+        self,
+        bearer: str,
+        instruction: str,
+        idempotency_key: str,
+        *,
+        display_title: str | None = None,
     ) -> MiniAppTaskCreation:
         normalized = instruction.strip() if isinstance(instruction, str) else ""
+        normalized_title = (
+            display_title.strip() if isinstance(display_title, str) else None
+        )
         if (
             not normalized
             or len(normalized) > MAX_TASK_INSTRUCTION_LENGTH
             or "\x00" in normalized
+            or (
+                display_title is not None
+                and (
+                    not normalized_title
+                    or len(normalized_title) > MAX_TASK_DISPLAY_TITLE_LENGTH
+                    or "\x00" in normalized_title
+                )
+            )
             or not isinstance(idempotency_key, str)
             or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None
         ):
@@ -249,6 +478,7 @@ class MiniAppCore:
                 session,
                 instruction=normalized,
                 idempotency_key=idempotency_key,
+                display_title=normalized_title,
             )
 
     async def _create_task(
@@ -257,6 +487,7 @@ class MiniAppCore:
         *,
         instruction: str,
         idempotency_key: str,
+        display_title: str | None,
     ) -> MiniAppTaskCreation:
         admission = self._task_admission
         if admission is None:
@@ -265,19 +496,35 @@ class MiniAppCore:
             session,
             instruction=instruction,
             idempotency_key=idempotency_key,
+            display_title=display_title,
         )
-        existing = self._existing_creation(envelope, admission)
+        existing = self._existing_creation(
+            envelope,
+            admission,
+            display_title=display_title,
+            instruction=instruction,
+        )
         if existing is not None:
             return existing
         try:
             task_id = await admission.submit_miniapp_task(instruction, envelope)
         except (DuplicateIdempotencyKeyError, IngressClaimConflictError):
-            existing = self._existing_creation(envelope, admission)
+            existing = self._existing_creation(
+                envelope,
+                admission,
+                display_title=display_title,
+                instruction=instruction,
+            )
             if existing is not None:
                 return existing
             raise MiniAppTaskConflictError("request_conflict") from None
         except Exception:
-            existing = self._existing_creation(envelope, admission)
+            existing = self._existing_creation(
+                envelope,
+                admission,
+                display_title=display_title,
+                instruction=instruction,
+            )
             if existing is not None:
                 return existing
             raise MiniAppCoreUnavailableError("core_unavailable") from None
@@ -287,12 +534,18 @@ class MiniAppCore:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
         if snapshot is None or snapshot.projection.tenant_id != session.tenant_id:
             raise MiniAppCoreUnavailableError("core_unavailable")
+        snapshot = self._bind_display_title(
+            snapshot, display_title, instruction=instruction
+        )
         return self._creation(snapshot, admission)
 
     def _existing_creation(
         self,
         envelope: TrustedIngressEnvelope,
         admission: MiniAppTaskAdmission,
+        *,
+        display_title: str | None,
+        instruction: str,
     ) -> MiniAppTaskCreation | None:
         try:
             snapshot = self._store.read_ingress_claim(envelope)
@@ -300,7 +553,35 @@ class MiniAppCore:
             raise MiniAppTaskConflictError("request_conflict") from None
         except StoreCorruptionError:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
-        return None if snapshot is None else self._creation(snapshot, admission)
+        if snapshot is None:
+            return None
+        return self._creation(
+            self._bind_display_title(
+                snapshot, display_title, instruction=instruction
+            ),
+            admission,
+        )
+
+    def _bind_display_title(
+        self,
+        snapshot: StoredTaskSnapshot,
+        display_title: str | None,
+        *,
+        instruction: str,
+    ) -> StoredTaskSnapshot:
+        if display_title is None:
+            return snapshot
+        try:
+            return self._store.bind_task_display_text(
+                snapshot.projection.tenant_id,
+                snapshot.projection.task_id,
+                display_title,
+                display_instruction=instruction,
+            )
+        except SnapshotConflictError:
+            raise MiniAppTaskConflictError("request_conflict") from None
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
 
     @staticmethod
     def _creation(
@@ -321,7 +602,7 @@ class MiniAppCore:
                 raise MiniAppCoreUnavailableError("core_unavailable")
         return MiniAppTaskCreation(
             task_id=projection.task_id,
-            status=projection.status.value,
+            status=product_task_state(projection.status).status,
         )
 
     def _task_envelope(
@@ -330,8 +611,13 @@ class MiniAppCore:
         *,
         instruction: str,
         idempotency_key: str,
+        display_title: str | None,
     ) -> TrustedIngressEnvelope:
-        content_ref = canonical_json_digest({"instruction": instruction})
+        content_ref = canonical_json_digest(
+            {"instruction": instruction}
+            if display_title is None
+            else {"display_title": display_title, "instruction": instruction}
+        )
         ingress_binding = canonical_json_digest(
             {
                 "auth_context_ref": session.auth_context_ref,
@@ -458,11 +744,45 @@ class MiniAppCore:
     def _token_digest(token: str) -> str:
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
+    def _verified_answer(
+        self, snapshot: StoredTaskSnapshot
+    ) -> OutboxMessage | None:
+        projection = snapshot.projection
+        try:
+            return self._store.read_verified_answer(
+                projection.tenant_id,
+                projection.task_id,
+                task_revision=snapshot.revision,
+                task_projection_digest=snapshot.snapshot_digest,
+                contract_digest=projection.contract_digest,
+                result_revision=projection.result_revision,
+                result_digest=projection.result_digest,
+            )
+        except (StoreCorruptionError, ValueError):
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+
     @staticmethod
-    def _summary(projection: DurableTaskProjection) -> MiniAppTaskSummary:
+    def _artifact_summary(artifact: OutboxArtifact) -> MiniAppTaskArtifact:
+        return MiniAppTaskArtifact(
+            artifact_id=artifact.artifact_id,
+            filename=artifact.filename,
+            media_type=artifact.media_type,
+            size=artifact.size,
+            content_digest=artifact.content_digest,
+        )
+
+    @staticmethod
+    def _summary(snapshot: StoredTaskSnapshot) -> MiniAppTaskSummary:
+        projection = snapshot.projection
+        state = product_task_state(projection.status)
+        short_id = str(projection.task_id).split("-", 1)[0].upper()
         return MiniAppTaskSummary(
             task_id=projection.task_id,
-            status=projection.status.value,
+            description=snapshot.display_text or f"Задача #{short_id}",
+            description_available=snapshot.display_text is not None,
+            status=state.status,
+            status_label=state.label,
+            terminal=state.terminal,
             source=projection.source.value,
             risk=projection.risk.value,
             created_at=projection.created_at,

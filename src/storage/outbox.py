@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import re
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Literal
 from uuid import UUID, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
@@ -13,6 +17,10 @@ from src.models.task import TaskStatus
 
 
 _MESSAGE_NAMESPACE = UUID("31e9673a-5a4f-4c0e-8c94-3dc7c80fe63a")
+_ARTIFACT_NAMESPACE = UUID("0e3fcb68-b7f4-4cdf-b01d-16bd5ac2fab7")
+_MAX_ARTIFACT_BYTES = 1024 * 1024
+_MAX_ARTIFACT_BASE64 = ((_MAX_ARTIFACT_BYTES + 2) // 3) * 4
+_SAFE_ARTIFACT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 class OutboxStatus(str, Enum):
@@ -26,6 +34,70 @@ class ReceiptType(str, Enum):
     ACK = "ack"
     NACK = "nack"
     TIMEOUT = "timeout"
+
+
+class OutboxArtifact(BaseModel):
+    """One immutable answer artifact bound to the exact outbox task result."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_id: UUID
+    artifact_fingerprint: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    tenant_id: str = Field(min_length=1, max_length=128)
+    task_id: UUID
+    task_revision: StrictInt = Field(ge=2)
+    task_projection_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    contract_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    result_revision: StrictInt = Field(ge=1)
+    result_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    filename: str = Field(min_length=1, max_length=128)
+    media_type: Literal["text/plain; charset=utf-8"]
+    size: StrictInt = Field(ge=1, le=_MAX_ARTIFACT_BYTES)
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    content_base64: str = Field(
+        min_length=4,
+        max_length=_MAX_ARTIFACT_BASE64,
+        repr=False,
+    )
+
+    @model_validator(mode="after")
+    def validate_binding_and_content(self) -> "OutboxArtifact":
+        if _SAFE_ARTIFACT_NAME.fullmatch(self.filename) is None:
+            raise ValueError("artifact filename is invalid")
+        try:
+            content = base64.b64decode(self.content_base64, validate=True)
+        except ValueError:
+            raise ValueError("artifact content is invalid") from None
+        if (
+            len(content) != self.size
+            or not content
+            or len(content) > _MAX_ARTIFACT_BYTES
+            or self.content_digest
+            != "sha256:" + hashlib.sha256(content).hexdigest()
+        ):
+            raise ValueError("artifact content binding is invalid")
+        fingerprint = artifact_fingerprint(
+            tenant_id=self.tenant_id,
+            task_id=self.task_id,
+            task_revision=self.task_revision,
+            task_projection_digest=self.task_projection_digest,
+            contract_digest=self.contract_digest,
+            result_revision=self.result_revision,
+            result_digest=self.result_digest,
+            filename=self.filename,
+            media_type=self.media_type,
+            size=self.size,
+            content_digest=self.content_digest,
+        )
+        if (
+            self.artifact_fingerprint != fingerprint
+            or self.artifact_id != artifact_id_for(fingerprint)
+        ):
+            raise ValueError("artifact identity binding is invalid")
+        return self
+
+    def content_bytes(self) -> bytes:
+        return base64.b64decode(self.content_base64, validate=True)
 
 
 class OutboxMessage(BaseModel):
@@ -213,3 +285,107 @@ def message_fingerprint(
 
 def message_id_for(fingerprint: str) -> UUID:
     return uuid5(_MESSAGE_NAMESPACE, fingerprint)
+
+
+def artifact_fingerprint(
+    *,
+    tenant_id: str,
+    task_id: UUID,
+    task_revision: int,
+    task_projection_digest: str,
+    contract_digest: str,
+    result_revision: int,
+    result_digest: str,
+    filename: str,
+    media_type: str,
+    size: int,
+    content_digest: str,
+) -> str:
+    return canonical_json_digest(
+        {
+            "tenant_id": tenant_id,
+            "task_id": str(task_id),
+            "task_revision": task_revision,
+            "task_projection_digest": task_projection_digest,
+            "contract_digest": contract_digest,
+            "result_revision": result_revision,
+            "result_digest": result_digest,
+            "filename": filename,
+            "media_type": media_type,
+            "size": size,
+            "content_digest": content_digest,
+        }
+    )
+
+
+def artifact_id_for(fingerprint: str) -> UUID:
+    return uuid5(_ARTIFACT_NAMESPACE, fingerprint)
+
+
+def answer_artifact(
+    *,
+    tenant_id: str,
+    task_id: UUID,
+    task_revision: int,
+    task_projection_digest: str,
+    contract_digest: str,
+    result_revision: int,
+    result_digest: str,
+    user_message: str,
+) -> OutboxArtifact:
+    content = user_message.encode("utf-8")
+    if not content or len(content) > _MAX_ARTIFACT_BYTES:
+        raise ValueError("answer artifact is too large")
+    filename = f"nobus-result-{task_id}.txt"
+    media_type = "text/plain; charset=utf-8"
+    content_digest = "sha256:" + hashlib.sha256(content).hexdigest()
+    fingerprint = artifact_fingerprint(
+        tenant_id=tenant_id,
+        task_id=task_id,
+        task_revision=task_revision,
+        task_projection_digest=task_projection_digest,
+        contract_digest=contract_digest,
+        result_revision=result_revision,
+        result_digest=result_digest,
+        filename=filename,
+        media_type=media_type,
+        size=len(content),
+        content_digest=content_digest,
+    )
+    return OutboxArtifact(
+        artifact_id=artifact_id_for(fingerprint),
+        artifact_fingerprint=fingerprint,
+        tenant_id=tenant_id,
+        task_id=task_id,
+        task_revision=task_revision,
+        task_projection_digest=task_projection_digest,
+        contract_digest=contract_digest,
+        result_revision=result_revision,
+        result_digest=result_digest,
+        filename=filename,
+        media_type=media_type,
+        size=len(content),
+        content_digest=content_digest,
+        content_base64=base64.b64encode(content).decode("ascii"),
+    )
+
+
+def artifact_for_message(message: OutboxMessage) -> OutboxArtifact | None:
+    validated = OutboxMessage.model_validate(message.model_dump(mode="json"))
+    if (
+        validated.task_status is not TaskStatus.ANSWERED
+        or validated.user_message is None
+        or validated.result_digest is None
+        or validated.result_revision < 1
+    ):
+        return None
+    return answer_artifact(
+        tenant_id=validated.tenant_id,
+        task_id=validated.task_id,
+        task_revision=validated.task_revision,
+        task_projection_digest=validated.task_projection_digest,
+        contract_digest=validated.contract_digest,
+        result_revision=validated.result_revision,
+        result_digest=validated.result_digest,
+        user_message=validated.user_message,
+    )

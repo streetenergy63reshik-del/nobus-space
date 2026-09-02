@@ -5,12 +5,13 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import os
 import re
 import sys
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Any, Protocol
 from uuid import UUID, uuid4
@@ -18,8 +19,9 @@ from uuid import UUID, uuid4
 import httpx
 from pydantic import SecretStr
 
+from src.application.product_status import product_task_state
 from src.models.task import TaskStatus
-from src.storage.outbox import OutboxMessage, OutboxStatus
+from src.storage.outbox import OutboxMessage, OutboxStatus, artifact_for_message
 
 
 _API_ROOT = "https://api.telegram.org"
@@ -41,6 +43,7 @@ _ERROR_MESSAGES = {
     "telegram_handler_failed": "Telegram update handling failed.",
     "telegram_checkpoint_failed": "Telegram checkpoint operation failed.",
     "telegram_consumer_busy": "Telegram polling consumer is already active.",
+    "telegram_artifact_projection_failed": "Telegram artifact projection failed.",
 }
 
 
@@ -702,13 +705,24 @@ class TelegramStatusSender:
         destinations: Mapping[str, tuple[str, int]],
         *,
         technical_details: bool = True,
+        artifact_directory: Path | None = None,
     ) -> None:
         normalized: dict[str, tuple[str, int]] = {}
+        artifact_root: Path | None = None
         valid = (
             isinstance(api, TelegramBotApi)
             and isinstance(destinations, Mapping)
             and type(technical_details) is bool
         )
+        if artifact_directory is not None:
+            if not isinstance(artifact_directory, Path):
+                valid = False
+            else:
+                try:
+                    artifact_root = artifact_directory.resolve(strict=True)
+                    valid = valid and artifact_root.is_dir()
+                except OSError:
+                    valid = False
         entries = destinations.items() if isinstance(destinations, Mapping) else ()
         for tenant_id, binding in entries:
             tenant = tenant_id.strip() if isinstance(tenant_id, str) else ""
@@ -729,6 +743,7 @@ class TelegramStatusSender:
         self._api = api
         self._destinations = MappingProxyType(normalized)
         self._technical_details = technical_details
+        self._artifact_directory = artifact_root
 
     async def __call__(self, message: OutboxMessage) -> bool:
         invalid = False
@@ -746,19 +761,69 @@ class TelegramStatusSender:
             or binding[0] != validated.destination_ref
         ):
             return False
+        artifact = artifact_for_message(validated)
+        if artifact is not None and self._artifact_directory is not None:
+            _project_artifact(
+                self._artifact_directory,
+                artifact.filename,
+                artifact.content_bytes(),
+            )
         text = _status_text(validated, technical_details=self._technical_details)
         for chunk in _status_message_chunks(text):
             await self._api.send_message(binding[1], chunk)
+        if artifact is not None:
+            await self._api.send_document(
+                binding[1],
+                artifact.filename,
+                artifact.content_bytes(),
+            )
         return True
+
+
+def _project_artifact(directory: Path, filename: str, content: bytes) -> None:
+    """Create one immutable local projection before external delivery."""
+
+    target = directory / filename
+    temporary = directory / f".nobus-{uuid4().hex}.tmp"
+
+    def matches_existing() -> bool:
+        return (
+            not target.is_symlink()
+            and target.is_file()
+            and target.read_bytes() == content
+        )
+
+    try:
+        if target.exists() or target.is_symlink():
+            if matches_existing():
+                return
+            raise ValueError("artifact projection conflicts with existing file")
+        with temporary.open("xb") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, target)
+        except FileExistsError:
+            if not matches_existing():
+                raise ValueError("artifact projection conflicts with existing file")
+    except (OSError, ValueError):
+        raise TelegramBotApiError("telegram_artifact_projection_failed") from None
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _status_text(
     message: OutboxMessage, *, technical_details: bool = True
 ) -> str:
+    product_state = product_task_state(message.task_status)
     if technical_details:
         return (
             f"Task: {message.task_id}\n"
-            f"Status: {message.task_status.value}\n"
+            f"Status: {product_state.status.value}\n"
             f"Revision: {message.task_revision}\n"
             f"Event: {message.message_id}"
         )
@@ -767,18 +832,26 @@ def _status_text(
         return message.user_message
     if message.task_status is TaskStatus.COMPLETED:
         return (
+            f"{product_state.label}\n"
             "✅ Изменение проверено и сохранено в рабочей ветке. "
             "Merge и push не выполнялись."
         )
     if message.task_status is TaskStatus.REJECTED:
         return (
+            f"{product_state.label}\n"
             "⚠️ Не удалось подтвердить качество результата. Уточните задачу."
         )
     if message.task_status is TaskStatus.FAILED:
-        return "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
+        return (
+            f"{product_state.label}\n"
+            "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
+        )
     if message.task_status is TaskStatus.ESCALATE:
-        return "⚠️ Задача остановлена безопасно и требует проверки в Codex."
-    return "Статус задачи обновлён."
+        return (
+            f"{product_state.label}\n"
+            "⚠️ Задача остановлена безопасно и требует проверки в Codex."
+        )
+    return f"{product_state.label}\nСтатус задачи обновлён."
 
 
 def _utc_now() -> datetime:

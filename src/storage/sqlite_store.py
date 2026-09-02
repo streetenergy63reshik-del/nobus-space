@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from contextlib import closing, contextmanager
@@ -27,6 +28,11 @@ from src.core.policy import (
     task_contract_digest,
 )
 from src.models.task import Task, TaskSource, TaskStatus
+from src.security.dpapi import (
+    DpapiError,
+    protect_current_user,
+    unprotect_current_user,
+)
 from src.storage.outbox import (
     DeliveryReceipt,
     OutboxEnqueueResult,
@@ -72,6 +78,11 @@ class OutboxReceiptConflictError(ValueError):
 
 class OutboxCorruptionError(StoreCorruptionError):
     """Stored outbox state failed its row/JSON/digest checks."""
+
+
+_TASK_DISPLAY_ENTROPY = b"nobus-space:task-display:v1"
+_MAX_TASK_DISPLAY_TEXT = 120
+_MAX_TASK_DISPLAY_INSTRUCTION = 2_000
 
 
 class DurableTaskProjection(BaseModel):
@@ -126,6 +137,12 @@ class StoredTaskSnapshot(BaseModel):
     updated_at: datetime
     snapshot_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     projection: DurableTaskProjection
+    display_text: str | None = Field(
+        default=None, min_length=1, max_length=_MAX_TASK_DISPLAY_TEXT
+    )
+    display_instruction: str | None = Field(
+        default=None, min_length=1, max_length=_MAX_TASK_DISPLAY_INSTRUCTION
+    )
 
 
     @model_validator(mode="after")
@@ -172,6 +189,109 @@ def _is_digest(value: object) -> bool:
         and len(value) == 71
         and all(character in "0123456789abcdef" for character in value[7:])
     )
+
+
+def _task_display_text(value: str) -> str:
+    """Keep one bounded owner-visible description, never the Task payload."""
+    normalized = value.strip()
+    if len(normalized) <= _MAX_TASK_DISPLAY_TEXT:
+        return normalized
+    return normalized[: _MAX_TASK_DISPLAY_TEXT - 1].rstrip() + "…"
+
+
+def _task_display_instruction(value: str) -> str:
+    normalized = value.strip()
+    if (
+        not normalized
+        or len(normalized) > _MAX_TASK_DISPLAY_INSTRUCTION
+        or "\x00" in normalized
+    ):
+        raise ValueError("display_instruction must be a bounded string")
+    return normalized
+
+
+def _task_display_digest(
+    *, tenant_id: str, task_id: UUID, contract_digest: str, payload: bytes
+) -> str:
+    return canonical_json_digest(
+        {
+            "tenant_id": tenant_id,
+            "task_id": str(task_id),
+            "contract_digest": contract_digest,
+            "payload_digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        }
+    )
+
+
+def _protect_task_display(
+    *,
+    tenant_id: str,
+    task_id: UUID,
+    contract_digest: str,
+    display_text: str,
+    display_instruction: str | None,
+) -> bytes:
+    try:
+        value: dict[str, object] = {
+            "schema_version": 1 if display_instruction is None else 2,
+            "tenant_id": tenant_id,
+            "task_id": str(task_id),
+            "contract_digest": contract_digest,
+            "display_text": display_text,
+        }
+        if display_instruction is not None:
+            value["display_instruction"] = display_instruction
+        raw = _canonical_json(value).encode("utf-8")
+        return protect_current_user(raw, entropy=_TASK_DISPLAY_ENTROPY)
+    except (DpapiError, UnicodeError):
+        raise ValueError("task display protection failed") from None
+
+
+def _unprotect_task_display(
+    *, tenant_id: str, task_id: UUID, contract_digest: str, payload: bytes
+) -> tuple[str, str | None]:
+    try:
+        raw = unprotect_current_user(payload, entropy=_TASK_DISPLAY_ENTROPY)
+        value = json.loads(raw)
+    except (DpapiError, UnicodeError, json.JSONDecodeError):
+        raise ValueError("task display protection failed") from None
+    if not isinstance(value, dict):
+        raise ValueError("task display binding mismatch")
+    version = value.get("schema_version")
+    expected_fields = {
+        "schema_version",
+        "tenant_id",
+        "task_id",
+        "contract_digest",
+        "display_text",
+    }
+    if version == 2:
+        expected_fields.add("display_instruction")
+    if version not in {1, 2} or set(value) != expected_fields:
+        raise ValueError("task display binding mismatch")
+    display_text = value["display_text"]
+    display_instruction = value.get("display_instruction")
+    if (
+        value["tenant_id"] != tenant_id
+        or value["task_id"] != str(task_id)
+        or value["contract_digest"] != contract_digest
+        or not isinstance(display_text, str)
+        or display_text != display_text.strip()
+        or not display_text
+        or len(display_text) > _MAX_TASK_DISPLAY_TEXT
+        or (
+            version == 2
+            and (
+                not isinstance(display_instruction, str)
+                or display_instruction != display_instruction.strip()
+                or not display_instruction
+                or len(display_instruction) > _MAX_TASK_DISPLAY_INSTRUCTION
+                or "\x00" in display_instruction
+            )
+        )
+    ):
+        raise ValueError("task display binding mismatch")
+    return display_text, display_instruction if version == 2 else None
 
 
 def _validate_task_projection(
@@ -417,6 +537,19 @@ class SQLiteStore:
                     ON miniapp_auth_replays (tenant_id, auth_expires_at);
                 """
             )
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(task_snapshots)")
+            }
+            if "display_payload" not in columns:
+                connection.execute(
+                    "ALTER TABLE task_snapshots ADD COLUMN display_payload BLOB"
+                )
+            if "display_digest" not in columns:
+                connection.execute(
+                    "ALTER TABLE task_snapshots ADD COLUMN display_digest TEXT"
+                )
+            connection.commit()
 
     @staticmethod
     def _snapshot_from_row(
@@ -427,6 +560,27 @@ class SQLiteStore:
         )
         updated_at = datetime.fromisoformat(row["updated_at"])
         expected_digest = canonical_json_digest(projection.model_dump(mode="json"))
+        display_payload = row["display_payload"]
+        display_digest = row["display_digest"]
+        display_text = None
+        display_instruction = None
+        display_valid = display_payload is None and display_digest is None
+        if isinstance(display_payload, bytes) and display_payload and _is_digest(
+            display_digest
+        ):
+            display_valid = display_digest == _task_display_digest(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                contract_digest=projection.contract_digest,
+                payload=display_payload,
+            )
+            if display_valid:
+                display_text, display_instruction = _unprotect_task_display(
+                    tenant_id=tenant_id,
+                    task_id=task_id,
+                    contract_digest=projection.contract_digest,
+                    payload=display_payload,
+                )
         if (
             row["tenant_id"] != tenant_id
             or row["task_id"] != str(task_id)
@@ -435,6 +589,7 @@ class SQLiteStore:
             or row["contract_digest"] != projection.contract_digest
             or updated_at != projection.updated_at
             or row["projection_digest"] != expected_digest
+            or not display_valid
         ):
             raise ValueError("task snapshot binding mismatch")
         return StoredTaskSnapshot(
@@ -442,6 +597,8 @@ class SQLiteStore:
             updated_at=updated_at,
             snapshot_digest=row["projection_digest"],
             projection=projection,
+            display_text=display_text,
+            display_instruction=display_instruction,
         )
 
     @staticmethod
@@ -450,7 +607,8 @@ class SQLiteStore:
     ) -> StoredTaskSnapshot | None:
         row = connection.execute(
             """SELECT tenant_id, task_id, contract_digest, revision, updated_at,
-                      projection_digest, projection_json
+                      projection_digest, projection_json, display_payload,
+                      display_digest
                FROM task_snapshots WHERE tenant_id = ? AND task_id = ?""",
             (tenant_id, str(task_id)),
         ).fetchone()
@@ -486,6 +644,7 @@ class SQLiteStore:
             updated_at=projection.updated_at,
             snapshot_digest=digest,
             projection=projection,
+            display_text=None,
         )
 
     def read_ingress_claim(
@@ -859,6 +1018,7 @@ class SQLiteStore:
             updated_at=projection.updated_at,
             snapshot_digest=digest,
             projection=projection,
+            display_text=existing.display_text,
         )
 
     def read_latest_event(
@@ -920,18 +1080,104 @@ class SQLiteStore:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
 
+    def bind_task_display_text(
+        self,
+        tenant_id: str,
+        task_id: UUID,
+        display_text: str,
+        *,
+        display_instruction: str | None = None,
+    ) -> StoredTaskSnapshot:
+        """Bind encrypted owner-visible title and optional detail instruction."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        normalized = _task_display_text(display_text)
+        normalized_instruction = (
+            _task_display_instruction(display_instruction)
+            if display_instruction is not None
+            else None
+        )
+        if not normalized:
+            raise ValueError("display_text must be a non-empty string")
+        try:
+            with self._transaction() as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                if snapshot is None:
+                    raise SnapshotConflictError("task snapshot is missing")
+                if snapshot.display_text is not None:
+                    if snapshot.display_text != normalized:
+                        raise SnapshotConflictError("task display binding mismatch")
+                    if snapshot.display_instruction is not None:
+                        if (
+                            normalized_instruction is not None
+                            and snapshot.display_instruction != normalized_instruction
+                        ):
+                            raise SnapshotConflictError("task display binding mismatch")
+                        return snapshot
+                    if normalized_instruction is None:
+                        return snapshot
+                projection = snapshot.projection
+                payload = _protect_task_display(
+                    tenant_id=tenant,
+                    task_id=task_id,
+                    contract_digest=projection.contract_digest,
+                    display_text=normalized,
+                    display_instruction=normalized_instruction,
+                )
+                digest = _task_display_digest(
+                    tenant_id=tenant,
+                    task_id=task_id,
+                    contract_digest=projection.contract_digest,
+                    payload=payload,
+                )
+                if snapshot.display_text is None:
+                    cursor = connection.execute(
+                        """UPDATE task_snapshots
+                           SET display_payload = ?, display_digest = ?
+                           WHERE tenant_id = ? AND task_id = ?
+                             AND display_payload IS NULL AND display_digest IS NULL""",
+                        (payload, digest, tenant, str(task_id)),
+                    )
+                else:
+                    cursor = connection.execute(
+                        """UPDATE task_snapshots
+                           SET display_payload = ?, display_digest = ?
+                           WHERE tenant_id = ? AND task_id = ?
+                             AND display_payload IS NOT NULL
+                             AND display_digest IS NOT NULL""",
+                        (payload, digest, tenant, str(task_id)),
+                    )
+                if cursor.rowcount != 1:
+                    raise SnapshotConflictError("task display binding mismatch")
+                return snapshot.model_copy(
+                    update={
+                        "display_text": normalized,
+                        "display_instruction": normalized_instruction,
+                    }
+                )
+        except SnapshotConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
     def list_tasks(
         self, tenant_id: str, *, limit: int = 20
     ) -> tuple[StoredTaskSnapshot, ...]:
         """Read a bounded, stable tenant-scoped task list."""
         tenant = _required_text(tenant_id, "tenant_id")
-        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 50
+        ):
             raise ValueError("limit must be an integer between 1 and 50")
         try:
             with closing(self._connect()) as connection:
                 rows = connection.execute(
                     """SELECT tenant_id, task_id, contract_digest, revision,
-                              updated_at, projection_digest, projection_json
+                              updated_at, projection_digest, projection_json,
+                              display_payload, display_digest
                        FROM task_snapshots
                        WHERE tenant_id = ?
                        ORDER BY julianday(updated_at) DESC, task_id ASC
@@ -1176,6 +1422,56 @@ class SQLiteStore:
                         raise ValueError("worker event binding mismatch")
                     worker_identity = parsed.worker_identity
                     events.append(parsed)
+                return tuple(events)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def read_task_events(
+        self, tenant_id: str, task_id: UUID, *, limit: int = 20
+    ) -> tuple[WorkerEvent, ...]:
+        """Return the latest bounded tenant-scoped events in commit order."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= 50
+        ):
+            raise ValueError("limit must be an integer between 1 and 50")
+        try:
+            with closing(self._connect()) as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                if snapshot is None:
+                    return ()
+                rows = connection.execute(
+                    """SELECT tenant_id, task_id, attempt_id, sequence, event_id,
+                              contract_digest, worker_identity, event_digest, event_json
+                       FROM audit_events
+                       WHERE tenant_id = ? AND task_id = ?
+                       ORDER BY rowid DESC LIMIT ?""",
+                    (tenant, str(task_id), limit),
+                ).fetchall()
+                events: list[WorkerEvent] = []
+                for row in reversed(rows):
+                    event = WorkerEvent.model_validate_json(row["event_json"])
+                    digest = canonical_json_digest(event.model_dump(mode="json"))
+                    if (
+                        row["tenant_id"] != tenant
+                        or row["task_id"] != str(task_id)
+                        or row["attempt_id"] != str(event.attempt_id)
+                        or row["sequence"] != event.sequence
+                        or row["event_id"] != str(event.event_id)
+                        or row["contract_digest"] != event.contract_digest
+                        or event.tenant_id != tenant
+                        or event.task_id != task_id
+                        or event.contract_digest
+                        != snapshot.projection.contract_digest
+                        or row["worker_identity"] != event.worker_identity
+                        or row["event_digest"] != digest
+                    ):
+                        raise ValueError("worker event binding mismatch")
+                    events.append(event)
                 return tuple(events)
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
@@ -1740,6 +2036,89 @@ class SQLiteStore:
         try:
             with closing(self._connect()) as connection:
                 return self._select_outbox_message(connection, tenant, message_id)
+        except OutboxCorruptionError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def read_verified_answer(
+        self,
+        tenant_id: str,
+        task_id: UUID,
+        *,
+        task_revision: int,
+        task_projection_digest: str,
+        contract_digest: str,
+        result_revision: int,
+        result_digest: str | None,
+    ) -> OutboxMessage | None:
+        """Read the one answer bound to an exact validated task snapshot."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        task_rev = _strict_revision(task_revision)
+        result_rev = _strict_revision(result_revision)
+        if not all(
+            _is_digest(value)
+            for value in (
+                task_projection_digest,
+                contract_digest,
+                result_digest,
+            )
+        ):
+            raise ValueError("verified answer binding is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                if snapshot is None:
+                    return None
+                if (
+                    snapshot.revision != task_rev
+                    or snapshot.snapshot_digest != task_projection_digest
+                    or snapshot.projection.contract_digest != contract_digest
+                    or snapshot.projection.result_revision != result_rev
+                    or snapshot.projection.result_digest != result_digest
+                    or snapshot.projection.status is not TaskStatus.ANSWERED
+                ):
+                    return None
+                rows = connection.execute(
+                    """SELECT tenant_id, message_id, message_fingerprint, task_id,
+                              task_revision, task_projection_digest, status,
+                              attempt_count, max_attempts, next_attempt_at,
+                              lease_id, lease_owner, lease_expires_at,
+                              state_revision, created_at, updated_at,
+                              message_digest, message_json
+                       FROM outbox_messages
+                       WHERE tenant_id = ? AND task_id = ? AND task_revision = ?
+                       ORDER BY message_id LIMIT 2""",
+                    (tenant, str(task_id), task_rev),
+                ).fetchall()
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise OutboxCorruptionError(
+                        "verified answer is not unique"
+                    )
+                message = self._outbox_from_row(
+                    rows[0],
+                    tenant_id=tenant,
+                    message_id=UUID(rows[0]["message_id"]),
+                )
+                if (
+                    message.task_id != task_id
+                    or message.task_revision != task_rev
+                    or message.task_projection_digest
+                    != task_projection_digest
+                    or message.contract_digest != contract_digest
+                    or message.result_revision != result_rev
+                    or message.result_digest != result_digest
+                    or message.task_status is not TaskStatus.ANSWERED
+                    or message.user_message is None
+                ):
+                    raise OutboxCorruptionError(
+                        "verified answer binding mismatch"
+                    )
+                return message
         except OutboxCorruptionError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):

@@ -296,6 +296,44 @@ def test_browser_reads_work_without_origin_but_wrong_origin_is_rejected(
     assert wrong_origin.status_code == session_without_origin.status_code == 403
 
 
+def test_loopback_http_origin_and_health_readiness_are_bounded() -> None:
+    recorder = RecordingCore()
+    ready = True
+
+    def readiness() -> None:
+        if not ready:
+            raise RuntimeError("private failure detail")
+
+    app = create_miniapp_app(
+        recorder,
+        allowed_host="127.0.0.1",
+        allowed_origin="http://127.0.0.1:8765",
+        readiness=readiness,
+    )
+
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        live = client.get("/healthz")
+        available = client.get("/readyz")
+        ready = False
+        unavailable = client.get("/readyz")
+
+    assert live.status_code == available.status_code == 200
+    assert live.json() == {"status": "ok"}
+    assert available.json() == {"status": "ready"}
+    assert unavailable.status_code == 503
+    assert unavailable.json() == {"status": "unavailable"}
+    assert "private" not in unavailable.text
+
+
+def test_plain_http_is_rejected_outside_exact_loopback() -> None:
+    with pytest.raises(ValueError, match="allowed_origin"):
+        create_miniapp_app(
+            RecordingCore(),
+            allowed_host="miniapp.example",
+            allowed_origin="http://miniapp.example",
+        )
+
+
 def test_chunked_init_data_stops_at_limit_before_buffering_remaining_chunks() -> None:
     recorder = RecordingCore()
     app = create_miniapp_app(recorder, allowed_host="testserver", allowed_origin=ORIGIN)
@@ -444,7 +482,7 @@ def test_create_task_is_session_bound_idempotent_and_uses_existing_queue(
     )
 
     assert repeated == created
-    assert created.status == "pending"
+    assert created.status == "queued"
     assert queue.queue_counts() == (0, 1)
     task = store.read_task(TENANT_ID, created.task_id)
     assert task is not None
@@ -512,7 +550,7 @@ def test_create_task_is_session_bound_idempotent_and_uses_existing_queue(
         asyncio.run(recovery._restore(tampered))
 
 
-def test_create_task_rejects_idempotency_rebinding_and_missing_queue_proof(
+def test_create_task_reuses_idempotency_after_restart_and_rejects_rebinding(
     tmp_path: Path,
 ) -> None:
     store, queue, admission = _miniapp_admission(tmp_path)
@@ -531,9 +569,23 @@ def test_create_task_rejects_idempotency_rebinding_and_missing_queue_proof(
     with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
         asyncio.run(service.create_task(token, "Подменённая задача", request_id))
 
-    second_token = authorize(service, signed_init_data(query_id="second-session"))
-    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
-        asyncio.run(service.create_task(second_token, "Первая задача", request_id))
+    restarted = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
+    second_token = authorize(
+        restarted,
+        signed_init_data(query_id="second-session"),
+    )
+    repeated = asyncio.run(
+        restarted.create_task(second_token, "Первая задача", request_id)
+    )
+    assert repeated == created
+    assert queue.queue_counts() == (0, 1)
 
     leased = queue.claim(lease_owner=UUID("00000000-0000-4000-8000-000000000098"))
     assert leased is not None and leased.task_id == created.task_id
@@ -643,13 +695,21 @@ def test_restart_recovers_core_task_from_queue_first_admission(
 
     with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
         asyncio.run(service.create_task(token, "Другая задача", request_id))
+    restarted = MiniAppCore(
+        store=store,
+        task_admission=admission,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id=TENANT_ID,
+        clock=Clock(),
+    )
     second_token = authorize(
-        service,
+        restarted,
         signed_init_data(query_id="queue-first-second-session"),
     )
-    with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
+    with pytest.raises(SimulatedCrash):
         asyncio.run(
-            service.create_task(
+            restarted.create_task(
                 second_token,
                 "Восстанови задачу",
                 request_id,
@@ -747,17 +807,36 @@ def test_create_task_boundary_rejects_unknown_authority_and_reuses_request_id(
     with TestClient(app) as client:
         created = client.post(
             "/api/tasks",
-            json={"instruction": "Покажи состояние проекта"},
+            json={
+                "display_title": "Состояние проекта",
+                "instruction": "Покажи состояние проекта",
+            },
             headers=mutation_headers,
         )
         repeated = client.post(
             "/api/tasks",
-            json={"instruction": "Покажи состояние проекта"},
+            json={
+                "display_title": "Состояние проекта",
+                "instruction": "Покажи состояние проекта",
+            },
             headers=mutation_headers,
         )
         conflict = client.post(
             "/api/tasks",
             json={"instruction": "Подменённый запрос"},
+            headers=mutation_headers,
+        )
+        title_conflict = client.post(
+            "/api/tasks",
+            json={
+                "display_title": "Другое название",
+                "instruction": "Покажи состояние проекта",
+            },
+            headers=mutation_headers,
+        )
+        oversized_title = client.post(
+            "/api/tasks",
+            json={"display_title": "x" * 121, "instruction": "Покажи состояние"},
             headers=mutation_headers,
         )
         authority = client.post(
@@ -780,15 +859,23 @@ def test_create_task_boundary_rejects_unknown_authority_and_reuses_request_id(
             content=b"x" * 16_385,
             headers=mutation_headers,
         )
+        detail = client.get(
+            f"/api/tasks/{created.json()['task_id']}", headers=headers(token)
+        )
 
     assert created.status_code == repeated.status_code == 202
     assert created.json() == repeated.json()
-    assert conflict.status_code == 409
+    assert conflict.status_code == title_conflict.status_code == 409
     assert mutation_headers["Idempotency-Key"] not in conflict.text
     assert authority.status_code == missing_key.status_code == 400
+    assert oversized_title.status_code == 400
     assert duplicate_field.status_code == 400
     assert oversized.status_code == 413
     assert "foreign" not in authority.text
+    assert detail.json()["description"] == "Состояние проекта"
+    assert detail.json()["description_available"] is True
+    assert detail.json()["instruction"] == "Покажи состояние проекта"
+    assert detail.json()["instruction_available"] is True
 
 
 def test_create_task_core_unavailable_does_not_mutate_state(tmp_path: Path) -> None:
@@ -877,13 +964,21 @@ def test_list_is_tenant_scoped_bounded_stable_and_safe(tmp_path: Path) -> None:
     assert all(item.task_id != foreign_id for item in tasks)
     assert set(tasks[0].model_dump(mode="json")) == {
         "task_id",
+        "description",
+        "description_available",
         "status",
+        "status_label",
+        "terminal",
         "source",
         "risk",
         "created_at",
         "updated_at",
     }
+    assert tasks[0].description == "Задача #00000000"
+    assert tasks[0].description_available is False
     assert "private content" not in repr(tasks)
+    assert "workspace" not in repr(tasks)
+    assert "acceptance_criteria" not in repr(tasks)
 
 
 def test_detail_rechecks_session_tenant_and_task_binding(tmp_path: Path) -> None:
@@ -913,10 +1008,56 @@ def test_detail_rechecks_session_tenant_and_task_binding(tmp_path: Path) -> None
 
     assert own.status_code == 200
     assert own.json()["task_id"] == str(owner_task)
+    assert own.json()["description"] == "Задача #00000000"
+    assert own.json()["description_available"] is False
+    assert own.json()["instruction"] is None
+    assert own.json()["instruction_available"] is False
     assert foreign.status_code == unknown.status_code == malformed.status_code == 404
     assert foreign.json() == unknown.json() == malformed.json() == {
         "detail": "task_not_found"
     }
+
+
+def test_task_description_is_bound_and_legacy_rows_get_safe_fallback(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "state.sqlite3"
+    store = SQLiteStore(path)
+    task_id = UUID("00000000-0000-0000-0000-000000000013")
+    persist_task(store, tenant_id="owner", task_id=task_id, updated_at=NOW)
+    store.bind_task_display_text(
+        "owner",
+        task_id,
+        "Проверить статус проекта",
+        display_instruction="Покажи текущий статус проекта",
+    )
+    service = MiniAppCore(
+        store=store,
+        bot_token=BOT_TOKEN,
+        owner_user_id=OWNER_ID,
+        tenant_id="owner",
+        clock=Clock(),
+    )
+    token = authorize(service, signed_init_data(query_id="description-binding"))
+
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "UPDATE task_snapshots SET display_payload = ? WHERE task_id = ?",
+            (b"forged description", str(task_id)),
+        )
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        service.list_tasks(token, limit=20)
+
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """UPDATE task_snapshots
+               SET display_payload = NULL, display_digest = NULL
+               WHERE task_id = ?""",
+            (str(task_id),),
+        )
+    legacy = service.list_tasks(token, limit=20)[0]
+    assert legacy.description == "Задача #00000000"
+    assert legacy.description_available is False
 
 
 def test_unknown_fields_and_client_selected_authority_are_rejected(tmp_path: Path) -> None:
@@ -959,6 +1100,7 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
         )
         page = client.get("/")
         script = client.get("/app.js")
+        styles = client.get("/styles.css")
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Nobus Space временно недоступен"}
@@ -968,6 +1110,21 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
     assert "Idempotency-Key" in script.text
     assert "crypto.randomUUID()" in script.text
     assert "Задача принята. Статус временно недоступен." in script.text
+    assert 'id="new-task"' in page.text
+    assert 'id="composer-sheet"' in page.text
+    assert 'id="detail-sheet"' in page.text
+    assert "openComposer" in script.text
+    assert "openDetail" in script.text
+    assert "task.description" in script.text
+    assert "task.instruction" in script.text
+    assert "Содержание задачи" in script.text
+    assert "display_title" in script.text
+    assert "position: fixed" in styles.text
+    assert "backdrop-filter" in styles.text
+    assert ".icon-button::before" in styles.text
+    assert ".icon-button::after" in styles.text
+    assert "translate(-50%, -50%) rotate(45deg)" in styles.text
+    assert "translate(-50%, -50%) rotate(-45deg)" in styles.text
     assert script.text.index("let created;") > script.text.index(
         'createTask.addEventListener("submit"'
     )

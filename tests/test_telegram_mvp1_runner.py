@@ -2,12 +2,46 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+import socket
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import httpx
 
 from scripts import run_telegram_mvp1 as runner
+
+
+@pytest.mark.parametrize(
+    ("reported_stage", "expected_code"),
+    [
+        ("worker_probe", "telegram_mvp1_worker_probe_failed"),
+        ("token=must-not-leak", "telegram_mvp1_failed"),
+    ],
+)
+def test_main_reports_only_allowlisted_startup_stage(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    reported_stage: str,
+    expected_code: str,
+) -> None:
+    async def fail(values: object, *, report_stage: object) -> object:
+        report_stage(reported_stage)  # type: ignore[operator]
+        raise RuntimeError("secret exception text must not leak")
+
+    monkeypatch.setattr(runner, "WindowsNamedMutex", nullcontext)
+    monkeypatch.setattr(runner, "recover_interrupted_restore", lambda path: None)
+    monkeypatch.setattr(runner, "_arguments", lambda: object())
+    monkeypatch.setattr(runner, "_run", fail)
+
+    assert runner.main() == 1
+    output = capsys.readouterr().out
+    assert json.loads(output) == {"status": "FAIL", "code": expected_code}
+    assert "secret" not in output
+    assert "token" not in output
 
 
 def _bundled_cli(home: Path, version: str) -> Path:
@@ -100,7 +134,6 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         runner._CHECKPOINT_PATH,
         runner._TASK_RUNTIME_PATH,
         runner._TELEGRAM_STATE_PATH,
-        runner._BUSINESS_NOTES_PATH,
     )
 
     assert {path.parent for path in paths} == {runner._RUNTIME_ROOT}
@@ -108,8 +141,215 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         "telegram-checkpoint.sqlite3",
         "task-runtime.sqlite3",
         "telegram-state.sqlite3",
-        "business-notes.sqlite3",
     }
+    assert runner._TELEGRAM_PROJECTS_ROOT == (
+        runner._ORCHESTRATOR_ROOT / "NOBUS SPACE BOT" / "Проекты Telegram"
+    )
+
+
+def test_production_runtime_excludes_unreleased_effect_adapters() -> None:
+    assert "product_effects" not in runner._RUN_STAGES
+    for name in (
+        "BusinessNotesService",
+        "DurableProductEffectVault",
+        "GoogleCalendarClient",
+        "GoogleDriveClient",
+        "GoogleTasksClient",
+        "NetworkCommandRunner",
+        "OwnerFileService",
+        "OwnerWorkspace",
+        "ProductEffectService",
+        "SafeDownloader",
+    ):
+        assert not hasattr(runner, name)
+
+
+def test_serve_arguments_expose_one_loopback_miniapp_endpoint() -> None:
+    values = runner._arguments(["--serve"])
+
+    assert values.miniapp_bind == "127.0.0.1"
+    assert values.miniapp_port == 8765
+    assert values.miniapp_origin is None
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--serve", "--miniapp-bind", "0.0.0.0"],
+        ["--serve", "--miniapp-port", "80"],
+    ],
+)
+def test_miniapp_arguments_fail_closed(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        runner._arguments(argv)
+
+
+@pytest.mark.asyncio
+async def test_miniapp_server_lifecycle_disables_access_logging(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    options: dict[str, object] = {}
+    instances: list[object] = []
+
+    def config(app: object, **values: object) -> object:
+        options.update(values)
+        return object()
+
+    class Server:
+        started = False
+        should_exit = False
+        force_exit = False
+
+        def __init__(self, configured: object) -> None:
+            instances.append(self)
+
+        async def serve(self) -> None:
+            self.started = True
+            while not self.should_exit:
+                await asyncio.sleep(0)
+
+    monkeypatch.setattr(runner.uvicorn, "Config", config)
+    monkeypatch.setattr(runner.uvicorn, "Server", Server)
+    server = runner._MiniAppServer(object(), host="127.0.0.1", port=8765)
+
+    await server.start()
+    server.assert_healthy()
+    await server.close()
+
+    assert len(instances) == 1
+    assert options == {
+        "host": "127.0.0.1",
+        "port": 8765,
+        "log_level": "warning",
+        "access_log": False,
+        "server_header": False,
+    }
+    assert instances[0].should_exit is True
+
+
+@pytest.mark.asyncio
+async def test_miniapp_server_exit_fails_product_health(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    exit_server = asyncio.Event()
+
+    class Server:
+        started = False
+        should_exit = False
+        force_exit = False
+
+        def __init__(self, configured: object) -> None:
+            pass
+
+        async def serve(self) -> None:
+            self.started = True
+            await exit_server.wait()
+
+    monkeypatch.setattr(runner.uvicorn, "Config", lambda *args, **kwargs: object())
+    monkeypatch.setattr(runner.uvicorn, "Server", Server)
+    server = runner._MiniAppServer(object(), host="127.0.0.1", port=8765)
+    control = SimpleNamespace(assert_healthy=lambda: None)
+
+    await server.start()
+    exit_server.set()
+    for _ in range(10):
+        await asyncio.sleep(0)
+
+    with pytest.raises(RuntimeError, match="miniapp server stopped"):
+        runner._assert_product_healthy(control, server)
+    await server.close()
+
+
+@pytest.mark.asyncio
+async def test_real_miniapp_server_serves_static_health_and_readiness() -> None:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = int(probe.getsockname()[1])
+    app = runner.create_miniapp_app(
+        object(),
+        allowed_host="127.0.0.1",
+        allowed_origin=f"http://127.0.0.1:{port}",
+        readiness=lambda: None,
+    )
+    server = runner._MiniAppServer(app, host="127.0.0.1", port=port)
+
+    await server.start()
+    try:
+        async with httpx.AsyncClient(
+            base_url=f"http://127.0.0.1:{port}", trust_env=False
+        ) as client:
+            health = await client.get("/healthz")
+            ready = await client.get("/readyz")
+            frontend = await client.get("/")
+    finally:
+        await server.close()
+
+    assert health.status_code == ready.status_code == frontend.status_code == 200
+    assert health.json() == {"status": "ok"}
+    assert ready.json() == {"status": "ready"}
+    assert "Nobus Space" in frontend.text
+
+
+def test_miniapp_composition_preserves_store_admission_and_owner_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store_reads: list[tuple[str, int]] = []
+    store = SimpleNamespace(
+        list_tasks=lambda tenant_id, *, limit: store_reads.append((tenant_id, limit))
+    )
+    admission = SimpleNamespace(assert_healthy=lambda: None)
+    captured: dict[str, object] = {}
+
+    def core(**values: object) -> object:
+        captured["core"] = values
+        return "core"
+
+    def app(core_value: object, **values: object) -> object:
+        captured["app"] = (core_value, values)
+        return "app"
+
+    def server(app_value: object, **values: object) -> object:
+        captured["server"] = (app_value, values)
+        return "server"
+
+    monkeypatch.setattr(runner, "MiniAppCore", core)
+    monkeypatch.setattr(runner, "create_miniapp_app", app)
+    monkeypatch.setattr(runner, "_MiniAppServer", server)
+
+    result = runner._create_miniapp_server(
+        store=store,
+        task_admission=admission,
+        bot_token="secret-not-printed",
+        owner_user_id=700000001,
+        tenant_id="owner",
+        values=runner._arguments(["--serve"]),
+    )
+
+    assert result == "server"
+    assert captured["core"] == {
+        "store": store,
+        "task_admission": admission,
+        "bot_token": "secret-not-printed",
+        "owner_user_id": 700000001,
+        "tenant_id": "owner",
+    }
+    app_core, app_values = captured["app"]
+    assert app_core == "core"
+    assert app_values["allowed_host"] == "127.0.0.1"
+    assert app_values["allowed_origin"] == "http://127.0.0.1:8765"
+    assert callable(app_values["readiness"])
+    assert captured["server"] == (
+        "app",
+        {"host": "127.0.0.1", "port": 8765},
+    )
+    readiness = app_values["readiness"]
+    readiness()
+    assert store_reads == [("owner", 1)]
+    store.list_tasks = lambda tenant_id, *, limit: (_ for _ in ()).throw(
+        RuntimeError("store unavailable")
+    )
+    with pytest.raises(RuntimeError, match="store unavailable"):
+        readiness()
 
 
 @pytest.mark.asyncio
@@ -165,6 +405,7 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     api_instances: list[Api] = []
     control_constructed = False
     polling_constructed = False
+    reported_stages: list[str] = []
 
     def api_factory(**values: object) -> Api:
         instance = Api(**values)
@@ -191,6 +432,18 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(runner, "_validated_worktree", lambda: worktree)
     monkeypatch.setattr(runner, "NobusMemory", lambda path: object())
     monkeypatch.setattr(runner, "_CODEX_TEMP", tmp_path / "codex-temp")
+    binding_path = tmp_path / "telegram-bindings.local.json"
+    binding_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(runner, "_BINDING_PATH", binding_path)
+    monkeypatch.setattr(
+        runner,
+        "TelegramBindingConfig",
+        SimpleNamespace(
+            model_validate=lambda value: SimpleNamespace(
+                bindings=(SimpleNamespace(purpose="owner_private"),)
+            )
+        ),
+    )
     monkeypatch.setattr(runner, "TelegramBotApi", api_factory)
     monkeypatch.setattr(runner.httpx, "AsyncHTTPTransport", lambda **values: object())
     monkeypatch.setattr(
@@ -201,7 +454,15 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(
         runner, "SQLitePollingCheckpointStore", lambda *args, **kwargs: object()
     )
-    monkeypatch.setattr(runner, "InMemoryTelegramActionStore", lambda: object())
+    telegram_state = object()
+    monkeypatch.setattr(
+        runner, "SQLiteTelegramState", lambda *args, **kwargs: telegram_state
+    )
+    monkeypatch.setattr(
+        runner,
+        "DurableTelegramActionStore",
+        lambda value: object() if value is telegram_state else None,
+    )
     monkeypatch.setattr(runner, "PollingCheckpointUpdateIdStore", lambda: object())
     monkeypatch.setattr(runner, "TelegramGateway", lambda **values: object())
     monkeypatch.setattr(
@@ -224,18 +485,21 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
                 once=False,
                 timeout=30,
                 announce=True,
-            )
+            ),
+            report_stage=reported_stages.append,
         )
 
     if failure_stage == "worker":
         assert caught.value.code == "worker_timeout"
         assert startup_events == ["worker_probe"]
+        assert reported_stages[-1] == "worker_probe"
     else:
         assert startup_events == [
             "worker_probe",
             "voice_constructed",
             "voice_warmup",
         ]
+        assert reported_stages[-1] == "voice_warmup"
     assert not control_constructed
     assert not polling_constructed
     assert len(api_instances) == 1
@@ -244,14 +508,13 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
 def test_runtime_layout_is_portable_and_defaults_to_current_root(
     tmp_path: Path,
 ) -> None:
-    root = tmp_path / "checkout"
-    root.mkdir()
+    root = Path(tmp_path.anchor) / "portable" / "checkout"
 
     owner, orchestrator, live = runner._runtime_layout(root)
 
     assert owner == root
-    assert orchestrator == tmp_path
-    assert live == tmp_path / "Code" / "worktrees" / "telegram-live"
+    assert orchestrator == root.parent
+    assert live == root.parent / "Code" / "worktrees" / "telegram-live"
 
 
 def test_runtime_layout_discovers_canonical_named_ancestors(
@@ -267,3 +530,15 @@ def test_runtime_layout_discovers_canonical_named_ancestors(
     assert discovered_owner == owner
     assert discovered_orchestrator == orchestrator
     assert live == root
+
+
+def test_validated_worktree_accepts_only_an_isolated_release_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isolated = tmp_path / "worktrees" / "telegram-live"
+    isolated.mkdir(parents=True)
+    (isolated / ".git").write_text("gitdir: test", encoding="utf-8")
+    monkeypatch.setattr(runner, "ROOT", isolated)
+    monkeypatch.setattr(runner, "_WORKTREE", isolated)
+
+    assert runner._validated_worktree() == isolated.resolve()
