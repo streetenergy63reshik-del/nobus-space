@@ -34,7 +34,10 @@ from src.application.telegram_actions import (
     InMemoryTelegramActionStore,
     TelegramAction,
 )
-from src.application.telegram_product import ProductTelegramControlPlane
+from src.application.telegram_product import (
+    ProductTelegramControlPlane,
+    _task_display_title,
+)
 from src.contracts.models import canonical_json_digest
 from src.core.policy import task_contract_digest
 from src.integrations import (
@@ -144,6 +147,19 @@ class FakeProductRuntime:
 
     async def prepare_instruction(self, instruction: str, envelope: object) -> PreparedTask:
         return await self.base.prepare_instruction(instruction, envelope)
+
+    def bind_task_display_text(
+        self,
+        prepared: PreparedTask,
+        display_text: str,
+        *,
+        display_instruction: str,
+    ) -> None:
+        self.base.bind_task_display_text(
+            prepared,
+            display_text,
+            display_instruction=display_instruction,
+        )
 
     async def prepare_instruction_with_context(
         self,
@@ -393,6 +409,24 @@ def callback_update(token: str, update_id: int) -> dict[str, Any]:
             "data": token,
         },
     }
+
+
+@pytest.mark.parametrize(
+    ("instruction", "expected"),
+    (
+        ("Проверь текущий статус проекта", "Текущий статус проекта"),
+        ("Составь короткий отчёт", "Короткий отчёт"),
+        ("Отчёт", "Задача Отчёт"),
+        ("...", "Новая задача"),
+    ),
+)
+def test_owner_task_title_is_bounded_to_two_or_three_words(
+    instruction: str, expected: str
+) -> None:
+    title = _task_display_title(instruction)
+
+    assert title == expected
+    assert len(title.split()) in {2, 3}
 
 
 async def _issue_legacy_patch_apply(
@@ -1379,11 +1413,24 @@ async def test_mvp1_surface_keeps_plain_tasks_and_core_commands(
 ) -> None:
     harness = _product(tmp_path, extended_routes=False)
 
-    await harness.control.handle(text_update("Объясни текущий статус проекта", 1))
+    instruction = (
+        "Данное сообщение было направлено одному кандидату. "
+        "Нужно переработать это сообщение в обезличенное. "
+        "Чтобы можно было направлять его остальным кандидатам."
+    )
+    await harness.control.handle(text_update(instruction, 1))
     await harness.control.handle(text_update("/status", 2))
     await harness.control.handle(text_update("/help", 3))
 
     assert len(harness.runtime.drafted) == 1
+    prepared = harness.runtime.drafted[0]
+    snapshot = harness.runtime.base.miniapp_store.read_task(
+        TENANT_ID, prepared.contract.task_id
+    )
+    assert snapshot is not None
+    assert snapshot.display_text == "Сообщение кандидатам"
+    assert snapshot.display_instruction == instruction
+    assert len(snapshot.display_text.split()) in {2, 3}
     assert "Голос:" in harness.api.sent[-2][1]
     assert "/status" in harness.api.sent[-1][1]
     assert "/notes" not in harness.api.sent[-1][1]

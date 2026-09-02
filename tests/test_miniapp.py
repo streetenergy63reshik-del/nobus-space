@@ -1121,6 +1121,10 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
     assert "display_title" in script.text
     assert "position: fixed" in styles.text
     assert "backdrop-filter" in styles.text
+    assert ".icon-button::before" in styles.text
+    assert ".icon-button::after" in styles.text
+    assert "translate(-50%, -50%) rotate(45deg)" in styles.text
+    assert "translate(-50%, -50%) rotate(-45deg)" in styles.text
     assert script.text.index("let created;") > script.text.index(
         'createTask.addEventListener("submit"'
     )

@@ -136,6 +136,30 @@ class DurableFakeRuntime(FakeVertical):
         """Return the existing authoritative store for the same-process Mini App."""
         return self._store
 
+    def bind_task_display_text(
+        self,
+        prepared: PreparedTask,
+        display_text: str,
+        *,
+        display_instruction: str,
+    ) -> None:
+        """Bind owner-visible Telegram text to the exact admitted task."""
+
+        prepared = PreparedTask.validate(prepared)
+        contract = prepared.contract
+        snapshot = self._store.read_task(contract.tenant_id, contract.task_id)
+        if (
+            snapshot is None
+            or snapshot.projection.contract_digest != task_contract_digest(contract)
+        ):
+            raise ValueError("prepared display binding mismatch")
+        self._store.bind_task_display_text(
+            contract.tenant_id,
+            contract.task_id,
+            display_text,
+            display_instruction=display_instruction,
+        )
+
     async def handle(
         self,
         update: dict[str, Any],

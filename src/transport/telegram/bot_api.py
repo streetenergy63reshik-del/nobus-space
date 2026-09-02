@@ -829,7 +829,7 @@ def _status_text(
         )
     if message.task_status is TaskStatus.ANSWERED:
         assert message.user_message is not None
-        return f"{product_state.label}\n\n{message.user_message}"
+        return message.user_message
     if message.task_status is TaskStatus.COMPLETED:
         return (
             f"{product_state.label}\n"

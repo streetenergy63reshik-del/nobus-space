@@ -74,6 +74,69 @@ _MVP1_UNAVAILABLE_TEXT = (
     "Эта функция пока не входит в MVP-1. Доступны обычные текстовые и "
     "голосовые задачи, /status, /limit и /help."
 )
+_TITLE_SENTENCE_RE = re.compile(r"(?:[.!?]+|\r?\n+)")
+_TITLE_WORD_RE = re.compile(
+    r"[0-9A-Za-zА-Яа-яЁё]+(?:[-‑][0-9A-Za-zА-Яа-яЁё]+)*"
+)
+_TITLE_REQUEST_WORDS = frozenset(
+    """нужно надо требуется прошу сделай сделайте создай создайте подготовь
+    подготовьте составь составьте переработай переработать напиши напишите
+    проверь проверьте проанализируй проанализируйте найди найдите собери
+    соберите обнови обновите исправь исправьте покажи покажите объясни объясните
+    дай дайте верни верните разработай реализуй реализовать оформи сформируй""".split()
+)
+_TITLE_STOP_WORDS = frozenset(
+    """а было бы будет в вам во выше данное данный данная для его её и из их
+    как к ко мне можно на нам но одному остальным пожалуйста по с сейчас со уже
+    что чтобы эта эти это этот эту или""".split()
+)
+
+
+def _task_display_title(instruction: str) -> str:
+    """Return one bounded owner-facing title without another model request."""
+
+    sentences = [
+        sentence.strip()
+        for sentence in _TITLE_SENTENCE_RE.split(instruction)
+        if sentence.strip()
+    ]
+    if not sentences:
+        return "Новая задача"
+    selected = len(sentences) - 1
+    for index, sentence in enumerate(sentences):
+        words = _TITLE_WORD_RE.findall(sentence)
+        if any(word.casefold() in _TITLE_REQUEST_WORDS for word in words):
+            selected = index
+    tail = _TITLE_WORD_RE.findall(" ".join(sentences[selected:]))
+    words = _TITLE_WORD_RE.findall(sentences[selected])
+    meaningful = [
+        word
+        for word in words
+        if word.casefold() not in _TITLE_REQUEST_WORDS
+        and word.casefold() not in _TITLE_STOP_WORDS
+        and len(word) <= 32
+        and any(character.isalpha() for character in word)
+    ]
+    if not meaningful:
+        return "Новая задача"
+    recipient = next(
+        (
+            word
+            for word in tail
+            if word.casefold() not in _TITLE_STOP_WORDS
+            and word.casefold() not in _TITLE_REQUEST_WORDS
+            and word.casefold().endswith(("ам", "ям"))
+            and word.casefold() != meaningful[0].casefold()
+        ),
+        None,
+    )
+    title_words = [meaningful[0], recipient] if recipient else meaningful[:3]
+    if len(title_words) == 1:
+        title_words.insert(0, "Задача")
+    title = " ".join(title_words)
+    return title[:1].upper() + title[1:]
+
+
 _FILE_REQUEST_RE = re.compile(
     r"^\s*(?:\u043f\u0440\u0438\u0448\u043b\u0438|\u043e\u0442\u043f\u0440\u0430\u0432\u044c|"
     r"\u043d\u0430\u043f\u0440\u0430\u0432\u044c|\u0434\u0430\u0439)\s+"
@@ -427,6 +490,14 @@ class ProductTaskRuntime(Protocol):
         self, instruction: str, envelope: TrustedIngressEnvelope
     ) -> PreparedTask: ...
 
+    def bind_task_display_text(
+        self,
+        prepared: PreparedTask,
+        display_text: str,
+        *,
+        display_instruction: str,
+    ) -> None: ...
+
     async def cancel_prepared(self, prepared: PreparedTask) -> FakeVerticalResponse: ...
 
     async def is_task_terminal(
@@ -540,6 +611,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     ) -> None:
         required = (
             "prepare_instruction",
+            "bind_task_display_text",
             "cancel_prepared",
             "is_task_terminal",
             "draft_prepared",
@@ -1576,6 +1648,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 prepared = await self._product_runtime.prepare_instruction(
                     instruction, envelope
                 )
+            self._product_runtime.bind_task_display_text(
+                prepared,
+                _task_display_title(instruction),
+                display_instruction=instruction,
+            )
             await self._submit_draft(prepared, message, envelope)
         except asyncio.CancelledError:
             raise

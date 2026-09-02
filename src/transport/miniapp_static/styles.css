@@ -83,7 +83,10 @@ h3 { margin: 0; font-size: .82rem; color: var(--muted); letter-spacing: .08em; t
 .sheet-handle { width: 2.7rem; height: .3rem; margin: 0 auto .1rem; border-radius: 999px; background: var(--line); }
 .sheet-header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .sheet-header h2 { font-size: 1.55rem; line-height: 1.15; }
-.icon-button { display: grid; flex: 0 0 2.3rem; place-items: center; width: 2.3rem; height: 2.3rem; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 1.45rem; cursor: pointer; }
+.icon-button { position: relative; display: grid; flex: 0 0 2.3rem; place-items: center; width: 2.3rem; height: 2.3rem; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 0; cursor: pointer; }
+.icon-button::before, .icon-button::after { position: absolute; top: 50%; left: 50%; width: .8rem; height: .1rem; border-radius: 999px; background: currentColor; content: ""; }
+.icon-button::before { transform: translate(-50%, -50%) rotate(45deg); }
+.icon-button::after { transform: translate(-50%, -50%) rotate(-45deg); }
 input, textarea { width: 100%; padding: 1rem; border: 1px solid var(--line); border-radius: 1rem; outline: none; background: color-mix(in srgb, var(--bg) 67%, transparent); color: var(--text); line-height: 1.45; }
 textarea { min-height: 8.5rem; resize: none; }
 input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--muted) 80%, transparent); }

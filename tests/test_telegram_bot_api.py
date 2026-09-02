@@ -928,8 +928,8 @@ async def test_product_status_sender_delivers_long_verified_answer_in_chunks() -
 
     assert len(sent) > 1
     assert all(len(item["text"]) <= 3_400 for item in sent)
-    assert "".join(item["text"] for item in sent).replace("\n", "") == (
-        "Готово" + answer.replace("\n", "")
+    assert "".join(item["text"] for item in sent).replace("\n", "") == answer.replace(
+        "\n", ""
     )
     assert len(documents) == 1
     assert answer.encode("utf-8") in documents[0]
@@ -971,7 +971,11 @@ def test_product_sender_uses_channel_neutral_status(status: TaskStatus) -> None:
 
     visible = _status_text(outbox_message(status), technical_details=False)
 
-    assert product_task_state(status).label in visible
+    if status is TaskStatus.ANSWERED:
+        assert visible == "Проверенный пользовательский ответ."
+        assert product_task_state(status).label not in visible
+    else:
+        assert product_task_state(status).label in visible
 
 
 @pytest.mark.asyncio
