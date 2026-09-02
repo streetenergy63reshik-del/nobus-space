@@ -1,16 +1,25 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$TaskName = 'NobusSpaceBot',
-    [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+    [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [string]$RuntimeRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
-$python = Join-Path $root '.venv\Scripts\python.exe'
-$runner = Join-Path $root 'scripts\run_telegram_mvp1.py'
+$runtimeOwner = if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) {
+    $root
+}
+else {
+    (Resolve-Path -LiteralPath $RuntimeRoot).Path
+}
+$python = Join-Path $runtimeOwner '.venv\Scripts\python.exe'
+$pythonw = Join-Path $runtimeOwner '.venv\Scripts\pythonw.exe'
+$runner = Join-Path $root 'scripts\run_nobus_space_live.py'
 $health = Join-Path $root 'scripts\check_telegram_health.py'
 $healthTaskName = "$TaskName-Health"
 if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $pythonw -PathType Leaf) -or
     -not (Test-Path -LiteralPath $runner -PathType Leaf) -or
     -not (Test-Path -LiteralPath $health -PathType Leaf)) {
     throw 'Canonical runner, health probe or virtual environment is unavailable.'
@@ -23,25 +32,13 @@ if (-not $PSCmdlet.ShouldProcess(
     return
 }
 
-$runtime = Join-Path $root '.runtime'
+$runtime = Join-Path $runtimeOwner '.runtime'
 $logs = Join-Path $runtime 'logs'
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
-$launcher = Join-Path $runtime 'start-nobus-space-bot.ps1'
 $healthLauncher = Join-Path $runtime 'check-nobus-space-bot.ps1'
-$launcherBody = @"
-`$ErrorActionPreference = 'Stop'
-`$log = '$($logs.Replace("'", "''"))\runner.log'
-if (Test-Path -LiteralPath `$log -PathType Leaf) {
-    `$item = Get-Item -LiteralPath `$log
-    if (`$item.Length -gt 5MB) {
-        Move-Item -LiteralPath `$log -Destination "`$log.previous" -Force
-    }
-}
-& '$($python.Replace("'", "''"))' '$($runner.Replace("'", "''"))' --serve --timeout 30 --announce *>> `$log
-exit `$LASTEXITCODE
-"@
 $healthBody = @"
 `$ErrorActionPreference = 'Continue'
+`$taskName = '$($TaskName.Replace("'", "''"))'
 `$log = '$($logs.Replace("'", "''"))\health.log'
 `$alert = '$($logs.Replace("'", "''"))\health-alerts.log'
 foreach (`$path in @(`$log, `$alert)) {
@@ -52,29 +49,76 @@ foreach (`$path in @(`$log, `$alert)) {
         }
     }
 }
+`$healthy = `$true
 & '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' *>> `$log
 if (`$LASTEXITCODE -ne 0) {
+    `$healthy = `$false
+}
+try {
+    `$local = Invoke-WebRequest -UseBasicParsing -Headers @{ Host = 'app.nobusspace.com' } -Uri 'http://127.0.0.1:8765/readyz' -TimeoutSec 5
+    if (`$local.StatusCode -ne 200) {
+        `$healthy = `$false
+    }
+}
+catch {
+    `$healthy = `$false
+}
+try {
+    `$public = Invoke-WebRequest -UseBasicParsing -Uri 'https://app.nobusspace.com/readyz' -TimeoutSec 10
+    if (`$public.StatusCode -ne 200) {
+        `$healthy = `$false
+    }
+}
+catch {
+    `$healthy = `$false
+}
+if (-not `$healthy) {
     Add-Content -LiteralPath `$alert -Value (
-        (Get-Date).ToString('o') + ' runtime health probe failed'
+        (Get-Date).ToUniversalTime().ToString('o') + ' product health probe failed'
     )
+    try {
+        `$task = Get-ScheduledTask -TaskName `$taskName -ErrorAction Stop
+        if (`$task.State -eq 'Ready') {
+            Start-ScheduledTask -TaskName `$taskName
+            Add-Content -LiteralPath `$alert -Value (
+                (Get-Date).ToUniversalTime().ToString('o') + ' recovery start requested'
+            )
+        }
+    }
+    catch {
+        Add-Content -LiteralPath `$alert -Value (
+            (Get-Date).ToUniversalTime().ToString('o') + ' recovery check failed'
+        )
+    }
     exit 1
 }
 exit 0
 "@
-Set-Content -LiteralPath $launcher -Value $launcherBody -Encoding UTF8
-Set-Content -LiteralPath $healthLauncher -Value $healthBody -Encoding UTF8
+$utf8Bom = [System.Text.UTF8Encoding]::new($true)
+[System.IO.File]::WriteAllText($healthLauncher, $healthBody, $utf8Bom)
+$tokens = $null
+$parseErrors = $null
+[System.Management.Automation.Language.Parser]::ParseFile(
+    $healthLauncher,
+    [ref]$tokens,
+    [ref]$parseErrors
+) | Out-Null
+if ($parseErrors.Count -ne 0) {
+    throw 'Generated health launcher is invalid.'
+}
 
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
-    "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$launcher`""
-)
+$action = New-ScheduledTaskAction `
+    -Execute $pythonw `
+    -Argument "`"$runner`"" `
+    -WorkingDirectory $root
 $healthAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
-    "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$healthLauncher`""
+    "-WindowStyle Hidden -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$healthLauncher`""
 )
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $healthTrigger = New-ScheduledTaskTrigger `
     -Once `
     -At (Get-Date).AddMinutes(1) `
-    -RepetitionInterval (New-TimeSpan -Minutes 5) `
+    -RepetitionInterval (New-TimeSpan -Minutes 1) `
     -RepetitionDuration (New-TimeSpan -Days 3650)
 $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `

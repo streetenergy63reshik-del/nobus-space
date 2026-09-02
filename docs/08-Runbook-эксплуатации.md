@@ -8,13 +8,12 @@
 > сохраняются, пока не superseded отдельным проверенным runtime change.
 >
 
-> **MVP-1 activation boundary — 1 сентября 2026.** Public HTTPS
+> **MVP-1 release boundary — 2 сентября 2026.** Public HTTPS
 > `app.nobusspace.com`, exact-owner Telegram menu и local-Core reverse relay
 > активированы. Synthetic owner-bound create/status/result/artifact и
-> Telegram byte parity прошли. Точный статус:
-> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). До фактического exact-owner
-> открытия в Telegram и publication/tag readback статус остаётся
-> `DEPLOYED / AWAITING OWNER SMOKE`, а не `MVP-1 READY`.
+> Telegram byte parity прошли; exact owner smoke принят. Точный статус и
+> handoff: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Исправление скрытого
+> Windows runner и активного recovery публикуется как patch tag `v1.0.1`.
 >
 
 ## Operational override 2026-07-25 — persistent Codex SDK candidate
@@ -88,9 +87,9 @@ $env:DEBUG='false'
 
 The health command requires all four databases, exact DDL fingerprints and valid
 application digests. `PASS` means healthy, `DEGRADED` means operator reconciliation
-(for example a dead letter), and `FAIL` means corruption/unavailability. The health
-task only records an alert; it never restarts the runner. Task Scheduler owns the
-single bounded liveness contract: at most ten one-minute restart attempts.
+(for example a dead letter), and `FAIL` means corruption/unavailability. The
+`NobusSpaceBot-Health` task records an alert and starts the enabled main task once
+when it is stopped (`Ready`); it never stops or duplicates a running process.
 
 ### Backup
 
@@ -127,27 +126,52 @@ Do not run this command before the release candidate has independent L2/L3 `ACCE
 
 # 08. Runbook эксплуатации
 
-## Operational update 2026-07-24: current-user autostart
+## Operational update 2026-09-02: active stopped-process recovery
+
+`NobusSpaceBot-Health` раз в минуту проверяет четыре runtime SQLite-базы,
+локальный `http://127.0.0.1:8765/readyz` с exact Host и публичный
+`https://app.nobusspace.com/readyz`. При неуспехе он фиксирует bounded alert.
+Если основная задача включена, но имеет состояние `Ready`, health-задача
+выполняет один `Start-ScheduledTask`; уже работающий процесс она не
+останавливает и не дублирует. Для намеренной остановки сначала отключить
+`NobusSpaceBot-Health`, затем `NobusSpaceBot`.
+
+Установщик запускает tracked `scripts/run_nobus_space_live.py` из exact product
+worktree, допускает отдельный runtime root для canonical `.venv`/logs и пишет
+health launcher в UTF-8 BOM для Windows PowerShell 5.1. Основная задача использует
+`pythonw.exe`: она работает без консольного окна, поэтому закрытие случайно
+открытого терминала не может остановить продукт. Host-local correction привязана
+к checkpoint `c789f89`; её protected-main publication входит в patch tag
+`v1.0.1`.
+
+## Historical snapshot 2026-07-24: superseded current-user autostart
 
 This section supersedes the older statement that the MVP has no autostart.
 
-The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. For the public Mini App composition it runs tracked `scripts/run_nobus_space_live.py`, which owns the restricted reverse SSH and canonical runner in one kill-on-close Windows Job Object. Logs are local, bounded, and stored under canonical `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
+The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges through `pythonw.exe`, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. For the public Mini App composition it runs tracked `scripts/run_nobus_space_live.py`, which owns the restricted reverse SSH and canonical runner in one kill-on-close Windows Job Object. Logs are local, bounded, and stored under canonical `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
 
 The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
 
-Revision `74b182a` is active in the live runner under exact owner L4. `/file` is published in Bot Menu; startup Codex probe, offline Whisper warmup and fresh polling lease revision `6868` passed before service readiness. A product-route owner smoke sent one known non-secret HTML successfully. The adapter supports only `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx` up to 50 MiB. It never sends hidden/sensitive-name matches, absolute paths, linked paths, or content outside the configured owner root. Google Drive read/download and owner-bound Google Tasks actions are present in the v2 local RC. Business Notes adds the fourth encrypted runtime database; its live group binding remains pending.
+The older `/file`, Google Tasks and Business Notes notes in this snapshot are
+retained only as historical evidence. They are not part of the published MVP-1
+product surface and are not advertised in Bot Menu. Current Telegram commands
+are limited to `/start`, `/status`, `/limit` and `/help`; future routes fail
+closed until a separately accepted vertical slice implements them end to end.
 
 
 **Статус документа:** CANONICAL
-**Состояние реализации:** CURRENT Queue 1/2 local release candidate / TARGET production
-**Дата актуализации:** 24 июля 2026
+**Состояние реализации:** MVP-1 READY; последующие разделы содержат historical
+baseline и применяются только там, где их не отменяют ADR 0022 и active overlays
+выше.
+**Дата актуализации:** 2 сентября 2026
 
 ## CURRENT и TARGET
 
 **CURRENT:** owner-bound Telegram runtime использует durable SQLite jobs,
-confirmations, progress bindings, polling checkpoint и status outbox. Task Scheduler
-является единственным liveness supervisor и выполняет максимум десять перезапусков.
-Отдельная health-задача только фиксирует `DEGRADED`/`FAIL` и не перезапускает runner.
+confirmations, progress bindings, polling checkpoint и status outbox. Основная
+задача Task Scheduler выполняет максимум десять аварийных перезапусков. Отдельная
+health-задача раз в минуту фиксирует `DEGRADED`/`FAIL` и поднимает включённую,
+но остановленную основную задачу; работающий процесс она не перезапускает.
 Backup/restore проверяют exact DDL и application digests. Text/voice read-only work,
 public web research и owner-L4 effects определены ADR 0011.
 

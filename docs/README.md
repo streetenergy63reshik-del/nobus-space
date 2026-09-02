@@ -1,7 +1,7 @@
 # Документация Nobus Space
 
 **Статус:** CANONICAL INDEX
-**Актуально на:** 31 августа 2026 года
+**Актуально на:** 2 сентября 2026 года
 
 Активный курс задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
@@ -11,9 +11,10 @@
 
 Единственная подвижная реализационная проекция —
 [CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
-checks, blockers и следующий gate. На 31 августа G2–G6 имеют статус
-`VERIFIED LOCAL CANDIDATE / NOT PUBLISHED / NOT DEPLOYED`; G7–G8 не завершены,
-поэтому общий verdict — `MVP-1 IN PROGRESS / NOT PRODUCT READY`.
+checks, blockers и следующий slice. MVP-1 опубликован, развёрнут, принят
+владельцем и имеет статус `MVP-1 READY`; финальный patch с активным recovery и
+скрытым Windows runner связывается тегом `v1.0.1`. Там же находится полный
+handoff следующему чату; первый срез MVP-2 пока только `PROPOSED`, не baseline.
 
 Редакционная продуктовая roadmap и HTML-визуализация остаются локальным
 `HOLD / NOT PUBLISHED`, не входят в этот канонический комплект и здесь не

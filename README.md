@@ -81,7 +81,8 @@ marker-like блоки удаляются или отклоняются до dur
 primary/root задач Codex Desktop не изменено. Exact code checkpoint
 `14c80131b2a702d75f92abb4fe22d49ea6aa975c` опубликован через PR #6 и
 прочитан обратно из protected `main`; release-relevant suite и независимые
-L2/L3 зелёные. Финальная публикация фиксируется тегом `v1.0.0`.
+L2/L3 зелёные. Финальная patch-публикация с активным recovery и скрытым
+Windows runner фиксируется тегом `v1.0.1` по containing-revision rule.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner
 publication hold и не входят в этот docs-only release.
 
