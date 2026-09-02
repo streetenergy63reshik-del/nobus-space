@@ -127,6 +127,22 @@ Do not run this command before the release candidate has independent L2/L3 `ACCE
 
 # 08. Runbook эксплуатации
 
+## Operational update 2026-09-02: active stopped-process recovery
+
+`NobusSpaceBot-Health` раз в минуту проверяет четыре runtime SQLite-базы,
+локальный `http://127.0.0.1:8765/readyz` с exact Host и публичный
+`https://app.nobusspace.com/readyz`. При неуспехе он фиксирует bounded alert.
+Если основная задача включена, но имеет состояние `Ready`, health-задача
+выполняет один `Start-ScheduledTask`; уже работающий процесс она не
+останавливает и не дублирует. Для намеренной остановки сначала отключить
+`NobusSpaceBot-Health`, затем `NobusSpaceBot`.
+
+Установщик запускает tracked `scripts/run_nobus_space_live.py` из exact product
+worktree, допускает отдельный runtime root для canonical `.venv`/logs и пишет
+health launcher в UTF-8 BOM для Windows PowerShell 5.1. Текущая host-local
+коррекция привязана к code checkpoint `27a5bb6`; её protected-main publication
+требует отдельного разрешения владельца.
+
 ## Operational update 2026-07-24: current-user autostart
 
 This section supersedes the older statement that the MVP has no autostart.
@@ -145,9 +161,10 @@ Revision `74b182a` is active in the live runner under exact owner L4. `/file` is
 ## CURRENT и TARGET
 
 **CURRENT:** owner-bound Telegram runtime использует durable SQLite jobs,
-confirmations, progress bindings, polling checkpoint и status outbox. Task Scheduler
-является единственным liveness supervisor и выполняет максимум десять перезапусков.
-Отдельная health-задача только фиксирует `DEGRADED`/`FAIL` и не перезапускает runner.
+confirmations, progress bindings, polling checkpoint и status outbox. Основная
+задача Task Scheduler выполняет максимум десять аварийных перезапусков. Отдельная
+health-задача раз в минуту фиксирует `DEGRADED`/`FAIL` и поднимает включённую,
+но остановленную основную задачу; работающий процесс она не перезапускает.
 Backup/restore проверяют exact DDL и application digests. Text/voice read-only work,
 public web research и owner-L4 effects определены ADR 0011.
 

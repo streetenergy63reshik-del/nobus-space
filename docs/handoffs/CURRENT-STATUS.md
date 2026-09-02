@@ -103,6 +103,14 @@ Git-репозиторий — источник истины для code/tests/A
   в одном kill-on-close Windows Job Object. Task Scheduler `NobusSpaceBot`
   и health task активны; stop/start smoke доказал отсутствие orphan
   processes и восстановление public readiness.
+- Host-local correction `27a5bb6` устраняет passive-monitor gap: health-задача
+  теперь раз в минуту запускает exact enabled `NobusSpaceBot`, только когда он
+  имеет состояние `Ready`, и не останавливает `Running` process. Installer
+  использует exact product worktree, отдельный canonical runtime root и UTF-8
+  BOM для Windows PowerShell 5.1. Controlled stop в `16:59:55` восстановился
+  watchdog в `17:00:38`; local/public readiness вернулись `200`, следующий
+  health run завершился `0`. Коррекция развёрнута на owner PC, но ещё не
+  опубликована в protected `main`.
 - Содержащая command-surface correction оставляет в Telegram MVP-1 только
   обычные text/voice tasks и `/start`, `/status`, `/limit`, `/help`. `/task`,
   `/calendar`, `/research`, `/document`, `/download`, `/network`, `/file`,
@@ -209,6 +217,7 @@ Git-репозиторий — источник истины для code/tests/A
 | MVP-1 command-surface and artifact-projection correction, 2026-09-02 | red/green command proof: `23 passed`; complete Telegram surface/runner: `183 passed`; final Telegram/Mini App/effect-isolation/docs focused set: `262 passed`; artifact projection + parity/runner/docs: `257 passed`; release-relevant set excluding only frozen Gate 0/pre-Gate group: `1403 passed`, `2 skipped`, `5 deselected`, one known Starlette warning. The exact five deselected backup/restore mutex tests were rerun outside sandbox and all returned `RunnerAlreadyActive`, proving the deployed bot owns `Global\NobusSpaceBot`; they were not silently counted as green | superseded by final published checkpoint; active command/effect surface defect closed; Telegram results have one immutable owner-visible filesystem projection |
 | Final notifier-isolation checkpoint, 2026-09-02 | exact `14c80131b2a702d75f92abb4fe22d49ea6aa975c`, tree `cd210cb2...`; focused `320 passed`; release-relevant `1425 passed`, `2 skipped`, one known Starlette/httpx warning; independent L2 `PASS` with `161 passed` and durable-state probe; adversarial L3 `PASS` with `417` pytest tests plus `70` marker-variant assertions | no Critical/Major/Minor finding; technical notifier content is absent from durable state, verifier, web context, artifact and Telegram delivery; global primary/root notifier unchanged |
 | MVP-1 publication and live readback, 2026-09-02 | PR #6 merge `05e8b2ccff4103c6be9c43f809f89982d60f3b2a` fetched from protected `origin/main`; candidate reachability and exact tree verified; live branch fast-forwarded; supervisor stable marker plus local/public health/readiness `PASS` | **PUBLISHED / DEPLOYED / OWNER SMOKE ACCEPTED**; final product verdict `MVP-1 READY` |
+| Host-local stopped-process recovery, 2026-09-02 | checkpoint `27a5bb6135801a08c4357fde3684435f2cf68004`, tree `3d8a313d235456454eef13e6af9751c2bb1ac7a0`; runtime-focused pre-correction set `96 passed`; final installer/supervisor focus `4 passed`; Windows PowerShell 5.1 parse `PASS`; controlled stop -> automatic start -> local/public `200`; next health run `0` | **LOCAL CANDIDATE / DEPLOYED HOST CONFIG / NOT PUBLISHED**; original outage classified as forced termination plus passive-monitor `IMPLEMENTATION_DEFECT` |
 | Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **PUBLISHED** through PR #2; exact A/B reachability read back from `origin/main` |
 | Publication merge | pre-publication checkpoint `100 passed`, `1 warning`; PR head exact `0612f1456bf050e54aac8bb2afc2c4f9a5b99328`; non-force merge with commit preservation | `205cd66d4094f59673e89aa8d616b7826f16f8b0`; accepted product/integrity content anchor |
 
@@ -220,6 +229,9 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 
 - Известных Critical/Major дефектов принятого MVP-1 journey нет. Owner
   acceptance, protected-main publication и live readback выполнены.
+- Source correction `27a5bb6` для активного восстановления остановленного
+  процесса ещё не опубликована: protected `main` и tag `v1.0.0` остаются без
+  этой installer-правки, хотя проверенная host-local конфигурация уже применена.
 - Следующие push, merge, deploy или provider changes за пределами этого release
   по-прежнему требуют отдельного точного owner scope; статус `MVP-1 READY` не
   создаёт бессрочное разрешение на внешние изменения.
