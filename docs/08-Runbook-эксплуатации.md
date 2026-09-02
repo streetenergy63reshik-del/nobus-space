@@ -88,9 +88,9 @@ $env:DEBUG='false'
 
 The health command requires all four databases, exact DDL fingerprints and valid
 application digests. `PASS` means healthy, `DEGRADED` means operator reconciliation
-(for example a dead letter), and `FAIL` means corruption/unavailability. The health
-task only records an alert; it never restarts the runner. Task Scheduler owns the
-single bounded liveness contract: at most ten one-minute restart attempts.
+(for example a dead letter), and `FAIL` means corruption/unavailability. The
+`NobusSpaceBot-Health` task records an alert and starts the enabled main task once
+when it is stopped (`Ready`); it never stops or duplicates a running process.
 
 ### Backup
 
@@ -139,15 +139,17 @@ Do not run this command before the release candidate has independent L2/L3 `ACCE
 
 Установщик запускает tracked `scripts/run_nobus_space_live.py` из exact product
 worktree, допускает отдельный runtime root для canonical `.venv`/logs и пишет
-health launcher в UTF-8 BOM для Windows PowerShell 5.1. Текущая host-local
-коррекция привязана к code checkpoint `27a5bb6`; её protected-main publication
-требует отдельного разрешения владельца.
+health launcher в UTF-8 BOM для Windows PowerShell 5.1. Основная задача использует
+`pythonw.exe`: она работает без консольного окна, поэтому закрытие случайно
+открытого терминала не может остановить продукт. Host-local correction привязана
+к checkpoint `c789f89`; её protected-main publication требует отдельного
+разрешения владельца.
 
 ## Operational update 2026-07-24: current-user autostart
 
 This section supersedes the older statement that the MVP has no autostart.
 
-The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. For the public Mini App composition it runs tracked `scripts/run_nobus_space_live.py`, which owns the restricted reverse SSH and canonical runner in one kill-on-close Windows Job Object. Logs are local, bounded, and stored under canonical `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
+The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It starts after current-user logon with limited interactive privileges through `pythonw.exe`, ignores duplicate starts, has no execution-time limit, starts when available, continues on battery power, and is configured for up to ten retries one minute apart after failure. For the public Mini App composition it runs tracked `scripts/run_nobus_space_live.py`, which owns the restricted reverse SSH and canonical runner in one kill-on-close Windows Job Object. Logs are local, bounded, and stored under canonical `.runtime/logs`; they must never contain credentials, raw prompts, voice content, or document content.
 
 The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
 
