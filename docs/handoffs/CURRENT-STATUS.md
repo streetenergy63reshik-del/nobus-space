@@ -31,8 +31,8 @@ existing local Core, одну queue/state model и одну effect authority. П
 | Accepted architecture commit | `ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03`; reachable from accepted `main` |
 | Thin Mini App source revisions | base `efb6be0324f70260284bb59e48cc798e37cd2fca`; read-only checkpoint `3771b1eac5a0a215d0fa65a60a9addaf7a72ab9a`; task-create checkpoint `a13243c677d03a0a4415504c720635d3d97092aa`; all reachable from the accepted publication merge |
 | Published MVP-1 code | checkpoint `14c80131b2a702d75f92abb4fe22d49ea6aa975c`; tree `cd210cb2a972d1acbb80f4ded3d21c2282e7d296`; PR #6 merge `05e8b2ccff4103c6be9c43f809f89982d60f3b2a`; fetched/read back from protected `origin/main` |
-| Live activation | branch `codex/mvp1-g7-activation`; fast-forwarded to PR #6 merge `05e8b2ccff4103c6be9c43f809f89982d60f3b2a`; same code tree `cd210cb2...`; **DEPLOYED / OWNER SMOKE ACCEPTED** |
-| Final release tag | `v1.0.0`; required binding is the containing protected-main release revision after documentation merge and exact remote readback |
+| Live activation | branch `codex/mvp1-g7-activation`; must be fast-forwarded to final patch tag `v1.0.1`; host configuration is **DEPLOYED / OWNER SMOKE ACCEPTED** |
+| Final release tag | `v1.0.1`; required binding is the containing protected-main release revision after documentation merge and exact remote readback |
 | Containing revision | resolve with `git rev-parse HEAD`; canonical only if exact revision is reachable from protected remote `main` |
 | Origin | public GitHub repository; live refs are not duplicated in this document |
 | Protection snapshot, read back 2026-08-31 | PR + conversation resolution required; admins enforced; bypass, force-push and deletion disabled; required status checks not configured |
@@ -111,8 +111,9 @@ Git-репозиторий — источник истины для code/tests/A
   `pythonw.exe` без консольного окна и UTF-8 BOM для Windows PowerShell 5.1.
   После инцидента `502` и контролируемого переключения 2 сентября main task
   остался `Running`, local/public readiness вернулись `200` в `17:37`, а
-  health run `17:49:44` завершился `0`. Коррекция развёрнута на owner PC, но
-  ещё не опубликована в protected `main`.
+  health run `17:49:44` завершился `0`. Коррекция развёрнута на owner PC;
+  Git-публикация определяется общим containing-revision rule этого документа
+  и финальным patch tag `v1.0.1`.
 - Содержащая command-surface correction оставляет в Telegram MVP-1 только
   обычные text/voice tasks и `/start`, `/status`, `/limit`, `/help`. `/task`,
   `/calendar`, `/research`, `/document`, `/download`, `/network`, `/file`,
@@ -219,7 +220,7 @@ Git-репозиторий — источник истины для code/tests/A
 | MVP-1 command-surface and artifact-projection correction, 2026-09-02 | red/green command proof: `23 passed`; complete Telegram surface/runner: `183 passed`; final Telegram/Mini App/effect-isolation/docs focused set: `262 passed`; artifact projection + parity/runner/docs: `257 passed`; release-relevant set excluding only frozen Gate 0/pre-Gate group: `1403 passed`, `2 skipped`, `5 deselected`, one known Starlette warning. The exact five deselected backup/restore mutex tests were rerun outside sandbox and all returned `RunnerAlreadyActive`, proving the deployed bot owns `Global\NobusSpaceBot`; they were not silently counted as green | superseded by final published checkpoint; active command/effect surface defect closed; Telegram results have one immutable owner-visible filesystem projection |
 | Final notifier-isolation checkpoint, 2026-09-02 | exact `14c80131b2a702d75f92abb4fe22d49ea6aa975c`, tree `cd210cb2...`; focused `320 passed`; release-relevant `1425 passed`, `2 skipped`, one known Starlette/httpx warning; independent L2 `PASS` with `161 passed` and durable-state probe; adversarial L3 `PASS` with `417` pytest tests plus `70` marker-variant assertions | no Critical/Major/Minor finding; technical notifier content is absent from durable state, verifier, web context, artifact and Telegram delivery; global primary/root notifier unchanged |
 | MVP-1 publication and live readback, 2026-09-02 | PR #6 merge `05e8b2ccff4103c6be9c43f809f89982d60f3b2a` fetched from protected `origin/main`; candidate reachability and exact tree verified; live branch fast-forwarded; supervisor stable marker plus local/public health/readiness `PASS` | **PUBLISHED / DEPLOYED / OWNER SMOKE ACCEPTED**; final product verdict `MVP-1 READY` |
-| Host-local stopped-process and hidden-runner recovery, 2026-09-02 | base checkpoint `27a5bb6135801a08c4357fde3684435f2cf68004`; hidden-runner checkpoint `c789f89d977cb366b430a1e57062c3a0f2f20f62`, tree `41983c74940f647352f5668b4332722365b239b0`; exact ops tests after stopping live mutex: `12 passed`; PowerShell parse `PASS`; controlled stop -> hidden `pythonw.exe` start -> local/public `200`; health run `0` | **LOCAL CANDIDATE / DEPLOYED HOST CONFIG / NOT PUBLISHED**; console-coupled startup and passive-monitor gap classified as `IMPLEMENTATION_DEFECT`, both corrected on owner PC |
+| Host-local stopped-process and hidden-runner recovery, 2026-09-02 | base checkpoint `27a5bb6135801a08c4357fde3684435f2cf68004`; hidden-runner checkpoint `c789f89d977cb366b430a1e57062c3a0f2f20f62`, tree `41983c74940f647352f5668b4332722365b239b0`; exact ops tests after stopping live mutex: `12 passed`; PowerShell parse `PASS`; controlled stop -> hidden `pythonw.exe` start -> local/public `200`; health run `0` | **HOST CONFIG DEPLOYED**; Git publication follows the containing-revision rule and `v1.0.1` readback; console-coupled startup and passive-monitor gap were `IMPLEMENTATION_DEFECT` and are corrected |
 | Gate 0 integrity repair @ `a30a203f24a5cd9d123d7e9ae0d7b9eee4a8b343` | L1: source verifier/current/clean checkout `20/20`, impacted Gate 0 `24 passed`, integrity/docs `11 passed`, checkpoint `100 passed`, clean exact-byte/regression `7 passed`; independent L2 and adversarial L3 reproduced the frozen candidate | **SPECIFICATION_CONFLICT: CLOSED**; L1/L2/L3 `PASS`; **PUBLISHED** through PR #2; exact A/B reachability read back from `origin/main` |
 | Publication merge | pre-publication checkpoint `100 passed`, `1 warning`; PR head exact `0612f1456bf050e54aac8bb2afc2c4f9a5b99328`; non-force merge with commit preservation | `205cd66d4094f59673e89aa8d616b7826f16f8b0`; accepted product/integrity content anchor |
 
@@ -231,9 +232,9 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 
 - Известных Critical/Major дефектов принятого MVP-1 journey нет. Owner
   acceptance, protected-main publication и live readback выполнены.
-- Source correction `27a5bb6` для активного восстановления остановленного
-  процесса ещё не опубликована: protected `main` и tag `v1.0.0` остаются без
-  этой installer-правки, хотя проверенная host-local конфигурация уже применена.
+- Source corrections `27a5bb6`/`c789f89` входят в финальный Git-канон только
+  после containing-revision и `v1.0.1` readback; проверенная host-local
+  конфигурация уже применена.
 - Следующие push, merge, deploy или provider changes за пределами этого release
   по-прежнему требуют отдельного точного owner scope; статус `MVP-1 READY` не
   создаёт бессрочное разрешение на внешние изменения.
@@ -299,7 +300,7 @@ literal commit/tree и reviewer verdict фиксируются в task/PR handof
 | HTTPS ingress and Telegram menu activation | **HTTPS ACTIVE / COMMAND PROFILE VERIFIED** |
 | Live create/status/result/artifact/restart smoke | **SYNTHETIC PASS / OWNER ACCEPTED** |
 | Product-worker notification isolation | **PUBLISHED / DEPLOYED / L2+L3 PASS** |
-| Final GitHub release tag/readback | **`v1.0.0` / VERIFIED** |
+| Final GitHub release tag/readback | **`v1.0.1` / containing-revision readback required** |
 | Full MVP-1 business product | **MVP-1 READY** |
 
 `MVP-1 READY` допускается только по одному exact release SHA, когда одновременно:
@@ -353,20 +354,114 @@ Registry, Web IDE/shell/self-deploy, multi-user SaaS, billing/RBAC и функц
 следующих продуктовых срезов.
 
 MVP-1 опубликован в protected `main`, развёрнут за public HTTPS, принят
-владельцем и зафиксирован release tag `v1.0.0`. Это не разрешает следующему
-срезу менять существующие Core/effect authority границы.
+владельцем и после публикации host-correction фиксируется patch release tag
+`v1.0.1`. Это не разрешает следующему срезу менять существующие Core/effect
+authority границы.
 
-## Current deployed release and next boundary
+## Handoff: подготовка следующего чата к Nobus Space MVP-2
 
-`codex/mvp1-g7-activation` fast-forwarded на опубликованный release и обслуживает
-`https://app.nobusspace.com`. Следующая граница — отдельный owner-approved
-вертикальный срез; MVP-1 не расширяется платформенными заготовками.
+### Точка старта
+
+- Канонический Git: `https://github.com/streetenergy63reshik-del/nobus-space`,
+  protected branch `main`; точный published SHA всегда читать обратно из
+  `origin/main`, финальный MVP-1 patch — из tag `v1.0.1`.
+- Канонический checkout:
+  `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev`.
+  Он содержит owner WIP и не должен автоматически очищаться, reset/stash или
+  использоваться для нового feature slice.
+- Live worktree:
+  `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\worktrees\telegram-live`,
+  branch `codex/mvp1-g7-activation`. После финальной публикации он должен быть
+  fast-forwarded до `v1.0.1`; разрабатывать MVP-2 прямо в нём нельзя.
+- Public product: `https://app.nobusspace.com`; Core/SQLite/Codex остаются на
+  owner PC, Hostinger VPS содержит только `cloudflared` и restricted relay.
+- Windows tasks: `NobusSpaceBot` (`pythonw.exe`, hidden) и
+  `NobusSpaceBot-Health` (minute health/recovery). Канонический runbook —
+  `docs/08-Runbook-эксплуатации.md`.
+- Runtime state/logs находятся в canonical `.runtime`; результаты владельца
+  проецируются в
+  `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\NOBUS SPACE BOT\Проекты Telegram`.
+  Эти каталоги не являются Git content и не переносятся в новую БД.
+
+Перед изменениями следующий чат выполняет:
+
+```powershell
+git status --short --branch
+git fetch origin main --tags
+git rev-parse origin/main
+git rev-parse v1.0.1
+git merge-base --is-ancestor v1.0.1 origin/main
+git worktree list --porcelain
+```
+
+Если checkout неожиданно dirty или `v1.0.1` не является предком
+`origin/main`, ничего не сбрасывать: зафиксировать расхождение и определить
+его класс. Для MVP-2 создать отдельные clean branch/worktree от exact
+`origin/main`; live, Gate 1 HOLD, recovery refs, bundles и stash не трогать.
+
+### Фактическая продуктовая поверхность MVP-1
+
+- В Telegram обычный текст и голос создают owner-bound задачу; доступны только
+  `/start`, `/status`, `/limit`, `/help`.
+- Mini App поддерживает owner auth, список, карточку, создание текстовой задачи,
+  status/events, verified result и реальный artifact download.
+- Telegram и Mini App используют одну task identity, существующий Core,
+  SQLite queue/state/outbox и один artifact digest.
+- `/task`, `/calendar`, `/research`, `/document`, `/download`, `/network`,
+  `/file`, `/notes` и future effects в MVP-1 не реализованы как полный путь,
+  не рекламируются и fail closed до admission/effect.
+- Продукт работает только пока owner PC включён, пользователь вошёл в Windows,
+  сон отключён и доступны интернет/Happ, локальный Codex runtime, SSH relay и
+  VPS Cloudflare Tunnel. После резкой остановки polling lease может
+  освобождаться до четырёх минут; повторные ручные запуски запрещены.
+
+### Неизменяемые границы MVP-2
+
+ADR 0022 остаётся active до нового принятого решения. MVP-2 не создаёт второй
+Core, БД, queue, policy/effect plane, Agent Registry или отдельную model
+authority. Client не назначает tenant/actor/route/risk/capabilities. Credentials,
+raw payload, локальные пути и данные другого tenant не выходят в UI/API/logs.
+Старые Gate 1–8, frozen Gate 2A и исторические команды не становятся roadmap.
+Изменение trust boundary, authoritative storage, effect authority или topology
+требует отдельного forward ADR; обычное расширение внутри этих границ — нет.
+
+### Рекомендуемый первый срез MVP-2 — PROPOSED, не baseline
+
+**Owner file input -> existing Core/Codex -> verified result/artifact.** Один
+файл владелец прикладывает к задаче в Telegram или Mini App; Core безопасно
+регистрирует exact bytes/digest и передаёт bounded input существующему Codex,
+а результат возвращается через текущие status/result/artifact механики.
+
+Критерии предлагаемого среза:
+
+1. exact owner/tenant/task binding и одна task identity для Telegram/Mini App;
+2. bounded размер, allowlist MIME/extension, digest и безопасное имя;
+3. local path и исходные bytes не появляются в error/log/evidence;
+4. idempotent retry/restart не создаёт второй input/task/result artifact;
+5. tamper, traversal, stale revision и cross-owner reference fail closed;
+6. недоступный Core не создаёт task/outbox/effect;
+7. целевые backend/frontend/integration/security/restart tests и реальный
+   browser/Telegram smoke выполняются на одном frozen candidate.
+
+Out of scope этого первого среза: поиск произвольных файлов на ПК, общий
+`/download`, сеть, календарь, документы как платформа, approvals/effects,
+multi-user/RBAC, перенос Core на VPS и одновременная активация всех старых
+команд. Перед реализацией владелец должен подтвердить именно этот либо другой
+один бизнес-срез; локальная разработка не разрешает будущие push/deploy/menu
+changes без новой точной команды.
+
+### Контекст, который читает следующий чат
+
+Только ближайший `AGENTS.md`, `docs/README.md`, этот `CURRENT-STATUS`, ADR 0022,
+затрагиваемые исходники/тесты и exact Git diff. Nobus Memory — только короткий
+указатель; старые чаты, весь vault, TaskArtifacts, roadmap docs 15/16 и
+исторические Gate-документы не загружать без доказанной необходимости.
 
 ## Proposed Nobus Memory pointer sync
 
 ```text
 Nobus Space: public GitHub repository streetenergy63reshik-del/nobus-space.
-MVP-1 READY is published in protected main, tagged v1.0.0 and deployed at
+MVP-1 READY is published in protected main, tagged v1.0.1 and deployed at
 https://app.nobusspace.com; owner smoke is accepted. ADR 0022 remains active;
 architecture commit ac0bc08e2cf13fdd67f8b31cd1abe1afd4763f03 remains reachable.
 Gate 1 recovery remains HOLD/NOT_ACCEPTED and unpublished. Live worktree state

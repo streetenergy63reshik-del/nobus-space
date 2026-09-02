@@ -8,13 +8,12 @@
 > сохраняются, пока не superseded отдельным проверенным runtime change.
 >
 
-> **MVP-1 activation boundary — 1 сентября 2026.** Public HTTPS
+> **MVP-1 release boundary — 2 сентября 2026.** Public HTTPS
 > `app.nobusspace.com`, exact-owner Telegram menu и local-Core reverse relay
 > активированы. Synthetic owner-bound create/status/result/artifact и
-> Telegram byte parity прошли. Точный статус:
-> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). До фактического exact-owner
-> открытия в Telegram и publication/tag readback статус остаётся
-> `DEPLOYED / AWAITING OWNER SMOKE`, а не `MVP-1 READY`.
+> Telegram byte parity прошли; exact owner smoke принят. Точный статус и
+> handoff: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Исправление скрытого
+> Windows runner и активного recovery публикуется как patch tag `v1.0.1`.
 >
 
 ## Operational override 2026-07-25 — persistent Codex SDK candidate
@@ -142,10 +141,10 @@ worktree, допускает отдельный runtime root для canonical `.
 health launcher в UTF-8 BOM для Windows PowerShell 5.1. Основная задача использует
 `pythonw.exe`: она работает без консольного окна, поэтому закрытие случайно
 открытого терминала не может остановить продукт. Host-local correction привязана
-к checkpoint `c789f89`; её protected-main publication требует отдельного
-разрешения владельца.
+к checkpoint `c789f89`; её protected-main publication входит в patch tag
+`v1.0.1`.
 
-## Operational update 2026-07-24: current-user autostart
+## Historical snapshot 2026-07-24: superseded current-user autostart
 
 This section supersedes the older statement that the MVP has no autostart.
 
@@ -153,12 +152,18 @@ The owner-approved host has a Task Scheduler task named `NobusSpaceBot`. It star
 
 The task is host-local configuration, not a portable deployment artifact. After repository relocation, credential rotation, Python environment replacement, or Windows account change, an operator must revalidate the exact action, working directory, principal, startup probe, Whisper warmup, polling lease and process tree. Automatic restart settings are configured; a destructive crash/reboot drill has not yet been independently reproduced.
 
-Revision `74b182a` is active in the live runner under exact owner L4. `/file` is published in Bot Menu; startup Codex probe, offline Whisper warmup and fresh polling lease revision `6868` passed before service readiness. A product-route owner smoke sent one known non-secret HTML successfully. The adapter supports only `.docx`, `.htm`, `.html`, `.pdf`, and `.xlsx` up to 50 MiB. It never sends hidden/sensitive-name matches, absolute paths, linked paths, or content outside the configured owner root. Google Drive read/download and owner-bound Google Tasks actions are present in the v2 local RC. Business Notes adds the fourth encrypted runtime database; its live group binding remains pending.
+The older `/file`, Google Tasks and Business Notes notes in this snapshot are
+retained only as historical evidence. They are not part of the published MVP-1
+product surface and are not advertised in Bot Menu. Current Telegram commands
+are limited to `/start`, `/status`, `/limit` and `/help`; future routes fail
+closed until a separately accepted vertical slice implements them end to end.
 
 
 **Статус документа:** CANONICAL
-**Состояние реализации:** CURRENT Queue 1/2 local release candidate / TARGET production
-**Дата актуализации:** 24 июля 2026
+**Состояние реализации:** MVP-1 READY; последующие разделы содержат historical
+baseline и применяются только там, где их не отменяют ADR 0022 и active overlays
+выше.
+**Дата актуализации:** 2 сентября 2026
 
 ## CURRENT и TARGET
 
