@@ -142,6 +142,9 @@ def test_production_runtime_uses_one_canonical_database_directory() -> None:
         "task-runtime.sqlite3",
         "telegram-state.sqlite3",
     }
+    assert runner._TELEGRAM_PROJECTS_ROOT == (
+        runner._ORCHESTRATOR_ROOT / "NOBUS SPACE BOT" / "Проекты Telegram"
+    )
 
 
 def test_production_runtime_excludes_unreleased_effect_adapters() -> None:

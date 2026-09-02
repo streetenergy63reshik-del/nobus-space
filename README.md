@@ -185,6 +185,11 @@ revision, digest, MIME, размер и безопасное имя выводя
 tamper-evident outbox result; отдельная artifact DB/queue не создаётся.
 Telegram `sendDocument` и Mini App download получают одинаковые bytes/digest,
 а path, foreign-tenant existence и stale/tampered refs не раскрываются.
+При Telegram delivery тот же immutable `.txt` сохраняется как восстанавливаемая
+локальная проекция в
+`C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\NOBUS SPACE BOT\Проекты Telegram`.
+SQLite/outbox остаётся единственным authoritative state; совпадающий retry не
+создаёт копию, а конфликтующее содержимое под тем же именем fail closed.
 
 Для принятого owner journey отдельный ApprovalRequest не требуется: create,
 status, result и download являются Core admission/read-only delivery. Уже

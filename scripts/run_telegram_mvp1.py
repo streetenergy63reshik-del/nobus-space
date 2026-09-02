@@ -123,6 +123,9 @@ _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
 _PROJECT_CONTEXT_PATH = ROOT / "docs" / "11-Контекст-продукта.md"
 _NOBUS_MEMORY_ROOT = _OWNER_READ_ROOT / "Nobus memory"
+_TELEGRAM_PROJECTS_ROOT = (
+    _ORCHESTRATOR_ROOT / "NOBUS SPACE BOT" / "Проекты Telegram"
+)
 _RUN_STAGES = frozenset(
     {
         "credentials",
@@ -398,7 +401,10 @@ async def _run(
             telegram_state=telegram_state,
             task_tenants=destination_refs,
             task_status_sender=TelegramStatusSender(
-                api, sender_destinations, technical_details=False
+                api,
+                sender_destinations,
+                technical_details=False,
+                artifact_directory=_TELEGRAM_PROJECTS_ROOT,
             ),
         )
         report_stage("control_start")

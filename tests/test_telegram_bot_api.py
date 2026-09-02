@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -12,7 +13,13 @@ import httpx
 import pytest
 
 from src.models.task import TaskStatus
-from src.storage.outbox import OutboxMessage, OutboxStatus, message_fingerprint, message_id_for
+from src.storage.outbox import (
+    OutboxMessage,
+    OutboxStatus,
+    artifact_for_message,
+    message_fingerprint,
+    message_id_for,
+)
 from src.transport.telegram.bot_api import (
     TelegramBotApi,
     TelegramBotApiError,
@@ -776,6 +783,94 @@ async def test_product_status_sender_never_exposes_internal_identifiers() -> Non
     assert "Проверенный пользовательский ответ.".encode("utf-8") in documents[0]
     for marker in ("Task:", "Event:", "Revision:", str(failed.task_id)):
         assert marker not in visible
+
+
+@pytest.mark.asyncio
+async def test_product_status_sender_projects_verified_artifact_once(
+    tmp_path: Path,
+) -> None:
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if str(request.url).endswith("/sendDocument"):
+            return response(
+                {
+                    "message_id": 2,
+                    "chat": {"id": 42},
+                    "document": {"file_id": "id", "file_unique_id": "unique"},
+                }
+            )
+        return response({"message_id": 1, "chat": {"id": 42}})
+
+    artifact_root = tmp_path / "Проекты Telegram"
+    artifact_root.mkdir()
+    api = api_for(handler)
+    sender = TelegramStatusSender(
+        api,
+        {"tenant-a": (DESTINATION_REF, 42)},
+        technical_details=False,
+        artifact_directory=artifact_root,
+    )
+    message = outbox_message(TaskStatus.ANSWERED)
+    artifact = artifact_for_message(message)
+    assert artifact is not None
+    try:
+        assert await sender(message)
+        assert await sender(message)
+    finally:
+        await api.aclose()
+
+    target = artifact_root / artifact.filename
+    assert target.read_bytes() == artifact.content_bytes()
+    assert tuple(path.name for path in artifact_root.iterdir()) == (artifact.filename,)
+    assert len(calls) == 4
+
+
+@pytest.mark.asyncio
+async def test_product_status_sender_rejects_conflicting_local_artifact(
+    tmp_path: Path,
+) -> None:
+    calls: list[httpx.Request] = []
+    artifact_root = tmp_path / "Проекты Telegram"
+    artifact_root.mkdir()
+    message = outbox_message(TaskStatus.ANSWERED)
+    artifact = artifact_for_message(message)
+    assert artifact is not None
+    (artifact_root / artifact.filename).write_bytes(b"conflict")
+    api = api_for(lambda request: (calls.append(request), response({}))[1])
+    sender = TelegramStatusSender(
+        api,
+        {"tenant-a": (DESTINATION_REF, 42)},
+        technical_details=False,
+        artifact_directory=artifact_root,
+    )
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            await sender(message)
+    finally:
+        await api.aclose()
+
+    assert caught.value.code == "telegram_artifact_projection_failed"
+    assert calls == []
+    assert (artifact_root / artifact.filename).read_bytes() == b"conflict"
+
+
+def test_product_status_sender_requires_existing_artifact_directory(
+    tmp_path: Path,
+) -> None:
+    api = api_for(lambda request: response({}))
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            TelegramStatusSender(
+                api,
+                {"tenant-a": (DESTINATION_REF, 42)},
+                artifact_directory=tmp_path / "missing",
+            )
+    finally:
+        asyncio.run(api.aclose())
+
+    assert caught.value.code == "telegram_configuration_invalid"
 
 
 @pytest.mark.asyncio
