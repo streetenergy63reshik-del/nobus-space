@@ -1,3 +1,11 @@
+> **C0 CURRENT — 2 сентября 2026.** `MVP-1 PUBLISHED / LIVE RUNTIME
+> OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION
+> UNVERIFIED`; `MVP-2 HOLD`. Read-only preflight увидел disabled main Scheduled
+> Task, отсутствие matching процесса и public health/readiness `502`. Ниже
+> сохранены operational procedures и historical successful evidence; они не
+> доказывают текущую active revision или product READY. Точный статус:
+> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
+>
 > **ACTIVE OVERLAY — 25 августа 2026.** Текущую MVP topology и delivery
 > workflow определяет
 > [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
@@ -8,10 +16,11 @@
 > сохраняются, пока не superseded отдельным проверенным runtime change.
 >
 
-> **MVP-1 release boundary — 2 сентября 2026.** Public HTTPS
+> **HISTORICAL PRE-INCIDENT release boundary — 2 сентября 2026.** Public HTTPS
 > `app.nobusspace.com`, exact-owner Telegram menu и local-Core reverse relay
 > активированы. Synthetic owner-bound create/status/result/artifact и
-> Telegram byte parity прошли; exact owner smoke принят. Точный статус и
+> Telegram byte parity прошли; previous owner smoke был принят, но позже
+> переоткрыт semantic incident. Точный статус и
 > handoff: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Исправление скрытого
 > Windows runner и активного recovery публикуется как patch tag `v1.0.1`.
 >
@@ -160,7 +169,8 @@ closed until a separately accepted vertical slice implements them end to end.
 
 
 **Статус документа:** CANONICAL
-**Состояние реализации:** MVP-1 READY; последующие разделы содержат historical
+**Состояние реализации:** acceptance reopened; historical `MVP-1 READY`
+superseded; последующие разделы содержат historical
 baseline и применяются только там, где их не отменяют ADR 0022 и active overlays
 выше.
 **Дата актуализации:** 2 сентября 2026

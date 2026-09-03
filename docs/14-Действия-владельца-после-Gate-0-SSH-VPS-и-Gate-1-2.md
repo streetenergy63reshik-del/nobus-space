@@ -1,112 +1,104 @@
-# 14. Реальные owner inputs для тонкого MVP-1
+# 14. Реальные owner inputs после Gate C0
 
 **Статус документа:** CANONICAL OWNER INPUTS
 **Актуально на:** 2 сентября 2026 года
+**CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`
+**Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
+**Program boundary:** `MVP-2 HOLD`
 
-Активное решение:
-[ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
-Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
-
-Этот файл не выдаёт разрешение на push, deploy, provider/VPS/BotFather,
-publication, credentials или live effect.
+Этот файл не выдаёт разрешение на push, PR, merge, tag/release, deploy,
+provider/VPS/DNS/TLS/BotFather, credentials, live effect, Nobus Memory write,
+HTML publication или Telegram delivery.
 
 ## 1. Что требуется сейчас
 
-ADR 0022 и базовый Telegram Mini App auth/list/detail/create уже опубликованы.
-G2–G6 собраны и проверены: status/events/result, реальный artifact,
-Telegram/Mini App parity, same-process composition, recovery и frozen
-assurance. Candidate развёрнут за public HTTPS и ожидает визуальный owner smoke,
-но всё ещё `NOT PUBLISHED`; общий verdict —
-`MVP-1 IN PROGRESS / NOT PRODUCT READY`.
+Владелец принимает или отклоняет exact local Gate C0 candidate по его
+result SHA/tree и единому
+[handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md).
 
-Exact revision, checks и blockers ведутся только в
-[CURRENT-STATUS](handoffs/CURRENT-STATUS.md). Оставшееся решение владельца —
-визуальное принятие обновлённой карточки и разрешение публикации exact release,
-а не повторное принятие архитектуры.
+C0 восстановил фактическую границу:
 
-Наличие настроенного `origin` не означает, что GitHub `main` содержит эту
-историю. Опубликованный канон появляется только после разрешённых push/PR/merge
-и readback exact remote SHA.
+- protected `main` и annotated tag `v1.0.1` указывают на `f5a9119...`;
+- live runtime наблюдался 2 сентября, но текущий процесс/health и loaded
+  revision не подтверждены;
+- previous owner acceptance переоткрыта из-за false semantic reject одинаковой
+  transform-задачи в text и после успешного voice transcript;
+- forward [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
+  принят как TARGET, но не реализован;
+- published remote READY — `STALE PUBLISHED CLAIM / PUBLICATION PENDING AUTHORIZATION`.
 
-## 2. Следующий product gate — G7
+## 2. Следующий Gate — C1
 
-**Продуктовый результат:** owner открывает Nobus Space из Telegram по public
-HTTPS и проходит живой путь `create -> status/events -> verified result -> real
-artifact` через один backend+frontend release.
+Gate C1 можно открыть только в новом пользовательском чате от принятого exact
+C0 result SHA/tree. Нельзя начинать C1 автоматически от `origin/main`, dirty
+local `main` или непринятого checkpoint.
 
-Критерии:
+Продуктовый результат C1: text и voice-transcript после нормализации проходят
+один tool-less semantic compiler; strict SemanticProposal описывает смысл без
+authority; Core детерминированно выбирает capability/policy и решение. C1
+использует corpus C0 как acceptance и не меняет Faster-Whisper.
 
-1. exact HTTPS ingress/hostname и provider-bound transport выбраны и проверены;
-2. Telegram BotFather/menu открывает exact deployed Mini App;
-3. backend и frontend соответствуют одному frozen candidate;
-4. signed live `initData` проходит exact-owner auth, а replay/foreign owner/
-   stale session fail closed;
-5. одна задача имеет одну identity в Telegram и Mini App, возвращает verified
-   result и скачиваемый artifact с совпадающими bytes/digest;
-6. unavailable/restart/recovery проверены без orphan task, дубля или утечки;
-7. owner фиксирует `ACCEPT` либо один объединённый rework list.
+**Один Gate = одна Codex-задача = один пользовательский чат.** Все Txx/Cxx,
+исправления, повторные проверки и внутренние reviewers C1 остаются в этом
+одном чате. Новый чат создаётся только для C2 после принятого C1 handoff.
 
-Не входят: перенос Core/token/poller на VPS, universal Agent Registry, Web IDE,
-shell, self-deploy, multi-user SaaS и Gate 3–8 platform scope.
+## 3. Active closure-roadmap
 
-## 3. Точные inputs и авторизации G7
+| Gate | Результат | Статус |
+|---|---|---|
+| C0 — единая истина и контракт | local verified candidate и owner decision | CURRENT candidate |
+| C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | HOLD до принятого C0 |
+| C2 — voice parity и ASR qualification | общий route и русский bake-off | HOLD до C1 |
+| C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | HOLD до C2 |
+| C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
+| C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |
+| C6 — frozen release и owner acceptance | exact publish/activate/readback и owner smoke | HOLD до C5 |
 
-Первый путь использует один `Mini App Web Boundary`: static UI + bounded
-Telegram auth/session + thin API adapter за public HTTPS ingress, без своей
-DB/queue/policy/effect authority.
+R01–R47 — internal release checkpoints, не отдельные пользовательские чаты.
 
-До live activation владелец отдельно определяет или разрешает:
+## 4. Когда нужен точный вопрос владельцу
 
-1. exact HTTPS ingress, hostname, provider и допустимую стоимость;
-2. exact code candidate для deployment; docs-only merge не разрешает его
-   публикацию или deploy;
-3. provider/DNS/TLS изменения и public endpoint;
-4. exact BotFather/menu mutation;
-5. bounded owner smoke и допустимые live test data;
-6. после G7 — публикацию принятого code candidate и G8 release tag/readback.
+Внутри C1–C5 отдельное решение владельца нужно только если отсутствующий выбор
+меняет product scope, trust/authority/recovery invariant или требует внешней
+записи. Пауза и ответ продолжают тот же Gate-чат.
 
-Выбор ingress не разрешает перенос Core, Telegram token или poller на VPS.
+Перед C6 отдельно фиксируются и авторизуются только точные действия:
 
-## 4. Когда нужен отдельный вопрос владельцу
+1. какой frozen SHA/tree публиковать;
+2. какой PR/merge/tag/release выполнять;
+3. какой exact release/config активировать и какой rollback target сохранять;
+4. какие provider/DNS/TLS/BotFather mutations нужны;
+5. какой bounded owner smoke допустим с реальными данными/effects;
+6. принимается ли итоговый exact active release как целый MVP-1.
 
-Владелец принимает решение только если источники не разрешают один из конфликтов:
+Одна авторизация не подразумевает следующую.
 
-- какой exact public HTTPS ingress/hostname использовать;
-- допустим ли конкретный внешний provider/cost;
-- какой exact live branch/commit публиковать;
-- какой bounded owner smoke выполнить с реальным Telegram effect;
-- принимать ли риск, который меняет trust/authority/recovery invariant.
+## 5. Runtime approvals
 
-Обычные local docs/code/tests/checkpoint commit не требуют formal quality-L4.
-Push, PR, merge, deploy, provider/DNS/TLS/BotFather mutations и live effects
-требуют отдельной явной авторизации по общей безопасности.
+Sealed документы [06](06-Регламент-качества-L1-L4.md) и
+[07](07-Правила-внешней-записи.md) продолжают определять runtime
+`ApprovalRequest/ApprovalDecision`. Semantic model не назначает permissions,
+risk, route, approval или право на effect. Client может ответить только на
+immutable server-derived challenge. Authoritative success внешнего действия
+подтверждает effect receipt, а не текст модели.
 
-## 5. Runtime approvals не изменены
-
-Sealed docs
-[06](06-Регламент-качества-L1-L4.md) и
-[07](07-Правила-внешней-записи.md) продолжают определять product/runtime
-`ApprovalRequest/ApprovalDecision`. Если будущий reachable effect потребует
-подтверждения, Mini App может принять только решение по immutable server
-challenge. Принятый journey create/status/result/artifact отдельного
-`ApprovalRequest` не требует. Client не получает authority назначать action
-details, target или risk.
-
-Formal quality-L4 рабочего пространства добавляется только перед удалением
-данных с ПК или критическим изменением кабинета маркетплейса. Это не отменяет
-более строгую runtime policy конкретного пользовательского effect.
+Formal workspace quality-L4 нужен только перед удалением данных с ПК или
+критическим изменением кабинета маркетплейса. Это не ослабляет более строгую
+runtime policy конкретного effect.
 
 ## 6. Что пока не делать
 
-- не продолжать Gate 1/2/2A ceremony как active roadmap;
+- не реализовывать C1 до принятия exact C0 result;
+- не начинать C2–C6 или MVP-2 раньше соответствующего handoff;
+- не заменять и не устанавливать ASR до C2 bake-off/privacy decision;
 - не переносить Core/token/poller на VPS;
-- не создавать universal Agent Registry или Development Control platform;
-- не покупать/настраивать provider «заодно»;
-- не считать эту docs-публикацию разрешением на code push/PR/merge/deploy;
-- не выполнять provider/DNS/TLS/BotFather или live smoke без точной
-  авторизации;
-- не удалять Gate 1 worktree, safety refs, bundles, stash или recovery files;
-- не обновлять Nobus Memory до принятия Git-кандидата.
+- не создавать universal Agent Registry/Development Control platform;
+- не считать C0 разрешением на code publication или deploy;
+- не выполнять provider/DNS/TLS/BotFather/live smoke без точной авторизации;
+- не удалять dirty WIP, live checkout, Gate 1 worktree, safety refs, bundles,
+  stash или recovery files;
+- не обновлять Nobus Memory и не публиковать docs 15/16.
 
-После принятого merge Nobus Memory получает только короткий pointer/status sync,
-а не копию ADR, roadmap или backlog.
+Точный current status: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
+
+**C0 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY.**

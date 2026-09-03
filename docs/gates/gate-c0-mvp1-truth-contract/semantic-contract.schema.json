@@ -1,0 +1,550 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nobusspace.local/contracts/semantic-admission/1.0.0",
+  "title": "Nobus Space semantic admission contract 1.0.0",
+  "x-compound-decision-order": [
+    "TRUST_VIOLATION",
+    "POLICY_PROHIBITED",
+    "AMBIGUITY",
+    "HETEROGENEOUS_CAPABILITIES",
+    "IMPLEMENTATION_STATE",
+    "APPROVAL_REQUIRED",
+    "EXECUTE_ALLOWED"
+  ],
+  "oneOf": [
+    { "$ref": "#/$defs/SemanticProposal" },
+    { "$ref": "#/$defs/TrustedAdmissionContext" },
+    { "$ref": "#/$defs/CoreDecision" }
+  ],
+  "$defs": {
+    "NonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "OpaqueMaterialRef": {
+      "type": "string",
+      "description": "Opaque server-issued durable intake/artifact reference or synthetic fixture reference; never raw payload, local path, or external URL.",
+      "pattern": "^material://(?:intake|artifact|synthetic)/[a-z0-9][a-z0-9._/-]{0,159}$"
+    },
+    "OpaqueTargetRef": {
+      "type": "string",
+      "description": "Opaque server-issued target reference present in the current durable-intake ledger.",
+      "pattern": "^(?:material|target)://(?:intake|artifact|synthetic)/[a-z0-9][a-z0-9._/-]{0,159}$"
+    },
+    "SourceMaterialRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "boundary"],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/OpaqueMaterialRef"
+        },
+        "boundary": {
+          "enum": ["full_material", "quoted_fragment", "summary_only"]
+        }
+      }
+    },
+    "Predicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "subject_ref", "arguments"],
+      "properties": {
+        "kind": { "const": "material_item_state_exists" },
+        "subject_ref": { "$ref": "#/$defs/OpaqueMaterialRef" },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["item_state"],
+          "properties": {
+            "item_state": { "enum": ["overdue"] }
+          }
+        }
+      }
+    },
+    "Operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation_kind", "role", "target_ref", "predicate"],
+      "properties": {
+        "operation_kind": {
+          "enum": [
+            "respond",
+            "transform_material",
+            "cancel_task",
+            "read_public_information",
+            "create_file",
+            "write_calendar_event",
+            "disclose_secret",
+            "write_marketplace_campaign"
+          ]
+        },
+        "role": {
+          "description": "Untrusted model interpretation only; never an authority bit. Core requires matching TrustedAdmissionContext provenance.",
+          "enum": ["requested", "quoted", "mentioned_only", "negated", "conditional"]
+        },
+        "target_ref": {
+          "oneOf": [
+            { "$ref": "#/$defs/OpaqueTargetRef" },
+            { "type": "null" }
+          ]
+        },
+        "predicate": {
+          "oneOf": [
+            { "$ref": "#/$defs/Predicate" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["role"],
+            "properties": { "role": { "const": "conditional" } }
+          },
+          "then": {
+            "properties": {
+              "predicate": { "$ref": "#/$defs/Predicate" }
+            }
+          },
+          "else": {
+            "properties": { "predicate": { "type": "null" } }
+          }
+        }
+      ]
+    },
+    "OperationProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation_index", "span_ref", "trusted_origin", "authority_scope"],
+      "properties": {
+        "operation_index": { "type": "integer", "minimum": 0, "maximum": 23 },
+        "span_ref": {
+          "type": "string",
+          "pattern": "^span://(?:intake|synthetic)/[a-z0-9][a-z0-9._/-]{0,159}$"
+        },
+        "trusted_origin": {
+          "enum": ["DIRECT_OWNER_COMMAND", "PROVIDED_MATERIAL", "QUOTED_MATERIAL", "NESTED_MATERIAL", "MENTIONED_CONTEXT"]
+        },
+        "authority_scope": {
+          "enum": ["OWNER_REQUESTED", "OWNER_CONDITIONAL", "INERT"]
+        }
+      }
+    },
+    "ReferenceCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "usages", "trusted_boundary", "status"],
+      "properties": {
+        "ref": { "$ref": "#/$defs/OpaqueTargetRef" },
+        "usages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "enum": ["SOURCE_MATERIAL", "OPERATION_TARGET", "PREDICATE_SUBJECT"] }
+        },
+        "trusted_boundary": {
+          "enum": ["full_material", "quoted_fragment", "summary_only", "operation_target"]
+        },
+        "status": {
+          "enum": ["VERIFIED", "WRONG_OWNER", "WRONG_TENANT", "WRONG_CONVERSATION", "NOT_IN_CURRENT_INTAKE", "BOUNDARY_MISMATCH", "FORGED_REF", "STALE_REF"]
+        }
+      }
+    },
+    "PredicateEvaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "evaluator", "subject_ref"],
+      "properties": {
+        "outcome": { "enum": ["NOT_APPLICABLE", "TRUE", "FALSE", "UNKNOWN"] },
+        "evaluator": { "enum": ["NONE", "MATERIAL_ITEM_STATE_V1"] },
+        "subject_ref": {
+          "oneOf": [
+            { "$ref": "#/$defs/OpaqueMaterialRef" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "outcome": { "const": "NOT_APPLICABLE" } } },
+          "then": {
+            "properties": {
+              "evaluator": { "const": "NONE" },
+              "subject_ref": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "evaluator": { "const": "MATERIAL_ITEM_STATE_V1" },
+              "subject_ref": { "$ref": "#/$defs/OpaqueMaterialRef" }
+            }
+          }
+        }
+      ]
+    },
+    "TrustedAdmissionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "context_ref",
+        "intake_ref",
+        "intake_revision",
+        "owner_binding",
+        "tenant_binding",
+        "conversation_binding",
+        "reference_validation",
+        "operation_provenance",
+        "reference_checks",
+        "predicate_evaluation"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "context_ref": {
+          "type": "string",
+          "pattern": "^context://(?:intake|synthetic)/[a-z0-9][a-z0-9._/-]{0,159}$"
+        },
+        "intake_ref": {
+          "type": "string",
+          "pattern": "^intake://(?:telegram|miniapp|synthetic)/[a-z0-9][a-z0-9._/-]{0,159}$"
+        },
+        "intake_revision": { "type": "integer", "minimum": 1 },
+        "owner_binding": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "tenant_binding": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "conversation_binding": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "reference_validation": {
+          "enum": ["VERIFIED", "WRONG_OWNER", "WRONG_TENANT", "WRONG_CONVERSATION", "NOT_IN_CURRENT_INTAKE", "BOUNDARY_MISMATCH", "FORGED_REF", "STALE_REF"]
+        },
+        "operation_provenance": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": { "$ref": "#/$defs/OperationProvenance" }
+        },
+        "reference_checks": {
+          "type": "array",
+          "maxItems": 36,
+          "items": { "$ref": "#/$defs/ReferenceCheck" }
+        },
+        "predicate_evaluation": { "$ref": "#/$defs/PredicateEvaluation" }
+      }
+    },
+    "CompoundDecisionStage": {
+      "enum": [
+        "TRUST_VIOLATION",
+        "POLICY_PROHIBITED",
+        "AMBIGUITY",
+        "HETEROGENEOUS_CAPABILITIES",
+        "IMPLEMENTATION_STATE",
+        "APPROVAL_REQUIRED",
+        "EXECUTE_ALLOWED"
+      ]
+    },
+    "DecisionStage": {
+      "oneOf": [
+        { "$ref": "#/$defs/CompoundDecisionStage" },
+        { "enum": ["PREDICATE_FALSE", "PREDICATE_UNKNOWN"] }
+      ]
+    },
+    "SemanticProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "interpretation_state",
+        "primary_goal",
+        "deliverables",
+        "constraints",
+        "source_material_refs",
+        "input_role",
+        "source_need",
+        "output_kind",
+        "operations",
+        "ambiguities",
+        "clarification_question"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "interpretation_state": { "enum": ["understood", "ambiguous"] },
+        "primary_goal": { "$ref": "#/$defs/NonEmptyString" },
+        "deliverables": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/NonEmptyString" }
+        },
+        "constraints": {
+          "type": "array",
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/NonEmptyString" }
+        },
+        "source_material_refs": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/SourceMaterialRef" }
+        },
+        "input_role": {
+          "enum": ["direct_request", "material_transformation", "question", "mixed"]
+        },
+        "source_need": {
+          "enum": ["none", "provided_material", "external_read", "clarification"]
+        },
+        "output_kind": {
+          "enum": ["answer", "prompt", "document", "data", "action", "status", "artifact", "none"]
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": { "$ref": "#/$defs/Operation" }
+        },
+        "ambiguities": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/NonEmptyString" }
+        },
+        "clarification_question": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "interpretation_state": { "const": "understood" } }
+          },
+          "then": {
+            "properties": {
+              "ambiguities": { "maxItems": 0 },
+              "clarification_question": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "ambiguities": { "minItems": 1 },
+              "clarification_question": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        {
+          "properties": {
+            "operations": {
+              "contains": {
+                "type": "object",
+                "required": ["role"],
+                "properties": { "role": { "const": "conditional" } }
+              },
+              "minContains": 0,
+              "maxContains": 1
+            }
+          }
+        }
+      ]
+    },
+    "PolicyEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "enum": ["proposal_schema", "registry", "policy", "predicate", "owner_binding", "admission_context", "predicate_result"]
+        },
+        "ref": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9+.-]*://[^\\s]+$",
+          "maxLength": 512
+        }
+      }
+    },
+    "UserVisibleState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "message_key"],
+      "properties": {
+        "state": {
+          "enum": ["accepted", "needs_clarification", "approval_required", "unavailable", "refused", "condition_not_met", "condition_unknown"]
+        },
+        "message_key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+        }
+      }
+    },
+    "CoreDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "proposal_digest",
+        "admission_context_digest",
+        "decision",
+        "decision_stage",
+        "predicate_outcome",
+        "selected_capability",
+        "policy_reason_code",
+        "policy_evidence",
+        "user_visible_state",
+        "task_contract_allowed",
+        "effect_allowed"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "proposal_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "admission_context_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "decision": {
+          "enum": ["EXECUTE", "CLARIFY", "APPROVAL", "UNAVAILABLE", "REFUSE"]
+        },
+        "decision_stage": { "$ref": "#/$defs/DecisionStage" },
+        "predicate_outcome": { "enum": ["NOT_APPLICABLE", "TRUE", "FALSE", "UNKNOWN"] },
+        "selected_capability": {
+          "type": ["string", "null"],
+          "description": "Registry capability selected by Core, or null for CLARIFY and fail-closed heterogeneous compound decisions.",
+          "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+        },
+        "policy_reason_code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,95}$"
+        },
+        "policy_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/PolicyEvidence" }
+        },
+        "user_visible_state": { "$ref": "#/$defs/UserVisibleState" },
+        "task_contract_allowed": { "type": "boolean" },
+        "effect_allowed": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "decision_stage": { "const": "TRUST_VIOLATION" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "REFUSE" },
+              "selected_capability": { "type": "null" },
+              "user_visible_state": { "properties": { "state": { "const": "refused" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "POLICY_PROHIBITED" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "REFUSE" },
+              "selected_capability": { "type": "string" },
+              "user_visible_state": { "properties": { "state": { "const": "refused" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "AMBIGUITY" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "CLARIFY" },
+              "selected_capability": { "type": "null" },
+              "user_visible_state": { "properties": { "state": { "const": "needs_clarification" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "HETEROGENEOUS_CAPABILITIES" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "UNAVAILABLE" },
+              "selected_capability": { "type": "null" },
+              "policy_reason_code": { "const": "HETEROGENEOUS_COMPOUND_UNSUPPORTED_V1" },
+              "user_visible_state": { "properties": { "state": { "const": "unavailable" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "IMPLEMENTATION_STATE" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "UNAVAILABLE" },
+              "selected_capability": { "type": "string" },
+              "user_visible_state": { "properties": { "state": { "const": "unavailable" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "APPROVAL_REQUIRED" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "APPROVAL" },
+              "selected_capability": { "type": "string" },
+              "predicate_outcome": { "enum": ["NOT_APPLICABLE", "TRUE"] },
+              "user_visible_state": { "properties": { "state": { "const": "approval_required" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "EXECUTE_ALLOWED" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "EXECUTE" },
+              "selected_capability": { "type": "string" },
+              "predicate_outcome": { "enum": ["NOT_APPLICABLE", "TRUE"] },
+              "user_visible_state": { "properties": { "state": { "const": "accepted" } } },
+              "task_contract_allowed": { "const": true },
+              "effect_allowed": { "const": true }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "PREDICATE_FALSE" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "UNAVAILABLE" },
+              "predicate_outcome": { "const": "FALSE" },
+              "selected_capability": { "type": "null" },
+              "policy_reason_code": { "const": "PREDICATE_FALSE_NO_EFFECT" },
+              "user_visible_state": { "properties": { "state": { "const": "condition_not_met" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "decision_stage": { "const": "PREDICATE_UNKNOWN" } } },
+          "then": {
+            "properties": {
+              "decision": { "const": "CLARIFY" },
+              "predicate_outcome": { "const": "UNKNOWN" },
+              "selected_capability": { "type": "null" },
+              "policy_reason_code": { "const": "PREDICATE_UNKNOWN" },
+              "user_visible_state": { "properties": { "state": { "const": "condition_unknown" } } },
+              "task_contract_allowed": { "const": false },
+              "effect_allowed": { "const": false }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

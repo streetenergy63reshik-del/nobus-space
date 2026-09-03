@@ -1,14 +1,47 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
-**Статус:** CANONICAL HISTORY
-**Период:** Gate 0 — product reliability, 17–25 июля 2026 года
+**Статус:** CANONICAL ACTIVE REGISTER + HISTORY
+**Период:** 17 июля — 2 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-## Сводка
+Текущий verdict: `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+
+## Активные findings после переоткрытия acceptance
+
+Статус `CONFIRMED` означает доказанный defect или недостающее обязательное
+доказательство. `REQUALIFY` сохраняет ранее закрытый механизм, но требует
+повторной проверки в новой end-to-end цепочке; это не утверждение нового
+дефекта. Каждый пункт имеет одного owning Gate.
+
+| ID | Finding | Evidence C0 | Owning Gate | Статус / критерий закрытия |
+|---|---|---|---|---|
+| C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CONFIRMED**; text/voice incident и semantic corpus проходят без keyword veto |
+| C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CONFIRMED GAP**; model proposal не имеет authority-полей, Core выбирает capability/policy |
+| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | существующая durable voice recovery закрыта historical tests, но incident показывает равный false reject после успешного ASR | C2 | **REQUALIFY**; crash/temp/privacy negatives и парные corpus cases PASS |
+| C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | current local adapter существует; сравнительного benchmark/privacy decision C0 не обнаружил | C2 | **CONFIRMED EVIDENCE GAP**; bounded bake-off в C2, Faster-Whisper остаётся CURRENT до решения |
+| C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
+| C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
+| C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **CONFIRMED CURRENT BLOCKER**; restart/reclaim/dead-letter/outbox reconciliation и healthy readback PASS |
+| C0-F08 | Multipart/task admission idempotency требует end-to-end requalification | Mini App header idempotency и durable task binding существуют, но новый semantic/source-material flow не имеет multipart duplicate matrix | C3 | **CONFIRMED EVIDENCE GAP**; same bytes/key, changed bytes/key, restart и partial upload negatives PASS |
+| C0-F09 | Mini App session expiry не имеет доказанного complete recovery journey | in-memory TTL и expired-session rejection есть в `miniapp.py`; owner-visible resume/re-auth E2E после expiry не доказан | C4 | **CONFIRMED EVIDENCE GAP**; expiry→re-auth→same task/result без duplicate PASS |
+| C0-F10 | `ready`/`verified`/success labels могут читаться как готовность продукта без authoritative evidence | UI/backend имеют `ready`, `result_ready`, `has_verified_answer`; published docs ошибочно сохраняли current `MVP-1 READY` после incident | C4 | **CONFIRMED**; user-visible labels различают accepted/running/result/effect receipt/product readiness |
+| C0-F11 | Telegram/Mini App полный recovery journey после нового admission не доказан | prior pre-incident E2E evidence не покрывает ADR 0023 и reopened acceptance | C4 | **CONFIRMED EVIDENCE GAP**; реальные text/voice/result/artifact/recovery E2E PASS |
+| C0-F12 | Ingress budgets и HSTS требуют active-release evidence | CSP/body/idempotency checks видны в `src/transport/miniapp.py`; exact active ingress headers/rate/time budgets не прочитаны из working deployment, public endpoint `502` | C5 | **CONFIRMED EVIDENCE GAP**; external negative/budget/header matrix на exact active release PASS |
+| C0-F13 | Backup/restore и rollback должны быть повторно привязаны к exact release | scripts/tests и historical drill существуют; current runtime revision/config не доказаны и runtime inactive | C5 | **REQUALIFY**; exact release backup→restore→health/data reconciliation и rollback drill PASS |
+| C0-F14 | Temp/audio/artifact cleanup требует сквозного доказательства | voice temp cleanup и artifact retention механизмы существуют отдельно; новый durable voice/material path и active host cleanup не квалифицированы вместе | C5 | **REQUALIFY**; cancellation/crash/restart/expiry leaves zero unauthorized residuals |
+| C0-F15 | Docs/manual и active deployment identity рассинхронизированы | protected `main` содержит historical current READY claim; deployment revision readback отсутствует | C6 | **CONFIRMED**; exact release/config/readback, active docs/manual и owner acceptance связаны одним SHA/tree |
+| C0-F16 | Release и owner acceptance переоткрыты | direct owner incident 2026-09-02 имеет более новую силу, чем pre-incident acceptance | C6 | **CONFIRMED**; frozen C1–C5 result, publication/activation readbacks и новая owner smoke matrix PASS |
+
+Пункты C0-F03, F05, F08, F09 и F12–F14 остаются открытыми именно как
+обязательная квалификация: C0 не выдаёт наличие кода или старых тестов за
+доказательство целого продукта. Historical CLOSED строки ниже сохранены и не
+переписаны задним числом.
+
+## Historical сводка до incident
 
 | Область | Проблема и root cause | Решение | Регрессия / evidence | Статус |
 |---|---|---|---|---|

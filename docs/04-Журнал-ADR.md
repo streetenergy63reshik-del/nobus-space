@@ -2,6 +2,9 @@
 
 **Статус документа:** CANONICAL
 
+**CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED /
+PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+
 Журнал содержит короткие ссылки на решения. Полный контекст и последствия находятся в соответствующем ADR.
 
 | ADR | Решение | Статус решения | Реализация |
@@ -27,7 +30,8 @@
 | [0019](adr/0019-owner-service-filesystem-and-runtime-decisions.md) | Owner decisions: CLI-first Codex, Drive-wide read, controlled full owner-root workspace, Healthchecks.io → Gmail и benchmark-gated paid services | ACCEPTED; scoped by 0022 | PARTIAL / DEFERRED |
 | [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Telegram Mini App is required; historical Server/Development Control Gate 2A topology is scoped by ADR 0022 | ACCEPTED; scoped by 0022 | THIN MVP ACTIVE / FULL 2A FROZEN |
 | [0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Historical post-seal role/verification overlay; active process and roadmap are scoped by ADR 0022 | ACCEPTED; scoped by 0022 | HISTORICAL / PARTIAL |
-| [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen; one candidate-bound delivery workflow | ACCEPTED | CURRENT PROCESS; AUTH/LIST/DETAIL/CREATE PUBLISHED; G2–G6 VERIFIED LOCAL / NOT DEPLOYED; G7–G8 TARGET |
+| [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen | ACCEPTED; semantic/process scope by 0023 | TOPOLOGY CURRENT; OLD CLOSURE PROCESS HISTORICAL |
+| [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md) | Modality-neutral semantic admission: tool-less SemanticProposal, Core Capability Registry/policy decision, C0–C6 closure | ACCEPTED | TARGET / NOT IMPLEMENTED; C0 LOCAL CANDIDATE |
 
 ## Правила статусов ADR
 
@@ -56,6 +60,19 @@
 
 Security, tenant isolation, effect authority, idempotency, evidence binding,
 audit trail and recovery invariants remain active.
+
+## Forward supersession by ADR 0023
+
+| Source | Retained | Superseded forward-only |
+|---|---|---|
+| ADR 0014 | trusted typed intake, bounded context, transport/tenant/idempotency | keyword/hint semantic determination or product refusal |
+| ADR 0017 | Natural Language First, one Core/state/policy/effect authority | model output interpreted as route, permissions, risk or authorization |
+| ADR 0022 | thin Mini App, existing Core/queue/state/effect authority, frozen full Gate 2A | pre-incident READY/current G-slice closure process |
+| sealed Gate 0 | all historical digest-bound bytes/evidence | nothing; no retroactive rewrite |
+
+ADR 0023 separates `CURRENT`, `ACCEPTED TARGET` and `NOT IMPLEMENTED`.
+Historical READY remains only pre-incident evidence. Active roadmap is C0–C6;
+один Gate = одна Codex-задача = один пользовательский чат.
 
 Нормативное изменение получает owner decision и candidate-bound review по
 своему риску. Обычные локальные docs/code/tests/commit не требуют formal

@@ -1,13 +1,32 @@
-# Historical Gate architecture index
+# Gate index
 
-**Статус:** HISTORICAL SEALED BASELINE / FROZEN WIP
-**Active roadmap:** [ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
+**Статус:** ACTIVE C0 PACKAGE + HISTORICAL SEALED BASELINE / FROZEN WIP
+**CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`
+**Active roadmap:** [C0 handoff](gate-c0-mvp1-truth-contract/HANDOFF.md).
+Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
+и не входит в published tree.
 
 Gate 0–8 package сохраняется как исследовательский и digest-bound historical
 baseline. Он не является active Definition of Done MVP-1. Полный
 распределённый Gate 2A — **FROZEN / NOT CURRENT**.
 
-## Status map
+**Один Gate = одна Codex-задача = один пользовательский чат.** Active
+closure-roadmap содержит ровно C0–C6; Txx/Cxx и R01–R47 — внутренние
+checkpoints, не отдельные пользовательские чаты.
+
+## Active closure package
+
+| Gate | Статус | Package / boundary |
+|---|---|---|
+| C0 — единая истина и контракт | `LOCAL CANDIDATE / NOT PUBLISHED` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
+| C1 — универсальное семантическое понимание | HOLD до принятого C0 | новый отдельный чат от accepted C0 SHA/tree |
+| C2 — voice parity и ASR qualification | HOLD до C1 | Faster-Whisper остаётся CURRENT до bake-off |
+| C3 — стабильность Core/backend/worker | HOLD до C2 | queue/state/retry/status/recovery |
+| C4 — завершённый frontend/user journey | HOLD до C3 | Telegram/Mini App E2E |
+| C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
+| C6 — frozen release и owner acceptance | HOLD до C5 | exact publication/activation/readback/acceptance |
+
+## Historical status map
 
 | Scope | Фактический статус | Authority / правило |
 |---|---|---|
@@ -67,6 +86,6 @@ Research и Architecture объясняют старый TARGET, но не оп�
 
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
-Auth/list/detail/create опубликованы; G2–G6 проверены, а G7 public HTTPS ingress
-и Telegram menu activation развёрнуты. Остаются визуальный owner acceptance и
-G8 publication, release tag и exact readback после принятия.
+Published source/history остаются evidence только в своих revision/digest
+границах. Current acceptance переоткрыта; active next Gate после принятия C0 —
+C1, а не historical G7/G8 sequence.
