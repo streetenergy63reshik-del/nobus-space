@@ -1,15 +1,16 @@
 # Gate C0 — единая истина и semantic contract
 
-**Candidate verdict:** `C0 LOCAL CANDIDATE PASS / NOT PUBLISHED`, действителен
-только вместе с независимыми L2/L3, привязанными в итоговом C0-чате к exact
-result SHA/tree.
+**Gate verdict:** `C0 CONTRACT ACCEPTED / PUBLISHED`. Accepted local candidate
+`0d6fec08dc95e252e0d9491e7bb11b78e60adcec` / tree
+`e1ae77eba2f2b50a45b82883e4ac20071e145dfd` опубликован publication-safe
+проекцией через PR #9 и exact protected-main readback ниже.
 **Product verdict:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Program boundary:** `MVP-2 HOLD`
 
 Этот файл — единственный C0 handoff/acceptance. Он не исправляет runtime defect,
-не возвращает `MVP-1 READY` и не запускает автоматически C1, publication или
-external effect.
+не возвращает `MVP-1 READY` и не запускает автоматически C1 или external
+effect.
 
 Candidate `c2c97db725df13ee2e86d0a7fb0f4501f8c133f6` / tree
 `0ef426ba6195d19724203ad6b6f9cac7621da15a` отклонён владельцем и
@@ -42,8 +43,10 @@ predicate subject присутствовал в reference checks, но его us
 forward ADR; SemanticProposal/CoreDecision schema; Capability Registry; sanitized
 gold corpus; issue C1–C6 mapping; governance checks; один local checkpoint.
 
-**Вне scope:** production/runtime/code fixes, ASR replacement, Mini App/Bot/VPS/
-Cloudflare/SQLite changes, C1, MVP-2, push/PR/merge/tag/deploy/Memory write.
+**Вне исходного implementation scope:** production/runtime/code fixes, ASR
+replacement, Mini App/Bot/VPS/Cloudflare/SQLite changes, C1, MVP-2,
+tag/deploy/Memory write. Отдельная owner authorization охватила только
+publication-safe push/PR #9/merge и remote readback.
 
 **Приёмка:** exact base и source preservation; единый CURRENT; one Gate/one
 chat; closed model contract без authority; registry CURRENT/TARGET; corpus;
@@ -58,18 +61,21 @@ issue ownership; sealed Gate 0; no production diff; L1/L2/L3.
 | Branch | `codex/mvp1-closure-c0-truth-contract` |
 | Exact base | `f5a9119cc0aa1bcce735a3c608f9751747002694` |
 | Base tree | `01f6399fbbeca20d4c956482776329a9ee8adc20` |
-| Result SHA/tree | фиксируются итоговым сообщением этого C0-чата после создания единственного checkpoint; self-containing commit не дублирует собственный SHA |
-| Publication | `NOT PUBLISHED` |
+| Accepted result SHA/tree | `0d6fec08dc95e252e0d9491e7bb11b78e60adcec` / `e1ae77eba2f2b50a45b82883e4ac20071e145dfd` |
+| Publication projection SHA/tree | `d25b1b46f2c2c75688fa215c46167d742dd66b8a` / `3a31914ac9b1732ea8344aaa09cd7075506ce315` |
+| C0 contract publication merge SHA/tree | `70085f8bdf20d139edf042bffa2a1169daf6791c` / `3a31914ac9b1732ea8344aaa09cd7075506ce315` |
+| Final protected-main predecessor | exact status-only merge SHA/tree фиксируются remote readback в итоговом C0-сообщении; self-containing commit не дублирует собственный SHA |
+| Publication | [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) merged `2026-09-03T06:18:14Z` |
 
 ## 3. Source → claim → fact → disposition
 
 | Source | Claim | Доказанный факт C0 | Disposition |
 |---|---|---|---|
 | direct owner request 2026-09-02 | text и voice-transcript эквивалентной transform-задачи ложно отклонены | owner acceptance reopened; ASR для voice завершился до одинакового отказа | **retain / current authority** |
-| remote `refs/heads/main` | опубликованная ветка — release v1.0.1 | `f5a9119...`, tree `01f6399...` | **retain** |
-| remote `refs/tags/v1.0.1` | tag указывает на published main | annotated object `1322e922...`, peeled commit `f5a9119...` | **retain** |
-| GitHub API | `main` protected и release/checks опубликованы | branch `protected=true`; checks/status contexts `0`; GitHub Release API `404` | **update**: tag доказан, отдельный Release/check success — нет |
-| published active docs | `MVP-1 READY` — текущий verdict | claim старше переоткрытой acceptance и остаётся на remote | **supersede locally**; `STALE PUBLISHED CLAIM / PUBLICATION PENDING AUTHORIZATION` |
+| C0 publication main after PR #9 | опубликованная ветка содержит C0 contract | `70085f8...`, tree `3a31914a...`; publication commit `d25b1b4...` — parent merge commit | **update / published** |
+| remote `refs/tags/v1.0.1` | tag фиксирует published release v1.0.1 | annotated object `1322e922...`, peeled commit `f5a9119...`; tag не двигался | **retain** |
+| GitHub API | `main` protected и C0 PR/checks опубликованы | branch `protected=true`; PR #9 merged; head/merge workflow runs `0`, status contexts `0`; GitHub Release API `404` | **update**: docs publication доказана, release/check success — нет |
+| published active docs | `MVP-1 READY` — текущий verdict | historical claim superseded текущими active docs на protected main через PR #9 | **superseded remotely** |
 | `telegram-live` checkout | deployed files соответствуют release | clean HEAD `f5a9119...`; task config указывает на его runner | **retain as configuration claim**, не runtime binding |
 | scheduled task/process/health | runtime активен | task `Disabled`, `enabled=false`, last run `2026-09-02T14:33:44Z`, result `267014`; action-args SHA-256 `8282036e...ad6f5`; matching process отсутствует; public health/readiness `502` | **update**: current runtime inactive/unhealthy at readback |
 | bounded supervisor log + authoritative SQLite | runtime работал 2 сентября | 18 stable events; latest safe event `17:38:42 MSK`; recent terminal jobs and fully acked outbox | **retain** as `LIVE RUNTIME OBSERVED` historical evidence |
@@ -230,7 +236,7 @@ bytes и reopened end-to-end acceptance требуют свежего evidence.
 
 | Gate = одна Codex-задача/чат | Выход |
 |---|---|
-| C0 — единая истина и контракт | этот local candidate + accepted exact SHA/tree |
+| C0 — единая истина и контракт | published contract `70085f8...` / tree `3a31914a...` + final status-sync readback + этот handoff |
 | C1 — универсальное семантическое понимание | corpus PASS, compiler + deterministic Core decision |
 | C2 — voice parity и ASR qualification | durable shared route + Russian bake-off |
 | C3 — стабильность Core/backend/worker | failure/retry/state/status/recovery matrix PASS |
@@ -239,8 +245,9 @@ bytes и reopened end-to-end acceptance требуют свежего evidence.
 | C6 — frozen release и owner acceptance | exact publish/activate/readback + owner acceptance |
 
 Txx/Cxx и R01–R47 — внутренние checkpoints. C1 начинается только новым чатом
-от принятого exact C0 result SHA/tree; он не стартует от `origin/main` или
-непринятого local checkpoint.
+от exact final protected-main SHA/tree из итогового C0 remote readback и этого
+handoff; он не стартует от floating `origin/main` или непринятого local
+checkpoint.
 
 ## 11. Verification record
 
@@ -294,16 +301,22 @@ evidence-free success и contamination из dirty/live worktrees. Exact verdict
   C0 artifacts/evidence;
 - production code/runtime/state/config are unchanged.
 
-Protected remote still contains the stale current READY claim. Until a future
-authorized docs publication this remains `STALE PUBLISHED CLAIM / PUBLICATION PENDING AUTHORIZATION`.
+Protected remote publishes the C0 contract through PR #9 @ `70085f8...`, tree
+`3a31914a...`; a follow-up status-only PR publishes this readback. Exact final
+protected-main SHA/tree are recorded by the final C0 remote readback because a
+self-containing commit cannot embed its own SHA. Historical READY remains only
+in ancestry and is superseded. Held docs 15/16 and their recorded blob IDs are
+not reachable from published main history.
 
-**C0 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY.**
+**C0 PERFORMED PR #9 + STATUS-ONLY PR / MERGES; NO TAG / NO DEPLOY / NO LIVE EFFECT.**
 
 ## 13. Gate C1 handoff
 
 В новом пользовательском чате C1:
 
-1. read back accepted C0 result SHA/tree and this handoff;
+1. read back exact final protected-main SHA/tree from the C0 completion record,
+   verify that PR #9 contract publication and the status-only merge are its
+   ancestors, then read the accepted C0 result and this handoff;
 2. implement only modality-neutral semantic admission from ADR 0023, включая
    server-derived `TrustedAdmissionContext` и reference verifier;
 3. считать model role недоверенным и сохранять existing Core/queue/state/effect
@@ -316,5 +329,6 @@ authorized docs publication this remains `STALE PUBLISHED CLAIM / PUBLICATION PE
 7. keep C2–C6 and MVP-2 on HOLD;
 8. stop for exact authorization before any external write/publication/deploy.
 
-Не использовать непринятый local checkpoint или remote `main` как замену
-accepted C0 result. Один C1 Gate целиком выполняется в одном новом чате.
+Не использовать непринятый local checkpoint или floating remote `main` как
+замену exact predecessor binding выше. Один C1 Gate целиком выполняется в одном
+новом чате.

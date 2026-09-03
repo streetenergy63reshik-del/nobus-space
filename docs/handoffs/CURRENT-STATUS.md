@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 2 сентября 2026 года
+**Актуально на:** 3 сентября 2026 года
 **Текущий продуктовый verdict:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Следующая продуктовая линия:** `MVP-2 HOLD`
@@ -17,19 +17,20 @@ owner acceptance продукт не имеет текущего verdict `READY`
 | Проверка | Доказанный факт |
 |---|---|
 | Repository | `streetenergy63reshik-del/nobus-space` |
-| Readback protected `refs/heads/main` | `f5a9119cc0aa1bcce735a3c608f9751747002694` |
-| Published tree | `01f6399fbbeca20d4c956482776329a9ee8adc20` |
+| C0 contract publication merge (PR #9) | `70085f8bdf20d139edf042bffa2a1169daf6791c` |
+| C0 contract publication tree | `3a31914ac9b1732ea8344aaa09cd7075506ce315` |
+| Final protected `refs/heads/main` | exact status-only merge SHA/tree фиксируются remote readback в итоговом C0-сообщении; self-containing commit не дублирует собственный SHA |
 | Annotated tag object `refs/tags/v1.0.1` | `1322e922968d938194f689851c204ac551e6822b` |
 | Peeled `v1.0.1^{commit}` | `f5a9119cc0aa1bcce735a3c608f9751747002694` |
-| Reachability | release commit совпадает с remote `main` и достижим из него |
+| Reachability | release commit `f5a9119...` является предком remote `main`; C0 merge commit содержит docs/contracts tree, tag не двигался |
 | GitHub branch API | `main` сообщает `protected=true` |
 | Protection details | endpoint детальных правил ответил `401`; точная текущая policy не доказана |
-| Relevant PR | PR #8 merged exact commit `f5a9119...`; PR #6 и #7 также historical merged records |
-| Checks/status | Checks API: `0`; combined status: `pending`, contexts `0`; required checks не доказаны |
+| Relevant PR | PR #9 merged publication commit `d25b1b4...` в `70085f8...`; follow-up status-only PR закрывает exact readback |
+| Checks/status | PR #9 head/merge: workflow runs `0`, status contexts `0`; status-only PR проверяется отдельно перед merge; required checks не доказаны |
 | GitHub Release object | API вернул `404`; доказан annotated Git tag, но не отдельная GitHub Release entity |
 
-Remote readback совпал с ожидаемыми SHA. Dirty canonical checkout не является
-base или опубликованным каноном.
+Remote readback после PR #9 подтвердил exact SHA/tree выше. Dirty canonical
+checkout не является base или опубликованным каноном.
 
 ## 2. Runtime и deployment identity
 
@@ -108,8 +109,8 @@ exact result SHA/tree и handoff.
 
 | Gate | Единственный результат | Статус |
 |---|---|---|
-| C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | local candidate этого worktree |
-| C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | HOLD до принятого C0 |
+| C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
+| C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | NOT STARTED; отдельный чат от exact C0 predecessor |
 | C2 — voice parity и ASR qualification | общий text/voice Core-route и русский bake-off | HOLD до C1 |
 | C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
@@ -157,12 +158,15 @@ checkout, live worktree, production code/runtime/state и recovery refs не
 
 ## 8. Publication boundary и следующий чат
 
-Protected remote продолжает содержать historical current claim `MVP-1 READY`.
-После incident это `STALE PUBLISHED CLAIM / PUBLICATION PENDING AUTHORIZATION`.
-Локальная правка C0 не считается опубликованной.
+Protected `main` опубликовал C0 contract через PR #9 @ `70085f8...`, tree
+`3a31914a...`; follow-up status-only PR публикует этот readback без изменения
+semantic contract. Exact final protected-main SHA/tree фиксируются итоговым
+C0-readback, поскольку self-containing commit не может включить собственный
+SHA. Historical `MVP-1 READY` остаётся только в ancestry и superseded текущим
+verdict; tag/release/deployment не изменялись.
 
-C1 разрешён только в новом отдельном чате после принятия exact C0 result
-SHA/tree и этого handoff. C1 не стартует автоматически от `origin/main`, не
-меняет ASR и не начинает MVP-2.
+C1 разрешён только в новом отдельном чате от exact final protected-main
+SHA/tree из итогового C0-readback и этого handoff. C1 не стартует автоматически
+от floating `origin/main`, не меняет ASR и не начинает MVP-2.
 
-**C0 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY.**
+**C0 PERFORMED PR #9 + STATUS-ONLY PR / MERGES; NO TAG / NO DEPLOY / NO LIVE EFFECT.**

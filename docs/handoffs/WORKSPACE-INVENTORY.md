@@ -1,6 +1,6 @@
 # Nobus Space — workspace inventory
 
-**Актуально на:** 2 сентября 2026 года
+**Актуально на:** 3 сентября 2026 года
 **Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
 Текущий verdict: `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
@@ -12,10 +12,12 @@ Git revision.
 
 ## Worktree manifest C0
 
-| Worktree / branch | HEAD при preflight | Роль и граница |
+| Worktree / branch | Зафиксированный HEAD/base | Роль и граница |
 |---|---|---|
 | canonical `nobus-orchestrator-dev` / `main` | `f18a664f2fab2fbd193e894bc93d5624683badf2` | dirty local WIP; источник только для exact-reviewed editorial files; не base, не изменять |
 | `.runtime/worktrees/mvp1-closure-c0-truth-contract` / `codex/mvp1-closure-c0-truth-contract` | base `f5a9119cc0aa1bcce735a3c608f9751747002694` | единственный C0 implementation worktree |
+| `.runtime/worktrees/mvp1-closure-c0-publication` / `codex/mvp1-closure-c0-publication` | `d25b1b46f2c2c75688fa215c46167d742dd66b8a` | publication-safe projection, merged only through PR #9 |
+| `.runtime/worktrees/mvp1-closure-c0-publication-readback` / `codex/mvp1-closure-c0-publication-readback` | base `70085f8bdf20d139edf042bffa2a1169daf6791c` | status/readback projection; publication only through separately authorized PR |
 | `worktrees/telegram-live` / `codex/mvp1-g7-activation` | `f5a9119cc0aa1bcce735a3c608f9751747002694` | clean live claim; read-only, не редактировать |
 | `worktrees/gate-01-acceptance` / `agent/gate-01-acceptance` | `db0a24e8d7be8b1d1f1ddcd701d424c49164784e` | dirty historical Gate 1 WIP; `HOLD / NOT_ACCEPTED`, не импортировать целиком |
 | `.runtime/worktrees/mvp1-command-surface` | `14c80131b2a702d75f92abb4fe22d49ea6aa975c` | clean historical checkpoint; read-only |
@@ -41,17 +43,24 @@ stash/reset/clean/rebase.
 `docs/16-Управленческая-карта-разработки.html`.
 
 C0 не переносил modified code/runtime/tests/ADR 0022 или другие modified docs.
-Из untracked source были импортированы только docs 15/16 по exact hashes ниже.
+Из untracked source в local accepted candidate были импортированы только docs
+15/16 по exact hashes ниже; publication-safe tree их не содержит.
 
 ## Exact base и publication state
 
-- remote `refs/heads/main`: `f5a9119cc0aa1bcce735a3c608f9751747002694`;
+- protected remote `refs/heads/main` after PR #9:
+  `70085f8bdf20d139edf042bffa2a1169daf6791c`;
+- published C0 tree: `3a31914ac9b1732ea8344aaa09cd7075506ce315`;
+- final protected-main SHA/tree after status-only sync фиксируются exact remote
+  readback в итоговом C0-сообщении;
 - remote annotated tag object `v1.0.1`:
   `1322e922968d938194f689851c204ac551e6822b`;
 - peeled `v1.0.1^{commit}`: `f5a9119cc0aa1bcce735a3c608f9751747002694`;
 - release tree: `01f6399fbbeca20d4c956482776329a9ee8adc20`;
-- C0 branch начата от exact remote main, а не от dirty local `main`;
-- C0 не выполняет push, PR, merge, tag, release, deploy или runtime mutation.
+- C0 implementation и publication-safe ветки начаты от exact pre-publication
+  remote main, а не от dirty local `main`;
+- publication выполнена только через PR #9; tag, release, deploy и runtime не
+  изменялись.
 
 ## Editorial import manifest
 
@@ -87,4 +96,4 @@ audit и применимой авторизации. Никакой broad clean
 Txx/Cxx и прежние R01–R47 не создают отдельные пользовательские чаты. Active
 closure-roadmap — C0, C1, C2, C3, C4, C5, C6; `MVP-2 HOLD` до принятого C6.
 
-**C0 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY.**
+**C0 PERFORMED PR #9 + STATUS-ONLY PR / MERGES; NO TAG / NO DEPLOY / NO LIVE EFFECT.**

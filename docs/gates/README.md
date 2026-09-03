@@ -18,8 +18,8 @@ checkpoints, не отдельные пользовательские чаты.
 
 | Gate | Статус | Package / boundary |
 |---|---|---|
-| C0 — единая истина и контракт | `LOCAL CANDIDATE / NOT PUBLISHED` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
-| C1 — универсальное семантическое понимание | HOLD до принятого C0 | новый отдельный чат от accepted C0 SHA/tree |
+| C0 — единая истина и контракт | `PUBLISHED / ACCEPTED` @ `70085f8...`, tree `3a31914a...` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
+| C1 — универсальное семантическое понимание | NOT STARTED | новый отдельный чат только от exact C0 predecessor и handoff |
 | C2 — voice parity и ASR qualification | HOLD до C1 | Faster-Whisper остаётся CURRENT до bake-off |
 | C3 — стабильность Core/backend/worker | HOLD до C2 | queue/state/retry/status/recovery |
 | C4 — завершённый frontend/user journey | HOLD до C3 | Telegram/Mini App E2E |
