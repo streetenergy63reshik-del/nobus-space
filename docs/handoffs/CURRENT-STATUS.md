@@ -1,16 +1,32 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 3 сентября 2026 года
-**Текущий продуктовый verdict:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`
+**Актуально на:** 4 сентября 2026 года
+**Текущий продуктовый verdict:** `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Следующая продуктовая линия:** `MVP-2 HOLD`
 
-Это единственная активная статусная проекция. Релиз `v1.0.1` остаётся
-опубликованным Git-фактом, а наблюдавшийся 2 сентября runtime — фактом
-эксплуатации. Пользовательская проверка позже в тот же день переоткрыла
-приёмку: одинаковый смысл, переданный текстом и после успешной расшифровки
-голоса, был ошибочно отклонён как функция вне MVP-1. До исправления и новой
-owner acceptance продукт не имеет текущего verdict `READY`.
+Candidate `381a1e54e6c2281fe335b2835972cc27ee9d486d` / tree
+`ab8fa02cc6d358ba998acc0cc3b4ecd8862c7bc4` — **REJECTED / SUPERSEDED**:
+conditional-tail reference gap. L3 REJECT, L2 independently reproduced finding,
+но без final ACCEPT из-за platform error. Прежний FINAL REVIEW PENDING для
+этого SHA отменён; текущий pending относится только к новым repair bytes.
+
+Candidate `9de145ccc1c456927623885212f8d5ac64ff8ef0` / tree
+`f7db924f46a1b5ff10694b0c2bc3f2c17e3cdcb1` — REJECTED / SUPERSEDED по
+C1-B01/C1-B02; прежний PASS и reviews отменены. Replacement требует новых
+exact L1/L2/L3, и этот статус не объявляет их результат заранее.
+
+Это единственная активная статусная проекция. Локальный C1 candidate исправляет
+ложный semantic reject и проходит новую exact security-квалификацию, но ещё не
+опубликован и не активирован. Релиз `v1.0.1` остаётся опубликованным
+Git-фактом, а наблюдавшийся 2 сентября runtime — фактом эксплуатации. До
+отдельной publication authorization, последующих C2–C6 и новой owner
+acceptance продукт не имеет verdict `READY`.
+
+Thin MVP-1 topology с Telegram Mini App и одним существующим Core остаётся
+привязана к
+[ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md);
+полный Gate 2A — **FROZEN / NOT CURRENT**.
 
 ## 1. Exact Git и GitHub readback C0
 
@@ -76,26 +92,61 @@ mentioned-only material и может вернуть unavailable до созда
   existing Core, durable queue/state/outbox, worker, result и artifact paths;
 - text и локальный Faster-Whisper voice ingress существуют;
 - runtime наблюдался 2 сентября, но сейчас не подтверждён активным health;
-- semantic admission до Core использует broad keyword/regex boundary и имеет
-  подтверждённый false reject;
+- опубликованный runtime всё ещё использует broad keyword/regex boundary и
+  имеет подтверждённый false reject;
 - historical release/owner acceptance доказательства сохраняются только как
   pre-incident evidence.
 
-### ACCEPTED TARGET
+### LOCAL C1 GATE CANDIDATE
 
-Forward [ADR 0023](../adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
-принимает modality-neutral canonical input, tool-less Semantic Task Compiler,
-закрытый `SemanticProposal`, server-derived Capability Registry/CoreDecision и
-решения `EXECUTE / CLARIFY / APPROVAL / UNAVAILABLE / REFUSE`. Existing Core,
-queue, state и effect authority сохраняются.
+Ветка `codex/mvp1-closure-c1-semantic-compiler` от exact predecessor
+`5feccfd...` реализует [ADR 0023](../adr/0023-modality-neutral-semantic-admission-and-core-decision.md):
+modality-neutral canonical input, tool-less Semantic Task Compiler, закрытый
+`SemanticProposal`, server-derived Capability Registry/CoreDecision и решения
+`EXECUTE / CLARIFY / APPROVAL / UNAVAILABLE / REFUSE`. Existing Core, queue,
+state и effect authority сохранены. Opaque refs привязаны к issuance,
+owner/tenant/conversation, current intake revision и exact material boundary.
+Server-delimited direct spans подтверждаются отдельным compiler pass, который
+не получает quoted/nested/material text. Authority выдаётся только при
+полной occurrence-level биекции operation kind, role и typed predicate
+kind/arguments между основным и всеми direct-span proposals. Все direct
+proposals understood и без ambiguity/question; extra/missing/excess duplicate
+делают всю authority INERT. Порядок неважен, occurrences не переиспользуются. Model-selected refs не дают
+authority и независимо проходят полный exact server verifier; отдельного
+model alignment нет. Для единственного span, полностью
+покрывающего direct owner text, повторно используется основной validated
+proposal. Provider generation schema server-side сужается до exact refs и пар
+ref/boundary текущего intake, но общий C0 schema и финальная Core validation не
+изменяются.
+ASCII/Unicode single quotes, inline/fenced code и nested delimiters отделяются
+линейным bounded parser. Word apostrophes не являются цитатой; malformed
+boundary делает весь intake inert. Duplicate occurrences не схлопываются. Structural
+ledger ограничен 24 spans, совокупно компилируются не более 8 direct/tail
+spans, а все compiler calls делят один admission-wide timeout. Хвост после
+поддерживаемого overdue predicate отдельно проходит тот же tool-less compiler:
+он должен дать одну matching unconditional requested operation без
+predicate/ambiguity, иначе следует уточнение. До semantic matching его
+source/target/predicate refs проходят тот же reference verifier; любой failure
+попадает в итоговый context и даёт TRUST_VIOLATION раньше ambiguity/predicate,
+без нового active binding, TaskContract или effect. Tail не добавляется в
+multiset прямых команд. Корректные TRUE/FALSE/UNKNOWN outcomes сохранены.
+Clarification принимается только как exact Telegram reply или по
+opaque Mini App token; новый полный intent остаётся новым intent. Feature
+flag штатного runner — default-off.
+Один acceptance record и C2 handoff находятся в
+[C1 gate package](../gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md).
 
-### NOT IMPLEMENTED
+### NOT PUBLISHED / NOT IMPLEMENTED
 
-- ADR 0023 pipeline и semantic compiler;
-- deterministic mapping нового proposal к registry/policy;
-- C1 corpus pass и shadow rollout;
+- публикация и activation локального C1 candidate;
+- production shadow rollout C1;
 - C2 русский ASR bake-off и доказанная text/voice parity;
 - повторная полная C3–C6 квалификация и owner acceptance.
+
+Согласованная semantic kind substitution самим compiler остаётся ограниченным
+`MEDIUM / non-blocking` риском качества для текущих `no_effect` capabilities.
+Любая будущая effectful capability требует собственных server-verifiable
+target/precondition/approval controls и новой квалификации boundary.
 
 Faster-Whisper остаётся CURRENT. C0 не выбирает и не устанавливает новый ASR.
 
@@ -110,8 +161,8 @@ exact result SHA/tree и handoff.
 | Gate | Единственный результат | Статус |
 |---|---|---|
 | C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
-| C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | NOT STARTED; отдельный чат от exact C0 predecessor |
-| C2 — voice parity и ASR qualification | общий text/voice Core-route и русский bake-off | HOLD до C1 |
+| C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING |
+| C2 — voice parity и ASR qualification | общий text/voice Core-route и русский bake-off | HOLD до принятого опубликованного C1 |
 | C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
 | C5 — operations/recovery/security | воспроизводимые ops, backup/restore, rollback, security | HOLD до C4 |
@@ -133,40 +184,36 @@ exact result SHA/tree и handoff.
 - [C0 handoff](../gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — единая
   передача следующему Gate;
 - [issue register](MVP-1-ISSUES.md) — подтверждённые findings и C1–C6 owners.
+- [C1 acceptance](../gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
+  [C2 handoff](../gates/gate-c1-semantic-task-compiler/HANDOFF.md) — локальный
+  frozen candidate и обязательная publication boundary.
 
 Historical sealed Gate 0 сохранён byte-identical и не переиздан C0.
 
 ## 7. Workspace safety
 
-| Контур | Роль C0 |
+| Контур | Роль C1 |
 |---|---|
-| canonical checkout `nobus-orchestrator-dev` @ `f18a664...` | dirty foreign/editorial WIP; read-only source, не base |
+| canonical checkout `nobus-orchestrator-dev` | dirty foreign/editorial WIP; сохранён и не использован как base |
 | `telegram-live` @ `f5a9119...` | clean published/live claim; read-only, не редактировался |
-| `codex/mvp1-closure-c0-truth-contract` from `f5a9119...` | единственный C0 implementation worktree |
+| `codex/mvp1-closure-c1-semantic-compiler` from `5feccfd...` | единственный C1 implementation worktree |
 | dirty Gate 1 WIP @ `db0a24e...` | preserved `HOLD / NOT_ACCEPTED`; не импортировался |
 
-До импорта двух editorial файлов зафиксированы исходные bytes:
-
-- `docs/15-Продуктовая-дорожная-карта.md`: `200633` bytes,
-  SHA-256 `92c8abb64aebdc3363157aae00961bccc47c3491b3d7e8ab38901a3c768716bc`;
-- `docs/16-Управленческая-карта-разработки.html`: `84410` bytes,
-  SHA-256 `eb447fa7a1264c9272e9bb6619d021b6b7692808bb2a4188a053b3257faede46`.
-
-Они перенесены целыми файлами с повторной hash-проверкой. Исходный dirty
-checkout, live worktree, production code/runtime/state и recovery refs не
-изменялись.
+Docs 15/16 отсутствуют в C1 predecessor/tree и не импортировались. Исходный
+dirty checkout, live worktree, production config/runtime/state и recovery refs
+не изменялись.
 
 ## 8. Publication boundary и следующий чат
 
-Protected `main` опубликовал C0 contract через PR #9 @ `70085f8...`, tree
-`3a31914a...`; follow-up status-only PR публикует этот readback без изменения
-semantic contract. Exact final protected-main SHA/tree фиксируются итоговым
-C0-readback, поскольку self-containing commit не может включить собственный
-SHA. Historical `MVP-1 READY` остаётся только в ancestry и superseded текущим
-verdict; tag/release/deployment не изменялись.
+Protected `main` exact predecessor C1 — `5feccfd...`, tree `480b2f85...`.
+Локальный frozen C1 candidate остаётся вне GitHub до точной авторизации
+владельца. Разрешённый будущий publication scope: non-force push exact branch,
+один PR в `main`, merge и protected-main SHA/tree readback. Tag, GitHub Release,
+deploy, activation и любые live effects в C1 запрещены.
 
-C1 разрешён только в новом отдельном чате от exact final protected-main
-SHA/tree из итогового C0-readback и этого handoff. C1 не стартует автоматически
-от floating `origin/main`, не меняет ASR и не начинает MVP-2.
+C2 разрешён только в отдельном будущем чате от принятого опубликованного exact
+protected-main SHA/tree C1 и
+[handoff](../gates/gate-c1-semantic-task-compiler/HANDOFF.md), не от floating
+`origin/main` и не от локального candidate.
 
-**C0 PERFORMED PR #9 + STATUS-ONLY PR / MERGES; NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+**C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING. NO TAG / NO DEPLOY / NO LIVE EFFECT.**

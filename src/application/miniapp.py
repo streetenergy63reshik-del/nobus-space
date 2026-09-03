@@ -20,6 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from src.application.task_confirmation import MAX_TASK_INSTRUCTION_LENGTH
 from src.application.product_status import ProductTaskStatus, product_task_state
+from src.application.semantic_admission import (
+    SemanticClarificationRejected,
+    SemanticClarificationRequired,
+)
 from src.contracts import (
     IngressKind,
     IngressSource,
@@ -43,6 +47,7 @@ from src.storage import (
 
 
 _IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._~-]{16,128}")
+_CLARIFICATION_TOKEN = re.compile(r"[A-Za-z0-9_-]{32,128}")
 MAX_TASK_DISPLAY_TITLE_LENGTH = 120
 
 
@@ -161,7 +166,11 @@ _SAFE_EVENT_KIND = {
 
 class MiniAppTaskAdmission(Protocol):
     async def submit_miniapp_task(
-        self, instruction: str, envelope: TrustedIngressEnvelope
+        self,
+        instruction: str,
+        envelope: TrustedIngressEnvelope,
+        *,
+        clarification_token: str | None = None,
     ) -> UUID: ...
 
     def miniapp_task_submitted(
@@ -451,6 +460,7 @@ class MiniAppCore:
         idempotency_key: str,
         *,
         display_title: str | None = None,
+        clarification_token: str | None = None,
     ) -> MiniAppTaskCreation:
         normalized = instruction.strip() if isinstance(instruction, str) else ""
         normalized_title = (
@@ -470,6 +480,13 @@ class MiniAppCore:
             )
             or not isinstance(idempotency_key, str)
             or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None
+            or (
+                clarification_token is not None
+                and (
+                    not isinstance(clarification_token, str)
+                    or _CLARIFICATION_TOKEN.fullmatch(clarification_token) is None
+                )
+            )
         ):
             raise MiniAppTaskRequestError("invalid_request")
         async with self._mutation_lock:
@@ -479,6 +496,7 @@ class MiniAppCore:
                 instruction=normalized,
                 idempotency_key=idempotency_key,
                 display_title=normalized_title,
+                clarification_token=clarification_token,
             )
 
     async def _create_task(
@@ -488,6 +506,7 @@ class MiniAppCore:
         instruction: str,
         idempotency_key: str,
         display_title: str | None,
+        clarification_token: str | None,
     ) -> MiniAppTaskCreation:
         admission = self._task_admission
         if admission is None:
@@ -507,7 +526,16 @@ class MiniAppCore:
         if existing is not None:
             return existing
         try:
-            task_id = await admission.submit_miniapp_task(instruction, envelope)
+            if clarification_token is None:
+                task_id = await admission.submit_miniapp_task(instruction, envelope)
+            else:
+                task_id = await admission.submit_miniapp_task(
+                    instruction,
+                    envelope,
+                    clarification_token=clarification_token,
+                )
+        except (SemanticClarificationRequired, SemanticClarificationRejected):
+            raise
         except (DuplicateIdempotencyKeyError, IngressClaimConflictError):
             existing = self._existing_creation(
                 envelope,

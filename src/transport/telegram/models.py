@@ -61,6 +61,7 @@ class ActorBoundIngress(IngressModel):
     user_id: int
     chat_id: int
     message_thread_id: int | None = Field(default=None, gt=0)
+    reply_to_message_id: int | None = Field(default=None, gt=0)
     binding_purpose: Literal["owner_private", "business_notes"] = (
         "owner_private"
     )
@@ -140,6 +141,9 @@ def _telegram_payload_facts(payload: TelegramPayload) -> dict[str, object]:
         }
     else:
         raise TypeError("unsupported Telegram payload")
+
+    if payload.reply_to_message_id is not None:
+        content["reply_to_message_id"] = payload.reply_to_message_id
 
     if payload.binding_purpose == "business_notes":
         external_message_id += ":purpose:business_notes"

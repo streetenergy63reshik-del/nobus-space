@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
+import secrets
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
 from typing import Any, Callable
 from uuid import UUID, uuid4
 
@@ -16,12 +19,22 @@ from src.application.durable_telegram_state import (
     SQLiteTelegramState,
 )
 from src.application.patch_confirmation import PatchProposal
+from src.application.semantic_admission import (
+    PendingClarification,
+    SemanticClarificationRejected,
+    SemanticClarificationRequired,
+    TrustedReferenceBinding,
+    pending_clarification,
+    semantic_clarification_question,
+    telegram_semantic_input,
+)
 from src.application.telegram_product import (
     ProductTelegramControlPlane,
     _QueuedDraft,
     _QueuedEffect,
     _QueuedJob,
     _QueuedPatch,
+    _SEMANTIC_NO_EFFECT_PROFILE,
     _TERMINALIZE_ATTEMPTS,
 )
 from src.contracts import TaskContract, TrustedIngressEnvelope
@@ -40,6 +53,7 @@ _LEASE_SECONDS = 60
 _QUEUE_MAXSIZE = 40
 _MAX_JOB_ATTEMPTS = 3
 _PROGRESS_INTERVAL_SECONDS = 30
+_CLARIFICATION_TOKEN = re.compile(r"[A-Za-z0-9_-]{32,128}")
 
 
 @dataclass(frozen=True)
@@ -116,7 +130,11 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     ) from error
 
     async def submit_miniapp_task(
-        self, instruction: str, envelope: TrustedIngressEnvelope
+        self,
+        instruction: str,
+        envelope: TrustedIngressEnvelope,
+        *,
+        clarification_token: str | None = None,
     ) -> UUID:
         """Admit one Mini App task through the existing Core and durable queue."""
         if self._closing:
@@ -124,6 +142,116 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         trusted = TrustedIngressEnvelope.model_validate(
             envelope.model_dump(mode="json")
         )
+        if getattr(self, "_enable_semantic_admission", False):
+            service = getattr(self, "_semantic_admission", None)
+            clarifications = getattr(self, "_semantic_clarifications", None)
+            if service is None or clarifications is None:
+                raise RuntimeError("semantic admission is unavailable")
+            if clarification_token is not None and (
+                not isinstance(clarification_token, str)
+                or _CLARIFICATION_TOKEN.fullmatch(clarification_token) is None
+            ):
+                raise SemanticClarificationRejected(
+                    "semantic clarification binding is invalid"
+                )
+            conversation_id = int(trusted.auth_context_ref[7:22], 16) or 1
+            canonical, bindings = telegram_semantic_input(
+                instruction,
+                trusted,
+                modality="miniapp_text",
+                chat_id=conversation_id,
+                message_thread_id=None,
+            )
+            pending: PendingClarification | None = None
+            if clarification_token is not None:
+                answer_binding = canonical_json_digest(
+                    {
+                        "clarification_token": clarification_token,
+                        "source": "miniapp",
+                    }
+                )
+                pending = clarifications.read(
+                    owner_binding=bindings.owner_binding,
+                    tenant_binding=bindings.tenant_binding,
+                    conversation_binding=bindings.conversation_binding,
+                    answer_binding=answer_binding,
+                    reply_envelope_revision=trusted.envelope_revision,
+                )
+                if pending is None:
+                    raise SemanticClarificationRejected(
+                        "semantic clarification binding is invalid"
+                    )
+                merged_text = (
+                    f"{pending.canonical_input.owner_text}\n\n"
+                    "Исходная задача владельца указана выше.\n"
+                    "Уточнение владельца:\n"
+                    f"{instruction}"
+                )
+                canonical, bindings = telegram_semantic_input(
+                    merged_text,
+                    trusted,
+                    modality="miniapp_text",
+                    chat_id=conversation_id,
+                    message_thread_id=None,
+                )
+                materials = tuple(
+                    dict.fromkeys(
+                        pending.canonical_input.materials + canonical.materials
+                    )
+                )
+                canonical = canonical.model_copy(update={"materials": materials})
+                bindings = replace(
+                    bindings,
+                    materials=materials,
+                    reference_bindings=tuple(
+                        TrustedReferenceBinding(
+                            ref=value.ref,
+                            trusted_boundary=value.boundary,
+                            issued_by_server=True,
+                            current_intake_member=True,
+                            owner_binding=bindings.owner_binding,
+                            tenant_binding=bindings.tenant_binding,
+                            conversation_binding=bindings.conversation_binding,
+                            intake_ref=bindings.intake_ref,
+                            intake_revision=bindings.intake_revision,
+                        )
+                        for value in materials
+                    ),
+                )
+            admission = await service.admit(canonical, bindings)
+            if admission.decision.decision == "CLARIFY":
+                token = secrets.token_urlsafe(32)
+                answer_binding = canonical_json_digest(
+                    {"clarification_token": token, "source": "miniapp"}
+                )
+                ttl = getattr(clarifications, "ttl", None)
+                if not isinstance(ttl, timedelta):
+                    raise RuntimeError("semantic clarification TTL is invalid")
+                clarifications.put(
+                    pending_clarification(
+                        admission,
+                        trusted,
+                        now=datetime.now(UTC),
+                        ttl=ttl,
+                        answer_binding=answer_binding,
+                    )
+                )
+                raise SemanticClarificationRequired(
+                    semantic_clarification_question(admission),
+                    token,
+                )
+            if (
+                admission.decision.decision != "EXECUTE"
+                or not admission.decision.task_contract_allowed
+                or admission.decision.selected_capability
+                not in {"task.answer.general", "content.transform"}
+            ):
+                raise RuntimeError("semantic admission did not allow a task")
+            if pending is not None and not clarifications.delete(pending):
+                raise SemanticClarificationRejected(
+                    "semantic clarification binding changed"
+                )
+            instruction = _SEMANTIC_NO_EFFECT_PROFILE + canonical.owner_text
         prepared = await self._product_runtime.build_instruction(
             instruction, trusted
         )

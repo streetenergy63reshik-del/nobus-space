@@ -1,14 +1,14 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
-**Период:** 17 июля — 2 сентября 2026 года
+**Период:** 17 июля — 3 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий verdict: `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+Текущий verdict: `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 ## Активные findings после переоткрытия acceptance
 
@@ -19,8 +19,8 @@
 
 | ID | Finding | Evidence C0 | Owning Gate | Статус / критерий закрытия |
 |---|---|---|---|---|
-| C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CONFIRMED**; text/voice incident и semantic corpus проходят без keyword veto |
-| C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CONFIRMED GAP**; model proposal не имеет authority-полей, Core выбирает capability/policy |
+| C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **IMPLEMENTED / NEW EXACT SECURITY REVIEW REQUIRED**; exact text/voice incident и corpus `25/25`, keyword veto не участвует в opt-in semantic path |
+| C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **IMPLEMENTED / NEW EXACT SECURITY REVIEW REQUIRED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
 | C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | существующая durable voice recovery закрыта historical tests, но incident показывает равный false reject после успешного ASR | C2 | **REQUALIFY**; crash/temp/privacy negatives и парные corpus cases PASS |
 | C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | current local adapter существует; сравнительного benchmark/privacy decision C0 не обнаружил | C2 | **CONFIRMED EVIDENCE GAP**; bounded bake-off в C2, Faster-Whisper остаётся CURRENT до решения |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
@@ -40,6 +40,19 @@
 обязательная квалификация: C0 не выдаёт наличие кода или старых тестов за
 доказательство целого продукта. Historical CLOSED строки ниже сохранены и не
 переписаны задним числом.
+
+C1 candidate `9de145ccc1c456927623885212f8d5ac64ff8ef0` отклонён.
+C1-B01 (ambiguous/partial corroboration) и C1-B02 (single-quote/inline-code
+boundary) исправлены в replacement WIP; закрытие требует новых exact L1/L2/L3.
+Прежние C1 PASS/ACCEPT не переиспользуются.
+
+Candidate `381a1e54e6c2281fe335b2835972cc27ee9d486d` / tree
+`ab8fa02cc6d358ba998acc0cc3b4ecd8862c7bc4` — REJECTED / SUPERSEDED.
+Conditional-tail reference gap: refs вспомогательного compiler pass не
+проверялись до semantic matching. L3 REJECT; L2 подтвердил finding, но не дал
+final ACCEPT из-за platform error. Ремонт использует общий verifier для
+main/direct/tail, сохраняет first trust failure и не удваивает multiset.
+C0-F01/F02 остаются на новой exact квалификации; C2–C6 и MVP2 — HOLD.
 
 ## Historical сводка до incident
 

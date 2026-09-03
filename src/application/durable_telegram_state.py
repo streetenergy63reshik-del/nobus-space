@@ -784,6 +784,152 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def put_semantic_clarification(
+        self,
+        *,
+        owner_binding: str,
+        tenant_id: str,
+        tenant_binding: str,
+        conversation_binding: str,
+        answer_binding: str,
+        envelope_revision: str,
+        intake_revision: int,
+        payload: Mapping[str, Any],
+        expires_at: datetime,
+    ) -> None:
+        bindings = (
+            owner_binding,
+            tenant_binding,
+            conversation_binding,
+            answer_binding,
+            envelope_revision,
+        )
+        if (
+            not all(_is_digest(value) for value in bindings)
+            or not _text(tenant_id, 128)
+            or type(intake_revision) is not int
+            or intake_revision < 1
+            or not _aware(expires_at)
+        ):
+            raise ValueError("semantic clarification binding is invalid")
+        protected = self._encode(payload)
+        payload_digest = canonical_json_digest(payload)
+        now = self._now()
+        if not now < expires_at.astimezone(UTC) <= now + timedelta(minutes=30):
+            raise ValueError("semantic clarification expiry is invalid")
+        try:
+            with self._transaction() as connection:
+                self._sweep_semantic_clarifications(connection, now)
+                connection.execute(
+                    """INSERT INTO semantic_clarifications
+                       (conversation_binding,owner_binding,tenant_id,tenant_binding,
+                        answer_binding,envelope_revision,intake_revision,payload_digest,
+                        payload,expires_at,created_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                       ON CONFLICT(conversation_binding) DO UPDATE SET
+                       owner_binding=excluded.owner_binding,
+                       tenant_id=excluded.tenant_id,
+                       tenant_binding=excluded.tenant_binding,
+                       answer_binding=excluded.answer_binding,
+                       envelope_revision=excluded.envelope_revision,
+                       intake_revision=excluded.intake_revision,
+                       payload_digest=excluded.payload_digest,
+                       payload=excluded.payload,
+                       expires_at=excluded.expires_at,
+                       created_at=excluded.created_at""",
+                    (
+                        conversation_binding,
+                        owner_binding,
+                        tenant_id.strip(),
+                        tenant_binding,
+                        answer_binding,
+                        envelope_revision,
+                        intake_revision,
+                        payload_digest,
+                        protected,
+                        expires_at.astimezone(UTC).isoformat(),
+                        now.isoformat(),
+                    ),
+                )
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
+    def read_semantic_clarification(
+        self,
+        *,
+        owner_binding: str,
+        tenant_id: str,
+        tenant_binding: str,
+        conversation_binding: str,
+        answer_binding: str,
+        reply_envelope_revision: str,
+    ) -> dict[str, Any] | None:
+        bindings = (
+            owner_binding,
+            tenant_binding,
+            conversation_binding,
+            answer_binding,
+            reply_envelope_revision,
+        )
+        if not all(_is_digest(value) for value in bindings) or not _text(
+            tenant_id, 128
+        ):
+            return None
+        now = self._now()
+        try:
+            with self._transaction() as connection:
+                self._sweep_semantic_clarifications(connection, now)
+                row = connection.execute(
+                    """SELECT * FROM semantic_clarifications
+                       WHERE conversation_binding=? AND owner_binding=?
+                         AND tenant_id=? AND tenant_binding=?
+                         AND answer_binding=?
+                         AND envelope_revision<>?""",
+                    (
+                        conversation_binding,
+                        owner_binding,
+                        tenant_id.strip(),
+                        tenant_binding,
+                        answer_binding,
+                        reply_envelope_revision,
+                    ),
+                ).fetchone()
+                if row is None:
+                    return None
+                payload = self._decode(bytes(row["payload"]))
+                if canonical_json_digest(payload) != row["payload_digest"]:
+                    raise DurableTelegramStateError("runtime_payload_tampered")
+                return payload
+        except DurableTelegramStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
+    def delete_semantic_clarification(
+        self,
+        *,
+        conversation_binding: str,
+        tenant_id: str,
+        payload_digest: str,
+    ) -> bool:
+        if (
+            not _is_digest(conversation_binding)
+            or not _is_digest(payload_digest)
+            or not _text(tenant_id, 128)
+        ):
+            return False
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """DELETE FROM semantic_clarifications
+                       WHERE conversation_binding=? AND tenant_id=?
+                         AND payload_digest=?""",
+                    (conversation_binding, tenant_id.strip(), payload_digest),
+                )
+                return cursor.rowcount == 1
+        except (OSError, sqlite3.DatabaseError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
     def save_progress(
         self, *, tenant_id: str, task_id: UUID, chat_id: int, message_id: int
     ) -> ProgressMessageRef:
@@ -1059,6 +1205,21 @@ class SQLiteTelegramState:
                     updated_at TEXT NOT NULL,
                     PRIMARY KEY(tenant_id,task_id)
                 );
+                CREATE TABLE IF NOT EXISTS semantic_clarifications (
+                    conversation_binding TEXT PRIMARY KEY,
+                    owner_binding TEXT NOT NULL,
+                    tenant_id TEXT NOT NULL,
+                    tenant_binding TEXT NOT NULL,
+                    answer_binding TEXT NOT NULL,
+                    envelope_revision TEXT NOT NULL,
+                    intake_revision INTEGER NOT NULL CHECK(intake_revision>=1),
+                    payload_digest TEXT NOT NULL,
+                    payload BLOB NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_semantic_clarification_expiry
+                    ON semantic_clarifications(expires_at);
                 """
             )
 
@@ -1066,6 +1227,15 @@ class SQLiteTelegramState:
     def _sweep_capabilities(connection: sqlite3.Connection, now: datetime) -> None:
         connection.execute(
             "DELETE FROM telegram_capabilities WHERE expires_at<=?",
+            (now.isoformat(),),
+        )
+
+    @staticmethod
+    def _sweep_semantic_clarifications(
+        connection: sqlite3.Connection, now: datetime
+    ) -> None:
+        connection.execute(
+            "DELETE FROM semantic_clarifications WHERE expires_at<=?",
             (now.isoformat(),),
         )
 

@@ -43,12 +43,16 @@ from src.application.durable_confirmations import (  # noqa: E402
     DurableTelegramActionStore,
 )
 from src.application.durable_product import DurableProductTelegramControlPlane  # noqa: E402
+from src.application.durable_semantic import (  # noqa: E402
+    DurableSemanticClarificationStore,
+)
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
     recover_interrupted_restore,
 )
+from src.application.semantic_admission import SemanticAdmissionService  # noqa: E402
 from src.application.task_confirmation import (  # noqa: E402
     MAX_TASK_INSTRUCTION_LENGTH,
 )
@@ -118,6 +122,7 @@ _VOICE_HOTWORDS = (
     "MCP idempotency оркестратор субагент"
 )
 _POLLING_LEASE_SECONDS = 240
+_GATE_C1_SEMANTIC_ADMISSION_ENABLED = False
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
 _TASK_RUNTIME_PATH = _RUNTIME_ROOT / "task-runtime.sqlite3"
 _TELEGRAM_STATE_PATH = _RUNTIME_ROOT / "telegram-state.sqlite3"
@@ -396,6 +401,17 @@ async def _run(
                 max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
             ),
             limit_provider=limit_provider,
+            semantic_admission=(
+                SemanticAdmissionService(runtime)
+                if _GATE_C1_SEMANTIC_ADMISSION_ENABLED
+                else None
+            ),
+            semantic_clarifications=(
+                DurableSemanticClarificationStore(telegram_state)
+                if _GATE_C1_SEMANTIC_ADMISSION_ENABLED
+                else None
+            ),
+            enable_semantic_admission=_GATE_C1_SEMANTIC_ADMISSION_ENABLED,
             enable_extended_routes=False,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,

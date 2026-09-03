@@ -1,0 +1,310 @@
+{
+  "schema_version": "1",
+  "gate": "C1",
+  "verdict": "C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING",
+  "external_boundary": "NO TAG / NO DEPLOY / NO LIVE EFFECT",
+  "pre_freeze_remote_readback": {
+    "main_commit": "5feccfd7626d4382259c3488a9cfb3b3e6c48a0b",
+    "main_tree": "480b2f85978e94a8a5a470d09fe3f343a60849bc",
+    "github_branch_protected": true,
+    "remote_c1_ref_exists": false,
+    "methods": [
+      "GitHub GET branches/main",
+      "git ls-remote --refs origin"
+    ]
+  },
+  "predecessor": {
+    "commit": "5feccfd7626d4382259c3488a9cfb3b3e6c48a0b",
+    "tree": "480b2f85978e94a8a5a470d09fe3f343a60849bc",
+    "handoff_sha256": "8424a59ce00f5dfc3abc4d379207d35e91e9373e41ee074d8d90ab8b29569221"
+  },
+  "contracts": {
+    "semantic_schema": {
+      "version": "1.0.0",
+      "sha256": "f09457922593bb82bc200cddaa6c6602295df3462627a5b101f0cab5e9115e87"
+    },
+    "capability_registry": {
+      "version": "1.0.0",
+      "sha256": "cabd76d4804474af73373c51cc5a7d361ff5c6d368aee365ffe6cbaa992a4161"
+    },
+    "gold_corpus": {
+      "version": "1.0.0",
+      "sha256": "43f87170d24e24df196078f08fd06fe80123b75f64c6d5175312c7e20048bab3"
+    },
+    "adr_0023_sha256": "809447612d992e0c5b2ea76a1cce37d4c9908bf6038bb18a9ac67c7648256f8f"
+  },
+  "pre_freeze_checks": [
+    {
+      "scope": "conditional-tail red regression on rejected production source",
+      "receipt": ".runtime/c1-tail-repair/red-tail.json",
+      "exit_code": 1,
+      "result": "1 failed, 152 deselected; VERIFIED instead of FORGED_REF"
+    },
+    {
+      "scope": "conditional-tail focused repair",
+      "receipt": ".runtime/c1-tail-repair/green-tail.json",
+      "exit_code": 0,
+      "result": "190 passed, 124 deselected in 2.73s"
+    },
+    {
+      "scope": "full semantic after minimal compatibility correction",
+      "receipt": ".runtime/c1-tail-repair/wip-semantic-corrected.json",
+      "exit_code": 0,
+      "result": "316 passed in 6.86s"
+    }
+  ],
+  "rework": {
+    "rejected_candidate": {
+      "commit": "952e7fee34d5fd78fc7c6cb12ae5b224a8389a45",
+      "tree": "ec35571c536a8ea74767cb1b63914453df36f99b",
+      "l2": "REJECT",
+      "l3": "REJECT"
+    },
+    "superseded_candidate": {
+      "commit": "8f4ff54689dc179e429f327d0d8631b39b44d0de",
+      "tree": "90e1c6713d3dcb40544e79fa0439adfd2b77453f",
+      "l2": "STOPPED_BEFORE_VERDICT",
+      "l3": "STOPPED_BEFORE_VERDICT",
+      "reason": "candidate-bound real-provider ambiguity case returned REFUSE/TRUST_VIOLATION because one full direct span still depended on model alignment"
+    },
+    "superseded_candidate_2": {
+      "commit": "cab898b555586f08f1763c20b7b639b4d4b66008",
+      "tree": "89ee749ed0c814fd8c8757ac951ead777b9e9edb",
+      "l2": "STOPPED_BEFORE_VERDICT",
+      "l3": "STOPPED_BEFORE_VERDICT",
+      "reason": "candidate-bound real-provider injection case returned REFUSE/TRUST_VIOLATION because mixed/material provenance still depended on model alignment"
+    },
+    "superseded_candidate_3": {
+      "commit": "bdd5f7bfc45e123f830542470c84dfaadb4b4152",
+      "tree": "ab67ffdf3aa8ea0a5ca827a4a335e0d99551dd02",
+      "l2": "STOPPED_BEFORE_VERDICT",
+      "l3": "STOPPED_BEFORE_VERDICT",
+      "reason": "candidate-bound real-provider smoke exposed false provenance rejection when the main and material-free direct-span proposals chose different server-issued target refs"
+    },
+    "superseded_candidate_4": {
+      "commit": "4351e59a4101f7d0bb873e67282d9d470940d648",
+      "tree": "68e96c046bef0bb835ecc0aa30aa5bc511fc3c9c",
+      "l2": "STOPPED_BEFORE_VERDICT",
+      "l3": "STOPPED_BEFORE_VERDICT",
+      "reason": "candidate-bound incident smoke returned FORGED_REF because the generic provider schema allowed a syntactically valid but non-issued model ref"
+    },
+    "superseded_candidate_5": {
+      "commit": "31fd78491c345a32b4334df8ef3e754c01b7a5c3",
+      "tree": "1b40bf99c3285033900a887a49b142c726cf5bf6",
+      "l2": "REJECT",
+      "l3": "REJECT",
+      "reason": "independent review found occurrence-collapsing duplicate corroboration, a second conditional clause lost after the first comma, and unbounded direct-span compiler work with per-call rather than admission-wide timeout"
+    },
+    "superseded_candidate_6": {
+      "commit": "63f4f5c2e70db0613dbff7c4b0387a1d3f78f1d3",
+      "tree": "af575e887f09303d9efa1c037432ca7b0d0f2204",
+      "l2": "REJECT",
+      "l3": "REJECT",
+      "reason": "independent review showed that a finite post-comma marker denylist still lost equivalent second conditions such as 'при согласованном бюджете', 'после согласования', 'а бюджет согласован' and 'в случае'"
+    },
+    "disposition": "invalidated; evidence is not reused for the replacement candidate",
+    "closed_findings": [
+      "regex/model-role authority",
+      "lost repeated condition",
+      "conflicting boundary collapse",
+      "clarification replay/expiry/cross-binding",
+      "generic predicate question",
+      "partial schema-equivalence check",
+      "model-selected ref coupled to direct-operation authority",
+      "punctuation-only direct spans",
+      "generic provider schema admitted non-issued refs",
+      "duplicate operation occurrences collapsed during corroboration",
+      "additional direct condition after comma was ignored",
+      "unbounded structural spans and sequential compiler calls",
+      "open-ended second-condition forms bypassed a finite marker denylist"
+    ],
+    "security_rejected_candidate": {
+      "commit": "9de145ccc1c456927623885212f8d5ac64ff8ef0",
+      "tree": "f7db924f46a1b5ff10694b0c2bc3f2c17e3cdcb1",
+      "status": "REJECTED / SUPERSEDED",
+      "previous_pass": "REVOKED",
+      "prior_l2_l3": "NOT_REUSABLE",
+      "findings": [
+        "C1-B01: ambiguous and partial direct-span corroboration could mint authority",
+        "C1-B02: ASCII/Unicode single quotes and inline code were not material boundaries"
+      ]
+    },
+    "conditional_tail_rejected_candidate": {
+      "commit": "381a1e54e6c2281fe335b2835972cc27ee9d486d",
+      "tree": "ab8fa02cc6d358ba998acc0cc3b4ecd8862c7bc4",
+      "status": "REJECTED / SUPERSEDED",
+      "l3": "REJECT",
+      "l2": "independently reproduced finding; final receipt interrupted by platform error; NO ACCEPT",
+      "finding": "conditional-tail proposal refs were omitted from the existing reference verifier; nine invalid tail ref variants could yield VERIFIED/EXECUTE/OWNER_CONDITIONAL when the trusted predicate was TRUE; FALSE/UNKNOWN also masked trust failure",
+      "prior_evidence_reusable": false,
+      "historical_frozen_checks": {
+        "semantic": "125 PASS",
+        "impacted": "571 PASS",
+        "release": "1575 PASS, 2 skipped, 1 deselected",
+        "docs_governance": "35 PASS, 2 historical FAIL",
+        "smoke": "5/5 no TaskContract/effect"
+      },
+      "external_effect_observed": false
+    }
+  },
+  "bounded_residuals": [
+    {
+      "risk": "a compiler can misclassify the semantic operation kind while still satisfying exact direct-span corroboration",
+      "classification": "MEDIUM / non-blocking model-quality residual",
+      "boundary": "C1 has no effectful CURRENT capability; selected routes remain no-effect and downstream execution is tool-less, deny-all and read-only",
+      "follow_up": "shadow accuracy monitoring and capability-specific server-verifiable targets/preconditions/approval before any future effectful capability becomes CURRENT"
+    }
+  ],
+  "frozen_binding": {
+    "branch": "codex/mvp1-closure-c1-semantic-compiler",
+    "mechanism": "exact git commit/tree readback after committing this evidence",
+    "note": "A commit cannot contain its own SHA; exact values are supplied in the owner publication manifest.",
+    "receipts": "All replacement frozen L1 and independent L2/L3 terminal receipts are saved under ignored .runtime/c1-tail-repair/ and bound to exact before/after SHA/tree and clean state. A missing terminal result is never PASS.",
+    "prior_rejections": "9de145ccc1c456927623885212f8d5ac64ff8ef0 and 381a1e54e6c2281fe335b2835972cc27ee9d486d are rejected; pending applies only to the new repair bytes."
+  },
+  "publication": {
+    "push": false,
+    "pr": false,
+    "merge": false,
+    "tag": false,
+    "release": false,
+    "deploy": false,
+    "activation": false,
+    "live_effect": false
+  },
+  "historical_9de_checks_not_reusable": [
+    {
+      "scope": "semantic, corpus, span-provenance, clarification, conditional-tail, bounded-work and end-to-end-timeout tests",
+      "result": "44 passed in 4.94s"
+    },
+    {
+      "scope": "combined impacted semantic/compiler/durable/Telegram/Mini App/runner/Core integration suite",
+      "result": "482 passed, 1 warning in 78.82s"
+    },
+    {
+      "scope": "release-relevant suite",
+      "result": "1486 passed, 2 skipped, 1 deselected, 1 warning in 105.25s; the deselected assertion requires an obsolete exact ADR 0022 status cell already absent in the predecessor"
+    },
+    {
+      "scope": "git diff check",
+      "result": "pass; line-ending warnings only"
+    }
+  ],
+  "historical_9de_smoke_not_reusable": {
+    "provider_path": "openai-codex SDK/app-server",
+    "model": "gpt-5.6-sol",
+    "profile": "fresh ephemeral; deny-all; read-only; web disabled; empty MCP; apps/browser/code/image/multi-agent/shell/unified-exec disabled; provider-compatible closed generation schema derived from the immutable model and narrowed to exact current-intake refs/boundaries plus exact C0 server validation; material-free direct-span proposals and isolated supported-condition tail validation with server-deterministic unique semantic-operation signature, independent exact ref verification and no model aligner",
+    "cases": [
+      {
+        "id": "direct",
+        "decision": "EXECUTE",
+        "stage": "EXECUTE_ALLOWED",
+        "capability": "task.answer.general",
+        "task_contract_created": false,
+        "effect_observed": false
+      },
+      {
+        "id": "incident",
+        "decision": "EXECUTE",
+        "stage": "EXECUTE_ALLOWED",
+        "capability": "content.transform",
+        "task_contract_created": false,
+        "effect_observed": false
+      },
+      {
+        "id": "quoted",
+        "decision": "EXECUTE",
+        "stage": "EXECUTE_ALLOWED",
+        "capability": "content.transform",
+        "task_contract_created": false,
+        "effect_observed": false
+      },
+      {
+        "id": "injection",
+        "decision": "EXECUTE",
+        "stage": "EXECUTE_ALLOWED",
+        "capability": "content.transform",
+        "task_contract_created": false,
+        "effect_observed": false
+      },
+      {
+        "id": "ambiguity",
+        "decision": "CLARIFY",
+        "stage": "AMBIGUITY",
+        "capability": null,
+        "task_contract_created": false,
+        "effect_observed": false
+      }
+    ],
+    "raw_private_payload_persisted": false
+  },
+  "security_correction": {
+    "status": "IMPLEMENTED / EXACT REVIEW PENDING",
+    "b01": "All active occurrence multisets must bijectively match across the main and all understood, ambiguity-free direct-span proposals; no occurrence reuse or partial authority.",
+    "b02": "Linear bounded nested quote/code parser; word apostrophes are ordinary text; malformed structural boundaries make the whole intake inert.",
+    "red_reproduction": "32 failed, 5 passed, 44 deselected on rejected production source",
+    "wip_smoke": "5/5 expected; zero TaskContract/effect; not a substitute for frozen smoke",
+    "final_l2": "PENDING_NEW_EXACT_REVIEW",
+    "final_l3": "PENDING_NEW_EXACT_REVIEW",
+    "direct_refs": "All direct-span source/target/predicate refs use the existing server verifier; first failure is carried into TrustedAdmissionContext before ambiguity. 14 understood/ambiguous negative cases pass.",
+    "conditional_tail": "The same reference-only verifier checks main/direct/tail source, target and predicate refs. Tail refs are checked before semantic matching. Failure remains in TrustedAdmissionContext before ambiguity/predicate and prevents active binding issuance; tail is not counted as another direct operation.",
+    "regressions": "162 tail source/target/predicate ref negatives: 9 violations x TRUE/FALSE/UNKNOWN x reuse-main/separate-direct; 12 ambiguous/mismatch negatives; 6 clean predicate controls; 9 Telegram text/voice/Mini App product guards; 2 invalid-main guards. B01/B02 and C0 corpus preserved.",
+    "intermediate_failure": "1 failed, 313 passed: an unnecessarily broad rewrite of historical server-prebound C0 provenance changed exact corpus context. Removed that unrelated rewrite; production compiler-output issuance still fails closed. Sealed corpus unchanged; corrected semantic 316 PASS."
+  },
+  "real_provider_smoke": {
+    "status": "FROZEN_CANDIDATE_RUN_PENDING",
+    "provider_path": "openai-codex SDK/app-server",
+    "model": "gpt-5.6-sol",
+    "profile": "fresh ephemeral deny-all read-only no-tools",
+    "cases": [
+      "direct",
+      "incident",
+      "quoted",
+      "injection",
+      "ambiguity"
+    ],
+    "raw_private_payload_persisted": false
+  },
+  "historical_381_pre_freeze_checks_not_reusable": [
+    {
+      "scope": "focused C1-B01/C1-B02",
+      "command": "pytest tests/test_semantic_admission.py -q --tb=short -k 'c1_b01 or c1_b02'",
+      "result": "74 passed, 51 deselected in 2.12s"
+    },
+    {
+      "scope": "full semantic suite",
+      "command": "pytest tests/test_semantic_admission.py -q --tb=short",
+      "result": "125 passed in 5.11s"
+    },
+    {
+      "scope": "full launch impacted suite",
+      "command": "see L1-REPORT.md exact 12-file list",
+      "result": "571 passed, 1 warning in 76.61s"
+    },
+    {
+      "scope": "release-relevant suite",
+      "command": "see L1-REPORT.md explicit historical exclusions",
+      "result": "1575 passed, 2 skipped, 1 deselected, 1 warning in 99.71s"
+    },
+    {
+      "scope": "full docs and C0 governance",
+      "result": "35 passed, 2 failed in 0.93s",
+      "historical_failures": [
+        "test_active_status_and_roadmap_are_consistent: obsolete C0 verdict snapshot",
+        "test_candidate_changes_no_production_code: C0-only no-code-change assertion"
+      ]
+    },
+    {
+      "scope": "applicable docs and governance",
+      "result": "35 passed, 2 explicitly deselected in 0.67s"
+    },
+    {
+      "scope": "docs only",
+      "result": "4 passed in 0.19s"
+    },
+    {
+      "scope": "manifest/sealed/held-docs/credential-pattern/flag/diff",
+      "result": "32 exact paths; sealed diff=0; docs15/16=0; credential patterns=0; flag=False; diff-check exit=0"
+    }
+  ]
+}

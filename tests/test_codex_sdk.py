@@ -1359,6 +1359,92 @@ def test_sdk_extracts_only_urls_opened_by_web_search() -> None:
         "https://openai.com/news",
     )
 
+
+@pytest.mark.asyncio
+async def test_semantic_compiler_uses_fresh_toolless_ephemeral_threads(
+    tmp_path: Path,
+) -> None:
+    owner, workspace, home, temp = _paths(tmp_path)
+    response = '{"schema_version":"1.0.0"}'
+    client = _Client(response)
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    schema = {
+        "type": "object",
+        "properties": {"schema_version": {"const": "1.0.0"}},
+        "required": ["schema_version"],
+        "additionalProperties": False,
+    }
+
+    first = await adapter.compile_semantic(
+        {"owner_text": "Составь план."}, schema, timeout_seconds=5
+    )
+    second = await adapter.compile_semantic(
+        {"owner_text": "Подготовь ответ."}, schema, timeout_seconds=5
+    )
+    assert first == response == second
+    assert len(client.started) == 2
+    assert all(value["ephemeral"] is True for value in client.start_values)
+    assert all(value["approval_mode"].value == "deny_all" for value in client.start_values)
+    assert all(value["sandbox"].value == "read-only" for value in client.start_values)
+    for value in client.start_values:
+        assert value["config"]["web_search"] == "disabled"
+        assert value["config"]["mcp_servers"] == {}
+        assert not any(value["config"]["features"].values())
+    assert all(thread.name is None for thread in client.started)
+    assert all(thread.turns[0]["output_schema"] == schema for thread in client.started)
+
+
+@pytest.mark.asyncio
+async def test_semantic_answer_profile_uses_fresh_toolless_ephemeral_threads(
+    tmp_path: Path,
+) -> None:
+    owner, workspace, home, temp = _paths(tmp_path)
+    client = _Client()
+    adapter = CodexSdkAdapter(
+        workspace_root=workspace,
+        owner_root=owner,
+        codex_home=home,
+        temp_root=temp,
+        client_factory=lambda _: client,
+    )
+    contract = _contract(workspace).model_copy(
+        update={"quality_profile": "gate-c1-semantic-no-effect@1"}
+    )
+
+    await adapter.execute(contract)
+    await adapter.execute(contract.model_copy(update={"task_id": uuid4()}))
+
+    assert len(client.started) == 2
+    assert all(value["ephemeral"] is True for value in client.start_values)
+    assert all(value["approval_mode"].value == "deny_all" for value in client.start_values)
+    assert all(value["sandbox"].value == "read-only" for value in client.start_values)
+    for value in client.start_values:
+        assert value["config"]["web_search"] == "disabled"
+        assert value["config"]["mcp_servers"] == {}
+        assert not any(value["config"]["features"].values())
+    assert all(thread.name is None for thread in client.started)
+
+
+def test_semantic_compiler_rejects_observed_tool_activity() -> None:
+    web_item = ThreadItem(
+        root=WebSearchThreadItem(
+            id="search",
+            query="forbidden",
+            type="webSearch",
+            action=WebSearchAction(
+                root=SearchWebSearchAction(type="search", query="forbidden")
+            ),
+        )
+    )
+    assert CodexSdkAdapter._semantic_items_are_toolless([])
+    assert not CodexSdkAdapter._semantic_items_are_toolless([web_item])
+
 @pytest.mark.asyncio
 async def test_sdk_rejects_unsupported_mixed_permission_profile(
     tmp_path: Path,

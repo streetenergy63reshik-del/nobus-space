@@ -29,6 +29,10 @@ from src.application.miniapp import (
     MiniAppTaskResult,
     MiniAppTaskSummary,
 )
+from src.application.semantic_admission import (
+    SemanticClarificationRejected,
+    SemanticClarificationRequired,
+)
 
 
 _UNAVAILABLE = "Nobus Space временно недоступен"
@@ -79,6 +83,7 @@ class MiniAppCoreBoundary(Protocol):
         idempotency_key: str,
         *,
         display_title: str | None = None,
+        clarification_token: str | None = None,
     ) -> MiniAppTaskCreation: ...
 
 
@@ -291,30 +296,58 @@ def create_miniapp_app(
             )
             if (
                 not isinstance(payload, dict)
-                or set(payload)
-                not in ({"instruction"}, {"display_title", "instruction"})
+                or "instruction" not in payload
+                or not set(payload).issubset(
+                    {"clarification_token", "display_title", "instruction"}
+                )
             ):
                 raise ValueError
             instruction = payload["instruction"]
             display_title = payload.get("display_title")
+            clarification_token = payload.get("clarification_token")
             if not isinstance(instruction, str) or (
                 display_title is not None and not isinstance(display_title, str)
+            ) or (
+                clarification_token is not None
+                and not isinstance(clarification_token, str)
             ):
                 raise ValueError
         except (UnicodeError, ValueError, json.JSONDecodeError):
             return _invalid_request()
         try:
-            result = await core.create_task(
-                _bearer(request),
-                instruction,
-                request_ids[0],
-                display_title=display_title,
-            )
+            if clarification_token is None:
+                result = await core.create_task(
+                    _bearer(request),
+                    instruction,
+                    request_ids[0],
+                    display_title=display_title,
+                )
+            else:
+                result = await core.create_task(
+                    _bearer(request),
+                    instruction,
+                    request_ids[0],
+                    display_title=display_title,
+                    clarification_token=clarification_token,
+                )
             return JSONResponse(result.model_dump(mode="json"), status_code=202)
         except MiniAppAuthenticationError:
             return JSONResponse({"detail": "unauthorized"}, status_code=401)
         except MiniAppTaskRequestError:
             return _invalid_request()
+        except SemanticClarificationRequired as error:
+            return JSONResponse(
+                {
+                    "detail": "clarification_required",
+                    "question": error.question,
+                    "clarification_token": error.token,
+                },
+                status_code=409,
+            )
+        except SemanticClarificationRejected:
+            return JSONResponse(
+                {"detail": "clarification_invalid"}, status_code=409
+            )
         except MiniAppTaskConflictError:
             return JSONResponse({"detail": "request_conflict"}, status_code=409)
         except MiniAppCoreUnavailableError:
