@@ -3,22 +3,25 @@
 **Статус:** CANONICAL INDEX
 **Актуально на:** 2 сентября 2026 года
 
-Активный курс задаёт
+**CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED /
+PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+
+Thin topology задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
 тонкий Telegram Mini App и Telegram-оркестратор обязательны в MVP-1, используют
 существующий локальный Core и не создают второй queue/state/effect contour.
-Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
+Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**. Forward semantic
+contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md).
 
 Единственная подвижная реализационная проекция —
 [CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
-checks, blockers и следующий slice. MVP-1 опубликован, развёрнут, принят
-владельцем и имеет статус `MVP-1 READY`; финальный patch с активным recovery и
-скрытым Windows runner связывается тегом `v1.0.1`. Там же находится полный
-handoff следующему чату; первый срез MVP-2 пока только `PROPOSED`, не baseline.
+checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
+evidence сохранены, но acceptance переоткрыта; current READY claim remote docs
+классифицирован как `STALE PUBLISHED CLAIM / PUBLICATION PENDING AUTHORIZATION`.
+Deployment revision не доказана. MVP-2 находится на HOLD.
 
-Редакционная продуктовая roadmap и HTML-визуализация остаются локальным
-`HOLD / NOT PUBLISHED`, не входят в этот канонический комплект и здесь не
-публикуются.
+Редакционная продуктовая roadmap и HTML-визуализация импортированы в C0 exact
+whole-file и остаются локальным `PUBLICATION HOLD / NOT PUBLISHED`.
 
 ## Иерархия источников
 
@@ -49,7 +52,8 @@ pointer, короткий status, decisions и freshness.
    topology.
 4. [Журнал ADR](04-Журнал-ADR.md) и
    [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
-   — решения и supersession.
+   и [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
+   — topology, semantic contract и supersession.
 5. [CURRENT-STATUS](handoffs/CURRENT-STATUS.md) — branch/revision, WIP,
    blockers, checks и следующий slice.
 6. [Runbook](08-Runbook-эксплуатации.md) — действующий Telegram runtime и
@@ -60,8 +64,9 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — исторические sealed Gate и frozen WIP, не
-   active roadmap.
+10. [Gate index](gates/README.md) — active C0 package и исторические sealed Gate.
+11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — единый
+    contract/acceptance для следующего Gate.
 
 ## Сохранённые контракты
 

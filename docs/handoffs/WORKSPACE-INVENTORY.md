@@ -1,95 +1,90 @@
 # Nobus Space — workspace inventory
 
-**Статус:** CANONICAL OPERATIONS INVENTORY
-**Актуально на:** 31 августа 2026 года
+**Актуально на:** 2 сентября 2026 года
+**Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
-Активная topology и delivery workflow:
-[ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
-Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
+Текущий verdict: `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
-## 1. Canonical repository role
+Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. Protected
+GitHub `main` и release tags — канон принятой опубликованной истории после
+readback. Nobus Memory, handoff и чаты — указатели/claims, а не замена exact
+Git revision.
 
-| Поле | Значение |
-|---|---|
-| Local repository | `C:\Хранилище\АГЕНТ\PROстранство\ОРКЕСТРАТОР\Code\nobus-orchestrator-dev` |
-| Live local authority | `git worktree list --porcelain`, `git status --short --branch` и `git rev-parse HEAD` в exact worktree |
-| Origin | `https://github.com/streetenergy63reshik-del/nobus-space.git` |
-| Product-candidate base | protected `main` @ `d7e2b8275f20a1a261bbf541573f76db82240901`, read back before continuation branch creation |
-| Product candidate | `codex/mvp1-release-continuation` @ `61b5a5ebbba100d666747cfc4c5b39b08a77a826`; frozen code `fc43edf098098e95099fa3882a0d97ca12ddf89b`; clean at audit; **NOT PUBLISHED / NOT DEPLOYED** |
-| Documentation sync | isolated `docs/mvp1-status-g7-ready` from exact `d7e2b827...`; active docs only, no product code/tests |
-| Published history before this sync | PR #1–#4 merged; no tags or releases; live `main` tip is read from GitHub and is not duplicated as a permanent “current” value |
-| Roadmap/HTML | local owner `HOLD / NOT PUBLISHED`; excluded from the docs sync |
-| Protection snapshot, 2026-08-31 | PR + conversation resolution required; admins enforced; bypass, force-push and deletion disabled; required status checks not configured |
+## Worktree manifest C0
 
-Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. GitHub
-принятый опубликованный канон определяется exact revision из live readback
-защищённой `main`. Содержащая этот документ revision является каноном только
-если она достижима из прочитанной remote `main`; подвижные refs/PR status здесь
-не дублируются. Nobus Memory хранит pointer/status, а не копию репозитория.
-
-## 2. Working tree ownership
-
-- Документационная актуализация выполняется только в isolated docs worktree;
-  product/runtime code и tests не затрагиваются.
-- Локальный checkout `main` содержит пользовательский WIP и не используется как
-  publication source; его изменения не stash/reset/commit/merge этой задачей.
-- Product candidate и dirty Gate 1 WIP сохраняются в своих worktrees без
-  изменений.
-- Credentials, tokens, live runtime, refs, bundles, stash и recovery не
-  изменяются.
-
-## 3. Registered worktrees
-
-Этот раздел — snapshot ролей на 31 августа, а не обещание постоянного числа.
-Перед любой операцией точный состав повторно читается командой
-`git worktree list --porcelain`.
-
-| Worktree/ref | Role | Rule |
+| Worktree / branch | HEAD при preflight | Роль и граница |
 |---|---|---|
-| canonical repo / local `main` @ `f18a664...` | 20-path mixed WIP, включая непубликуемые roadmap/HTML | preserve; не использовать для публикации и не переносить целиком |
-| `docs/mvp1-product-readiness` @ `c70738c...` | clean historical PR #4 worktree | reference only; behind protected `main` на snapshot |
-| `docs/mvp1-status-g7-ready` from `d7e2b827...` | isolated docs-only sync | разрешены только активные docs из exact allowlist |
-| `agent/gate-01-acceptance` @ `db0a24e...` | 86-path dirty Gate 1 WIP | `HOLD / NOT_ACCEPTED`; сохранить замороженным, целиком не сливать |
-| `codex/mvp1-release-continuation` @ `61b5a5e...` | clean G2–G6 product candidate | источник кода/evidence; не опубликован и не deployed |
+| canonical `nobus-orchestrator-dev` / `main` | `f18a664f2fab2fbd193e894bc93d5624683badf2` | dirty local WIP; источник только для exact-reviewed editorial files; не base, не изменять |
+| `.runtime/worktrees/mvp1-closure-c0-truth-contract` / `codex/mvp1-closure-c0-truth-contract` | base `f5a9119cc0aa1bcce735a3c608f9751747002694` | единственный C0 implementation worktree |
+| `worktrees/telegram-live` / `codex/mvp1-g7-activation` | `f5a9119cc0aa1bcce735a3c608f9751747002694` | clean live claim; read-only, не редактировать |
+| `worktrees/gate-01-acceptance` / `agent/gate-01-acceptance` | `db0a24e8d7be8b1d1f1ddcd701d424c49164784e` | dirty historical Gate 1 WIP; `HOLD / NOT_ACCEPTED`, не импортировать целиком |
+| `.runtime/worktrees/mvp1-command-surface` | `14c80131b2a702d75f92abb4fe22d49ea6aa975c` | clean historical checkpoint; read-only |
+| `.runtime/worktrees/mvp1-owner-ui` | `a189ce1ac574df56bb8c934ceb7dd9839891b45e` | clean historical checkpoint; read-only |
+| `.runtime/worktrees/mvp1-release-docs` | `6f3a32c4a3e2c3fda46b410f23596e73c86b08ce` | clean historical checkpoint; read-only |
+| `.runtime/worktrees/mvp1-runtime-recovery` | `6e19d9e43d05c41a703abed1658a19d72a5f2678` | clean historical checkpoint; read-only |
+| `worktrees/docs-mvp1-product-readiness` | `c70738c2bee15a3b86e68d0c3720dfbf136748ab` | clean historical docs checkpoint; read-only |
+| `worktrees/docs-mvp1-status-g7-ready` | `a27c7460e02fa6a18852e6f09288206a24e8ccb5` | clean historical docs checkpoint; read-only |
 
-`gate-01-integration` больше не зарегистрирован и физически отсутствует; его
-ветка сохранена. Успешный recovery ранее сведённых worktree сохранён в
-TaskArtifacts. Snapshot не разрешает удаление любого оставшегося worktree.
+`git worktree list --porcelain` и отдельный dirty/untracked manifest были
+прочитаны до C0 edits. Ни один соседний worktree не менялся, не удалялся, не
+stash/reset/clean/rebase.
 
-## 4. Gate 1 recovery
+### Canonical dirty source manifest до C0
 
-Preserved safety refs:
+`M` (18): `README.md`, docs 01/02/03/04/08/11/14, `docs/README.md`, ADR 0022,
+`docs/gates/README.md`, `docs/handoffs/CURRENT-STATUS.md`,
+`docs/handoffs/WORKSPACE-INVENTORY.md`, `scripts/run_telegram_mvp1.py`,
+`src/application/miniapp.py`, `src/application/runtime_maintenance.py`,
+`tests/test_documentation.py`, `tests/test_telegram_mvp1_runner.py`.
 
-- `refs/nobus-safety/gate1-canonical-dirty-preimage-20260822` @
-  `a3ca39aa...`;
-- `refs/nobus-safety/gate1-canonical-dirty-stash-20260822` @
-  `8270192a...`;
-- `refs/nobus-safety/gate1-wip-pause-20260822` @ `560413fe...`;
-- `refs/nobus-safety/gate1-wip-pause-20260822-02` @ `c181876a...`;
-- `refs/nobus-safety/gate1-wip-pause-20260822-03` @ `4a97d02e...`;
-- `refs/nobus-safety/gate1-wip-pause-20260822-04` @
-  `73958b72a17cda01f435905c12d1e6118477d299`.
+`??` (2): `docs/15-Продуктовая-дорожная-карта.md` и
+`docs/16-Управленческая-карта-разработки.html`.
 
-Initial read-only audit matched six recovery bundles to these refs and verified
-them with `git bundle verify`. Recovery refs, bundles, stash and the 86-path
-working tree are data sources for a later recovery/reuse cycle, not current
-accepted code.
+C0 не переносил modified code/runtime/tests/ADR 0022 или другие modified docs.
+Из untracked source были импортированы только docs 15/16 по exact hashes ниже.
 
-## 5. Historical sealed evidence
+## Exact base и publication state
 
-- Gate 0 result commit:
-  `f5086b2a71a9ae22be3c858ff69453287f6925da`;
-- result tree:
-  `2e3248eb295b1627d36f196c26dfc21c6ebd90fd`;
-- 20 `required_sources` in the unchanged normative catalog;
-- all Gate 0 acceptance/evidence/manifests/corpus/verification remain
-  historical and immutable.
+- remote `refs/heads/main`: `f5a9119cc0aa1bcce735a3c608f9751747002694`;
+- remote annotated tag object `v1.0.1`:
+  `1322e922968d938194f689851c204ac551e6822b`;
+- peeled `v1.0.1^{commit}`: `f5a9119cc0aa1bcce735a3c608f9751747002694`;
+- release tree: `01f6399fbbeca20d4c956482776329a9ee8adc20`;
+- C0 branch начата от exact remote main, а не от dirty local `main`;
+- C0 не выполняет push, PR, merge, tag, release, deploy или runtime mutation.
 
-No Gate 0 artifact is regenerated by ADR 0022.
+## Editorial import manifest
 
-## 6. Cleanup boundary
+До импорта source dirty checkout был зафиксирован. В C0 перенесены только два
+целых файла, после чего их hashes повторно совпали:
 
-This inventory is not a deletion manifest. Worktree removal, ref/bundle/stash
-cleanup, recovery archive, cache cleanup and filesystem deletion require a
-separate exact target audit and applicable authorization. Broad recursive
-deletion and destructive Git history operations are prohibited.
+| Файл | Bytes | SHA-256 | Статус |
+|---|---:|---|---|
+| `docs/15-Продуктовая-дорожная-карта.md` | 200633 | `92c8abb64aebdc3363157aae00961bccc47c3491b3d7e8ab38901a3c768716bc` | exact whole-file import; `PUBLICATION HOLD` |
+| `docs/16-Управленческая-карта-разработки.html` | 84410 | `eb447fa7a1264c9272e9bb6619d021b6b7692808bb2a4188a053b3257faede46` | exact whole-file import; `PUBLICATION HOLD` |
+
+Код/runtime/tests из dirty checkout не копировались. После manifest все
+редакции выполняются только в C0 worktree.
+
+## Historical sealed Gate 0
+
+- result commit: `f5086b2a71a9ae22be3c858ff69453287f6925da`;
+- каталог `docs/gates/gate-00-product-contract-baseline/**` immutable;
+- все 20 `required_sources` совпали со своими SHA-256 catalog entries;
+- C0 дополнительно сравнивает весь каталог с published base `f5a9119...`.
+
+ADR 0023 forward-only: historical evidence и старые ADR не переписываются.
+
+## Recovery boundary
+
+Safety refs, bundles, stash, dirty Gate 1 WIP и прочие recovery artifacts не
+являются C0 scope. Они сохраняются без изменений до отдельного exact target
+audit и применимой авторизации. Никакой broad cleanup не разрешён.
+
+## Управление работой
+
+**Один Gate = одна Codex-задача = один пользовательский чат.** Внутренние
+Txx/Cxx и прежние R01–R47 не создают отдельные пользовательские чаты. Active
+closure-roadmap — C0, C1, C2, C3, C4, C5, C6; `MVP-2 HOLD` до принятого C6.
+
+**C0 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY.**

@@ -1,0 +1,394 @@
+{
+  "registry_version": "1.0.0",
+  "status": "ACCEPTED_TARGET",
+  "published_base": "f5a9119cc0aa1bcce735a3c608f9751747002694",
+  "runtime_binding": "UNVERIFIED",
+  "decision_order": [
+    "TRUST_VIOLATION",
+    "POLICY_PROHIBITED",
+    "AMBIGUITY",
+    "HETEROGENEOUS_CAPABILITIES",
+    "IMPLEMENTATION_STATE",
+    "APPROVAL_REQUIRED",
+    "EXECUTE_ALLOWED"
+  ],
+  "capabilities": [
+    {
+      "id": "task.answer.general",
+      "semantic_operation_kinds": [
+        "respond"
+      ],
+      "owner_visible_outcome": "Получить обычный текстовый ответ по принятой задаче.",
+      "implementation_state": "CURRENT",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "existing Core -> general answer worker -> verified outbox",
+      "dependencies": [
+        "trusted durable intake",
+        "TaskContract",
+        "queue",
+        "worker",
+        "outbox"
+      ],
+      "effect_type": "no_effect",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "tenant/task/revision-bound verified result in authoritative outbox",
+      "safe_failure": "FAILED or UNAVAILABLE without fabricated result",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "git://f5a9119/src/application/telegram_product.py",
+        "git://f5a9119/src/application/durable_runtime.py"
+      ],
+      "known_limitations": [
+        "Current admission can falsely reject material containing unreleased-intent keywords."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "content.transform",
+      "semantic_operation_kinds": [
+        "transform_material"
+      ],
+      "owner_visible_outcome": "Преобразовать предоставленный материал в запрошенный текстовый формат, включая готовый промт.",
+      "implementation_state": "CURRENT",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "canonical owner text -> existing general answer worker",
+      "dependencies": [
+        "trusted durable intake",
+        "provided material boundary",
+        "TaskContract",
+        "worker"
+      ],
+      "effect_type": "no_effect",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "verified result bound to the accepted task and source-material refs",
+      "safe_failure": "one clarification or explicit unavailable state; no nested operation executes",
+      "owning_gate": "C1",
+      "evidence_refs": [
+        "git://f5a9119/tests/test_telegram_product.py",
+        "owner://incident/2026-09-02-sanitized"
+      ],
+      "known_limitations": [
+        "False semantic reject reproduced by the pre-admission keyword/regex boundary."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "input.voice.transcribe.local",
+      "semantic_operation_kinds": [],
+      "owner_visible_outcome": "Преобразовать голос владельца в canonical text локально.",
+      "implementation_state": "CURRENT",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "Telegram voice -> Faster-Whisper -> canonical owner text",
+      "dependencies": [
+        "durable voice intake",
+        "local Faster-Whisper model",
+        "voice temp lifecycle"
+      ],
+      "effect_type": "no_effect",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "validated transcript associated with the original trusted voice envelope",
+      "safe_failure": "voice-specific unavailable state without guessing transcript",
+      "owning_gate": "C2",
+      "evidence_refs": [
+        "git://f5a9119/src/voice",
+        "git://f5a9119/src/application/telegram_product.py"
+      ],
+      "known_limitations": [
+        "Russian qualification and text/voice semantic parity remain open in C2."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "task.status.read",
+      "semantic_operation_kinds": [],
+      "owner_visible_outcome": "Прочитать безопасный статус и существенные события своей задачи.",
+      "implementation_state": "CURRENT",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "owner-bound read -> authoritative task projection",
+      "dependencies": [
+        "owner/tenant/task binding",
+        "task state",
+        "event projection"
+      ],
+      "effect_type": "read_internal",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "current authoritative task revision and bounded event projection",
+      "safe_failure": "safe unavailable without foreign-task existence leak",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "git://f5a9119/src/application/miniapp.py"
+      ],
+      "known_limitations": [
+        "Telegram /status completeness must be requalified in C3."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "artifact.owner.deliver",
+      "semantic_operation_kinds": [],
+      "owner_visible_outcome": "Получить tenant/task-bound результат и artifact в Telegram или Mini App.",
+      "implementation_state": "CURRENT",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "verified outbox -> owner-bound Telegram/Mini App delivery",
+      "dependencies": [
+        "verified result",
+        "artifact digest",
+        "owner/tenant/task/revision binding"
+      ],
+      "effect_type": "write_owner_delivery",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "outbox delivery receipt plus byte/digest readback",
+      "safe_failure": "delivery unknown is retained for reconciliation without repeating worker/effect",
+      "owning_gate": "C4",
+      "evidence_refs": [
+        "git://f5a9119/src/application/product_delivery.py",
+        "git://f5a9119/src/application/miniapp.py"
+      ],
+      "known_limitations": [],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "semantic.compile.modality_neutral",
+      "semantic_operation_kinds": [],
+      "owner_visible_outcome": "Понять одинаковый смысл текста и voice-transcript одинаково.",
+      "implementation_state": "TARGET",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "tool-less compiler -> SemanticProposal -> CoreDecision",
+      "dependencies": [
+        "SemanticProposal 1.0.0",
+        "Capability Registry 1.0.0",
+        "deterministic Core policy"
+      ],
+      "effect_type": "no_effect",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "frozen corpus result and shadow comparison bound to contract versions",
+      "safe_failure": "one clarification, unavailable or refusal; never keyword-derived execution",
+      "owning_gate": "C1",
+      "evidence_refs": [
+        "adr://0023",
+        "contract://semantic-admission/1.0.0"
+      ],
+      "known_limitations": [
+        "NOT IMPLEMENTED in C0."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "task.cancel",
+      "semantic_operation_kinds": [
+        "cancel_task"
+      ],
+      "owner_visible_outcome": "Отменить точно выбранную текущую задачу.",
+      "implementation_state": "TARGET",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "requested cancel operation -> Core task binding -> cancellation state transition",
+      "dependencies": [
+        "exact owner/tenant/task binding",
+        "cancellable state",
+        "idempotent transition"
+      ],
+      "effect_type": "control_internal",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "authoritative cancellation transition for the exact task revision",
+      "safe_failure": "clarify target or report non-cancellable state without affecting another task",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "adr://0023"
+      ],
+      "known_limitations": [
+        "Direct natural cancel admission is NOT IMPLEMENTED."
+      ],
+      "privileged_operation": true,
+      "authority_requirement": "verified TrustedAdmissionContext: direct owner provenance, owner/tenant/conversation/current-intake binding, verified refs; then independent Core policy"
+    },
+    {
+      "id": "web.public.read",
+      "semantic_operation_kinds": [
+        "read_public_information"
+      ],
+      "owner_visible_outcome": "Прочитать актуальные публичные источники с проверяемыми ссылками.",
+      "implementation_state": "FROZEN",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "bounded public-web read profile",
+      "dependencies": [
+        "network allowlist",
+        "source evidence",
+        "deadline and budget"
+      ],
+      "effect_type": "read_external",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "opened-source evidence bound to the answer",
+      "safe_failure": "UNAVAILABLE; no invented current facts or citations",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "git://f5a9119/src/application/telegram_product.py",
+        "git://f5a9119/docs/handoffs/CURRENT-STATUS.md"
+      ],
+      "known_limitations": [
+        "Adapter code exists but the published MVP-1 runner excludes the route."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "owner.file.read",
+      "semantic_operation_kinds": [],
+      "owner_visible_outcome": "Прочитать точный разрешённый файл владельца через server-owned boundary.",
+      "implementation_state": "FROZEN",
+      "policy_state": "ALLOWED",
+      "minimum_route_profile": "metadata-first owner file adapter -> bounded read",
+      "dependencies": [
+        "allowlisted root",
+        "path and digest binding",
+        "DLP"
+      ],
+      "effect_type": "read_external",
+      "approval_requirement": "none",
+      "authoritative_success_evidence": "selected file digest and bounded extraction evidence",
+      "safe_failure": "UNAVAILABLE without path or existence disclosure",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "git://f5a9119/src/application/owner_files.py"
+      ],
+      "known_limitations": [
+        "Not composed into the published MVP-1 command surface."
+      ],
+      "privileged_operation": false,
+      "authority_requirement": "verified TrustedAdmissionContext and independent Core mapping/policy; model role alone is never authority"
+    },
+    {
+      "id": "owner.file.create",
+      "semantic_operation_kinds": [
+        "create_file"
+      ],
+      "owner_visible_outcome": "Создать новый owner-visible файл в разрешённом output boundary.",
+      "implementation_state": "FROZEN",
+      "policy_state": "REQUIRES_APPROVAL",
+      "minimum_route_profile": "Core-owned artifact plan -> bounded owner workspace adapter",
+      "dependencies": [
+        "exact destination",
+        "collision policy",
+        "idempotency",
+        "readback"
+      ],
+      "effect_type": "write_external",
+      "approval_requirement": "owner_action_bound",
+      "authoritative_success_evidence": "atomic write receipt plus exact byte/digest readback",
+      "safe_failure": "UNAVAILABLE before approval; no file is created or overwritten",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "git://f5a9119/src/application/owner_workspace.py",
+        "adr://0017"
+      ],
+      "known_limitations": [
+        "Not composed into the published MVP-1 command surface."
+      ],
+      "privileged_operation": true,
+      "authority_requirement": "verified TrustedAdmissionContext: direct owner provenance, owner/tenant/conversation/current-intake binding, verified refs; then independent Core policy"
+    },
+    {
+      "id": "calendar.event.write",
+      "semantic_operation_kinds": [
+        "write_calendar_event"
+      ],
+      "owner_visible_outcome": "Создать или изменить точно определённое событие календаря.",
+      "implementation_state": "FROZEN",
+      "policy_state": "REQUIRES_APPROVAL",
+      "minimum_route_profile": "Core-owned calendar proposal -> action-bound approval -> adapter",
+      "dependencies": [
+        "current Google authorization",
+        "exact calendar/event",
+        "idempotency",
+        "reconciliation"
+      ],
+      "effect_type": "write_external",
+      "approval_requirement": "owner_action_bound",
+      "authoritative_success_evidence": "provider receipt and exact event readback",
+      "safe_failure": "UNAVAILABLE or approval-required; unknown write is not retried blindly",
+      "owning_gate": "C3",
+      "evidence_refs": [
+        "git://f5a9119/src/application/product_effects.py",
+        "adr://0017"
+      ],
+      "known_limitations": [
+        "Not composed into the published MVP-1 command surface."
+      ],
+      "privileged_operation": true,
+      "authority_requirement": "verified TrustedAdmissionContext: direct owner provenance, owner/tenant/conversation/current-intake binding, verified refs; then independent Core policy"
+    },
+    {
+      "id": "security.secret.exfiltration",
+      "semantic_operation_kinds": [
+        "disclose_secret"
+      ],
+      "owner_visible_outcome": "Передача секретов или credentials внешнему получателю.",
+      "implementation_state": "UNAVAILABLE",
+      "policy_state": "PROHIBITED",
+      "minimum_route_profile": "none",
+      "dependencies": [],
+      "effect_type": "write_external",
+      "approval_requirement": "not_applicable",
+      "authoritative_success_evidence": "none; operation is prohibited",
+      "safe_failure": "REFUSE without reading, copying or revealing the secret",
+      "owning_gate": "C1",
+      "evidence_refs": [
+        "policy://global/secrets",
+        "adr://0023"
+      ],
+      "known_limitations": [],
+      "privileged_operation": true,
+      "authority_requirement": "verified TrustedAdmissionContext: direct owner provenance, owner/tenant/conversation/current-intake binding, verified refs; then independent Core policy"
+    },
+    {
+      "id": "marketplace.campaign.write",
+      "semantic_operation_kinds": [
+        "write_marketplace_campaign"
+      ],
+      "owner_visible_outcome": "Изменить или запустить рекламную кампанию маркетплейса.",
+      "implementation_state": "UNAVAILABLE",
+      "policy_state": "REQUIRES_APPROVAL",
+      "minimum_route_profile": "none in MVP-1",
+      "dependencies": [
+        "separate product scope",
+        "cabinet binding",
+        "financial controls",
+        "authoritative receipt"
+      ],
+      "effect_type": "write_external",
+      "approval_requirement": "owner_action_bound",
+      "authoritative_success_evidence": "cabinet readback bound to the approved mutation",
+      "safe_failure": "UNAVAILABLE; no cabinet call or implied success",
+      "owning_gate": "POST_C6",
+      "evidence_refs": [
+        "adr://0023"
+      ],
+      "known_limitations": [
+        "Outside MVP-1 closure and not implemented."
+      ],
+      "privileged_operation": true,
+      "authority_requirement": "verified TrustedAdmissionContext: direct owner provenance, owner/tenant/conversation/current-intake binding, verified refs; then independent Core policy"
+    }
+  ],
+  "admission_binding_policy": {
+    "model_operation_role_authoritative": false,
+    "required_server_bindings": [
+      "current durable intake membership",
+      "owner",
+      "tenant",
+      "conversation",
+      "intake revision",
+      "source boundary",
+      "operation span provenance"
+    ],
+    "reference_failure": "TRUST_VIOLATION -> REFUSE; selected_capability=null; no TaskContract; no effect",
+    "privileged_operation_rule": "Model role=requested/conditional is necessary but insufficient; trusted provenance must be DIRECT_OWNER_COMMAND with OWNER_REQUESTED or OWNER_CONDITIONAL, every reference must be VERIFIED, and Core policy must independently allow the capability.",
+    "heterogeneous_task_rule": "If authoritative requested/conditional operations map to more than one distinct capability, decide HETEROGENEOUS_CAPABILITIES with reason HETEROGENEOUS_COMPOUND_UNSUPPORTED_V1, selected_capability=null, no partial TaskContract and no effect.",
+    "conditional_predicate_rule": "Only one conditional operation is allowed in contract v1 and only with the closed material_item_state_exists predicate; Core's server evaluator produces TRUE/FALSE/UNKNOWN. FALSE and UNKNOWN create no TaskContract, approval or effect; only TRUE may continue to approval/execute."
+  }
+}

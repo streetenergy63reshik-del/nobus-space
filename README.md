@@ -4,10 +4,15 @@ Nobus Space развивается как owner-bound Telegram-оркестра�
 тонким Telegram Mini App поверх существующего локального Windows Core/Codex
 runtime.
 
-Активное архитектурное решение:
-[ADR 0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
+**CURRENT — 2 сентября 2026:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED /
+ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`;
+`MVP-2 HOLD`.
 
-## Publication binding — 31 августа 2026 года
+Активные архитектурные решения: [ADR 0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
+сохраняет thin topology, а forward [ADR 0023](docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
+задаёт принятый target semantic admission.
+
+## Publication binding — readback C0, 2 сентября 2026 года
 
 - репозиторий `streetenergy63reshik-del/nobus-space` публичный;
 - принятый опубликованный канон — exact revision, достижимая из защищённой
@@ -15,10 +20,9 @@ runtime.
 - содержащая этот файл revision вне защищённой `main` является
   `GATE_CANDIDATE`; после разрешённого merge и проверки достижимости та же
   revision становится частью `ACCEPTED_PUBLISHED_BASELINE`;
-- published base, от которой собран локальный product candidate:
-  protected `main` @ `d7e2b8275f20a1a261bbf541573f76db82240901`,
-  подтверждённый fetch/readback 31 августа 2026 года; актуальный tip `main`
-  определяется live readback и не дублируется в этом файле;
+- exact protected `main` и peeled annotated tag `v1.0.1` прочитаны как
+  `f5a9119cc0aa1bcce735a3c608f9751747002694`; tag object —
+  `1322e922968d938194f689851c204ac551e6822b`;
 - архитектура опубликована через PR
   [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1),
   Mini App auth/list/detail/create и Gate 0 integrity repair — через PR
@@ -29,12 +33,12 @@ runtime.
   [#4](https://github.com/streetenergy63reshik-del/nobus-space/pull/4),
   финальный owner-product и изоляция внутренних уведомлений — через PR
   [#6](https://github.com/streetenergy63reshik-del/nobus-space/pull/6);
-- снимок защиты `main`, повторно прочитанный 31 августа 2026 года: требуется
-  pull request и
-  закрытие всех обсуждений, запрещены bypass, force-push и удаление ветки;
-  обязательные status checks не настроены;
-- локальный owner-bound Telegram/Core/Codex runtime существует; точное live
-  состояние процессов в этой docs-задаче не проверялось;
+- GitHub branch API подтверждает `protected=true`; endpoint details вернул
+  `401`, а Checks API и status contexts пусты, поэтому точная protection/checks
+  policy не считается доказанной;
+- clean `telegram-live` checkout совпадает с release, однако Scheduled Task
+  отключена, matching процесс отсутствует, public health/readiness возвращают
+  `502`; deployment identity остаётся `UNVERIFIED`;
 - Gate 0 принят как исторический sealed snapshot @
   `f5086b2a71a9ae22be3c858ff69453287f6925da`; его 20 digest-bound sources
   не изменяются;
@@ -54,9 +58,11 @@ Git-репозиторий — источник истины для code/tests/A
 
 ## Продуктовый статус — 2 сентября 2026 года
 
-**MVP-1 READY.**
+**MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED.**
+**DEPLOYMENT REVISION UNVERIFIED. MVP-2 HOLD.**
 
-Один опубликованный и активированный release:
+До incident был опубликован и принят release. Следующие пункты — historical
+pre-incident evidence, а не текущий verdict:
 
 1. содержит согласованные backend и frontend;
 2. проходит полный local/integration journey;
@@ -65,24 +71,25 @@ Git-репозиторий — источник истины для code/tests/A
 5. возвращает одну task identity, status, verified result и реальный artifact;
 6. проходит negative/restart/recovery, bounded owner smoke и release rollback.
 
-Release развёрнут за `https://app.nobusspace.com`, а exact-owner Telegram menu
+Release ранее наблюдался за `https://app.nobusspace.com`, а exact-owner Telegram menu
 ссылается на этот Mini App. Core, SQLite и Codex остаются на owner Windows PC;
 VPS держит только Cloudflare Tunnel и restricted reverse relay. Public
 health/readiness, fail-closed `502` при остановке Core, owner-bound
 create/status/result/artifact, Telegram byte parity, restart/recovery и
 rollback прошли. Владелец открыл Mini App из Telegram, создал и просмотрел
 задачу и подтвердил итоговый интерфейс после исправлений списка, карточки,
-названия и формы «Новая».
+названия и формы «Новая». Более поздняя owner-проверка переоткрыла acceptance:
+transform supplied material был ложно распознан как запрос недоступных
+операций и отклонён одинаково для text и успешного voice transcript.
 
 Внутренний Codex worker продукта отделён от глобального notifier основной
 Codex Desktop задачи: он не отправляет служебные уведомления в `Codex work`, а
 marker-like блоки удаляются или отклоняются до durable state, verifier,
 артефакта, Mini App и Telegram delivery. Глобальное правило уведомлений
 primary/root задач Codex Desktop не изменено. Exact code checkpoint
-`14c80131b2a702d75f92abb4fe22d49ea6aa975c` опубликован через PR #6 и
-прочитан обратно из protected `main`; release-relevant suite и независимые
-L2/L3 зелёные. Финальная patch-публикация с активным recovery и скрытым
-Windows runner фиксируется тегом `v1.0.1` по containing-revision rule.
+`14c80131b2a702d75f92abb4fe22d49ea6aa975c` был опубликован через PR #6;
+финальный annotated tag `v1.0.1` указывает на `f5a9119...`. Эти проверки не
+доказывают новый semantic target или текущую active deployment revision.
 Редакционная продуктовая roadmap и её HTML-представление остаются на owner
 publication hold и не входят в этот docs-only release.
 
@@ -138,9 +145,9 @@ authority, bot secret или Agent Registry.
 - `src/main.py` не используется новым boundary и остаётся старым
   демонстрационным API.
 
-Исходный Git slice развёрнут в составе опубликованного MVP-1 вместе с
-status/result/artifact, product composition и public HTTPS. Актуальная
-release-привязка и результаты readback ведутся в `CURRENT-STATUS`.
+Исходный Git slice был развёрнут в составе опубликованного MVP-1 вместе с
+status/result/artifact, product composition и public HTTPS. Текущая active
+revision не доказана; release-привязка и readback ведутся в `CURRENT-STATUS`.
 
 ## Локальный product composition
 
