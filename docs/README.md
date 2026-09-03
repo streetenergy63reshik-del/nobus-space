@@ -1,7 +1,7 @@
 # Документация Nobus Space
 
 **Статус:** CANONICAL INDEX
-**Актуально на:** 2 сентября 2026 года
+**Актуально на:** 3 сентября 2026 года
 
 **CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED /
 PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
@@ -16,9 +16,11 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 Единственная подвижная реализационная проекция —
 [CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
-evidence сохранены, но acceptance переоткрыта; current READY claim remote docs
-классифицирован как `STALE PUBLISHED CLAIM / PUBLICATION PENDING AUTHORIZATION`.
-Deployment revision не доказана. MVP-2 находится на HOLD.
+evidence сохранены, но acceptance переоткрыта. Historical READY claim
+superseded на protected `main` C0-публикацией
+[PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @
+`70085f8bdf20d139edf042bffa2a1169daf6791c`; deployment revision не доказана,
+MVP-2 находится на HOLD.
 
 Редакционная продуктовая roadmap и HTML-визуализация импортированы в C0 exact
 whole-file и остаются локальным `PUBLICATION HOLD / NOT PUBLISHED`.
