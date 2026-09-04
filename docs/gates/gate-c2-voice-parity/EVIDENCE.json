@@ -117,7 +117,7 @@
     "plan": "tests/gate_c2/qualification/PLAN.md",
     "plan_sha256": "640661fcd5f3922f415553cc47bc7773af218fc4747d7419690573297107b465",
     "files_sha256": {
-      "DEVELOPMENT-RESULTS.json": "62c70a62ed0bfe6b1f63557b083ac332b509559cc97a8bb6ff870494ea6292a8",
+      "DEVELOPMENT-RESULTS.json": "eada03d158cb71d43953057518c464d419f58b07c33200cb6b8049f5b7f996ef",
       "BENCHMARK-MANIFEST.json": "c401e33e844c9f56e0fdc6d1f9610077c91f16f5adb4ea494874512652ab636b",
       "BENCHMARK-RESULTS.json": "7c6fe2d6127c8bec2cc595865b18329d7d41f4e1cb988ca96e1e7a72b1f9aeb1"
     },
@@ -125,7 +125,7 @@
     "dev_samples": 16,
     "holdout_samples": 16,
     "holdout_recognized": false,
-    "failed_variants": 6,
+    "failed_variants": 7,
     "engine_families": 2,
     "critical_errors_by_variant": {
       "CURRENT": 5,
@@ -133,7 +133,8 @@
       "fw-neutral": 4,
       "fw-wide": 4,
       "fw-plain": 5,
-      "fw-small": 2
+      "fw-small": 2,
+      "fw-small-beam1": 2
     },
     "raw_semantics": {
       "CURRENT": {
@@ -236,6 +237,99 @@
       "independent_semantics": "NOT RUN: hard failure already decisive; no claimed semantic PASS",
       "holdout_recognized": false,
       "continuation": "One dev pass ended; no config search"
+    },
+    "small_beam1_development_result": {
+      "candidate": "fw-small-beam1",
+      "split": "development",
+      "passes": 1,
+      "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+      "run_sha256": "501c4ebf7c2080b240aab7eec1969d71612687efe3d4ccb153fe7542d47d862b",
+      "score_sha256": "6cb3e3aa2618b33b2201758102579cb4e372a1461cd7a93c26d6217a5ed9dd3f",
+      "freeze_sha256": "1fc7608eacdea365b34283922e447a9d901563a62a484126bd0422fcf273f9d3",
+      "authorization_sha256": "fa84b96aff9cf533add27e59c82d9ed435d34a10536290e1218cf279b8cc7ac7",
+      "summary": {
+        "samples_iteration0": 16,
+        "observations": 16,
+        "wer": 0.08849557522123894,
+        "cer": 0.021573604060913704,
+        "critical_token_errors_iteration0": 2,
+        "critical_token_errors_all_passes": 2,
+        "latency_p50": 2.5792344500368927,
+        "latency_p95": 7.022141100023873,
+        "timing_observations": 16,
+        "missing_or_invalid_timing_rows": 0,
+        "raw_rtf_p95": 0.5808777073620053,
+        "per_file_budget_exceeded": 0,
+        "measurement_error_rows": 0,
+        "semantic_exact_raw": null,
+        "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+        "asr_decision": "NOT_EVALUATED_BY_SCORER"
+      },
+      "supervisor": {
+        "outcome": "EXITED",
+        "child_exit_code": 0,
+        "elapsed_seconds": 50.63092399999732,
+        "error": null,
+        "reservation_seconds": 150.0,
+        "process_cold_seconds": 4.818859499995597,
+        "job_final_stats": {
+          "cpu_seconds": 194.765625,
+          "peak_job_memory_bytes": 2922139648,
+          "peak_process_memory_bytes": 2781388800,
+          "total_processes": 3,
+          "active_processes": 0,
+          "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+        },
+        "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+        "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+        "cumulative_ledger_sha256": "9fd66843d084f53046477b4262f7d7db3d30b99de773f578ac83d0d738945f28"
+      },
+      "configuration": {
+        "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+        "device": "cpu",
+        "compute_type": "int8",
+        "local_files_only": true,
+        "language": "ru",
+        "beam_size": 1,
+        "patience": 1.2,
+        "vad_filter": true,
+        "condition_on_previous_text": true,
+        "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+        "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+      },
+      "hard_threshold_result": "FAIL",
+      "causes": [
+        "critical_token_errors 2 > 0",
+        "raw warm RTF p95 0.5808777074 > 0.5"
+      ],
+      "critical_mismatch_cases": [
+        {
+          "id": "cancel",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "отмени",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        },
+        {
+          "id": "domain",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "nobus",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        }
+      ],
+      "independent_semantics": "NOT RUN: hard failures already decisive; no semantic PASS claim",
+      "one_change_verified": "only beam_size8 to1; all remaining decoder settings, model, audio, gold and thresholds unchanged",
+      "holdout_recognized": false,
+      "continuation": "one separately authorized dev run completed; no automatic further configuration search"
     }
   },
   "authorizations": {
@@ -267,7 +361,7 @@
       "product_result": "B02 NOT PROVEN; actual voice preview only; task0/compiler0 before confirmation"
     },
     "small": {
-      "status": "GRANTED IN THIS TASK; ONE DEV EXPERIMENT COMPLETED; HARD FAIL",
+      "status": "GRANTED; FIRST DEV AND ONE SEPARATELY AUTHORIZED BEAM1 DEV COMPLETED; BOTH HARD FAIL",
       "plan_sha256": "bec495a5dbb494a081c47ba4ac1d7dff1f185e9cdf2787c22ae2756c1ded4e13",
       "candidate": {
         "repository": "Systran/faster-whisper-small",
@@ -383,9 +477,9 @@
       "owner_reply": "Разрешаю в указанных пределах",
       "authorization_sha256": "082692c9003d61bd5bf67b083e1425a30347dae1886231d694f75fe88283ef73",
       "charged_download_payload_bytes": 486217682,
-      "used_seconds": 78.52062520000618,
-      "remaining_seconds": 1121.4793747999938,
-      "execution_ledger_sha256": "d47b143264b384f2c9e0a4d18f28fe6f4f507fc1f511a40a1c83714251446093",
+      "used_seconds": 129.1515492000035,
+      "remaining_seconds": 1070.8484507999965,
+      "execution_ledger_sha256": "9fd66843d084f53046477b4262f7d7db3d30b99de773f578ac83d0d738945f28",
       "download_receipt_sha256": "39aea79df86d200f237a23ff1c9d930444bada020526b91aa63fe4a12a9c5029",
       "model_content_sha256": {
         "model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
@@ -395,17 +489,19 @@
         "README.md": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8"
       },
       "disk_bytes_at_check": 486313117,
-      "stop_rule": "No further configuration or holdout execution under this completed experiment"
+      "stop_rule": "No further configuration or holdout execution after beam1 hard failure",
+      "completed_dev_runs": 2,
+      "beam1_authorization_sha256": "fa84b96aff9cf533add27e59c82d9ed435d34a10536290e1218cf279b8cc7ac7"
     }
   },
   "blockers": {
-    "C2-B01": "Six variants from two families failed; small one-pass dev: critical2 and raw RTFp95 0.792; no qualified selection",
+    "C2-B01": "Seven variants from two families failed; small beam1: critical2 and raw RTFp95 0.581; no qualified ASR",
     "C2-B02": "Full production compiler/downstream result and parity/recovery await viable ASR",
     "C2-B03": "LOCAL FIX; preserve for final candidate checks",
     "C2-B04": "LOCAL FIX; preserve for final candidate checks"
   },
   "next_steps": [
-    "Owner decision on one beam8-to1 experiment using existing small within the remaining budget; no new model/stack/download; otherwise stop",
+    "Owner decision on one independent Chirp3 cloud hypothesis and existing project for concrete preparation; no further small runs or cloud calls authorized",
     "If viable: select and finish unchanged 32-case qualification, integration/license/security/rollback",
     "B02 frozen rubric and actual production smoke within existing compiler and ASR budgets",
     "Coherent final commit/tree with own L1, independent L2 and adversarial L3",
@@ -809,35 +905,259 @@
     },
     "note": "RUNNER.md and a pure budget regression test were updated after the run; production, runner.py, gold, scorer and audio at execution remain exact-bound"
   },
-  "next_hypothesis": {
-    "status": "PROPOSED; NOT AUTHORIZED; NOT EXECUTED",
-    "hypothesis": "Reducing small beam_size from8 to1 may bring raw RTF p95 within0.5 while retaining or improving recognition; critical errors must still be0, otherwise FAIL",
-    "evidence_basis": {
-      "small_wer": 0.06637168141592921,
-      "critical_errors": 2,
-      "raw_rtf_p95": 0.7916341935035205,
-      "cold_seconds": 7.651219099992886,
-      "model": "same acquired small snapshot"
+  "small_beam1_bindings": {
+    "head_at_freeze": "bb3abe59c8ddd0b9deaf904cc985b55d8ab3b317",
+    "tree_at_freeze": "380df8fcf0743db7a8096d3269504e88883b83a1",
+    "freeze_sha256": "1fc7608eacdea365b34283922e447a9d901563a62a484126bd0422fcf273f9d3",
+    "run_sha256": "501c4ebf7c2080b240aab7eec1969d71612687efe3d4ccb153fe7542d47d862b",
+    "score_sha256": "6cb3e3aa2618b33b2201758102579cb4e372a1461cd7a93c26d6217a5ed9dd3f",
+    "configuration": {
+      "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+      "device": "cpu",
+      "compute_type": "int8",
+      "local_files_only": true,
+      "language": "ru",
+      "beam_size": 1,
+      "patience": 1.2,
+      "vad_filter": true,
+      "condition_on_previous_text": true,
+      "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+      "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
     },
-    "one_change": {
-      "beam_size": {
-        "before": 8,
-        "after": 1
+    "authorization_sha256": "fa84b96aff9cf533add27e59c82d9ed435d34a10536290e1218cf279b8cc7ac7",
+    "source_sha256": {
+      "src/voice/isolated.py": "20a9feadcf236e1f8b24de90945b399e480467a16f73e79b7e3e9f23392088d9",
+      "src/voice/isolated_worker.py": "67c0c2887d318aeb61710eb8d3e600c373ae53250baa31ef51340bb1a2cd52ee",
+      "src/voice/faster_whisper.py": "22b54090f672950ea61ba19a2184b9e0fa40bff8132bc7cc68753d8b2f09831e",
+      "src/voice/base.py": "d3d28a13c0349b3ba30925369c943fa272cf4224ed04f1db4b93c7a239ed4f2d",
+      "src/voice/service.py": "2b2f2e5a8634e589049a7c5107a21738fd248a55f90383eed0e8b0d234484d5f",
+      "src/workers/windows_job.py": "738224e925adcbc05243727f68accec075b7a490515d1af165a97d6b3c6176c3",
+      "scripts/run_telegram_mvp1.py": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab"
+    },
+    "tool_sha256_at_run": {
+      "tests/gate_c2/qualification/CORPUS-GOLD.json": "575b6104ab0b6a6516f3dd3f089d092a6380eb36347e1e6b828c009d71cb72cf",
+      "tests/gate_c2/qualification/DEVELOPMENT.md": "b36bac642469949d0077c6f37b59cef76156c49465dc20052b6241f33b08f818",
+      "tests/gate_c2/qualification/fw-neutral.json": "cffaac197b1352f01579cd00407e810a399416f605ad0fdff20f6911908bcb03",
+      "tests/gate_c2/qualification/fw-plain.json": "588f880611e46433351bc1673c1730bfd7b5761476dffc29e89e407f05d6acec",
+      "tests/gate_c2/qualification/fw-wide.json": "afcfccc6b2c6183992270ff7edd71d98d125b31e5a411c4b09eb09b47f947186",
+      "tests/gate_c2/qualification/NORMALIZATION-GOLD.json": "b08ef5584326b19688de67b74f95a7d8ece31068fdb526a3e696f4df618efd52",
+      "tests/gate_c2/qualification/PLAN.md": "640661fcd5f3922f415553cc47bc7773af218fc4747d7419690573297107b465",
+      "tests/gate_c2/qualification/render.py": "48d31806c868cf172cc8a597cbbd38b7d8c3130fce5af5f7513c55e5d032385b",
+      "tests/gate_c2/qualification/render_tts.ps1": "bad6380574576f22af68104ee945a917c4eda02d3d6e95c1a480328994e56bc7",
+      "tests/gate_c2/qualification/RUNNER.md": "71a27c44a3b70230c17d5894ae5128c1cd5b478edb8fcd6839e1b75af4e6b0f5",
+      "tests/gate_c2/qualification/runner.py": "fa53a14bb5b0a03c31788b507cac9fb9c17afd1e25fbd710c15e54df347a7928",
+      "tests/gate_c2/qualification/scorer.py": "3ad608cf39a7aa87b55f0880e77bc3ef7e72a2f499cc8857e1c6c6638ff693b1",
+      "tests/gate_c2/qualification/test_tools.py": "199b6531fb66b4db1277acaddfd682b866aeb07291a2468564899e0828aa2200",
+      "tests/gate_c2/qualification/TOOLING.md": "ed45a3743efe5c20399c8fa8f66b7be066bca4af4efb63add26e7e56823ad3dc",
+      ".runtime/c2/closure/asr-design/freeze_small.py": "ac87af5bdca8914b32ea086bc562a990408d3a945bd98426d66f02cc9cd84a92",
+      ".runtime/c2/closure/asr-design/run_small.py": "0b502f210a2a3bfcd357f67df3fcb2b9bf2fe4fc0c910cb0eee14a1558dc4d9a"
+    },
+    "audio_sha256": {
+      "cancel": "7d4455e978857d2045220e22f40b169eb0a4c5f7af3691df5235e6d918308209",
+      "conditional": "b49351907c8414faa7c7b1a5bea677e9a92be13246e9fdca5363c6048c381c82",
+      "correction": "1e833a5c6537c39e52fb9035034134902ac2e959e95b8aa8c5e16d14038aab73",
+      "dates": "4a5e46b896613a13e366686b315ba01bb727e5543a642281af59b3e355d9122e",
+      "direct": "b93077931c11e15f325646093cb334ed523c5e13033e2e8ad6f35ae712310d2e",
+      "domain": "00df3d0225a5b37b275dc6b30361cf682a9ca6c6b3da774d70e41efa0167d743",
+      "long": "e43821a9805fc316892a3d87ce86a3c2c2c8941c5a2f26e118726b9c2dc8281d",
+      "names": "04c6f65f5554ed6a081524b47562692bd8e8985fc21efbbc757a296ba44284c4",
+      "negation": "27c8ae33ea1c0b1446ec9fdb54a99394109e2d9e2043e65ebe77b331a877c8d2",
+      "nested": "6c6db99c1fa6f9059950d39996fbfc3824bb9c7ef46499e8b39ddca15135321c",
+      "noise": "4d6894a734aa952ee9bd8cb50bf8e8c5b00492d3162946a29dda26f295337620",
+      "numbers": "dbe39c244d6d05f7e781e8ba05c0af20fccf949d1d652f397a85b36b30dd8c80",
+      "pause": "f54252758eaffa09b315b7128a11a1d0faa8b3efe64190263a399606f3e081cf",
+      "quiet": "fd5640c5dadc1dd06d3f3dfbdc0052732a271841b8acdaf5b32a771df15fee36",
+      "quoted": "4cd99f08c648eb12111a5865ca0d14d561db4578a9ceb6a5c8e9c39054d99a71",
+      "transform": "24672b14e473155e77b8c7df544d9491c7764e185fa3089423a0daf014f2a319",
+      "h_cancel": "80ded46d8339651766a3ac1f3e52d2491fb6611fe07a7a604fd8ca404bd08d12",
+      "h_conditional": "aaf8be3643b2a572234b7446923877f99958edc92df934471fee78a1ebad21cb",
+      "h_correction": "f8b0d466f881c56fe3e95e9e070a7143c2b07102bbced4e491046129626b5ea0",
+      "h_dates": "804209b71e20a290fbf265aeef8c7cc0e42a20a2f43e78e88de846e7fbaff831",
+      "h_direct": "8a0d9c4677f73e64160c10c4ca623995eb299d0c8b656402dc4249cb8baf3124",
+      "h_domain": "93e0344ae8c3384be7879fc0842670736444a9e8da07ad97ef73764d1e01dbb3",
+      "h_long": "252b06536882c677a56d0982f7ace3c41636c41c7ac86b3996eccfb07245c8ce",
+      "h_names": "694835963d6353f701bfc70a7922f1a1707ce3e6f57261d7c0d24598e68b26d9",
+      "h_negation": "572f6e753a99c24386227b7f70838a2f7413c0c2f6a49341bc9de08bf57c337e",
+      "h_nested": "dd03b68e1ac950e704de30e39ea5eb97f50787b02780e583ab3d6a6ee4e2344a",
+      "h_noise": "558434e120ec60010b1c6164223249d6876cad4e3adce7ecf0e29d18b732192c",
+      "h_numbers": "f94a4daef5644930ff6abc9c928f0bd2e63674ac9c999004b55b163a28fa4de1",
+      "h_pause": "b2b9a8a83ccc87220dbb38795a8e9197ae0650b49acc3be735b799e94f1a14db",
+      "h_quiet": "f3c7b01dafa60869433186562f78b882d0cdb0ababfad1e72b1639bb6e34b814",
+      "h_quoted": "8e397be6d205c8d8def32a373e2044c3bcec6e3f20db0126c586e4ad91aeab1c",
+      "h_transform": "c3f20faae38322434aece951932ee47b872564946c91a6b60f1766a4aeb9e517"
+    },
+    "note": "Subsequent documentation updates do not alter model, scorer, gold, audio, runner or production code"
+  },
+  "completed_hypotheses": [
+    {
+      "plan": {
+        "status": "PROPOSED; NOT AUTHORIZED; NOT EXECUTED",
+        "hypothesis": "Reducing small beam_size from8 to1 may bring raw RTF p95 within0.5 while retaining or improving recognition; critical errors must still be0, otherwise FAIL",
+        "evidence_basis": {
+          "small_wer": 0.06637168141592921,
+          "critical_errors": 2,
+          "raw_rtf_p95": 0.7916341935035205,
+          "cold_seconds": 7.651219099992886,
+          "model": "same acquired small snapshot"
+        },
+        "one_change": {
+          "beam_size": {
+            "before": 8,
+            "after": 1
+          }
+        },
+        "unchanged": "same model bytes, int8/ru/patience1.2/VAD/previous_text/initial_prompt/hotwords, gold, scorer, audio and thresholds",
+        "execution": "one dev16 pass including process-cold, at most150seconds reserved from the same cumulative ledger",
+        "new_download_bytes": 0,
+        "new_install": false,
+        "memory_bytes": 4294967296,
+        "logical_cpus": 4,
+        "current_used_seconds": 78.52062520000618,
+        "remaining_seconds": 1121.4793747999938,
+        "budget_extension_requested": false,
+        "authorization_needed": "one exact exception to the agreed stop-after-failed-dev boundary; existing1200s cap is not permission for config search",
+        "holdout": "closed unless a viable dev result and a new freeze precede opening",
+        "failure": "stop and retain exact result; no automatic further configurations",
+        "success_not_guaranteed": true
+      },
+      "plan_sha256": "1c1ccc3fadfa599e29d649f465ff41772d531a61bfea8c746610ae3b294958f2",
+      "authorization": "owner replied разрешаю in this task",
+      "result": "FAIL",
+      "result_bindings": {
+        "candidate": "fw-small-beam1",
+        "split": "development",
+        "passes": 1,
+        "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+        "run_sha256": "501c4ebf7c2080b240aab7eec1969d71612687efe3d4ccb153fe7542d47d862b",
+        "score_sha256": "6cb3e3aa2618b33b2201758102579cb4e372a1461cd7a93c26d6217a5ed9dd3f",
+        "freeze_sha256": "1fc7608eacdea365b34283922e447a9d901563a62a484126bd0422fcf273f9d3",
+        "authorization_sha256": "fa84b96aff9cf533add27e59c82d9ed435d34a10536290e1218cf279b8cc7ac7",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.08849557522123894,
+          "cer": 0.021573604060913704,
+          "critical_token_errors_iteration0": 2,
+          "critical_token_errors_all_passes": 2,
+          "latency_p50": 2.5792344500368927,
+          "latency_p95": 7.022141100023873,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.5808777073620053,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 50.63092399999732,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 4.818859499995597,
+          "job_final_stats": {
+            "cpu_seconds": 194.765625,
+            "peak_job_memory_bytes": 2922139648,
+            "peak_process_memory_bytes": 2781388800,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": "9fd66843d084f53046477b4262f7d7db3d30b99de773f578ac83d0d738945f28"
+        },
+        "configuration": {
+          "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+          "device": "cpu",
+          "compute_type": "int8",
+          "local_files_only": true,
+          "language": "ru",
+          "beam_size": 1,
+          "patience": 1.2,
+          "vad_filter": true,
+          "condition_on_previous_text": true,
+          "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+          "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+        },
+        "hard_threshold_result": "FAIL",
+        "causes": [
+          "critical_token_errors 2 > 0",
+          "raw warm RTF p95 0.5808777074 > 0.5"
+        ],
+        "critical_mismatch_cases": [
+          {
+            "id": "cancel",
+            "critical_token_errors": 1,
+            "critical_mismatches": [
+              {
+                "atom": "отмени",
+                "reference_count": 1,
+                "hypothesis_count": 0
+              }
+            ]
+          },
+          {
+            "id": "domain",
+            "critical_token_errors": 1,
+            "critical_mismatches": [
+              {
+                "atom": "nobus",
+                "reference_count": 1,
+                "hypothesis_count": 0
+              }
+            ]
+          }
+        ],
+        "independent_semantics": "NOT RUN: hard failures already decisive; no semantic PASS claim",
+        "one_change_verified": "only beam_size8 to1; all remaining decoder settings, model, audio, gold and thresholds unchanged",
+        "holdout_recognized": false,
+        "continuation": "one separately authorized dev run completed; no automatic further configuration search"
       }
+    }
+  ],
+  "next_hypothesis": {
+    "status": "PROPOSED ONLY; CLOUD AUDIO NOT AUTHORIZED; NOT EXECUTED",
+    "candidate": "Google Speech-to-Text V2 chirp_3 ru-RU, eu multi-region, synchronous Recognize",
+    "hypothesis": "An independent managed recognizer may preserve critical command/domain words that the local variants lost; only unchanged dev scoring can establish this",
+    "corpus": {
+      "split": "dev only",
+      "files": 16,
+      "seconds": 156.2616326530612,
+      "max_file_seconds": 43.18680272108843,
+      "raw_bytes": 6891872,
+      "per_request_ceiling_billed_seconds_estimate": 164
     },
-    "unchanged": "same model bytes, int8/ru/patience1.2/VAD/previous_text/initial_prompt/hotwords, gold, scorer, audio and thresholds",
-    "execution": "one dev16 pass including process-cold, at most150seconds reserved from the same cumulative ledger",
-    "new_download_bytes": 0,
-    "new_install": false,
-    "memory_bytes": 4294967296,
-    "logical_cpus": 4,
-    "current_used_seconds": 78.52062520000618,
-    "remaining_seconds": 1121.4793747999938,
-    "budget_extension_requested": false,
-    "authorization_needed": "one exact exception to the agreed stop-after-failed-dev boundary; existing1200s cap is not permission for config search",
-    "holdout": "closed unless a viable dev result and a new freeze precede opening",
-    "failure": "stop and retain exact result; no automatic further configurations",
+    "proposed_limits": {
+      "requests": 16,
+      "automatic_retries": 0,
+      "wall_time_seconds": 600,
+      "api_cost_limit_usd": 0.1,
+      "audio": "same frozen synthetic WAV only; no real user audio",
+      "region": "eu",
+      "proposed_endpoint": "eu-speech.googleapis.com",
+      "cloud_storage_objects": 0,
+      "scope": "inline Recognize, no bucket/recognizer/resource creation, no API enabling, billing/IAM changes, new login or credential copying"
+    },
+    "primary_sources": {
+      "model_region_language_method": "https://docs.cloud.google.com/speech-to-text/docs/models/chirp-3",
+      "pricing": "https://cloud.google.com/speech-to-text/pricing",
+      "inline_sync": "https://docs.cloud.google.com/speech-to-text/v2/docs/sync-recognize",
+      "project_setup_logging": "https://docs.cloud.google.com/speech-to-text/docs/setup"
+    },
+    "price_basis": "Published V2 standard $0.016/min; about $0.05 for this dev set before account-specific tax/currency; billing readback still required",
+    "missing_before_exact_trial_authorization": [
+      "owner-selected existing Google Cloud project with Speech-to-Text and billing already available",
+      "official account/auth/provider and eu-region availability readback without reading credentials",
+      "project data logging disabled and applicable V2 retention/training terms verified; v1 FAQ is not blanket V2 evidence",
+      "concrete executable preflight/runner/freeze and exact owner authorization for synthetic audio transfer/cost"
+    ],
+    "owner_decision": "Whether to pursue this one cloud hypothesis and which existing project to prepare it against; no cloud calls authorized by this proposal",
+    "current_results_unchanged": true,
+    "holdout_remains_closed": true,
     "success_not_guaranteed": true
   },
-  "next_hypothesis_sha256": "1c1ccc3fadfa599e29d649f465ff41772d531a61bfea8c746610ae3b294958f2"
+  "next_hypothesis_sha256": "5fab1a68bef84b3028020c657dbb4137482c760b56cfd63173651c6a9f16b78c"
 }

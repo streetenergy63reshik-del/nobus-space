@@ -22,7 +22,7 @@ semantic path. Исправлена передача voice → draft: durable Pr
 
 | ID | Доказательство и недостающее условие |
 |---|---|
-| C2-B01 | Отдельные pre-hypothesis gold/scorer, 16 dev + 16 holdout. CURRENT WER14,16%/critical5, GigaAM7,52%/critical4; raw semantics13/16 и15/16. Три FW config: critical4/4/5. Разрешённый small прошёл один dev: WER6,64%, CER1,27%, critical2, raw RTFp95 0,792 при лимите0,5. Все шесть вариантов двух семейств hard FAIL. Holdout не распознавался; KEEP/REPLACE не доказан. |
+| C2-B01 | Отдельные gold/scorer, 16 dev + 16 holdout. CURRENT critical5, GigaAM4; raw semantics13/16 и15/16. Три FW config: critical4/4/5. Small beam8: WER6,64%, critical2, raw RTFp95 0,792. Отдельно разрешённый beam1: WER8,85%, CER2,16%, critical2, raw RTFp95 0,581>0,5. Все семь вариантов двух семейств hard FAIL. Holdout не распознавался; KEEP/REPLACE нет. |
 | C2-B02 | Actual production voice path прошёл до persisted preview: task0/compiler0 до подтверждения. Реальный tool-less compiler и downstream harness подготовлены; ChatGPT/account/endpoint проверены, владелец разрешил24turn/20min, использовано0turn. Полный verified ready result и parity/restart smoke ещё впереди, после выбора ASR. |
 | C2-B03 | LOCAL FIX, итоговая кандидатная проверка впереди. Native worker помещён в Windows Job до импорта модели; timeout/cancel/parent death/idle завершают процесс. Независимо воспроизведены и исправлены venv redirector escape и ранний idle timer. Focused14PASS; actual FW model runs завершились с Job active0. |
 | C2-B04 | LOCAL FIX, итоговая кандидатная проверка впереди. TTL1h по immutable created_at применяется до decrypt для всех состояний; late-write/deadline guards, secure_delete/WAL cleanup, quiescent backup и expiry authenticated restore staging. Независимые27PASS, общий root native/state subset48PASS. Граница и ограничения — RETENTION.md. |
@@ -35,8 +35,15 @@ Small скачан по отдельному разрешению: пять pinn
 Один dev занял78,520625s из1200s; RAM3040018432B, Job active0 при завершении.
 Raw RTF не прошёл, хотя каждый файл уложился в allowance минимум5s; эти
 критерии не взаимозаменяемы. После hard FAIL эксперимент остановлен.
-Одна следующая гипотеза beam8→1 только предложена, требует отдельного решения;
-пределы, обоснование и неизменяемые критерии записаны в EVIDENCE.json.
+Владелец отдельно разрешил одну пробу beam8→1; изменён только beam_size.
+Она обработала16/16 за50,630924s, cold4,819s, RAM2922139648B, Job active0.
+Latency p95 снизилась14,002→7,022s, но critical2 и raw RTFp95 0,581 снова
+не прошли; появились ошибки в domain sample, поэтому это не допустимый REPLACE.
+Small суммарно129,151549s из1200s; дальнейшие прогоны остановлены.
+Следующая независимая гипотеза — Chirp3 на том же dev, только предложение.
+Нужны решение о таком облачном сравнении и существующий Google Cloud project
+для подготовки точного плана; передача аудио и расходы пока не разрешены.
+Пределы и недостающие условия — EVIDENCE.json.
 Результаты dev — [DEVELOPMENT-RESULTS.json](DEVELOPMENT-RESULTS.json).
 Исходные frozen inputs и receipts продолжения находятся в
 `.runtime/c2/closure/`; безопасные агрегаты, привязки и команды доступны в Git

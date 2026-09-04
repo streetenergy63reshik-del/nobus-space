@@ -1,5 +1,5 @@
 {
-  "status": "DEVELOPMENT ONLY; SIX VARIANTS FAILED; HOLDOUT UNOPENED",
+  "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",
   "thresholds_changed": false,
   "input": "unchanged historical 16 synthetic WAV; new 16 holdout WAV frozen but not recognized",
   "results": [
@@ -438,6 +438,99 @@
       "independent_semantics": "NOT RUN: hard failure already decisive; no claimed semantic PASS",
       "holdout_recognized": false,
       "continuation": "One dev pass ended; no config search"
+    },
+    {
+      "candidate": "fw-small-beam1",
+      "split": "development",
+      "passes": 1,
+      "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+      "run_sha256": "501c4ebf7c2080b240aab7eec1969d71612687efe3d4ccb153fe7542d47d862b",
+      "score_sha256": "6cb3e3aa2618b33b2201758102579cb4e372a1461cd7a93c26d6217a5ed9dd3f",
+      "freeze_sha256": "1fc7608eacdea365b34283922e447a9d901563a62a484126bd0422fcf273f9d3",
+      "authorization_sha256": "fa84b96aff9cf533add27e59c82d9ed435d34a10536290e1218cf279b8cc7ac7",
+      "summary": {
+        "samples_iteration0": 16,
+        "observations": 16,
+        "wer": 0.08849557522123894,
+        "cer": 0.021573604060913704,
+        "critical_token_errors_iteration0": 2,
+        "critical_token_errors_all_passes": 2,
+        "latency_p50": 2.5792344500368927,
+        "latency_p95": 7.022141100023873,
+        "timing_observations": 16,
+        "missing_or_invalid_timing_rows": 0,
+        "raw_rtf_p95": 0.5808777073620053,
+        "per_file_budget_exceeded": 0,
+        "measurement_error_rows": 0,
+        "semantic_exact_raw": null,
+        "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+        "asr_decision": "NOT_EVALUATED_BY_SCORER"
+      },
+      "supervisor": {
+        "outcome": "EXITED",
+        "child_exit_code": 0,
+        "elapsed_seconds": 50.63092399999732,
+        "error": null,
+        "reservation_seconds": 150.0,
+        "process_cold_seconds": 4.818859499995597,
+        "job_final_stats": {
+          "cpu_seconds": 194.765625,
+          "peak_job_memory_bytes": 2922139648,
+          "peak_process_memory_bytes": 2781388800,
+          "total_processes": 3,
+          "active_processes": 0,
+          "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+        },
+        "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+        "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+        "cumulative_ledger_sha256": "9fd66843d084f53046477b4262f7d7db3d30b99de773f578ac83d0d738945f28"
+      },
+      "configuration": {
+        "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+        "device": "cpu",
+        "compute_type": "int8",
+        "local_files_only": true,
+        "language": "ru",
+        "beam_size": 1,
+        "patience": 1.2,
+        "vad_filter": true,
+        "condition_on_previous_text": true,
+        "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+        "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+      },
+      "hard_threshold_result": "FAIL",
+      "causes": [
+        "critical_token_errors 2 > 0",
+        "raw warm RTF p95 0.5808777074 > 0.5"
+      ],
+      "critical_mismatch_cases": [
+        {
+          "id": "cancel",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "отмени",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        },
+        {
+          "id": "domain",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "nobus",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        }
+      ],
+      "independent_semantics": "NOT RUN: hard failures already decisive; no semantic PASS claim",
+      "one_change_verified": "only beam_size8 to1; all remaining decoder settings, model, audio, gold and thresholds unchanged",
+      "holdout_recognized": false,
+      "continuation": "one separately authorized dev run completed; no automatic further configuration search"
     }
   ],
   "independent_semantics": {
@@ -455,12 +548,12 @@
     "definition": "seven prespecified dimensions; raw ASR, no compiler oracle, no correction credit"
   },
   "selected_engine": null,
-  "decision": "BLOCKED: no KEEP/REPLACE; small failed critical-token and raw RTF thresholds",
+  "decision": "BLOCKED: beam1 improves latency but fails critical-token and raw RTF thresholds; no KEEP/REPLACE",
   "limitations": "one development pass; no final 3-pass/holdout/concurrency acceptance yet; resource timing is observed, not final qualification",
   "historical_failure_receipts_preserved": [
     "qualification-fw-dev0.json",
     "qualification-fw-dev0-v2.json"
   ],
   "giga_seconds_including_previous_authorization": 194.91697699996038,
-  "small_seconds_including_all_execution": 78.52062520000618
+  "small_seconds_including_all_execution": 129.1515492000035
 }

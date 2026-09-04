@@ -52,12 +52,22 @@ digests. Общий download486217682B включает первую остан�
 Small использовал78,520625s из1200s; остаток1121,479375s не разрешает
 самостоятельный перебор. GigaAM по-прежнему194,916977s из1800s.
 
-Для решения владельца подготовлена одна гипотеза: прежняя модель small и
-decoder с единственным изменением beam8→1, один dev16 проход до150s из
-существующего остатка, без download/install. Проверить одновременно
-raw RTFp95≤0,5 и critical0; остальные пороги, gold и audio неизменны.
-Улучшение не гарантировано. Отдельное разрешение требуется из-за согласованной
-остановки после первого hard FAIL; сейчас эта гипотеза не выполняется.
+Владелец затем отдельно разрешил одну пробу beam8→1. До запуска подтверждено
+единственное изменение beam_size; source/model/audio/gold/scorer закреплены
+в beam1-freeze. Все16 samples обработаны за50,630924s. WER8,85%, CER2,16%,
+critical2 (cancel/domain), raw RTFp95 0,581>0,5, latency p95 7,022s.
+Cold4,819s, RAM2922139648B, Job active0. Скорость улучшилась, но hard FAIL
+сохранён; новых config/holdout прогонов нет. Small суммарно129,151549s
+из1200s, осталось1070,848451s. Это не разрешение на следующий перебор.
+
+Следующая единственная гипотеза — независимый Google Chirp3 ru-RU в eu
+на том же dev16 через synchronous Recognize. Предложены16 запросов без
+автоповторов, до10 минут и0,10USD, только синтетические156,26s audio,
+inline без GCS/resource creation. Это **не разрешённый trial**: нужен
+существующий Google Cloud project, проверка штатного auth/billing/region,
+logging и применимых V2 retention terms, затем конкретный frozen runner
+и точное согласие владельца на передачу синтетического аудио и расходы.
+Проект/credentials не выбирались, облачных вызовов не было.
 
 B02: transport-only harness использует actual ASR, production C1 compiler/runtime
 и downstream pipeline. Реальный transform_voice дошёл до durable preview:

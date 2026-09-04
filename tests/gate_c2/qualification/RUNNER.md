@@ -14,6 +14,12 @@ raw RTFp95 0,792. **Hard FAIL**; дальнейшие конфигурации �
 агрегаты и exact hashes — C2 DEVELOPMENT-RESULTS/EVIDENCE. Остальной текст
 ниже описывает исходный matched runner и прежние команды base/GigaAM.
 
+Позже отдельно разрешён beam8→1, один dev16 без иных изменений:
+WER8,85%, CER2,16%, critical2, raw RTFp95 0,581>0,5, latency p95 7,022s.
+Его50,630924s добавлены в тот же ledger; общий расход129,151549s/1200s.
+Hard FAIL сохранён, дальнейших прогонов нет. Новый код runner не менялся;
+применён существующий `--fw-options` с exact JSON `{"beam_size":1}`.
+
 `runner.py` готов для root review/copy/freeze. Проверены 7 pure helper tests из `test_runner.py`: ctypes layouts, отсутствие model imports при загрузке, atomic JSON, неиспользованный резерв после аварии остаётся списанным, отказ при отрицательном usage/изменении бюджета, извлечение exact CURRENT config из AST и передача absolute paths. ASR, TTS, Windows Job/subprocess runtime мной не выполнялись. Проверка реальных Job assignment, nested FW child и inference остаётся у первого ограниченного root run.
 
 Root копирует runner рядом с `scorer.py` и gold. Перед запуском внешний root validator проверяет полный frozen manifest: candidate/source files, scripts, audio, модели и runtime/pins. Runner не читает этот manifest и не подменяет проверку hashes записыванием новых. Он сохраняет собственный digest и gold/dataset/audio/config bindings. Source CURRENT options извлекаются без импорта bot/compiler; при изменении beam8/patience1.2/ru/int8/base/VAD/previous_text контракт отклоняется. Base identifier заменён на явный абсолютный путь pinned local snapshot; `download_root` для resolved snapshot не нужен. Prompts/hotwords извлечены из фактического CURRENT script.
