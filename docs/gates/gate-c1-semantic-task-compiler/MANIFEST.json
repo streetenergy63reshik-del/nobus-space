@@ -48,13 +48,16 @@
     "live_configuration_changed": false
   },
   "publication": {
-    "authorized": false,
-    "push": false,
-    "pr": false,
-    "merge": false,
+    "authorized": true,
+    "push": true,
+    "pr": true,
+    "merge": true,
     "tag": false,
     "deploy": false,
-    "live_effect": false
+    "live_effect": false,
+    "pr_number": 11,
+    "product_commit": "2732a11122179c4197a74594dd0c8ba3ed9ec52d",
+    "product_tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9"
   },
   "supersedes_rejected_commit": "381a1e54e6c2281fe335b2835972cc27ee9d486d",
   "historical_rejected_commit": "9de145ccc1c456927623885212f8d5ac64ff8ef0",
@@ -63,5 +66,11 @@
     "tests/test_semantic_admission.py",
     "tests/test_telegram_product.py",
     "existing C1 gate package and existing status projections"
-  ]
+  ],
+  "scope": "Original 32-path product manifest relative to exact C0. This status-only projection updates publication metadata, not the reviewed product paths.",
+  "reviewed_candidate": {
+    "commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+    "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+    "original_manifest_git_blob_sha256": "6f4a12573008e3260d54a2657946610a490a9700fdf7f50d340ed3c90891b942"
+  }
 }

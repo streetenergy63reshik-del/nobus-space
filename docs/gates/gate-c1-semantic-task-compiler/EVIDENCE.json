@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "gate": "C1",
-  "verdict": "C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING",
+  "verdict": "C1 ACCEPTED / PUBLISHED / NOT DEPLOYED",
   "external_boundary": "NO TAG / NO DEPLOY / NO LIVE EFFECT",
   "pre_freeze_remote_readback": {
     "main_commit": "5feccfd7626d4382259c3488a9cfb3b3e6c48a0b",
@@ -157,20 +157,33 @@
   ],
   "frozen_binding": {
     "branch": "codex/mvp1-closure-c1-semantic-compiler",
-    "mechanism": "exact git commit/tree readback after committing this evidence",
-    "note": "A commit cannot contain its own SHA; exact values are supplied in the owner publication manifest.",
+    "mechanism": "Frozen candidate and exact receipt hashes checked before publication; product tree equivalence confirmed after PR #11.",
+    "note": "Reviews apply to original frozen bytes; this status-only projection does not rebind them to a documentation commit.",
     "receipts": "All replacement frozen L1 and independent L2/L3 terminal receipts are saved under ignored .runtime/c1-tail-repair/ and bound to exact before/after SHA/tree and clean state. A missing terminal result is never PASS.",
-    "prior_rejections": "9de145ccc1c456927623885212f8d5ac64ff8ef0 and 381a1e54e6c2281fe335b2835972cc27ee9d486d are rejected; pending applies only to the new repair bytes."
+    "prior_rejections": "9de145c and 381a1e5 remain REJECTED / SUPERSEDED; own final reviews of 8e5e5fd are ACCEPT.",
+    "commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+    "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9"
   },
   "publication": {
-    "push": false,
-    "pr": false,
-    "merge": false,
+    "push": true,
+    "pr": true,
+    "merge": true,
     "tag": false,
     "release": false,
     "deploy": false,
     "activation": false,
-    "live_effect": false
+    "live_effect": false,
+    "authorized": true,
+    "pr_number": 11,
+    "pr_url": "https://github.com/streetenergy63reshik-del/nobus-space/pull/11",
+    "merge_method": "squash",
+    "product_commit": "2732a11122179c4197a74594dd0c8ba3ed9ec52d",
+    "product_tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+    "product_parent": "5feccfd7626d4382259c3488a9cfb3b3e6c48a0b",
+    "protected_main_verified": true,
+    "tree_matches_frozen_candidate": true,
+    "ci_status_contexts": 0,
+    "ci_workflow_runs": 0
   },
   "historical_9de_checks_not_reusable": [
     {
@@ -239,20 +252,20 @@
     "raw_private_payload_persisted": false
   },
   "security_correction": {
-    "status": "IMPLEMENTED / EXACT REVIEW PENDING",
+    "status": "ACCEPTED / PUBLISHED / NOT DEPLOYED",
     "b01": "All active occurrence multisets must bijectively match across the main and all understood, ambiguity-free direct-span proposals; no occurrence reuse or partial authority.",
     "b02": "Linear bounded nested quote/code parser; word apostrophes are ordinary text; malformed structural boundaries make the whole intake inert.",
     "red_reproduction": "32 failed, 5 passed, 44 deselected on rejected production source",
     "wip_smoke": "5/5 expected; zero TaskContract/effect; not a substitute for frozen smoke",
-    "final_l2": "PENDING_NEW_EXACT_REVIEW",
-    "final_l3": "PENDING_NEW_EXACT_REVIEW",
+    "final_l2": "ACCEPT",
+    "final_l3": "ACCEPT",
     "direct_refs": "All direct-span source/target/predicate refs use the existing server verifier; first failure is carried into TrustedAdmissionContext before ambiguity. 14 understood/ambiguous negative cases pass.",
     "conditional_tail": "The same reference-only verifier checks main/direct/tail source, target and predicate refs. Tail refs are checked before semantic matching. Failure remains in TrustedAdmissionContext before ambiguity/predicate and prevents active binding issuance; tail is not counted as another direct operation.",
     "regressions": "162 tail source/target/predicate ref negatives: 9 violations x TRUE/FALSE/UNKNOWN x reuse-main/separate-direct; 12 ambiguous/mismatch negatives; 6 clean predicate controls; 9 Telegram text/voice/Mini App product guards; 2 invalid-main guards. B01/B02 and C0 corpus preserved.",
     "intermediate_failure": "1 failed, 313 passed: an unnecessarily broad rewrite of historical server-prebound C0 provenance changed exact corpus context. Removed that unrelated rewrite; production compiler-output issuance still fails closed. Sealed corpus unchanged; corrected semantic 316 PASS."
   },
   "real_provider_smoke": {
-    "status": "FROZEN_CANDIDATE_RUN_PENDING",
+    "status": "5/5 ON ONE UNCHANGED RETRY; FIRST SAFE TIMEOUT RETAINED",
     "provider_path": "openai-codex SDK/app-server",
     "model": "gpt-5.6-sol",
     "profile": "fresh ephemeral deny-all read-only no-tools",
@@ -263,7 +276,14 @@
       "injection",
       "ambiguity"
     ],
-    "raw_private_payload_persisted": false
+    "raw_private_payload_persisted": false,
+    "candidate_commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+    "candidate_tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+    "first_exit": 1,
+    "retry_exit": 0,
+    "first_result": "quoted:SEMANTIC_PROVENANCE_TIMEOUT:unknown; no effect; cause not established",
+    "retry_result": "5/5; no TaskContract created; no effect",
+    "not_live_reliability_acceptance": true
   },
   "historical_381_pre_freeze_checks_not_reusable": [
     {
@@ -306,5 +326,375 @@
       "scope": "manifest/sealed/held-docs/credential-pattern/flag/diff",
       "result": "32 exact paths; sealed diff=0; docs15/16=0; credential patterns=0; flag=False; diff-check exit=0"
     }
+  ],
+  "documentation_sync": {
+    "scope": "Non-normative status/evidence/handoff projection only; code, tests, contracts and live unchanged.",
+    "code_l1_l2_l3_rerun": false,
+    "reviewed_candidate_unchanged": true,
+    "own_merge_sha": "Read back after status-only merge and supplied in exact C2 launch prompt; no self-referential SHA.",
+    "c2": "READY TO START / NOT STARTED"
+  },
+  "final_candidate_receipt": {
+    "path": ".runtime/c1-tail-repair/candidate-receipt.json",
+    "sha256": "26f38a6cc371130715b6a2bd2e7849cfebdaacfc89dfc5ef5b5e9a8afc1463a5",
+    "checked_at_utc": "2026-09-04T03:36:40Z",
+    "local_raw_evidence": true,
+    "raw_audio_or_private_payload_published": false
+  },
+  "final_l1": {
+    "command_notation": "Published commands use python for the recorded executable and <authorized-codex-home> for its authorized home. Exact argv and cwd remain in the hash-bound local raw receipts; commands are not rerun by this documentation sync.",
+    "verdict": "PASS — applicable C1 requirements; historical failures and failed first smoke remain explicit below",
+    "commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+    "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+    "checks": [
+      {
+        "label": "frozen-integrity",
+        "command": [
+          "python",
+          ".runtime/c1-tail-repair/audit_candidate.py",
+          "--frozen"
+        ],
+        "started_utc": "2026-09-04T03:21:46Z",
+        "exit_code": 0,
+        "elapsed_seconds": 6.359,
+        "result": "32 exact manifest paths; sealed C0 diff 0; docs15/16 0; flag false; diff check 0; six digests verified; rejected objects preserved; credential-pattern scan 0",
+        "output_sha256": "b1f9c36ded727baf3c013e6b31dae7f25992e95b6c087eb7de5120d162c3186b",
+        "receipt": ".runtime/c1-tail-repair/frozen-integrity.json",
+        "log": ".runtime/c1-tail-repair/frozen-integrity.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-semantic",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_semantic_admission.py",
+          "-q",
+          "-ra",
+          "--tb=short",
+          "--basetemp=.runtime/c1-tail-repair/frozen-semantic-tmp"
+        ],
+        "started_utc": "2026-09-04T03:21:41Z",
+        "exit_code": 0,
+        "elapsed_seconds": 15.515,
+        "result": "316 passed",
+        "output_sha256": "e54428e24156e475c03e2f351d60a3085fba6c47d5df3533a2a561db062d1f8f",
+        "receipt": ".runtime/c1-tail-repair/frozen-semantic.json",
+        "log": ".runtime/c1-tail-repair/frozen-semantic.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-impacted",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_semantic_admission.py",
+          "tests/test_codex_cli.py",
+          "tests/test_codex_sdk.py",
+          "tests/test_durable_runtime.py",
+          "tests/test_durable_telegram_state.py",
+          "tests/test_gate5a4.py",
+          "tests/test_miniapp.py",
+          "tests/test_miniapp_artifact.py",
+          "tests/test_miniapp_result.py",
+          "tests/test_telegram_gateway.py",
+          "tests/test_telegram_product.py",
+          "tests/test_telegram_mvp1_runner.py",
+          "-q",
+          "-ra",
+          "--tb=short",
+          "--basetemp=.runtime/c1-tail-repair/frozen-impacted-tmp"
+        ],
+        "started_utc": "2026-09-04T03:20:56Z",
+        "exit_code": 0,
+        "elapsed_seconds": 98.969,
+        "result": "762 passed; 1 existing warning",
+        "output_sha256": "2542212a2fc08d76161b848720a4509cd3b17fab05d64bd421c2ee12f97baf29",
+        "receipt": ".runtime/c1-tail-repair/frozen-impacted.json",
+        "log": ".runtime/c1-tail-repair/frozen-impacted.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-applicable-governance",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_documentation.py",
+          "tests/test_gate_c0_governance.py",
+          "-q",
+          "-ra",
+          "--tb=short",
+          "--deselect=tests/test_gate_c0_governance.py::test_active_status_and_roadmap_are_consistent",
+          "--deselect=tests/test_gate_c0_governance.py::test_candidate_changes_no_production_code",
+          "--basetemp=.runtime/c1-tail-repair/frozen-applicable-governance-tmp"
+        ],
+        "started_utc": "2026-09-04T03:21:45Z",
+        "exit_code": 0,
+        "elapsed_seconds": 4.437,
+        "result": "35 passed; 2 explicitly named historical snapshot deselects",
+        "output_sha256": "eec9ea3ac165a7ff4361e3cc00f32d4ec797339038b9dc0b2ca80e83d8b1f6db",
+        "receipt": ".runtime/c1-tail-repair/frozen-applicable-governance.json",
+        "log": ".runtime/c1-tail-repair/frozen-applicable-governance.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-smoke-timeout-retry",
+        "command": [
+          "python",
+          "tests/gate_c1/run_real_provider_smoke.py",
+          "--workspace",
+          ".",
+          "--codex-home",
+          "<authorized-codex-home>",
+          "--temp-root",
+          ".runtime\\c1-provider-temp"
+        ],
+        "started_utc": "2026-09-04T03:25:00Z",
+        "exit_code": 0,
+        "elapsed_seconds": 183.062,
+        "result": "5/5 expected decisions; same candidate and deadline; no TaskContract created, no effect",
+        "output_sha256": "4b59bac0c89caaf5d75bf2581a521aa5b6a3326b12c1cf3fe1296673056ea1ab",
+        "receipt": ".runtime/c1-tail-repair/frozen-smoke-timeout-retry.json",
+        "log": ".runtime/c1-tail-repair/frozen-smoke-timeout-retry.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-docs-governance",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_documentation.py",
+          "tests/test_gate_c0_governance.py",
+          "-q",
+          "-ra",
+          "--tb=short",
+          "--basetemp=.runtime/c1-tail-repair/frozen-docs-governance-tmp"
+        ],
+        "started_utc": "2026-09-04T03:21:43Z",
+        "exit_code": 1,
+        "elapsed_seconds": 4.687,
+        "result": "35 passed; 2 historical C0 snapshot failures, explicitly not counted PASS",
+        "output_sha256": "17c1ba64cafa2f81101aa23925094d825b6a409aff1f4bfeaed74e4b4f64f0da",
+        "receipt": ".runtime/c1-tail-repair/frozen-docs-governance.json",
+        "log": ".runtime/c1-tail-repair/frozen-docs-governance.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-smoke",
+        "command": [
+          "python",
+          "tests/gate_c1/run_real_provider_smoke.py",
+          "--workspace",
+          ".",
+          "--codex-home",
+          "<authorized-codex-home>",
+          "--temp-root",
+          ".runtime\\c1-provider-temp"
+        ],
+        "started_utc": "2026-09-04T03:21:13Z",
+        "exit_code": 1,
+        "elapsed_seconds": 135.797,
+        "result": "Failed safely: quoted:SEMANTIC_PROVENANCE_TIMEOUT:unknown; no effect; not counted PASS",
+        "output_sha256": "f01092c14f0847a7631ff6159b3e53473ac0597e79477f87b47d381dd50dc4d1",
+        "receipt": ".runtime/c1-tail-repair/frozen-smoke.json",
+        "log": ".runtime/c1-tail-repair/frozen-smoke.log",
+        "clean_before_after": true
+      },
+      {
+        "label": "frozen-release",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-ra",
+          "--tb=short",
+          "--ignore=tests/gate0",
+          "--ignore=tests/test_gate_c0_governance.py",
+          "--deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022",
+          "--basetemp=.runtime/c1-tail-repair/frozen-release-tmp"
+        ],
+        "started_utc": "2026-09-04T03:20:57Z",
+        "exit_code": 0,
+        "elapsed_seconds": 136.828,
+        "result": "1766 passed; 2 Windows symlink skips; 1 historical ADR0022 deselect; 1 existing warning",
+        "output_sha256": "42ee37c5b606c5402d39529ae810c4e850c1ee29820b95e3fa16985b308fe33e",
+        "receipt": ".runtime/c1-tail-repair/frozen-release.json",
+        "log": ".runtime/c1-tail-repair/frozen-release.log",
+        "clean_before_after": true
+      }
+    ]
+  },
+  "final_independent_reviews": [
+    {
+      "level": "L2",
+      "reviewer": "/root/c1_tail_l2",
+      "verdict": "ACCEPT",
+      "commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+      "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+      "receipt": ".runtime/c1-tail-repair/l2-review.json",
+      "sha256": "ecad3498207bf279bdb76a46b792123c417dde8664fbc5368a291fe7809e8b4e",
+      "results": "990 own synthetic checks; semantic316; focused product/worker17; applicable C0 governance31; exact C0 corpus25/25",
+      "findings": [],
+      "checks": {
+        "independent_matrix": {
+          "total": 842,
+          "main_ref_violations": 162,
+          "direct_ref_violations": 81,
+          "tail_ref_violations": 486,
+          "valid_and_ambiguous_mismatched_conditions_across_modalities": 54,
+          "multiset": 9,
+          "c0_prebound_context_decision_exact": 25,
+          "c0_prebound_authority_removed_stops": 24,
+          "manifest": 1
+        },
+        "independent_boundaries": {
+          "total": 148,
+          "quotes_and_role_smuggling": 84,
+          "malformed": 30,
+          "transform_incident_modalities": 3,
+          "word_apostrophes": 3,
+          "product_stop_before_taskcontract": 27,
+          "main_tail_direct_shared_deadline": 1
+        },
+        "pytest": {
+          "semantic": 316,
+          "product_worker_focused": 17,
+          "c0_governance_applicable": 31
+        },
+        "reference_matrix": "Main and tail tested with whole-owner-text reuse (2 calls) and separate direct-span (3 calls); direct independently tested on the separate path. Each source/target/predicate usage tested for forged, boundary, stale, owner, tenant, conversation, membership, not-issued, wrong-intake under TRUE/FALSE/UNKNOWN. Invalid tails also ambiguous and mismatching.",
+        "reference_result": "Every invalid matrix case: REFUSE/TRUST_VIOLATION, capability null, all INERT, issuer.issue calls zero, TaskContract/effect false. Exact boundary conflict is expressed by a source boundary for the same target/predicate ref, whose own field has no boundary.",
+        "corpus_vs_production": "25 C0 synthetic cases intentionally pass prebound TrustedOperationBinding and context_ref to preserve canonical context bytes/digests and exact decisions; issuer is not invoked (one compiler call). Removing prebound authority blocks all 24 understood active cases. Source caller inspection finds production AdmissionBindings only in telegram_semantic_input with empty operation_bindings; production span issuance is independently exercised by both own probe scripts.",
+        "other_coverage": "316 semantic tests cover closed schemas/negative authority fields, exact registry/provider schema restrictions, span24/direct-tail8 caps, clarification owner/tenant/conversation/revision/TTL/token/replay. Worker/product17 tests plus code review cover fresh ephemeral deny-all/read-only tool-less compiler and no-effect answer profile."
+      }
+    },
+    {
+      "level": "L3",
+      "reviewer": "/root/c1_tail_l3",
+      "verdict": "ACCEPT",
+      "commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+      "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+      "receipt": ".runtime/c1-tail-repair/l3-review.json",
+      "sha256": "74153a912858c80d038004ba850c87fd9216598f9c9bf64822e6d2d7e99cd2e9",
+      "results": "1477 own synthetic checks and135 regressions; independent attacks across all compiler-output paths",
+      "findings": [],
+      "checks": {
+        "results": [
+          {
+            "receipt": "l3-independent-matrix.json",
+            "exit": 1,
+            "result": "Initial reviewer probe placed a Markdown blockquote after non-newline text. The blockquote was correctly not recognized; only the excluded runtime probe prefix was corrected to newline. No candidate change.",
+            "output_sha256": "97d59b5fb74fdfdca77822517dc6a0f7acd5657e972056c841c5fb59a33bbc27"
+          },
+          {
+            "receipt": "l3-independent-matrix-corrected.json",
+            "exit": 0,
+            "result": "1379 independent synthetic cases PASS",
+            "output_sha256": "8741edf2fc9665703eb44175ff19b16b7c53531a72eae1862140a10d954d554e"
+          },
+          {
+            "receipt": "l3-additional-integration.json",
+            "exit": 0,
+            "result": "98 independent tests PASS: 81 product guards, 12 tail authority-schema smuggling cases, one admission-wide main/tail/direct timeout, one tail cancellation and three tail protocol failures",
+            "output_sha256": "4402fc5da42c1bda933f14c0944e4c8f50765602950d9f1bbe555aab1cea2794"
+          },
+          {
+            "receipt": "l3-relevant-regressions.json",
+            "exit": 0,
+            "result": "135 passed, 498 deselected, one existing Starlette/httpx deprecation warning; new conditional_tail tests intentionally not used as the independent matrix",
+            "output_sha256": "b81af8621c1a278d7a86ac972eaf0b968285196562e17736ee6652b9662b59c2"
+          },
+          {
+            "receipt": "l3-final-integrity.json",
+            "exit": 0,
+            "result": "Exact commit/tree/sole C0 parent/tree and clean status match; C0 contract directory and ADR0023 byte-diff empty; diff --check PASS; ADR journal byte-identical to C0",
+            "output_sha256": "d7fae829efbe37f6cf42a6e6de9c9162efe131072a7c7c3211faac5605c43f77"
+          }
+        ],
+        "c0_compatibility": {
+          "result": "25-case exact prebound corpus compatibility passes in the current selected regression run; sealed corpus unchanged",
+          "boundary": "C0 fixtures inject server-owned operation bindings and fixture facts and intentionally bypass production issuance. That compatibility is not evidence that all 25 inputs produce the same live model/direct-span results. Production source creates bindings only through telegram_semantic_input and the issuer; no transport-supplied prebound operation path was found. Independent fresh-issuance probes cover the repaired security boundary.",
+          "predicate_limit": "Production telegram_semantic_input supplies no trusted item-state observations, so legitimate conditional requests remain UNKNOWN without a server fact source. Synthetic TRUE/FALSE probes test the accepted evaluator contract, not live data acquisition."
+        }
+      }
+    }
+  ],
+  "explicit_exceptions": [
+    {
+      "kind": "STALE_CONTEXT",
+      "tests": [
+        "tests/test_gate_c0_governance.py::test_active_status_and_roadmap_are_consistent",
+        "tests/test_gate_c0_governance.py::test_candidate_changes_no_production_code"
+      ],
+      "result": "Full frozen docs/governance exit1:35pass/2fail. C0-only old-status and no-production-change assertions are incompatible with authorized C1 code gate; sealed tests unchanged. Applicable exact-deselect run exit0:35pass/2deselected. Independently confirmed by L2/L3."
+    },
+    {
+      "kind": "STALE_CONTEXT",
+      "tests": [
+        "tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022"
+      ],
+      "result": "One release deselect. L2 independently reproduced exit1: exact ACCEPTED-only ADR0022 cell already superseded in unchanged exact C0 journal by semantic/process scope ADR0023."
+    },
+    {
+      "kind": "HISTORICAL_SCOPE",
+      "paths": [
+        "tests/gate0",
+        "tests/test_gate_c0_governance.py"
+      ],
+      "result": "Sealed Gate0 snapshot excluded from code release suite; C0 governance executed separately in full. Neither silently counted PASS."
+    },
+    {
+      "kind": "PLATFORM_SKIP",
+      "tests": [
+        "tests/test_codex_patch_adversarial.py:81",
+        "tests/test_telegram_bindings.py:197"
+      ],
+      "result": "2 release skips: Windows symlink creation unavailable. Not counted PASS."
+    },
+    {
+      "kind": "EXISTING_WARNING",
+      "result": "Starlette/httpx TestClient deprecation; no dependency change."
+    },
+    {
+      "kind": "BOUNDED_PROVIDER_TIMEOUT",
+      "receipt": ".runtime/c1-tail-repair/frozen-smoke.json",
+      "result": "First frozen smoke exit1, quoted provenance timeout, fail closed; root cause not established. One unchanged bounded retry on exact candidate exit0,5/5. Both results retained; first never counted PASS."
+    },
+    {
+      "kind": "ENVIRONMENT_FAILURE",
+      "receipts": [
+        ".runtime/c1-tail-repair/l2-semantic-suite.json",
+        ".runtime/c1-tail-repair/l2-product-worker-regressions.json"
+      ],
+      "result": "Reviewer system Temp setup denied:306pass/10errors and1pass/16errors. Unique local basetemp retries pass316/17. No candidate changes."
+    },
+    {
+      "kind": "VERIFIER_DEFECT",
+      "receipts": [
+        ".runtime/c1-tail-repair/l2-independent-boundaries.json",
+        ".runtime/c1-tail-repair/l2-boundaries-diagnostic.json",
+        ".runtime/c1-tail-repair/l3-independent-matrix.json"
+      ],
+      "result": "Reviewer fixtures had an unclosed outer ASCII quote and a blockquote not placed at line start. Production correctly failed closed/not recognized; only excluded runtime fixtures corrected. All final own probes pass; candidate unchanged."
+    },
+    {
+      "kind": "WIP_RED_GREEN",
+      "receipts": [
+        ".runtime/c1-tail-repair/red-tail.json",
+        ".runtime/c1-tail-repair/green-tail.json",
+        ".runtime/c1-tail-repair/wip-semantic.json",
+        ".runtime/c1-tail-repair/wip-semantic-corrected.json"
+      ],
+      "result": "Old source regression failed as required. First broad WIP attempt changed exact C0 prebound fixture context; unrelated rewrite removed. Corrected semantic316PASS. WIP is not substituted for frozen tests."
+    }
+  ],
+  "remaining_limits": [
+    "No trusted production item-state source means legitimate conditionals remain UNKNOWN; synthetic TRUE/FALSE tests prove evaluator behavior, not live fact acquisition.",
+    "Consistent model operation-kind misclassification remains a bounded quality residual within current no-effect capabilities.",
+    "Real voice ASR qualification belongs to C2 (READY TO START / NOT STARTED); C3-C6 remain HOLD. Shadow/live activation and broader MVP1 acceptance are future scope and not authorized."
   ]
 }

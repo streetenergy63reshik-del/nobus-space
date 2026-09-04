@@ -1,6 +1,6 @@
 # Gate C1 — acceptance record
 
-**State:** `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`
+**State:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
 
 **Boundary:** `NO TAG / NO DEPLOY / NO LIVE EFFECT`
 
@@ -16,12 +16,25 @@ Candidate `9de145ccc1c456927623885212f8d5ac64ff8ef0`, tree
 Его прежний PASS отменён воспроизводимым security-аудитом C1-B01/C1-B02.
 Ни его L1, ни прежние L2/L3 не доказывают replacement candidate.
 
-Этот единственный record описывает новые bytes и условия их принятия, а не
-заранее объявленный PASS. Exact commit/tree и новые независимые verdict
-фиксируются после заморозки в этом же C1-чате. После полного L1 PASS,
-independent L2 ACCEPT и independent L3 ACCEPT допустим итог:
-`C1 GATE CANDIDATE PASS / PUBLICATION AUTHORIZATION REQUIRED`.
-Любое изменение bytes после freeze аннулирует привязку проверок.
+## Принятый результат и публикация — 4 сентября 2026
+
+- Проверенный frozen candidate: `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`.
+- Его tree: `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
+- Опубликованный product commit: `2732a11122179c4197a74594dd0c8ba3ed9ec52d`,
+  [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11), squash merge.
+- GitHub readback: product tree точно совпал с проверенным tree;
+  единственный parent — C0 `5feccfd7626d4382259c3488a9cfb3b3e6c48a0b`;
+  `main` protected. У PR #11 нет status contexts и workflow runs;
+  это отсутствие CI, а не дополнительный PASS.
+- Итог C1: L1 PASS по применимому scope, independent L2 ACCEPT и L3 ACCEPT.
+  Точные результаты, исключения и хеши — [EVIDENCE.json](EVIDENCE.json).
+
+Эта документная синхронизация не меняет code/tests/config/schema/ADR и не
+переиздаёт проверки C1. L1–L3 привязаны к frozen candidate выше, а не к
+последующему docs-only commit. Исходные bytes доступны по указанному SHA.
+Предварительные pending-статусы в product commit заменены этим record.
+C1 опубликован, но default-off; deployment identity не доказана, MVP1 не READY.
+
 
 ## Exact основание
 
@@ -93,11 +106,14 @@ requested operation без predicate/ambiguity; иначе уточнение. C
 
 Команды, результаты и история отклонений находятся в [L1-REPORT.md](L1-REPORT.md)
 и [EVIDENCE.json](EVIDENCE.json); corpus и security coverage —
-[COVERAGE.json](COVERAGE.json). Новый L2/L3 выполняется ровно по frozen SHA/tree.
+[COVERAGE.json](COVERAGE.json). Независимые L2/L3 уже выполнены по frozen SHA/tree;
+повторная проверка C1 для этой документной синхронизации не требуется.
 
 Feature flag остаётся False. C0 sealed files и docs 15/16 не меняются.
-C2–C6 и MVP2 — HOLD; MVP1 не объявляется READY. Публикация, activation и live
-effects не выполнялись. Для публикации нужен отдельный exact owner grant.
+C2 — READY TO START / NOT STARTED; C3–C6 и MVP2 — HOLD. MVP1 не READY.
+Владелец разрешил публикацию C1 и отдельную актуализацию документации.
+Push/PR/merge product C1 выполнены; tag/release/deploy/activation/live effects
+не выполнялись и этим record не разрешаются.
 
 Согласованная semantic kind substitution самим compiler остаётся ограниченным
 риском качества no-effect capabilities. Она не отменяет server refs/policy и

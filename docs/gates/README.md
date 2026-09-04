@@ -1,7 +1,7 @@
 # Gate index
 
-**Статус:** ACTIVE C1 GATE CANDIDATE + HISTORICAL SEALED BASELINE
-**CURRENT:** `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`
+**Статус:** ACCEPTED C1 / C2 READY TO START + HISTORICAL SEALED BASELINE
+**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`
 **Active roadmap:** [C1 acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md)
 и [C2 handoff](gate-c1-semantic-task-compiler/HANDOFF.md).
 Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
@@ -22,8 +22,8 @@ checkpoints, не отдельные пользовательские чаты.
 | Gate | Статус | Package / boundary |
 |---|---|---|
 | C0 — единая истина и контракт | `PUBLISHED / ACCEPTED` @ `70085f8...`, tree `3a31914a...` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
-| C1 — универсальное семантическое понимание | `CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
-| C2 — voice parity и ASR qualification | HOLD до принятого опубликованного C1 | Faster-Whisper остаётся CURRENT до bake-off |
+| C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED / NOT DEPLOYED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
+| C2 — voice parity и ASR qualification | READY TO START / NOT STARTED | Faster-Whisper остаётся CURRENT до bake-off |
 | C3 — стабильность Core/backend/worker | HOLD до C2 | queue/state/retry/status/recovery |
 | C4 — завершённый frontend/user journey | HOLD до C3 | Telegram/Mini App E2E |
 | C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
@@ -90,5 +90,5 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Current acceptance переоткрыта; следующий Gate после публикации C1 —
+границах. Acceptance всего MVP1 переоткрыта; следующий Gate после принятого C1 —
 C2, а не historical G7/G8 sequence.

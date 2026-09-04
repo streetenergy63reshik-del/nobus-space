@@ -199,5 +199,11 @@
       "Mini App text",
       "original transform incident"
     ]
+  },
+  "evidence_binding": {
+    "commit": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+    "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+    "verified_by": "independent L2 and L3; see EVIDENCE.json",
+    "scope": "25-case prebound C0 evaluator/context compatibility only; not full production model accuracy or real voice ASR qualification"
   }
 }

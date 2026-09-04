@@ -1,6 +1,27 @@
 # Gate C1 — independent L2 review record
 
-**State:** `PENDING NEW EXACT-CANDIDATE REVIEW`
+**State:** `L2 ACCEPT`
+
+## Принятый независимый verdict
+
+- Reviewer: `/root/c1_tail_l2`.
+- Frozen candidate: `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`.
+- Tree: `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`; clean before/after.
+- 990 собственных проверок плюс указанные регрессии; findings: none.
+- 842 собственных matrix checks + 148 boundary checks; semantic 316,
+product/worker 17 и applicable C0 governance 31. Exact prebound corpus 25/25.
+- Raw receipt: `.runtime/c1-tail-repair/l2-review.json` в исходном C1 worktree.
+- SHA-256: `ecad3498207bf279bdb76a46b792123c417dde8664fbc5368a291fe7809e8b4e`.
+
+Результат получен до публикации в задаче C1; здесь он документирован без
+повторного запуска. Он относится к frozen candidate, а не к docs-only commit.
+Подробная сводка и сохранённые ограничения — [EVIDENCE.json](EVIDENCE.json).
+
+## Историческое задание проверяющему — выполнено на указанном candidate
+
+Формулировки ниже сохранены для объяснения объёма проведённой проверки;
+они не являются текущим PENDING или распоряжением повторить L2.
+
 
 `381a1e54e6c2281fe335b2835972cc27ee9d486d` /
 `ab8fa02cc6d358ba998acc0cc3b4ecd8862c7bc4` — REJECTED / SUPERSEDED:

@@ -3,7 +3,7 @@
 **Статус:** CANONICAL INDEX
 **Актуально на:** 4 сентября 2026 года
 
-**CURRENT:** `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`;
+**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`;
 `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Thin topology задаёт
@@ -16,8 +16,9 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 Единственная подвижная реализационная проекция —
 [CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
-evidence сохранены, acceptance переоткрыта, а C1 пока существует только как
-default-off local gate candidate. Historical READY claim
+evidence сохранены, acceptance всего MVP1 переоткрыта. C1 принят и опубликован
+через [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11),
+но остаётся default-off / NOT DEPLOYED; C2 готов к запуску. Historical READY claim
 superseded на protected `main` C0-публикацией
 [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @
 `70085f8bdf20d139edf042bffa2a1169daf6791c`; deployment revision не доказана,
@@ -71,8 +72,8 @@ pointer, короткий status, decisions и freshness.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
-    [C2 handoff](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — локальный
-    candidate, доказательства и publication boundary.
+    [C2 handoff](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
+    опубликованный C1, доказательства и условия старта C2.
 
 ## Сохранённые контракты
 
