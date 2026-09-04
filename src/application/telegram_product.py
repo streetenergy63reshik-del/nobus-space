@@ -7,7 +7,7 @@ import hashlib
 import json
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Protocol
 from uuid import UUID
@@ -26,6 +26,16 @@ from src.application.product_effects import (
     ProductEffectKind,
     ProductEffectService,
     approval_reference,
+)
+from src.application.semantic_admission import (
+    PendingClarification,
+    SemanticAdmissionError,
+    SemanticAdmissionService,
+    SemanticClarificationStore,
+    TrustedReferenceBinding,
+    pending_clarification,
+    semantic_clarification_question,
+    telegram_semantic_input,
 )
 from src.application.business_notes import BusinessNotesService
 from src.application.patch_confirmation import (
@@ -74,6 +84,7 @@ _MVP1_UNAVAILABLE_TEXT = (
     "Эта функция пока не входит в MVP-1. Доступны обычные текстовые и "
     "голосовые задачи, /status, /limit и /help."
 )
+_SEMANTIC_NO_EFFECT_PROFILE = "[profile:semantic.no_effect]\n"
 _TITLE_SENTENCE_RE = re.compile(r"(?:[.!?]+|\r?\n+)")
 _TITLE_WORD_RE = re.compile(
     r"[0-9A-Za-zА-Яа-яЁё]+(?:[-‑][0-9A-Za-zА-Яа-яЁё]+)*"
@@ -605,6 +616,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         google_drive_service: Any | None = None,
         business_notes: BusinessNotesService | None = None,
         nobus_memory: NobusMemory | None = None,
+        semantic_admission: SemanticAdmissionService | None = None,
+        semantic_clarifications: SemanticClarificationStore | None = None,
+        enable_semantic_admission: bool = False,
         enable_extended_routes: bool = False,
         execution_concurrency: int = 0,
         **values: object,
@@ -721,6 +735,19 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     for name in ("retrieve", "remember")
                 )
             )
+            or not isinstance(enable_semantic_admission, bool)
+            or (
+                enable_semantic_admission
+                and (
+                    semantic_admission is None
+                    or not callable(getattr(semantic_admission, "admit", None))
+                    or semantic_clarifications is None
+                    or not all(
+                        callable(getattr(semantic_clarifications, name, None))
+                        for name in ("put", "read", "delete")
+                    )
+                )
+            )
             or not isinstance(enable_extended_routes, bool)
             or not isinstance(execution_concurrency, int)
             or isinstance(execution_concurrency, bool)
@@ -749,6 +776,9 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._google_drive_service = google_drive_service
         self._business_notes = business_notes
         self._nobus_memory = nobus_memory
+        self._semantic_admission = semantic_admission
+        self._semantic_clarifications = semantic_clarifications
+        self._enable_semantic_admission = enable_semantic_admission
         self._enable_extended_routes = enable_extended_routes
         self._execution_concurrency = execution_concurrency
         self._execution_queue: asyncio.Queue[_QueuedJob] | None = (
@@ -1065,7 +1095,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Неизвестная команда. Откройте меню или используйте /help.",
             )
         else:
-            file_query = _file_request_query(payload.text)
+            file_query = (
+                None
+                if self._enable_semantic_admission
+                else _file_request_query(payload.text)
+            )
             if file_query is not None:
                 if self._enable_extended_routes:
                     await self._send_owner_file(payload.chat_id, file_query)
@@ -1275,6 +1309,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._api.send_message(
                 message.chat_id,
                 f"Задача должна содержать 1–{MAX_TASK_INSTRUCTION_LENGTH} символов.",
+            )
+            return
+        if self._enable_semantic_admission:
+            await self._start_semantic_instruction(
+                message, envelope, normalized
             )
             return
         if (
@@ -1563,6 +1602,162 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 return
         await self._start_text_task(message, envelope, normalized)
 
+    async def _start_semantic_instruction(
+        self,
+        message: TextMessage | VoiceMessage,
+        envelope: TrustedIngressEnvelope,
+        instruction: str,
+    ) -> None:
+        service = self._semantic_admission
+        clarifications = self._semantic_clarifications
+        if service is None or clarifications is None:
+            raise RuntimeError("semantic admission is not configured")
+        modality = "voice_transcript" if isinstance(message, VoiceMessage) else "text"
+        canonical, bindings = telegram_semantic_input(
+            instruction,
+            envelope,
+            modality=modality,
+            chat_id=message.chat_id,
+            message_thread_id=message.message_thread_id,
+        )
+        pending: PendingClarification | None = None
+        try:
+            if message.reply_to_message_id is not None:
+                answer_binding = canonical_json_digest(
+                    {
+                        "chat_id": message.chat_id,
+                        "question_message_id": message.reply_to_message_id,
+                        "source": "telegram",
+                    }
+                )
+                pending = clarifications.read(
+                    owner_binding=bindings.owner_binding,
+                    tenant_binding=bindings.tenant_binding,
+                    conversation_binding=bindings.conversation_binding,
+                    answer_binding=answer_binding,
+                    reply_envelope_revision=envelope.envelope_revision,
+                )
+                if pending is None:
+                    await self._api.send_message(
+                        message.chat_id,
+                        "Это уточнение не связано с текущим вопросом или уже истекло. "
+                        "Отправьте новую задачу отдельным сообщением.",
+                    )
+                    return
+            if pending is not None:
+                merged_text = (
+                    f"{pending.canonical_input.owner_text}\n\n"
+                    "Исходная задача владельца указана выше.\n"
+                    "Уточнение владельца:\n"
+                    f"{instruction}"
+                )
+                canonical, bindings = telegram_semantic_input(
+                    merged_text,
+                    envelope,
+                    modality=modality,
+                    chat_id=message.chat_id,
+                    message_thread_id=message.message_thread_id,
+                )
+                materials = tuple(
+                    dict.fromkeys(
+                        pending.canonical_input.materials + canonical.materials
+                    )
+                )
+                canonical = canonical.model_copy(update={"materials": materials})
+                bindings = replace(
+                    bindings,
+                    materials=materials,
+                    reference_bindings=tuple(
+                        TrustedReferenceBinding(
+                            ref=value.ref,
+                            trusted_boundary=value.boundary,
+                            issued_by_server=True,
+                            current_intake_member=True,
+                            owner_binding=bindings.owner_binding,
+                            tenant_binding=bindings.tenant_binding,
+                            conversation_binding=bindings.conversation_binding,
+                            intake_ref=bindings.intake_ref,
+                            intake_revision=bindings.intake_revision,
+                        )
+                        for value in materials
+                    ),
+                )
+            admission = await service.admit(canonical, bindings)
+        except asyncio.CancelledError:
+            raise
+        except SemanticAdmissionError:
+            await self._api.send_message(
+                message.chat_id,
+                "Не удалось безопасно понять задачу. Повторите запрос без "
+                "сокращений; никаких действий не выполнялось.",
+            )
+            return
+        except Exception:
+            await self._api.send_message(
+                message.chat_id,
+                "Не удалось безопасно проверить смысл задачи. Попробуйте ещё "
+                "раз; никаких действий не выполнялось.",
+            )
+            return
+
+        decision = admission.decision
+        if decision.decision == "CLARIFY":
+            ttl = getattr(clarifications, "ttl", timedelta(minutes=10))
+            if not isinstance(ttl, timedelta):
+                raise RuntimeError("semantic clarification TTL is invalid")
+            question = semantic_clarification_question(admission)
+            question_message_id = await self._api.send_message(
+                message.chat_id,
+                question,
+            )
+            answer_binding = canonical_json_digest(
+                {
+                    "chat_id": message.chat_id,
+                    "question_message_id": question_message_id,
+                    "source": "telegram",
+                }
+            )
+            clarifications.put(
+                pending_clarification(
+                    admission,
+                    envelope,
+                    now=datetime.now(UTC),
+                    ttl=ttl,
+                    answer_binding=answer_binding,
+                )
+            )
+            return
+
+        if pending is not None and not clarifications.delete(pending):
+            await self._api.send_message(
+                message.chat_id,
+                "Уточнение изменилось или истекло. Повторите исходную задачу.",
+            )
+            return
+        if decision.decision == "EXECUTE":
+            if (
+                not decision.task_contract_allowed
+                or decision.selected_capability
+                not in {"task.answer.general", "content.transform"}
+            ):
+                raise RuntimeError("semantic Core allowed an unsupported route")
+            await self._start_text_task(
+                message,
+                envelope,
+                canonical.owner_text,
+                semantic_no_effect=True,
+            )
+            return
+        if decision.decision == "REFUSE":
+            text = "Запрос отклонён политикой безопасности; никаких действий не выполнялось."
+        elif decision.decision == "APPROVAL":
+            text = "Для этого действия требуется отдельное точное подтверждение."
+        elif decision.user_visible_state.state == "condition_not_met":
+            text = "Условие сейчас не выполнено; действие не запускалось."
+        else:
+            text = "Запрошенная возможность сейчас недоступна; никаких действий не выполнялось."
+        await self._api.send_message(message.chat_id, text)
+
     async def _analyze_owner_file(
         self,
         message: TextMessage | VoiceMessage,
@@ -1618,6 +1813,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         instruction: str,
         *,
         supplied_context: OwnerFileContext | None = None,
+        semantic_no_effect: bool = False,
     ) -> None:
         instruction = self._instruction(instruction)
         if supplied_context is not None and not isinstance(
@@ -1632,6 +1828,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return
         prepared: PreparedTask | None = None
         try:
+            runtime_instruction = (
+                _SEMANTIC_NO_EFFECT_PROFILE + instruction
+                if semantic_no_effect
+                else instruction
+            )
             contextual = getattr(
                 self._product_runtime, "prepare_instruction_with_context", None
             )
@@ -1639,14 +1840,14 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 if not callable(contextual):
                     raise RuntimeError("contextual worker is unavailable")
                 prepared = await contextual(
-                    instruction,
+                    runtime_instruction,
                     supplied_context.relative_path,
                     supplied_context.content_digest,
                     envelope,
                 )
             else:
                 prepared = await self._product_runtime.prepare_instruction(
-                    instruction, envelope
+                    runtime_instruction, envelope
                 )
             self._product_runtime.bind_task_display_text(
                 prepared,

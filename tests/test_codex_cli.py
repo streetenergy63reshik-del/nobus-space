@@ -1407,6 +1407,36 @@ def test_gate5a4_web_contract_does_not_mix_owner_library_with_network(
     )
 
 
+def test_gate_c1_semantic_contract_is_answer_only_and_context_free(
+    tmp_path: Path,
+) -> None:
+    from src.application.gate5a4 import Gate5A4Runtime
+    from tests.test_contracts import make_envelope
+
+    class Memory:
+        def retrieve(self, _: str) -> str:
+            raise AssertionError("semantic no-effect task must not read memory")
+
+    runtime = object.__new__(Gate5A4Runtime)
+    runtime._allowed_path = str(tmp_path)  # type: ignore[attr-defined]
+    owner_root = tmp_path / "owner"
+    owner_root.mkdir()
+    runtime._owner_read_root = owner_root  # type: ignore[attr-defined]
+    runtime._nobus_memory = Memory()  # type: ignore[attr-defined]
+    runtime._project_context = "must not be injected"  # type: ignore[attr-defined]
+
+    contract = runtime._contract(
+        "[profile:semantic.no_effect]\nПреобразуй материал в готовый промт.",
+        make_envelope(),
+    )
+
+    assert contract.instruction == "Преобразуй материал в готовый промт."
+    assert contract.permissions == ("model.inference",)
+    assert contract.quality_profile == "gate-c1-semantic-no-effect@1"
+    assert "must not be injected" not in contract.instruction
+    assert any("textual answer only" in item for item in contract.acceptance_criteria)
+
+
 def test_gate5a4_contract_without_owner_root_remains_repo_bounded(
     tmp_path: Path,
 ) -> None:

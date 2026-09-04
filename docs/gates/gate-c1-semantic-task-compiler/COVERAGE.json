@@ -1,0 +1,203 @@
+{
+  "schema_version": "1",
+  "contract_version": "1.0.0",
+  "corpus_sha256": "43f87170d24e24df196078f08fd06fe80123b75f64c6d5175312c7e20048bab3",
+  "total": 25,
+  "passed": 25,
+  "cases": [
+    {
+      "id": "C0-DIRECT-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "task.answer.general"
+    },
+    {
+      "id": "C0-DIRECT-002",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "task.answer.general"
+    },
+    {
+      "id": "C0-INCIDENT-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "content.transform"
+    },
+    {
+      "id": "C0-INCIDENT-002",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "content.transform"
+    },
+    {
+      "id": "C0-QUOTED-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "task.answer.general"
+    },
+    {
+      "id": "C0-INJECTION-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "content.transform"
+    },
+    {
+      "id": "C0-MENTIONED-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "task.answer.general"
+    },
+    {
+      "id": "C0-NEGATION-001",
+      "decision": "UNAVAILABLE",
+      "stage": "IMPLEMENTATION_STATE",
+      "capability": "task.cancel"
+    },
+    {
+      "id": "C0-CONDITIONAL-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "content.transform"
+    },
+    {
+      "id": "C0-COMPOUND-001",
+      "decision": "EXECUTE",
+      "stage": "EXECUTE_ALLOWED",
+      "capability": "content.transform"
+    },
+    {
+      "id": "C0-COMPOUND-HETEROGENEOUS-001",
+      "decision": "UNAVAILABLE",
+      "stage": "HETEROGENEOUS_CAPABILITIES",
+      "capability": null
+    },
+    {
+      "id": "C0-EXTERNAL-READ-001",
+      "decision": "UNAVAILABLE",
+      "stage": "IMPLEMENTATION_STATE",
+      "capability": "web.public.read"
+    },
+    {
+      "id": "C0-AMBIGUITY-001",
+      "decision": "CLARIFY",
+      "stage": "AMBIGUITY",
+      "capability": null
+    },
+    {
+      "id": "C0-EXTERNAL-WRITE-001",
+      "decision": "UNAVAILABLE",
+      "stage": "IMPLEMENTATION_STATE",
+      "capability": "owner.file.create"
+    },
+    {
+      "id": "C0-REFUSE-001",
+      "decision": "REFUSE",
+      "stage": "POLICY_PROHIBITED",
+      "capability": "security.secret.exfiltration"
+    },
+    {
+      "id": "C0-UNAVAILABLE-MARKETPLACE-001",
+      "decision": "UNAVAILABLE",
+      "stage": "IMPLEMENTATION_STATE",
+      "capability": "marketplace.campaign.write"
+    },
+    {
+      "id": "C0-REF-WRONG-TENANT-001",
+      "decision": "REFUSE",
+      "stage": "TRUST_VIOLATION",
+      "capability": null
+    },
+    {
+      "id": "C0-REF-NOT-MEMBER-001",
+      "decision": "REFUSE",
+      "stage": "TRUST_VIOLATION",
+      "capability": null
+    },
+    {
+      "id": "C0-REF-BOUNDARY-001",
+      "decision": "REFUSE",
+      "stage": "TRUST_VIOLATION",
+      "capability": null
+    },
+    {
+      "id": "C0-REF-FORGED-VALID-001",
+      "decision": "REFUSE",
+      "stage": "TRUST_VIOLATION",
+      "capability": null
+    },
+    {
+      "id": "C0-REF-STALE-001",
+      "decision": "REFUSE",
+      "stage": "TRUST_VIOLATION",
+      "capability": null
+    },
+    {
+      "id": "C0-PROVENANCE-ROLE-001",
+      "decision": "REFUSE",
+      "stage": "TRUST_VIOLATION",
+      "capability": null
+    },
+    {
+      "id": "C0-CONDITIONAL-FALSE-001",
+      "decision": "UNAVAILABLE",
+      "stage": "PREDICATE_FALSE",
+      "capability": null
+    },
+    {
+      "id": "C0-CONDITIONAL-UNKNOWN-001",
+      "decision": "CLARIFY",
+      "stage": "PREDICATE_UNKNOWN",
+      "capability": null
+    },
+    {
+      "id": "C0-CONDITIONAL-INJECTION-001",
+      "decision": "UNAVAILABLE",
+      "stage": "PREDICATE_FALSE",
+      "capability": null
+    }
+  ],
+  "required_categories": [
+    "requested",
+    "quoted",
+    "mentioned_only",
+    "negation",
+    "conditional",
+    "incident_regression",
+    "prompt_injection",
+    "heterogeneous_compound",
+    "wrong_tenant",
+    "forged_valid_ref",
+    "predicate_true",
+    "predicate_false",
+    "predicate_unknown",
+    "text_voice_pair"
+  ],
+  "security_regressions": {
+    "conditional_tail_reference_repair": [
+      "162 negatives: source/target/predicate x 9 ref violations x TRUE/FALSE/UNKNOWN x reuse-main/separate-direct",
+      "12 ambiguous or semantically mismatching tail negatives retain TRUST_VIOLATION",
+      "6 correct tail controls preserve predicate outcomes; no operation double-count",
+      "9 Telegram text/confirmed voice/Mini App product guards stop before TaskContract",
+      "2 invalid-main reference guards deny new authority despite a valid tail"
+    ],
+    "C1_B01": [
+      "ambiguous matching direct proposal: INERT/CLARIFY/no TaskContract/no effect",
+      "extra/missing/excess duplicate: all-or-nothing refusal",
+      "exact duplicates/reordered occurrences: occurrence-level bijection",
+      "multiple direct spans: no occurrence reuse",
+      "direct-span refs: forged/boundary/stale/owner/tenant/conversation/membership, understood and ambiguous; TRUST_VIOLATION precedes AMBIGUITY"
+    ],
+    "C1_B02": [
+      "ASCII/Unicode single and double quotes, guillemets, inline/fenced code",
+      "nested delimiters and exact backtick runs",
+      "word apostrophes",
+      "unclosed/mismatched delimiters: whole-intake INERT"
+    ],
+    "product_paths": [
+      "Telegram text",
+      "confirmed voice transcript",
+      "Mini App text",
+      "original transform incident"
+    ]
+  }
+}

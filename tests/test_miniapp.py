@@ -25,6 +25,10 @@ from src.application.miniapp import (
     MiniAppSessionGrant,
 )
 from src.application.runtime_maintenance import validate_runtime_database
+from src.application.semantic_admission import (
+    SemanticClarificationRejected,
+    SemanticClarificationRequired,
+)
 from src.contracts import IngressKind, IngressSource, TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.orchestrator.state_manager import StateManager
@@ -243,6 +247,64 @@ class RecordingCore:
 
     def task_detail(self, bearer: str, task_id: UUID) -> object:
         raise AssertionError("not called")
+
+
+def test_boundary_returns_minimal_clarification_contract() -> None:
+    class ClarificationCore(RecordingCore):
+        async def create_task(
+            self,
+            bearer: str,
+            instruction: str,
+            idempotency_key: str,
+            *,
+            display_title: str | None = None,
+            clarification_token: str | None = None,
+        ) -> object:
+            assert bearer == RECORDED_TOKEN
+            assert display_title is None
+            if clarification_token is None:
+                raise SemanticClarificationRequired(
+                    "Что именно подготовить?", "q" * 43
+                )
+            assert clarification_token == "q" * 43
+            raise SemanticClarificationRejected("invalid binding")
+
+    app = create_miniapp_app(
+        ClarificationCore(),
+        allowed_host="testserver",
+        allowed_origin=ORIGIN,
+    )
+    mutation_headers = {
+        **headers(RECORDED_TOKEN),
+        "Content-Type": "application/json",
+        "Idempotency-Key": "request-00000000-0000-4000-8000-000000000099",
+    }
+    with TestClient(app) as client:
+        question = client.post(
+            "/api/tasks",
+            json={"instruction": "Подготовь это."},
+            headers=mutation_headers,
+        )
+        rejected = client.post(
+            "/api/tasks",
+            json={
+                "clarification_token": "q" * 43,
+                "instruction": "Используй текст.",
+            },
+            headers={
+                **mutation_headers,
+                "Idempotency-Key": "request-00000000-0000-4000-8000-000000000100",
+            },
+        )
+
+    assert question.status_code == 409
+    assert question.json() == {
+        "detail": "clarification_required",
+        "question": "Что именно подготовить?",
+        "clarification_token": "q" * 43,
+    }
+    assert rejected.status_code == 409
+    assert rejected.json() == {"detail": "clarification_invalid"}
 
 
 def test_boundary_bounds_and_forwards_raw_init_data_unchanged() -> None:

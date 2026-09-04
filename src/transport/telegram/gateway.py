@@ -353,12 +353,20 @@ class TelegramGateway:
     ) -> IngressResult:
         message_id = message.get("message_id")
         thread_id = message.get("message_thread_id")
+        reply = message.get("reply_to_message")
         if not _is_int(message_id):
             return _rejected(update_id, "missing or invalid message_id")
         if thread_id is not None and (
             not _is_int(thread_id) or thread_id <= 0
         ):
             return _rejected(update_id, "invalid message_thread_id")
+        if reply is not None and (
+            not _is_dict(reply) or not _is_non_negative_int(reply.get("message_id"))
+        ):
+            return _rejected(update_id, "invalid reply_to_message")
+        reply_id = reply["message_id"] if reply is not None else None
+        if reply_id == 0:
+            return _rejected(update_id, "invalid reply_to_message")
         raw_text = message.get("text")
         if not isinstance(raw_text, str):
             return _rejected(update_id, "invalid text type")
@@ -379,6 +387,7 @@ class TelegramGateway:
                 user_id=user_id,
                 chat_id=chat_id,
                 message_thread_id=thread_id,
+                reply_to_message_id=reply_id,
                 binding_purpose=binding.purpose,
                 message_id=message_id,
                 text=text,
@@ -395,12 +404,20 @@ class TelegramGateway:
     ) -> IngressResult:
         message_id = message.get("message_id")
         thread_id = message.get("message_thread_id")
+        reply = message.get("reply_to_message")
         if not _is_int(message_id):
             return _rejected(update_id, "missing or invalid message_id")
         if thread_id is not None and (
             not _is_int(thread_id) or thread_id <= 0
         ):
             return _rejected(update_id, "invalid message_thread_id")
+        if reply is not None and (
+            not _is_dict(reply) or not _is_non_negative_int(reply.get("message_id"))
+        ):
+            return _rejected(update_id, "invalid reply_to_message")
+        reply_id = reply["message_id"] if reply is not None else None
+        if reply_id == 0:
+            return _rejected(update_id, "invalid reply_to_message")
         voice = message.get("voice")
         if not _is_dict(voice):
             return _rejected(update_id, "malformed voice")
@@ -433,6 +450,7 @@ class TelegramGateway:
                 user_id=user_id,
                 chat_id=chat_id,
                 message_thread_id=thread_id,
+                reply_to_message_id=reply_id,
                 binding_purpose=binding.purpose,
                 message_id=message_id,
                 file_id=file_id.strip(),

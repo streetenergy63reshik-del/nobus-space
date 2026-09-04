@@ -58,12 +58,16 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "b1f338e3deff32d9507eda30384864f4a1baabce6b56d7f59cfdeffe65b5aef4",
     },
     "telegram-state.sqlite3": {
+        "index:idx_semantic_clarification_expiry":
+            "39cb81c8d32e7ca047b8a0f738441ec28cea8aeaa391ba242d2894e161310719",
         "index:idx_telegram_capability_expiry":
             "ddbbca4c024c9c1b4e84e7e05293586fd880825d7a9a2f81433e6b7fa0e307df",
         "index:idx_telegram_jobs_ready":
             "d11e18b3e3149bf94ce68aee06049de67106b46fadda83df8d97af4817d4f645",
         "table:telegram_capabilities":
             "647d83bf9edb15eb15feb109871151e9412e4b573d6c01a94d7a882248329190",
+        "table:semantic_clarifications":
+            "d3f9ae1e18148dd71d0645af7059ee1dc30a89b6eb7f8ea745ec0966349234fb",
         "table:telegram_jobs":
             "125b252ef8a4ee7e6954813e81e51edea1feee986bf6c308ba6eabe048062dc8",
         "table:telegram_progress":
@@ -272,6 +276,9 @@ def _validate_telegram_state_rows(path: Path) -> None:
             """SELECT tenant_id,task_id,chat_id,message_id,updated_at
                FROM telegram_progress"""
         ).fetchall()
+        clarifications = connection.execute(
+            "SELECT * FROM semantic_clarifications"
+        ).fetchall()
     for row in jobs:
         created = _aware(row["created_at"])
         updated = _aware(row["updated_at"])
@@ -345,6 +352,24 @@ def _validate_telegram_state_rows(path: Path) -> None:
             or row["message_id"] <= 0
         ):
             raise RuntimeError("progress binding is invalid")
+    for row in clarifications:
+        created = _aware(row["created_at"])
+        expires = _aware(row["expires_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        if (
+            not _runtime_digest(row["conversation_binding"])
+            or not _runtime_digest(row["owner_binding"])
+            or not _runtime_text(row["tenant_id"], 128)
+            or not _runtime_digest(row["tenant_binding"])
+            or not _runtime_digest(row["answer_binding"])
+            or not _runtime_digest(row["envelope_revision"])
+            or type(row["intake_revision"]) is not int
+            or row["intake_revision"] < 1
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or not created < expires <= created + timedelta(minutes=30)
+        ):
+            raise RuntimeError("semantic clarification row is invalid")
 
 
 

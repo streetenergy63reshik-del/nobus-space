@@ -1,10 +1,10 @@
 # Документация Nobus Space
 
 **Статус:** CANONICAL INDEX
-**Актуально на:** 3 сентября 2026 года
+**Актуально на:** 4 сентября 2026 года
 
-**CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED /
-PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+**CURRENT:** `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`;
+`DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Thin topology задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
@@ -16,14 +16,15 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 Единственная подвижная реализационная проекция —
 [CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
-evidence сохранены, но acceptance переоткрыта. Historical READY claim
+evidence сохранены, acceptance переоткрыта, а C1 пока существует только как
+default-off local gate candidate. Historical READY claim
 superseded на protected `main` C0-публикацией
 [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @
 `70085f8bdf20d139edf042bffa2a1169daf6791c`; deployment revision не доказана,
 MVP-2 находится на HOLD.
 
-Редакционная продуктовая roadmap и HTML-визуализация импортированы в C0 exact
-whole-file и остаются локальным `PUBLICATION HOLD / NOT PUBLISHED`.
+Редакционная продуктовая roadmap и HTML-визуализация остаются вне published
+C0/C1 tree в статусе `LOCAL EDITORIAL WIP / PUBLICATION HOLD`.
 
 ## Иерархия источников
 
@@ -66,9 +67,12 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — active C0 package и исторические sealed Gate.
-11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — единый
-    contract/acceptance для следующего Gate.
+10. [Gate index](gates/README.md) — active C1 package и исторические sealed Gate.
+11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
+    predecessor/contract C1.
+12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
+    [C2 handoff](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — локальный
+    candidate, доказательства и publication boundary.
 
 ## Сохранённые контракты
 

@@ -1,14 +1,20 @@
 # 14. Реальные owner inputs после Gate C0
 
 **Статус документа:** CANONICAL OWNER INPUTS
-**Актуально на:** 3 сентября 2026 года
-**CURRENT:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`
+**Актуально на:** 4 сентября 2026 года
+**CURRENT:** `C1 CONDITIONAL-TAIL REPAIR CANDIDATE / EXACT REVIEW PENDING`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Program boundary:** `MVP-2 HOLD`
 
 Этот файл не выдаёт разрешение на push, PR, merge, tag/release, deploy,
 provider/VPS/DNS/TLS/BotFather, credentials, live effect, Nobus Memory write,
 HTML publication или Telegram delivery.
+
+Активная thin topology остаётся привязана к
+[ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md),
+а C1 semantic boundary — к [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md).
+Telegram Mini App остаётся тонким MVP-1 ingress; полный Gate 2A —
+`FROZEN / NOT CURRENT`.
 
 ## 1. Что требуется сейчас
 
@@ -30,16 +36,16 @@ C0 восстановил фактическую границу:
 - previous owner acceptance переоткрыта из-за false semantic reject одинаковой
   transform-задачи в text и после успешного voice transcript;
 - forward [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
-  принят как TARGET, но не реализован;
+  реализован в default-off локальном C1 candidate; публикация ещё не
+  разрешена;
 - historical READY claim остаётся только в ancestry и superseded текущими
   active docs на protected `main`.
 
-## 2. Следующий Gate — C1
+## 2. Текущий Gate — C1
 
-Gate C1 можно открыть только в новом пользовательском чате от exact final
-protected-main SHA/tree из итогового C0 readback и C0 handoff. Нельзя начинать
-C1 автоматически от floating `origin/main`, dirty local `main` или
-непринятого checkpoint.
+Gate C1 открыт в отдельном пользовательском чате от exact protected-main
+predecessor `5feccfd...`, tree `480b2f85...`, а не от floating
+`origin/main`, dirty local `main` или непринятого checkpoint.
 
 Продуктовый результат C1: text и voice-transcript после нормализации проходят
 один tool-less semantic compiler; strict SemanticProposal описывает смысл без
@@ -55,8 +61,8 @@ authority; Core детерминированно выбирает capability/pol
 | Gate | Результат | Статус |
 |---|---|---|
 | C0 — единая истина и контракт | published contract и exact readback | PUBLISHED / ACCEPTED |
-| C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | NOT STARTED; отдельный чат от exact C0 predecessor |
-| C2 — voice parity и ASR qualification | общий route и русский bake-off | HOLD до C1 |
+| C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | SECURITY CORRECTION CANDIDATE / FINAL REVIEW PENDING |
+| C2 — voice parity и ASR qualification | общий route и русский bake-off | HOLD до принятого опубликованного C1 |
 | C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
 | C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |
@@ -96,8 +102,7 @@ runtime policy конкретного effect.
 
 ## 6. Что пока не делать
 
-- не начинать C1 в текущем C0-чате; C1 требует нового отдельного чата от exact
-  published predecessor;
+- не публиковать C1 без отдельной точной авторизации владельца;
 - не начинать C2–C6 или MVP-2 раньше соответствующего handoff;
 - не заменять и не устанавливать ASR до C2 bake-off/privacy decision;
 - не переносить Core/token/poller на VPS;
@@ -110,4 +115,4 @@ runtime policy конкретного effect.
 
 Точный current status: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
-**C0 PERFORMED PR #9 + STATUS-ONLY PR / MERGES; NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+**C1 SECURITY CORRECTION CANDIDATE / FINAL REVIEW PENDING. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
