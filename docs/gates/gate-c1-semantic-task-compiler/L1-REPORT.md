@@ -1,6 +1,31 @@
 # Gate C1 — L1 report
 
-**State:** `TARGETED REPAIR L1 PASS / FROZEN EXACT L1-L3 PENDING`
+**State:** `L1 PASS — APPLICABLE C1 SCOPE / HISTORICAL EXCEPTIONS RECORDED`
+
+## Итог frozen C1
+
+Проверены `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`, tree
+`6a8f968f2b447a7a20d88321d8610adcb76c9cb9`; code опубликован в `2732a11122179c4197a74594dd0c8ba3ed9ec52d`.
+Это перенос уже выполненных результатов, не новый прогон.
+
+| Проверка | Exit | Результат |
+|---|---:|---|
+| frozen-integrity | 0 | 32 exact manifest paths; sealed C0 diff 0; docs15/16 0; flag false; diff check 0; six digests verified; rejected objects preserved; credential-pattern scan 0 |
+| frozen-semantic | 0 | 316 passed |
+| frozen-impacted | 0 | 762 passed; 1 existing warning |
+| frozen-applicable-governance | 0 | 35 passed; 2 explicitly named historical snapshot deselects |
+| frozen-smoke-timeout-retry | 0 | 5/5 expected decisions; same candidate and deadline; no TaskContract created, no effect |
+| frozen-docs-governance | 1 | 35 passed; 2 historical C0 snapshot failures, explicitly not counted PASS |
+| frozen-smoke | 1 | Failed safely: quoted:SEMANTIC_PROVENANCE_TIMEOUT:unknown; no effect; not counted PASS |
+| frozen-release | 0 | 1766 passed; 2 Windows symlink skips; 1 historical ADR0022 deselect; 1 existing warning |
+
+Raw candidate receipt SHA-256: `26f38a6cc371130715b6a2bd2e7849cfebdaacfc89dfc5ef5b5e9a8afc1463a5`.
+Команды, terminal log digests, L2/L3 binding и все исключения опубликованы в
+[EVIDENCE.json](EVIDENCE.json). Сбой первого smoke и исторические FAIL не
+засчитаны PASS. Provider timeout остаётся риском стабильности для следующих Gate.
+
+## История подготовки проверок (выполненное задание, не требование повторного запуска)
+
 
 ## Conditional-tail repair — 4 сентября 2026
 
@@ -43,7 +68,7 @@ LABEL запрещён: при потере сообщения сначала ч
 
 Frozen labels: `frozen-semantic`, `frozen-impacted`, `frozen-release`,
 `frozen-docs-governance`, `frozen-applicable-governance`, `frozen-smoke`,
-`frozen-integrity`. Их результаты не объявляются до выполнения на новом SHA.
+`frozen-integrity`. Их итоговые результаты для 8e5e5fd… приведены выше.
 Команды ниже сохраняются; для pytest дополнительно применяются `-ra` и
 уникальный `--basetemp=.runtime/c1-tail-repair/LABEL-tmp`.
 Applicable governance использует точные deselect:
@@ -157,5 +182,5 @@ production code changes относительно release `f5a9119…`; эти п
 `ACCEPTED`, тогда как exact C0 predecessor уже содержит
 `ACCEPTED; semantic/process scope by 0023`. Ничего не скрывается как новый PASS.
 
-После freeze exact SHA/tree должны получить новый L1, ровно один independent
-L2 и ровно один independent L3. До их ACCEPT verdict остаётся pending.
+Требование exact frozen L1/L2/L3 выполнено для 8e5e5fd…; см. итог выше.
+Исторические инструкции в этом разделе не запускают новый цикл приёмки.

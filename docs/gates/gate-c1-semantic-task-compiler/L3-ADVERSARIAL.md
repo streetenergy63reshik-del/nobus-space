@@ -1,6 +1,28 @@
 # Gate C1 — independent adversarial L3 record
 
-**State:** `PENDING NEW EXACT-CANDIDATE REVIEW`
+**State:** `L3 ACCEPT`
+
+## Принятый независимый verdict
+
+- Reviewer: `/root/c1_tail_l3`.
+- Frozen candidate: `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`.
+- Tree: `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`; clean before/after.
+- 1477 собственных проверок плюс указанные регрессии; findings: none.
+- 1379 собственных synthetic checks + 98 integration checks;
+135 регрессий. Main/direct/tail, все девять классов invalid refs,
+TRUE/FALSE/UNKNOWN, product guards, smuggling, timeout и cancellation.
+- Raw receipt: `.runtime/c1-tail-repair/l3-review.json` в исходном C1 worktree.
+- SHA-256: `74153a912858c80d038004ba850c87fd9216598f9c9bf64822e6d2d7e99cd2e9`.
+
+Результат получен до публикации в задаче C1; здесь он документирован без
+повторного запуска. Он относится к frozen candidate, а не к docs-only commit.
+Подробная сводка и сохранённые ограничения — [EVIDENCE.json](EVIDENCE.json).
+
+## Историческое задание проверяющему — выполнено на указанном candidate
+
+Формулировки ниже сохранены для объяснения объёма проведённой проверки;
+они не являются текущим PENDING или распоряжением повторить L3.
+
 
 `381a1e54e6c2281fe335b2835972cc27ee9d486d` /
 `ab8fa02cc6d358ba998acc0cc3b4ecd8862c7bc4` — REJECTED / SUPERSEDED.
