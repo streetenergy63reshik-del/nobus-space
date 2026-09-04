@@ -166,7 +166,7 @@ def fw_options(args):
         options.update(overrides)
     return options,{'source_script_sha256':sha(script),'source_options':source,
         'candidate_overrides':overrides,'overrides_sha256':sha(args.fw_options) if args.fw_options else None,
-        'binding':'base identifier resolved to explicit pinned local snapshot path; no download/cache fallback',
+        'binding':'CURRENT decoding options with explicit local model path; model identity bound by root freeze; no download/cache fallback',
         'model_directory_name':args.models.name}
 
 
@@ -273,13 +273,15 @@ async def worker(args):
         atomic(args.output,evidence)
 
 
-def reserve_budget(path,run_id,requested):
+def reserve_budget(path,run_id,requested,*,small=False):
     # The caller holds a Windows byte-range lock until execution and accounting finish.
+    prior,authorized,cap=(0.0,1200.0,1200.0) if small else (PRIOR_GIGA_SECONDS,AUTHORIZED_GIGA_SECONDS,QUALIFICATION_GIGA_CAP)
+    version='c2-small-execution-ledger-1.0.0' if small else 'c2-giga-execution-ledger-1.0.0'
     if path.exists(): ledger=read_json(path)
     else:
-        ledger={'version':'c2-giga-execution-ledger-1.0.0','prior_consumed_seconds':PRIOR_GIGA_SECONDS,
-            'authorized_seconds':AUTHORIZED_GIGA_SECONDS,'qualification_cap_seconds':QUALIFICATION_GIGA_CAP,'runs':[]}
-    if (ledger.get('prior_consumed_seconds'),ledger.get('authorized_seconds'),ledger.get('qualification_cap_seconds'))!=(PRIOR_GIGA_SECONDS,AUTHORIZED_GIGA_SECONDS,QUALIFICATION_GIGA_CAP):
+        ledger={'version':version,'prior_consumed_seconds':prior,
+            'authorized_seconds':authorized,'qualification_cap_seconds':cap,'runs':[]}
+    if ledger.get('version')!=version or (ledger.get('prior_consumed_seconds'),ledger.get('authorized_seconds'),ledger.get('qualification_cap_seconds'))!=(prior,authorized,cap):
         raise ValueError('budget ledger constants changed')
     if not isinstance(ledger.get('runs'),list) or len({row['run_id'] for row in ledger['runs']})!=len(ledger['runs']):
         raise ValueError('budget ledger run identities invalid')
@@ -289,8 +291,8 @@ def reserve_budget(path,run_id,requested):
         if row['state']=='RESERVED' and row['charged_seconds']!=row['reserved_seconds']:
             raise ValueError('unfinished reservation must remain fully charged')
     charged=sum(row['charged_seconds'] for row in ledger['runs'])
-    remaining=min(AUTHORIZED_GIGA_SECONDS-PRIOR_GIGA_SECONDS-charged,QUALIFICATION_GIGA_CAP-charged)
-    if remaining<10: raise RuntimeError('cumulative GigaAM budget exhausted')
+    remaining=min(authorized-prior-charged,cap-charged)
+    if remaining<10: raise RuntimeError('cumulative ASR budget exhausted')
     reserved=min(requested,remaining)
     ledger['runs'].append({'run_id':run_id,'state':'RESERVED','reserved_seconds':reserved,'charged_seconds':reserved,
         'started_at_utc':datetime.now(timezone.utc).isoformat()})
@@ -305,6 +307,7 @@ def worker_command(args,name):
         command.extend(('--'+option.replace('_','-'),str(getattr(args,option))))
     if args.ledger is not None: command.extend(('--ledger',str(args.ledger)))
     if args.fw_options is not None: command.extend(('--fw-options',str(args.fw_options)))
+    if args.small_budget: command.append('--small-budget')
     if args.concurrency: command.append('--concurrency')
     return command
 
@@ -313,11 +316,17 @@ def supervisor(args):
     if os.name!='nt': raise RuntimeError('Windows qualification required')
     if not args.models.is_dir(): raise ValueError('existing pinned model directory required')
     if args.engine=='giga' and args.ledger is None: raise ValueError('GigaAM requires the persistent cumulative ledger')
+    small_root=args.repo/'.runtime/asr-qualification/faster-whisper-small'
+    if args.small_budget and (args.engine!='fw' or args.models!=small_root/'models' or args.ledger!=small_root/'execution-ledger.json'):
+        raise ValueError('small requires its pinned model directory and single persistent ledger')
+    if args.engine=='fw' and args.models==small_root/'models' and not args.small_budget:
+        raise ValueError('small inference requires cumulative budget accounting')
     if not math.isfinite(args.timeout) or not 10<=args.timeout<=300: raise ValueError('execution reservation must be10..300seconds')
     cases,cold_case=corpus_cases(args)
     audio={item['id']:audio_metadata(args,item)[1] for item in cases+[cold_case]}
     args.output.parent.mkdir(parents=True,exist_ok=True)
     initial={'version':'c2-matched-qualification-run-1.0.0','engine':args.engine,'split':args.split,'iteration':args.iteration,
+        'candidate':'fw-small' if args.small_budget else args.engine,
         'runner_sha256':sha(Path(__file__)),'corpus_gold_sha256':sha(args.corpus),'dev_dataset_sha256':sha(args.dev_dataset),
         'source_root_commit_unchecked_by_runner':True,'audio':audio,'measurements':[],'concurrency_measurements':[],
         'bounds':{'job_memory_bytes':RAM,'cpu_affinity':15,'serial_native_slots':1,'concurrent_admission':2 if args.concurrency else 1},
@@ -327,14 +336,14 @@ def supervisor(args):
     api=kernel(); handle=None; process=None; budget=None; lease=None; started=None; timeout=args.timeout
     run_id=uuid4().hex; outcome='SUPERVISOR_FAILURE'; final_stats=None; child_exit=None; supervisor_error=None
     try:
-        if args.engine=='giga':
+        if args.engine=='giga' or args.small_budget:
             import msvcrt
             args.ledger.parent.mkdir(parents=True,exist_ok=True)
             lease=args.ledger.with_name(args.ledger.name+'.lock').open('a+b')
             lease.seek(0,2)
             if lease.tell()==0: lease.write(b'0'); lease.flush()
             lease.seek(0); msvcrt.locking(lease.fileno(),msvcrt.LK_NBLCK,1)
-            budget,timeout=reserve_budget(args.ledger,run_id,timeout)
+            budget,timeout=reserve_budget(args.ledger,run_id,timeout,small=args.small_budget)
         name='Local\\Nobus-C2-qualification-'+run_id; handle=create_job(api,name)
         command=worker_command(args,name)
         environment={key:value for key,value in os.environ.items() if key.upper() in
@@ -370,7 +379,7 @@ def supervisor(args):
             entry=budget['runs'][-1]
             entry.update(state='FINISHED',charged_seconds=elapsed,actual_seconds=elapsed,outcome=outcome,
                 finished_at_utc=datetime.now(timezone.utc).isoformat())
-            budget['charged_total_seconds']=PRIOR_GIGA_SECONDS+sum(row['charged_seconds'] for row in budget['runs'])
+            budget['charged_total_seconds']=budget['prior_consumed_seconds']+sum(row['charged_seconds'] for row in budget['runs'])
             atomic(args.ledger,budget)
         if lease is not None: lease.close()
         result=read_json(args.output)
@@ -410,6 +419,7 @@ def arguments():
     p.add_argument('--dev-audio',type=Path,required=True); p.add_argument('--holdout-audio',type=Path,required=True)
     p.add_argument('--models',type=Path,required=True); p.add_argument('--ledger',type=Path)
     p.add_argument('--fw-options',type=Path)
+    p.add_argument('--small-budget',action='store_true',help='charge the separately authorized small model ledger')
     p.add_argument('--corpus',type=Path,default=HERE/'CORPUS-GOLD.json')
     p.add_argument('--dev-dataset',type=Path,required=True)
     p.add_argument('--timeout',type=float,default=150); p.add_argument('--concurrency',action='store_true')

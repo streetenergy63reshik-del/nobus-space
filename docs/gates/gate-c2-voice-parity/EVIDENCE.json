@@ -1,249 +1,843 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "gate": "C2",
-  "verdict": "BLOCKED",
-  "base": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
-  "base_tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
-  "accepted_contract_bindings": {
-    "docs/gates/gate-c1-semantic-task-compiler/HANDOFF.md": "3cdc5585cc5d7199aaf13c27d3dfb2bc440bd8ed2447317665c99a52ad8c39a6",
-    "docs/gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md": "e001097212d975c83be04ca1fdbd0946b537c998936bfb73564d4e15d514ac02",
-    "docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md": "809447612d992e0c5b2ea76a1cce37d4c9908bf6038bb18a9ac67c7648256f8f",
-    "docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md": "415c5733e16c351c7b180b3f56d3abb26a163ab0bcb84ecfbacde34f384b62f3",
-    "docs/gates/gate-c0-mvp1-truth-contract/semantic-contract.schema.json": "f09457922593bb82bc200cddaa6c6602295df3462627a5b101f0cab5e9115e87",
-    "docs/gates/gate-c0-mvp1-truth-contract/capability-registry.v1.json": "cabd76d4804474af73373c51cc5a7d361ff5c6d368aee365ffe6cbaa992a4161",
-    "docs/gates/gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json": "43f87170d24e24df196078f08fd06fe80123b75f64c6d5175312c7e20048bab3",
-    "requirements.txt": "114a3c47344cd2426e9bc535cebc54b998bd6525cd8ac170e35094fb23f59b42",
-    "scripts/run_telegram_mvp1.py": "16bbab7eee3bb0a6084cc315fab15c4a43a74e97a8921d846edc2a813e5c3315"
-  },
-  "semantic_versions": {
-    "SemanticProposal": "1.0.0",
-    "CoreDecision": "1.0.0",
-    "registry": "1.0.0",
-    "corpus": "1.0.0"
-  },
-  "receipts_before_freeze": [
-    {
-      "label": "predecessor-voice",
-      "receipt": ".runtime/c2/predecessor-voice.json",
-      "sha256": "063940a924475afd26468de8679b192eedfe8d31f8092759e59c1c0e5e62065d",
-      "started": "2026-09-04T05:02:18.415008+00:00",
-      "seconds": 6.766,
-      "exit_code": 0,
-      "output_sha256": "6dcf4e36b82ecede66d58c64a04914d9895b54fed0af1a20d180421f7712a61f"
-    },
-    {
-      "label": "baseline-benchmark",
-      "receipt": ".runtime/c2/baseline-benchmark.json",
-      "sha256": "b01828a18cb6c95d6d2a5b3700024e64edafa50a0921b3caa1ac1755e02047b5",
-      "started": "2026-09-04T05:09:46.534035+00:00",
-      "seconds": 71.328,
-      "exit_code": 0,
-      "output_sha256": "04728594f26099e0e4b0a009295d67b9beadf3409bd50c47f451b87bfad4d62f"
-    },
-    {
-      "label": "authorized-comparator-download",
-      "receipt": ".runtime/c2/authorized-comparator-download.json",
-      "sha256": "70a5b29805620449c22415db41683e85bd1c3f07addf3185805be8173ee734de",
-      "started": "2026-09-04T05:27:51.190751+00:00",
-      "seconds": 174.516,
-      "exit_code": 0,
-      "output_sha256": "2ac09e39fcc0b860150fd86025efecd73277ac54a7158c9f0c4d7f127bc707f6"
-    },
-    {
-      "label": "comparator-run-smoke",
-      "receipt": ".runtime/c2/comparator-run-smoke.json",
-      "sha256": "c5dae87f91cedbac0a58d4deb9abe25ba82402dc04f16cd9af223a3dc47392e0",
-      "started": "2026-09-04T05:40:15.631237+00:00",
-      "seconds": 4.296999999991385,
-      "exit_code": 0,
-      "output_sha256": "015b9b5bd9fd0f8bcfff0cc3d9f6ddf7305e7e79310de084cdc9b06a4c9e9968"
-    },
-    {
-      "label": "comparator-run-pilot",
-      "receipt": ".runtime/c2/comparator-run-pilot.json",
-      "sha256": "ebbb1360a72073eda689ee62c5c08767b2328aed4e7e0ca6529c19bad5d2bd32",
-      "started": "2026-09-04T05:40:33.424754+00:00",
-      "seconds": 80.89000000001397,
-      "exit_code": 0,
-      "output_sha256": "ac42cb84a1544c70bb43f3101ee974bf1b1a77b6f24b43c1751fa7eb9bfb8c86"
-    },
-    {
-      "label": "comparator-run-telemetry-disabled",
-      "receipt": ".runtime/c2/comparator-run-telemetry-disabled.json",
-      "sha256": "7b8d1c3b3b25e27eee53b790f7335a9084f5ab8a41563b24ae7906d83e7438e1",
-      "started": "2026-09-04T05:50:39.228762+00:00",
-      "seconds": 80.57800000000861,
-      "exit_code": 0,
-      "output_sha256": "77042ed5ad34d8ed01f7df1c41232d96e8f0bdead9c404a85eafdf54c6b9999a"
-    },
-    {
-      "label": "candidate-real-asr",
-      "receipt": ".runtime/c2/candidate-real-asr.json",
-      "sha256": "90c4fa3fb07983828b96581e07022f7bacf421ecf4b27966a72da8570c533f67",
-      "started": "2026-09-04T05:46:34.149989+00:00",
-      "seconds": 9.781,
-      "exit_code": 0,
-      "output_sha256": "53c9369658d9ac56c6ca4cb85d78e5afb04aae67d71f35a2d30b75b7a7225b3f"
-    },
-    {
-      "label": "wip-voice",
-      "receipt": ".runtime/c2/wip-voice.json",
-      "sha256": "2a7c1d45f1d1141907a21f3ceb703b2b4406102b29c018c8d6adb668092d1d61",
-      "started": "2026-09-04T05:15:02.502013+00:00",
-      "seconds": 24.437,
-      "exit_code": 0,
-      "output_sha256": "04714a34f6fb418fb40868d3812d77cb637928a2378049d063e1e2d97865b37c"
-    },
-    {
-      "label": "wip-durable-voice",
-      "receipt": ".runtime/c2/wip-durable-voice.json",
-      "sha256": "e67fbd40196ede80b2c328c335676ad01a809483ccc27be63b46e7b86f858dea",
-      "started": "2026-09-04T05:18:20.416298+00:00",
-      "seconds": 93.625,
-      "exit_code": 1,
-      "output_sha256": "4201cef437e10b50de14095cffb176e7cd60c383f9001d4ee65226af337baa54"
-    },
-    {
-      "label": "wip-durable-voice-corrected",
-      "receipt": ".runtime/c2/wip-durable-voice-corrected.json",
-      "sha256": "805d3c6c9791bf0269e77b11c1bcd9a14f44b4a7569c7ecceb81b377409405c9",
-      "started": "2026-09-04T05:22:04.145875+00:00",
-      "seconds": 8.375,
-      "exit_code": 1,
-      "output_sha256": "1c8a13a53310c2555cd5b1ccfb7eddac237f52266ef37540459975977173043a"
-    },
-    {
-      "label": "wip-durable-voice-green",
-      "receipt": ".runtime/c2/wip-durable-voice-green.json",
-      "sha256": "ababc1e4ccbdb4a0c1596d7505afecaa3270f2d8fc75e7a56490faae176b6c01",
-      "started": "2026-09-04T05:23:02.485938+00:00",
-      "seconds": 7.5,
-      "exit_code": 0,
-      "output_sha256": "723b7fafe7f249487b2d7178eceb2479431a0c648e0d693f94956c632188d952"
-    },
-    {
-      "label": "checkpoint-impacted",
-      "receipt": ".runtime/c2/checkpoint-impacted.json",
-      "sha256": "34a7fb27552f82bdcf5d8b65c02115798e691ec77d1ced744e7ab71b5a23ae46",
-      "started": "2026-09-04T05:26:01.377181+00:00",
-      "seconds": 38.656,
-      "exit_code": 0,
-      "output_sha256": "3c273fdc06985176ec87b67515c588cac6ecef8f36e11d256f0d5e5855181a4b"
-    },
-    {
-      "label": "wip-parity",
-      "receipt": ".runtime/c2/wip-parity.json",
-      "sha256": "72f95d40a32e822e95ef939ae163f6f66b3be7e7fd1be252d383f6f0b358e089",
-      "started": "2026-09-04T05:31:38.123836+00:00",
-      "seconds": 8.14,
-      "exit_code": 0,
-      "output_sha256": "e6c83114bdf4c22be764119257f0a9d5874f40280ead9aeca7bdf1b72baf469e"
-    },
-    {
-      "label": "wip-disk-cancel-capacity",
-      "receipt": ".runtime/c2/wip-disk-cancel-capacity.json",
-      "sha256": "62a10a52ddb898d686bbddb0cd009d067828a468708d0082c692cfaa3236ea8a",
-      "started": "2026-09-04T05:45:01.638205+00:00",
-      "seconds": 16.985,
-      "exit_code": 0,
-      "output_sha256": "b12e5df3ae57d5e535207aab2df5659507c48ce94d10db4596b733f1fcb15208"
+  "verdict": "DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED",
+  "accepted_base": {
+    "commit": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
+    "tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
+    "contract_bindings_scope": "Exact accepted base bytes; not claims that every current production file is unchanged",
+    "contract_bindings": {
+      "docs/gates/gate-c1-semantic-task-compiler/HANDOFF.md": "3cdc5585cc5d7199aaf13c27d3dfb2bc440bd8ed2447317665c99a52ad8c39a6",
+      "docs/gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md": "e001097212d975c83be04ca1fdbd0946b537c998936bfb73564d4e15d514ac02",
+      "docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md": "809447612d992e0c5b2ea76a1cce37d4c9908bf6038bb18a9ac67c7648256f8f",
+      "docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md": "415c5733e16c351c7b180b3f56d3abb26a163ab0bcb84ecfbacde34f384b62f3",
+      "docs/gates/gate-c0-mvp1-truth-contract/semantic-contract.schema.json": "f09457922593bb82bc200cddaa6c6602295df3462627a5b101f0cab5e9115e87",
+      "docs/gates/gate-c0-mvp1-truth-contract/capability-registry.v1.json": "cabd76d4804474af73373c51cc5a7d361ff5c6d368aee365ffe6cbaa992a4161",
+      "docs/gates/gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json": "43f87170d24e24df196078f08fd06fe80123b75f64c6d5175312c7e20048bab3",
+      "requirements.txt": "114a3c47344cd2426e9bc535cebc54b998bd6525cd8ac170e35094fb23f59b42",
+      "scripts/run_telegram_mvp1.py": "16bbab7eee3bb0a6084cc315fab15c4a43a74e97a8921d846edc2a813e5c3315"
     }
-  ],
-  "frozen_candidate_receipt": ".runtime/c2/final-evidence.json",
-  "independent_reviews": ".runtime/c2/reviews/L2-final/ and .runtime/c2/reviews/L3-final/",
-  "protected_entry_manifest_sha256": "5f69ab36544c65c66c6a984a0acc85ddb1ed9929c8404702e998c56bd0e30388",
-  "preflight_hard_crash_receipt_sha256": "53fe66b69966faaa1f09228bc0cb4b8bfb1a2c3721d75dd0d550e8c8d0a66364",
-  "preflight_capacity_receipt_sha256": "cdbd83b5a462be8c2a4363a38051ec348b6a8615121d86c4c71e57349e1187a4",
-  "benchmark_files": {
-    "BENCHMARK-MANIFEST.json": "c401e33e844c9f56e0fdc6d1f9610077c91f16f5adb4ea494874512652ab636b",
-    "BENCHMARK-RESULTS.json": "7c6fe2d6127c8bec2cc595865b18329d7d41f4e1cb988ca96e1e7a72b1f9aeb1"
   },
-  "authorization": {
-    "owner_reply": "Разрешаю в указанных пределах",
-    "path": ".runtime/asr-qualification/gigaam-onnx",
-    "download_bytes": 932563674,
-    "disk_bytes_at_check": 1129922032,
-    "ram_limit_bytes": 4294967296,
-    "cpu_limit": 4,
-    "seconds_limit": 1800,
-    "seconds_used_pre_freeze": 165.76500000001397,
-    "api_cost_usd": 0,
-    "cloud_audio_calls": 0,
-    "production_changed": false,
-    "seconds_used_pre_final_freeze": 169.23399999999674
-  },
-  "current_reuse_gap_target": {
-    "current": "Faster-Whisper base local cpu/int8; C1 published, default-off",
-    "reuse": "existing SQLite queue/DPAPI/lease, trusted envelope, C1 compiler/CoreDecision, no-effect runtime",
-    "gap": "pre-ASR durable lifecycle + orphan between admission/enqueue; ASR unqualified",
-    "candidate": "durable voice stages and confirmed C1 path; ASR and strict native/retention criteria remain BLOCKED"
-  },
-  "publications": "C2 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY / UNAUTHORIZED CLOUD AUDIO",
-  "superseded_candidate": {
-    "commit": "5dca0524e7c80edb0ea971200b3ed89bbc9aa476",
-    "tree": "c96302cbaae88e4d7e492791e7cb6a03125917ac",
-    "verdict": "REJECTED / SUPERSEDED",
-    "l1": {
-      "pass": 1807,
-      "skip": 2,
-      "historical_deselect": 1,
-      "receipt": {
-        "path": ".runtime/c2/frozen-release.json",
-        "sha256": "435edc2909cd1f6b170dac3903243c3757d2bd1ca1be2dcda87d3e5d125e80e0"
-      },
-      "output_sha256": "c83f476edb07e0e87b8e4fbff33c5d39357416d858785f05a8fc3b1a6fffe12d",
-      "wrapper_caveat": "pytest exit0 and receipt saved; final console printing failed cp1251 UnicodeEncodeError; no test rerun"
+  "current_product_checkpoint": {
+    "commit": "96487d176cb3f09b543cadbc0e4b91c73308b8b4",
+    "tree": "7da1e466606dec9ef7ab7bf375a30ed002b9f728",
+    "branch": "codex/mvp1-closure-c2-voice-parity",
+    "kind": "LOCAL WIP CHECKPOINT; NOT FINAL GATE CANDIDATE",
+    "receipt": ".runtime/c2/closure/checkpoint-evidence.json",
+    "receipt_sha256": "aeb7833c205214c5b9ac0721fdeddc8f6990faa20304c587ddc3f03950cb3afd",
+    "receipts": {
+      "native-regression-final.json": "cd6fba222984bcba6ec5bff2ccf88207e99661b2b0716082246d585b13a6868f",
+      "native-review/MANIFEST.json": "69c39e229477421d714691c429e4075cb2451f49f29fecf60022f702b5a216d8",
+      "retention-probe/FIXED-MANIFEST.json": "9caaeaa8aba21ce3726b2313f5efb37173ece3c60bf9d0f3a89b9584fd5090b3",
+      "qualification-tools.json": "c6bb4baddb57e060b6a5ef74b8b8dd930ddbadf0b2f3abe2c3e0c22252582eef",
+      "product-voice-preview.json": "0c68d4f34f21c55f2ce48b809fc8cb092ea750dbcd402aac549fb6c24ea4f12e",
+      "product-plan/PREPARED.json": "e6e416959fb330cf13b0a2691ac6fae26631739f1878849dc6f080d1bd5eb63d",
+      "product-plan/thread-preflight-01/receipt.json": "f413710743173e407a9e4a8acee17991e48e3671a714e611cb6760419d1997fc",
+      "semantic-dev-blind/review-c2-l2/adjudication.json": "094c7bd35d802ea094cd59097bc79dac475b580377c6af9b6db70c01c6ef7457",
+      "asr-design/FW-SMALL-AUTHORIZATION-PLAN.json": "bec495a5dbb494a081c47ba4ac1d7dff1f185e9cdf2787c22ae2756c1ded4e13",
+      "boundary-result.json": "d52907ac04fea7fc8eaec6cc539ddce9da804d454553760cdd72a3060e099d1c"
     },
-    "l2": {
-      "path": ".runtime/c2/reviews/L2/REVIEW.md",
-      "sha256": "d668a044de3116a516d91c94406a2c5a1d81346473889d952b33ec141003b5d0"
+    "source_sha256": {
+      "src/voice/isolated.py": "20a9feadcf236e1f8b24de90945b399e480467a16f73e79b7e3e9f23392088d9",
+      "src/voice/isolated_worker.py": "67c0c2887d318aeb61710eb8d3e600c373ae53250baa31ef51340bb1a2cd52ee",
+      "src/workers/windows_job.py": "738224e925adcbc05243727f68accec075b7a490515d1af165a97d6b3c6176c3",
+      "src/application/durable_telegram_state.py": "f5ab4a71c9b949405fa3983a6498e218184a34312087119590fad710bcdc0966",
+      "src/application/durable_voice.py": "9d983d7bc840ef554337c5315fe0ca98f703c89649053b8a44a272af1912d466",
+      "src/application/durable_product.py": "53a1e2f8f7b492e3a7048a8573962f67915b35722c88c96a793120ad9c15a02c",
+      "src/application/runtime_maintenance.py": "ac3e1ea20d95fb9f880c44cb87bb2ec516a5618257c9c642d43801796881478d",
+      "scripts/backup_telegram_runtime.py": "94082baef6c55271cd81919bc8aefbf9dce5db07499e07b89b411e233828bdf8",
+      "scripts/restore_telegram_runtime.py": "dc4a26e61276c1b238a28ba898c02f50b188ef40e2eb6f3f06eea5f1e19524a8",
+      "tests/test_voice_isolated.py": "6eed7142b73fe533e526b4fd2ec4fba3a3fc7200bff5dd31555ea5b1b5fef30c"
     },
-    "l3": {
-      "path": ".runtime/c2/reviews/L3/MANIFEST.json",
-      "sha256": "91cbeca33ea4d3e0f4ab35ec0f5b19ea1c962517f70736941e26b2de84ef8245"
-    },
-    "findings": [
-      "P1 reply replay across generations",
-      "P1 disabled C1 legacy fallback",
-      "P2 missing voice rejection notice",
-      "P2 normal concurrent inference treated as failure"
-    ]
+    "formal_L1_L2_L3": "NOT RUN FOR THIS FINAL CANDIDATE; no final candidate yet",
+    "later_changes": "Documentation reconciliation and qualification runner small budget support; production bytes unchanged"
   },
-  "consolidated_focused": {
-    "pass": 190,
-    "skip": 1,
-    "receipt": {
-      "path": ".runtime/c2/consolidated-focused.json",
-      "sha256": "b01d7d847a01450210b87b78ed13641fe8d983d349c4f7aeb4feac6954ea37e3"
-    },
-    "output_sha256": "f209f314f3af57a13cba1cce6a36786821ed566720ec6c31825aaa03c2c04acc"
+  "audit_reconciliation": {
+    "checked_utc": "2026-09-04T14:02:32.437583+00:00",
+    "receipt": ".runtime/c2/closure/audit-reconciliation.json",
+    "sha256": "7e8d2dd522cff37dc141f78cd42e633396cb0930574bd3ff7267d9d2bc8b8455",
+    "ten_checkpoint_receipts_verified": true,
+    "focused_production_sources_matched": 9,
+    "models_or_product_tests_repeated": false
   },
-  "dependency_review": {
-    "scope": "selected runtime pins/assets; not whole-venv/native-SBOM clean",
-    "documents": [
+  "local_focused_checks": {
+    "native": {
+      "passed": 14,
+      "formal_L3": false
+    },
+    "retention": {
+      "passed": 27,
+      "formal_L3": false
+    },
+    "later_root_subset": {
+      "passed": 48,
+      "command": "python -m pytest tests/test_voice_isolated.py tests/test_windows_job.py tests/test_voice_retention.py -q --tb=short --basetemp=.runtime/c2/closure/pytest-native-final",
+      "receipt": ".runtime/c2/closure/native-regression-final.json",
+      "output_sha256": "4ba2a1add4d68fa6e9f3cc78a68b1bb2c75923f531dcc60d793ced18e2e3602c",
+      "note": "Historical reproduction command; already completed, do not rerun without a changed candidate or new defect"
+    },
+    "review_scopes": [
       {
-        "path": ".runtime/c2/asr-security-reviewer/REVIEW.md",
-        "sha256": "d9d820583ba96098306511ae8283c3ce4bb5ef0ca7052b5896985c938bf1e62d"
+        "manifest": ".runtime/c2/closure/native-review/MANIFEST.json",
+        "sha256": "69c39e229477421d714691c429e4075cb2451f49f29fecf60022f702b5a216d8",
+        "matching_source_sha256": {
+          "src/voice/isolated.py": "20a9feadcf236e1f8b24de90945b399e480467a16f73e79b7e3e9f23392088d9",
+          "src/voice/isolated_worker.py": "67c0c2887d318aeb61710eb8d3e600c373ae53250baa31ef51340bb1a2cd52ee",
+          "src/workers/windows_job.py": "738224e925adcbc05243727f68accec075b7a490515d1af165a97d6b3c6176c3"
+        },
+        "source_changed_after_focused_review": [
+          "tests/test_voice_isolated.py"
+        ]
       },
       {
-        "path": ".runtime/c2/asr-security-reviewer/installed-byte-receipt.json",
-        "sha256": "f2aa144005e0aa7b21fd1930ef175137981375c771bf186139faf030ffcaf6b0"
-      },
-      {
-        "path": ".runtime/c2/asr-security-reviewer/baseline-selected-receipt.json",
-        "sha256": "d8d0c6379237267ffc31eebfdcb45c0391221585c5efdda21bcd8b13c83a4ba5"
-      },
-      {
-        "path": ".runtime/c2/asr-security-reviewer/pypi-advisory-receipt.json",
-        "sha256": "cb3c7c902a9400e74e4253f6cd118a1468a1b08a5e6e4b978b077a8cb12390cf"
+        "manifest": ".runtime/c2/closure/retention-probe/FIXED-MANIFEST.json",
+        "sha256": "9caaeaa8aba21ce3726b2313f5efb37173ece3c60bf9d0f3a89b9584fd5090b3",
+        "matching_source_sha256": {
+          "src/application/durable_telegram_state.py": "f5ab4a71c9b949405fa3983a6498e218184a34312087119590fad710bcdc0966",
+          "src/application/durable_voice.py": "9d983d7bc840ef554337c5315fe0ca98f703c89649053b8a44a272af1912d466",
+          "src/application/durable_product.py": "53a1e2f8f7b492e3a7048a8573962f67915b35722c88c96a793120ad9c15a02c",
+          "src/application/runtime_maintenance.py": "ac3e1ea20d95fb9f880c44cb87bb2ec516a5618257c9c642d43801796881478d",
+          "scripts/backup_telegram_runtime.py": "94082baef6c55271cd81919bc8aefbf9dce5db07499e07b89b411e233828bdf8",
+          "scripts/restore_telegram_runtime.py": "dc4a26e61276c1b238a28ba898c02f50b188ef40e2eb6f3f06eea5f1e19524a8"
+        },
+        "source_changed_after_focused_review": []
       }
     ],
-    "findings": [
-      "20 asset pins and3133 installed files verified",
-      "ORT telemetry explicitly disabled in corrected pilot",
-      "bootstrap pip25.0.1 advisories scoped to installation surfaces; exact wheels checked",
-      "PyAV/FFmpeg aggregate distribution license/native SBOM and CT2 bundled notices remain gaps",
-      "existing local FW tokenizer.json verified; missing tokenizer could trigger upstream remote fallback"
-    ]
-  }
+    "small_budget": {
+      "passed": 5,
+      "command": "python -m pytest tests/gate_c2/qualification/test_runner_budget.py -q --tb=short",
+      "receipt_sha256": "27cebe41c3990b142e716a02f8a0faff146adbd2176f79361b116fbbf4509416",
+      "output_sha256": "846f49499a33b507a51b4c23bf47c8f680c07b1e8358cb76df0c811107e92a7f",
+      "model_calls": 0
+    }
+  },
+  "qualification": {
+    "status": "B01 BLOCKED; NO KEEP/REPLACE",
+    "current_development_results": "DEVELOPMENT-RESULTS.json",
+    "plan": "tests/gate_c2/qualification/PLAN.md",
+    "plan_sha256": "640661fcd5f3922f415553cc47bc7773af218fc4747d7419690573297107b465",
+    "files_sha256": {
+      "DEVELOPMENT-RESULTS.json": "62c70a62ed0bfe6b1f63557b083ac332b509559cc97a8bb6ff870494ea6292a8",
+      "BENCHMARK-MANIFEST.json": "c401e33e844c9f56e0fdc6d1f9610077c91f16f5adb4ea494874512652ab636b",
+      "BENCHMARK-RESULTS.json": "7c6fe2d6127c8bec2cc595865b18329d7d41f4e1cb988ca96e1e7a72b1f9aeb1"
+    },
+    "historical_benchmark_scope": "BENCHMARK-MANIFEST and BENCHMARK-RESULTS are the earlier 16-case pilot, not final matched qualification",
+    "dev_samples": 16,
+    "holdout_samples": 16,
+    "holdout_recognized": false,
+    "failed_variants": 6,
+    "engine_families": 2,
+    "critical_errors_by_variant": {
+      "CURRENT": 5,
+      "GigaAM": 4,
+      "fw-neutral": 4,
+      "fw-wide": 4,
+      "fw-plain": 5,
+      "fw-small": 2
+    },
+    "raw_semantics": {
+      "CURRENT": {
+        "exact": 13,
+        "total": 16
+      },
+      "GigaAM": {
+        "exact": 15,
+        "total": 16
+      }
+    },
+    "limitation": "Single synthetic voice; no claim about arbitrary human speech",
+    "small_development_result": {
+      "candidate": "fw-small-current-decoder",
+      "split": "development",
+      "passes": 1,
+      "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+      "score_sha256": "09ec4e99dea54f3b88f403b8d4d61c625ee899131a132c65c2ba2016b44e119e",
+      "run_sha256": "aa08e5349db5fddd283a9a86c969a0a44b53a09b5b358f8a567a7d5a60f3c692",
+      "freeze_sha256": "8068adb0bef68486a54210a6674a8b89017e1bb46b11f564cf78ee707ab7ea4d",
+      "summary": {
+        "samples_iteration0": 16,
+        "observations": 16,
+        "wer": 0.06637168141592921,
+        "cer": 0.012690355329949238,
+        "critical_token_errors_iteration0": 2,
+        "critical_token_errors_all_passes": 2,
+        "latency_p50": 3.629843599977903,
+        "latency_p95": 14.001760000013746,
+        "timing_observations": 16,
+        "missing_or_invalid_timing_rows": 0,
+        "raw_rtf_p95": 0.7916341935035205,
+        "per_file_budget_exceeded": 0,
+        "measurement_error_rows": 0,
+        "semantic_exact_raw": null,
+        "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+        "asr_decision": "NOT_EVALUATED_BY_SCORER"
+      },
+      "supervisor": {
+        "outcome": "EXITED",
+        "child_exit_code": 0,
+        "elapsed_seconds": 78.52062520000618,
+        "error": null,
+        "reservation_seconds": 150.0,
+        "process_cold_seconds": 7.651219099992886,
+        "job_final_stats": {
+          "cpu_seconds": 292.703125,
+          "peak_job_memory_bytes": 3040018432,
+          "peak_process_memory_bytes": 2899345408,
+          "total_processes": 3,
+          "active_processes": 0,
+          "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+        },
+        "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+        "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+        "cumulative_ledger_sha256": "d47b143264b384f2c9e0a4d18f28fe6f4f507fc1f511a40a1c83714251446093"
+      },
+      "hard_threshold_result": "FAIL",
+      "causes": [
+        "critical_token_errors 2 > 0",
+        "raw warm RTF p95 0.7916341935 > 0.5"
+      ],
+      "critical_mismatch_cases": [
+        {
+          "id": "cancel",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "отмени",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        },
+        {
+          "id": "noise",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "отрицания",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        }
+      ],
+      "configuration": {
+        "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+        "device": "cpu",
+        "compute_type": "int8",
+        "local_files_only": true,
+        "language": "ru",
+        "beam_size": 8,
+        "patience": 1.2,
+        "vad_filter": true,
+        "condition_on_previous_text": true,
+        "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+        "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+      },
+      "independent_semantics": "NOT RUN: hard failure already decisive; no claimed semantic PASS",
+      "holdout_recognized": false,
+      "continuation": "One dev pass ended; no config search"
+    }
+  },
+  "authorizations": {
+    "gigaam": {
+      "status": "GRANTED IN THIS TASK",
+      "plan": "ASR-RESEARCH.md",
+      "used_seconds": 194.91697699996038,
+      "limit_seconds": 1800,
+      "downloaded_bytes": 932563674,
+      "ledger": ".runtime/c2/closure/giga-budget.json",
+      "ledger_sha256": "8edcacb16e0b880a67cc09a2e66cbae5b2ccb7830a90695a3fb399890eedd25d",
+      "reset": false
+    },
+    "compiler": {
+      "status": "GRANTED IN THIS TASK",
+      "model": "gpt-5.6-sol",
+      "reasoning": "high",
+      "service_tier": "fast",
+      "auth": "existing ChatGPT subscription",
+      "endpoint": "https://chatgpt.com/backend-api/codex/responses",
+      "turn_limit": 24,
+      "turns_used": 0,
+      "duration_limit_seconds": 1200,
+      "timer": "from first provider turn; not started",
+      "ledger": ".runtime/c2/closure/product-plan/budget.sqlite3",
+      "authorization_sha256": "8b84533b98ee7474361bb85d67253c63048a64156f644d42e6ff4bccf1581064",
+      "payload_scope": "synthetic text and production prompts only; no audio, tools or real effects",
+      "region_retention": "UNKNOWN; disclosed and accepted",
+      "product_result": "B02 NOT PROVEN; actual voice preview only; task0/compiler0 before confirmation"
+    },
+    "small": {
+      "status": "GRANTED IN THIS TASK; ONE DEV EXPERIMENT COMPLETED; HARD FAIL",
+      "plan_sha256": "bec495a5dbb494a081c47ba4ac1d7dff1f185e9cdf2787c22ae2756c1ded4e13",
+      "candidate": {
+        "repository": "Systran/faster-whisper-small",
+        "revision": "536b0662742c02347bc0e980a01041f333bce120",
+        "revision_date": "2023-11-23",
+        "upstream_model": "openai/whisper-small",
+        "parameters": 244000000,
+        "format": "CTranslate2, stored float16 weights, intended CPU compute_type=int8",
+        "multilingual": true,
+        "language_count_declared": 99,
+        "russian_declared_in_pinned_card": "ru",
+        "ga_preview_label": "Open weights repository; no managed-service GA/preview label declared",
+        "independent_engine": false,
+        "candidate_identity_required": "New model candidate; do not relabel as existing CURRENT base"
+      },
+      "allowlist": [
+        {
+          "path": "model.bin",
+          "bytes": 483546902,
+          "digest": {
+            "algorithm": "sha256-content",
+            "value": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671"
+          },
+          "git_lfs_pointer_blob_sha1": "504a7fe023f19460564a623887a9f77ea53ac708",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/model.bin"
+        },
+        {
+          "path": "tokenizer.json",
+          "bytes": 2203239,
+          "digest": {
+            "algorithm": "git-blob-sha1",
+            "value": "7818adb6de9fa3064d3ff81226fdd675be1f6344"
+          },
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/tokenizer.json"
+        },
+        {
+          "path": "vocabulary.txt",
+          "bytes": 459861,
+          "digest": {
+            "algorithm": "git-blob-sha1",
+            "value": "c9074644d9d1205686f16d411564729461324b75"
+          },
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/vocabulary.txt"
+        },
+        {
+          "path": "config.json",
+          "bytes": 2370,
+          "digest": {
+            "algorithm": "git-blob-sha1",
+            "value": "e5047537059bd8f182d9ca64c470201585015187"
+          },
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/config.json"
+        },
+        {
+          "path": "README.md",
+          "bytes": 1998,
+          "digest": {
+            "algorithm": "git-blob-sha1",
+            "value": "16511f6106ead2fbc3a1480957a217c2661a5a98"
+          },
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/README.md"
+        }
+      ],
+      "total_asset_bytes": 486214370,
+      "proposed_limits": {
+        "root": ".runtime/asr-qualification/faster-whisper-small",
+        "download_limit_bytes": 600000000,
+        "download_limit_includes": "Five pinned asset bodies, source notices, partial/retried payload; abort before cumulative limit",
+        "disk_limit_bytes": 1610612736,
+        "disk_limit_includes": "Models, staging, scoped caches, temporary files and candidate evidence",
+        "job_total_memory_limit_bytes": 4294967296,
+        "logical_cpu_limit": 4,
+        "affinity_mask": 15,
+        "native_slots": 1,
+        "concurrent_admission_probe": 2,
+        "cumulative_offline_execution_limit_seconds": 1200,
+        "cold_deadline_seconds": 120,
+        "corpus": "Only previously frozen synthetic C2 dev/holdout WAV; no private/human audio upload",
+        "network_during_acquisition": "HTTPS GET for allowlisted pinned Hugging Face resolve URLs and official HF storage redirects only; no arbitrary mirror, credentials or auth token",
+        "network_during_inference": "Offline local-files-only with existing restrictions; Python socket audit alone is not proof of native egress isolation",
+        "first_execution": "One frozen-config dev pass; decide before opening holdout; further fixed qualification passes remain inside1200s",
+        "completion_not_guaranteed": true,
+        "publication_deployment_live_or_C3": false
+      },
+      "existing_stack": {
+        "faster-whisper": "1.2.1",
+        "ctranslate2": "4.8.1",
+        "av": "18.0.0",
+        "numpy": "2.5.1",
+        "pip_or_dependency_install": false,
+        "venv_rebuild": false,
+        "model_conversion": false,
+        "remote_python_or_trust_remote_code": false,
+        "scope_note": "Existing canonical venv is reused without dependency changes; pin/version verification before execution remains required"
+      },
+      "license_and_security": {
+        "converted_model_pinned_card_license": "MIT",
+        "converted_repository_has_separate_license_file": false,
+        "upstream_original_code_and_weights_statement": "MIT in openai/whisper README and LICENSE",
+        "hf_upstream_model_card_tag_on_access_date": "apache-2.0",
+        "license_conflict": "Systran pinned card and original OpenAI repository state MIT; current openai/whisper-small HF card metadata labels Apache-2.0. Preserve discrepancy and both source notices; do not silently erase it or declare clean provenance.",
+        "model_format_risk": "Native CTranslate2 binary model parser; metadata Safe badge is not a vulnerability/SBOM assessment",
+        "known_stack_review_limits": "Existing selected-stack review limits, PyAV/FFmpeg bundled notices and native-component coverage remain; no whole-stack clean claim",
+        "notices_source_urls": [
+          "https://huggingface.co/Systran/faster-whisper-small/blob/536b0662742c02347bc0e980a01041f333bce120/README.md",
+          "https://github.com/openai/whisper#license",
+          "https://github.com/openai/whisper/blob/main/LICENSE",
+          "https://huggingface.co/openai/whisper-small"
+        ]
+      },
+      "downloaded_asset_bytes": 486214370,
+      "inference_started": true,
+      "owner_reply": "Разрешаю в указанных пределах",
+      "authorization_sha256": "082692c9003d61bd5bf67b083e1425a30347dae1886231d694f75fe88283ef73",
+      "charged_download_payload_bytes": 486217682,
+      "used_seconds": 78.52062520000618,
+      "remaining_seconds": 1121.4793747999938,
+      "execution_ledger_sha256": "d47b143264b384f2c9e0a4d18f28fe6f4f507fc1f511a40a1c83714251446093",
+      "download_receipt_sha256": "39aea79df86d200f237a23ff1c9d930444bada020526b91aa63fe4a12a9c5029",
+      "model_content_sha256": {
+        "model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+        "tokenizer.json": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+        "vocabulary.txt": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+        "config.json": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+        "README.md": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8"
+      },
+      "disk_bytes_at_check": 486313117,
+      "stop_rule": "No further configuration or holdout execution under this completed experiment"
+    }
+  },
+  "blockers": {
+    "C2-B01": "Six variants from two families failed; small one-pass dev: critical2 and raw RTFp95 0.792; no qualified selection",
+    "C2-B02": "Full production compiler/downstream result and parity/recovery await viable ASR",
+    "C2-B03": "LOCAL FIX; preserve for final candidate checks",
+    "C2-B04": "LOCAL FIX; preserve for final candidate checks"
+  },
+  "next_steps": [
+    "Owner decision on one beam8-to1 experiment using existing small within the remaining budget; no new model/stack/download; otherwise stop",
+    "If viable: select and finish unchanged 32-case qualification, integration/license/security/rollback",
+    "B02 frozen rubric and actual production smoke within existing compiler and ASR budgets",
+    "Coherent final commit/tree with own L1, independent L2 and adversarial L3",
+    "Only after PASS: exact owner publication permission, protected PR/merge and readback"
+  ],
+  "publication": {
+    "status": "NOT PUBLISHED",
+    "permission": "Not granted; current BLOCKED checkpoint cannot be published as accepted C2",
+    "deploy_live_C3": false
+  },
+  "historical_candidates": [
+    {
+      "commit": "b090bc48b8934fcc16e10a81cff12b56b30479c1",
+      "tree": "10055957c7ba1f5c21577d7e58ea5e459e0c46bf",
+      "status": "HISTORICAL BLOCKED; all nested fields below refer to that candidate or its predecessor",
+      "receipt": ".runtime/c2/final-evidence.json",
+      "receipt_sha256": "baf960372d5dd9c189a2de9b0de317c6ad0c45d3adc31bac3012135528bdba6d",
+      "evidence_snapshot": {
+        "version": "1.0.0",
+        "gate": "C2",
+        "verdict": "BLOCKED",
+        "base": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
+        "base_tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
+        "accepted_contract_bindings": {
+          "docs/gates/gate-c1-semantic-task-compiler/HANDOFF.md": "3cdc5585cc5d7199aaf13c27d3dfb2bc440bd8ed2447317665c99a52ad8c39a6",
+          "docs/gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md": "e001097212d975c83be04ca1fdbd0946b537c998936bfb73564d4e15d514ac02",
+          "docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md": "809447612d992e0c5b2ea76a1cce37d4c9908bf6038bb18a9ac67c7648256f8f",
+          "docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md": "415c5733e16c351c7b180b3f56d3abb26a163ab0bcb84ecfbacde34f384b62f3",
+          "docs/gates/gate-c0-mvp1-truth-contract/semantic-contract.schema.json": "f09457922593bb82bc200cddaa6c6602295df3462627a5b101f0cab5e9115e87",
+          "docs/gates/gate-c0-mvp1-truth-contract/capability-registry.v1.json": "cabd76d4804474af73373c51cc5a7d361ff5c6d368aee365ffe6cbaa992a4161",
+          "docs/gates/gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json": "43f87170d24e24df196078f08fd06fe80123b75f64c6d5175312c7e20048bab3",
+          "requirements.txt": "114a3c47344cd2426e9bc535cebc54b998bd6525cd8ac170e35094fb23f59b42",
+          "scripts/run_telegram_mvp1.py": "16bbab7eee3bb0a6084cc315fab15c4a43a74e97a8921d846edc2a813e5c3315"
+        },
+        "semantic_versions": {
+          "SemanticProposal": "1.0.0",
+          "CoreDecision": "1.0.0",
+          "registry": "1.0.0",
+          "corpus": "1.0.0"
+        },
+        "receipts_before_freeze": [
+          {
+            "label": "predecessor-voice",
+            "receipt": ".runtime/c2/predecessor-voice.json",
+            "sha256": "063940a924475afd26468de8679b192eedfe8d31f8092759e59c1c0e5e62065d",
+            "started": "2026-09-04T05:02:18.415008+00:00",
+            "seconds": 6.766,
+            "exit_code": 0,
+            "output_sha256": "6dcf4e36b82ecede66d58c64a04914d9895b54fed0af1a20d180421f7712a61f"
+          },
+          {
+            "label": "baseline-benchmark",
+            "receipt": ".runtime/c2/baseline-benchmark.json",
+            "sha256": "b01828a18cb6c95d6d2a5b3700024e64edafa50a0921b3caa1ac1755e02047b5",
+            "started": "2026-09-04T05:09:46.534035+00:00",
+            "seconds": 71.328,
+            "exit_code": 0,
+            "output_sha256": "04728594f26099e0e4b0a009295d67b9beadf3409bd50c47f451b87bfad4d62f"
+          },
+          {
+            "label": "authorized-comparator-download",
+            "receipt": ".runtime/c2/authorized-comparator-download.json",
+            "sha256": "70a5b29805620449c22415db41683e85bd1c3f07addf3185805be8173ee734de",
+            "started": "2026-09-04T05:27:51.190751+00:00",
+            "seconds": 174.516,
+            "exit_code": 0,
+            "output_sha256": "2ac09e39fcc0b860150fd86025efecd73277ac54a7158c9f0c4d7f127bc707f6"
+          },
+          {
+            "label": "comparator-run-smoke",
+            "receipt": ".runtime/c2/comparator-run-smoke.json",
+            "sha256": "c5dae87f91cedbac0a58d4deb9abe25ba82402dc04f16cd9af223a3dc47392e0",
+            "started": "2026-09-04T05:40:15.631237+00:00",
+            "seconds": 4.296999999991385,
+            "exit_code": 0,
+            "output_sha256": "015b9b5bd9fd0f8bcfff0cc3d9f6ddf7305e7e79310de084cdc9b06a4c9e9968"
+          },
+          {
+            "label": "comparator-run-pilot",
+            "receipt": ".runtime/c2/comparator-run-pilot.json",
+            "sha256": "ebbb1360a72073eda689ee62c5c08767b2328aed4e7e0ca6529c19bad5d2bd32",
+            "started": "2026-09-04T05:40:33.424754+00:00",
+            "seconds": 80.89000000001397,
+            "exit_code": 0,
+            "output_sha256": "ac42cb84a1544c70bb43f3101ee974bf1b1a77b6f24b43c1751fa7eb9bfb8c86"
+          },
+          {
+            "label": "comparator-run-telemetry-disabled",
+            "receipt": ".runtime/c2/comparator-run-telemetry-disabled.json",
+            "sha256": "7b8d1c3b3b25e27eee53b790f7335a9084f5ab8a41563b24ae7906d83e7438e1",
+            "started": "2026-09-04T05:50:39.228762+00:00",
+            "seconds": 80.57800000000861,
+            "exit_code": 0,
+            "output_sha256": "77042ed5ad34d8ed01f7df1c41232d96e8f0bdead9c404a85eafdf54c6b9999a"
+          },
+          {
+            "label": "candidate-real-asr",
+            "receipt": ".runtime/c2/candidate-real-asr.json",
+            "sha256": "90c4fa3fb07983828b96581e07022f7bacf421ecf4b27966a72da8570c533f67",
+            "started": "2026-09-04T05:46:34.149989+00:00",
+            "seconds": 9.781,
+            "exit_code": 0,
+            "output_sha256": "53c9369658d9ac56c6ca4cb85d78e5afb04aae67d71f35a2d30b75b7a7225b3f"
+          },
+          {
+            "label": "wip-voice",
+            "receipt": ".runtime/c2/wip-voice.json",
+            "sha256": "2a7c1d45f1d1141907a21f3ceb703b2b4406102b29c018c8d6adb668092d1d61",
+            "started": "2026-09-04T05:15:02.502013+00:00",
+            "seconds": 24.437,
+            "exit_code": 0,
+            "output_sha256": "04714a34f6fb418fb40868d3812d77cb637928a2378049d063e1e2d97865b37c"
+          },
+          {
+            "label": "wip-durable-voice",
+            "receipt": ".runtime/c2/wip-durable-voice.json",
+            "sha256": "e67fbd40196ede80b2c328c335676ad01a809483ccc27be63b46e7b86f858dea",
+            "started": "2026-09-04T05:18:20.416298+00:00",
+            "seconds": 93.625,
+            "exit_code": 1,
+            "output_sha256": "4201cef437e10b50de14095cffb176e7cd60c383f9001d4ee65226af337baa54"
+          },
+          {
+            "label": "wip-durable-voice-corrected",
+            "receipt": ".runtime/c2/wip-durable-voice-corrected.json",
+            "sha256": "805d3c6c9791bf0269e77b11c1bcd9a14f44b4a7569c7ecceb81b377409405c9",
+            "started": "2026-09-04T05:22:04.145875+00:00",
+            "seconds": 8.375,
+            "exit_code": 1,
+            "output_sha256": "1c8a13a53310c2555cd5b1ccfb7eddac237f52266ef37540459975977173043a"
+          },
+          {
+            "label": "wip-durable-voice-green",
+            "receipt": ".runtime/c2/wip-durable-voice-green.json",
+            "sha256": "ababc1e4ccbdb4a0c1596d7505afecaa3270f2d8fc75e7a56490faae176b6c01",
+            "started": "2026-09-04T05:23:02.485938+00:00",
+            "seconds": 7.5,
+            "exit_code": 0,
+            "output_sha256": "723b7fafe7f249487b2d7178eceb2479431a0c648e0d693f94956c632188d952"
+          },
+          {
+            "label": "checkpoint-impacted",
+            "receipt": ".runtime/c2/checkpoint-impacted.json",
+            "sha256": "34a7fb27552f82bdcf5d8b65c02115798e691ec77d1ced744e7ab71b5a23ae46",
+            "started": "2026-09-04T05:26:01.377181+00:00",
+            "seconds": 38.656,
+            "exit_code": 0,
+            "output_sha256": "3c273fdc06985176ec87b67515c588cac6ecef8f36e11d256f0d5e5855181a4b"
+          },
+          {
+            "label": "wip-parity",
+            "receipt": ".runtime/c2/wip-parity.json",
+            "sha256": "72f95d40a32e822e95ef939ae163f6f66b3be7e7fd1be252d383f6f0b358e089",
+            "started": "2026-09-04T05:31:38.123836+00:00",
+            "seconds": 8.14,
+            "exit_code": 0,
+            "output_sha256": "e6c83114bdf4c22be764119257f0a9d5874f40280ead9aeca7bdf1b72baf469e"
+          },
+          {
+            "label": "wip-disk-cancel-capacity",
+            "receipt": ".runtime/c2/wip-disk-cancel-capacity.json",
+            "sha256": "62a10a52ddb898d686bbddb0cd009d067828a468708d0082c692cfaa3236ea8a",
+            "started": "2026-09-04T05:45:01.638205+00:00",
+            "seconds": 16.985,
+            "exit_code": 0,
+            "output_sha256": "b12e5df3ae57d5e535207aab2df5659507c48ce94d10db4596b733f1fcb15208"
+          }
+        ],
+        "frozen_candidate_receipt": ".runtime/c2/final-evidence.json",
+        "independent_reviews": ".runtime/c2/reviews/L2-final/ and .runtime/c2/reviews/L3-final/",
+        "protected_entry_manifest_sha256": "5f69ab36544c65c66c6a984a0acc85ddb1ed9929c8404702e998c56bd0e30388",
+        "preflight_hard_crash_receipt_sha256": "53fe66b69966faaa1f09228bc0cb4b8bfb1a2c3721d75dd0d550e8c8d0a66364",
+        "preflight_capacity_receipt_sha256": "cdbd83b5a462be8c2a4363a38051ec348b6a8615121d86c4c71e57349e1187a4",
+        "benchmark_files": {
+          "BENCHMARK-MANIFEST.json": "c401e33e844c9f56e0fdc6d1f9610077c91f16f5adb4ea494874512652ab636b",
+          "BENCHMARK-RESULTS.json": "7c6fe2d6127c8bec2cc595865b18329d7d41f4e1cb988ca96e1e7a72b1f9aeb1"
+        },
+        "authorization": {
+          "owner_reply": "Разрешаю в указанных пределах",
+          "path": ".runtime/asr-qualification/gigaam-onnx",
+          "download_bytes": 932563674,
+          "disk_bytes_at_check": 1129922032,
+          "ram_limit_bytes": 4294967296,
+          "cpu_limit": 4,
+          "seconds_limit": 1800,
+          "seconds_used_pre_freeze": 165.76500000001397,
+          "api_cost_usd": 0,
+          "cloud_audio_calls": 0,
+          "production_changed": false,
+          "seconds_used_pre_final_freeze": 169.23399999999674
+        },
+        "current_reuse_gap_target": {
+          "current": "Faster-Whisper base local cpu/int8; C1 published, default-off",
+          "reuse": "existing SQLite queue/DPAPI/lease, trusted envelope, C1 compiler/CoreDecision, no-effect runtime",
+          "gap": "pre-ASR durable lifecycle + orphan between admission/enqueue; ASR unqualified",
+          "candidate": "durable voice stages and confirmed C1 path; ASR and strict native/retention criteria remain BLOCKED"
+        },
+        "publications": "C2 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY / UNAUTHORIZED CLOUD AUDIO",
+        "superseded_candidate": {
+          "commit": "5dca0524e7c80edb0ea971200b3ed89bbc9aa476",
+          "tree": "c96302cbaae88e4d7e492791e7cb6a03125917ac",
+          "verdict": "REJECTED / SUPERSEDED",
+          "l1": {
+            "pass": 1807,
+            "skip": 2,
+            "historical_deselect": 1,
+            "receipt": {
+              "path": ".runtime/c2/frozen-release.json",
+              "sha256": "435edc2909cd1f6b170dac3903243c3757d2bd1ca1be2dcda87d3e5d125e80e0"
+            },
+            "output_sha256": "c83f476edb07e0e87b8e4fbff33c5d39357416d858785f05a8fc3b1a6fffe12d",
+            "wrapper_caveat": "pytest exit0 and receipt saved; final console printing failed cp1251 UnicodeEncodeError; no test rerun"
+          },
+          "l2": {
+            "path": ".runtime/c2/reviews/L2/REVIEW.md",
+            "sha256": "d668a044de3116a516d91c94406a2c5a1d81346473889d952b33ec141003b5d0"
+          },
+          "l3": {
+            "path": ".runtime/c2/reviews/L3/MANIFEST.json",
+            "sha256": "91cbeca33ea4d3e0f4ab35ec0f5b19ea1c962517f70736941e26b2de84ef8245"
+          },
+          "findings": [
+            "P1 reply replay across generations",
+            "P1 disabled C1 legacy fallback",
+            "P2 missing voice rejection notice",
+            "P2 normal concurrent inference treated as failure"
+          ]
+        },
+        "consolidated_focused": {
+          "pass": 190,
+          "skip": 1,
+          "receipt": {
+            "path": ".runtime/c2/consolidated-focused.json",
+            "sha256": "b01d7d847a01450210b87b78ed13641fe8d983d349c4f7aeb4feac6954ea37e3"
+          },
+          "output_sha256": "f209f314f3af57a13cba1cce6a36786821ed566720ec6c31825aaa03c2c04acc"
+        },
+        "dependency_review": {
+          "scope": "selected runtime pins/assets; not whole-venv/native-SBOM clean",
+          "documents": [
+            {
+              "path": ".runtime/c2/asr-security-reviewer/REVIEW.md",
+              "sha256": "d9d820583ba96098306511ae8283c3ce4bb5ef0ca7052b5896985c938bf1e62d"
+            },
+            {
+              "path": ".runtime/c2/asr-security-reviewer/installed-byte-receipt.json",
+              "sha256": "f2aa144005e0aa7b21fd1930ef175137981375c771bf186139faf030ffcaf6b0"
+            },
+            {
+              "path": ".runtime/c2/asr-security-reviewer/baseline-selected-receipt.json",
+              "sha256": "d8d0c6379237267ffc31eebfdcb45c0391221585c5efdda21bcd8b13c83a4ba5"
+            },
+            {
+              "path": ".runtime/c2/asr-security-reviewer/pypi-advisory-receipt.json",
+              "sha256": "cb3c7c902a9400e74e4253f6cd118a1468a1b08a5e6e4b978b077a8cb12390cf"
+            }
+          ],
+          "findings": [
+            "20 asset pins and3133 installed files verified",
+            "ORT telemetry explicitly disabled in corrected pilot",
+            "bootstrap pip25.0.1 advisories scoped to installation surfaces; exact wheels checked",
+            "PyAV/FFmpeg aggregate distribution license/native SBOM and CT2 bundled notices remain gaps",
+            "existing local FW tokenizer.json verified; missing tokenizer could trigger upstream remote fallback"
+          ]
+        }
+      }
+    }
+  ],
+  "small_acquisition_retry": {
+    "initial_failure": "NON_OFFICIAL_HTTPS_REDIRECT",
+    "payload_bytes_kept_charged": 1061,
+    "model_bytes_before_retry": 0,
+    "official_host_added": "us.aws.cdn.hf.co",
+    "primary_source": "https://huggingface.co/docs/hub/models-downloading",
+    "original_plan_digest_unchanged": true,
+    "counter_reset": false,
+    "script_sha256": "dae625e73aee7822019f3c3d70df34f8a75b5cd38de61a470f1a3013af56850a",
+    "first_ledger_sha256": "8a1ec38a5faff3f5ed934fa3bedad4f937a4c26f7577fcd31ccd15314bcd3184"
+  },
+  "small_experiment_bindings": {
+    "freeze_sha256": "8068adb0bef68486a54210a6674a8b89017e1bb46b11f564cf78ee707ab7ea4d",
+    "run_sha256": "aa08e5349db5fddd283a9a86c969a0a44b53a09b5b358f8a567a7d5a60f3c692",
+    "scorer_sha256": "3ad608cf39a7aa87b55f0880e77bc3ef7e72a2f499cc8857e1c6c6638ff693b1",
+    "score_sha256": "09ec4e99dea54f3b88f403b8d4d61c625ee899131a132c65c2ba2016b44e119e",
+    "model": {
+      "repository": "Systran/faster-whisper-small",
+      "revision": "536b0662742c02347bc0e980a01041f333bce120",
+      "files": {
+        "model.bin": {
+          "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+          "bytes": 483546902
+        },
+        "tokenizer.json": {
+          "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+          "bytes": 2203239
+        },
+        "vocabulary.txt": {
+          "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+          "bytes": 459861
+        },
+        "config.json": {
+          "sha256": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+          "bytes": 2370
+        },
+        "README.md": {
+          "sha256": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8",
+          "bytes": 1998
+        }
+      }
+    },
+    "source_sha256": {
+      "src/voice/isolated.py": "20a9feadcf236e1f8b24de90945b399e480467a16f73e79b7e3e9f23392088d9",
+      "src/voice/isolated_worker.py": "67c0c2887d318aeb61710eb8d3e600c373ae53250baa31ef51340bb1a2cd52ee",
+      "src/voice/faster_whisper.py": "22b54090f672950ea61ba19a2184b9e0fa40bff8132bc7cc68753d8b2f09831e",
+      "src/voice/base.py": "d3d28a13c0349b3ba30925369c943fa272cf4224ed04f1db4b93c7a239ed4f2d",
+      "src/voice/service.py": "2b2f2e5a8634e589049a7c5107a21738fd248a55f90383eed0e8b0d234484d5f",
+      "src/workers/windows_job.py": "738224e925adcbc05243727f68accec075b7a490515d1af165a97d6b3c6176c3",
+      "scripts/run_telegram_mvp1.py": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab"
+    },
+    "tool_sha256_at_run": {
+      "tests/gate_c2/qualification/CORPUS-GOLD.json": "575b6104ab0b6a6516f3dd3f089d092a6380eb36347e1e6b828c009d71cb72cf",
+      "tests/gate_c2/qualification/DEVELOPMENT.md": "b36bac642469949d0077c6f37b59cef76156c49465dc20052b6241f33b08f818",
+      "tests/gate_c2/qualification/fw-neutral.json": "cffaac197b1352f01579cd00407e810a399416f605ad0fdff20f6911908bcb03",
+      "tests/gate_c2/qualification/fw-plain.json": "588f880611e46433351bc1673c1730bfd7b5761476dffc29e89e407f05d6acec",
+      "tests/gate_c2/qualification/fw-wide.json": "afcfccc6b2c6183992270ff7edd71d98d125b31e5a411c4b09eb09b47f947186",
+      "tests/gate_c2/qualification/NORMALIZATION-GOLD.json": "b08ef5584326b19688de67b74f95a7d8ece31068fdb526a3e696f4df618efd52",
+      "tests/gate_c2/qualification/PLAN.md": "640661fcd5f3922f415553cc47bc7773af218fc4747d7419690573297107b465",
+      "tests/gate_c2/qualification/render.py": "48d31806c868cf172cc8a597cbbd38b7d8c3130fce5af5f7513c55e5d032385b",
+      "tests/gate_c2/qualification/render_tts.ps1": "bad6380574576f22af68104ee945a917c4eda02d3d6e95c1a480328994e56bc7",
+      "tests/gate_c2/qualification/RUNNER.md": "6b560639006d92246052bf732798bcf38227468fa1ce3f15f277c0f95e404d42",
+      "tests/gate_c2/qualification/runner.py": "fa53a14bb5b0a03c31788b507cac9fb9c17afd1e25fbd710c15e54df347a7928",
+      "tests/gate_c2/qualification/scorer.py": "3ad608cf39a7aa87b55f0880e77bc3ef7e72a2f499cc8857e1c6c6638ff693b1",
+      "tests/gate_c2/qualification/test_tools.py": "199b6531fb66b4db1277acaddfd682b866aeb07291a2468564899e0828aa2200",
+      "tests/gate_c2/qualification/TOOLING.md": "ed45a3743efe5c20399c8fa8f66b7be066bca4af4efb63add26e7e56823ad3dc",
+      ".runtime/c2/closure/asr-design/freeze_small.py": "ac87af5bdca8914b32ea086bc562a990408d3a945bd98426d66f02cc9cd84a92",
+      ".runtime/c2/closure/asr-design/run_small.py": "0b502f210a2a3bfcd357f67df3fcb2b9bf2fe4fc0c910cb0eee14a1558dc4d9a"
+    },
+    "source_configuration": {
+      "source_script_sha256": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab",
+      "source_options": {
+        "model_size": "base",
+        "device": "cpu",
+        "compute_type": "int8",
+        "local_files_only": true,
+        "language": "ru",
+        "beam_size": 8,
+        "patience": 1.2,
+        "vad_filter": true,
+        "condition_on_previous_text": true,
+        "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+        "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+      },
+      "candidate_overrides": null,
+      "overrides_sha256": null,
+      "binding": "CURRENT decoding options with explicit local model path; model identity bound by root freeze; no download/cache fallback",
+      "model_directory_name": "models"
+    },
+    "runtime_versions": {
+      "faster-whisper": "1.2.1",
+      "ctranslate2": "4.8.1",
+      "av": "18.0.0",
+      "numpy": "2.5.1"
+    },
+    "python": {
+      "venv_exe_sha256": "560b9ef7d856608ab8da02ded2dc8a1951ad1f424c382c0ec6a698874165a18e",
+      "base_exe_sha256": "ebdb7ddc892a73a9ece422fda408d0bbc2d232904cedeaae359066ef2db37317"
+    },
+    "audio_sha256": {
+      "cancel": "7d4455e978857d2045220e22f40b169eb0a4c5f7af3691df5235e6d918308209",
+      "conditional": "b49351907c8414faa7c7b1a5bea677e9a92be13246e9fdca5363c6048c381c82",
+      "correction": "1e833a5c6537c39e52fb9035034134902ac2e959e95b8aa8c5e16d14038aab73",
+      "dates": "4a5e46b896613a13e366686b315ba01bb727e5543a642281af59b3e355d9122e",
+      "direct": "b93077931c11e15f325646093cb334ed523c5e13033e2e8ad6f35ae712310d2e",
+      "domain": "00df3d0225a5b37b275dc6b30361cf682a9ca6c6b3da774d70e41efa0167d743",
+      "long": "e43821a9805fc316892a3d87ce86a3c2c2c8941c5a2f26e118726b9c2dc8281d",
+      "names": "04c6f65f5554ed6a081524b47562692bd8e8985fc21efbbc757a296ba44284c4",
+      "negation": "27c8ae33ea1c0b1446ec9fdb54a99394109e2d9e2043e65ebe77b331a877c8d2",
+      "nested": "6c6db99c1fa6f9059950d39996fbfc3824bb9c7ef46499e8b39ddca15135321c",
+      "noise": "4d6894a734aa952ee9bd8cb50bf8e8c5b00492d3162946a29dda26f295337620",
+      "numbers": "dbe39c244d6d05f7e781e8ba05c0af20fccf949d1d652f397a85b36b30dd8c80",
+      "pause": "f54252758eaffa09b315b7128a11a1d0faa8b3efe64190263a399606f3e081cf",
+      "quiet": "fd5640c5dadc1dd06d3f3dfbdc0052732a271841b8acdaf5b32a771df15fee36",
+      "quoted": "4cd99f08c648eb12111a5865ca0d14d561db4578a9ceb6a5c8e9c39054d99a71",
+      "transform": "24672b14e473155e77b8c7df544d9491c7764e185fa3089423a0daf014f2a319",
+      "h_cancel": "80ded46d8339651766a3ac1f3e52d2491fb6611fe07a7a604fd8ca404bd08d12",
+      "h_conditional": "aaf8be3643b2a572234b7446923877f99958edc92df934471fee78a1ebad21cb",
+      "h_correction": "f8b0d466f881c56fe3e95e9e070a7143c2b07102bbced4e491046129626b5ea0",
+      "h_dates": "804209b71e20a290fbf265aeef8c7cc0e42a20a2f43e78e88de846e7fbaff831",
+      "h_direct": "8a0d9c4677f73e64160c10c4ca623995eb299d0c8b656402dc4249cb8baf3124",
+      "h_domain": "93e0344ae8c3384be7879fc0842670736444a9e8da07ad97ef73764d1e01dbb3",
+      "h_long": "252b06536882c677a56d0982f7ace3c41636c41c7ac86b3996eccfb07245c8ce",
+      "h_names": "694835963d6353f701bfc70a7922f1a1707ce3e6f57261d7c0d24598e68b26d9",
+      "h_negation": "572f6e753a99c24386227b7f70838a2f7413c0c2f6a49341bc9de08bf57c337e",
+      "h_nested": "dd03b68e1ac950e704de30e39ea5eb97f50787b02780e583ab3d6a6ee4e2344a",
+      "h_noise": "558434e120ec60010b1c6164223249d6876cad4e3adce7ecf0e29d18b732192c",
+      "h_numbers": "f94a4daef5644930ff6abc9c928f0bd2e63674ac9c999004b55b163a28fa4de1",
+      "h_pause": "b2b9a8a83ccc87220dbb38795a8e9197ae0650b49acc3be735b799e94f1a14db",
+      "h_quiet": "f3c7b01dafa60869433186562f78b882d0cdb0ababfad1e72b1639bb6e34b814",
+      "h_quoted": "8e397be6d205c8d8def32a373e2044c3bcec6e3f20db0126c586e4ad91aeab1c",
+      "h_transform": "c3f20faae38322434aece951932ee47b872564946c91a6b60f1766a4aeb9e517"
+    },
+    "note": "RUNNER.md and a pure budget regression test were updated after the run; production, runner.py, gold, scorer and audio at execution remain exact-bound"
+  },
+  "next_hypothesis": {
+    "status": "PROPOSED; NOT AUTHORIZED; NOT EXECUTED",
+    "hypothesis": "Reducing small beam_size from8 to1 may bring raw RTF p95 within0.5 while retaining or improving recognition; critical errors must still be0, otherwise FAIL",
+    "evidence_basis": {
+      "small_wer": 0.06637168141592921,
+      "critical_errors": 2,
+      "raw_rtf_p95": 0.7916341935035205,
+      "cold_seconds": 7.651219099992886,
+      "model": "same acquired small snapshot"
+    },
+    "one_change": {
+      "beam_size": {
+        "before": 8,
+        "after": 1
+      }
+    },
+    "unchanged": "same model bytes, int8/ru/patience1.2/VAD/previous_text/initial_prompt/hotwords, gold, scorer, audio and thresholds",
+    "execution": "one dev16 pass including process-cold, at most150seconds reserved from the same cumulative ledger",
+    "new_download_bytes": 0,
+    "new_install": false,
+    "memory_bytes": 4294967296,
+    "logical_cpus": 4,
+    "current_used_seconds": 78.52062520000618,
+    "remaining_seconds": 1121.4793747999938,
+    "budget_extension_requested": false,
+    "authorization_needed": "one exact exception to the agreed stop-after-failed-dev boundary; existing1200s cap is not permission for config search",
+    "holdout": "closed unless a viable dev result and a new freeze precede opening",
+    "failure": "stop and retain exact result; no automatic further configurations",
+    "success_not_guaranteed": true
+  },
+  "next_hypothesis_sha256": "1c1ccc3fadfa599e29d649f465ff41772d531a61bfea8c746610ae3b294958f2"
 }

@@ -69,12 +69,15 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — active C1 package и исторические sealed Gate.
+10. [Gate index](gates/README.md) — принятый C1, локальный C2 и исторические sealed Gate.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
-    [C2 handoff](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
+    [передача C1 → C2](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
     опубликованный C1, доказательства и условия старта C2.
+13. [Текущий C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
+    [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — локальный
+    checkpoint, оставшиеся B01/B02 и условия собственной приёмки C2.
 
 ## Сохранённые контракты
 

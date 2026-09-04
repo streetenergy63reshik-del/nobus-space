@@ -2,6 +2,7 @@
 
 **Актуально на:** 4 сентября 2026 года
 **Текущий продуктовый verdict:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
+**Локальный C2:** `DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Следующая продуктовая линия:** `MVP-2 HOLD`
 
@@ -24,9 +25,17 @@ candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
 активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; durable intake и
 парные проверки реализованы в отдельном worktree. В продолжении исправлены
 native lifetime/retention: независимые focused14/27PASS, root subset48PASS.
-Matched dev CURRENT/GigaAM и три FW config не прошли ASR hard thresholds;
-новый small download требует отдельного разрешения. Compiler24turn/20min уже
-разрешён, пока0turn; полный продуктовый результат и новые L1–L3 впереди.
+Matched dev CURRENT/GigaAM и три FW config не прошли ASR hard thresholds.
+Позже владелец разрешил small: пять pinned assets скачаны, один dev завершён
+с WER6,64%, critical2 и raw RTFp95 0,792>0,5. Эксперимент остановлен.
+Small использовал78,520625s из1200s; GigaAM194,916977s из1800s.
+Одна следующая гипотеза beam8→1 требует отдельного решения; holdout не открыт.
+Compiler24turn/20min уже разрешён, пока0turn; полный результат и L1–L3 впереди.
+Последний продуктовый checkpoint C2:
+`96487d176cb3f09b543cadbc0e4b91c73308b8b4`, tree
+`7da1e466606dec9ef7ab7bf375a30ed002b9f728`. Сверка продолжения подтвердила
+десять хешей его receipts; история b090bc48 отделена в
+[текущем индексе доказательств C2](../gates/gate-c2-voice-parity/EVIDENCE.json).
 См. [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md)
 и [handoff](../gates/gate-c2-voice-parity/HANDOFF.md). Релиз `v1.0.1` остаётся
 историческим опубликованным Git-фактом; до C2–C6 и новой owner acceptance
@@ -154,11 +163,11 @@ flag штатного runner — default-off.
 Один acceptance record и C2 handoff находятся в
 [C1 gate package](../gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md).
 
-### NOT ACTIVATED / NOT IMPLEMENTED
+### Ещё не активировано или не квалифицировано
 
 - activation опубликованного C1;
 - production shadow rollout C1;
-- C2 русский ASR bake-off и доказанная text/voice parity;
+- C2: квалифицированный ASR и полный проверенный результат text/voice;
 - повторная полная C3–C6 квалификация и owner acceptance.
 
 Согласованная semantic kind substitution самим compiler остаётся ограниченным
@@ -180,7 +189,7 @@ exact result SHA/tree и handoff.
 |---|---|---|
 | C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | durable intake, общий text/voice Core-route, frozen synthetic ASR pilot | LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; C2-B01…B04 |
+| C2 — voice parity и ASR qualification | durable intake, общий text/voice Core-route, ASR qualification | LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; B01/B02 не закрыты, B03/B04 LOCAL FIX |
 | C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
 | C5 — operations/recovery/security | воспроизводимые ops, backup/restore, rollback, security | HOLD до C4 |
@@ -203,7 +212,7 @@ exact result SHA/tree и handoff.
   передача следующему Gate;
 - [issue register](MVP-1-ISSUES.md) — подтверждённые findings и C1–C6 owners.
 - [C1 acceptance](../gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
-  [C2 handoff](../gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
+  [передача C1 → C2](../gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
   опубликованный C1 и условия перехода к C2.
 
 Historical sealed Gate 0 сохранён byte-identical и не переиздан C0.
@@ -221,19 +230,28 @@ Docs 15/16 отсутствуют в C1 predecessor/tree и не импорти�
 dirty checkout, live worktree, production config/runtime/state и recovery refs
 не изменялись.
 
-## 8. Publication boundary и следующий чат
+## 8. Публикация и завершение в текущей задаче C2
 
 C1 code publication завершена: PR #11 merged в `2732a11122179c4197a74594dd0c8ba3ed9ec52d`.
 Readback подтвердил exact tree, C0 parent и protected main. CI status contexts
 и workflow runs у PR #11 отсутствуют; это не новый PASS.
-Текущий follow-up изменяет только статусную документацию. Его итоговый
-protected-main SHA/tree и SHA-256 C1 HANDOFF/ACCEPTANCE передаются в промте C2
-после merge; собственный будущий SHA в этот документ не записывается.
-Tag, GitHub Release, deploy, activation и live effects не выполнялись.
+Документная публикация C1 уже завершена: принятой базой C2 является
+`43e753c571e1ad8db5af5f453b5db0c0b417cac8`, tree
+`a7c6328a42412a0bd269004aefa9c9d402c75564`.
+[Принятый handoff C1](../gates/gate-c1-semantic-task-compiler/HANDOFF.md)
+сохраняется без изменений.
 
-C2 разрешён только в отдельном будущем чате от принятого опубликованного exact
-protected-main SHA/tree C1 и
-[handoff](../gates/gate-c1-semantic-task-compiler/HANDOFF.md), не от floating
-`origin/main` и не от локального candidate.
+C2 продолжается в своей существующей задаче и worktree от указанного выше
+локального checkpoint. Разрешённый small эксперимент завершён с hard FAIL;
+сейчас ожидается решение по одной следующей гипотезе beam8→1, один dev до150s
+из прежнего остатка. При успешной квалификации следуют B02 и приёмка окончательного
+SHA/tree C2. Разрешённый compiler имеет общий журнал 0/24 turns,
+таймер 20 минут от первого turn не начат.
+
+После PASS отдельно согласуется точный план push/PR/merge и, при необходимости,
+PR синхронизации статуса. Публикация завершится только после GitHub readback.
+Текущий BLOCKED checkpoint не публикуется. Tag, release, deploy, activation
+и live effects в C2 не выполнялись и этим продолжением не разрешены.
+Будущий C3 требует принятого опубликованного C2 и отдельного запуска владельцем.
 
 **C1 ACCEPTED / PUBLISHED / NOT DEPLOYED. NO TAG / NO DEPLOY / NO LIVE EFFECT.**

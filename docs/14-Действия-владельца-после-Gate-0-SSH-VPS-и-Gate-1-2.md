@@ -1,8 +1,9 @@
-# 14. Решения владельца и переход после Gate C1
+# 14. Решения владельца и завершение Gate C2
 
 **Статус документа:** CANONICAL OWNER INPUTS
 **Актуально на:** 4 сентября 2026 года
 **CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
+**Локальная разработка:** `C2 BLOCKED / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Program boundary:** `MVP-2 HOLD`
 
@@ -42,7 +43,7 @@ C0 восстановил фактическую границу:
 - historical READY claim остаётся только в ancestry и superseded текущими
   active docs на protected `main`.
 
-## 2. C1 завершён; следующий Gate — C2
+## 2. C1 завершён; C2 выполняется
 
 Gate C1 выполнен в отдельном пользовательском чате от exact protected-main
 predecessor `5feccfd...`, tree `480b2f85...`, а не от floating
@@ -54,8 +55,41 @@ authority; Core детерминированно выбирает capability/pol
 использует corpus C0 как acceptance и не меняет Faster-Whisper.
 
 **Один Gate = одна Codex-задача = один пользовательский чат.** Все Txx/Cxx,
-исправления, повторные проверки и внутренние reviewers C1 остаются в этом
-одном чате. Новый чат создаётся только для C2 после принятого C1 handoff.
+исправления, проверки и разрешённая публикация C2 продолжаются в существующей
+задаче C2. Принятый C1 повторно не принимается; C3 самостоятельно не начинается.
+
+Локальный checkpoint C2 — `96487d176cb3f09b543cadbc0e4b91c73308b8b4`,
+tree `7da1e466606dec9ef7ab7bf375a30ed002b9f728`. Исправления native lifetime и
+retention проверены целевыми наборами; ASR и полный готовый результат ещё
+не прошли обязательные критерии. Это не разрешение включить их в live.
+
+Владелец отдельно разрешил один ограниченный эксперимент
+`Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120`:
+пять файлов 486214370 bytes, до 600 MB загрузки, 1,5 GiB диска, 4 GiB RAM,
+четыре логических CPU и 1200 секунд суммарного локального исполнения.
+Существующий стек, только синтетический корпус, без передачи аудио и pip.
+Файлы скачаны и проверены: общий payload486217682B. Один dev с неизменным
+decoder дал WER6,64%, critical2, raw RTFp95 0,792>0,5 — hard FAIL.
+Эксперимент остановлен, holdout не открыт. Лицензионное расхождение MIT/Apache
+сохранено; включение модели в продукт не принято.
+Точные pins и границы — [ASR research](gates/gate-c2-voice-parity/ASR-RESEARCH.md).
+
+Текущее недостающее решение: разрешить ли одну новую пробу на уже скачанной
+small с единственным изменением beam_size8→1. Один dev16 проход, до150s из
+оставшихся1121,479375s; прежние4CPU/4GiB, без новых загрузок/установок.
+Все пороги, gold и audio неизменны; проверяются одновременно raw RTF≤0,5
+и critical0. Успех не гарантирован. Предел1200s сохраняется; новое согласие
+нужно из-за прямого правила остановки после первого неуспешного dev.
+
+Ранее разрешённые GigaAM и compiler не требуют повторного согласия в прежних
+пределах. GigaAM использовал 194,916977 из 1800 секунд; compiler — 0 из 24
+model turns, таймер 20 минут от первого turn не начат. Журналы суммарные,
+новый запуск не обнуляет расход.
+
+После закрытия B01/B02 и собственной приёмки C2 потребуется отдельное точное
+разрешение на публикацию принятого SHA/tree: обычный push, PR, проверки и merge
+в protected main. План должен также явно назвать возможный PR синхронизации
+статуса после merge. До этого текущий BLOCKED checkpoint не публикуется.
 
 ## 3. Active closure-roadmap
 
@@ -63,7 +97,7 @@ authority; Core детерминированно выбирает capability/pol
 |---|---|---|
 | C0 — единая истина и контракт | published contract и exact readback | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий route и русский bake-off | READY TO START / NOT STARTED |
+| C2 — voice parity и ASR qualification | общий route и русский bake-off | LOCAL CANDIDATE BLOCKED / NOT PUBLISHED |
 | C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
 | C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |
@@ -105,8 +139,8 @@ runtime policy конкретного effect.
 
 - не повторять завершённую code publication C1; документация синхронизируется
   по отдельному прямому разрешению владельца;
-- не начинать C2–C6 или MVP-2 раньше соответствующего handoff;
-- не заменять и не устанавливать ASR до C2 bake-off/privacy decision;
+- не начинать C3–C6 или MVP-2 раньше соответствующего handoff;
+- не загружать новую ASR-модель без точного разрешения и не выбирать её для продукта до квалификации;
 - не переносить Core/token/poller на VPS;
 - не создавать universal Agent Registry/Development Control platform;
 - не считать C0 разрешением на code publication или deploy;

@@ -5,6 +5,63 @@
 результат отделён от discovery в BENCHMARK-RESULTS.json.
 CURRENT — Faster-Whisper 1.2.1/base.
 
+## Текущее решение и ограниченный следующий эксперимент
+
+**ASR DECISION BLOCKED.** Исторический pilot ниже не заменяет последующее
+сравнение при одинаковых лимитах. На 16 dev samples CURRENT получил
+WER 14,16%, critical token errors 5 и raw semantic exactness 13/16;
+GigaAM — 7,52%, 4 и 15/16. Ещё три настройки FW дали 4/4/5 critical errors.
+Эти пять вариантов двух семейств не прошли обязательные критерии.
+16 holdout samples заморожены и ещё не распознавались. Результаты с hashes —
+[DEVELOPMENT-RESULTS.json](DEVELOPMENT-RESULTS.json); неизменный контракт —
+[qualification PLAN](../../../tests/gate_c2/qualification/PLAN.md).
+
+GigaAM разрешён ранее; текущий суммарный расход 194,916977 из 1800 секунд
+включает все прошлые вызовы и дополнительный matched dev. Значения 165,765
+секунды ниже описывают только исторический pilot, не остаток разрешения.
+
+После отдельного точного разрешения выполнен один новый эксперимент:
+`Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120`.
+Все пять файлов скачаны и проверены. Суммарный HTTP payload486217682B включает
+перенаправления и первую неуспешную попытку; ASR выполнен только локально.
+Это новая модель того же Faster-Whisper, не независимый движок. Пять pinned
+файлов составляют 486214370 bytes; лимиты 600 MB загрузки, 1,5 GiB диска,
+4 GiB RAM, четыре логических CPU, один native slot и 1200 секунд суммарного
+локального исполнения, включая будущие проверки и B02. Используется прежний
+стек без pip, conversion и загрузки удалённого кода.
+Точные assets/digests и план сохранены в [EVIDENCE.json](EVIDENCE.json).
+
+С прежней конфигурацией decoder один dev дал WER6,64%, CER1,27%, critical2
+и raw RTFp95 0,792 при пороге0,5. Latency p95 14,002s, cold7,651s,
+RAM3040018432B; все16 samples обработаны, после завершения Job active0.
+Израсходовано78,520625s, осталось1121,479375s из исходных1200.
+Модель лучше по WER, но **hard FAIL** одновременно по critical tokens и raw RTF.
+Теперь не прошли шесть вариантов двух семейств; KEEP/REPLACE нет.
+Per-file allowance минимум5s пройден, что не заменяет отдельный raw RTF threshold.
+Новые конфигурации и holdout не запускались.
+
+Первая загрузка остановилась до получения model bytes на `us.aws.cdn.hf.co`.
+Этот конкретный CDN подтверждён [официальной документацией HF](https://huggingface.co/docs/hub/models-downloading)
+и добавлен в allowlist downloader. Ранее полученные1061B оставлены в счётчике,
+пустой partial и failed ledger сохранены. Source/revision/assets/лимиты не менялись.
+
+Следующая единственная гипотеза для отдельного решения: снизить только
+beam_size8→1, чтобы проверить raw RTF≤0,5 при неизменных остальных настройках
+и обязательном critical0. Один dev16 до150s из прежнего остатка, без новых
+файлов модели/установок. Возможность исправить critical errors не доказана.
+Пока это предложение, а не продолжение разрешённого эксперимента.
+
+В плане сохранено лицензионное расхождение: pinned Systran card и original
+OpenAI repository указывают MIT, а прочитанная 4 сентября HF-карточка
+openai/whisper-small — Apache-2.0. Замечания о PyAV/FFmpeg/CT2 также остаются
+открытыми до проверки выбранного варианта. Эти сведения не являются
+заключением о допустимости распространения модели.
+[Закреплённая карточка](https://huggingface.co/Systran/faster-whisper-small/blob/536b0662742c02347bc0e980a01041f333bce120/README.md),
+[original repository](https://github.com/openai/whisper#license),
+[HF upstream card](https://huggingface.co/openai/whisper-small).
+
+## Историческое исследование и первый pilot
+
 | Решение | Русский / статус / регион | Цена USD и privacy | Пробелы |
 |---|---|---|---|
 | Google STT V2 `chirp_3` | ru-RU GA, EU/US multi-region | standard $0.016/мин; dynamic batch $0.003/мин; data logging opt-in | immutable backend build не открыт; V2 batch/GCS retention требует точной проверки |

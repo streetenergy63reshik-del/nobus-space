@@ -1,13 +1,25 @@
 # Gate C2 — handoff, C3 HOLD
 
-## Продолжение от b090bc48, 4 сентября 2026
+## Текущий checkpoint и продолжение, 4 сентября 2026
 
-**Текущий статус: DRAFT / BLOCKED / NOT PUBLISHED.** Продолжение выполняется
-в том же worktree и чате от `b090bc48b8934fcc16e10a81cff12b56b30479c1`, tree
-`10055957c7ba1f5c21577d7e58ea5e459e0c46bf`. Новые bytes ещё не прошли цельную
-приёмку C2. Старый `.runtime/c2/final-evidence.json` с SHA256
+**Текущий статус: DRAFT / BLOCKED / NOT PUBLISHED.** Последний продуктовый
+checkpoint — `96487d176cb3f09b543cadbc0e4b91c73308b8b4`, tree
+`7da1e466606dec9ef7ab7bf375a30ed002b9f728`; его receipt
+`.runtime/c2/closure/checkpoint-evidence.json` имеет SHA256
+`aeb7833c205214c5b9ac0721fdeddc8f6990faa20304c587ddc3f03950cb3afd`.
+Продолжение остаётся в том же worktree и задаче. Сверка с аудитом подтвердила
+этот HEAD/tree, десять хешей receipts и отсутствие новых model turns.
+Продолжение добавило документационную синхронизацию, отдельный бюджет small
+в qualification runner и один разрешённый dev-эксперимент. Продуктовый код
+checkpoint не менялся; это не приёмка продукта. Актуальные агрегаты и привязки
+сохранены в Git: [EVIDENCE.json](EVIDENCE.json).
+
+Предыдущий `b090bc48b8934fcc16e10a81cff12b56b30479c1`, tree
+`10055957c7ba1f5c21577d7e58ea5e459e0c46bf`, остаётся историческим BLOCKED.
+Старый `.runtime/c2/final-evidence.json` с SHA256
 `baf960372d5dd9c189a2de9b0de317c6ad0c45d3adc31bac3012135528bdba6d`
-сохранён; все новые evidence находятся в `.runtime/c2/closure/`.
+сохранён; локальные исходные evidence продолжения находятся в
+`.runtime/c2/closure/`. Они не переносят прежние L1–L3 на новый checkpoint.
 
 Native inference переведён в управляемый Windows Job: direct base interpreter
 `-I -S`, передача config после assignment, ограниченные anonymous pipes,
@@ -30,9 +42,22 @@ ASR: frozen32 synthetic cases = старые16dev + новые16holdout, нез�
 независимая raw semantics13/16 и15/16. Три FW config дали critical4/4/5.
 Ни один вариант не квалифицирован; holdout ещё не распознавался.
 [DEVELOPMENT-RESULTS.json](DEVELOPMENT-RESULTS.json) сохраняет агрегаты и hashes.
-Дополнительный exact Systran small revision536b0662742c02347bc0e980a01041f333bce120
-предложен в отдельном authorization plan; до разрешения download запрещён.
-GigaAM суммарно194,916977s из1800s; новый small budget с ним не смешивается.
+По точному разрешению владельца скачан Systran small
+revision536b0662742c02347bc0e980a01041f333bce120, пять assets с проверенными
+digests. Общий download486217682B включает первую остановку на новом
+официальном HF CDN; прежний расход1061B сохранён.
+Один объявленный dev с прежним decoder дал WER6,64%, CER1,27%, critical2
+и raw RTFp95 0,792>0,5. RAM3040018432B, cold7,651s, active processes0.
+Эксперимент завершён с hard FAIL, новые конфигурации и holdout не запускались.
+Small использовал78,520625s из1200s; остаток1121,479375s не разрешает
+самостоятельный перебор. GigaAM по-прежнему194,916977s из1800s.
+
+Для решения владельца подготовлена одна гипотеза: прежняя модель small и
+decoder с единственным изменением beam8→1, один dev16 проход до150s из
+существующего остатка, без download/install. Проверить одновременно
+raw RTFp95≤0,5 и critical0; остальные пороги, gold и audio неизменны.
+Улучшение не гарантировано. Отдельное разрешение требуется из-за согласованной
+остановки после первого hard FAIL; сейчас эта гипотеза не выполняется.
 
 B02: transport-only harness использует actual ASR, production C1 compiler/runtime
 и downstream pipeline. Реальный transform_voice дошёл до durable preview:

@@ -10,6 +10,11 @@
 
 Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
+Последний локальный продуктовый checkpoint C2 — `96487d176cb3f09b543cadbc0e4b91c73308b8b4`,
+tree `7da1e466606dec9ef7ab7bf375a30ed002b9f728`, **BLOCKED / NOT PUBLISHED**.
+Действующие привязки и отдельная история прежних кандидатов —
+[C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
+
 ## Активные findings после переоткрытия acceptance
 
 Статус `CONFIRMED` означает доказанный defect или недостающее обязательное
@@ -22,7 +27,7 @@
 | C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; exact text/voice incident и corpus `25/25`, keyword veto не участвует в opt-in semantic path |
 | C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
 | C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **LOCAL FIX / NOT ACCEPTED**; durable intake и deferred admission; продолжение B03/B04 focused14/27PASS. Полный B02 и итоговые C2 проверки ещё впереди |
-| C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | Новый matched dev CURRENT/GigaAM, независимая raw semantics13/16 и15/16; critical5/4; три дополнительных FW config также hard FAIL | C2 | **ASR DECISION BLOCKED**; holdout не открыт, small download отдельно запрошен. Faster-Whisper остаётся CURRENT как факт |
+| C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | CURRENT/GigaAM critical5/4, raw semantics13/16 и15/16; три FW config также FAIL. Разрешённый small dev: WER6,64%, critical2, raw RTFp95 0,792>0,5 | C2 | **ASR DECISION BLOCKED**; шесть вариантов двух семейств hard FAIL, holdout не открыт. Small эксперимент остановлен; одна следующая гипотеза beam8→1 ожидает решения |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
 | C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **CONFIRMED CURRENT BLOCKER**; restart/reclaim/dead-letter/outbox reconciliation и healthy readback PASS |

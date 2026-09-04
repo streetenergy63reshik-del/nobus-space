@@ -3,6 +3,10 @@
 Дата: 4 сентября 2026. C2 не принят и не опубликован. C1 остаётся
 ACCEPTED / PUBLISHED / NOT DEPLOYED; MVP1 не READY, C3–C6 и MVP2 HOLD.
 
+Последний продуктовый checkpoint: `96487d176cb3f09b543cadbc0e4b91c73308b8b4`,
+tree `7da1e466606dec9ef7ab7bf375a30ed002b9f728`. Точная привязка текущих
+локальных проверок и отдельная история прежних кандидатов — [EVIDENCE.json](EVIDENCE.json).
+
 ## Результат и граница
 
 В отдельном worktree реализован voice intake до download/ASR в существующей
@@ -18,7 +22,7 @@ semantic path. Исправлена передача voice → draft: durable Pr
 
 | ID | Доказательство и недостающее условие |
 |---|---|
-| C2-B01 | Продолжение: отдельные pre-hypothesis gold/scorer, 16 dev + 16 новых holdout. Matched dev CURRENT WER14,16%/critical5; GigaAM7,52%/critical4. Независимая raw semantics13/16 и15/16. Три дополнительных FW config дали critical4/4/5; все hard FAIL. Holdout ещё не распознавался. Новый exact small candidate требует отдельного download-разрешения. KEEP/REPLACE не доказан. |
+| C2-B01 | Отдельные pre-hypothesis gold/scorer, 16 dev + 16 holdout. CURRENT WER14,16%/critical5, GigaAM7,52%/critical4; raw semantics13/16 и15/16. Три FW config: critical4/4/5. Разрешённый small прошёл один dev: WER6,64%, CER1,27%, critical2, raw RTFp95 0,792 при лимите0,5. Все шесть вариантов двух семейств hard FAIL. Holdout не распознавался; KEEP/REPLACE не доказан. |
 | C2-B02 | Actual production voice path прошёл до persisted preview: task0/compiler0 до подтверждения. Реальный tool-less compiler и downstream harness подготовлены; ChatGPT/account/endpoint проверены, владелец разрешил24turn/20min, использовано0turn. Полный verified ready result и parity/restart smoke ещё впереди, после выбора ASR. |
 | C2-B03 | LOCAL FIX, итоговая кандидатная проверка впереди. Native worker помещён в Windows Job до импорта модели; timeout/cancel/parent death/idle завершают процесс. Независимо воспроизведены и исправлены venv redirector escape и ранний idle timer. Focused14PASS; actual FW model runs завершились с Job active0. |
 | C2-B04 | LOCAL FIX, итоговая кандидатная проверка впереди. TTL1h по immutable created_at применяется до decrypt для всех состояний; late-write/deadline guards, secure_delete/WAL cleanup, quiescent backup и expiry authenticated restore staging. Независимые27PASS, общий root native/state subset48PASS. Граница и ограничения — RETENTION.md. |
@@ -26,11 +30,18 @@ semantic path. Исправлена передача voice → draft: durable Pr
 Пороги не ослаблялись после получения результатов. CURRENT Faster-Whisper
 сохранён как исходный факт, а не как решение KEEP. GigaAM не интегрирован в
 продукт. Внешний compiler уже отдельно разрешён, inference ещё не начинался.
-План дополнительной model-only загрузки small находится в
-`.runtime/c2/closure/asr-design/FW-SMALL-AUTHORIZATION-PLAN.json`.
+Small скачан по отдельному разрешению: пять pinned assets проверены,
+486217682 bytes с учётом redirect и первой неуспешной попытки.
+Один dev занял78,520625s из1200s; RAM3040018432B, Job active0 при завершении.
+Raw RTF не прошёл, хотя каждый файл уложился в allowance минимум5s; эти
+критерии не взаимозаменяемы. После hard FAIL эксперимент остановлен.
+Одна следующая гипотеза beam8→1 только предложена, требует отдельного решения;
+пределы, обоснование и неизменяемые критерии записаны в EVIDENCE.json.
 Результаты dev — [DEVELOPMENT-RESULTS.json](DEVELOPMENT-RESULTS.json).
-Новые frozen inputs и receipts продолжения находятся только в
-`.runtime/c2/closure/`; старый `.runtime/c2/final-evidence.json` не перезаписан.
+Исходные frozen inputs и receipts продолжения находятся в
+`.runtime/c2/closure/`; безопасные агрегаты, привязки и команды доступны в Git
+через EVIDENCE.json и DEVELOPMENT-RESULTS.json. Старый
+`.runtime/c2/final-evidence.json` не перезаписан и относится только к b090bc48.
 B03/B04 остаются C2-owned до итоговых проверок, не переданы в C3.
 
 Уточнение B04: исходные C2.7 и архитектурная модель не требуют forensic wipe

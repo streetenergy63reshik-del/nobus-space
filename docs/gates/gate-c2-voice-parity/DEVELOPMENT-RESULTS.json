@@ -1,5 +1,5 @@
 {
-  "status": "DEVELOPMENT ONLY; NOT QUALIFIED; HOLDOUT UNOPENED",
+  "status": "DEVELOPMENT ONLY; SIX VARIANTS FAILED; HOLDOUT UNOPENED",
   "thresholds_changed": false,
   "input": "unchanged historical 16 synthetic WAV; new 16 holdout WAV frozen but not recognized",
   "results": [
@@ -347,6 +347,97 @@
         "binding": "base identifier resolved to explicit pinned local snapshot path; no download/cache fallback",
         "model_directory_name": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
       }
+    },
+    {
+      "candidate": "fw-small-current-decoder",
+      "split": "development",
+      "passes": 1,
+      "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+      "score_sha256": "09ec4e99dea54f3b88f403b8d4d61c625ee899131a132c65c2ba2016b44e119e",
+      "run_sha256": "aa08e5349db5fddd283a9a86c969a0a44b53a09b5b358f8a567a7d5a60f3c692",
+      "freeze_sha256": "8068adb0bef68486a54210a6674a8b89017e1bb46b11f564cf78ee707ab7ea4d",
+      "summary": {
+        "samples_iteration0": 16,
+        "observations": 16,
+        "wer": 0.06637168141592921,
+        "cer": 0.012690355329949238,
+        "critical_token_errors_iteration0": 2,
+        "critical_token_errors_all_passes": 2,
+        "latency_p50": 3.629843599977903,
+        "latency_p95": 14.001760000013746,
+        "timing_observations": 16,
+        "missing_or_invalid_timing_rows": 0,
+        "raw_rtf_p95": 0.7916341935035205,
+        "per_file_budget_exceeded": 0,
+        "measurement_error_rows": 0,
+        "semantic_exact_raw": null,
+        "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+        "asr_decision": "NOT_EVALUATED_BY_SCORER"
+      },
+      "supervisor": {
+        "outcome": "EXITED",
+        "child_exit_code": 0,
+        "elapsed_seconds": 78.52062520000618,
+        "error": null,
+        "reservation_seconds": 150.0,
+        "process_cold_seconds": 7.651219099992886,
+        "job_final_stats": {
+          "cpu_seconds": 292.703125,
+          "peak_job_memory_bytes": 3040018432,
+          "peak_process_memory_bytes": 2899345408,
+          "total_processes": 3,
+          "active_processes": 0,
+          "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+        },
+        "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+        "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+        "cumulative_ledger_sha256": "d47b143264b384f2c9e0a4d18f28fe6f4f507fc1f511a40a1c83714251446093"
+      },
+      "hard_threshold_result": "FAIL",
+      "causes": [
+        "critical_token_errors 2 > 0",
+        "raw warm RTF p95 0.7916341935 > 0.5"
+      ],
+      "critical_mismatch_cases": [
+        {
+          "id": "cancel",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "отмени",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        },
+        {
+          "id": "noise",
+          "critical_token_errors": 1,
+          "critical_mismatches": [
+            {
+              "atom": "отрицания",
+              "reference_count": 1,
+              "hypothesis_count": 0
+            }
+          ]
+        }
+      ],
+      "configuration": {
+        "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+        "device": "cpu",
+        "compute_type": "int8",
+        "local_files_only": true,
+        "language": "ru",
+        "beam_size": 8,
+        "patience": 1.2,
+        "vad_filter": true,
+        "condition_on_previous_text": true,
+        "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+        "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+      },
+      "independent_semantics": "NOT RUN: hard failure already decisive; no claimed semantic PASS",
+      "holdout_recognized": false,
+      "continuation": "One dev pass ended; no config search"
     }
   ],
   "independent_semantics": {
@@ -364,11 +455,12 @@
     "definition": "seven prespecified dimensions; raw ASR, no compiler oracle, no correction credit"
   },
   "selected_engine": null,
-  "decision": "BLOCKED: none of the measured configurations meets all original hard criteria",
+  "decision": "BLOCKED: no KEEP/REPLACE; small failed critical-token and raw RTF thresholds",
   "limitations": "one development pass; no final 3-pass/holdout/concurrency acceptance yet; resource timing is observed, not final qualification",
   "historical_failure_receipts_preserved": [
     "qualification-fw-dev0.json",
     "qualification-fw-dev0-v2.json"
   ],
-  "giga_seconds_including_previous_authorization": 194.91697699996038
+  "giga_seconds_including_previous_authorization": 194.91697699996038,
+  "small_seconds_including_all_execution": 78.52062520000618
 }
