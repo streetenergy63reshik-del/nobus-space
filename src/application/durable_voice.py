@@ -50,9 +50,14 @@ class VoiceExecution:
     job: DurableJob
 
     def save(self, *, status: str = 'leased', **changes: Any) -> None:
+        self.require_live()
         self.job = self.control._telegram_state.checkpoint_voice(
             self.job, lease_owner=self.control._lease_owner,
             payload={**self.job.payload, **changes}, status=status)
+
+    def require_live(self) -> None:
+        if self.control._telegram_state.voice_remaining(self.job) <= 0:
+            raise ValueError('voice content expired')
 
 
 class DurableVoiceIntake:
@@ -77,7 +82,7 @@ class DurableVoiceIntake:
             binding_digest=canonical_json_digest(message.model_dump(mode='json')),
             payload=dict(stage='received', message=message.model_dump(mode='json'),
                 envelope=envelope.model_dump(mode='json'), semantic_contract=SEMANTIC_BINDING,
-                expires_at=(datetime.now(UTC)+timedelta(hours=1)).isoformat()))
+                expires_at=(self.state._now()+timedelta(hours=1)).isoformat()))
         await self.control.start()
         self.control._wake()
 
@@ -92,8 +97,7 @@ class DurableVoiceIntake:
             await self.control._api.send_message(message.chat_id, 'Эта голосовая запись больше не ожидает подтверждения. Отправьте новую задачу отдельным сообщением.')
             return True
         original, _ = validate_job(job)
-        if (original.auth_context_ref != message.auth_context_ref
-            or datetime.now(UTC) >= datetime.fromisoformat(job.payload['expires_at'])):
+        if original.auth_context_ref != message.auth_context_ref or self.state.voice_remaining(job) <= 0:
             await self.control._api.send_message(message.chat_id, 'Подтверждение истекло. Отправьте новую задачу.')
             return True
         text = message.text.strip()
@@ -134,7 +138,11 @@ class DurableVoiceIntake:
         execution = VoiceExecution(self.control, durable)
         marker = _ACTIVE.set(execution)
         try:
-            await self._run(execution)
+            seconds = self.state.voice_remaining(durable)
+            if seconds <= 0:
+                return
+            async with asyncio.timeout(seconds):
+                await self._run(execution)
         finally:
             _ACTIVE.reset(marker)
 
@@ -145,10 +153,7 @@ class DurableVoiceIntake:
             await self._status(message,
                 'Обработка голосовой задачи остановлена: режим сейчас не активен. Никаких новых действий не выполнялось.')
             return
-        if datetime.now(UTC) >= datetime.fromisoformat(execution.job.payload['expires_at']):
-            self._finish(execution)
-            await self.control._api.send_message(message.chat_id, 'Срок обработки голосовой записи истёк. Отправьте задачу заново.')
-            return
+        execution.require_live()
         stage = execution.job.payload['stage']
         if stage == 'recognizing':
             # Inference may have completed before the process died. No silent second ASR.
@@ -179,6 +184,7 @@ class DurableVoiceIntake:
             execution.save(stage='transcribed', audio=None, preview=preview.model_dump(mode='json'))
             stage = 'transcribed'
         if stage in {'transcribed', 'interrupted'}:
+            execution.require_live()
             if stage == 'transcribed':
                 preview = VoicePreview.model_validate(execution.job.payload['preview'])
                 text = ('Проверьте распознанный текст:\n\n' + preview.transcript +
@@ -191,6 +197,7 @@ class DurableVoiceIntake:
             execution.save(stage=next_stage, status='waiting')
             return
         if stage == 'confirmed':
+            execution.require_live()
             prepared_data = execution.job.payload.get('prepared')
             if prepared_data is not None:
                 prepared = PreparedTask(contract=TaskContract.model_validate(prepared_data['contract']),
@@ -222,6 +229,7 @@ class DurableVoiceIntake:
         if execution is None:
             raise RuntimeError('voice execution context is missing')
         prepared = await self.control._product_runtime.build_instruction(instruction, envelope)
+        execution.require_live()
         prepared = PreparedTask(contract=prepared.contract.model_copy(update={'task_id':execution.job.task_id}),
                                 envelope_revision=prepared.envelope_revision)
         execution.save(prepared=dict(contract=prepared.contract.model_dump(mode='json'),

@@ -135,6 +135,10 @@ def _restore_quiescent(manifest_path: Path, runtime: Path) -> None:
                 raise ValueError("backup manifest is invalid")
             staged = staging / item["name"]
             write_bytes_durable(staged, content)
+            # Auth and original file digest were verified above. Only our staging
+            # copy is expired; the authenticated backup remains byte-identical.
+            from src.application.runtime_maintenance import expire_runtime_voice
+            expire_runtime_voice(staged)
             validate_runtime_database(staged)
         for name in sorted(_NAMES):
             target = runtime / name

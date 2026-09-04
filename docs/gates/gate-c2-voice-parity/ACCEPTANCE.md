@@ -18,19 +18,30 @@ semantic path. Исправлена передача voice → draft: durable Pr
 
 | ID | Доказательство и недостающее условие |
 |---|---|
-| C2-B01 | Замороженный pilot: CURRENT WER 19,15% выше порога 15%; critical-token mismatches 12, у GigaAM 10 при пороге 0. Часть mismatches — формат чисел; scorer не доказывает семантическую ошибку или эквивалентность. Полноценной независимой semantic exactness оценки для реальных ASR hypotheses нет. Ни KEEP, ни REPLACE не доказан. |
-| C2-B02 | 16 записей одной Windows TTS voice — pilot. Нет принятого представительного корпуса русской речи, реального ASR→production compiler→готовый transform result owner smoke. Парные fixtures проверяют интеграцию C1, а не качество compiler/распознавания. |
-| C2-B03 | Отмена async ASR прекращает ожидание и запрещает новый параллельный inference; native call в Python thread нельзя принудительно завершить. Тест доказывает отказ от позднего результата и bounded concurrency, но не жёсткий срок освобождения памяти при зависшем native decoder/model. Следовательно полный timeout/cleanup критерий не закрыт. |
-| C2-B04 | Scrub проверяет отсутствие содержимого в актуальной логической строке SQLite; forensic удаление прошлых encrypted страниц/WAL/backup и offline downtime TTL не доказано. Raw filesystem audio в новом production path не создаётся. Полный retention criterion не закрыт. |
+| C2-B01 | Продолжение: отдельные pre-hypothesis gold/scorer, 16 dev + 16 новых holdout. Matched dev CURRENT WER14,16%/critical5; GigaAM7,52%/critical4. Независимая raw semantics13/16 и15/16. Три дополнительных FW config дали critical4/4/5; все hard FAIL. Holdout ещё не распознавался. Новый exact small candidate требует отдельного download-разрешения. KEEP/REPLACE не доказан. |
+| C2-B02 | Actual production voice path прошёл до persisted preview: task0/compiler0 до подтверждения. Реальный tool-less compiler и downstream harness подготовлены; ChatGPT/account/endpoint проверены, владелец разрешил24turn/20min, использовано0turn. Полный verified ready result и parity/restart smoke ещё впереди, после выбора ASR. |
+| C2-B03 | LOCAL FIX, итоговая кандидатная проверка впереди. Native worker помещён в Windows Job до импорта модели; timeout/cancel/parent death/idle завершают процесс. Независимо воспроизведены и исправлены venv redirector escape и ранний idle timer. Focused14PASS; actual FW model runs завершились с Job active0. |
+| C2-B04 | LOCAL FIX, итоговая кандидатная проверка впереди. TTL1h по immutable created_at применяется до decrypt для всех состояний; late-write/deadline guards, secure_delete/WAL cleanup, quiescent backup и expiry authenticated restore staging. Независимые27PASS, общий root native/state subset48PASS. Граница и ограничения — RETENTION.md. |
 
 Пороги не ослаблялись после получения результатов. CURRENT Faster-Whisper
 сохранён как исходный факт, а не как решение KEEP. GigaAM не интегрирован в
-продукт. Cloud trials не выполнялись. Для закрытия B01/B02 требуется следующий
-согласованный корпус/метод semantic scoring и при необходимости отдельная
-точная авторизация внешнего compiler/provider smoke в этом же чате C2.
-B03/B04 остаются C2-owned, не переданы в C3.
+продукт. Внешний compiler уже отдельно разрешён, inference ещё не начинался.
+План дополнительной model-only загрузки small находится в
+`.runtime/c2/closure/asr-design/FW-SMALL-AUTHORIZATION-PLAN.json`.
+Результаты dev — [DEVELOPMENT-RESULTS.json](DEVELOPMENT-RESULTS.json).
+Новые frozen inputs и receipts продолжения находятся только в
+`.runtime/c2/closure/`; старый `.runtime/c2/final-evidence.json` не перезаписан.
+B03/B04 остаются C2-owned до итоговых проверок, не переданы в C3.
+
+Уточнение B04: исходные C2.7 и архитектурная модель не требуют forensic wipe
+всех SSD/чужих backup или таймера при выключенном ПК. Эти гарантии не заявляются.
+Реальные дефекты доступа после TTL и backup воспроизведены и исправлены;
+это не снятие блока переименованием требования. См. [RETENTION.md](RETENTION.md).
 
 ## Проверки кандидата
+
+Ниже — история замороженного b090bc48 и его предшественника. Она не является
+приёмкой новых bytes продолжения; новый цельный C2 должен получить свои L1–L3.
 
 Первый frozen C2 `5dca0524e7c80edb0ea971200b3ed89bbc9aa476`, tree
 `c96302cbaae88e4d7e492791e7cb6a03125917ac` — REJECTED / SUPERSEDED.

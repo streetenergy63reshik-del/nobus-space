@@ -302,12 +302,27 @@ class _Kernel32JobApi:
         self._kernel32.CloseHandle.argtypes = (handle,)
         self._kernel32.CloseHandle.restype = boolean
 
-    def create_job(self) -> int:
+    def create_job(self, *, memory_limit_bytes: int | None = None,
+                   active_process_limit: int | None = None,
+                   affinity_mask: int | None = None) -> int:
+        for value in (memory_limit_bytes, active_process_limit, affinity_mask):
+            if value is not None and (type(value) is not int or value <= 0):
+                raise ValueError("Job Object limit is invalid")
         handle = self._kernel32.CreateJobObjectW(None, None)
         if not handle:
             raise OSError("Job Object creation failed")
         info = _ExtendedLimitInformation()
         info.BasicLimitInformation.LimitFlags = _KILL_ON_JOB_CLOSE
+        if memory_limit_bytes is not None:
+            info.BasicLimitInformation.LimitFlags |= 0x00000300
+            info.ProcessMemoryLimit = memory_limit_bytes
+            info.JobMemoryLimit = memory_limit_bytes
+        if active_process_limit is not None:
+            info.BasicLimitInformation.LimitFlags |= 0x00000008
+            info.BasicLimitInformation.ActiveProcessLimit = active_process_limit
+        if affinity_mask is not None:
+            info.BasicLimitInformation.LimitFlags |= 0x00000010
+            info.BasicLimitInformation.Affinity = affinity_mask
         if not self._kernel32.SetInformationJobObject(
             handle,
             _JOB_EXTENDED_LIMIT_INFORMATION,

@@ -384,8 +384,6 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             except TimeoutError:
                 pass
             try:
-                if getattr(self, '_enable_semantic_admission', False):
-                    self._telegram_state.sweep_voice()
                 durable = self._telegram_state.claim(
                     lease_owner=self._lease_owner,
                     lease_seconds=_LEASE_SECONDS,

@@ -83,7 +83,7 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
 )
 from src.transport.miniapp import create_miniapp_app  # noqa: E402
 from src.storage import SQLiteStore  # noqa: E402
-from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
+from src.voice import IsolatedFasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
 
@@ -288,6 +288,7 @@ async def _run(
     control: ProductTelegramControlPlane | None = None
     miniapp_server: _MiniAppServer | None = None
     runtime = None
+    voice_transcriber = None
     bot_token = credential.secret.get_secret_value()
     api = TelegramBotApi(
         token=bot_token,
@@ -357,7 +358,7 @@ async def _run(
         report_stage("worker_probe")
         await runtime.probe_worker()
         report_stage("voice_warmup")
-        voice_transcriber = FasterWhisperTranscriber(
+        voice_transcriber = IsolatedFasterWhisperTranscriber(
             model_size="base",
             device="cpu",
             compute_type="int8",
@@ -488,7 +489,11 @@ async def _run(
                         if callable(closer):
                             await closer()
                 finally:
-                    await api.aclose()
+                    try:
+                        if voice_transcriber is not None:
+                            await voice_transcriber.close()
+                    finally:
+                        await api.aclose()
 
 
 def _extension_version(executable: Path) -> tuple[int, ...]:

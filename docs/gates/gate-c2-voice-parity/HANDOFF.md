@@ -1,5 +1,59 @@
 # Gate C2 — handoff, C3 HOLD
 
+## Продолжение от b090bc48, 4 сентября 2026
+
+**Текущий статус: DRAFT / BLOCKED / NOT PUBLISHED.** Продолжение выполняется
+в том же worktree и чате от `b090bc48b8934fcc16e10a81cff12b56b30479c1`, tree
+`10055957c7ba1f5c21577d7e58ea5e459e0c46bf`. Новые bytes ещё не прошли цельную
+приёмку C2. Старый `.runtime/c2/final-evidence.json` с SHA256
+`baf960372d5dd9c189a2de9b0de317c6ad0c45d3adc31bac3012135528bdba6d`
+сохранён; все новые evidence находятся в `.runtime/c2/closure/`.
+
+Native inference переведён в управляемый Windows Job: direct base interpreter
+`-I -S`, передача config после assignment, ограниченные anonymous pipes,
+timeout/cancel/close/parentdeath/idle cleanup. Исходный venv redirector мог
+оставить дочерний native вне Job; ранний Windows timer мог потерять idle cleanup.
+Оба дефекта воспроизведены и исправлены. Независимые focused14PASS, actual
+native handles и Job limits проверены. Возможен служебный conhost; native
+interpreter один. Это WIP evidence, не формальный L3.
+
+Retention: до decrypt применяется TTL1h по created_at, включая leased/flag-off;
+длительный этап отменяется на deadline, поздние preview/draft запрещены.
+Новый backup требует отсутствия непустого voice recovery, restore очищает
+только authenticated staging. Независимые27PASS и root native/state subset48PASS.
+[RETENTION.md](RETENTION.md) различает логическую очистку, DPAPI и пределы
+физического стирания; forensic wipe SSD/чужих backup не заявляется.
+
+ASR: frozen32 synthetic cases = старые16dev + новые16holdout, независимые gold,
+числовая нормализация с positive/negative probes, реальные паузы и шум20dB.
+В первом matched dev CURRENT WER14,16%/critical5, GigaAM7,52%/critical4;
+независимая raw semantics13/16 и15/16. Три FW config дали critical4/4/5.
+Ни один вариант не квалифицирован; holdout ещё не распознавался.
+[DEVELOPMENT-RESULTS.json](DEVELOPMENT-RESULTS.json) сохраняет агрегаты и hashes.
+Дополнительный exact Systran small revision536b0662742c02347bc0e980a01041f333bce120
+предложен в отдельном authorization plan; до разрешения download запрещён.
+GigaAM суммарно194,916977s из1800s; новый small budget с ним не смешивается.
+
+B02: transport-only harness использует actual ASR, production C1 compiler/runtime
+и downstream pipeline. Реальный transform_voice дошёл до durable preview:
+task0/compiler0 до подтверждения. Account/endpoint и ephemeral thread startup
+проверены; штатный ChatGPT, gpt-5.6-sol/high/fast. Владелец разрешил24modelturn
+и20min, synthetic text only/no audio/tools/effects, без API billing; region/retention
+UNKNOWN раскрыты. Бюджет пока0turn и не начат; полные ready result/parity/restart
+запуски следуют после ASR выбора, чтобы не расходовать ограниченное разрешение
+на неподходящий final engine. План/guard/receipts — `closure/product-plan/`.
+
+Далее: разрешённая model-only проверка, dev-выбор, untouched holdout и3passes,
+ASR decision/integration при необходимости, actual B02, один frozen кандидат
+с новыми L1/L2/L3 и отдельным final receipt. Непройденный критерий остаётся
+блокером C2. C1 acceptance не повторяется; canonical20dirtyhashes/live/HOLD
+сверены и сохранены. Публикация, live и C3 не выполнялись и не разрешены.
+
+## История предыдущего замороженного кандидата
+
+Остальная часть ниже описывает b090bc48 и сохранена как его исторический
+handoff; утверждения о прежних ограничениях не описывают новые WIP fixes.
+
 **Verdict: BLOCKED / NOT PUBLISHED / NOT DEPLOYED.**
 Это один связный пакет текущего C2. Он не разрешает начало C3.
 

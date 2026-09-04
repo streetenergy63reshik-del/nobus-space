@@ -22,8 +22,12 @@ product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree
 `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`. Он совпадает с tree проверенного
 candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
 активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; durable intake и
-парные проверки реализованы в отдельном worktree, ASR qualification и полный
-retention/timeout критерий не закрыты. См. [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md)
+парные проверки реализованы в отдельном worktree. В продолжении исправлены
+native lifetime/retention: независимые focused14/27PASS, root subset48PASS.
+Matched dev CURRENT/GigaAM и три FW config не прошли ASR hard thresholds;
+новый small download требует отдельного разрешения. Compiler24turn/20min уже
+разрешён, пока0turn; полный продуктовый результат и новые L1–L3 впереди.
+См. [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md)
 и [handoff](../gates/gate-c2-voice-parity/HANDOFF.md). Релиз `v1.0.1` остаётся
 историческим опубликованным Git-фактом; до C2–C6 и новой owner acceptance
 весь продукт не имеет verdict `READY`.

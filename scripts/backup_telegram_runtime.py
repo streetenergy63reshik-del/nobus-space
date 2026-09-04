@@ -21,6 +21,7 @@ from src.application.runtime_maintenance import (
     RUNTIME_DATABASE_NAMES,
     fsync_directory,
     validate_runtime_database,
+    expire_runtime_voice,
     write_bytes_durable,
 )
 from src.contracts.models import canonical_json_digest
@@ -57,6 +58,7 @@ def _backup_quiescent(
         resolved = source.resolve(strict=True)
         if not resolved.is_file() or resolved.suffix != ".sqlite3":
             raise ValueError("backup source is invalid")
+        expire_runtime_voice(resolved, require_quiescent=True)
         validate_runtime_database(resolved)
         stat = resolved.stat()
         resolved_sources.append(resolved)

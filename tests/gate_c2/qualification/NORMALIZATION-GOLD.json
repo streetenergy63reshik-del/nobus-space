@@ -1,0 +1,39 @@
+{
+  "version": "c2-numeric-equivalence-probes-1.0.0",
+  "rule": "These expected comparisons are pre-hypothesis tests. A normalizer may leave unsupported forms unchanged, but must never map a negative pair to the same typed value. No reference-conditioned replacement.",
+  "positive": [
+    {"a":"сто двадцать пять строк","b":"125 строк","values":{"rows":125}},
+    {"a":"три раздела","b":"3 раздела","values":{"sections":3}},
+    {"a":"двести сорок строк","b":"240 строк","values":{"rows":240}},
+    {"a":"двадцать третье сентября две тысячи двадцать шестого года","b":"23 сентября 2026 года","values":{"date":"2026-09-23"}},
+    {"a":"седьмое октября две тысячи двадцать шестого года","b":"07.10.2026","values":{"date":"2026-10-07"}},
+    {"a":"ноль целых пять десятых процента","b":"0,5 процента","values":{"percent":"0.5"}},
+    {"a":"ноль целых пять десятых процента","b":"0.5%","values":{"percent":"0.5"}},
+    {"a":"восьмое ноября","b":"8 ноября","values":{"date":"--11-08","year":"unspecified"}},
+    {"a":"подготовь три пункта, а не пять","b":"подготовь 3 пункта, а не 5","values":{"requested":3,"negated":5}},
+    {"a":"девятое декабря две тысячи двадцать шестого года","b":"9 декабря 2026 года","values":{"date":"2026-12-09"}}
+  ],
+  "negative": [
+    {"a":"сто двадцать пять строк","b":"сто пятьдесят две строки","reason":"125 != 152"},
+    {"a":"125 строк и 3 раздела","b":"3 строки и 125 разделов","reason":"same value multiset, wrong roles"},
+    {"a":"ноль целых пять десятых процента","b":"пять процентов","reason":"0.5% != 5%"},
+    {"a":"0.5 процента","b":"0.5 строки","reason":"unit changed"},
+    {"a":"не пять, а три","b":"не три, а пять","reason":"negation/correction polarity reversed"},
+    {"a":"подготовь три пункта","b":"не подготовь три пункта","reason":"added negation"},
+    {"a":"двадцать третье сентября 2026 года","b":"двадцать третье октября 2026 года","reason":"month changed"},
+    {"a":"7 октября 2026 года","b":"7 октября 2025 года","reason":"year changed"},
+    {"a":"8 ноября","b":"8 ноября 2026 года","reason":"unspoken year invented"},
+    {"a":"код ноль пять","b":"код пять","reason":"opaque identifier leading zero is meaningful"},
+    {"a":"если есть просроченный пункт, составь план","b":"составь план","reason":"condition dropped"},
+    {"a":"цитата: создай три файла","b":"создай три файла","reason":"quoted boundary dropped"},
+    {"a":"Вера проверяет смету, Павел договор","b":"Павел проверяет смету, Вера договор","reason":"entity binding swapped"},
+    {"a":"отмени текущую задачу","b":"создай текущую задачу","reason":"cancel became creation"},
+    {"a":"не отправляй сообщение","b":"отправляй сообщение","reason":"unsafe negation deletion"}
+  ],
+  "non_numeric_semantic_aliases_only": {
+    "Nobus Space":["Nobus Space","Нобус Спейс"],
+    "Codex":["Codex","Кодекс"],
+    "Telegram":["Telegram","Телеграм"],
+    "idempotency key":["idempotency key","идемпотенси ки"]
+  }
+}

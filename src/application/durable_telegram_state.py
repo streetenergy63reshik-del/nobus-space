@@ -25,6 +25,38 @@ _DPAPI_MAGIC = b"NBDP1"
 _DPAPI_CHUNK_BYTES = 1024 * 1024
 _MAX_PROTECTED_JSON_BYTES = 80 * 1024 * 1024
 MAX_JOB_CLAIMS = 3
+VOICE_CONTENT_TTL = timedelta(hours=1)
+
+
+def purge_voice_rows(connection, *, now: datetime, encode) -> bool:
+    """Expire by immutable DB metadata before decrypt; never extend tombstones."""
+    empty_digest = canonical_json_digest({})
+    cutoff = (now - VOICE_CONTENT_TTL).isoformat()
+    expired = connection.execute(
+        """SELECT 1 FROM telegram_jobs WHERE kind='voice' AND
+           (status='failed' OR (payload_digest!=? AND created_at<=?)) LIMIT 1""",
+        (empty_digest, cutoff),
+    ).fetchone()
+    changed = False
+    if expired is not None:
+        cursor = connection.execute(
+            """UPDATE telegram_jobs SET payload=?,payload_digest=?,status='finished',updated_at=?,
+               failure_code=NULL,lease_id=NULL,lease_owner=NULL,lease_expires_at=NULL
+               WHERE kind='voice' AND (status='failed' OR (payload_digest!=? AND created_at<=?))""",
+            (encode({}), empty_digest, now.isoformat(), empty_digest, cutoff),
+        )
+        changed = bool(cursor.rowcount)
+    removed = connection.execute(
+        "DELETE FROM telegram_jobs WHERE kind='voice' AND status='finished' AND updated_at<=?",
+        ((now-timedelta(hours=24)).isoformat(),),
+    )
+    return changed or bool(removed.rowcount)
+
+
+def require_voice_quiescent(connection) -> None:
+    if connection.execute("SELECT 1 FROM telegram_jobs WHERE kind='voice' AND payload_digest!=? LIMIT 1",
+                          (canonical_json_digest({}),)).fetchone() is not None:
+        raise DurableTelegramStateError('runtime_voice_backup_not_quiescent')
 
 
 class DurableTelegramStateError(RuntimeError):
@@ -148,8 +180,11 @@ class SQLiteTelegramState:
         self._max_jobs = max_jobs
         self._max_capabilities = max_capabilities
         self._timeout = busy_timeout_ms
+        self._voice_ready = False
         try:
             self._initialize()
+            self._voice_ready = True
+            self.sweep_voice()
         except (OSError, sqlite3.DatabaseError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
@@ -260,6 +295,10 @@ class SQLiteTelegramState:
                 )
                 if cursor.rowcount != 1:
                     raise DurableTelegramStateError("runtime_job_lease_lost")
+            if status == 'finished' or (current_payload.get('audio') is not None and payload.get('audio') is None):
+                with closing(self._connect()) as maintenance:
+                    if maintenance.execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone()[0] != 0:
+                        raise DurableTelegramStateError('runtime_voice_cleanup_busy')
             return DurableJob(job.job_id, job.kind, job.tenant_id, job.task_id,
                               job.binding_digest, dict(payload), job.attempt_count, job.lease_id)
         except (OSError, sqlite3.DatabaseError):
@@ -306,22 +345,20 @@ class SQLiteTelegramState:
             return cursor.rowcount == 1
 
     def sweep_voice(self) -> None:
-        """Scrub expired/failed voice content; retain only bounded replay tombstones."""
-        now = self._now()
-        empty = self._encode({})
-        with self._transaction() as connection:
-            connection.execute(
-                """UPDATE telegram_jobs SET payload=?,payload_digest=?,status='finished',updated_at=?,
-                   failure_code=NULL,lease_id=NULL,lease_owner=NULL,lease_expires_at=NULL
-                   WHERE kind='voice' AND (status='failed' OR
-                     (status IN ('pending','waiting') AND created_at<?))""",
-                (empty, canonical_json_digest({}), now.isoformat(),
-                 (now-timedelta(hours=1)).isoformat()),
-            )
-            connection.execute(
-                "DELETE FROM telegram_jobs WHERE kind='voice' AND status='finished' AND updated_at<?",
-                ((now-timedelta(hours=24)).isoformat(),),
-            )
+        """Every connection applies expiry before access, regardless of feature flags."""
+        with closing(self._connect()):
+            pass
+
+    def voice_remaining(self, job: DurableJob) -> float:
+        """Authoritative content deadline, without decoding voice payload."""
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                "SELECT created_at,status,lease_id FROM telegram_jobs WHERE job_id=? AND kind='voice'",
+                (str(job.job_id),),
+            ).fetchone()
+            if row is None or row['status']=='finished' or (job.lease_id is not None and row['lease_id'] != str(job.lease_id)):
+                return 0.0
+            return max(0.0, (datetime.fromisoformat(row['created_at']) + VOICE_CONTENT_TTL - self._now()).total_seconds())
 
     def claim(
         self, *, lease_owner: UUID, lease_seconds: int = 300
@@ -1140,12 +1177,15 @@ class SQLiteTelegramState:
             with closing(self._connect()) as source, closing(
                 sqlite3.connect(destination)
             ) as output:
+                source.execute('BEGIN')  # One read snapshot; never copy an active voice.
+                require_voice_quiescent(source)
                 source.backup(output)
+                source.commit()
             with closing(sqlite3.connect(destination)) as check:
                 if check.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                     raise sqlite3.DatabaseError
             return destination
-        except (OSError, sqlite3.DatabaseError):
+        except (OSError, sqlite3.DatabaseError, DurableTelegramStateError):
             try:
                 destination.unlink(missing_ok=True)
             except OSError:
@@ -1155,6 +1195,9 @@ class SQLiteTelegramState:
     def _job_from_row(self, row: sqlite3.Row) -> DurableJob:
         if row["kind"] not in _JOB_KINDS or row["status"] not in _JOB_STATUSES:
             raise DurableTelegramStateError("runtime_store_corrupt")
+        if (row['kind']=='voice' and row['payload_digest'] != canonical_json_digest({})
+            and datetime.fromisoformat(row['created_at']) + VOICE_CONTENT_TTL <= self._now()):
+            raise DurableTelegramStateError('runtime_voice_expired')
         payload = self._decode(bytes(row["payload"]))
         if canonical_json_digest(payload) != row["payload_digest"]:
             raise DurableTelegramStateError("runtime_payload_tampered")
@@ -1186,6 +1229,22 @@ class SQLiteTelegramState:
         connection.row_factory = sqlite3.Row
         connection.execute(f"PRAGMA busy_timeout={self._timeout}")
         connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute('PRAGMA secure_delete=ON')
+        if self._voice_ready:
+            try:
+                connection.execute('BEGIN IMMEDIATE')
+                changed = purge_voice_rows(connection, now=self._now(), encode=self._encode)
+                connection.commit()
+                wal = self._path.with_name(self._path.name + '-wal')
+                # A previous scrub may have committed before a busy checkpoint.
+                # Retry existing WAL remnants even when no row expires this time.
+                needs_checkpoint = changed or (wal.exists() and wal.stat().st_size > 0)
+                if needs_checkpoint and connection.execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone()[0] != 0:
+                    raise DurableTelegramStateError('runtime_voice_cleanup_busy')
+            except BaseException:
+                connection.rollback()
+                connection.close()
+                raise
         return connection
 
     @contextmanager

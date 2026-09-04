@@ -398,6 +398,9 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
             startup_events.append("voice_warmup")
             raise VoiceTranscriptionError("voice model unavailable")
 
+        async def close(self) -> None:
+            pass
+
     executable = tmp_path / "codex.exe"
     executable.touch()
     worktree = tmp_path / "worktree"
@@ -473,7 +476,7 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(
         runner, "build_gate5a4_runtime", lambda **values: Runtime()
     )
-    monkeypatch.setattr(runner, "FasterWhisperTranscriber", Transcriber)
+    monkeypatch.setattr(runner, "IsolatedFasterWhisperTranscriber", Transcriber)
     monkeypatch.setattr(runner, "ProductTelegramControlPlane", forbidden_control)
     monkeypatch.setattr(runner, "TelegramPollingBoundary", forbidden_polling)
 
