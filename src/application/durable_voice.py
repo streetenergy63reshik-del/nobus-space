@@ -89,7 +89,7 @@ class DurableVoiceIntake:
         if job is None:
             return False
         if not job.payload:
-            await self.control._api.send_message(message.chat_id, 'Эта голосовая задача уже обработана. Отправьте новую задачу отдельным сообщением.')
+            await self.control._api.send_message(message.chat_id, 'Эта голосовая запись больше не ожидает подтверждения. Отправьте новую задачу отдельным сообщением.')
             return True
         original, _ = validate_job(job)
         if (original.auth_context_ref != message.auth_context_ref
@@ -98,7 +98,15 @@ class DurableVoiceIntake:
             return True
         text = message.text.strip()
         stage = job.payload['stage']
+        if not self.control._enable_semantic_admission:
+            if self.state.confirm_voice(job, reply_update_id=message.update_id,
+                                        payload={**job.payload, 'stage':'cancelled'}):
+                self.control._wake()
+            await self.control._api.send_message(message.chat_id,
+                'Обработка голосовой задачи остановлена: режим сейчас не активен. Никаких новых действий не выполнялось.')
+            return True
         if stage not in {'waiting', 'interrupted'}:
+            self.state.confirm_voice(job, reply_update_id=message.update_id, payload=None)
             await self.control._api.send_message(message.chat_id, 'Голосовая задача уже обрабатывается.')
             return True
         if text.casefold() == 'нет':
@@ -108,14 +116,17 @@ class DurableVoiceIntake:
         else:
             instruction = (job.payload['preview']['transcript'] if text.casefold() == 'да' and stage == 'waiting' else text)
             if stage == 'interrupted' and text.casefold() == 'да':
+                self.state.confirm_voice(job, reply_update_id=message.update_id, payload=None)
                 await self.control._api.send_message(message.chat_id, 'Распознанного текста нет. Напишите задачу или ответьте «повторить».')
                 return True
             if not 0 < len(instruction) <= VOICE_TEXT:
+                self.state.confirm_voice(job, reply_update_id=message.update_id, payload=None)
                 await self.control._api.send_message(message.chat_id, 'Текст задачи должен содержать от 1 до 2000 символов.')
                 return True
             updates = dict(stage='confirmed', accepted_text=instruction,
                 confirmation_revision=envelope.envelope_revision, audio=None)
-        if self.state.confirm_voice(job, payload={**job.payload, **updates}):
+        if self.state.confirm_voice(job, reply_update_id=message.update_id,
+                                    payload={**job.payload, **updates}):
             self.control._wake()
         return True
 
@@ -129,6 +140,11 @@ class DurableVoiceIntake:
 
     async def _run(self, execution: VoiceExecution) -> None:
         message, envelope = validate_job(execution.job)
+        if not self.control._enable_semantic_admission:
+            self._finish(execution)
+            await self._status(message,
+                'Обработка голосовой задачи остановлена: режим сейчас не активен. Никаких новых действий не выполнялось.')
+            return
         if datetime.now(UTC) >= datetime.fromisoformat(execution.job.payload['expires_at']):
             self._finish(execution)
             await self.control._api.send_message(message.chat_id, 'Срок обработки голосовой записи истёк. Отправьте задачу заново.')

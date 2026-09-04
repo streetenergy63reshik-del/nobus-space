@@ -336,6 +336,7 @@ async def test_voice_metadata_rejected_before_download(tmp_path,field,value):
     update=voice_update(10); update['message']['voice'][field]=value
     await c.handle(update)
     assert rows(c)==[] and c.asr_calls==0 and not compiler.inputs
+    assert any('запис' in str(item).lower() for item in h.api.sent)
 
 
 @pytest.mark.asyncio
@@ -399,3 +400,97 @@ async def test_cancelled_native_worker_cannot_queue_more_inference_or_deliver_la
         assert await asyncio.to_thread(stopped.wait,3)
     # The native call itself cannot be forcibly interrupted by a Python thread;
     # this check proves bounded concurrency and late-result rejection, not a hard timeout.
+
+
+@pytest.mark.asyncio
+async def test_retry_reply_replay_cannot_confirm_a_different_generation(tmp_path):
+    h,compiler=harness(tmp_path); c=h.control
+    await c.handle(voice_update(10)); job=claim(c)
+    c._telegram_state.checkpoint_voice(job,lease_owner=c._lease_owner,
+                                       payload={**job.payload,'stage':'recognizing'})
+    c._telegram_state.release(job,lease_owner=c._lease_owner)
+    await c._durable_voice.run(claim(c))
+    retry=text_update('повторить',11,reply_to_message_id=10)
+    await c.handle(retry); await c._durable_voice.run(claim(c))
+    c._telegram_state=_store(tmp_path); c._durable_voice=DurableVoiceIntake(c,c._telegram_state)
+    await c.handle(retry)
+    assert rows(c)==[('voice','waiting')] and compiler.inputs==[]
+    await c.handle(text_update('да',12,reply_to_message_id=10))
+    await c._durable_voice.run(claim(c))
+    assert rows(c)==[('draft','pending'),('voice','finished')]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('stage',['recognizing','interrupted'])
+async def test_early_reply_is_consumed_and_survives_late_worker_checkpoint(tmp_path,stage):
+    h,compiler=harness(tmp_path); c=h.control
+    await c.handle(voice_update(10)); job=claim(c)
+    job=c._telegram_state.checkpoint_voice(job,lease_owner=c._lease_owner,
+        payload={**job.payload,'stage':stage},status='waiting' if stage=='interrupted' else 'leased')
+    early=text_update('да',11,reply_to_message_id=10)
+    await c.handle(early)
+    if stage=='interrupted':
+        await c.handle(text_update('повторить',12,reply_to_message_id=10))
+        await c._durable_voice.run(claim(c))
+    else:
+        audio=b'voice'
+        # Old worker's object predates reply11. Its checkpoint must merge the receipt.
+        c._telegram_state.checkpoint_voice(job,lease_owner=c._lease_owner,payload={**job.payload,
+            'stage':'waiting','preview':VoicePreview(transcript='Составь план.',
+                sha256=hashlib.sha256(audio).hexdigest(),size=len(audio)).model_dump()},status='waiting')
+    await c.handle(early)
+    assert rows(c)==[('voice','waiting')] and not compiler.inputs
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('stage',['waiting','confirmed'])
+async def test_disabled_c1_never_sends_recovered_voice_to_legacy_route(tmp_path,stage):
+    h,compiler=harness(tmp_path); c=h.control
+    await c.handle(voice_update(10)); await c._durable_voice.run(claim(c))
+    if stage=='confirmed': await c.handle(text_update('да',11,reply_to_message_id=10))
+    c._enable_semantic_admission=False; c._enable_extended_routes=True
+    async def forbidden(*a,**kw): pytest.fail('disabled voice must not reach any instruction route')
+    c._start_owner_instruction=forbidden
+    if stage=='waiting': await c.handle(text_update('да',11,reply_to_message_id=10))
+    await c._durable_voice.run(claim(c))
+    assert rows(c)==[('voice','finished')] and not compiler.inputs
+    await c.handle(text_update('да',11,reply_to_message_id=10))
+    assert rows(c)==[('voice','finished')]
+
+
+@pytest.mark.asyncio
+async def test_two_healthy_voice_jobs_serialize_native_inference_without_manual_retry(tmp_path):
+    import threading
+    h,_=harness(tmp_path); c=h.control
+    started,release=threading.Event(),threading.Event()
+    adapter=FasterWhisperTranscriber(); calls=[]
+    def model(*a):
+        calls.append(1); started.set()
+        assert release.wait(5)
+        return TranscriptResult(text='Составь план.')
+    adapter._transcribe_input=model
+    audio=wav()
+    async def download(*a,**kw): return audio
+    c._api.download_file=download
+    c._voice_service=VoicePreviewService(adapter,tmp_path/'no-temp',10*1024**2,2000)
+    for identifier in (10,20):
+        update=voice_update(identifier); update['message']['voice']['file_size']=len(audio)
+        await c.handle(update)
+    first,second=claim(c),claim(c)
+    tasks=[asyncio.create_task(c._durable_voice.run(job)) for job in (first,second)]
+    try:
+        assert await asyncio.to_thread(started.wait,3)
+        await asyncio.sleep(.02)
+    finally:
+        release.set()
+        await asyncio.gather(*tasks)
+    assert calls==[1,1] and rows(c)==[('voice','waiting'),('voice','waiting')]
+
+
+@pytest.mark.asyncio
+async def test_rejection_notice_is_only_sent_to_allowlisted_owner(tmp_path):
+    h,_=harness(tmp_path); c=h.control
+    update=voice_update(10); update['message']['voice']['duration']=301
+    update['message']['from']['id']+=1
+    await c.handle(update)
+    assert rows(c)==[] and h.api.sent==[]

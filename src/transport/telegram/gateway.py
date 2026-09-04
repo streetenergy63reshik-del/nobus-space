@@ -340,7 +340,12 @@ class TelegramGateway:
         if has_text:
             return self._handle_text(update_id, message, user_id, chat_id, binding)
         if has_voice:
-            return self._handle_voice(update_id, message, user_id, chat_id, binding)
+            result = self._handle_voice(update_id, message, user_id, chat_id, binding)
+            if result.status is IngressStatus.REJECTED and binding.purpose == 'owner_private':
+                thread = message.get('message_thread_id')
+                return result.model_copy(update={'rejection_chat_id':chat_id,
+                    'rejection_thread_id':thread if type(thread) is int and thread > 0 else None})
+            return result
         return _ignored(update_id, "unsupported message type")
 
     def _handle_text(

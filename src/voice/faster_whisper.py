@@ -91,6 +91,7 @@ class FasterWhisperTranscriber:
         self._model: Any | None = None
         self._model_lock = threading.Lock()
         self._inference_lock = threading.Lock()
+        self._async_inference_lock = asyncio.Lock()
 
     def _load_model(self) -> None:
         import_failed = False
@@ -214,6 +215,10 @@ class FasterWhisperTranscriber:
     async def transcribe_audio(self, audio: bytes, *, max_chars: int) -> TranscriptResult:
         if type(audio) is not bytes or not 0 < len(audio) <= 10*1024*1024 or type(max_chars) is not int or max_chars <= 0:
             raise VoiceTranscriptionError('voice input is invalid')
+        async with self._async_inference_lock:
+            return await self._transcribe_audio_owned(audio, max_chars)
+
+    async def _transcribe_audio_owned(self, audio: bytes, max_chars: int) -> TranscriptResult:
         cancelled = threading.Event()
         task = asyncio.create_task(asyncio.to_thread(self._audio_sync, audio, max_chars, cancelled))
         failed = False

@@ -150,7 +150,7 @@
     }
   ],
   "frozen_candidate_receipt": ".runtime/c2/final-evidence.json",
-  "independent_reviews": ".runtime/c2/reviews/",
+  "independent_reviews": ".runtime/c2/reviews/L2-final/ and .runtime/c2/reviews/L3-final/",
   "protected_entry_manifest_sha256": "5f69ab36544c65c66c6a984a0acc85ddb1ed9929c8404702e998c56bd0e30388",
   "preflight_hard_crash_receipt_sha256": "53fe66b69966faaa1f09228bc0cb4b8bfb1a2c3721d75dd0d550e8c8d0a66364",
   "preflight_capacity_receipt_sha256": "cdbd83b5a462be8c2a4363a38051ec348b6a8615121d86c4c71e57349e1187a4",
@@ -169,7 +169,8 @@
     "seconds_used_pre_freeze": 165.76500000001397,
     "api_cost_usd": 0,
     "cloud_audio_calls": 0,
-    "production_changed": false
+    "production_changed": false,
+    "seconds_used_pre_final_freeze": 169.23399999999674
   },
   "current_reuse_gap_target": {
     "current": "Faster-Whisper base local cpu/int8; C1 published, default-off",
@@ -177,5 +178,72 @@
     "gap": "pre-ASR durable lifecycle + orphan between admission/enqueue; ASR unqualified",
     "candidate": "durable voice stages and confirmed C1 path; ASR and strict native/retention criteria remain BLOCKED"
   },
-  "publications": "C2 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY / UNAUTHORIZED CLOUD AUDIO"
+  "publications": "C2 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY / UNAUTHORIZED CLOUD AUDIO",
+  "superseded_candidate": {
+    "commit": "5dca0524e7c80edb0ea971200b3ed89bbc9aa476",
+    "tree": "c96302cbaae88e4d7e492791e7cb6a03125917ac",
+    "verdict": "REJECTED / SUPERSEDED",
+    "l1": {
+      "pass": 1807,
+      "skip": 2,
+      "historical_deselect": 1,
+      "receipt": {
+        "path": ".runtime/c2/frozen-release.json",
+        "sha256": "435edc2909cd1f6b170dac3903243c3757d2bd1ca1be2dcda87d3e5d125e80e0"
+      },
+      "output_sha256": "c83f476edb07e0e87b8e4fbff33c5d39357416d858785f05a8fc3b1a6fffe12d",
+      "wrapper_caveat": "pytest exit0 and receipt saved; final console printing failed cp1251 UnicodeEncodeError; no test rerun"
+    },
+    "l2": {
+      "path": ".runtime/c2/reviews/L2/REVIEW.md",
+      "sha256": "d668a044de3116a516d91c94406a2c5a1d81346473889d952b33ec141003b5d0"
+    },
+    "l3": {
+      "path": ".runtime/c2/reviews/L3/MANIFEST.json",
+      "sha256": "91cbeca33ea4d3e0f4ab35ec0f5b19ea1c962517f70736941e26b2de84ef8245"
+    },
+    "findings": [
+      "P1 reply replay across generations",
+      "P1 disabled C1 legacy fallback",
+      "P2 missing voice rejection notice",
+      "P2 normal concurrent inference treated as failure"
+    ]
+  },
+  "consolidated_focused": {
+    "pass": 190,
+    "skip": 1,
+    "receipt": {
+      "path": ".runtime/c2/consolidated-focused.json",
+      "sha256": "b01d7d847a01450210b87b78ed13641fe8d983d349c4f7aeb4feac6954ea37e3"
+    },
+    "output_sha256": "f209f314f3af57a13cba1cce6a36786821ed566720ec6c31825aaa03c2c04acc"
+  },
+  "dependency_review": {
+    "scope": "selected runtime pins/assets; not whole-venv/native-SBOM clean",
+    "documents": [
+      {
+        "path": ".runtime/c2/asr-security-reviewer/REVIEW.md",
+        "sha256": "d9d820583ba96098306511ae8283c3ce4bb5ef0ca7052b5896985c938bf1e62d"
+      },
+      {
+        "path": ".runtime/c2/asr-security-reviewer/installed-byte-receipt.json",
+        "sha256": "f2aa144005e0aa7b21fd1930ef175137981375c771bf186139faf030ffcaf6b0"
+      },
+      {
+        "path": ".runtime/c2/asr-security-reviewer/baseline-selected-receipt.json",
+        "sha256": "d8d0c6379237267ffc31eebfdcb45c0391221585c5efdda21bcd8b13c83a4ba5"
+      },
+      {
+        "path": ".runtime/c2/asr-security-reviewer/pypi-advisory-receipt.json",
+        "sha256": "cb3c7c902a9400e74e4253f6cd118a1468a1b08a5e6e4b978b077a8cb12390cf"
+      }
+    ],
+    "findings": [
+      "20 asset pins and3133 installed files verified",
+      "ORT telemetry explicitly disabled in corrected pilot",
+      "bootstrap pip25.0.1 advisories scoped to installation surfaces; exact wheels checked",
+      "PyAV/FFmpeg aggregate distribution license/native SBOM and CT2 bundled notices remain gaps",
+      "existing local FW tokenizer.json verified; missing tokenizer could trigger upstream remote fallback"
+    ]
+  }
 }

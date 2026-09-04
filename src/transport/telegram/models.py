@@ -175,6 +175,9 @@ class IngressResult(IngressModel):
     update_id: int | None
     payload: TextMessage | VoiceMessage | CallbackQuery | None = None
     reason: str | None = None
+    # Reply address issued only after gateway allowlist validation; never authority.
+    rejection_chat_id: int | None = None
+    rejection_thread_id: int | None = None
 
 
 class TrustedIngressResult(IngressResult):
@@ -188,6 +191,8 @@ class TrustedIngressResult(IngressResult):
             if self.envelope is not None:
                 raise ValueError("non-accepted ingress cannot carry an envelope")
             return self
+        if self.rejection_chat_id is not None or self.rejection_thread_id is not None:
+            raise ValueError('accepted ingress cannot carry a rejection address')
         if self.payload is None or self.envelope is None:
             raise ValueError("accepted ingress requires payload and envelope")
         facts = _telegram_payload_facts(self.payload)

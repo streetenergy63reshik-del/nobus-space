@@ -231,11 +231,23 @@ class SQLiteTelegramState:
         job = self._validated_job(job, require_lease=True)
         if job.kind != "voice" or status not in {"leased", "waiting", "finished"}:
             raise ValueError("voice checkpoint is invalid")
-        protected = self._encode(payload)
-        digest = canonical_json_digest(payload)
         now = self._now()
         try:
             with self._transaction() as connection:
+                current = connection.execute(
+                    """SELECT * FROM telegram_jobs WHERE job_id=? AND kind='voice'
+                       AND status='leased' AND lease_id=? AND lease_owner=? AND lease_expires_at>?""",
+                    (str(job.job_id), str(job.lease_id), str(lease_owner), now.isoformat()),
+                ).fetchone()
+                if current is None:
+                    raise DurableTelegramStateError('runtime_job_lease_lost')
+                current_payload = self._job_from_row(current).payload
+                payload = dict(payload)
+                if payload and 'reply_update_watermark' in current_payload:
+                    # Replies received while native work runs must survive its late checkpoint.
+                    payload['reply_update_watermark'] = current_payload['reply_update_watermark']
+                protected = self._encode(payload)
+                digest = canonical_json_digest(payload)
                 cursor = connection.execute(
                     """UPDATE telegram_jobs SET payload=?,payload_digest=?,status=?,updated_at=?,
                        lease_id=CASE WHEN ?='leased' THEN lease_id ELSE NULL END,
@@ -261,19 +273,35 @@ class SQLiteTelegramState:
             ).fetchone()
             return self._job_from_row(row) if row is not None else None
 
-    def confirm_voice(self, job: DurableJob, *, payload: Mapping[str, Any]) -> bool:
-        """Exact waiting payload CAS; confirmation cannot race a worker or replay."""
-        if job.kind != "voice":
+    def confirm_voice(self, job: DurableJob, *, reply_update_id: int,
+                      payload: Mapping[str, Any] | None) -> bool:
+        """Atomically consume an ordered reply and optionally transition its exact preview."""
+        if job.kind != "voice" or type(reply_update_id) is not int or reply_update_id < 0:
             raise ValueError("voice confirmation is invalid")
-        protected = self._encode(payload)
         now = self._now()
         with self._transaction() as connection:
+            row = connection.execute('SELECT * FROM telegram_jobs WHERE job_id=? AND kind=\'voice\'',
+                                     (str(job.job_id),)).fetchone()
+            if row is None:
+                return False
+            current = self._job_from_row(row)
+            if not current.payload or reply_update_id <= current.payload.get('reply_update_watermark', -1):
+                return False
+            without_reply = lambda value: {k:v for k,v in value.items() if k != 'reply_update_watermark'}
+            transition = (payload is not None and row['status'] == 'waiting'
+                          and without_reply(current.payload) == without_reply(job.payload))
+            updated = dict(payload if transition else current.payload, reply_update_watermark=reply_update_id)
+            if not transition:
+                # An early or stale reply must never become a confirmation on replay.
+                connection.execute('UPDATE telegram_jobs SET payload=?,payload_digest=? WHERE job_id=?',
+                    (self._encode(updated), canonical_json_digest(updated), str(job.job_id)))
+                return False
             cursor = connection.execute(
                 """UPDATE telegram_jobs SET payload=?,payload_digest=?,status='pending',
                    attempt_count=0,lease_id=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=?
                    WHERE job_id=? AND kind='voice' AND status='waiting' AND payload_digest=?""",
-                (protected, canonical_json_digest(payload), now.isoformat(), str(job.job_id),
-                 canonical_json_digest(job.payload)),
+                (self._encode(updated), canonical_json_digest(updated), now.isoformat(), str(job.job_id),
+                 row['payload_digest']),
             )
             return cursor.rowcount == 1
 

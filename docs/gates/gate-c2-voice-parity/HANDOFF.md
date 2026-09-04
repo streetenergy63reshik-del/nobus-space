@@ -42,6 +42,14 @@ Restart до download безопасно повторяет только downloa
 preview; из confirmed с PreparedTask повторяется только idempotent enqueue.
 После enqueue и до finish повтор не создаёт второй Core task.
 
+Reply update watermark хранится в encrypted payload и обновляется в той же
+транзакции, что confirmation/retry. Старый либо преждевременный ответ не
+подтверждает последующий transcript. Worker checkpoint сохраняет актуальный
+watermark, даже если native call начался до прихода ответа. При отключённом
+C1 восстановленный voice получает явную остановку; legacy routing запрещён.
+Нормальные concurrent voices ждут async lock, отдельный native guard
+защищает от ещё работающего отменённого inference.
+
 В C1 predecessor воспроизведён настоящий hard-crash дефект: после task
 admission, до enqueue, replay оставлял task=1/job=0 и подтверждал polling offset.
 Гипотеза немедленной потери pre-ASR из-за update claim не подтвердилась:

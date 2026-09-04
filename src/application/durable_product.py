@@ -111,10 +111,16 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self._durable_voice = DurableVoiceIntake(self, telegram_state)
 
     async def _handle_ingress(self, ingress: Any) -> bool:
-        if (getattr(self, '_enable_semantic_admission', False)
-            and ingress.status is IngressStatus.ACCEPTED and ingress.envelope is not None
+        if (self._enable_semantic_admission and ingress.status is IngressStatus.REJECTED
+            and ingress.rejection_chat_id is not None):
+            await self._api.send_message(ingress.rejection_chat_id,
+                'Не удалось принять голосовую запись. Нужна запись до 5 минут и 10 МБ в формате Ogg/Opus или WAV. Можно отправить задачу текстом.',
+                message_thread_id=ingress.rejection_thread_id)
+            return True
+        if (ingress.status is IngressStatus.ACCEPTED and ingress.envelope is not None
             and ingress.payload is not None and ingress.payload.binding_purpose != 'business_notes'):
-            if isinstance(ingress.payload, VoiceMessage) and self._voice_service is not None:
+            if (self._enable_semantic_admission and isinstance(ingress.payload, VoiceMessage)
+                and self._voice_service is not None):
                 await self._durable_voice.admit(ingress.payload, ingress.envelope)
                 return True
             if isinstance(ingress.payload, TextMessage):

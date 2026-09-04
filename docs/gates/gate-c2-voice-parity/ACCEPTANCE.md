@@ -32,6 +32,21 @@ B03/B04 остаются C2-owned, не переданы в C3.
 
 ## Проверки кандидата
 
+Первый frozen C2 `5dca0524e7c80edb0ea971200b3ed89bbc9aa476`, tree
+`c96302cbaae88e4d7e492791e7cb6a03125917ac` — REJECTED / SUPERSEDED.
+Его L1: 1807 PASS / 2 skips / 1 historical deselect. Независимый L2 REJECT
+(здоровый второй voice ошибочно требовал ручной retry); L3 REJECT
+(reply replay подтверждал другую generation, flag-off recovery попадал в
+legacy route, отказ по duration был без ответа, та же concurrency ошибка).
+Это реальные findings, не аннулированные последующей доработкой.
+
+Один consolidated rework добавил atomic encrypted reply watermark, сохранение
+receipt при позднем worker checkpoint, fail-closed остановку voice при flag-off,
+async сериализацию нормальных ASR запросов и allowlist-bound адрес безопасного
+отказа ingress. Свои узкие проверки: 190 PASS / 1 Windows symlink skip.
+Новый frozen candidate требует собственной финальной цепочки; результаты
+первого SHA не объявляются проверками новых bytes.
+
 До freeze: predecessor voice negatives 61 PASS; после WIP изменений широкий
 impacted runtime 696 PASS; затем focused parity 30 PASS и объединённые
 disk/cancel/capacity + state + service 112 PASS. Это разные последовательные
