@@ -103,7 +103,7 @@ class ConfirmedVoicePreview(VoiceConfirmationModel):
     transcript: str = Field(min_length=1, max_length=MAX_TRANSCRIPT_LENGTH)
     transcript_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     language: str | None = Field(default=None, max_length=35)
-    confidence: float | None = Field(default=None, ge=0, le=1)
+    language_confidence: float | None = Field(default=None, ge=0, le=1)
     confirmed_at: datetime
     callback_token_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     voice_envelope: TrustedIngressEnvelope
@@ -180,7 +180,7 @@ class _PreviewBinding:
     transcript_digest: str
     preview_digest: str
     language: str | None
-    confidence: float | None
+    language_confidence: float | None
     issued_at: datetime
     expires_at: datetime
     voice_envelope: TrustedIngressEnvelope
@@ -318,7 +318,7 @@ class InMemoryVoiceConfirmationStore:
             {
                 "audio_sha256": validated_preview.sha256,
                 "language": language,
-                "confidence": validated_preview.confidence,
+                "language_confidence": validated_preview.language_confidence,
                 "size": validated_preview.size,
                 "transcript_digest": transcript_digest,
                 "voice_content_ref": validated_envelope.content_ref,
@@ -370,7 +370,7 @@ class InMemoryVoiceConfirmationStore:
                 transcript_digest=transcript_digest,
                 preview_digest=preview_digest,
                 language=language,
-                confidence=validated_preview.confidence,
+                language_confidence=validated_preview.language_confidence,
                 issued_at=now,
                 expires_at=now + timedelta(seconds=ttl_seconds),
                 voice_envelope=validated_envelope,
@@ -487,7 +487,7 @@ class InMemoryVoiceConfirmationStore:
                 transcript=binding.transcript,
                 transcript_digest=binding.transcript_digest,
                 language=binding.language,
-                confidence=binding.confidence,
+                language_confidence=binding.language_confidence,
                 confirmed_at=now,
                 callback_token_digest=digest,
                 voice_envelope=binding.voice_envelope,

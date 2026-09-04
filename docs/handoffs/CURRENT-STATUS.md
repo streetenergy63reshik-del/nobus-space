@@ -21,7 +21,10 @@ C1-B01/C1-B02; прежний PASS и reviews отменены. Replacement 8e5e
 product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree
 `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`. Он совпадает с tree проверенного
 candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
-активирован. C2 — READY TO START / NOT STARTED. Релиз `v1.0.1` остаётся
+активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; durable intake и
+парные проверки реализованы в отдельном worktree, ASR qualification и полный
+retention/timeout критерий не закрыты. См. [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md)
+и [handoff](../gates/gate-c2-voice-parity/HANDOFF.md). Релиз `v1.0.1` остаётся
 историческим опубликованным Git-фактом; до C2–C6 и новой owner acceptance
 весь продукт не имеет verdict `READY`.
 
@@ -173,7 +176,7 @@ exact result SHA/tree и handoff.
 |---|---|---|
 | C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий text/voice Core-route и русский bake-off | READY TO START / NOT STARTED |
+| C2 — voice parity и ASR qualification | durable intake, общий text/voice Core-route, frozen synthetic ASR pilot | LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; C2-B01…B04 |
 | C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
 | C5 — operations/recovery/security | воспроизводимые ops, backup/restore, rollback, security | HOLD до C4 |

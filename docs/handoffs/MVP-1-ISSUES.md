@@ -21,8 +21,8 @@
 |---|---|---|---|---|
 | C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; exact text/voice incident и corpus `25/25`, keyword veto не участвует в opt-in semantic path |
 | C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
-| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | существующая durable voice recovery закрыта historical tests, но incident показывает равный false reject после успешного ASR | C2 | **REQUALIFY**; crash/temp/privacy negatives и парные corpus cases PASS |
-| C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | current local adapter существует; сравнительного benchmark/privacy decision C0 не обнаружил | C2 | **CONFIRMED EVIDENCE GAP**; bounded bake-off в C2, Faster-Whisper остаётся CURRENT до решения |
+| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **LOCAL FIX / NOT ACCEPTED**; durable audio intake, deferred admission и parity fixtures; C2-B02/B03/B04 ещё открыты |
+| C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | C2 frozen16-case pilot FW/GigaAM измерен; semantic exactness не доказана | C2 | **ASR DECISION BLOCKED**; C2-B01/B02, Faster-Whisper остаётся CURRENT как факт |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
 | C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **CONFIRMED CURRENT BLOCKER**; restart/reclaim/dead-letter/outbox reconciliation и healthy readback PASS |
@@ -56,7 +56,13 @@ C0-F01/F02 закрыты в принятом C1 code, но не в live deploym
 Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован через PR #11 в
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
-C2 — READY TO START / NOT STARTED; C3–C6 и MVP2 — HOLD.
+C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md).
+C2-B01/B02: качество/полный продуктовый smoke не доказаны; C2-B03/B04:
+native timeout и полный lifecycle encrypted bytes не закрыты. C3–C6 и MVP2 HOLD.
+
+Историческая строка «Voice durable admission CLOSED» ниже относится к durable
+draft после ASR. Она не доказывала целый audio intake. C2 исправляет этот
+CURRENT claim вперёд; historical evidence не переписывается.
 
 ## Historical сводка до incident
 

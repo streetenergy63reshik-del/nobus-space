@@ -998,6 +998,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     async def handle(self, update: dict[str, Any]) -> bool:
         ingress = self._gateway.process_update(update)
+        return await self._handle_ingress(ingress)
+
+    async def _handle_ingress(self, ingress: Any) -> bool:
+        """Dispatch one gateway-validated input; durable variants share this path."""
         if (
             ingress.status is not IngressStatus.ACCEPTED
             or ingress.payload is None

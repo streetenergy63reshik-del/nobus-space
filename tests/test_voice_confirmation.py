@@ -118,7 +118,7 @@ def preview(transcript: str = "Р СџРЎР‚Р С•Р Р†Р ВµРЎР
     return VoicePreview(
         transcript=transcript,
         language="ru",
-        confidence=0.98,
+        language_confidence=0.98,
         sha256=AUDIO_DIGEST,
         size=len(AUDIO),
     )
@@ -178,7 +178,7 @@ def test_full_gateway_flow_confirms_exact_preview_once() -> None:
         {"transcript": "Р СџРЎР‚Р С•Р Р†Р ВµРЎР‚РЎРЉ Р В»Р С•Р С”Р В°Р В»РЎРЉР Р…РЎвЂ№Р в„– РЎР‚Р ВµР С—Р С•Р В·Р С‘РЎвЂљР С•РЎР‚Р С‘Р в„–"}
     )
     assert result.confirmation.language == "ru"
-    assert result.confirmation.confidence == 0.98
+    assert result.confirmation.language_confidence == 0.98
     assert result.confirmation.callback_token_digest == (
         "sha256:" + hashlib.sha256(TOKEN.encode()).hexdigest()
     )

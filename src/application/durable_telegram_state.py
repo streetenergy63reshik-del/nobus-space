@@ -18,8 +18,8 @@ from src.security.dpapi import protect_current_user, unprotect_current_user
 
 
 _ENTROPY = b"nobus-space:telegram-runtime:v1"
-_JOB_KINDS = frozenset({"draft", "miniapp_draft", "patch", "effect"})
-_JOB_STATUSES = frozenset({"pending", "leased", "failed"})
+_JOB_KINDS = frozenset({"draft", "miniapp_draft", "patch", "effect", "voice"})
+_JOB_STATUSES = frozenset({"pending", "leased", "failed", "waiting", "finished"})
 _CAPABILITY_KINDS = frozenset({"task", "patch", "action"})
 _DPAPI_MAGIC = b"NBDP1"
 _DPAPI_CHUNK_BYTES = 1024 * 1024
@@ -183,17 +183,26 @@ class SQLiteTelegramState:
                     job = self._job_from_row(row)
                     if (
                         job.binding_digest != binding_digest
-                        or row["payload_digest"] != payload_digest
+                        or (kind != "voice" and row["payload_digest"] != payload_digest)
                     ):
                         raise DurableTelegramStateError("runtime_job_conflict")
                     if row["status"] == "failed":
                         raise DurableTelegramStateError("runtime_job_failed")
                     return job
                 count = connection.execute(
-                    "SELECT COUNT(*) FROM telegram_jobs"
+                    """SELECT COUNT(*) FROM telegram_jobs AS j WHERE status!='finished'
+                       AND NOT (j.kind='voice' AND (
+                         EXISTS (SELECT 1 FROM telegram_jobs AS d WHERE d.kind='draft'
+                           AND d.tenant_id=j.tenant_id AND d.task_id=j.task_id)
+                         OR (?='draft' AND j.tenant_id=? AND j.task_id=?)))""",
+                    (kind, tenant_id, str(task_id)),
                 ).fetchone()[0]
                 if count >= self._max_jobs:
                     raise DurableTelegramStateError("runtime_queue_full")
+                if kind == 'voice' and connection.execute(
+                    "SELECT COUNT(*) FROM telegram_jobs WHERE kind='voice'"
+                ).fetchone()[0] >= 2000:
+                    raise DurableTelegramStateError('runtime_queue_full')
                 job_id = uuid4()
                 connection.execute(
                     """INSERT INTO telegram_jobs
@@ -213,6 +222,78 @@ class SQLiteTelegramState:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
+
+    def checkpoint_voice(
+        self, job: DurableJob, *, lease_owner: UUID,
+        payload: Mapping[str, Any], status: str = "leased",
+    ) -> DurableJob:
+        """Persist a voice stage using the existing queue's live lease CAS."""
+        job = self._validated_job(job, require_lease=True)
+        if job.kind != "voice" or status not in {"leased", "waiting", "finished"}:
+            raise ValueError("voice checkpoint is invalid")
+        protected = self._encode(payload)
+        digest = canonical_json_digest(payload)
+        now = self._now()
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE telegram_jobs SET payload=?,payload_digest=?,status=?,updated_at=?,
+                       lease_id=CASE WHEN ?='leased' THEN lease_id ELSE NULL END,
+                       lease_owner=CASE WHEN ?='leased' THEN lease_owner ELSE NULL END,
+                       lease_expires_at=CASE WHEN ?='leased' THEN lease_expires_at ELSE NULL END
+                       WHERE job_id=? AND kind='voice' AND status='leased'
+                         AND lease_id=? AND lease_owner=? AND lease_expires_at>?""",
+                    (protected, digest, status, now.isoformat(), status, status, status, str(job.job_id),
+                     str(job.lease_id), str(lease_owner), now.isoformat()),
+                )
+                if cursor.rowcount != 1:
+                    raise DurableTelegramStateError("runtime_job_lease_lost")
+            return DurableJob(job.job_id, job.kind, job.tenant_id, job.task_id,
+                              job.binding_digest, dict(payload), job.attempt_count, job.lease_id)
+        except (OSError, sqlite3.DatabaseError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
+    def read_voice(self, *, tenant_id: str, task_id: UUID) -> DurableJob | None:
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                "SELECT * FROM telegram_jobs WHERE kind='voice' AND tenant_id=? AND task_id=?",
+                (tenant_id, str(task_id)),
+            ).fetchone()
+            return self._job_from_row(row) if row is not None else None
+
+    def confirm_voice(self, job: DurableJob, *, payload: Mapping[str, Any]) -> bool:
+        """Exact waiting payload CAS; confirmation cannot race a worker or replay."""
+        if job.kind != "voice":
+            raise ValueError("voice confirmation is invalid")
+        protected = self._encode(payload)
+        now = self._now()
+        with self._transaction() as connection:
+            cursor = connection.execute(
+                """UPDATE telegram_jobs SET payload=?,payload_digest=?,status='pending',
+                   attempt_count=0,lease_id=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=?
+                   WHERE job_id=? AND kind='voice' AND status='waiting' AND payload_digest=?""",
+                (protected, canonical_json_digest(payload), now.isoformat(), str(job.job_id),
+                 canonical_json_digest(job.payload)),
+            )
+            return cursor.rowcount == 1
+
+    def sweep_voice(self) -> None:
+        """Scrub expired/failed voice content; retain only bounded replay tombstones."""
+        now = self._now()
+        empty = self._encode({})
+        with self._transaction() as connection:
+            connection.execute(
+                """UPDATE telegram_jobs SET payload=?,payload_digest=?,status='finished',updated_at=?,
+                   failure_code=NULL,lease_id=NULL,lease_owner=NULL,lease_expires_at=NULL
+                   WHERE kind='voice' AND (status='failed' OR
+                     (status IN ('pending','waiting') AND created_at<?))""",
+                (empty, canonical_json_digest({}), now.isoformat(),
+                 (now-timedelta(hours=1)).isoformat()),
+            )
+            connection.execute(
+                "DELETE FROM telegram_jobs WHERE kind='voice' AND status='finished' AND updated_at<?",
+                ((now-timedelta(hours=24)).isoformat(),),
+            )
 
     def claim(
         self, *, lease_owner: UUID, lease_seconds: int = 300
@@ -1098,14 +1179,14 @@ class SQLiteTelegramState:
             CREATE TABLE telegram_jobs (
                 job_id TEXT PRIMARY KEY,
                 kind TEXT NOT NULL CHECK(
-                    kind IN ('draft','miniapp_draft','patch','effect')
+                    kind IN ('draft','miniapp_draft','patch','effect','voice')
                 ),
                 tenant_id TEXT NOT NULL,
                 task_id TEXT NOT NULL,
                 binding_digest TEXT NOT NULL,
                 payload_digest TEXT NOT NULL,
                 payload BLOB NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('pending','leased','failed')),
+                status TEXT NOT NULL CHECK(status IN ('pending','leased','failed','waiting','finished')),
                 attempt_count INTEGER NOT NULL CHECK(attempt_count>=0),
                 failure_code TEXT,
                 lease_id TEXT,
@@ -1142,12 +1223,14 @@ class SQLiteTelegramState:
                     expected | {"failure_code"} == columns
                     and "'effect'" in sql
                     and "'miniapp_draft'" in sql
+                    and "'voice'" in sql
+                    and "'waiting'" in sql
                     and "'failed'" in sql
                 )
                 previous = (
                     expected | {"failure_code"} == columns
                     and "'effect'" in sql
-                    and "'miniapp_draft'" not in sql
+                    and "'voice'" not in sql
                     and "'failed'" in sql
                 )
                 legacy = columns == expected

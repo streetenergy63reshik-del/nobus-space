@@ -13,6 +13,7 @@ from typing import Any, Callable
 from uuid import UUID, uuid4
 
 from src.application.durable_runtime import PreparedTask
+from src.application.durable_voice import DurableVoiceIntake, active_voice, validate_job, voice_id
 from src.application.durable_telegram_state import (
     DurableJob,
     DurableTelegramStateError,
@@ -107,6 +108,32 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self._lease_owner = uuid4()
         self._worker_error: str | None = None
         self._worker_error_count = 0
+        self._durable_voice = DurableVoiceIntake(self, telegram_state)
+
+    async def _handle_ingress(self, ingress: Any) -> bool:
+        if (getattr(self, '_enable_semantic_admission', False)
+            and ingress.status is IngressStatus.ACCEPTED and ingress.envelope is not None
+            and ingress.payload is not None and ingress.payload.binding_purpose != 'business_notes'):
+            if isinstance(ingress.payload, VoiceMessage) and self._voice_service is not None:
+                await self._durable_voice.admit(ingress.payload, ingress.envelope)
+                return True
+            if isinstance(ingress.payload, TextMessage):
+                if await self._durable_voice.reply(ingress.payload, ingress.envelope):
+                    return True
+        return await super()._handle_ingress(ingress)
+
+    async def _start_text_task(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+        instruction: str, *, supplied_context: Any = None, semantic_no_effect: bool = False,
+    ) -> None:
+        if not active_voice():
+            return await super()._start_text_task(message, envelope, instruction,
+                supplied_context=supplied_context, semantic_no_effect=semantic_no_effect)
+        if not semantic_no_effect or supplied_context is not None:
+            raise RuntimeError('voice semantic boundary is invalid')
+        prepared = await self._durable_voice.prepare(_SEMANTIC_NO_EFFECT_PROFILE+instruction, envelope)
+        if not await self._submit_draft(prepared, message, envelope):
+            raise RuntimeError('voice draft enqueue failed')
 
     async def start(self) -> None:
         if self._execution_workers or self._closing or self._closed:
@@ -351,6 +378,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             except TimeoutError:
                 pass
             try:
+                if getattr(self, '_enable_semantic_admission', False):
+                    self._telegram_state.sweep_voice()
                 durable = self._telegram_state.claim(
                     lease_owner=self._lease_owner,
                     lease_seconds=_LEASE_SECONDS,
@@ -373,6 +402,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 self._worker_error_count = 0
                 if marker:
                     self._execution_queue.task_done()
+                continue
+            if durable.kind == 'voice':
+                try:
+                    await self._execute_voice_with_lease(durable)
+                finally:
+                    if marker:
+                        self._execution_queue.task_done()
                 continue
             try:
                 job = await self._restore(durable)
@@ -599,6 +635,41 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 return_exceptions=True,
             )
 
+    async def _execute_voice_with_lease(self, durable: DurableJob) -> None:
+        execution = asyncio.create_task(self._durable_voice.run(durable))
+        heartbeat = asyncio.create_task(self._renew(durable))
+        try:
+            done, _ = await asyncio.wait({execution, heartbeat}, return_when=asyncio.FIRST_COMPLETED)
+            if heartbeat in done:
+                heartbeat.result()
+                raise RuntimeError('voice lease heartbeat stopped')
+            await execution
+        except asyncio.CancelledError:
+            execution.cancel()
+            await asyncio.gather(execution, return_exceptions=True)
+            with suppress(Exception):
+                self._telegram_state.release(durable, lease_owner=self._lease_owner)
+            raise
+        except Exception:
+            execution.cancel()
+            await asyncio.gather(execution, return_exceptions=True)
+            self._worker_error_count += 1
+            self._worker_error = 'voice_processing_failed'
+            # Only resume stages whose repeat cannot perform an unknown effect.
+            current = self._telegram_state.read_voice(tenant_id=durable.tenant_id, task_id=durable.task_id)
+            if current is not None and current.payload:
+                with suppress(Exception):
+                    self._telegram_state.release(durable, lease_owner=self._lease_owner)
+                with suppress(Exception):
+                    message, _ = validate_job(current)
+                    await self._api.send_message(message.chat_id,
+                        'Обработка голосовой записи прервана. Если ответ не появится, отправьте задачу текстом.')
+        finally:
+            for task in (execution, heartbeat):
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(execution, heartbeat, return_exceptions=True)
+
     async def _renew(self, job: DurableJob) -> None:
         while True:
             await asyncio.sleep(_LEASE_SECONDS / 3)
@@ -673,6 +744,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             "envelope": envelope.model_dump(mode="json"),
             "recovery_envelope": recovery_envelope.model_dump(mode="json"),
         }
+        if active_voice():
+            payload['deferred_admission'] = True
         try:
             self._telegram_state.enqueue(
                 kind="draft",
@@ -837,6 +910,16 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 str(payload["approval_evidence_ref"]),
             )
         job, recovery_envelope = self._draft_binding(durable)
+        if payload.get('deferred_admission') is True:
+            if (not isinstance(job.message, VoiceMessage)
+                or voice_id(job.message) != job.prepared.contract.task_id):
+                raise RuntimeError('deferred voice admission mismatch')
+            instruction = job.prepared.contract.instruction
+            if not instruction.startswith(_SEMANTIC_NO_EFFECT_PROFILE):
+                raise RuntimeError('deferred voice profile mismatch')
+            await self._product_runtime.admit_prepared(job.prepared, recovery_envelope)
+            instruction = instruction[len(_SEMANTIC_NO_EFFECT_PROFILE):]
+            self._product_runtime.bind_task_display_text(job.prepared, instruction[:80], display_instruction=instruction)
         recover = getattr(self._product_runtime, "recover_prepared", None)
         if callable(recover) and not await recover(
             job.prepared, recovery_envelope

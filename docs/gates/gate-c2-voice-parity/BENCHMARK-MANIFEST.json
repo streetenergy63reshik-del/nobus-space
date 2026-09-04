@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "frozen_before_asr": "2026-09-04",
+  "dataset": "tests/gate_c2/dataset.json",
+  "baseline": {
+    "engine": "faster-whisper", "version": "1.2.1", "ctranslate2": "4.8.1", "av": "18.0.0", "numpy": "2.5.1",
+    "model": "Systran/faster-whisper-base", "snapshot": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66",
+    "device": "cpu", "compute_type": "int8", "language": "ru", "beam_size": 8, "patience": 1.2,
+    "vad_filter": true, "condition_on_previous_text": true, "local_files_only": true,
+    "prompt_hotwords_source": "scripts/run_telegram_mvp1.py at 43e753c571e1ad8db5af5f453b5db0c0b417cac8"
+  },
+  "discovery": ["Google STT V2 chirp_3 ru-RU EU", "GigaAM v3_e2e_rnnt", "Deepgram nova-3 ru EU", "Azure Fast Transcription 2025-10-15 ru-RU westeurope"],
+  "measured_candidates": ["baseline"],
+  "unauthorized_trials": "All downloads, installs and cloud/provider tests require separate exact authorization. None are authorized.",
+  "thresholds": {
+    "normalized_wer_max": 0.15,
+    "normalized_cer_max": 0.08,
+    "critical_token_errors_max": 0,
+    "accepted_transcript_semantic_parity": 1.0,
+    "cold_readiness_seconds_max": 120,
+    "warm_rtf_p95_max": 0.5,
+    "warm_minimum_budget_seconds": 5,
+    "peak_process_ram_bytes_max": 4294967296,
+    "concurrency": 2,
+    "warm_passes": 3,
+    "substantial_gain": "semantic exactness +2 percentage points OR warm p95 latency -30%; no new critical errors, WER/CER regression <=1 percentage point, all privacy/ops hard constraints satisfied"
+  },
+  "decision_rule": "No REPLACE without all bound measurements, privacy, license/security and rollback. No KEEP solely because challengers were not tested. Missing fair comparison => ASR DECISION BLOCKED.",
+  "quality_rule": "language_probability is language evidence only. No calibrated word/semantic probability. All ASR transcripts require owner confirmation until benchmark-validated quality policy exists.",
+  "limits_of_evidence": "16 synthetic TTS cases are a pilot corpus, not representative human Russian speech. Voice parity with fixture compiler is integration evidence, not measured real-compiler semantic accuracy. Noise is deterministic and synthetic. Mandatory wider corpus and actual comparator remain qualification gaps."
+}

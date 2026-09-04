@@ -1,0 +1,181 @@
+{
+  "version": "1.0.0",
+  "gate": "C2",
+  "verdict": "BLOCKED",
+  "base": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
+  "base_tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
+  "accepted_contract_bindings": {
+    "docs/gates/gate-c1-semantic-task-compiler/HANDOFF.md": "3cdc5585cc5d7199aaf13c27d3dfb2bc440bd8ed2447317665c99a52ad8c39a6",
+    "docs/gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md": "e001097212d975c83be04ca1fdbd0946b537c998936bfb73564d4e15d514ac02",
+    "docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md": "809447612d992e0c5b2ea76a1cce37d4c9908bf6038bb18a9ac67c7648256f8f",
+    "docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md": "415c5733e16c351c7b180b3f56d3abb26a163ab0bcb84ecfbacde34f384b62f3",
+    "docs/gates/gate-c0-mvp1-truth-contract/semantic-contract.schema.json": "f09457922593bb82bc200cddaa6c6602295df3462627a5b101f0cab5e9115e87",
+    "docs/gates/gate-c0-mvp1-truth-contract/capability-registry.v1.json": "cabd76d4804474af73373c51cc5a7d361ff5c6d368aee365ffe6cbaa992a4161",
+    "docs/gates/gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json": "43f87170d24e24df196078f08fd06fe80123b75f64c6d5175312c7e20048bab3",
+    "requirements.txt": "114a3c47344cd2426e9bc535cebc54b998bd6525cd8ac170e35094fb23f59b42",
+    "scripts/run_telegram_mvp1.py": "16bbab7eee3bb0a6084cc315fab15c4a43a74e97a8921d846edc2a813e5c3315"
+  },
+  "semantic_versions": {
+    "SemanticProposal": "1.0.0",
+    "CoreDecision": "1.0.0",
+    "registry": "1.0.0",
+    "corpus": "1.0.0"
+  },
+  "receipts_before_freeze": [
+    {
+      "label": "predecessor-voice",
+      "receipt": ".runtime/c2/predecessor-voice.json",
+      "sha256": "063940a924475afd26468de8679b192eedfe8d31f8092759e59c1c0e5e62065d",
+      "started": "2026-09-04T05:02:18.415008+00:00",
+      "seconds": 6.766,
+      "exit_code": 0,
+      "output_sha256": "6dcf4e36b82ecede66d58c64a04914d9895b54fed0af1a20d180421f7712a61f"
+    },
+    {
+      "label": "baseline-benchmark",
+      "receipt": ".runtime/c2/baseline-benchmark.json",
+      "sha256": "b01828a18cb6c95d6d2a5b3700024e64edafa50a0921b3caa1ac1755e02047b5",
+      "started": "2026-09-04T05:09:46.534035+00:00",
+      "seconds": 71.328,
+      "exit_code": 0,
+      "output_sha256": "04728594f26099e0e4b0a009295d67b9beadf3409bd50c47f451b87bfad4d62f"
+    },
+    {
+      "label": "authorized-comparator-download",
+      "receipt": ".runtime/c2/authorized-comparator-download.json",
+      "sha256": "70a5b29805620449c22415db41683e85bd1c3f07addf3185805be8173ee734de",
+      "started": "2026-09-04T05:27:51.190751+00:00",
+      "seconds": 174.516,
+      "exit_code": 0,
+      "output_sha256": "2ac09e39fcc0b860150fd86025efecd73277ac54a7158c9f0c4d7f127bc707f6"
+    },
+    {
+      "label": "comparator-run-smoke",
+      "receipt": ".runtime/c2/comparator-run-smoke.json",
+      "sha256": "c5dae87f91cedbac0a58d4deb9abe25ba82402dc04f16cd9af223a3dc47392e0",
+      "started": "2026-09-04T05:40:15.631237+00:00",
+      "seconds": 4.296999999991385,
+      "exit_code": 0,
+      "output_sha256": "015b9b5bd9fd0f8bcfff0cc3d9f6ddf7305e7e79310de084cdc9b06a4c9e9968"
+    },
+    {
+      "label": "comparator-run-pilot",
+      "receipt": ".runtime/c2/comparator-run-pilot.json",
+      "sha256": "ebbb1360a72073eda689ee62c5c08767b2328aed4e7e0ca6529c19bad5d2bd32",
+      "started": "2026-09-04T05:40:33.424754+00:00",
+      "seconds": 80.89000000001397,
+      "exit_code": 0,
+      "output_sha256": "ac42cb84a1544c70bb43f3101ee974bf1b1a77b6f24b43c1751fa7eb9bfb8c86"
+    },
+    {
+      "label": "comparator-run-telemetry-disabled",
+      "receipt": ".runtime/c2/comparator-run-telemetry-disabled.json",
+      "sha256": "7b8d1c3b3b25e27eee53b790f7335a9084f5ab8a41563b24ae7906d83e7438e1",
+      "started": "2026-09-04T05:50:39.228762+00:00",
+      "seconds": 80.57800000000861,
+      "exit_code": 0,
+      "output_sha256": "77042ed5ad34d8ed01f7df1c41232d96e8f0bdead9c404a85eafdf54c6b9999a"
+    },
+    {
+      "label": "candidate-real-asr",
+      "receipt": ".runtime/c2/candidate-real-asr.json",
+      "sha256": "90c4fa3fb07983828b96581e07022f7bacf421ecf4b27966a72da8570c533f67",
+      "started": "2026-09-04T05:46:34.149989+00:00",
+      "seconds": 9.781,
+      "exit_code": 0,
+      "output_sha256": "53c9369658d9ac56c6ca4cb85d78e5afb04aae67d71f35a2d30b75b7a7225b3f"
+    },
+    {
+      "label": "wip-voice",
+      "receipt": ".runtime/c2/wip-voice.json",
+      "sha256": "2a7c1d45f1d1141907a21f3ceb703b2b4406102b29c018c8d6adb668092d1d61",
+      "started": "2026-09-04T05:15:02.502013+00:00",
+      "seconds": 24.437,
+      "exit_code": 0,
+      "output_sha256": "04714a34f6fb418fb40868d3812d77cb637928a2378049d063e1e2d97865b37c"
+    },
+    {
+      "label": "wip-durable-voice",
+      "receipt": ".runtime/c2/wip-durable-voice.json",
+      "sha256": "e67fbd40196ede80b2c328c335676ad01a809483ccc27be63b46e7b86f858dea",
+      "started": "2026-09-04T05:18:20.416298+00:00",
+      "seconds": 93.625,
+      "exit_code": 1,
+      "output_sha256": "4201cef437e10b50de14095cffb176e7cd60c383f9001d4ee65226af337baa54"
+    },
+    {
+      "label": "wip-durable-voice-corrected",
+      "receipt": ".runtime/c2/wip-durable-voice-corrected.json",
+      "sha256": "805d3c6c9791bf0269e77b11c1bcd9a14f44b4a7569c7ecceb81b377409405c9",
+      "started": "2026-09-04T05:22:04.145875+00:00",
+      "seconds": 8.375,
+      "exit_code": 1,
+      "output_sha256": "1c8a13a53310c2555cd5b1ccfb7eddac237f52266ef37540459975977173043a"
+    },
+    {
+      "label": "wip-durable-voice-green",
+      "receipt": ".runtime/c2/wip-durable-voice-green.json",
+      "sha256": "ababc1e4ccbdb4a0c1596d7505afecaa3270f2d8fc75e7a56490faae176b6c01",
+      "started": "2026-09-04T05:23:02.485938+00:00",
+      "seconds": 7.5,
+      "exit_code": 0,
+      "output_sha256": "723b7fafe7f249487b2d7178eceb2479431a0c648e0d693f94956c632188d952"
+    },
+    {
+      "label": "checkpoint-impacted",
+      "receipt": ".runtime/c2/checkpoint-impacted.json",
+      "sha256": "34a7fb27552f82bdcf5d8b65c02115798e691ec77d1ced744e7ab71b5a23ae46",
+      "started": "2026-09-04T05:26:01.377181+00:00",
+      "seconds": 38.656,
+      "exit_code": 0,
+      "output_sha256": "3c273fdc06985176ec87b67515c588cac6ecef8f36e11d256f0d5e5855181a4b"
+    },
+    {
+      "label": "wip-parity",
+      "receipt": ".runtime/c2/wip-parity.json",
+      "sha256": "72f95d40a32e822e95ef939ae163f6f66b3be7e7fd1be252d383f6f0b358e089",
+      "started": "2026-09-04T05:31:38.123836+00:00",
+      "seconds": 8.14,
+      "exit_code": 0,
+      "output_sha256": "e6c83114bdf4c22be764119257f0a9d5874f40280ead9aeca7bdf1b72baf469e"
+    },
+    {
+      "label": "wip-disk-cancel-capacity",
+      "receipt": ".runtime/c2/wip-disk-cancel-capacity.json",
+      "sha256": "62a10a52ddb898d686bbddb0cd009d067828a468708d0082c692cfaa3236ea8a",
+      "started": "2026-09-04T05:45:01.638205+00:00",
+      "seconds": 16.985,
+      "exit_code": 0,
+      "output_sha256": "b12e5df3ae57d5e535207aab2df5659507c48ce94d10db4596b733f1fcb15208"
+    }
+  ],
+  "frozen_candidate_receipt": ".runtime/c2/final-evidence.json",
+  "independent_reviews": ".runtime/c2/reviews/",
+  "protected_entry_manifest_sha256": "5f69ab36544c65c66c6a984a0acc85ddb1ed9929c8404702e998c56bd0e30388",
+  "preflight_hard_crash_receipt_sha256": "53fe66b69966faaa1f09228bc0cb4b8bfb1a2c3721d75dd0d550e8c8d0a66364",
+  "preflight_capacity_receipt_sha256": "cdbd83b5a462be8c2a4363a38051ec348b6a8615121d86c4c71e57349e1187a4",
+  "benchmark_files": {
+    "BENCHMARK-MANIFEST.json": "c401e33e844c9f56e0fdc6d1f9610077c91f16f5adb4ea494874512652ab636b",
+    "BENCHMARK-RESULTS.json": "7c6fe2d6127c8bec2cc595865b18329d7d41f4e1cb988ca96e1e7a72b1f9aeb1"
+  },
+  "authorization": {
+    "owner_reply": "Разрешаю в указанных пределах",
+    "path": ".runtime/asr-qualification/gigaam-onnx",
+    "download_bytes": 932563674,
+    "disk_bytes_at_check": 1129922032,
+    "ram_limit_bytes": 4294967296,
+    "cpu_limit": 4,
+    "seconds_limit": 1800,
+    "seconds_used_pre_freeze": 165.76500000001397,
+    "api_cost_usd": 0,
+    "cloud_audio_calls": 0,
+    "production_changed": false
+  },
+  "current_reuse_gap_target": {
+    "current": "Faster-Whisper base local cpu/int8; C1 published, default-off",
+    "reuse": "existing SQLite queue/DPAPI/lease, trusted envelope, C1 compiler/CoreDecision, no-effect runtime",
+    "gap": "pre-ASR durable lifecycle + orphan between admission/enqueue; ASR unqualified",
+    "candidate": "durable voice stages and confirmed C1 path; ASR and strict native/retention criteria remain BLOCKED"
+  },
+  "publications": "C2 PERFORMED NO PUSH / PR / MERGE / TAG / DEPLOY / UNAUTHORIZED CLOUD AUDIO"
+}
