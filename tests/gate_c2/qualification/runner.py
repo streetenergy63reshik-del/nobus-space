@@ -47,7 +47,19 @@ def atomic(path, value):
 
 
 def read_json(path):
-    return json.loads(path.read_text(encoding='utf-8-sig'))
+    for attempt in range(21):
+        try:
+            return json.loads(path.read_text(encoding='utf-8-sig'))
+        except PermissionError as error:
+            # A Windows replacement can briefly exclude readers too. Do not
+            # substitute old data or retry malformed JSON/unrelated errors.
+            # CPython's CRT open reports a share conflict as EACCES without
+            # winerror; persistent ACL denial still fails after 200ms.
+            winerror=getattr(error,'winerror',None)
+            if attempt == 20 or not (winerror in (5,32) or
+                    (os.name=='nt' and winerror is None and error.errno==13)):
+                raise
+            time.sleep(.01)
 
 
 class BasicLimit(ct.Structure):
@@ -149,11 +161,16 @@ def fw_options(args):
     if len(calls)!=1 or len(constants)!=2: raise ValueError('CURRENT ASR configuration is not uniquely identified')
     source={}
     for option in calls[0].keywords:
+        if option.arg=='model_size':
+            if ast.unparse(option.value) != 'str(model_directory.resolve())':
+                raise ValueError('pinned local model factory changed')
+            source['model_size']='pinned-small-local-directory'
+            continue
         if option.arg=='download_root':
             if not isinstance(option.value,ast.Name) or option.value.id!='_VOICE_MODEL_ROOT': raise ValueError('CURRENT download root changed')
             continue
         source[option.arg]=constants[option.value.id] if isinstance(option.value,ast.Name) else ast.literal_eval(option.value)
-    expected={'model_size':'base','device':'cpu','compute_type':'int8','local_files_only':True,'language':'ru',
+    expected={'model_size':'pinned-small-local-directory','device':'cpu','compute_type':'int8','local_files_only':True,'language':'ru',
         'beam_size':8,'patience':1.2,'vad_filter':True,'condition_on_previous_text':True,
         'initial_prompt':constants['_VOICE_INITIAL_PROMPT'],'hotwords':constants['_VOICE_HOTWORDS']}
     if source!=expected: raise ValueError('CURRENT decoding configuration differs from frozen contract')
@@ -335,6 +352,7 @@ def supervisor(args):
     with args.output.open('x',encoding='utf-8') as stream: json.dump(initial,stream,ensure_ascii=False,allow_nan=False)
     api=kernel(); handle=None; process=None; budget=None; lease=None; started=None; timeout=args.timeout
     run_id=uuid4().hex; outcome='SUPERVISOR_FAILURE'; final_stats=None; child_exit=None; supervisor_error=None
+    supervisor_error_codes=None; stage='setup'
     try:
         if args.engine=='giga' or args.small_budget:
             import msvcrt
@@ -357,14 +375,16 @@ def supervisor(args):
         while process.poll() is None:
             if time.perf_counter()-started>=timeout-6:
                 outcome='EXECUTION_DEADLINE'; api.TerminateJobObject(handle,124); process.kill(); break
-            current=read_json(args.output)
+            stage='read_worker_receipt'; current=read_json(args.output); stage='monitor_worker'
             if 'first_transcript_completed_perf_counter' not in current and time.perf_counter()-started>=120:
                 outcome='COLD_DEADLINE'; api.TerminateJobObject(handle,124); process.kill(); break
             time.sleep(0.05)
         child_exit=process.wait(timeout=4)
         final_stats=job_stats(api,handle)
     except Exception as error:
+        outcome='SUPERVISOR_FAILURE'
         supervisor_error=type(error).__name__
+        supervisor_error_codes={'stage':stage,'errno':getattr(error,'errno',None),'winerror':getattr(error,'winerror',None)}
     finally:
         if handle:
             api.TerminateJobObject(handle,125)
@@ -374,6 +394,7 @@ def supervisor(args):
             api.CloseHandle(handle)
         if process is not None and process.poll() is None:
             process.kill(); process.wait(timeout=4)
+        if process is not None: child_exit=process.returncode
         elapsed=time.perf_counter()-started if started is not None else 0.0
         if budget is not None:
             entry=budget['runs'][-1]
@@ -398,6 +419,7 @@ def supervisor(args):
         cold_seconds=first-started if first is not None and started is not None else None
         result['supervisor']={'outcome':outcome,'child_exit_code':child_exit,'elapsed_seconds':elapsed,
             'error':supervisor_error,
+            'error_codes':supervisor_error_codes,
             'reservation_seconds':timeout,'process_cold_seconds':cold_seconds,'job_final_stats':final_stats,
             'process_cold_boundary':'before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled',
             'controller_not_in_job':'stdlib supervisor and venv redirector have no model/audio inference allocation',

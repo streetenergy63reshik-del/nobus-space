@@ -1019,12 +1019,6 @@ class Gate5A4Runtime(DurableFakeRuntime):
             raise RuntimeError("durable admission is not recoverable")
         self._policy_store.register_contract(contract, trusted)
         projection = snapshot.projection
-        if projection.status is TaskStatus.PENDING:
-            restored = await self._state.create_from_contract(contract)
-            if restored.contract_digest != projection.contract_digest:
-                raise RuntimeError("durable admission recovery failed")
-            self._revisions[contract.task_id] = snapshot.revision
-            return True
         payload = {
             "acceptance_criteria": list(contract.acceptance_criteria),
             "allowed_paths": list(contract.allowed_paths),
@@ -1046,9 +1040,12 @@ class Gate5A4Runtime(DurableFakeRuntime):
             risk=contract.risk,
             status=TaskStatus.PENDING,
             created_at=projection.created_at,
-            updated_at=self._now(),
+            updated_at=projection.updated_at if projection.status is TaskStatus.PENDING else self._now(),
         )
         task = await self._state.restore_interrupted(task)
+        if projection.status is TaskStatus.PENDING:
+            self._revisions[contract.task_id] = snapshot.revision
+            return True
         started = self._store.read_latest_event(
             contract.tenant_id, contract.task_id
         )

@@ -1,0 +1,57 @@
+{
+  "version": "c2-confirmed-voice-3.0.0",
+  "owner_decision_date": "2026-09-05",
+  "status": "PRE_HOLDOUT",
+  "scope": "confirmed voice input; raw transcript has no compiler, task or effect authority",
+  "supersedes_task_conditions_only": ["hard exact critical-token zero", "additional hard aggregate raw RTF p95 <= 0.5"],
+  "historical_results": "Old protocol FAILs remain FAIL; new assessment is explicit and requires untouched holdout.",
+  "lexical_normalizer": "Existing value-preserving scorer normalization unchanged; no new aliases, fuzzy or reference-aware substitutions.",
+  "semantic_correction_required": {
+    "definition": "True when the raw transcript needs a meaning change to match the spoken goal, operation, object, role, constraint, condition, negation, cancellation, value or entity. False only when every applicable semantic fact is preserved. Cosmetic spelling, inflection or clear stylistic synonymy alone does not require semantic correction. Lost facts must never be guessed back.",
+    "values": [true, false, "unresolved"],
+    "unresolved_policy": "Not PASS; require independent adjudication with exact reference/hypothesis and reason before candidate selection or acceptance.",
+    "dimensions": ["goal_deliverable", "roles_scope", "capability_intent", "negation_cancel_correction", "condition", "values_entities_terms", "constraints_order"],
+    "dimension_values": [true, false, "N/A"],
+    "raw_exact": "All applicable dimensions true; N/A does not increase score. A false dimension means correction required. No null or unresolved can support PASS.",
+    "review": "Independent of compiler and lexical scorer; engine-blind observations with source/hypothesis hashes; publish absolute counts, error types and disagreements.",
+    "selection_non_regression": "Selected correction count <= matched CURRENT count on dev16 AND separately holdout16.",
+    "repeat_policy": "Iteration0 is the language headline. Every distinct repeated hypothesis is reviewed; new repeat errors remain visible and may not hide behind iteration0. Correction non-regression also checked at each matched repeat."
+  },
+  "hard_criteria": {
+    "wer_all32_max": 0.15,
+    "cer_all32_max": 0.08,
+    "wer_holdout16_max": 0.15,
+    "cer_holdout16_max": 0.08,
+    "missing_or_error_or_truncated_observations": 0,
+    "accepted_semantic_parity": 1.0,
+    "wrong_accepted_decisions": 0,
+    "primary_transform_pair_without_semantic_correction": true,
+    "warm_per_file_seconds": "max(5, 0.5 * audio_duration_seconds)",
+    "warm_measurement_boundary": "bytes through IPC/decode/resample/ASR to usable transcript; excludes human confirmation wait",
+    "cold_max_seconds": 120,
+    "logical_cpus": 4,
+    "job_memory_limit_bytes": 4294967296,
+    "native_slots": 1,
+    "concurrent_requests": 2,
+    "warm_passes": 3,
+    "dev_cases": 16,
+    "untouched_holdout_cases": 16
+  },
+  "always_report": ["legacy and normalized WER/CER", "exact critical-token mismatch counts", "raw semantic exact and correction counts/types", "latency p50/p95 seconds", "raw RTF p95", "every audio duration and latency", "long samples", "cold", "concurrency wait/service/end-to-end", "resource/cleanup", "raw versus confirmed results"],
+  "replace_rule": {
+    "substantial_gain": "raw semantic exactness +2 percentage points OR warm latency p95 -30% versus matched CURRENT",
+    "max_wer_or_cer_regression_percentage_points": 1,
+    "requirements": "All hard criteria and correction non-regression; no new uncovered product/security risk; actual integration, license, security and rollback checks."
+  },
+  "keep_rule": "CURRENT passes every mandatory criterion and no admissible measured challenger provides substantial gain.",
+  "holdout_rule": "Select and freeze one measured variant before opening holdout. Never tune configuration, gold, normalizer or rubric after holdout hypotheses; preserve failures.",
+  "resource_budgets": {
+    "small_total_seconds": 1200,
+    "small_previously_charged_seconds": 129.1515492000035,
+    "giga_total_seconds": 1800,
+    "giga_previously_charged_seconds": 194.91697699996038,
+    "compiler_total_turns": 24,
+    "compiler_continuous_seconds_from_first_turn": 1200,
+    "policy": "Read existing ledgers before each run; never reset or replace consumed time. No new downloads, dependencies, cloud ASR, purchases or live changes."
+  }
+}

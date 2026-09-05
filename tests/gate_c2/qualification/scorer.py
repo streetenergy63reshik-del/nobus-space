@@ -237,18 +237,18 @@ def main(args):
         key=(raw['id'],binding['hypothesis_sha256'])
         if key not in tasks:
             tasks[key]={**binding,'iterations':[],'reference':case['text'],'hypothesis':hypothesis,'gold':case['gold'],
-                'dimensions':{x:None for x in DIMENSIONS},'semantic_exact_raw':None,'critical_semantic_failure':None,
+                'dimensions':{x:None for x in DIMENSIONS},'semantic_exact_raw':None,'semantic_correction_required':None,'error_types':[],'critical_semantic_failure':None,
                 'reason':None,'reviewer_id':None,'note':'Complete independently of compiler; null is unresolved, not PASS.'}
         tasks[key]['iterations'].append(iteration)
     expected={(case,i) for case in cases for i in range(args.passes)}
     missing=sorted(expected-seen)
-    output={'version':'c2-lexical-score-2.0.0','input_sha256':sha_bytes(args.hypotheses.read_bytes()),
+    output={'version':'c2-lexical-score-3.0.0','protocol_sha256':sha_bytes((HERE/'PROTOCOL.json').read_bytes()),'input_sha256':sha_bytes(args.hypotheses.read_bytes()),
       'corpus_gold_sha256':sha_bytes(args.corpus.read_bytes()),'scorer_sha256':sha_bytes(Path(__file__).read_bytes()),
       'complete':not missing,'missing':[{'id':id,'iteration':i} for id,i in missing],
       'rows':rows,'summary':summarize(rows),'by_split':{s:summarize([r for r in rows if r['split']==s]) for s in ('dev','holdout')}}
     args.output.mkdir(parents=True,exist_ok=False)
     (args.output/'scores.json').write_text(json.dumps(output,ensure_ascii=False,indent=2),encoding='utf-8')
-    worksheet={'version':'c2-semantic-review-2.0.0','corpus_gold_sha256':output['corpus_gold_sha256'],'input_sha256':output['input_sha256'],
+    worksheet={'version':'c2-semantic-review-3.0.0','protocol_sha256':output['protocol_sha256'],'corpus_gold_sha256':output['corpus_gold_sha256'],'input_sha256':output['input_sha256'],
        'engine_blind_id':args.engine_id,'tasks':list(tasks.values()),'policy':'Synthetic isolated evidence only; no model/compiler authority inference.'}
     (args.output/'semantic-review.json').write_text(json.dumps(worksheet,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps({'complete':not missing,'rows':len(rows),'review_tasks':len(tasks),'summary':output['summary']},ensure_ascii=False))

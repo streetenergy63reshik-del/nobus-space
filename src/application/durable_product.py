@@ -919,10 +919,10 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 or voice_id(job.message) != job.prepared.contract.task_id):
                 raise RuntimeError('deferred voice admission mismatch')
             instruction = job.prepared.contract.instruction
-            if not instruction.startswith(_SEMANTIC_NO_EFFECT_PROFILE):
+            if (job.prepared.contract.quality_profile != 'gate-c1-semantic-no-effect@1'
+                or job.prepared.contract.permissions != ('model.inference',)):
                 raise RuntimeError('deferred voice profile mismatch')
             await self._product_runtime.admit_prepared(job.prepared, recovery_envelope)
-            instruction = instruction[len(_SEMANTIC_NO_EFFECT_PROFILE):]
             self._product_runtime.bind_task_display_text(job.prepared, instruction[:80], display_instruction=instruction)
         recover = getattr(self._product_runtime, "recover_prepared", None)
         if callable(recover) and not await recover(
