@@ -18,7 +18,7 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
 evidence сохранены, acceptance всего MVP1 переоткрыта. C1 принят и опубликован
 через [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11),
-но остаётся default-off / NOT DEPLOYED; C2 — локальный BLOCKED-кандидат,
+но остаётся default-off / NOT DEPLOYED; C2 — локальный BLOCKED-кандидат: ASR qualification PASS, B02 требует дополнительной разрешённой сессии,
 см. [C2 acceptance](gates/gate-c2-voice-parity/ACCEPTANCE.md). Historical READY claim
 superseded на protected `main` C0-публикацией
 [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @
@@ -77,7 +77,7 @@ pointer, короткий status, decisions и freshness.
     опубликованный C1, доказательства и условия старта C2.
 13. [Текущий C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
     [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — локальный
-    checkpoint, оставшиеся B01/B02 и условия собственной приёмки C2.
+    checkpoint, результаты ASR, оставшийся B02 и условия собственной приёмки C2.
 
 ## Сохранённые контракты
 

@@ -1,3 +1,5 @@
+> Состояние5 сентября2026: протокол3 и выбранный small завершили конечную квалификацию. Ниже сохранено описание подготовки4 сентября; оно не разрешает новые runs/settings и не описывает текущий расход. Действующие результаты и ограничения — [C2 HANDOFF](../../../docs/gates/gate-c2-voice-parity/HANDOFF.md), [агрегат](../../../docs/gates/gate-c2-voice-parity/CONFIRMED-QUALIFICATION.json). Для offline пересчёта сохранённых receipts: `python tests/gate_c2/qualification/aggregate_confirmed.py --repo . --evidence .runtime/c2/closure/confirmed-protocol --output .runtime/c2/closure/recomputed-confirmed.json` (новый output, ASR/provider0). Runtime factory закрепляет small и проверяет5SHA; evaluator использует те же decoding options с явным local model path. Старые hashes и FAIL не заменяются.
+
 # B01: matched runner
 
 Продолжение small: `--engine fw --small-budget` использует отдельно разрешённую

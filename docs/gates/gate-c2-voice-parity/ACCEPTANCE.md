@@ -1,4 +1,35 @@
-# Gate C2 — локальный кандидат, BLOCKED
+# Gate C2 — уточнённая приёмка, WIP / NOT ACCEPTED
+
+**5 сентября 2026:** владелец принял подтверждаемый голосовой ввод и конечную программу локальной квалификации. Entry checkpoint `3ef14b32c1c602739db3b4d32016f5182b10567b`, tree `e2432af5844955d4724eaedcfa97a6b77262a9fa`; product-source на входе был `96487d176cb3f09b543cadbc0e4b91c73308b8b4`, теперь `28222923d2c2560504d1237c8e8da6df442c6150`. ASR qualification завершена; B02 выявил исправленные дефекты, но ready answer пока не получен.
+
+Действующий контракт — [PROTOCOL.json](../../../tests/gate_c2/qualification/PROTOCOL.json) и [PLAN](../../../tests/gate_c2/qualification/PLAN.md). Буквальные critical-token mismatches остаются диагностикой; дополнительный общий raw RTFp95≤0.5 перестаёт блокировать выполненный per-file интервал `max(5s,0.5×duration)`. Это явная смена двух task-level условий после открытых dev экспериментов, а не исправление старых FAIL. Нормализация, gold, ADR0023, WER/CER, подтверждение и полномочия Core сохранены.
+
+До holdout зафиксировано `semantic_correction_required`: raw transcript требует смысловой правки для сохранения произнесённых цели, операции, объекта, роли, отрицания/отмены, условия, значения/сущности или ограничения. Косметика не считается такой правкой; утраченные факты не угадываются. Семь независимых измерений, абсолютные counts и ошибки публикуются раздельно от lexical diagnostics. Выбранный вариант не увеличивает correction burden относительно matched CURRENT на dev и отдельно holdout. WER≤15%/CER≤8% на all32 и отдельно holdout16 обязательны.
+
+Перед compiler/task/effect каждый voice даёт сохранённый preview и требует подтверждения либо явной коррекции. После этого применяются общий C1 compiler/Core и production result pipeline. В проверенной матрице нужны100% accepted semantic parity,0 неверных принятых решений и хотя бы одна главная transform-пара text/voice до пригодного ответа без смысловой коррекции. Cold≤120s,4CPU/4GiB,concurrency2/один native slot,три warm passes,retention/recovery и правило substantial gain сохраняются. B02 проводится независимо от B01 в ранее разрешённых24turn/20min.
+
+| Причина | Слой исправления | Проверка |
+|---|---|---|
+| IMPLEMENTATION_DEFECT: прежние native process escape/idle timer и TTL/late-write/backup | Уже исправлены в продуктовых bytes96487d; новая переработка без дефекта не нужна | Сохранённые focused14/27 и subset48; относящаяся финальная регрессия |
+| VERIFIER_DEFECT / несоответствие критерия продукту: inflection как authority error, дополнительный RTF для коротких фраз | Явное решение владельца, протокол3; прежние FAIL неизменны | Независимые semantic facts, per-file latency и новый untouched holdout |
+| MODEL_LIMITATION: утраченные цель, объект или имя | Измерение raw errors и correction burden; выбор одного dev-кандидата | Семь измерений, WER/CER, non-regression и B02 correction-path |
+| ENVIRONMENT: прежний SDK sandbox OS5 и license/native provenance gaps | Штатный авторизованный provider preflight; проверка существующих installed bytes/notices | Реальные ChatGPT/endpoint, cleanup, ограничения бюджета; источники лицензий |
+| STALE_CONTEXT: narrative96487d вместо latest3ef14b32, B02 ошибочно ожидал B01/Chirp3 | Текущие Git-указатели и независимая программа B02 | HEAD/tree, прежние receipts/ledger, актуальные индексы |
+
+Текущее состояние: B01 quality/resource/integration PASS для локального кандидата; конечный REPLACE зависит от B02 и итоговой приёмки. B02 BLOCKED: первое окно истекло после8turn, ready0; B03/B04 LOCAL FIX / regression verified. C2 не PASS и не опубликован. Live/C1/C3 не затрагиваются. Публикационный manifest готовится после собственного итогового PASS; точное разрешение push/PR/merge ещё не дано.
+
+
+Продуктовый checkpoint продолжения `28222923d2c2560504d1237c8e8da6df442c6150` / tree `b24ae81b91786aca942c89a8d54f50279de3cef8`.
+Полная сводка, действующий расход и ограничения — [HANDOFF](HANDOFF.md),
+[EVIDENCE](EVIDENCE.json), [квалификация](CONFIRMED-QUALIFICATION.json),
+[дополнительный B02](PRODUCT-TRIAL-PLAN.md) и [лицензии](ASR-PROVENANCE.md).
+Исторический source96487d и входной HEAD3ef14b ниже не являются текущим продуктовым кодом.
+
+---
+
+## История checkpoint4 сентября — старые критерии и FAIL сохранены
+
+### Локальный кандидат4 сентября, BLOCKED
 
 Дата: 4 сентября 2026. C2 не принят и не опубликован. C1 остаётся
 ACCEPTED / PUBLISHED / NOT DEPLOYED; MVP1 не READY, C3–C6 и MVP2 HOLD.

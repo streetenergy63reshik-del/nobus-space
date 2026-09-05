@@ -1,7 +1,7 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
-**Период:** 17 июля — 4 сентября 2026 года
+**Период:** 17 июля — 5 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
@@ -10,8 +10,8 @@
 
 Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
-Последний локальный продуктовый checkpoint C2 — `96487d176cb3f09b543cadbc0e4b91c73308b8b4`,
-tree `7da1e466606dec9ef7ab7bf375a30ed002b9f728`, **BLOCKED / NOT PUBLISHED**.
+Последний локальный продуктовый checkpoint C2 — `28222923d2c2560504d1237c8e8da6df442c6150`,
+tree `b24ae81b91786aca942c89a8d54f50279de3cef8`, **BLOCKED / NOT PUBLISHED**.
 Действующие привязки и отдельная история прежних кандидатов —
 [C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
 
@@ -27,7 +27,7 @@ tree `7da1e466606dec9ef7ab7bf375a30ed002b9f728`, **BLOCKED / NOT PUBLISHED**.
 | C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; exact text/voice incident и corpus `25/25`, keyword veto не участвует в opt-in semantic path |
 | C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
 | C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **LOCAL FIX / NOT ACCEPTED**; durable intake и deferred admission; продолжение B03/B04 focused14/27PASS. Полный B02 и итоговые C2 проверки ещё впереди |
-| C0-F04 | Faster-Whisper не квалифицирован на принятом русском корпусе; замена provider не обоснована | CURRENT/GigaAM critical5/4, raw semantics13/16 и15/16; три FW config FAIL. Small beam8: WER6,64%, critical2, RTFp95 0,792; разрешённый beam1: WER8,85%, critical2, RTFp95 0,581>0,5 | C2 | **ASR DECISION BLOCKED**; семь вариантов двух семейств hard FAIL, holdout не открыт. Small пробы остановлены; независимая Chirp3 гипотеза требует решения и конкретного cloud scope |
+| C0-F04 | ASR нуждался в независимой квалификации | Старые семь hard FAIL сохранены. Новый owner protocol: small WER5,71%/CER1,11% all32, holdout5,09%/1,00%; correction3/16+5/16 противCURRENT7/16+10/16;3passes/resources PASS | C2 | **LOCAL QUALIFICATION PASS / C2 NOT ACCEPTED**; pinned factory и rollback пройдены, конечный REPLACE ждёт B02 и итоговые reviews; binary distribution вопросы отдельно |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
 | C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **CONFIRMED CURRENT BLOCKER**; restart/reclaim/dead-letter/outbox reconciliation и healthy readback PASS |
@@ -62,7 +62,7 @@ Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован чер�
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
 C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md).
-C2-B01/B02: качество/полный продуктовый smoke не доказаны; C2-B03/B04:
+C2-B01: local qualification/integration PASS; C2-B02: старое окно8turn истекло, ready0, новые17+3turn/20min ждут разрешения; C2-B03/B04:
 native lifetime и retention исправлены локально и прошли focused14/27PASS;
 итоговые проверки цельного C2 ещё впереди. C3–C6 и MVP2 HOLD.
 
@@ -156,3 +156,18 @@ CURRENT claim вперёд; historical evidence не переписываетс�
 |---|---|---|---|---|
 | Persistent SDK generation recovery | После временного сбоя повтор выполнялся на том же повреждённом app-server/client; отмена или параллельное закрытие могли оставить orphan либо оборвать соседнюю задачу | Generation leases/refcounts, client-bound thread cache, invalidation только повреждённого поколения, общий shielded close-task с bounded drain и повторной попыткой | SDK regressions 24; полный L1 1186; независимые L2/L3 ACCEPT; длительный web-smoke 496,11 с | CLOSED |
 | Google Drive scoped natural lookup | Точное имя могло совпасть вне указанной папки; whole-path lookup мог быть затенён literal folder; `Home_edit` не совпадал с `HomeEdit`; fallback расходовал лишние страницы | Segment-first path resolution, hard folder boundary, exact adjacent-token brand alias, dynamic budget не более 4 list-запросов, ambiguity fail-closed | Drive regressions 49; exact product smoke PASS 9,36 с; независимые L2/L3 ACCEPT | CLOSED |
+
+
+## Дефекты, найденные реальным C2 B02,5 сентября2026
+
+| Дефект | Исправление | Проверка |
+|---|---|---|
+| Родительный падеж границы материала не выделял inert tail | Закрытые формы материал/текст, без fuzzy authority |324 targeted PASS |
+| Missing-material guard маскировал supported UNKNOWN | Исключение только для отсутствующего trusted fact, известные facts сохраняют guard |324 targeted PASS |
+| Deferred voice restore требовал prefix, удаляемый production contract | Проверяется authenticated quality_profile и точный набор permissions |48 voice PASS |
+| PENDING restart менял immutable timestamps | Восстанавливается исходная projection с теми же timestamps |Recovery regression PASS |
+| Supervisor не выдерживал Windows receipt-read conflict | Bounded EACCES/share retry, безопасная диагностика и cleanup |Actual Windows reproduction;24 tests+25subtests PASS;failed pass retained |
+
+Первая полная регрессия нового source:1887PASS/2skip/1historical deselect и1FAIL
+устаревшей startup fixture; после исправления fixture runner subset22PASS.
+Это собственные C2 проверки, а не повторная приёмка C1. B02 ready result пока отсутствует.

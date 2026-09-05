@@ -1,3 +1,31 @@
+# C2: ASR, действующее решение5 сентября2026
+
+Выбран pinned small beam8. Независимые dev/holdout semantics и три warm-прохода
+прошли принятую редакцию критериев. Это кандидат REPLACE после B02 и итоговой
+приёмки, а не безошибочное ASR и не разрешение binary rollout. Основные значения,
+ограничения корпуса, resource/latency и исправление verifier перечислены в
+[HANDOFF](HANDOFF.md); все значения — [CONFIRMED-QUALIFICATION.json](CONFIRMED-QUALIFICATION.json).
+
+До holdout был зафиксирован выбор из четырёх измеренных dev variants: CURRENT7/16,
+GigaAM1/16,small beam8 3/16,small beam1 3/16 semantic corrections. GigaAM лучше
+по raw semantics и скорости; small выбран за минимальный dev WER6,64%, точную
+основную transform-пару и интеграцию в уже ограниченный FW runtime без новых
+зависимостей. Это явный компромисс, не заявление «small лучший по всем метрикам».
+Выбор, rubric и decoder не подстраивались под holdout. Его8/32 исправляемых raw
+примеров не получают credit за пользовательскую коррекцию.
+
+[ASR-PROVENANCE](ASR-PROVENANCE.md) закрывает фактические расхождения model cards,
+loader и FFmpeg build label; whole-stack licence/CVE clearance не заявляется.
+Код публикации не включает модели, wheels, DLL или готовый binary runtime.
+Суммарный small budget и новый B02 permission gap отражаются в EVIDENCE; GigaAM
+остаётся194,916977s из1800s. Cloud ASR не вызывался. Chirp3 — запасная гипотеза,
+не текущий prerequisite и не поручение создать Google Cloud project.
+
+## История до нового решения владельца:4 сентября2026
+
+Ниже сохранён прежний текст как история; его «текущее/следующее/не открыт» описывает
+только тот checkpoint. Семь прежних hard FAIL не изменены.
+
 # C2: исследование ASR
 
 Дата чтения официальных источников: 4 сентября 2026. Cloud ASR не вызывался.

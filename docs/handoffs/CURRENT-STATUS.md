@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 4 сентября 2026 года
+**Актуально на:** 5 сентября 2026 года
 **Текущий продуктовый verdict:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
 **Локальный C2:** `DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
@@ -22,23 +22,28 @@ C1-B01/C1-B02; прежний PASS и reviews отменены. Replacement 8e5e
 product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree
 `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`. Он совпадает с tree проверенного
 candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
-активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; durable intake и
-парные проверки реализованы в отдельном worktree. В продолжении исправлены
-native lifetime/retention: независимые focused14/27PASS, root subset48PASS.
-Matched dev CURRENT/GigaAM и три FW config не прошли ASR hard thresholds.
-Позже владелец разрешил small: пять pinned assets скачаны, один dev завершён
-с WER6,64%, critical2 и raw RTFp95 0,792>0,5. Эксперимент остановлен.
-Отдельно разрешённый beam8→1 дал WER8,85%, critical2, raw RTFp95 0,581>0,5:
-ещё один hard FAIL. Small суммарно129,151549s из1200s;
-GigaAM194,916977s из1800s. Семь вариантов не прошли; holdout не открыт.
-Следующая независимая гипотеза Chirp3 пока не разрешена; для подготовки
-нужны решение владельца об облачном сравнении и существующий Google Cloud project.
-Compiler24turn/20min уже разрешён, пока0turn; полный результат и L1–L3 впереди.
-Последний продуктовый checkpoint C2:
-`96487d176cb3f09b543cadbc0e4b91c73308b8b4`, tree
-`7da1e466606dec9ef7ab7bf375a30ed002b9f728`. Сверка продолжения подтвердила
-десять хешей его receipts; история b090bc48 отделена в
-[текущем индексе доказательств C2](../gates/gate-c2-voice-parity/EVIDENCE.json).
+активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED: ASR qualification прошла,
+полный ready result B02 и итоговая приёмка ещё не доказаны. По принятому владельцем
+протоколу5 сентября выбран pinned small beam8: WER5,71%/CER1,11% all32 и
+5,09%/1,00% holdout16; смысловые правки3/16 dev и5/16 holdout против7/16 и10/16
+у CURRENT. Три warm-прохода, cold, concurrency2,4CPU/4GiB и per-file время пройдены.
+Старые hard FAIL и один исправленный сбой verifier сохранены отдельно.
+
+Первая B02 session израсходовала8compiler turns, downstream0/ready0;20min истекли.
+Исправлены четыре локальных дефекта material boundary, UNKNOWN и восстановления
+подтверждённого/PENDING контракта. Подготовлена конечная дополнительная session
+17+3 turns /20min; точного разрешения на неё ещё нет. Новые5preview и cancel/replay
+прошли без provider calls. Small суммарно775,020787/1200s, GigaAM194,916977/1800s.
+Локальная загрузка small→base rollback→small прошла; runtime binary distribution
+имеет отдельные незакрытые licence/native вопросы. Live и C3 не менялись.
+
+Актуальный product-source revision C2:
+`28222923d2c2560504d1237c8e8da6df442c6150`, tree
+`b24ae81b91786aca942c89a8d54f50279de3cef8`. Входной checkpoint3ef14b32 сохранён;
+документационные commits после product source определяют текущий worktree HEAD,
+проверяемый через `git rev-parse HEAD` и отдельный confirmed-checkpoint receipt.
+Точная текущая проекция и старые evidence разделены в
+[индексе доказательств C2](../gates/gate-c2-voice-parity/EVIDENCE.json).
 См. [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md)
 и [handoff](../gates/gate-c2-voice-parity/HANDOFF.md). Релиз `v1.0.1` остаётся
 историческим опубликованным Git-фактом; до C2–C6 и новой owner acceptance
