@@ -15,12 +15,14 @@ def boundary(path, api, handler):
 
 @pytest.mark.parametrize('unknown,seconds,name', [
     (True,600,'unknown-trial-20260906'),(False,1200,'closure-trial-20260906'),
+    (False,1200,'material-trial-20260906'),
 ])
 def test_executor_bounds_replay_by_original_trial_clock(tmp_path,monkeypatch,unknown,seconds,name):
     folder=tmp_path/'.runtime/c2/closure/product-plan'/name;folder.mkdir(parents=True)
     monkeypatch.setattr(runner,'ROOT',tmp_path)
     monkeypatch.setattr(smoke.time,'time',lambda:1000)
-    args=SimpleNamespace(unknown_authorized_trial=unknown,closure_authorized_trial=not unknown,phase='replay')
+    args=SimpleNamespace(unknown_authorized_trial=unknown,closure_authorized_trial=not unknown,
+                         closure_trial_name=name,phase='replay')
     budget=smoke.Budget(folder,max_turns=24,max_seconds=seconds)
     assert runner.trial_timeout(args)==150
     budget.reserve('synthetic','compiler')
@@ -98,22 +100,24 @@ async def test_pending_unknown_authorization_rejected_before_ledger_or_provider(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('trial_name,manifest',tuple(smoke.CLOSURE_TRIALS.items()))
 @pytest.mark.parametrize('scenario,status,error', [
     ('transform_text','PENDING_AUTHORIZATION','closure_provider_trial_not_authorized'),
     ('conditional_text','AUTHORIZED','scenario_outside_closure_authorization'),
     ('transform_text','AUTHORIZED','closure_authorized_source_changed'),
 ])
-async def test_closure_trial_rejects_pending_or_foreign_scope_before_provider(tmp_path,monkeypatch,scenario,status,error):
+async def test_closure_trial_rejects_pending_or_foreign_scope_before_provider(tmp_path,monkeypatch,scenario,status,error,trial_name,manifest):
     folder=tmp_path/'plan';folder.mkdir()
-    (folder/'CLOSURE-TRIAL.json').write_text(json.dumps({'status':status,'max_turns':24,'continuous_seconds':1200}))
+    (folder/manifest).write_text(json.dumps({'status':status,'max_turns':24,'continuous_seconds':1200}))
     monkeypatch.setattr(smoke,'ROOT',tmp_path)
     monkeypatch.setattr(smoke,'FOLDER',folder)
     monkeypatch.setattr(smoke,'source_binding',lambda _model:{})
     args=SimpleNamespace(run=tmp_path/'.runtime/c2/closure/guard',scenario=scenario,model=tmp_path,
-                         unknown_authorized_trial=False,closure_authorized_trial=True)
+                         unknown_authorized_trial=False,closure_authorized_trial=True,closure_trial_name=trial_name)
     with pytest.raises(RuntimeError,match=error):
         await smoke.run(args)
     assert not (folder/'closure-trial-20260906').exists()
+    assert not (folder/'material-trial-20260906').exists()
     assert not (folder/'budget.sqlite3').exists()
 
 

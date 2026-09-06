@@ -27,6 +27,8 @@ import wave
 ROOT = Path(__file__).resolve().parents[2]
 FOLDER = ROOT / '.runtime/c2/closure/product-plan'
 FIXTURES = ROOT / 'tests/gate_c2/PRODUCT-FIXTURES.json'
+CLOSURE_TRIALS = {'closure-trial-20260906':'CLOSURE-TRIAL.json',
+                  'material-trial-20260906':'MATERIAL-TRIAL.json'}
 sys.path.insert(0, str(ROOT))
 from codex_cli_bin import bundled_codex_path
 from openai_codex import AsyncCodex
@@ -381,12 +383,15 @@ async def run(args):
                                  'conditional_supported_unknown_text','conditional_supported_unknown_voice',
                                  'negation_text','negation_voice','cancel_voice'}:
             raise RuntimeError('scenario_outside_closure_authorization')
-        authorization = json.loads((FOLDER/'CLOSURE-TRIAL.json').read_text('utf-8'))
+        trial_name = getattr(args, 'closure_trial_name', 'closure-trial-20260906')
+        if trial_name not in CLOSURE_TRIALS:
+            raise RuntimeError('unknown_closure_trial')
+        authorization = json.loads((FOLDER/CLOSURE_TRIALS[trial_name]).read_text('utf-8'))
         if authorization.get('status')!='AUTHORIZED' or authorization.get('max_turns')!=24 or authorization.get('continuous_seconds')!=1200:
             raise RuntimeError('closure_provider_trial_not_authorized')
         if authorization.get('binding') != binding:
             raise RuntimeError('closure_authorized_source_changed')
-        budget_folder = FOLDER/'closure-trial-20260906'
+        budget_folder = FOLDER/trial_name
         budget_folder.mkdir(exist_ok=True)
     if args.unknown_authorized_trial:
         if args.scenario not in {'conditional_supported_unknown_text','conditional_supported_unknown_voice'}:
@@ -585,6 +590,8 @@ def main():
     trial = parser.add_mutually_exclusive_group()
     trial.add_argument('--unknown-authorized-trial',action='store_true')
     trial.add_argument('--closure-authorized-trial',action='store_true')
+    parser.add_argument('--closure-trial-name',choices=tuple(CLOSURE_TRIALS),
+                        default='closure-trial-20260906')
     args=parser.parse_args()
     try: asyncio.run(run(args))
     except BaseException as error:
