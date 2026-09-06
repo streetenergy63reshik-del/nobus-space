@@ -2,7 +2,7 @@
 
 Each invocation is one processing phase. Reopening the same --run/--scenario
 in the next process exercises durable restart without manufacturing state.
-Provider phases require the explicitly authorized UNKNOWN trial (8 turns / 600 seconds).
+Provider phases require an exact authorized trial; historical ledgers are never reset.
 Zero-provider preparation uses the historical expired ledger without inference.
 """
 from __future__ import annotations
@@ -131,6 +131,10 @@ class GuardedThread:
         kind = 'compiler' if 'operations' in schema.get('properties', {}) else 'downstream'
         n = self.budget.reserve(self.scenario, kind)
         try:
+            if kind == 'compiler':
+                write(self.folder / f'model-input-{n:02d}.json', {
+                    'n':n, 'prompt':json.loads(args[0]), 'schema_sha256':hashlib.sha256(
+                        json.dumps(schema,ensure_ascii=False,sort_keys=True).encode('utf-8')).hexdigest()})
             real = await self.real.turn(*args, **kwargs)
         except BaseException as error:
             self.budget.finish(n, type(error).__name__)
@@ -369,6 +373,21 @@ async def run(args):
     budget_folder = FOLDER
     max_turns = 24
     max_seconds = 1200
+    closure_trial = getattr(args, 'closure_authorized_trial', False)
+    if closure_trial and args.unknown_authorized_trial:
+        raise RuntimeError('conflicting_trial_authorizations')
+    if closure_trial:
+        if args.scenario not in {'transform_text','transform_voice','transform_correction_voice',
+                                 'conditional_supported_unknown_text','conditional_supported_unknown_voice',
+                                 'negation_text','negation_voice','cancel_voice'}:
+            raise RuntimeError('scenario_outside_closure_authorization')
+        authorization = json.loads((FOLDER/'CLOSURE-TRIAL.json').read_text('utf-8'))
+        if authorization.get('status')!='AUTHORIZED' or authorization.get('max_turns')!=24 or authorization.get('continuous_seconds')!=1200:
+            raise RuntimeError('closure_provider_trial_not_authorized')
+        if authorization.get('binding') != binding:
+            raise RuntimeError('closure_authorized_source_changed')
+        budget_folder = FOLDER/'closure-trial-20260906'
+        budget_folder.mkdir(exist_ok=True)
     if args.unknown_authorized_trial:
         if args.scenario not in {'conditional_supported_unknown_text','conditional_supported_unknown_voice'}:
             raise RuntimeError('scenario_outside_unknown_authorization')
@@ -396,7 +415,7 @@ async def run(args):
         'sdk_version':importlib.metadata.version('openai-codex'),'model_calls':0})
     if status != 'CHATGPT': raise RuntimeError('cli_not_chatgpt')
     provider_phase = args.phase in {'confirm','drain'} or (args.phase=='admit' and modality=='text')
-    if provider_phase and not args.unknown_authorized_trial: raise RuntimeError('unknown_provider_trial_not_authorized')
+    if provider_phase and not (args.unknown_authorized_trial or closure_trial): raise RuntimeError('provider_trial_not_authorized')
     if provider_phase and budget.snapshot()['remaining_seconds'] <= 0: raise RuntimeError('authorization_time_exhausted')
     state = SQLiteTelegramState(folder/'telegram.sqlite3')
     actions = DurableTelegramActionStore(state)
@@ -406,6 +425,11 @@ async def run(args):
     audio = args.audio.resolve() if args.audio else None
     if args.unknown_authorized_trial and modality=='voice' and audio != (ROOT/'.runtime/c2/synthetic-audio/conditional.wav').resolve():
         raise RuntimeError('audio_outside_unknown_authorization')
+    if closure_trial and modality=='voice':
+        audio_name = {'transform':'transform','transform_correction':'transform','negation':'negation',
+                      'conditional_supported_unknown':'conditional','cancel':'direct'}[fixture_id]
+        if audio != (ROOT/f'.runtime/c2/synthetic-audio/{audio_name}.wav').resolve():
+            raise RuntimeError('audio_outside_closure_authorization')
     if modality == 'voice' and (audio is None or not audio.is_file()): raise RuntimeError('frozen_audio_required')
     if audio is not None:
         audio_binding = {'sha256':digest(audio),'size':audio.stat().st_size}
@@ -558,7 +582,9 @@ def main():
     parser.add_argument('--audio',type=Path)
     parser.add_argument('--correction',action='store_true')
     parser.add_argument('--authorized-run',action='store_true')
-    parser.add_argument('--unknown-authorized-trial',action='store_true')
+    trial = parser.add_mutually_exclusive_group()
+    trial.add_argument('--unknown-authorized-trial',action='store_true')
+    trial.add_argument('--closure-authorized-trial',action='store_true')
     args=parser.parse_args()
     try: asyncio.run(run(args))
     except BaseException as error:

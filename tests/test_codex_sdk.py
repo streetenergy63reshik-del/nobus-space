@@ -1381,12 +1381,12 @@ async def test_semantic_compiler_uses_fresh_toolless_ephemeral_threads(
         "additionalProperties": False,
     }
 
-    first = await adapter.compile_semantic(
-        {"owner_text": "Составь план."}, schema, timeout_seconds=5
-    )
-    second = await adapter.compile_semantic(
-        {"owner_text": "Подготовь ответ."}, schema, timeout_seconds=5
-    )
+    inputs = [
+        {"owner_text": "Если в списке есть просроченный пункт, преобразуй список в краткий план."},
+        {"owner_text": "преобразуй список в краткий план."},
+    ]
+    first = await adapter.compile_semantic(inputs[0], schema, timeout_seconds=5)
+    second = await adapter.compile_semantic(inputs[1], schema, timeout_seconds=5)
     assert first == response == second
     assert len(client.started) == 2
     assert all(value["ephemeral"] is True for value in client.start_values)
@@ -1398,6 +1398,8 @@ async def test_semantic_compiler_uses_fresh_toolless_ephemeral_threads(
         assert not any(value["config"]["features"].values())
     assert all(thread.name is None for thread in client.started)
     assert all(thread.turns[0]["output_schema"] == schema for thread in client.started)
+    assert [json.loads(thread.turns[0]["prompt"])["canonical_input"]
+            for thread in client.started] == inputs
 
 
 @pytest.mark.asyncio

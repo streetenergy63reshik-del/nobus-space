@@ -23,7 +23,9 @@ def main():
     parser.add_argument('--model',required=True,type=Path)
     parser.add_argument('--audio',type=Path)
     parser.add_argument('--correction',action='store_true')
-    parser.add_argument('--unknown-authorized-trial',action='store_true')
+    trial = parser.add_mutually_exclusive_group()
+    trial.add_argument('--unknown-authorized-trial',action='store_true')
+    trial.add_argument('--closure-authorized-trial',action='store_true')
     args=parser.parse_args()
     small=ROOT/'.runtime/asr-qualification/faster-whisper-small'
     current=ROOT.parents[2]/'.runtime/voice-models/models--Systran--faster-whisper-base/snapshots/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66'
@@ -34,6 +36,7 @@ def main():
     if args.audio:command+=['--audio',str(args.audio)]
     if args.correction:command+=['--correction']
     if args.unknown_authorized_trial:command+=['--unknown-authorized-trial']
+    if args.closure_authorized_trial:command+=['--closure-authorized-trial']
     ledger=None; lock=None; started=None; process=None; job=None; api=module.kernel(); final_stats=None; timeout=150; status='NOT_STARTED'; exit_code=None
     ledger_path=small/'execution-ledger.json'
     receipt=args.run/(args.scenario+'-'+args.phase+'-executor-'+str(time.time_ns())+'.json')

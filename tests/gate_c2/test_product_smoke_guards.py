@@ -46,17 +46,18 @@ async def test_unacknowledged_update_is_retried_after_restart(tmp_path):
     assert api.rows[-1]['next_offset'] == 102
 
 
-def test_eight_turn_cap_and_one_continuous_ten_minute_window(tmp_path, monkeypatch):
+@pytest.mark.parametrize('cap,seconds', [(8,600),(24,1200)])
+def test_trial_turn_cap_and_one_continuous_window(tmp_path, monkeypatch,cap,seconds):
     monkeypatch.setattr(smoke.time,'time',lambda:1000)
-    budget=smoke.Budget(tmp_path,max_turns=8,max_seconds=600)
-    for n in range(1,9):
+    budget=smoke.Budget(tmp_path,max_turns=cap,max_seconds=seconds)
+    for n in range(1,cap+1):
         assert budget.reserve('synthetic','compiler')==n
     with pytest.raises(RuntimeError,match='authorization_budget_exhausted'):
         budget.reserve('synthetic','compiler')
     other=tmp_path/'elapsed';other.mkdir()
-    budget=smoke.Budget(other,max_turns=8,max_seconds=600)
+    budget=smoke.Budget(other,max_turns=cap,max_seconds=seconds)
     budget.reserve('synthetic','compiler')
-    monkeypatch.setattr(smoke.time,'time',lambda:1600)
+    monkeypatch.setattr(smoke.time,'time',lambda:1000+seconds)
     assert budget.snapshot()['remaining_seconds']==0
     with pytest.raises(RuntimeError,match='authorization_budget_exhausted'):
         budget.reserve('synthetic','compiler')
@@ -74,6 +75,26 @@ async def test_pending_unknown_authorization_rejected_before_ledger_or_provider(
     with pytest.raises(RuntimeError,match='unknown_provider_trial_not_authorized'):
         await smoke.run(args)
     assert not (folder/'unknown-trial-20260906').exists()
+    assert not (folder/'budget.sqlite3').exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('scenario,status,error', [
+    ('transform_text','PENDING_AUTHORIZATION','closure_provider_trial_not_authorized'),
+    ('conditional_text','AUTHORIZED','scenario_outside_closure_authorization'),
+    ('transform_text','AUTHORIZED','closure_authorized_source_changed'),
+])
+async def test_closure_trial_rejects_pending_or_foreign_scope_before_provider(tmp_path,monkeypatch,scenario,status,error):
+    folder=tmp_path/'plan';folder.mkdir()
+    (folder/'CLOSURE-TRIAL.json').write_text(json.dumps({'status':status,'max_turns':24,'continuous_seconds':1200}))
+    monkeypatch.setattr(smoke,'ROOT',tmp_path)
+    monkeypatch.setattr(smoke,'FOLDER',folder)
+    monkeypatch.setattr(smoke,'source_binding',lambda _model:{})
+    args=SimpleNamespace(run=tmp_path/'.runtime/c2/closure/guard',scenario=scenario,model=tmp_path,
+                         unknown_authorized_trial=False,closure_authorized_trial=True)
+    with pytest.raises(RuntimeError,match=error):
+        await smoke.run(args)
+    assert not (folder/'closure-trial-20260906').exists()
     assert not (folder/'budget.sqlite3').exists()
 
 
