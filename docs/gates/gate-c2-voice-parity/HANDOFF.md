@@ -1,5 +1,17 @@
 # Gate C2 — продолжение, C3 HOLD
 
+## Текущий кандидат после исправления TTL — 6 сентября 2026
+
+Product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`, tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`. C2 FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED. Кандидат82e76b9 отклонён: L2 и L3 независимо воспроизвели позднюю постановку задачи, когда кодирование PreparedTask пересекало часовой TTL; реальный restore создавал PENDING task. Его1911 PASS не отменяют этот дефект; REJECT и все выводы сохранены.
+
+Исправление проверяет срок после кодирования/декодирования и связывает первый INSERT draft с живым исходным voice, tenant/task/binding и lease в одной транзакции после ожидания блокировки. Уже созданный точный draft восстанавливается идемпотентно. Целевые проверки:123 PASS. Новая узкая actual B02 дала два готовых ответа и рубрику10/10: transform без смысловой коррекции и explicit correction, с controlled restart/replay. Первичные отсутствующие final_response SDK и предварительный planning gap повторов сохранены; addendum разрешён до второй повторной подачи в прежнем общем9turn/600s окне. Эта сессия завершилась FAIL при8/9turn: transform ready получен, correction снова NULL. Отдельная заранее ограниченная завершающая correction-подача3turn/180s без retry прошла; исходная матрицаFAIL сохранена. Между ними изменены только selector диагностического trial и безопасные status/itemcounts в receipts, product-sourcef01e9f8 неизменен. Полная B02 с5ready/2UNKNOWN/cancel остаётся доказательством source4ed2; переносом PASS на другой tree не объявляется.
+
+Compiler/Core, ASR/model/config, эталоны, scorer и критерии не менялись. Полная32-case квалификация и отдельный dev16 reproduction сохраняют свои точные bindings; новый цельный freeze получает собственные L1/L2/L3. Измерение concurrent small: service6,180850s и end-to-end9,682063s, включая очередь3,501213s; эти величины не смешиваются. Предел обслуживания данного файла9,480567s выполнен; ожидание в очереди показано отдельно по исходному PLAN.
+
+Приёмка относится к новому durable/semantic path при semantic flag ON. Default-off и live не объявляются включённым C2; сохранённый C2 voice при отключении флага останавливается fail-closed. Решение REPLACE ограничено локальным использованием закреплённой small и публикацией собственного кода/документов. Условия распространения native runtime и rollout сохраняются в ASR-PROVENANCE.md. C3 не начат; весь MVP1 не READY до C3–C6.
+
+## Сохранённые результаты до исправления TTL
+
 **6 сентября 2026: C2 GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED.**
 Продуктовый checkpoint `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`, tree `8eee2901119bb3699477479ef810efae3608773f`.
 Ветка `codex/mvp1-closure-c2-voice-parity`; работа продолжается в той же задаче.

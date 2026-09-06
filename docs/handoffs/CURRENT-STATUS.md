@@ -1,5 +1,7 @@
 # Nobus Space — CURRENT
 
+Текущий C2 product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`: TTL handoff исправлен после независимого REJECT82e76;123targetedPASS и новая узкая voice→ready/replay B02 PASS. Итоговые проверки нового кандидата ещё впереди. Полная предыдущая B02 и ASR остаются связаны со своими точными bytes. Подробности — [актуальный C2 handoff](../gates/gate-c2-voice-parity/HANDOFF.md). C3 не начат.
+
 **Актуально на:** 6 сентября 2026 года
 **Текущий продуктовый verdict:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
 **Локальный C2:** `GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED`

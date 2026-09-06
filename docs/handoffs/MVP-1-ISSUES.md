@@ -1,5 +1,7 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
+Текущий C2 product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`: TTL handoff исправлен после независимого REJECT82e76;123targetedPASS и новая узкая voice→ready/replay B02 PASS. Итоговые проверки нового кандидата ещё впереди. Полная предыдущая B02 и ASR остаются связаны со своими точными bytes. Подробности — [актуальный C2 handoff](../gates/gate-c2-voice-parity/HANDOFF.md). C3 не начат.
+
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
 **Период:** 17 июля — 5 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
@@ -10,8 +12,8 @@
 
 Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
-Последний локальный продуктовый checkpoint C2 — `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`,
-tree `8eee2901119bb3699477479ef810efae3608773f`, **FINAL REVIEW PENDING / NOT PUBLISHED**.
+Последний локальный продуктовый checkpoint C2 — `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`,
+tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **FINAL REVIEW PENDING / NOT PUBLISHED**.
 Действующие привязки и отдельная история прежних кандидатов —
 [C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
 

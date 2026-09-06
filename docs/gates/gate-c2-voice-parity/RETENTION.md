@@ -45,3 +45,5 @@ backup без изменения этого требования. Отдельн
 `tests/test_voice_isolated.py`. Независимые WIP probes и прежние неуспешные
 попытки сохранены в `.runtime/c2/closure/retention-probe/` и `native-review/`.
 Их результаты сами по себе не заменяют итоговые L1–L3 нового C2.
+
+Дополнение6 сентября: позднее кодирование PreparedTask создавало draft после TTL (82e76 REJECT). Sourcef01e9f8 добавляет повторную проверку срока после codec, а первый INSERT draft проверяет source voice/lease/tenant/task/digest и TTL в той же транзакции после lock wait. Уже успешно переданный draft сохраняет обычный жизненный цикл подтверждённой задачи. Регрессии отдельно проверяют crossing на encode/read/lock и сохранение обычного пути. Итоговые reviews нового freeze ещё впереди.
