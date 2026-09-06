@@ -5,6 +5,7 @@ import importlib.util
 import json
 import msvcrt
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 import time
@@ -14,6 +15,21 @@ ROOT=Path(__file__).resolve().parents[2]
 FOLDER=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('qualification_budget',ROOT/'tests/gate_c2/qualification/runner.py')
 module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+
+def trial_timeout(args):
+    """Bound every phase, including replay, by the one existing trial clock."""
+    if args.unknown_authorized_trial:
+        name, seconds = 'unknown-trial-20260906', 600
+    elif args.closure_authorized_trial:
+        name, seconds = 'closure-trial-20260906', 1200
+    else:
+        return 150
+    ledger = ROOT/'.runtime/c2/closure/product-plan'/name/'budget.sqlite3'
+    if not ledger.exists():
+        return 150  # Authorization/source guards still run in the worker before inference.
+    with sqlite3.connect(ledger.as_uri()+'?mode=ro',uri=True) as db:
+        started = db.execute('SELECT started FROM budget WHERE singleton=1').fetchone()[0]
+    return 150 if started is None else min(150,max(0,seconds-(time.time()-started)))
 
 def main():
     parser=argparse.ArgumentParser()
@@ -37,7 +53,9 @@ def main():
     if args.correction:command+=['--correction']
     if args.unknown_authorized_trial:command+=['--unknown-authorized-trial']
     if args.closure_authorized_trial:command+=['--closure-authorized-trial']
-    ledger=None; lock=None; started=None; process=None; job=None; api=module.kernel(); final_stats=None; timeout=150; status='NOT_STARTED'; exit_code=None
+    timeout=trial_timeout(args)
+    if timeout<=6:raise SystemExit('authorization_time_exhausted')
+    ledger=None; lock=None; started=None; process=None; job=None; api=module.kernel(); final_stats=None; status='NOT_STARTED'; exit_code=None
     ledger_path=small/'execution-ledger.json'
     receipt=args.run/(args.scenario+'-'+args.phase+'-executor-'+str(time.time_ns())+'.json')
     receipt.parent.mkdir(parents=True,exist_ok=True)
@@ -45,12 +63,13 @@ def main():
         if args.model.resolve()==small/'models' and args.scenario.endswith('_voice') and args.phase=='admit':
             lock=ledger_path.with_name(ledger_path.name+'.lock').open('a+b');lock.seek(0)
             msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
-            ledger,timeout=module.reserve_budget(ledger_path,'b02-'+uuid4().hex,150,small=True)
+            ledger,reserved=module.reserve_budget(ledger_path,'b02-'+uuid4().hex,150,small=True)
+            timeout=min(timeout,reserved)
         job=module.create_job(api,name)
         started=time.perf_counter()
         process=subprocess.Popen(command,cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW)
         try:
-            output=process.communicate(timeout=timeout-6)[0];exit_code=process.returncode;status='EXITED'
+            output=process.communicate(timeout=max(0,min(timeout,trial_timeout(args))-6))[0];exit_code=process.returncode;status='EXITED'
         except subprocess.TimeoutExpired:
             status='EXECUTION_DEADLINE';api.TerminateJobObject(job,124);process.kill();output=process.communicate(timeout=4)[0];exit_code=124
         # smoke deliberately prints only bounded safe enums/counts, never provider exceptions.

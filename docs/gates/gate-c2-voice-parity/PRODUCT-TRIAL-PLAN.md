@@ -1,3 +1,96 @@
+# C2 B02 после уточнения инструкции compiler
+
+**6 сентября2026: PREPARED / PENDING AUTHORIZATION. C2 остаётся BLOCKED.**
+Локальный product commit `efa0ac7e1e313bf53255b47260fa991271986399`, tree `26ca0ab70f31701a6836a05efab63cf3e9329151`.
+Результаты предыдущих сессий и все FAIL сохранены в [PRODUCT-RESULTS.json](PRODUCT-RESULTS.json).
+Квалификация ASR завершена; общий compiler prompt изменён после завершения UNKNOWN trial.
+Проверки Core/schema/полномочий и admission-wide deadline45s не менялись.
+
+UNKNOWN trial8turn/600s был разрешён и выполнен на предыдущих bytes: text PASS,
+voice primary и fresh retry FAIL,6 calls. Третья voice попытка тем grant не разрешалась.
+Уточнение инструкции устраняет двусмысленное «сохрани один predicate», но улучшение
+поведения ещё не доказано. Следующая проверка должна относиться к новым bytes.
+
+## Точный объём нового запроса
+
+Одна непрерывная сессия **1200 секунд от первого provider call**, максимум **24 model
+turns вместе со всеми повторами**:17 плановых и7 резервных. Существующая подписка
+ChatGPT/OpenAI Codex, `gpt-5.6-sol/high/fast`, стандартный endpoint
+`https://chatgpt.com/backend-api/codex`. Имеющаяся квота расходуется; новых покупок и
+API billing нет. Жёсткого token ceiling у production adapter нет; region/retention
+аккаунта неизвестны. Native login и SDK account/provider/endpoint проверяются до
+inference; API-key или нестандартный endpoint останавливают запуск.
+
+Только прежние синтетические fixtures, уточнённый общий compiler prompt и прежний
+downstream prompt. Audio upload, tools и реальные effects отсутствуют. Матрица
+проверяет C2; принятую C1-кампанию заново не проводить.
+
+| Сценарий | Compiler | Downstream | Всего |
+|---|---:|---:|---:|
+| transform text |2|1|3|
+| transform actual voice без смысловой коррекции |2|1|3|
+| явная voice correction с quoted/nested/negation материалом |2|1|3|
+| supported UNKNOWN text |2|0|2|
+| supported UNKNOWN voice с явной singular correction |2|0|2|
+| negation text |1|1|2|
+| negation voice |1|1|2|
+| cancel, controlled restart, original/confirmation replay |0|0|0|
+| Резерв в общем пределе | | |7|
+
+## Подготовка и исполнение
+
+1. Сверить source/model/config/fixture/audio hashes с
+   `.runtime/c2/closure/compiler-clarification-20260906/freeze.json`. Новый manifest
+   `product-plan/CLOSURE-TRIAL.json` содержит exact source binding и PENDING.
+   Только после отдельного grant сохранить его точный текст, статус AUTHORIZED и
+   создать ledger `product-plan/closure-trial-20260906/budget.sqlite3`. Старые три
+   ledger не редактировать. Проверка отвергает pending, чужой scenario и изменение
+   source binding до создания нового ledger/provider.
+2. До первого provider turn выполнить штатный login/account/endpoint preflight;
+   подготовить пять свежих voice preview обычным intake. Использовать только уже
+   закреплённые `transform.wav` (также correction), `conditional.wav`, `negation.wav`,
+   `direct.wav` (cancel). Native admit учитывается в прежнем small ledger1200s,
+   под Windows Job4CPU/4GiB. TTL1h проверять по immutable created_at; состояния не
+   оживлять вручную. Завершить cancel→нет→replay без compiler/task/effect.
+3. Новый run: `.runtime/c2/closure/product-smoke/compiler-clarified-01`. Все phases
+   запускаются отдельными процессами через `tests/gate_c2/product_smoke_runner.py`
+   с `--closure-authorized-trial`. Text: admit→drain→replay. Voice:
+   admit→confirm→drain→replay; `--correction` только для correction и UNKNOWN voice.
+   Транспорт — единственная заглушка; compiler, Core, PreparedTask, SQLite,
+   downstream, verification и delivery настоящие. Compiler input/output сохраняются
+   локально отдельно, чтобы независимо проверить переданный хвост и model output.
+4. Сначала все первичные сценарии в порядке таблицы. Затем максимум один свежий
+   повтор каждого провалившегося сценария, только если он целиком помещается в
+   оставшиеся24turn/1200s. При уже созданной задаче/ответе не создавать дубликат;
+   delivery/replay failure сначала сохранить и разобрать. Истёкшее окно не продлевать.
+   Не менять source, prompts, model, fixtures, deadline или состояния внутри trial.
+5. Требуются пять фактических ANSWERED+APPROVED результатов, по одному outbox ACK,
+   artifact и набору ready chunks; независимая рубрика5 критериев. UNKNOWN в обеих
+   модальностях: MATERIAL_ITEM_STATE_V1/UNKNOWN, CLARIFY/PREDICATE_UNKNOWN,
+   capability null/task0/effect0. Generic refusal или AMBIGUITY не подходят.
+   До voice confirmation compiler/task/draft/effect0; replay не добавляет calls,
+   ASR, задачу или результат. Restart контролируемый, не hard crash.
+6. После фактического B02 PASS — собственные L1/L2/L3 цельного frozen C2. ASR bytes
+   и протокол не менялись: закрытую32-case/3-pass кампанию не повторять. После
+   итогового PASS подготовить точный publication manifest и запросить отдельное
+   разрешение push/PR/merge. Live/config, tag/release/deploy и C3 не разрешены.
+
+Команда одной фазы из корня C2 (Python — существующая canonical .venv):
+
+```text
+python tests/gate_c2/product_smoke_runner.py --run .runtime/c2/closure/product-smoke/compiler-clarified-01 --scenario transform_voice --phase confirm --model .runtime/asr-qualification/faster-whisper-small/models --audio .runtime/c2/synthetic-audio/transform.wav --closure-authorized-trial
+```
+
+Этот документ — конкретный план, а не внешний grant. До согласия provider calls0.
+Успех при неизменном45s deadline не гарантирован; новые FAIL должны сохраняться.
+
+---
+
+## Исторические планы до уточнения compiler
+
+Ниже сохранены исходные планы. Их PENDING-статусы уже исторические: обе сессии
+получили разрешения и завершились; текущее недостающее разрешение описано выше.
+
 # C2 B02: остаётся supported UNKNOWN
 
 **6 сентября 2026: подготовлено, требуется отдельное разрешение.**

@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "status": "6 September: five actual B02 ready answers; UNKNOWN pair still BLOCKED; ASR qualification remains PASS under protocol3",
+  "status": "ASR qualification PASS; prior B02 ready5 and UNKNOWN text PASS; voice UNKNOWN failed. Shared compiler prompt clarified, new B02 trial pending.",
   "current_results": "CONFIRMED-QUALIFICATION.json",
   "historical_document": {
     "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",
@@ -561,7 +561,7 @@
     "giga_seconds_including_previous_authorization": 194.91697699996038,
     "small_seconds_including_all_execution": 129.1515492000035
   },
-  "product_results_20260906": {
+  "historical_product_results_before_unknown": {
     "file": "PRODUCT-RESULTS.json",
     "ready": 5,
     "rubric_yes": 25,
@@ -571,5 +571,14 @@
     "verifier_tests": 24,
     "small_charged_seconds": 858.4341655999306,
     "next_unknown_authorization": "PENDING 8turn/600s"
+  },
+  "current_product_results": {
+    "file": "PRODUCT-RESULTS.json",
+    "source": "efa0ac7e1e313bf53255b47260fa991271986399",
+    "provider_calls": 0,
+    "small_charged_seconds": 869.8101349999197,
+    "targeted_passed": 385,
+    "final_guard_passed": 11,
+    "required_authorization": "C2 B02 matrix24turn/1200s"
   }
 }

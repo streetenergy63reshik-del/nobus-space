@@ -5,11 +5,30 @@ import json
 import pytest
 
 from tests.gate_c2 import product_smoke as smoke
+from tests.gate_c2 import product_smoke_runner as runner
 
 
 def boundary(path, api, handler):
     store = smoke.SQLitePollingCheckpointStore(path, consumer_id='c2-product-smoke', lease_duration_seconds=240)
     return smoke.TelegramPollingBoundary(api, handler, store)
+
+
+@pytest.mark.parametrize('unknown,seconds,name', [
+    (True,600,'unknown-trial-20260906'),(False,1200,'closure-trial-20260906'),
+])
+def test_executor_bounds_replay_by_original_trial_clock(tmp_path,monkeypatch,unknown,seconds,name):
+    folder=tmp_path/'.runtime/c2/closure/product-plan'/name;folder.mkdir(parents=True)
+    monkeypatch.setattr(runner,'ROOT',tmp_path)
+    monkeypatch.setattr(smoke.time,'time',lambda:1000)
+    args=SimpleNamespace(unknown_authorized_trial=unknown,closure_authorized_trial=not unknown,phase='replay')
+    budget=smoke.Budget(folder,max_turns=24,max_seconds=seconds)
+    assert runner.trial_timeout(args)==150
+    budget.reserve('synthetic','compiler')
+    monkeypatch.setattr(smoke.time,'time',lambda:1000+seconds-10)
+    assert runner.trial_timeout(args)==10
+    monkeypatch.setattr(smoke.time,'time',lambda:1000+seconds)
+    assert runner.trial_timeout(args)==0
+    assert budget.snapshot()['turns_reserved']==1
 
 
 @pytest.mark.asyncio

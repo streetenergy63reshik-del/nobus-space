@@ -1,10 +1,10 @@
 # Gate C2 — продолжение, C3 HOLD
 
 **6 сентября 2026: C2 DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED.**
-Продуктовый checkpoint `28222923d2c2560504d1237c8e8da6df442c6150`, tree `b24ae81b91786aca942c89a8d54f50279de3cef8`.
+Продуктовый checkpoint `efa0ac7e1e313bf53255b47260fa991271986399`, tree `26ca0ab70f31701a6836a05efab63cf3e9329151`.
 Ветка `codex/mvp1-closure-c2-voice-parity`; работа продолжается в той же задаче.
 Текущий HEAD после документационных commits определяется `git rev-parse HEAD`; точный
-readback записывается отдельно в `.runtime/c2/closure/product-checkpoint-20260906.json`.
+readback записывается отдельно в `.runtime/c2/closure/compiler-clarification-checkpoint-20260906.json`.
 Это позволяет различать актуальную документацию и неизменный product-source revision.
 
 
@@ -54,44 +54,38 @@ small→закреплённый base→small прошла, native processes п�
 provisioning не выполнялся. [Происхождение и лицензии](ASR-PROVENANCE.md) разделяют
 локальную квалификацию и незакрытые условия распространения native runtime.
 
-## B02: пять готовых ответов, остаётся UNKNOWN
+## B02 и следующий шаг
 
-6 сентября владелец разрешил дополнительную сессию 20 turn/1200 s. Выполнено 19 calls
-(14 compiler/5 downstream), все завершены; первое окно 24 turn с 8 calls не затрагивалось.
-Основная text/voice-пара без смысловой коррекции голоса, отдельная correction и
-negation text/voice дали пять ANSWERED+APPROVED ответов. Независимая рубрика 25/25,
-один ACK/артефакт/результат на задачу, effects0. Voice controlled restart после
-preview и PreparedTask, cancel и replay пройдены. Это не hard crash.
+ASR qualification пройдена. На прежнем product source2822292 получены пять готовых
+ответов с независимой оценкой25/25 и затем правильный supported UNKNOWN для текста.
+Голосовой UNKNOWN не прошёл: первая попытка не получила второй compiler response,
+единственный разрешённый свежий повтор получил придуманное условие в proposal
+безусловного хвоста. Core правильно остановился на AMBIGUITY; task/outbox/effect0.
+Это не ошибка ASR или подтверждения и не доказательство прохождения UNKNOWN.
 
-Первый transform text FAIL сохранён; обычная новая подача того же текста прошла.
-UNKNOWN text был безопасно отвергнут за understood+непустые ambiguities; UNKNOWN voice
-не получил второй compiler response в 45 s. Фактического Core UNKNOWN нет в обеих
-модальностях. Поэтому B02/C2 остаются BLOCKED, несмотря на пять готовых ответов.
-[Результаты и независимая проверка](PRODUCT-RESULTS.json).
+UNKNOWN-сессия по явному «да разрешаю» выполнена:6 из8 calls,142,917883 s от первого
+вызова до последнего ответа, одна voice retry. Все процессы завершены. Два оставшихся
+turn не разрешали третью голосовую попытку; окно600 s истекло. Исторические ledgers
+8/24,19/20,6/8 и все FAIL сохранены, остатки в новые окна не переносятся.
 
-Исторический direct-control smoke опускал внешний polling checkpoint: negation text
-replay сделал один лишний compiler call, сохранив task/outbox/result. Ошибка production
-не доказана. Verifier перенесён в tests/gate_c2 и использует настоящий polling/SQLite
-checkpoint;24 focused tests PASS и независимый review. Старый harness сохранён.
-Продуктовые src/scripts, модель, prompts и deadline не менялись.
+В новом кандидате уточнена только общая инструкция compiler: сохранять условие лишь
+при его наличии в текущем owner_text и не придумывать его для безусловного запроса.
+Модель gpt-5.6-sol/high/fast, deadline45 s, schema, Core и проверки происхождения
+операций сохранены. Устранена двусмысленная инструкция; её влияние на ответы модели
+пока не доказано. 385 целевых тестов PASS; последние11 guard-тестов также PASS.
+Это локальный checkpoint, а не итоговые L1/L2/L3 C2.
 
-Small суммарно 858.434166/1200 s; осталось 341.565834 s. GigaAM 194.916977/1800 s
-не запускался повторно. Дополнительный provider budget завершён на 19/20: один
-неиспользованный turn не покрывал полный UNKNOWN и не переносится в новое окно.
+Поскольку изменён общий compiler prompt, старые ready/UNKNOWN результаты остаются
+доказательствами прежней версии. Для нового кандидата подготовлена вся матрица B02:
+17 плановых calls и7 резервных, общий предел24turn/1200s. Отдельное разрешение пока
+не дано; новый ledger не создан. Повторная приёмка C1 и повтор закрытой ASR-кампании
+не требуются. Small869,810135/1200 s, осталось330,189865 s; GigaAM194,916977/1800 s.
 
-## Следующий шаг
+Точный следующий trial — [PRODUCT-TRIAL-PLAN.md](PRODUCT-TRIAL-PLAN.md). Реальные
+результаты, hashes, независимая оценка и старые сессии — [PRODUCT-RESULTS.json](PRODUCT-RESULTS.json).
+Новые offline tests проверяют изоляцию безусловного хвоста и отсутствие полномочий
+при придуманном условии. Inference с изменённым prompt ещё не было.
 
-[Подготовлен точный UNKNOWN trial](PRODUCT-TRIAL-PLAN.md):4 calls+4reserve,
-максимум 8 turn/600 s. Нового разрешения пока нет, ledger не создан. Новые verifier
-bytes и все ресурсные helpers зафиксированы; actual waiting voice preview сохранён
-в unknown-prepared-05 без новых provider calls. Перед использованием проверить TTL1h;
-истёкший preview восстанавливается только новой обычной подачей в прежнем ASR бюджете.
-
-После успешных UNKNOWN text/voice нужны собственные итоговые L1/L2/L3 цельного C2.
-Нынешние targeted/focused reviews не являются этой приёмкой. B01 qualification PASS;
-B03/B04 имеют сохранённые локальные исправления и регрессию. Не возвращаться к старым
-checkpoints и не повторять закрытые ASR/ready сценарии без изменения зависимых bytes.
-
-После итогового PASS подготовить exact publication manifest и получить отдельное
-разрешение push/PR/merge. Публикация пока не разрешена; C1 не переоткрывать, live и C3
-не менять. Native binary distribution/rollout остаются за границей локального C2.
+После B02 нужны свои итоговые L1/L2/L3 замороженного C2. После итогового PASS —
+публикационный manifest и точное разрешение push/PR/merge. C1 принят; live и C3
+не менялись. Native binary distribution остаётся отдельным незакрытым объёмом.

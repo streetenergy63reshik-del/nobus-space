@@ -467,7 +467,7 @@ async def run(args):
     with sqlite3.connect(budget.path) as db:
         downstream_before = db.execute("SELECT COUNT(*) FROM calls WHERE kind='downstream'").fetchone()[0]
     try:
-        async with asyncio.timeout(min(120,budget.snapshot()['remaining_seconds']) if provider_phase else 120):
+        async with asyncio.timeout(min(120,budget.snapshot()['remaining_seconds']) if (args.unknown_authorized_trial or closure_trial) else 120):
             if args.phase == 'assemble':
                 pass  # Constructors only: no client start, ASR or model inference.
             elif args.phase == 'admit':

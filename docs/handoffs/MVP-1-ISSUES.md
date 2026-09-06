@@ -10,8 +10,8 @@
 
 Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
-Последний локальный продуктовый checkpoint C2 — `28222923d2c2560504d1237c8e8da6df442c6150`,
-tree `b24ae81b91786aca942c89a8d54f50279de3cef8`, **BLOCKED / NOT PUBLISHED**.
+Последний локальный продуктовый checkpoint C2 — `efa0ac7e1e313bf53255b47260fa991271986399`,
+tree `26ca0ab70f31701a6836a05efab63cf3e9329151`, **BLOCKED / NOT PUBLISHED**.
 Действующие привязки и отдельная история прежних кандидатов —
 [C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
 
@@ -62,7 +62,7 @@ Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован чер�
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
 C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md).
-C2-B01: local qualification/integration PASS; C2-B02: дополнительное окно19/20turn, ready5/25из25; UNKNOWNtext/voice FAIL, новый trial4+4turn/10min ждёт разрешения; C2-B03/B04:
+C2-B01: local qualification/integration PASS; C2-B02: прежние ready5/25из25 и UNKNOWNtext PASS; voice UNKNOWN FAIL; уточнён общий compiler prompt, новая матрица17+7turn/20min ждёт разрешения; C2-B03/B04:
 native lifetime и retention исправлены локально и прошли focused14/27PASS;
 итоговые проверки цельного C2 ещё впереди. C3–C6 и MVP2 HOLD.
 
@@ -170,4 +170,13 @@ CURRENT claim вперёд; historical evidence не переписываетс�
 
 Первая полная регрессия нового source:1887PASS/2skip/1historical deselect и1FAIL
 устаревшей startup fixture; после исправления fixture runner subset22PASS.
-Это собственные C2 проверки, а не повторная приёмка C1.6 сентября получены5ready results; UNKNOWNpair остаётся FAIL. Верификатор исправлен по пропущенному внешнему polling checkpoint;24 focused tests PASS. См. [реальные результаты](../gates/gate-c2-voice-parity/PRODUCT-RESULTS.json).
+Это собственные C2 проверки, а не повторная приёмка C1.6 сентября получены5ready results; UNKNOWNtext затем прошёл в отдельном trial6/8turn; voice primary/retry FAIL. Верификатор исправлен по пропущенному внешнему polling checkpoint;24 focused tests PASS. См. [реальные результаты](../gates/gate-c2-voice-parity/PRODUCT-RESULTS.json).
+
+## Уточнение compiler после UNKNOWN trial6 сентября
+
+В независимом разборе подтверждён лишний conditional predicate в ответе модели на
+безусловный хвост команды. Core guard правильно вернул AMBIGUITY, task/effect0.
+Уточнена общая инструкция compiler без ослабления validator; причинность прежнего
+сбоя и улучшение новой версии ещё не доказаны.385 focused tests PASS, последние11
+guards PASS. Старые5ready и UNKNOWNtext PASS не переносятся на новый prompt;
+подготовлена собственная C2 B02 матрица24turn/1200s. C1 не переоткрыт.
