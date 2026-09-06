@@ -29,7 +29,8 @@ FOLDER = ROOT / '.runtime/c2/closure/product-plan'
 FIXTURES = ROOT / 'tests/gate_c2/PRODUCT-FIXTURES.json'
 CLOSURE_TRIALS = {'closure-trial-20260906':'CLOSURE-TRIAL.json',
                   'material-trial-20260906':'MATERIAL-TRIAL.json',
-                  'ttl-trial-20260906':'TTL-TRIAL.json'}
+                  'ttl-trial-20260906':'TTL-TRIAL.json',
+                  'ttl-correction-trial-20260906':'TTL-CORRECTION-TRIAL.json'}
 sys.path.insert(0, str(ROOT))
 from codex_cli_bin import bundled_codex_path
 from openai_codex import AsyncCodex
@@ -114,7 +115,9 @@ class GuardedTurn:
             result = await self.real.run()
             usage = getattr(result, 'usage', None)
             self.budget.finish(self.number, 'RETURNED', usage.model_dump(mode='json') if usage is not None else None)
-            write(self.folder / f'model-turn-{self.number:02d}.json', {'n': self.number, 'final_response': getattr(result, 'final_response', None), 'usage_available': usage is not None})
+            write(self.folder / f'model-turn-{self.number:02d}.json', {'n': self.number, 'final_response': getattr(result, 'final_response', None), 'usage_available': usage is not None,
+                'turn_status':str(getattr(result,'status','unknown')), 'error_present':getattr(result,'error',None) is not None,
+                'item_count':len(getattr(result,'items',[])), 'item_types':[type(getattr(item,'root',item)).__name__ for item in getattr(result,'items',[])]})
             return result
         except BaseException as error:
             self.budget.finish(self.number, type(error).__name__)
@@ -391,6 +394,10 @@ async def run(args):
             if args.scenario not in {'transform_voice','transform_correction_voice'}:
                 raise RuntimeError('scenario_outside_closure_authorization')
             max_turns, max_seconds = 9, 600
+        if trial_name == 'ttl-correction-trial-20260906':
+            if args.scenario != 'transform_correction_voice':
+                raise RuntimeError('scenario_outside_closure_authorization')
+            max_turns, max_seconds = 3, 180
         authorization = json.loads((FOLDER/CLOSURE_TRIALS[trial_name]).read_text('utf-8'))
         if authorization.get('status')!='AUTHORIZED' or authorization.get('max_turns')!=max_turns or authorization.get('continuous_seconds')!=max_seconds:
             raise RuntimeError('closure_provider_trial_not_authorized')

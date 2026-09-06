@@ -17,6 +17,7 @@ def boundary(path, api, handler):
     (True,600,'unknown-trial-20260906'),(False,1200,'closure-trial-20260906'),
     (False,1200,'material-trial-20260906'),
     (False,600,'ttl-trial-20260906'),
+    (False,180,'ttl-correction-trial-20260906'),
 ])
 def test_executor_bounds_replay_by_original_trial_clock(tmp_path,monkeypatch,unknown,seconds,name):
     folder=tmp_path/'.runtime/c2/closure/product-plan'/name;folder.mkdir(parents=True)
@@ -68,7 +69,7 @@ async def test_unacknowledged_update_is_retried_after_restart(tmp_path):
     assert api.rows[-1]['next_offset'] == 102
 
 
-@pytest.mark.parametrize('cap,seconds', [(8,600),(9,600),(24,1200)])
+@pytest.mark.parametrize('cap,seconds', [(3,180),(8,600),(9,600),(24,1200)])
 def test_trial_turn_cap_and_one_continuous_window(tmp_path, monkeypatch,cap,seconds):
     monkeypatch.setattr(smoke.time,'time',lambda:1000)
     budget=smoke.Budget(tmp_path,max_turns=cap,max_seconds=seconds)
@@ -110,7 +111,9 @@ async def test_pending_unknown_authorization_rejected_before_ledger_or_provider(
 async def test_closure_trial_rejects_pending_or_foreign_scope_before_provider(tmp_path,monkeypatch,scenario,status,error,trial_name,manifest):
     folder=tmp_path/'plan';folder.mkdir()
     if trial_name == 'ttl-trial-20260906' and scenario == 'transform_text': scenario = 'transform_voice'
+    if trial_name == 'ttl-correction-trial-20260906' and scenario == 'transform_text': scenario = 'transform_correction_voice'
     cap, seconds = (9,600) if trial_name == 'ttl-trial-20260906' else (24,1200)
+    if trial_name == 'ttl-correction-trial-20260906': cap, seconds = 3,180
     (folder/manifest).write_text(json.dumps({'status':status,'max_turns':cap,'continuous_seconds':seconds}))
     monkeypatch.setattr(smoke,'ROOT',tmp_path)
     monkeypatch.setattr(smoke,'FOLDER',folder)
@@ -122,6 +125,7 @@ async def test_closure_trial_rejects_pending_or_foreign_scope_before_provider(tm
     assert not (folder/'closure-trial-20260906').exists()
     assert not (folder/'material-trial-20260906').exists()
     assert not (folder/'ttl-trial-20260906').exists()
+    assert not (folder/'ttl-correction-trial-20260906').exists()
     assert not (folder/'budget.sqlite3').exists()
 
 
