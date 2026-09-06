@@ -28,7 +28,8 @@ ROOT = Path(__file__).resolve().parents[2]
 FOLDER = ROOT / '.runtime/c2/closure/product-plan'
 FIXTURES = ROOT / 'tests/gate_c2/PRODUCT-FIXTURES.json'
 CLOSURE_TRIALS = {'closure-trial-20260906':'CLOSURE-TRIAL.json',
-                  'material-trial-20260906':'MATERIAL-TRIAL.json'}
+                  'material-trial-20260906':'MATERIAL-TRIAL.json',
+                  'ttl-trial-20260906':'TTL-TRIAL.json'}
 sys.path.insert(0, str(ROOT))
 from codex_cli_bin import bundled_codex_path
 from openai_codex import AsyncCodex
@@ -386,8 +387,12 @@ async def run(args):
         trial_name = getattr(args, 'closure_trial_name', 'closure-trial-20260906')
         if trial_name not in CLOSURE_TRIALS:
             raise RuntimeError('unknown_closure_trial')
+        if trial_name == 'ttl-trial-20260906':
+            if args.scenario not in {'transform_voice','transform_correction_voice'}:
+                raise RuntimeError('scenario_outside_closure_authorization')
+            max_turns, max_seconds = 9, 600
         authorization = json.loads((FOLDER/CLOSURE_TRIALS[trial_name]).read_text('utf-8'))
-        if authorization.get('status')!='AUTHORIZED' or authorization.get('max_turns')!=24 or authorization.get('continuous_seconds')!=1200:
+        if authorization.get('status')!='AUTHORIZED' or authorization.get('max_turns')!=max_turns or authorization.get('continuous_seconds')!=max_seconds:
             raise RuntimeError('closure_provider_trial_not_authorized')
         if authorization.get('binding') != binding:
             raise RuntimeError('closure_authorized_source_changed')

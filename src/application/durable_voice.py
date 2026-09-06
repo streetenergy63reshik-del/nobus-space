@@ -239,3 +239,8 @@ class DurableVoiceIntake:
 
 def active_voice() -> bool:
     return _ACTIVE.get() is not None
+
+
+def active_voice_job() -> DurableJob | None:
+    execution = _ACTIVE.get()
+    return execution.job if execution is not None else None

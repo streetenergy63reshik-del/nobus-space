@@ -22,8 +22,9 @@ def trial_timeout(args):
         name, seconds = 'unknown-trial-20260906', 600
     elif args.closure_authorized_trial:
         name, seconds = getattr(args,'closure_trial_name','closure-trial-20260906'), 1200
-        if name not in {'closure-trial-20260906','material-trial-20260906'}:
+        if name not in {'closure-trial-20260906','material-trial-20260906','ttl-trial-20260906'}:
             raise ValueError('unknown_closure_trial')
+        if name == 'ttl-trial-20260906': seconds = 600
     else:
         return 150
     ledger = ROOT/'.runtime/c2/closure/product-plan'/name/'budget.sqlite3'
@@ -45,7 +46,7 @@ def main():
     trial.add_argument('--unknown-authorized-trial',action='store_true')
     trial.add_argument('--closure-authorized-trial',action='store_true')
     parser.add_argument('--closure-trial-name',
-                        choices=('closure-trial-20260906','material-trial-20260906'),
+                        choices=('closure-trial-20260906','material-trial-20260906','ttl-trial-20260906'),
                         default='closure-trial-20260906')
     args=parser.parse_args()
     small=ROOT/'.runtime/asr-qualification/faster-whisper-small'

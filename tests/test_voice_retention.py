@@ -289,3 +289,99 @@ def test_current_sqlite_logical_scrub_does_not_claim_dpapi_key_erasure(tmp_path)
     assert state.read_voice(tenant_id='owner',task_id=job.task_id).payload=={}
     assert DpapiJsonCodec().decode(old)['audio']==MARKER
     evidence('crypto_limit',logical_scrub=True,retained_fixture_ciphertext_key_not_destroyed=True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('phase',['prepared_encode','draft_encode','draft_lock'])
+@pytest.mark.parametrize('cross_seconds',[0,2])
+async def test_voice_transfer_deadline_is_checked_at_persistence(tmp_path, phase, cross_seconds):
+    from contextlib import contextmanager
+    h, _ = harness(tmp_path); c = h.control; state = c._telegram_state
+    clock = [datetime.now(UTC)]; state._clock = lambda: clock[0]
+    await c.handle(voice_update(10)); await c._durable_voice.run(claim(c))
+    await c.handle(text_update('да',11,reply_to_message_id=10))
+    clock[0] += timedelta(minutes=59,seconds=59); job = claim(c)
+    encode = state._encode; transaction = state._transaction; crossed = []
+    draft_pending = [False]
+    def slow_encode(payload):
+        result = encode(payload)
+        is_prepared = bool(payload.get('prepared'))
+        is_draft = payload.get('deferred_admission') is True
+        if phase == 'draft_lock' and is_draft: draft_pending[0] = True
+        if not crossed and ((phase == 'prepared_encode' and is_prepared and not is_draft)
+                            or (phase == 'draft_encode' and is_draft)):
+            crossed.append(True); clock[0] += timedelta(seconds=cross_seconds)
+        return result
+    @contextmanager
+    def slow_lock():
+        with transaction() as connection:
+            if phase == 'draft_lock' and draft_pending[0] and not crossed:
+                crossed.append(True); clock[0] += timedelta(seconds=cross_seconds)
+            yield connection
+    state._encode = slow_encode; state._transaction = slow_lock
+    await c._execute_voice_with_lease(job)
+    assert crossed == [True]
+    assert state.read_voice(tenant_id=job.tenant_id,task_id=job.task_id).payload == {}
+    if cross_seconds:
+        assert rows(c) == [('voice','finished')]
+        assert state.claim(lease_owner=c._lease_owner) is None
+        assert h.runtime.base._store.read_task(job.tenant_id,job.task_id) is None
+    else:
+        assert rows(c) == [('draft','pending'),('voice','finished')]
+        draft = claim(c); assert await c._restore(draft) is not None
+        assert h.runtime.base._store.read_task(job.tenant_id,job.task_id) is not None
+    assert h.runtime.applied == [] and h.api.documents == []
+
+
+@pytest.mark.parametrize('operation',['read','checkpoint','confirm','reply_watermark'])
+def test_slow_codec_cannot_return_or_persist_expired_voice(tmp_path,operation):
+    state, job, clock = make(tmp_path); owner = uuid4()
+    job = state.claim(lease_owner=owner,lease_seconds=7200)
+    if operation in {'confirm','reply_watermark'}:
+        job = state.checkpoint_voice(job,lease_owner=owner,payload=dict(job.payload,stage='waiting'),status='waiting')
+    clock[0] += timedelta(minutes=59,seconds=59)
+    name = '_decode' if operation == 'read' else '_encode'; original = getattr(state,name)
+    crossed = []
+    def slow_codec(value):
+        result = original(value)
+        if not crossed and (result if operation == 'read' else value):
+            crossed.append(True); clock[0] += timedelta(seconds=2)
+        return result
+    setattr(state,name,slow_codec)
+    if operation == 'read':
+        with pytest.raises(DurableTelegramStateError,match='voice_expired'):
+            state.read_voice(tenant_id='owner',task_id=job.task_id)
+    elif operation == 'checkpoint':
+        with pytest.raises(DurableTelegramStateError):
+            state.checkpoint_voice(job,lease_owner=owner,payload=dict(job.payload,stage='transcribed'))
+    else:
+        assert not state.confirm_voice(job,reply_update_id=12,
+            payload=dict(job.payload,stage='confirmed') if operation=='confirm' else None)
+    assert crossed == [True]
+    setattr(state,name,original)
+    assert state.read_voice(tenant_id='owner',task_id=job.task_id).payload == {}
+
+
+@pytest.mark.parametrize('tamper',['none','lease','owner','binding','tenant','task'])
+def test_voice_transfer_is_bound_to_live_source_and_existing_draft_is_idempotent(tmp_path,tamper):
+    from dataclasses import replace
+    state, job, clock = make(tmp_path); owner = uuid4()
+    job = state.claim(lease_owner=owner,lease_seconds=7200)
+    source = job; supplied_owner = owner
+    if tamper == 'lease': source = replace(job,lease_id=uuid4())
+    if tamper == 'owner': supplied_owner = uuid4()
+    if tamper == 'binding': source = replace(job,binding_digest=canonical_json_digest({'foreign':True}))
+    if tamper == 'tenant': source = replace(job,tenant_id='foreign')
+    if tamper == 'task': source = replace(job,task_id=uuid4())
+    args = dict(kind='draft',tenant_id='owner',task_id=job.task_id,
+        binding_digest=canonical_json_digest({'prepared':True}),payload={'synthetic':'prepared'},
+        source_voice=source,voice_lease_owner=supplied_owner)
+    if tamper != 'none':
+        with pytest.raises((ValueError,DurableTelegramStateError)): state.enqueue(**args)
+        with sqlite3.connect(state.path) as db:
+            assert db.execute("SELECT COUNT(*) FROM telegram_jobs WHERE kind='draft'").fetchone()[0] == 0
+    else:
+        draft = state.enqueue(**args)
+        clock[0] += timedelta(hours=1)
+        assert state.enqueue(**args).job_id == draft.job_id
+        assert state.read_voice(tenant_id='owner',task_id=job.task_id).payload == {}

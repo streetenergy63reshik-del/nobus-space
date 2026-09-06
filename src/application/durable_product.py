@@ -13,7 +13,7 @@ from typing import Any, Callable
 from uuid import UUID, uuid4
 
 from src.application.durable_runtime import PreparedTask
-from src.application.durable_voice import DurableVoiceIntake, active_voice, validate_job, voice_id
+from src.application.durable_voice import DurableVoiceIntake, active_voice, active_voice_job, validate_job, voice_id
 from src.application.durable_telegram_state import (
     DurableJob,
     DurableTelegramStateError,
@@ -748,7 +748,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             "envelope": envelope.model_dump(mode="json"),
             "recovery_envelope": recovery_envelope.model_dump(mode="json"),
         }
-        if active_voice():
+        source_voice = active_voice_job()
+        if source_voice is not None:
             payload['deferred_admission'] = True
         try:
             self._telegram_state.enqueue(
@@ -757,6 +758,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 task_id=prepared.contract.task_id,
                 binding_digest=task_contract_digest(prepared.contract),
                 payload=payload,
+                source_voice=source_voice,
+                voice_lease_owner=self._lease_owner if source_voice is not None else None,
             )
         except Exception:
             return False

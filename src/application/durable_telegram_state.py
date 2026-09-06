@@ -200,10 +200,18 @@ class SQLiteTelegramState:
         task_id: UUID,
         binding_digest: str,
         payload: Mapping[str, Any],
+        source_voice: DurableJob | None = None,
+        voice_lease_owner: UUID | None = None,
     ) -> DurableJob:
         kind, tenant_id, binding_digest = self._job_binding(
             kind, tenant_id, task_id, binding_digest
         )
+        if source_voice is not None:
+            source_voice = self._validated_job(source_voice, require_lease=True)
+            if (kind != 'draft' or source_voice.kind != 'voice'
+                or source_voice.tenant_id != tenant_id or source_voice.task_id != task_id
+                or not isinstance(voice_lease_owner, UUID)):
+                raise ValueError('voice draft binding is invalid')
         protected = self._encode(payload)
         payload_digest = canonical_json_digest(payload)
         now = self._now()
@@ -239,17 +247,31 @@ class SQLiteTelegramState:
                 ).fetchone()[0] >= 2000:
                     raise DurableTelegramStateError('runtime_queue_full')
                 job_id = uuid4()
-                connection.execute(
+                # The transfer linearizes under the write lock, after encryption and lock waits.
+                now = self._now()
+                source_guard = ''
+                source_parameters: tuple[Any, ...] = ()
+                if source_voice is not None:
+                    source_guard = """ WHERE EXISTS (SELECT 1 FROM telegram_jobs
+                        WHERE job_id=? AND kind='voice' AND tenant_id=? AND task_id=?
+                          AND binding_digest=? AND status='leased' AND lease_id=?
+                          AND lease_owner=? AND lease_expires_at>? AND created_at>?)"""
+                    source_parameters = (str(source_voice.job_id), tenant_id, str(task_id),
+                        source_voice.binding_digest, str(source_voice.lease_id), str(voice_lease_owner),
+                        now.isoformat(), (now - VOICE_CONTENT_TTL).isoformat())
+                inserted = connection.execute(
                     """INSERT INTO telegram_jobs
                        (job_id,kind,tenant_id,task_id,binding_digest,payload_digest,
                         payload,status,attempt_count,lease_id,lease_owner,
                         lease_expires_at,created_at,updated_at)
-                       VALUES (?,?,?,?,?,?,?,'pending',0,NULL,NULL,NULL,?,?)""",
+                       SELECT ?,?,?,?,?,?,?,'pending',0,NULL,NULL,NULL,?,?""" + source_guard,
                     (
                         str(job_id), kind, tenant_id, str(task_id), binding_digest,
                         payload_digest, protected, now.isoformat(), now.isoformat(),
-                    ),
+                    ) + source_parameters,
                 )
+                if inserted.rowcount != 1:
+                    raise DurableTelegramStateError('runtime_voice_expired_or_lease_lost')
                 return DurableJob(
                     job_id, kind, tenant_id, task_id, binding_digest, dict(payload), 0
                 )
@@ -283,15 +305,18 @@ class SQLiteTelegramState:
                     payload['reply_update_watermark'] = current_payload['reply_update_watermark']
                 protected = self._encode(payload)
                 digest = canonical_json_digest(payload)
+                now = self._now()
                 cursor = connection.execute(
                     """UPDATE telegram_jobs SET payload=?,payload_digest=?,status=?,updated_at=?,
                        lease_id=CASE WHEN ?='leased' THEN lease_id ELSE NULL END,
                        lease_owner=CASE WHEN ?='leased' THEN lease_owner ELSE NULL END,
                        lease_expires_at=CASE WHEN ?='leased' THEN lease_expires_at ELSE NULL END
                        WHERE job_id=? AND kind='voice' AND status='leased'
-                         AND lease_id=? AND lease_owner=? AND lease_expires_at>?""",
+                         AND lease_id=? AND lease_owner=? AND lease_expires_at>?
+                         AND (?=1 OR created_at>?)""",
                     (protected, digest, status, now.isoformat(), status, status, status, str(job.job_id),
-                     str(job.lease_id), str(lease_owner), now.isoformat()),
+                     str(job.lease_id), str(lease_owner), now.isoformat(), int(not payload),
+                     (now - VOICE_CONTENT_TTL).isoformat()),
                 )
                 if cursor.rowcount != 1:
                     raise DurableTelegramStateError("runtime_job_lease_lost")
@@ -330,17 +355,20 @@ class SQLiteTelegramState:
             transition = (payload is not None and row['status'] == 'waiting'
                           and without_reply(current.payload) == without_reply(job.payload))
             updated = dict(payload if transition else current.payload, reply_update_watermark=reply_update_id)
+            protected = self._encode(updated)
+            digest = canonical_json_digest(updated)
+            now = self._now()
             if not transition:
                 # An early or stale reply must never become a confirmation on replay.
-                connection.execute('UPDATE telegram_jobs SET payload=?,payload_digest=? WHERE job_id=?',
-                    (self._encode(updated), canonical_json_digest(updated), str(job.job_id)))
+                connection.execute('UPDATE telegram_jobs SET payload=?,payload_digest=? WHERE job_id=? AND created_at>?',
+                    (protected, digest, str(job.job_id), (now - VOICE_CONTENT_TTL).isoformat()))
                 return False
             cursor = connection.execute(
                 """UPDATE telegram_jobs SET payload=?,payload_digest=?,status='pending',
                    attempt_count=0,lease_id=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=?
-                   WHERE job_id=? AND kind='voice' AND status='waiting' AND payload_digest=?""",
-                (self._encode(updated), canonical_json_digest(updated), now.isoformat(), str(job.job_id),
-                 row['payload_digest']),
+                   WHERE job_id=? AND kind='voice' AND status='waiting' AND payload_digest=? AND created_at>?""",
+                (protected, digest, now.isoformat(), str(job.job_id),
+                 row['payload_digest'], (now - VOICE_CONTENT_TTL).isoformat()),
             )
             return cursor.rowcount == 1
 
@@ -1195,10 +1223,13 @@ class SQLiteTelegramState:
     def _job_from_row(self, row: sqlite3.Row) -> DurableJob:
         if row["kind"] not in _JOB_KINDS or row["status"] not in _JOB_STATUSES:
             raise DurableTelegramStateError("runtime_store_corrupt")
-        if (row['kind']=='voice' and row['payload_digest'] != canonical_json_digest({})
-            and datetime.fromisoformat(row['created_at']) + VOICE_CONTENT_TTL <= self._now()):
+        content_deadline = (datetime.fromisoformat(row['created_at']) + VOICE_CONTENT_TTL
+            if row['kind']=='voice' and row['payload_digest'] != canonical_json_digest({}) else None)
+        if content_deadline is not None and content_deadline <= self._now():
             raise DurableTelegramStateError('runtime_voice_expired')
         payload = self._decode(bytes(row["payload"]))
+        if content_deadline is not None and content_deadline <= self._now():
+            raise DurableTelegramStateError('runtime_voice_expired')
         if canonical_json_digest(payload) != row["payload_digest"]:
             raise DurableTelegramStateError("runtime_payload_tampered")
         return DurableJob(
