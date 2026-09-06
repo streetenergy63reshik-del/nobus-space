@@ -10,8 +10,8 @@
 
 Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
-Последний локальный продуктовый checkpoint C2 — `efa0ac7e1e313bf53255b47260fa991271986399`,
-tree `26ca0ab70f31701a6836a05efab63cf3e9329151`, **BLOCKED / NOT PUBLISHED**.
+Последний локальный продуктовый checkpoint C2 — `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`,
+tree `8eee2901119bb3699477479ef810efae3608773f`, **FINAL REVIEW PENDING / NOT PUBLISHED**.
 Действующие привязки и отдельная история прежних кандидатов —
 [C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
 
@@ -26,7 +26,7 @@ tree `26ca0ab70f31701a6836a05efab63cf3e9329151`, **BLOCKED / NOT PUBLISHED**.
 |---|---|---|---|---|
 | C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; exact text/voice incident и corpus `25/25`, keyword veto не участвует в opt-in semantic path |
 | C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
-| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **LOCAL FIX / NOT ACCEPTED**; durable intake и deferred admission; продолжение B03/B04 focused14/27PASS. Полный B02 и итоговые C2 проверки ещё впереди |
+| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **LOCAL FIX / NOT ACCEPTED**; durable intake и deferred admission; продолжение B03/B04 focused14/27PASS. Новая B02 PASS; итоговые C2 проверки впереди |
 | C0-F04 | ASR нуждался в независимой квалификации | Старые семь hard FAIL сохранены. Новый owner protocol: small WER5,71%/CER1,11% all32, holdout5,09%/1,00%; correction3/16+5/16 противCURRENT7/16+10/16;3passes/resources PASS | C2 | **LOCAL QUALIFICATION PASS / C2 NOT ACCEPTED**; pinned factory и rollback пройдены, конечный REPLACE ждёт B02 и итоговые reviews; binary distribution вопросы отдельно |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
@@ -61,14 +61,9 @@ C0-F01/F02 закрыты в принятом C1 code, но не в live deploym
 Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован через PR #11 в
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
-C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md).
-C2-B01: local qualification/integration PASS; C2-B02: прежние ready5/25из25 и UNKNOWNtext PASS; voice UNKNOWN FAIL; уточнён общий compiler prompt, новая матрица17+7turn/20min ждёт разрешения; C2-B03/B04:
-native lifetime и retention исправлены локально и прошли focused14/27PASS;
-итоговые проверки цельного C2 ещё впереди. C3–C6 и MVP2 HOLD.
+C2 — GATE CANDIDATE / FINAL REVIEW PENDING. B01/B02 PASS; B03/B04 реализованы,
+собственные итоговые проверки впереди. Старые FAIL и принятый C1 сохраняются.
 
-Историческая строка «Voice durable admission CLOSED» ниже относится к durable
-draft после ASR. Она не доказывала целый audio intake. C2 исправляет этот
-CURRENT claim вперёд; historical evidence не переписывается.
 
 ## Historical сводка до incident
 
@@ -174,9 +169,19 @@ CURRENT claim вперёд; historical evidence не переписываетс�
 
 ## Уточнение compiler после UNKNOWN trial6 сентября
 
+Исторический checkpoint efa0ac7 до новой полной B02; ниже сохранён его тогдашний статус.
+
 В независимом разборе подтверждён лишний conditional predicate в ответе модели на
 безусловный хвост команды. Core guard правильно вернул AMBIGUITY, task/effect0.
 Уточнена общая инструкция compiler без ослабления validator; причинность прежнего
 сбоя и улучшение новой версии ещё не доказаны.385 focused tests PASS, последние11
 guards PASS. Старые5ready и UNKNOWNtext PASS не переносятся на новый prompt;
 подготовлена собственная C2 B02 матрица24turn/1200s. C1 не переоткрыт.
+
+## C2: число команд и ссылки материала,6 сентября2026
+
+На efa0ac7 correction не прошёл4подачи: три раза лишняя requested операция для quoted
+ref, один NULL.21turn/612.644s; task/effect0 при отказах,32cleanup receipts0. Это ошибка
+интерпретации compiler. В4ed2cd2 уточнён общий prompt; guard оставлен строгим. Новый тест
+сначала ошибочно ожидал effect_allowed=false у допустимого no_effect capability; исправлен
+verifier, исходный FAIL сохранён. Новая wholeB02 имеет свои5ready/25из25 и обеUNKNOWN.

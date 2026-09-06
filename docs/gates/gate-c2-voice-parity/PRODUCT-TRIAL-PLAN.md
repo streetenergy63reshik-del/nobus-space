@@ -1,3 +1,37 @@
+# C2 B02 — выполненная проверка product-source4ed2cd2
+
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
+
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
+
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
+
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
+
+MATERIAL-TRIAL.json:24turn/1200s,17planned+7reserve; ledger material-trial-20260906.
+Тот же transport-only fake, synthetic fixtures, gpt-5.6-sol/high/fast и штатный ChatGPT
+endpoint. Неизменны45s/schema/Core/ref/multiset guards; raw audio не передавалось.
+
+---
+
+## История прежних планов
+
+Ниже pending означает состояние на дату подготовки; действующее разрешение описано выше.
+
 # C2 B02 после уточнения инструкции compiler
 
 **6 сентября2026: PREPARED / PENDING AUTHORIZATION. C2 остаётся BLOCKED.**

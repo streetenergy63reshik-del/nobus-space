@@ -1,9 +1,9 @@
 # 14. Решения владельца и завершение Gate C2
 
 **Статус документа:** CANONICAL OWNER INPUTS
-**Актуально на:** 5 сентября 2026 года
+**Актуально на:** 6 сентября 2026 года
 **CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
-**Локальная разработка:** `C2 BLOCKED / NOT PUBLISHED / NOT DEPLOYED`
+**Локальная разработка:** `C2 GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Program boundary:** `MVP-2 HOLD`
 
@@ -58,47 +58,43 @@ authority; Core детерминированно выбирает capability/pol
 исправления, проверки и разрешённая публикация C2 продолжаются в существующей
 задаче C2. Принятый C1 повторно не принимается; C3 самостоятельно не начинается.
 
-Продуктовый checkpoint C2 — `efa0ac7e1e313bf53255b47260fa991271986399`,
-tree `26ca0ab70f31701a6836a05efab63cf3e9329151`. Владелец 5 сентября принял
+Продуктовый checkpoint C2 — `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`,
+tree `8eee2901119bb3699477479ef810efae3608773f`. Владелец 5 сентября принял
 подтверждаемый ввод, два уточнения raw-критериев и конечную локальную программу.
 ASR qualification small прошла; полные результаты и ограничения —
 [HANDOFF](gates/gate-c2-voice-parity/HANDOFF.md). Старые семь hard FAIL сохранены.
-Small использовал 869.810135 из 1200 s; GigaAM 194.916977 из 1800 s. Новые модели,
-установки, cloud ASR, live/config и C3 не разрешены этим продолжением.
+Текущий расход прежних ASR ledgers и ограничения доступны в C2 EVIDENCE.json.
 
-ASR qualification пройдена. На прежнем product source2822292 получены пять готовых
-ответов с независимой оценкой25/25 и затем правильный supported UNKNOWN для текста.
-Голосовой UNKNOWN не прошёл: первая попытка не получила второй compiler response,
-единственный разрешённый свежий повтор получил придуманное условие в proposal
-безусловного хвоста. Core правильно остановился на AMBIGUITY; task/outbox/effect0.
-Это не ошибка ASR или подтверждения и не доказательство прохождения UNKNOWN.
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
 
-UNKNOWN-сессия по явному «да разрешаю» выполнена:6 из8 calls,142,917883 s от первого
-вызова до последнего ответа, одна voice retry. Все процессы завершены. Два оставшихся
-turn не разрешали третью голосовую попытку; окно600 s истекло. Исторические ledgers
-8/24,19/20,6/8 и все FAIL сохранены, остатки в новые окна не переносятся.
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
 
-В новом кандидате уточнена только общая инструкция compiler: сохранять условие лишь
-при его наличии в текущем owner_text и не придумывать его для безусловного запроса.
-Модель gpt-5.6-sol/high/fast, deadline45 s, schema, Core и проверки происхождения
-операций сохранены. Устранена двусмысленная инструкция; её влияние на ответы модели
-пока не доказано. 385 целевых тестов PASS; последние11 guard-тестов также PASS.
-Это локальный checkpoint, а не итоговые L1/L2/L3 C2.
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
 
-Поскольку изменён общий compiler prompt, старые ready/UNKNOWN результаты остаются
-доказательствами прежней версии. Для нового кандидата подготовлена вся матрица B02:
-17 плановых calls и7 резервных, общий предел24turn/1200s. Отдельное разрешение пока
-не дано; новый ledger не создан. Повторная приёмка C1 и повтор закрытой ASR-кампании
-не требуются. Small869,810135/1200 s, осталось330,189865 s; GigaAM194,916977/1800 s.
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
 
-Точное внешнее согласие требуется только на новую B02-сессию24turn/1200s для
-исправленного compiler prompt. [Полный план](gates/gate-c2-voice-parity/PRODUCT-TRIAL-PLAN.md):
+По полному разрешению владельца выполнена новая B02-сессия24turn/1200s для
+исправленного compiler prompt. [Выполненный план](gates/gate-c2-voice-parity/PRODUCT-TRIAL-PLAN.md):
 существующая подписка ChatGPT, стандартный endpoint, синтетический текст;
 без audio upload/tools/effects/API billing/покупок. Квота расходуется, hard token
-ceiling нет, region/retention неизвестны. Прежние grant не продлеваются.
+ceiling нет, region/retention неизвестны. Прежние ledgers сохранены без продления.
 
-После B02 и собственных итоговых L1/L2/L3 C2 потребуется отдельное точное разрешение
-на публикацию готового SHA/tree: обычный push/PR/merge. До PASS publication manifest
+После собственных итоговых L1/L2/L3 C2 разрешена публикация готового SHA/tree:
+обычный push/PR/merge по полному решению владельца6 сентября. До PASS publication manifest
 не выдаётся за готовую публикацию. Native binary distribution и rollout не входят
 в текущий объём; незакрытые licence/CVE вопросы отражены отдельно. C1 не принимается
 повторно, live и C3 не запускаются.
@@ -109,7 +105,7 @@ ceiling нет, region/retention неизвестны. Прежние grant не
 |---|---|---|
 | C0 — единая истина и контракт | published contract и exact readback | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий route и русский bake-off | LOCAL CANDIDATE BLOCKED / NOT PUBLISHED |
+| C2 — voice parity и ASR qualification | общий route, готовый результат и русский bake-off | GATE CANDIDATE / FINAL REVIEW PENDING |
 | C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
 | C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |

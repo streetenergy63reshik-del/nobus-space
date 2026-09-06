@@ -1,10 +1,10 @@
 # Gate C2 — продолжение, C3 HOLD
 
-**6 сентября 2026: C2 DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED.**
-Продуктовый checkpoint `efa0ac7e1e313bf53255b47260fa991271986399`, tree `26ca0ab70f31701a6836a05efab63cf3e9329151`.
+**6 сентября 2026: C2 GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED.**
+Продуктовый checkpoint `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`, tree `8eee2901119bb3699477479ef810efae3608773f`.
 Ветка `codex/mvp1-closure-c2-voice-parity`; работа продолжается в той же задаче.
 Текущий HEAD после документационных commits определяется `git rev-parse HEAD`; точный
-readback записывается отдельно в `.runtime/c2/closure/compiler-clarification-checkpoint-20260906.json`.
+readback записывается отдельно в `.runtime/c2/closure/final-candidate-20260906/freeze.json`.
 Это позволяет различать актуальную документацию и неизменный product-source revision.
 
 
@@ -56,36 +56,36 @@ provisioning не выполнялся. [Происхождение и лице�
 
 ## B02 и следующий шаг
 
-ASR qualification пройдена. На прежнем product source2822292 получены пять готовых
-ответов с независимой оценкой25/25 и затем правильный supported UNKNOWN для текста.
-Голосовой UNKNOWN не прошёл: первая попытка не получила второй compiler response,
-единственный разрешённый свежий повтор получил придуманное условие в proposal
-безусловного хвоста. Core правильно остановился на AMBIGUITY; task/outbox/effect0.
-Это не ошибка ASR или подтверждения и не доказательство прохождения UNKNOWN.
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
 
-UNKNOWN-сессия по явному «да разрешаю» выполнена:6 из8 calls,142,917883 s от первого
-вызова до последнего ответа, одна voice retry. Все процессы завершены. Два оставшихся
-turn не разрешали третью голосовую попытку; окно600 s истекло. Исторические ledgers
-8/24,19/20,6/8 и все FAIL сохранены, остатки в новые окна не переносятся.
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
 
-В новом кандидате уточнена только общая инструкция compiler: сохранять условие лишь
-при его наличии в текущем owner_text и не придумывать его для безусловного запроса.
-Модель gpt-5.6-sol/high/fast, deadline45 s, schema, Core и проверки происхождения
-операций сохранены. Устранена двусмысленная инструкция; её влияние на ответы модели
-пока не доказано. 385 целевых тестов PASS; последние11 guard-тестов также PASS.
-Это локальный checkpoint, а не итоговые L1/L2/L3 C2.
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
 
-Поскольку изменён общий compiler prompt, старые ready/UNKNOWN результаты остаются
-доказательствами прежней версии. Для нового кандидата подготовлена вся матрица B02:
-17 плановых calls и7 резервных, общий предел24turn/1200s. Отдельное разрешение пока
-не дано; новый ledger не создан. Повторная приёмка C1 и повтор закрытой ASR-кампании
-не требуются. Small869,810135/1200 s, осталось330,189865 s; GigaAM194,916977/1800 s.
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
 
-Точный следующий trial — [PRODUCT-TRIAL-PLAN.md](PRODUCT-TRIAL-PLAN.md). Реальные
+Выполненный план — [PRODUCT-TRIAL-PLAN.md](PRODUCT-TRIAL-PLAN.md). Реальные
 результаты, hashes, независимая оценка и старые сессии — [PRODUCT-RESULTS.json](PRODUCT-RESULTS.json).
 Новые offline tests проверяют изоляцию безусловного хвоста и отсутствие полномочий
-при придуманном условии. Inference с изменённым prompt ещё не было.
+при придуманном условии. Новая B02 прошла на изменённом prompt.
 
-После B02 нужны свои итоговые L1/L2/L3 замороженного C2. После итогового PASS —
-публикационный manifest и точное разрешение push/PR/merge. C1 принят; live и C3
-не менялись. Native binary distribution остаётся отдельным незакрытым объёмом.
+## Передача C3 после приёмки и публикации
+
+После итогового PASS фиксируются exact принятая revision и main readback. C3 ведётся
+отдельной задачей по запуску владельца: queue/state/retry/recovery/status, multipart
+idempotency и authoritative recovery. C2 blockers туда не переносятся. Подтверждение
+voice, server-owned authority и pinned ASR сохраняются. C1 повторно не принимать.

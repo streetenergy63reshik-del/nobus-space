@@ -2,7 +2,7 @@
 
 **Актуально на:** 6 сентября 2026 года
 **Текущий продуктовый verdict:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
-**Локальный C2:** `DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED`
+**Локальный C2:** `GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Следующая продуктовая линия:** `MVP-2 HOLD`
 
@@ -22,41 +22,33 @@ C1-B01/C1-B02; прежний PASS и reviews отменены. Replacement 8e5e
 product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree
 `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`. Он совпадает с tree проверенного
 candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
-активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED: ASR qualification прошла,
-на прежней версии получены пять ready results и UNKNOWN text PASS; voice UNKNOWN и итоговая приёмка не пройдены. По принятому владельцем
-протоколу 5 сентября выбран pinned small beam8: WER5,71%/CER1,11% all32 и
-5,09%/1,00% holdout16; смысловые правки 3/16 dev и 5/16 holdout против 7/16 и 10/16
-у CURRENT. Три warm-прохода, cold, concurrency2,4 CPU/4 GiB и per-file время пройдены.
-Старые hard FAIL и один исправленный сбой verifier сохранены отдельно.
+активирован. C2 — цельный кандидат итоговой проверки. B01/B02 прошли.
 
-ASR qualification пройдена. На прежнем product source2822292 получены пять готовых
-ответов с независимой оценкой25/25 и затем правильный supported UNKNOWN для текста.
-Голосовой UNKNOWN не прошёл: первая попытка не получила второй compiler response,
-единственный разрешённый свежий повтор получил придуманное условие в proposal
-безусловного хвоста. Core правильно остановился на AMBIGUITY; task/outbox/effect0.
-Это не ошибка ASR или подтверждения и не доказательство прохождения UNKNOWN.
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
 
-UNKNOWN-сессия по явному «да разрешаю» выполнена:6 из8 calls,142,917883 s от первого
-вызова до последнего ответа, одна voice retry. Все процессы завершены. Два оставшихся
-turn не разрешали третью голосовую попытку; окно600 s истекло. Исторические ledgers
-8/24,19/20,6/8 и все FAIL сохранены, остатки в новые окна не переносятся.
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
 
-В новом кандидате уточнена только общая инструкция compiler: сохранять условие лишь
-при его наличии в текущем owner_text и не придумывать его для безусловного запроса.
-Модель gpt-5.6-sol/high/fast, deadline45 s, schema, Core и проверки происхождения
-операций сохранены. Устранена двусмысленная инструкция; её влияние на ответы модели
-пока не доказано. 385 целевых тестов PASS; последние11 guard-тестов также PASS.
-Это локальный checkpoint, а не итоговые L1/L2/L3 C2.
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
 
-Поскольку изменён общий compiler prompt, старые ready/UNKNOWN результаты остаются
-доказательствами прежней версии. Для нового кандидата подготовлена вся матрица B02:
-17 плановых calls и7 резервных, общий предел24turn/1200s. Отдельное разрешение пока
-не дано; новый ledger не создан. Повторная приёмка C1 и повтор закрытой ASR-кампании
-не требуются. Small869,810135/1200 s, осталось330,189865 s; GigaAM194,916977/1800 s.
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
 
 Актуальный product-source revision C2:
-`efa0ac7e1e313bf53255b47260fa991271986399`, tree
-`26ca0ab70f31701a6836a05efab63cf3e9329151`. Входной checkpoint3ef14b32 сохранён;
+`4ed2cd2418b58ba499ff5dfdf69605244ceb4916`, tree
+`8eee2901119bb3699477479ef810efae3608773f`. Входной checkpoint3ef14b32 сохранён;
 документационные commits после product source определяют текущий worktree HEAD,
 проверяемый через `git rev-parse HEAD` и отдельный confirmed-checkpoint receipt.
 Точная текущая проекция и старые evidence разделены в
@@ -192,7 +184,7 @@ flag штатного runner — default-off.
 
 - activation опубликованного C1;
 - production shadow rollout C1;
-- C2: квалифицированный ASR и полный проверенный результат text/voice;
+- итоговая приёмка и публикация C2;
 - повторная полная C3–C6 квалификация и owner acceptance.
 
 Согласованная semantic kind substitution самим compiler остаётся ограниченным
@@ -214,7 +206,7 @@ exact result SHA/tree и handoff.
 |---|---|---|
 | C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | durable intake, общий text/voice Core-route, ASR qualification | LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; B01/B02 не закрыты, B03/B04 LOCAL FIX |
+| C2 — voice parity и ASR qualification | durable voice, общий Core и ASR qualification | GATE CANDIDATE / FINAL REVIEW PENDING |
 | C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
 | C5 — operations/recovery/security | воспроизводимые ops, backup/restore, rollback, security | HOLD до C4 |
@@ -266,16 +258,26 @@ Readback подтвердил exact tree, C0 parent и protected main. CI status
 [Принятый handoff C1](../gates/gate-c1-semantic-task-compiler/HANDOFF.md)
 сохраняется без изменений.
 
-C2 продолжается в этой же задаче от актуального локального checkpoint. ASR
-qualification завершена. Для изменённого общего compiler prompt подготовлена
-матрица B02 на24turn/1200s; требуется отдельное точное согласие, новый ledger
-не создан. Предыдущие три provider окна завершены, их остатки недействительны.
-Фактические результаты и привязки — в C2 EVIDENCE/HANDOFF/PRODUCT-RESULTS.
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
 
-После PASS отдельно согласуется точный план push/PR/merge и, при необходимости,
-PR синхронизации статуса. Публикация завершится только после GitHub readback.
-Текущий BLOCKED checkpoint не публикуется. Tag, release, deploy, activation
-и live effects в C2 не выполнялись и этим продолжением не разрешены.
-Будущий C3 требует принятого опубликованного C2 и отдельного запуска владельцем.
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
 
-**C1 ACCEPTED / PUBLISHED / NOT DEPLOYED. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
+
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
+
+**C1 ACCEPTED / PUBLISHED / NOT DEPLOYED. C2 FINAL REVIEW PENDING.**

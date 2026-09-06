@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "status": "ASR qualification PASS; prior B02 ready5 and UNKNOWN text PASS; voice UNKNOWN failed. Shared compiler prompt clarified, new B02 trial pending.",
+  "status": "ASR qualification PASS; current B02 PASS; own final C2 reviews pending",
   "current_results": "CONFIRMED-QUALIFICATION.json",
   "historical_document": {
     "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",

@@ -1,12 +1,14 @@
-# Gate C2 — уточнённая приёмка, WIP / NOT ACCEPTED
+# Gate C2 — кандидат итоговой приёмки
 
-**5 сентября 2026:** владелец принял подтверждаемый голосовой ввод и конечную программу локальной квалификации. Entry checkpoint `3ef14b32c1c602739db3b4d32016f5182b10567b`, tree `e2432af5844955d4724eaedcfa97a6b77262a9fa`; product-source на входе был `96487d176cb3f09b543cadbc0e4b91c73308b8b4`, теперь `efa0ac7e1e313bf53255b47260fa991271986399`. ASR qualification завершена;6 сентября получены пять реальных ready answers и независимые 25/25. Прежний UNKNOWN text прошёл, voice не прошёл; общий compiler prompt уточнён, новый B02 ещё не выполнен. Старые FAIL сохранены.
+**6 сентября2026: C2 GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED.**
+Владелец5 сентября принял уточнение двух task-level критериев. B01/B02 завершены;
+итоговые L1/L2/L3 ещё не объявлены PASS. Source4ed2cd2418b58ba499ff5dfdf69605244ceb4916. Старые FAIL сохранены.
 
 Действующий контракт — [PROTOCOL.json](../../../tests/gate_c2/qualification/PROTOCOL.json) и [PLAN](../../../tests/gate_c2/qualification/PLAN.md). Буквальные critical-token mismatches остаются диагностикой; дополнительный общий raw RTFp95≤0.5 перестаёт блокировать выполненный per-file интервал `max(5 s,0.5×duration)`. Это явная смена двух task-level условий после открытых dev экспериментов, а не исправление старых FAIL. Нормализация, gold, ADR0023, WER/CER, подтверждение и полномочия Core сохранены.
 
 До holdout зафиксировано `semantic_correction_required`: raw transcript требует смысловой правки для сохранения произнесённых цели, операции, объекта, роли, отрицания/отмены, условия, значения/сущности или ограничения. Косметика не считается такой правкой; утраченные факты не угадываются. Семь независимых измерений, абсолютные counts и ошибки публикуются раздельно от lexical diagnostics. Выбранный вариант не увеличивает correction burden относительно matched CURRENT на dev и отдельно holdout. WER≤15%/CER≤8% на all32 и отдельно holdout16 обязательны.
 
-Перед compiler/task/effect каждый voice даёт сохранённый preview и требует подтверждения либо явной коррекции. После этого применяются общий C1 compiler/Core и production result pipeline. В проверенной матрице нужны 100% accepted semantic parity,0 неверных принятых решений и хотя бы одна главная transform-пара text/voice до пригодного ответа без смысловой коррекции. Cold≤120 s,4 CPU/4 GiB,concurrency2/один native slot,три warm passes,retention/recovery и правило substantial gain сохраняются. B02 проводится независимо от B01; для нового prompt требуется отдельная сессия по PRODUCT-TRIAL-PLAN.md, прежние окна завершены.
+Перед compiler/task/effect каждый voice даёт сохранённый preview и требует подтверждения либо явной коррекции. После этого применяются общий C1 compiler/Core и production result pipeline. В проверенной матрице нужны 100% accepted semantic parity,0 неверных принятых решений и хотя бы одна главная transform-пара text/voice до пригодного ответа без смысловой коррекции. Cold≤120 s,4 CPU/4 GiB,concurrency2/один native slot,три warm passes,retention/recovery и правило substantial gain сохраняются. Новая B02 завершена независимо от B01 по PRODUCT-TRIAL-PLAN.md.
 
 | Причина | Слой исправления | Проверка |
 |---|---|---|
@@ -16,32 +18,29 @@
 | ENVIRONMENT: прежний SDK sandbox OS5 и license/native provenance gaps | Штатный авторизованный provider preflight; проверка существующих installed bytes/notices | Реальные ChatGPT/endpoint, cleanup, ограничения бюджета; источники лицензий |
 | STALE_CONTEXT: narrative96487d вместо latest3ef14b32, B02 ошибочно ожидал B01/Chirp3 | Текущие Git-указатели и независимая программа B02 | HEAD/tree, прежние receipts/ledger, актуальные индексы |
 
-ASR qualification пройдена. На прежнем product source2822292 получены пять готовых
-ответов с независимой оценкой25/25 и затем правильный supported UNKNOWN для текста.
-Голосовой UNKNOWN не прошёл: первая попытка не получила второй compiler response,
-единственный разрешённый свежий повтор получил придуманное условие в proposal
-безусловного хвоста. Core правильно остановился на AMBIGUITY; task/outbox/effect0.
-Это не ошибка ASR или подтверждения и не доказательство прохождения UNKNOWN.
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
 
-UNKNOWN-сессия по явному «да разрешаю» выполнена:6 из8 calls,142,917883 s от первого
-вызова до последнего ответа, одна voice retry. Все процессы завершены. Два оставшихся
-turn не разрешали третью голосовую попытку; окно600 s истекло. Исторические ledgers
-8/24,19/20,6/8 и все FAIL сохранены, остатки в новые окна не переносятся.
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
 
-В новом кандидате уточнена только общая инструкция compiler: сохранять условие лишь
-при его наличии в текущем owner_text и не придумывать его для безусловного запроса.
-Модель gpt-5.6-sol/high/fast, deadline45 s, schema, Core и проверки происхождения
-операций сохранены. Устранена двусмысленная инструкция; её влияние на ответы модели
-пока не доказано. 385 целевых тестов PASS; последние11 guard-тестов также PASS.
-Это локальный checkpoint, а не итоговые L1/L2/L3 C2.
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
 
-Поскольку изменён общий compiler prompt, старые ready/UNKNOWN результаты остаются
-доказательствами прежней версии. Для нового кандидата подготовлена вся матрица B02:
-17 плановых calls и7 резервных, общий предел24turn/1200s. Отдельное разрешение пока
-не дано; новый ledger не создан. Повторная приёмка C1 и повтор закрытой ASR-кампании
-не требуются. Small869,810135/1200 s, осталось330,189865 s; GigaAM194,916977/1800 s.
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
 
-Продуктовый checkpoint продолжения `efa0ac7e1e313bf53255b47260fa991271986399` / tree `26ca0ab70f31701a6836a05efab63cf3e9329151`.
+Продуктовый checkpoint продолжения `4ed2cd2418b58ba499ff5dfdf69605244ceb4916` / tree `8eee2901119bb3699477479ef810efae3608773f`.
 Полная сводка, действующий расход и ограничения — [HANDOFF](HANDOFF.md),
 [EVIDENCE](EVIDENCE.json), [квалификация](CONFIRMED-QUALIFICATION.json),
 [B02 нового кандидата](PRODUCT-TRIAL-PLAN.md) и [реальные результаты B02](PRODUCT-RESULTS.json) и [лицензии](ASR-PROVENANCE.md).
