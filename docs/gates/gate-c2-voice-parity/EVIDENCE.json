@@ -2,7 +2,7 @@
   "version": "5.0.0",
   "gate": "C2",
   "date": "2026-09-06",
-  "verdict": "C2 GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED",
+  "verdict": "C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED",
   "accepted_base": {
     "commit": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
     "tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
@@ -26,9 +26,9 @@
     "kind": "TTL persistence fix; compiler/Core/ASR unchanged"
   },
   "worktree_head": {
-    "pre_freeze_commit": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
-    "pre_freeze_tree": "896b9dbb3e7df35038a792696eadd3b5920ae27e",
-    "freeze_receipt": ".runtime/c2/closure/ttl-final-candidate-20260906/freeze.json"
+    "accepted_frozen_commit": "98aa8dc545eaf3c80a820cec4c8ab0601e4fdfc6",
+    "accepted_frozen_tree": "c81539fdad74ec3f296c7926aeb77c8e78b5c656",
+    "current_HEAD": "Status/publication metadata commits are descendants; product/criteria equivalence checked before publication"
   },
   "owner_decision": {
     "prompt_sha256": "eead7c8f65d12612b62c301675a39332cff791072f239c810b5727101a2cdd7d",
@@ -42,10 +42,10 @@
     "normalization_gold_and_C1_authority_unchanged": true
   },
   "blocks": {
-    "B01": "QUALIFICATION PASS; unchanged model/config/scorer independently rebound; final REPLACE review pending",
-    "B02": "Full matrix PASS on4ed2 plus narrow TTL delta PASS on f01e9f8",
-    "B03": "IMPLEMENTED; final review pending",
-    "B04": "TTL TOCTOU fixed;123targetedPASS; final review pending"
+    "B01": "CLOSED / PASS in accepted C2 scope",
+    "B02": "CLOSED / PASS in accepted C2 scope",
+    "B03": "CLOSED / PASS in accepted C2 scope",
+    "B04": "CLOSED / PASS in accepted C2 scope"
   },
   "qualification": {
     "file": "CONFIRMED-QUALIFICATION.json",
@@ -115,7 +115,25 @@
       "passed": 123,
       "junit_sha256": "e5e6c2b5156aaacf94ccdc441e76f4c24348216f5b7ca5f0fc59e87945566c71"
     },
-    "final": "PENDING"
+    "final": {
+      "frozen_head": "98aa8dc545eaf3c80a820cec4c8ab0601e4fdfc6",
+      "frozen_tree": "c81539fdad74ec3f296c7926aeb77c8e78b5c656",
+      "tracked_files_checked": 480,
+      "verdict": "PASS",
+      "reported_passed": 1937,
+      "reported_subtests_passed": 25,
+      "historical_deselected": 1,
+      "skips": [
+        "Windows symlink unavailable in two tests"
+      ],
+      "command": "python -m pytest -q -ra --tb=short --ignore=tests/gate0 --ignore=tests/test_gate_c0_governance.py --deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022 --basetemp=.runtime/c2/ttl-l1-01 --junitxml=.runtime/c2/closure/ttl-final-candidate-20260906/L1-junit.xml",
+      "receipts": {
+        "L1-junit.xml": "2d00e4f27d3c5bb6469ff70c4ee75c99c3575e37250bb67f1a3fa3084c676501",
+        "L1-output.txt": "1d01ec1fc18017fc08d60bb3f14f0d45e7c0ce292dddcac0cdeef7cc54449c7d",
+        "L1-boundary.json": "3487255f8abb0276c83048202edb60df0ffd42e271f7b05ff30b4b932bc5cbdc",
+        "L1-qualification-aggregate.json": "ab95217cacaca7158232613d38f423e7d7caf6366a65e68cb843181039bb8b5f"
+      }
+    }
   },
   "first_B02": {
     "run": ".runtime/c2/closure/product-smoke/confirmed-01",
@@ -345,7 +363,8 @@
     "normal_push_pr_merge_only": true,
     "performed": false,
     "live": false,
-    "C3_started": false
+    "C3_started": false,
+    "status": "PREPARING_EXACT_MANIFEST"
   },
   "historical_evidence_2026_09_04": {
     "version": "1.1.0",
@@ -1511,20 +1530,18 @@
     "next_hypothesis_sha256": "5fab1a68bef84b3028020c657dbb4137482c760b56cfd63173651c6a9f16b78c"
   },
   "boundary": {
-    "final_check": "PENDING",
-    "previous": {
-      "receipt": ".runtime/c2/closure/compiler-clarification-20260906/boundary-result.json",
-      "sha256": "3487255f8abb0276c83048202edb60df0ffd42e271f7b05ff30b4b932bc5cbdc",
-      "canonical_foreign_files_unchanged": 20,
-      "live_unchanged": true,
-      "sealed_C0_C1_ADR_unchanged": true,
-      "secret_hits": 0,
-      "raw_audio_model_assets_in_Git": false,
-      "whitespace_scope": "Owned source/docs PASS; upstream notices retain original whitespace and all35 staged blobs match SHA256"
-    }
+    "receipt": ".runtime/c2/closure/ttl-final-candidate-20260906/L1-boundary.json",
+    "sha256": "3487255f8abb0276c83048202edb60df0ffd42e271f7b05ff30b4b932bc5cbdc",
+    "canonical_foreign_files_unchanged": 20,
+    "live_changed": false,
+    "sealed_gate_diff": false,
+    "secret_pattern_hits": 0
   },
   "documentation_check": {
-    "final_check": "PENDING"
+    "passed": 4,
+    "receipt": ".runtime/c2/closure/ttl-final-candidate-20260906/status-docs-junit.xml",
+    "sha256": "9c9de8f922f2597b79ba1090f9df4d37642cfaf65d92fcdc21879191d6827df6",
+    "scope": "status synchronization; current relative links unchanged by subsequent text-only correction"
   },
   "historical_preparation_20260905": {
     "public_plan": "PRODUCT-TRIAL-PLAN.md",
@@ -3101,5 +3118,72 @@
     "correction_attempts": [],
     "review_sha256": "c890412f534162a1038cf734f6d15849077c498e2719ed6908c6570e4b6e980c",
     "report_sha256": "990c1373a54e6f79601078e60510912b58a1c65f0d7de0f6c0aae7f6ac1a9606"
+  },
+  "final_acceptance": {
+    "verdict": "PASS",
+    "frozen_head": "98aa8dc545eaf3c80a820cec4c8ab0601e4fdfc6",
+    "frozen_tree": "c81539fdad74ec3f296c7926aeb77c8e78b5c656",
+    "product_source": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
+    "product_source_tree": "896b9dbb3e7df35038a792696eadd3b5920ae27e",
+    "utc": "2026-09-06T17:38:12.421778+00:00",
+    "reviews": [
+      {
+        "role": "L1",
+        "path": ".runtime/c2/closure/ttl-final-candidate-20260906/L1-REPORT.json",
+        "sha256": "75073a259a08c0aca365f9e7c91c0355180df1a20397ee29abb9cf1aabdbcf0b",
+        "verdict": "PASS",
+        "tests_passed": 1937,
+        "subtests_passed": 25,
+        "platform_skips": 2,
+        "historical_deselected": 1
+      },
+      {
+        "role": "L2_CODE_RECOVERY",
+        "path": ".runtime/c2/closure/ttl-final-candidate-20260906/l2-code/REPORT.md",
+        "sha256": "2cb1cb0d2eee9f9fddabfbf0ca116e716ebae1c385d6a5b53cbb5dbd798646f0",
+        "verdict": "ACCEPT",
+        "tests_passed": 118,
+        "own_probes": 13
+      },
+      {
+        "role": "L2_ASR_VERIFIER",
+        "path": ".runtime/c2/closure/ttl-final-candidate-20260906/l2-verifier/REPORT.md",
+        "sha256": "bbbb392e09da1b078dc8e391fc7c92d6ad683b9203314107cb35f4c70cecd2f9",
+        "verdict": "ACCEPT",
+        "data_binding_checks_passed": 1154,
+        "new_model_runs": 0
+      },
+      {
+        "role": "L3_ADVERSARIAL",
+        "path": ".runtime/c2/closure/ttl-final-candidate-20260906/l3/REPORT.md",
+        "sha256": "d5cf992c4142621f1e032e9726ad7ca076d62d8a9fd53a708456a213ab5f289e",
+        "verdict": "ACCEPT",
+        "tests_passed": 146,
+        "own_probes": 43
+      }
+    ],
+    "blocks": {
+      "B01": "CLOSED",
+      "B02": "CLOSED",
+      "B03": "CLOSED",
+      "B04": "CLOSED"
+    },
+    "prior_rejects_preserved": true,
+    "scope": "Qualified confirmed semantic voice at flag ON; local acceptance and own source/docs publication only",
+    "limitations": [
+      "32 synthetic cases from one TTS voice; no general human speech accuracy claim",
+      "No live activation or runtime/weights/native binary redistribution",
+      "Provider NULL attempts and queue-inclusive latency limits retained",
+      "C3 not started; whole MVP1 still requires C3-C6"
+    ],
+    "remaining_publication_step": "Status-only metadata synchronization and focused independent readback; then authorized normal push/PR/merge"
+  },
+  "asr_decision": "REPLACE with pinned Faster-Whisper small beam8 for confirmed voice; local qualification/source-only publication, native binary distribution not accepted",
+  "post_acceptance_boundary": {
+    "receipt": ".runtime/c2/closure/ttl-final-candidate-20260906/post-acceptance-boundary.json",
+    "sha256": "3487255f8abb0276c83048202edb60df0ffd42e271f7b05ff30b4b932bc5cbdc",
+    "canonical_foreign_files_unchanged": 20,
+    "live_changed": false,
+    "sealed_gate_diff": false
   }
 }

@@ -1,6 +1,10 @@
 # C2 — срок хранения голосового ввода
 
-Проверка продолжения5 сентября: контракт TTL1h не менялся. Restore исправлен по authenticated quality_profile/permissions и immutable PENDING timestamps;48 voice и полная относящаяся регрессия выполнены на C2 source2822292. Подробности — [HANDOFF](HANDOFF.md); финальная приёмка C2 ещё впереди.
+<!-- C2_CURRENT_START -->
+Итоговая приёмка C2: PASS на 98aa8dc; source f01e9f8. [ACCEPTANCE](ACCEPTANCE.md) и [EVIDENCE](EVIDENCE.json) содержат exact bindings. Ниже сохранён выполненный план и его история.
+<!-- C2_CURRENT_END -->
+
+Проверка продолжения5 сентября: контракт TTL 1h не менялся. Restore исправлен по authenticated quality_profile/permissions и immutable PENDING timestamps;48 voice и полная относящаяся регрессия выполнены на C2 source2822292. Подробности — [HANDOFF](HANDOFF.md); финальная приёмка C2 ещё впереди.
 
 Статус: цельный кандидат итоговой проверки C2. Этот документ описывает реализованную
 модель очистки; окончательная приёмка требует проверок нового кандидата.

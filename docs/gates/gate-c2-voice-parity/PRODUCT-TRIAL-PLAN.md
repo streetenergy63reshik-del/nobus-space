@@ -1,10 +1,14 @@
 # Узкая регрессия TTL handoff выполнена
 
+<!-- C2_CURRENT_START -->
+Итоговая приёмка C2: PASS на 98aa8dc; source f01e9f8. [ACCEPTANCE](ACCEPTANCE.md) и [EVIDENCE](EVIDENCE.json) содержат exact bindings. Ниже сохранён выполненный план и его история.
+<!-- C2_CURRENT_END -->
+
 ## Текущий кандидат после исправления TTL — 6 сентября 2026
 
 Product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`, tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`. C2 FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED. Кандидат82e76b9 отклонён: L2 и L3 независимо воспроизвели позднюю постановку задачи, когда кодирование PreparedTask пересекало часовой TTL; реальный restore создавал PENDING task. Его1911 PASS не отменяют этот дефект; REJECT и все выводы сохранены.
 
-Исправление проверяет срок после кодирования/декодирования и связывает первый INSERT draft с живым исходным voice, tenant/task/binding и lease в одной транзакции после ожидания блокировки. Уже созданный точный draft восстанавливается идемпотентно. Целевые проверки:123 PASS. Новая узкая actual B02 дала два готовых ответа и рубрику10/10: transform без смысловой коррекции и explicit correction, с controlled restart/replay. Первичные отсутствующие final_response SDK и предварительный planning gap повторов сохранены; addendum разрешён до второй повторной подачи в прежнем общем9turn/600s окне. Эта сессия завершилась FAIL при8/9turn: transform ready получен, correction снова NULL. Отдельная заранее ограниченная завершающая correction-подача3turn/180s без retry прошла; исходная матрицаFAIL сохранена. Между ними изменены только selector диагностического trial и безопасные status/itemcounts в receipts, product-sourcef01e9f8 неизменен. Полная B02 с5ready/2UNKNOWN/cancel остаётся доказательством source4ed2; переносом PASS на другой tree не объявляется.
+Исправление проверяет срок после кодирования/декодирования и связывает первый INSERT draft с живым исходным voice, tenant/task/binding и lease в одной транзакции после ожидания блокировки. Уже созданный точный draft восстанавливается идемпотентно. Целевые проверки:123 PASS. Новая узкая actual B02 дала два готовых ответа и рубрику10/10: transform без смысловой коррекции и explicit correction, с controlled restart/replay. Первичные отсутствующие final_response SDK и предварительный planning gap повторов сохранены; addendum разрешён до второй повторной подачи в прежнем общем9turn/600s окне. Эта сессия завершилась FAIL при8/9turn: transform ready получен, correction снова NULL. Отдельная заранее ограниченная завершающая correction-подача3turn/180s без retry прошла; исходная матрицаFAIL сохранена. Между ними изменены только selector диагностического trial и безопасные status/itemcounts в receipts, product-source f01e9f8 неизменен. Полная B02 с5ready/2UNKNOWN/cancel остаётся доказательством source4ed2; переносом PASS на другой tree не объявляется.
 
 Compiler/Core, ASR/model/config, эталоны, scorer и критерии не менялись. Полная32-case квалификация и отдельный dev16 reproduction сохраняют свои точные bindings; новый цельный freeze получает собственные L1/L2/L3. Измерение concurrent small: service6,180850s и end-to-end9,682063s, включая очередь3,501213s; эти величины не смешиваются. Предел обслуживания данного файла9,480567s выполнен; ожидание в очереди показано отдельно по исходному PLAN.
 
@@ -36,7 +40,7 @@ B03/B04 реализованы; собственные полные L1/L2/L3 п�
 Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
 C3 ещё не начат. Весь MVP1 не READY до C3–C6.
 
-MATERIAL-TRIAL.json:24turn/1200s,17planned+7reserve; ledger material-trial-20260906.
+MATERIAL-TRIAL.json:24turn / 1200 s,17planned+7reserve; ledger material-trial-20260906.
 Тот же transport-only fake, synthetic fixtures, gpt-5.6-sol/high/fast и штатный ChatGPT
 endpoint. Неизменны45s/schema/Core/ref/multiset guards; raw audio не передавалось.
 
@@ -98,7 +102,7 @@ downstream prompt. Audio upload, tools и реальные effects отсутс�
    подготовить пять свежих voice preview обычным intake. Использовать только уже
    закреплённые `transform.wav` (также correction), `conditional.wav`, `negation.wav`,
    `direct.wav` (cancel). Native admit учитывается в прежнем small ledger1200s,
-   под Windows Job4CPU/4GiB. TTL1h проверять по immutable created_at; состояния не
+   под Windows Job4CPU/4GiB. TTL 1h проверять по immutable created_at; состояния не
    оживлять вручную. Завершить cancel→нет→replay без compiler/task/effect.
 3. Новый run: `.runtime/c2/closure/product-smoke/compiler-clarified-01`. Все phases
    запускаются отдельными процессами через `tests/gate_c2/product_smoke_runner.py`
@@ -109,7 +113,7 @@ downstream prompt. Audio upload, tools и реальные effects отсутс�
    локально отдельно, чтобы независимо проверить переданный хвост и model output.
 4. Сначала все первичные сценарии в порядке таблицы. Затем максимум один свежий
    повтор каждого провалившегося сценария, только если он целиком помещается в
-   оставшиеся24turn/1200s. При уже созданной задаче/ответе не создавать дубликат;
+   оставшиеся24turn / 1200 s. При уже созданной задаче/ответе не создавать дубликат;
    delivery/replay failure сначала сохранить и разобрать. Истёкшее окно не продлевать.
    Не менять source, prompts, model, fixtures, deadline или состояния внутри trial.
 5. Требуются пять фактических ANSWERED+APPROVED результатов, по одному outbox ACK,
@@ -229,7 +233,7 @@ python tests/gate_c2/product_smoke_runner.py --run .runtime/c2/closure/product-s
 # C2 B02: дополнительная сессия после исправлений
 
 Статус5 сентября2026: **PREPARED / PENDING AUTHORIZATION**. Это план, не разрешение.
-Исходное окно24turn/1200s завершилось после8compiler turns; downstream0, готовых
+Исходное окно24turn / 1200 s завершилось после8compiler turns; downstream0, готовых
 ответов0. Старый ledger `product-plan/budget.sqlite3` и все FAIL сохранены. Остаток
 16turn не переносится в новое окно. Новых provider calls после истечения не было.
 
@@ -270,10 +274,10 @@ DIRECT_OWNER_COMMAND перед инертным материалом. Перв�
 Пять real ASR preview нового product source сохранены в `closure/product-smoke/confirmed-02/`;
 во всех before/after provider count8, новых calls0, tasks/drafts/effects0. Cancel→нет→
 original/confirmation/new-да replay завершён, model count прежний, повторов ASR0.
-Остальные preview имеют штатный TTL1h: перед сессией проверить пригодность, не оживлять
+Остальные preview имеют штатный TTL 1h: перед сессией проверить пригодность, не оживлять
 истёкший SQLite payload вручную. При необходимости обновить через обычный intake в
-оставшемся прежнем small budget. Сейчас small775.020787199901/1200s, осталось424.979212800099s.
-GigaAM194.916977/1800s не менялся. Новые downloads/deps/cloud ASR не нужны.
+оставшемся прежнем small budget. Сейчас small775.020787199901 / 1200 s, осталось424.979212800099s.
+GigaAM194.916977 / 1800 s не менялся. Новые downloads/deps/cloud ASR не нужны.
 
 Pinned small factory проверяет5asset SHA; decoding совпадает с квалифицированным.
 В source binding входят все tracked src/scripts Python bytes, product-source revision,

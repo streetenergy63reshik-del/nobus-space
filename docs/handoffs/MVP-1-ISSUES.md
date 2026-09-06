@@ -1,19 +1,22 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
-Текущий C2 product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`: TTL handoff исправлен после независимого REJECT82e76;123targetedPASS и новая узкая voice→ready/replay B02 PASS. Итоговые проверки нового кандидата ещё впереди. Полная предыдущая B02 и ASR остаются связаны со своими точными bytes. Подробности — [актуальный C2 handoff](../gates/gate-c2-voice-parity/HANDOFF.md). C3 не начат.
+<!-- C2_CURRENT_START -->
+C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+<!-- C2_CURRENT_END -->
+
 
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
-**Период:** 17 июля — 5 сентября 2026 года
+**Период:** 17 июля — 6 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLICATION PENDING / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Последний локальный продуктовый checkpoint C2 — `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`,
-tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **FINAL REVIEW PENDING / NOT PUBLISHED**.
+tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **ACCEPTED / LOCAL PASS / PUBLICATION PENDING**.
 Действующие привязки и отдельная история прежних кандидатов —
 [C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
 
@@ -28,8 +31,8 @@ tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **FINAL REVIEW PENDING / NOT PU
 |---|---|---|---|---|
 | C0-F01 | False semantic reject: задача преобразования материала отклонена из-за операций, лишь перечисленных внутри материала | owner incident 2026-09-02; broad `_is_unreleased_mvp1_intent`/regex boundary в `src/application/telegram_product.py` выполняется до durable admission | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; exact text/voice incident и corpus `25/25`, keyword veto не участвует в opt-in semantic path |
 | C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
-| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **LOCAL FIX / NOT ACCEPTED**; durable intake и deferred admission; продолжение B03/B04 focused14/27PASS. Новая B02 PASS; итоговые C2 проверки впереди |
-| C0-F04 | ASR нуждался в независимой квалификации | Старые семь hard FAIL сохранены. Новый owner protocol: small WER5,71%/CER1,11% all32, holdout5,09%/1,00%; correction3/16+5/16 противCURRENT7/16+10/16;3passes/resources PASS | C2 | **LOCAL QUALIFICATION PASS / C2 NOT ACCEPTED**; pinned factory и rollback пройдены, конечный REPLACE ждёт B02 и итоговые reviews; binary distribution вопросы отдельно |
+| C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **CLOSED IN ACCEPTED C2 / NOT DEPLOYED**; durable intake/deferred admission, TTL fix и actual B02 подтверждены новым freeze 98aa8dc |
+| C0-F04 | ASR нуждался в независимой квалификации | Старые семь hard FAIL сохранены. Новый owner protocol: small WER5,71%/CER1,11% all32, holdout5,09%/1,00%; correction3/16+5/16 противCURRENT7/16+10/16;3passes/resources PASS | C2 | **CLOSED IN ACCEPTED C2 / NOT DEPLOYED**; REPLACE pinned small принят в source-only/local scope; binary distribution отдельно |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
 | C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **CONFIRMED CURRENT BLOCKER**; restart/reclaim/dead-letter/outbox reconciliation и healthy readback PASS |
@@ -43,7 +46,7 @@ tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **FINAL REVIEW PENDING / NOT PU
 | C0-F15 | Docs/manual и active deployment identity рассинхронизированы | protected `main` содержит historical current READY claim; deployment revision readback отсутствует | C6 | **CONFIRMED**; exact release/config/readback, active docs/manual и owner acceptance связаны одним SHA/tree |
 | C0-F16 | Release и owner acceptance переоткрыты | direct owner incident 2026-09-02 имеет более новую силу, чем pre-incident acceptance | C6 | **CONFIRMED**; frozen C1–C5 result, publication/activation readbacks и новая owner smoke matrix PASS |
 
-Пункты C0-F03, F05, F08, F09 и F12–F14 остаются открытыми именно как
+Пункты C0-F05, F08, F09 и F12–F14 остаются открытыми именно как
 обязательная квалификация: C0 не выдаёт наличие кода или старых тестов за
 доказательство целого продукта. Historical CLOSED строки ниже сохранены и не
 переписаны задним числом.
@@ -63,8 +66,7 @@ C0-F01/F02 закрыты в принятом C1 code, но не в live deploym
 Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован через PR #11 в
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
-C2 — GATE CANDIDATE / FINAL REVIEW PENDING. B01/B02 PASS; B03/B04 реализованы,
-собственные итоговые проверки впереди. Старые FAIL и принятый C1 сохраняются.
+C2 — ACCEPTED / LOCAL PASS / PUBLICATION PENDING. B01–B04 закрыты по собственным L1/L2/L3 кандидата 98aa8dc. Старые FAIL и принятый C1 сохраняются.
 
 
 ## Historical сводка до incident

@@ -1,5 +1,13 @@
 # Nobus Space — CURRENT
 
+<!-- C2_CURRENT_START -->
+C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+<!-- C2_CURRENT_END -->
+
+## Сохранённый контекст до итоговой приёмки C2
+
+Текущий результат указан выше; нижеследующие прежние статусы относятся к своим историческим revisions.
+
 Текущий C2 product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`: TTL handoff исправлен после независимого REJECT82e76;123targetedPASS и новая узкая voice→ready/replay B02 PASS. Итоговые проверки нового кандидата ещё впереди. Полная предыдущая B02 и ASR остаются связаны со своими точными bytes. Подробности — [актуальный C2 handoff](../gates/gate-c2-voice-parity/HANDOFF.md). C3 не начат.
 
 **Актуально на:** 6 сентября 2026 года
@@ -208,8 +216,8 @@ exact result SHA/tree и handoff.
 |---|---|---|
 | C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | durable voice, общий Core и ASR qualification | GATE CANDIDATE / FINAL REVIEW PENDING |
-| C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
+| C2 — voice parity и ASR qualification | durable voice, общий Core и ASR qualification | ACCEPTED / PUBLICATION PENDING |
+| C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | READY_AFTER_PUBLICATION / NOT_STARTED |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
 | C5 — operations/recovery/security | воспроизводимые ops, backup/restore, rollback, security | HOLD до C4 |
 | C6 — frozen release и owner acceptance | exact опубликованный active release и owner acceptance | HOLD до C5 |

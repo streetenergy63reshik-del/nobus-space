@@ -1,11 +1,14 @@
 # Документация Nobus Space
 
-Текущий C2 product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`: TTL handoff исправлен после независимого REJECT82e76;123targetedPASS и новая узкая voice→ready/replay B02 PASS. Итоговые проверки нового кандидата ещё впереди. Полная предыдущая B02 и ASR остаются связаны со своими точными bytes. Подробности — [актуальный C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md). C3 не начат.
+<!-- C2_CURRENT_START -->
+C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+<!-- C2_CURRENT_END -->
+
 
 **Статус:** CANONICAL INDEX
 **Актуально на:** 6 сентября 2026 года
 
-**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`;
+**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLICATION PENDING / NOT DEPLOYED`;
 `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Thin topology задаёт
@@ -20,7 +23,7 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
 evidence сохранены, acceptance всего MVP1 переоткрыта. C1 принят и опубликован
 через [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11),
-но остаётся default-off / NOT DEPLOYED; C2 — кандидат итоговой проверки: B01/B02 PASS, собственные L1/L2/L3 впереди,
+но остаётся default-off / NOT DEPLOYED; C2 принят по собственным L1/L2/L3; публикация подготовлена,
 см. [C2 acceptance](gates/gate-c2-voice-parity/ACCEPTANCE.md). Historical READY claim
 superseded на protected `main` C0-публикацией
 [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @

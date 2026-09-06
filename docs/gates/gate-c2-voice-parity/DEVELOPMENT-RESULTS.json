@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "status": "ASR qualification PASS; current B02 PASS; own final C2 reviews pending",
+  "status": "C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING",
   "current_results": "CONFIRMED-QUALIFICATION.json",
   "historical_document": {
     "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",
@@ -574,12 +574,8 @@
   },
   "current_product_results": {
     "file": "PRODUCT-RESULTS.json",
-    "source": "efa0ac7e1e313bf53255b47260fa991271986399",
-    "provider_calls": 0,
-    "small_charged_seconds": 869.8101349999197,
-    "targeted_passed": 385,
-    "final_guard_passed": 11,
-    "required_authorization": "C2 B02 matrix24turn/1200s"
+    "source": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
+    "verdict": "PASS"
   },
   "ttl_handoff_rework_20260906": {
     "source": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
@@ -607,6 +603,15 @@
       "verdict": "PASS",
       "file": "PRODUCT-RESULTS.json"
     },
-    "final_review": "PENDING"
+    "final_review": "PASS on 98aa8dc545eaf3c80a820cec4c8ab0601e4fdfc6"
+  },
+  "historical_before_final_current_product_results": {
+    "file": "PRODUCT-RESULTS.json",
+    "source": "efa0ac7e1e313bf53255b47260fa991271986399",
+    "provider_calls": 0,
+    "small_charged_seconds": 869.8101349999197,
+    "targeted_passed": 385,
+    "final_guard_passed": 11,
+    "required_authorization": "C2 B02 matrix24turn/1200s"
   }
 }

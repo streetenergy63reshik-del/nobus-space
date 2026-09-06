@@ -1,11 +1,15 @@
 # 14. Решения владельца и завершение Gate C2
 
-C2: исправлена независимо воспроизведённая гонка TTL, новая узкая B02 прошла. Итоговый freeze/review и обычная публикация после PASS разрешены владельцем6 сентября. [Актуальная передача C2](gates/gate-c2-voice-parity/HANDOFF.md). C3 не запускается в этой задаче.
+<!-- C2_CURRENT_START -->
+C2 принят локально; публикация после PASS разрешена и подготовлена. [Передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md) содержит действующие условия. C3 начнётся отдельной задачей после публикации; live не изменён.
+<!-- C2_CURRENT_END -->
+
+C2: исправлена независимо воспроизведённая гонка TTL, новая узкая B02 прошла. Итоговый freeze/review и обычная публикация после PASS разрешены владельцем 6 сентября. [Актуальная передача C2](gates/gate-c2-voice-parity/HANDOFF.md). C3 не запускается в этой задаче.
 
 **Статус документа:** CANONICAL OWNER INPUTS
 **Актуально на:** 6 сентября 2026 года
 **CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
-**Локальная разработка:** `C2 GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED`
+**Локальная разработка:** `C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Program boundary:** `MVP-2 HOLD`
 
@@ -45,7 +49,7 @@ C0 восстановил фактическую границу:
 - historical READY claim остаётся только в ancestry и superseded текущими
   active docs на protected `main`.
 
-## 2. C1 завершён; C2 выполняется
+## 2. C1 опубликован; C2 принят локально
 
 Gate C1 выполнен в отдельном пользовательском чате от exact protected-main
 predecessor `5feccfd...`, tree `480b2f85...`, а не от floating
@@ -60,14 +64,14 @@ authority; Core детерминированно выбирает capability/pol
 исправления, проверки и разрешённая публикация C2 продолжаются в существующей
 задаче C2. Принятый C1 повторно не принимается; C3 самостоятельно не начинается.
 
-Продуктовый checkpoint C2 — `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`,
+Предыдущий продуктовый checkpoint C2 — `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`,
 tree `8eee2901119bb3699477479ef810efae3608773f`. Владелец 5 сентября принял
 подтверждаемый ввод, два уточнения raw-критериев и конечную локальную программу.
 ASR qualification small прошла; полные результаты и ограничения —
 [HANDOFF](gates/gate-c2-voice-parity/HANDOFF.md). Старые семь hard FAIL сохранены.
 Текущий расход прежних ASR ledgers и ограничения доступны в C2 EVIDENCE.json.
 
-Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+Полная B02 до TTL-исправления на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
 пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
 MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
 прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
@@ -81,10 +85,10 @@ PreparedTask и controlled restart/replay проверены; второй за�
 
 ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
 прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
-B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+B01–B04 закрыты: собственные итоговые L1/L2/L3 приняли кандидат 98aa8dc, продуктовый код f01e9f8. После TTL-исправления проверены ещё два готовых ответа и replay; исходная полная B02 сохраняет привязку к 4ed2.
 Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
 
-Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+Владелец 6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
 и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
 Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
 C3 ещё не начат. Весь MVP1 не READY до C3–C6.
@@ -107,8 +111,8 @@ ceiling нет, region/retention неизвестны. Прежние ledgers с
 |---|---|---|
 | C0 — единая истина и контракт | published contract и exact readback | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий route, готовый результат и русский bake-off | GATE CANDIDATE / FINAL REVIEW PENDING |
-| C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | HOLD до C2 |
+| C2 — voice parity и ASR qualification | общий route, готовый результат и русский bake-off | ACCEPTED / PUBLICATION PENDING |
+| C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | READY_AFTER_PUBLICATION / NOT_STARTED |
 | C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
 | C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |
 | C6 — frozen release и owner acceptance | exact publish/activate/readback и owner smoke | HOLD до C5 |
@@ -161,4 +165,4 @@ runtime policy конкретного effect.
 
 Точный current status: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
-**C1 ACCEPTED / PUBLISHED / NOT DEPLOYED. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+**C1 опубликован; C2 принят локально и ожидает публикации. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
