@@ -62,7 +62,7 @@ Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован чер�
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
 C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED; [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md).
-C2-B01: local qualification/integration PASS; C2-B02: старое окно8turn истекло, ready0, новые17+3turn/20min ждут разрешения; C2-B03/B04:
+C2-B01: local qualification/integration PASS; C2-B02: дополнительное окно19/20turn, ready5/25из25; UNKNOWNtext/voice FAIL, новый trial4+4turn/10min ждёт разрешения; C2-B03/B04:
 native lifetime и retention исправлены локально и прошли focused14/27PASS;
 итоговые проверки цельного C2 ещё впереди. C3–C6 и MVP2 HOLD.
 
@@ -170,4 +170,4 @@ CURRENT claim вперёд; historical evidence не переписываетс�
 
 Первая полная регрессия нового source:1887PASS/2skip/1historical deselect и1FAIL
 устаревшей startup fixture; после исправления fixture runner subset22PASS.
-Это собственные C2 проверки, а не повторная приёмка C1. B02 ready result пока отсутствует.
+Это собственные C2 проверки, а не повторная приёмка C1.6 сентября получены5ready results; UNKNOWNpair остаётся FAIL. Верификатор исправлен по пропущенному внешнему polling checkpoint;24 focused tests PASS. См. [реальные результаты](../gates/gate-c2-voice-parity/PRODUCT-RESULTS.json).

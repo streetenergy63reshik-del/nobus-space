@@ -1,7 +1,7 @@
 {
-  "version": "2.0.0",
+  "version": "3.0.0",
   "gate": "C2",
-  "date": "2026-09-05",
+  "date": "2026-09-06",
   "verdict": "DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED",
   "accepted_base": {
     "commit": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
@@ -125,11 +125,10 @@
     }
   },
   "worktree_head": {
-    "entry_commit": "3ef14b32c1c602739db3b4d32016f5182b10567b",
-    "entry_tree": "e2432af5844955d4724eaedcfa97a6b77262a9fa",
-    "last_read_before_document_commit": "28222923d2c2560504d1237c8e8da6df442c6150",
-    "current_resolution": "git rev-parse HEAD HEAD^{tree}; docs-only commits may follow unchanged product source",
-    "external_final_readback": ".runtime/c2/closure/confirmed-checkpoint-evidence.json"
+    "product_source_revision": "28222923d2c2560504d1237c8e8da6df442c6150",
+    "entry_checkpoint": "bc934f3c08c19a3095aaf8242f8779f1f2210b4a",
+    "current": "git rev-parse HEAD; exact committed readback in .runtime/c2/closure/product-checkpoint-20260906.json",
+    "kind": "Local verifier/evidence checkpoint, not final Gate PASS"
   },
   "owner_decision": {
     "prompt_sha256": "eead7c8f65d12612b62c301675a39332cff791072f239c810b5727101a2cdd7d",
@@ -144,7 +143,7 @@
   },
   "blocks": {
     "C2-B01": "LOCAL QUALIFICATION AND INTEGRATION PASS; selected small REPLACE candidate pending B02 and final acceptance; no binary distribution clearance",
-    "C2-B02": "BLOCKED: old provider window expired at8turn; ready0; final17+3turn/1200s prepared, additional authorization pending",
+    "C2-B02": "PARTIAL: five actual ready answers independently accepted; supported UNKNOWN text/voice FAIL. Additional19/20turn session ended; next bounded UNKNOWN trial pending authorization.",
     "C2-B03": "LOCAL FIX / current regression verified; final candidate review pending",
     "C2-B04": "LOCAL FIX / current regression verified; final candidate review pending"
   },
@@ -225,7 +224,14 @@
       "runner_subset_passed": 22,
       "junit_sha256": "d9f5fa447aeb1a27a64045dc75292b282cbddc42b580c56c339e0cbdcaa36c1b"
     },
-    "formal_C2_L1_L2_L3": "NOT YET: requires actual B02 and final coherent candidate; historical PASS not reused"
+    "formal_C2_L1_L2_L3": "NOT YET: requires actual B02 and final coherent candidate; historical PASS not reused",
+    "polling_verifier_20260906": {
+      "passed": 24,
+      "junit_sha256": "ec8b6c3e6ab920b1871522f4b756d13faf46b039aa0526e4a9cfb5b6e20c8fde",
+      "first_attempt": "23 environment setup errors: missing parent of explicit pytest basetemp, preserved in polling-verifier-20260906/junit.xml",
+      "product_code_changed": false,
+      "formal_gate_review": false
+    }
   },
   "first_B02": {
     "run": ".runtime/c2/closure/product-smoke/confirmed-01",
@@ -290,208 +296,39 @@
     "old_failures_retained": true
   },
   "prepared_B02": {
-    "public_plan": "PRODUCT-TRIAL-PLAN.md",
+    "scope": "Only remaining supported UNKNOWN text and voice",
     "authorization": "PENDING_AUTHORIZATION",
-    "planned_turns": 17,
-    "retry_reserve": 3,
-    "max_turns": 20,
-    "continuous_seconds": 1200,
+    "planned_turns": 4,
+    "retry_reserve": 4,
+    "max_turns": 8,
+    "continuous_seconds": 600,
     "new_ledger_created": false,
-    "run": ".runtime\\c2\\closure\\product-smoke\\confirmed-02",
-    "source_binding_sha256": "abf956a8f501bce2c6f7a0d4a299d556a56efa3eaedb9038a88417cd40016065",
-    "phases": [
-      {
-        "file": "cancel_voice/phase-1788602656921249400-admit.json",
-        "sha256": "15ff1ed574deb7d250b5e63a0a530a14008483944fbb77b26e7757653ac0028d",
-        "scenario": "cancel_voice",
-        "phase": "admit",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      },
-      {
-        "file": "cancel_voice/phase-1788602665769520400-cancel.json",
-        "sha256": "6379fc08eb153ec085169216ef28eead7cac204a8743dd3161566304a8b59449",
-        "scenario": "cancel_voice",
-        "phase": "cancel",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      },
-      {
-        "file": "cancel_voice/phase-1788602669580207800-replay.json",
-        "sha256": "2937ee495ea86fcae64c29caae6e10e4f31699e86ffb7f8a846ffa2618c8a47e",
-        "scenario": "cancel_voice",
-        "phase": "replay",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      },
-      {
-        "file": "conditional_supported_unknown_voice/phase-1788602638808197500-admit.json",
-        "sha256": "d904901951fd7331e6d7c533dc86441762fd04c6b7a6257cbad366ebdc2fca60",
-        "scenario": "conditional_supported_unknown_voice",
-        "phase": "admit",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      },
-      {
-        "file": "negation_voice/phase-1788602648053631600-admit.json",
-        "sha256": "327c61c9acf8592e6ffe1ff4d77c00836713e6aeffe6da3ee0f2726076835ddb",
-        "scenario": "negation_voice",
-        "phase": "admit",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      },
-      {
-        "file": "transform_correction_voice/phase-1788602626637268200-admit.json",
-        "sha256": "cce73f3a666cffd59817de9e99a57acdd6c99a34b0d5a127c506b1fe3ffb0b3a",
-        "scenario": "transform_correction_voice",
-        "phase": "admit",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      },
-      {
-        "file": "transform_voice/phase-1788602530717454600-admit.json",
-        "sha256": "a034b7a63170bd809bcb131ab6147aedf8e7aa6f2e6e620068ccaffc26a1de32",
-        "scenario": "transform_voice",
-        "phase": "admit",
-        "tasks": 0,
-        "new_provider_turns": 0,
-        "cleanup": [
-          {
-            "component": "control",
-            "closed": true
-          },
-          {
-            "component": "asr",
-            "closed": true
-          },
-          {
-            "component": "runtime",
-            "closed": true
-          }
-        ]
-      }
-    ],
-    "executors": {
-      "cancel_voice-admit-executor-1788602653738366800.json": "23e4328517851789e39d735cf62b7918243035f0166f2fbe2fe3bc7ffb723dd2",
-      "cancel_voice-cancel-executor-1788602662715574800.json": "f37d92b87a1814d24fccf566717bb00ceef85856d77bdb7d88305ee150458db6",
-      "cancel_voice-replay-executor-1788602666237858100.json": "5b5a3a35fa9a231381da0a73afe3241bffc39af2e4c58701cc66e7ee19b37508",
-      "conditional_supported_unknown_voice-admit-executor-1788602635655719100.json": "a7f03636bb4aee51633d00c73b63cd12bca9870390ad71e0e82dd17b13b6828a",
-      "negation_voice-admit-executor-1788602644970212300.json": "90596fa080ee4210903017fc01c90939ceb573b9e4fc7227402c9d49c15eb72f",
-      "transform_correction_voice-admit-executor-1788602623181804300.json": "cfd4bab572f6deb373052e6242c954129990d3a7e77c8ca491ef24421cb26fd4",
-      "transform_voice-admit-executor-1788602527435122400.json": "b3ed81ade08864009bcffefcced74a45b7d8a02af681fd52c278bedc50ecb943"
+    "public_plan": "PRODUCT-TRIAL-PLAN.md",
+    "manifest_sha256": "2eab1d898d3f6adfa38e0943ea694790ae4213c407f75734343f455c1ae46285",
+    "freeze_sha256": "f5b3015f730aec4c200ce44062a85fe5f862beee3e8295b3af2ac1993092c1e7",
+    "verifier_files": {
+      "tests/gate_c2/product_smoke.py": "ea8d6f4a5f0c03e456fd9d8f4ac7ba00459ea49c774b0792ad032c8f187ed3bc",
+      "tests/gate_c2/product_smoke_runner.py": "1a8d6899e4c630020204562de461d93d03edd4d53e1f3b02e11a18073818233d",
+      "tests/gate_c2/PRODUCT-FIXTURES.json": "1787b299519da4d5e8743fde0106005d0981af434d746c32bd1718a70fb95ace",
+      "tests/gate_c2/test_product_smoke_guards.py": "edf0b73fe2b9ac6a4a52c9269f653a6786e058db93a936c0d5327ab669542a1f",
+      "tests/gate_c2/qualification/runner.py": "2e4b648c71880c1d7159ee47e325a28c72229354ee9023aed658a9d1f24efbae",
+      "tests/gate_c2/qualification/PROTOCOL.json": "7a56eb527f0909ff99f49498b1539735bcd009a58d4820b85bd33f489d757b43"
     },
-    "harness_sha256": "eb2bfbebfa6b250a579b19561103ebb884e9a16c9c506118f034c061c4622a35",
-    "executor_sha256": "1b4800dc714ed91871a1a1a6beaa3dc79d2fbf02100a9e6294e63fb4b63ed255",
-    "fixtures_sha256": "1787b299519da4d5e8743fde0106005d0981af434d746c32bd1718a70fb95ace",
-    "guard_checks": {
-      "status": "PASS",
-      "asr_before_native_rejected_outside_admit": true,
-      "expired_provider_budget_rejected_before_call": true,
-      "old_ledger_bytes_unchanged": true,
-      "pending_additional_authorization_rejected_before_ledger_creation": true,
-      "provider_calls": 0,
-      "asr_calls": 0,
-      "harness_sha256": "eb2bfbebfa6b250a579b19561103ebb884e9a16c9c506118f034c061c4622a35",
-      "old_turns": 8
-    },
-    "additional_manifest_sha256": "c722bce57169eb5b3ee3a989e4ab3475969546c9bb9b63261dc9f4141a05d3fd",
-    "preview_TTL_seconds": 3600,
-    "preview_expiry": "Recheck before provider session; normal intake only for new preview, never manual state edits",
-    "preflight_sha256": "16038ea7d0aa90e9f34ca86b6bbe2972a45b441cda152a839e3e546e2c127573",
-    "all_source_binding_matches_current_product": true,
-    "preparation_review_sha256": "7ebef8080c83747ca3fe96852f1c47611cdb533b5dfa86765d10f4b9366c0f38",
-    "review_followup": "Full97source hashes bound, PLAN/RUN/preflight17+3/20 updated, actual guards PASS after review; no provider calls"
+    "focused_tests_passed": 24,
+    "focused_review_sha256": "062d192cdd585bc945694f7b48d2334c5df41b0f32cdd8137d07ca00bc585d80",
+    "prepared_voice_run": ".runtime/c2/closure/product-smoke/unknown-prepared-05",
+    "prepared_voice_phase_sha256": "86b0c74b59807d77abb51025697b37d816d60df5031f7b48d9c431a12fc05746",
+    "prepared_voice_tasks": 0,
+    "prepared_voice_new_provider_calls": 0,
+    "preview_ttl_seconds": 3600,
+    "preview_reuse": "Verify immutable created_at TTL and source binding; expired preview requires ordinary fresh intake, never SQLite editing"
   },
   "budgets": {
     "small": {
       "authorized_seconds": 1200,
-      "charged_seconds": 775.020787199901,
-      "remaining_seconds": 424.97921280009905,
-      "ledger_sha256": "cb513001624795c6bb5b04d3952b97c16bbbcf65362f0cdaac76c19c0983aff9",
+      "charged_seconds": 858.4341655999306,
+      "remaining_seconds": 341.56583440006943,
+      "ledger_sha256": "9c16083c72a2d393706a198dcb2e2161752e31d7202f720463aa0c10b5d3342a",
       "qualification_including_failed_attempt_seconds": 535.7933520999504,
       "new_download_bytes": 0,
       "prior_download_bytes": 486217682
@@ -508,8 +345,24 @@
       "remaining_seconds": 0
     },
     "compiler_additional": {
+      "authorized": true,
+      "calls": 19,
+      "limit": 20,
+      "seconds_limit": 1200,
+      "first_provider_epoch": 1788704031.2532377,
+      "provider_interval_seconds": 600.3747744560242,
+      "window_expired_at_readback": true,
+      "execution_stopped": true,
+      "unused_turns_at_stop": 1,
+      "calls_after_stop": 0,
+      "ledger_sha256": "900fd1af42032bba9d13f4f26620375b577dfb217d448b0e70f8f7d4439c40d7"
+    },
+    "compiler_unknown": {
       "authorized": false,
-      "calls": 0
+      "calls": 0,
+      "planned_limit": 8,
+      "planned_seconds": 600,
+      "ledger_created": false
     }
   },
   "licence_security": {
@@ -1705,5 +1558,221 @@
   "documentation_check": {
     "passed": 4,
     "junit_sha256": "5e000d8d01e8c1d3bd23a398ed187a573336fbd1076bd5f59a49fcdeaafd56d8"
+  },
+  "historical_preparation_20260905": {
+    "public_plan": "PRODUCT-TRIAL-PLAN.md",
+    "authorization": "PENDING_AUTHORIZATION",
+    "planned_turns": 17,
+    "retry_reserve": 3,
+    "max_turns": 20,
+    "continuous_seconds": 1200,
+    "new_ledger_created": false,
+    "run": ".runtime\\c2\\closure\\product-smoke\\confirmed-02",
+    "source_binding_sha256": "abf956a8f501bce2c6f7a0d4a299d556a56efa3eaedb9038a88417cd40016065",
+    "phases": [
+      {
+        "file": "cancel_voice/phase-1788602656921249400-admit.json",
+        "sha256": "15ff1ed574deb7d250b5e63a0a530a14008483944fbb77b26e7757653ac0028d",
+        "scenario": "cancel_voice",
+        "phase": "admit",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      {
+        "file": "cancel_voice/phase-1788602665769520400-cancel.json",
+        "sha256": "6379fc08eb153ec085169216ef28eead7cac204a8743dd3161566304a8b59449",
+        "scenario": "cancel_voice",
+        "phase": "cancel",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      {
+        "file": "cancel_voice/phase-1788602669580207800-replay.json",
+        "sha256": "2937ee495ea86fcae64c29caae6e10e4f31699e86ffb7f8a846ffa2618c8a47e",
+        "scenario": "cancel_voice",
+        "phase": "replay",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      {
+        "file": "conditional_supported_unknown_voice/phase-1788602638808197500-admit.json",
+        "sha256": "d904901951fd7331e6d7c533dc86441762fd04c6b7a6257cbad366ebdc2fca60",
+        "scenario": "conditional_supported_unknown_voice",
+        "phase": "admit",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      {
+        "file": "negation_voice/phase-1788602648053631600-admit.json",
+        "sha256": "327c61c9acf8592e6ffe1ff4d77c00836713e6aeffe6da3ee0f2726076835ddb",
+        "scenario": "negation_voice",
+        "phase": "admit",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      {
+        "file": "transform_correction_voice/phase-1788602626637268200-admit.json",
+        "sha256": "cce73f3a666cffd59817de9e99a57acdd6c99a34b0d5a127c506b1fe3ffb0b3a",
+        "scenario": "transform_correction_voice",
+        "phase": "admit",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      {
+        "file": "transform_voice/phase-1788602530717454600-admit.json",
+        "sha256": "a034b7a63170bd809bcb131ab6147aedf8e7aa6f2e6e620068ccaffc26a1de32",
+        "scenario": "transform_voice",
+        "phase": "admit",
+        "tasks": 0,
+        "new_provider_turns": 0,
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "asr",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      }
+    ],
+    "executors": {
+      "cancel_voice-admit-executor-1788602653738366800.json": "23e4328517851789e39d735cf62b7918243035f0166f2fbe2fe3bc7ffb723dd2",
+      "cancel_voice-cancel-executor-1788602662715574800.json": "f37d92b87a1814d24fccf566717bb00ceef85856d77bdb7d88305ee150458db6",
+      "cancel_voice-replay-executor-1788602666237858100.json": "5b5a3a35fa9a231381da0a73afe3241bffc39af2e4c58701cc66e7ee19b37508",
+      "conditional_supported_unknown_voice-admit-executor-1788602635655719100.json": "a7f03636bb4aee51633d00c73b63cd12bca9870390ad71e0e82dd17b13b6828a",
+      "negation_voice-admit-executor-1788602644970212300.json": "90596fa080ee4210903017fc01c90939ceb573b9e4fc7227402c9d49c15eb72f",
+      "transform_correction_voice-admit-executor-1788602623181804300.json": "cfd4bab572f6deb373052e6242c954129990d3a7e77c8ca491ef24421cb26fd4",
+      "transform_voice-admit-executor-1788602527435122400.json": "b3ed81ade08864009bcffefcced74a45b7d8a02af681fd52c278bedc50ecb943"
+    },
+    "harness_sha256": "eb2bfbebfa6b250a579b19561103ebb884e9a16c9c506118f034c061c4622a35",
+    "executor_sha256": "1b4800dc714ed91871a1a1a6beaa3dc79d2fbf02100a9e6294e63fb4b63ed255",
+    "fixtures_sha256": "1787b299519da4d5e8743fde0106005d0981af434d746c32bd1718a70fb95ace",
+    "guard_checks": {
+      "status": "PASS",
+      "asr_before_native_rejected_outside_admit": true,
+      "expired_provider_budget_rejected_before_call": true,
+      "old_ledger_bytes_unchanged": true,
+      "pending_additional_authorization_rejected_before_ledger_creation": true,
+      "provider_calls": 0,
+      "asr_calls": 0,
+      "harness_sha256": "eb2bfbebfa6b250a579b19561103ebb884e9a16c9c506118f034c061c4622a35",
+      "old_turns": 8
+    },
+    "additional_manifest_sha256": "c722bce57169eb5b3ee3a989e4ab3475969546c9bb9b63261dc9f4141a05d3fd",
+    "preview_TTL_seconds": 3600,
+    "preview_expiry": "Recheck before provider session; normal intake only for new preview, never manual state edits",
+    "preflight_sha256": "16038ea7d0aa90e9f34ca86b6bbe2972a45b441cda152a839e3e546e2c127573",
+    "all_source_binding_matches_current_product": true,
+    "preparation_review_sha256": "7ebef8080c83747ca3fe96852f1c47611cdb533b5dfa86765d10f4b9366c0f38",
+    "review_followup": "Full97source hashes bound, PLAN/RUN/preflight17+3/20 updated, actual guards PASS after review; no provider calls"
+  },
+  "B02_product_results": {
+    "file": "PRODUCT-RESULTS.json",
+    "sha256": "2f8be2c7408fec67c4befe9ed356067980624fef8ef48cd8849fde827a33b44a",
+    "ready_artifacts": 5,
+    "rubric": {
+      "yes": 25,
+      "total": 25
+    },
+    "complete_matrix": "BLOCKED: UNKNOWN pair",
+    "main_transform_pair_without_semantic_correction": "PASS",
+    "provider_calls": 19,
+    "compiler_calls": 14,
+    "downstream_calls": 5
+  },
+  "documentation_check_20260906": {
+    "passed": 4,
+    "junit_sha256": "720b38f413093ec456b177e64918ca737139161d0147d7a6029b3b2bc46995bd",
+    "scope": "Current docs, links; not final Gate L1/L2/L3"
   }
 }

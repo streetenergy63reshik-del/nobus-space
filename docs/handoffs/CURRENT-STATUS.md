@@ -1,6 +1,6 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 5 сентября 2026 года
+**Актуально на:** 6 сентября 2026 года
 **Текущий продуктовый verdict:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
 **Локальный C2:** `DRAFT / BLOCKED / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
@@ -23,19 +23,22 @@ product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree
 `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`. Он совпадает с tree проверенного
 candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
 активирован. C2 — LOCAL CANDIDATE BLOCKED / NOT PUBLISHED: ASR qualification прошла,
-полный ready result B02 и итоговая приёмка ещё не доказаны. По принятому владельцем
-протоколу5 сентября выбран pinned small beam8: WER5,71%/CER1,11% all32 и
-5,09%/1,00% holdout16; смысловые правки3/16 dev и5/16 holdout против7/16 и10/16
-у CURRENT. Три warm-прохода, cold, concurrency2,4CPU/4GiB и per-file время пройдены.
+пять ready results B02 получены; supported UNKNOWN text/voice и итоговая приёмка ещё не доказаны. По принятому владельцем
+протоколу 5 сентября выбран pinned small beam8: WER5,71%/CER1,11% all32 и
+5,09%/1,00% holdout16; смысловые правки 3/16 dev и 5/16 holdout против 7/16 и 10/16
+у CURRENT. Три warm-прохода, cold, concurrency2,4 CPU/4 GiB и per-file время пройдены.
 Старые hard FAIL и один исправленный сбой verifier сохранены отдельно.
 
-Первая B02 session израсходовала8compiler turns, downstream0/ready0;20min истекли.
-Исправлены четыре локальных дефекта material boundary, UNKNOWN и восстановления
-подтверждённого/PENDING контракта. Подготовлена конечная дополнительная session
-17+3 turns /20min; точного разрешения на неё ещё нет. Новые5preview и cancel/replay
-прошли без provider calls. Small суммарно775,020787/1200s, GigaAM194,916977/1800s.
-Локальная загрузка small→base rollback→small прошла; runtime binary distribution
-имеет отдельные незакрытые licence/native вопросы. Live и C3 не менялись.
+Первая B02 session израсходовала 8 compiler turns и истекла. После четырёх локальных
+исправлений 6 сентября выполнена отдельно разрешённая сессия 19/20 turn:14 compiler и
+5 downstream, пять ready answers с независимой рубрикой 25/25. Main text/voice без
+смысловой коррекции, correction, negation, voice restart/replay и cancel пройдены.
+UNKNOWN text/voice завершились безопасным FAIL; требуемый Core UNKNOWN не получен.
+Старые FAIL сохранены. Следующий подготовленный trial 8 turn/600 s требует отдельного
+разрешения; новый ledger не создан. Verifier теперь содержит штатный polling
+checkpoint, 24 focused tests PASS; итоговые C2 L1/L2/L3 ещё впереди.
+Small 858.434166/1200 s, GigaAM 194.916977/1800 s. Native binary distribution имеет
+отдельные незакрытые вопросы; live и C3 не менялись.
 
 Актуальный product-source revision C2:
 `28222923d2c2560504d1237c8e8da6df442c6150`, tree

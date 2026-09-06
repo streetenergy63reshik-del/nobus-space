@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "status": "Historical development FAILs retained; current confirmed-protocol qualification is separate",
+  "status": "6 September: five actual B02 ready answers; UNKNOWN pair still BLOCKED; ASR qualification remains PASS under protocol3",
   "current_results": "CONFIRMED-QUALIFICATION.json",
   "historical_document": {
     "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",
@@ -560,5 +560,16 @@
     ],
     "giga_seconds_including_previous_authorization": 194.91697699996038,
     "small_seconds_including_all_execution": 129.1515492000035
+  },
+  "product_results_20260906": {
+    "file": "PRODUCT-RESULTS.json",
+    "ready": 5,
+    "rubric_yes": 25,
+    "rubric_total": 25,
+    "calls": 19,
+    "remaining": "UNKNOWN text/voice then final C2 L1/L2/L3",
+    "verifier_tests": 24,
+    "small_charged_seconds": 858.4341655999306,
+    "next_unknown_authorization": "PENDING 8turn/600s"
   }
 }

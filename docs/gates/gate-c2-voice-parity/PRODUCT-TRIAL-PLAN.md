@@ -1,3 +1,90 @@
+# C2 B02: остаётся supported UNKNOWN
+
+**6 сентября 2026: подготовлено, требуется отдельное разрешение.**
+Основная text/voice-пара, отдельная voice correction и negation в обеих модальностях
+дали пять реальных готовых ответов; независимая рубрика 25/25. Старые FAIL сохранены.
+Подробности и hashes — [PRODUCT-RESULTS.json](PRODUCT-RESULTS.json).
+
+В разрешённой дополнительной сессии выполнено 19 из 20 calls:14 compiler и 5 downstream.
+Первая transform text попытка завершилась без второго ответа compiler; обычная
+новая подача того же текста дала готовый результат. UNKNOWN text вернул внутренне
+противоречивую proposal и был отвергнут. UNKNOWN voice не получил второй ответ в
+штатные 45 s. В обоих случаях task 0/effect 0, но фактический Core UNKNOWN не доказан.
+Один оставшийся turn не вмещал целый UNKNOWN-сценарий из двух calls; он не использован.
+Исходные ledger 24/1200 s и дополнительный 20/1200 s сохраняются без обнуления.
+
+## Точный оставшийся объём
+
+Запрашивается одна отдельная сессия: максимум **8 model turns вместе с повторами**,
+одна непрерывная **сессия 600 секунд от первого provider call**. План: UNKNOWN text2,
+UNKNOWN voice2, резерв 4 на не более одной свежей повторной подачи каждой модальности.
+Все резервные calls входят в 8. Никакого изменения fixtures, prompts, source, модели
+или deadline по ответам compiler; failure остаётся failure.
+
+Используется существующая подписка ChatGPT/OpenAI Codex, production
+`gpt-5.6-sol/high/fast`, штатный `https://chatgpt.com/backend-api/codex`.
+Перед первым turn — native login и SDK account/provider/endpoint guard.
+API-key или иной endpoint останавливают проверку до inference. Только неизменный
+синтетический conditional fixture и штатные C1 prompts; без audio upload, tools,
+реальных действий, API billing и новых покупок. Расходуется имеющаяся квота;
+жёсткого token ceiling нет, region/retention аккаунта неизвестны.
+
+## Исправленная проверка и её границы
+
+Код проверки теперь доступен в Git: [product_smoke.py](../../../tests/gate_c2/product_smoke.py),
+[resource executor](../../../tests/gate_c2/product_smoke_runner.py),
+[неизменные fixtures](../../../tests/gate_c2/PRODUCT-FIXTURES.json).
+Исторический smoke опускал внешний polling checkpoint: text negation replay
+сохранил task/result, но сделал ещё один compiler call. Это пробел verifier и оценки
+бюджета; ошибка production polling этим не доказана. Новый smoke использует настоящие
+TelegramPollingBoundary и SQLitePollingCheckpointStore, включая штатный lease 240 s.
+Заглушка остаётся только транспортной: get_updates соблюдает сохранённый offset.
+Для обеих модальностей replay требует неизменных model/task/artifact counts.
+
+24 целевые проверки прошли: accepted offset переживает restart, старый update
+не вызывает handler, отказ не продвигает offset, новый confirmation проходит;
+pending authorization и чужой scenario блокируются до нового ledger/provider.
+Независимый focused review закрыл scope и resource-helper binding замечания.
+Это подготовка verifier, не итоговые L2/L3 C2. Product src/scripts, schema и
+compiler deadline 45 s не менялись; product source остаётся 28222923d2c2560504d1237c8e8da6df442c6150.
+
+## Порядок после точного разрешения
+
+1. Сверить Git и freeze `.runtime/c2/closure/polling-verifier-20260906/freeze.json`,
+   hashes source/model/config/fixtures/audio/verifier/resource helper. Выполнить
+   штатный login/provider preflight без inference до начала 600 s.
+2. В `.runtime/c2/closure/product-plan/UNKNOWN-TRIAL.json` сохранить точный grant;
+   сейчас он PENDING_AUTHORIZATION. Новый ledger `unknown-trial-20260906/budget.sqlite3`
+   ещё не создан. Старые ledger не редактировать.
+3. Проверить TTL свежего waiting preview в `product-smoke/unknown-prepared-05`.
+   При истечении создать обычный intake в прежнем small ledger до первого provider
+   turn; не оживлять SQLite. Аудио — прежний conditional.wav; owner явно исправляет
+   plural raw transcript на неизменный singular conditional fixture. ASR credit 0.
+4. Text: admit→drain→replay. Voice: confirm с --correction→drain→replay. Требуются
+   фактические MATERIAL_ITEM_STATE_V1/UNKNOWN, CLARIFY/PREDICATE_UNKNOWN,
+   capability null/task 0/effect 0; generic safe refusal не подходит. До confirm
+   compiler/task/draft/effect 0. Replay не добавляет calls или результат.
+5. При failure сохранить попытку; один неизменный fresh retry для этой модальности
+   допускается только внутри общего 8 turn/600 s. Затем завершить все процессы и
+   независимо оценить фактические решения. Только после B02 — цельный C2 и свои L1–L3.
+
+Пример разрешённой только после нового grant provider-фазы (из корня C2;
+Python — существующая canonical .venv):
+
+```text
+python tests/gate_c2/product_smoke_runner.py --run .runtime/c2/closure/product-smoke/unknown-prepared-05 --scenario conditional_supported_unknown_voice --phase confirm --model .runtime/asr-qualification/faster-whisper-small/models --audio .runtime/c2/synthetic-audio/conditional.wav --correction --unknown-authorized-trial
+```
+
+Этот документ не разрешает provider calls, публикацию, live или C3. Успех при
+неизменном compiler deadline не гарантирован; при новом FAIL результат сохраняется.
+
+---
+
+## Исторический план дополнительной сессии5 сентября — выполнен6 сентября
+
+Ниже сохранён исходный текст. Его PENDING и инструкции ожидания больше не являются
+текущим статусом; текущие результаты и новый узкий запрос описаны выше.
+
 # C2 B02: дополнительная сессия после исправлений
 
 Статус5 сентября2026: **PREPARED / PENDING AUTHORIZATION**. Это план, не разрешение.

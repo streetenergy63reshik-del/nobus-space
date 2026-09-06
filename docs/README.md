@@ -1,7 +1,7 @@
 # Документация Nobus Space
 
 **Статус:** CANONICAL INDEX
-**Актуально на:** 4 сентября 2026 года
+**Актуально на:** 6 сентября 2026 года
 
 **CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`;
 `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
@@ -18,7 +18,7 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
 evidence сохранены, acceptance всего MVP1 переоткрыта. C1 принят и опубликован
 через [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11),
-но остаётся default-off / NOT DEPLOYED; C2 — локальный BLOCKED-кандидат: ASR qualification PASS, B02 требует дополнительной разрешённой сессии,
+но остаётся default-off / NOT DEPLOYED; C2 — локальный BLOCKED-кандидат: ASR qualification PASS, B02 имеет пять готовых ответов, но требует фактического supported UNKNOWNtext/voice,
 см. [C2 acceptance](gates/gate-c2-voice-parity/ACCEPTANCE.md). Historical READY claim
 superseded на protected `main` C0-публикацией
 [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @

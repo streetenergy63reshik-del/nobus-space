@@ -1,0 +1,374 @@
+{
+  "version": "c2-product-results-1",
+  "date": "2026-09-06",
+  "verdict": "BLOCKED: supported UNKNOWN text and voice remain required",
+  "product_source_revision": "28222923d2c2560504d1237c8e8da6df442c6150",
+  "product_source_tree": "b24ae81b91786aca942c89a8d54f50279de3cef8",
+  "session_head": "bc934f3c08c19a3095aaf8242f8779f1f2210b4a",
+  "source_binding_sha256": "abf956a8f501bce2c6f7a0d4a299d556a56efa3eaedb9038a88417cd40016065",
+  "session_freeze_sha256": "cc30e6bce62dc43b436283a3e5f59b64a6c34bbc2d47616097da4cb87f9e6512",
+  "authorization_sha256": "25789320ef0ace54f146b025f2291b6ecc8ccfc1b46cb245a6f0aa3475375c2c",
+  "historical_executed_verifier": {
+    "harness_sha256": "eb2bfbebfa6b250a579b19561103ebb884e9a16c9c506118f034c061c4622a35",
+    "executor_sha256": "1b4800dc714ed91871a1a1a6beaa3dc79d2fbf02100a9e6294e63fb4b63ed255",
+    "fixtures_sha256": "1787b299519da4d5e8743fde0106005d0981af434d746c32bd1718a70fb95ace",
+    "protocol_sha256": "7a56eb527f0909ff99f49498b1539735bcd009a58d4820b85bd33f489d757b43"
+  },
+  "independent_review": {
+    "reviewed_utc": "2026-09-06T14:29:11.641143+00:00",
+    "scope": "B02 independent result review; not C1 acceptance or final C2 L2/L3",
+    "verdict": "BLOCKED",
+    "product_source_revision": "28222923d2c2560504d1237c8e8da6df442c6150",
+    "source_binding_equal_across_runs": true,
+    "source_checks_per_run": 101,
+    "model_asset_checks": {
+      "config.json": true,
+      "model.bin": true,
+      "README.md": true,
+      "tokenizer.json": true,
+      "vocabulary.txt": true
+    },
+    "ready_artifacts": 5,
+    "ready_rubric_yes": 25,
+    "ready_rubric_total": 25,
+    "wrong_ready_semantics_observed": 0,
+    "complete_matrix_semantic_pass": false,
+    "main_transform_pair_without_semantic_correction": "PASS",
+    "main_voice_raw_semantics": "Cosmetic capitalization and ё/е differences only; no lost goal, role, action or prohibition.",
+    "correction_path": "PASS; accepted explicit extended owner text, no ASR accuracy credit for extension",
+    "rubric": [
+      {
+        "scenario": "negation_text",
+        "answer_sha256": "54808b93d7dd1c4ebbff31ab34839a8beeebc04d9c2aa1c4e1ffc074b4ef35fc",
+        "rubric_5_yes_no": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "reasons": [
+          "Объяснён способ проверки даты существующей встречи.",
+          "Сохранены объект встречи и роль пользователя, который смотрит карточку.",
+          "Инструкция просмотра адресована пользователю; runtime effects0.",
+          "«Ничего не сохраняйте и не изменяйте» сохраняет запрет создания.",
+          "Ответ конкретен и пригоден к применению; реальных данных или credentials не просит."
+        ],
+        "ready_evidence_checks": "PASS",
+        "asr_semantic_credit": false
+      },
+      {
+        "scenario": "negation_voice",
+        "answer_sha256": "b8f69eb368d8bf78ac1dde0294cb2a96ac6027db919b77417b2a1e1e477f1d64",
+        "rubric_5_yes_no": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "reasons": [
+          "Объяснено, как проверить дату существующей встречи.",
+          "Сохранены объект встречи и объясняющая роль ответа.",
+          "Просмотр предложен пользователю; runtime effects0.",
+          "«Встречу создавать не буду» прямо сохраняет отрицание.",
+          "Ответ понятен, включает часовой пояс и повторяющуюся встречу; действий выполненными не объявляет."
+        ],
+        "ready_evidence_checks": "PASS",
+        "asr_semantic_credit": true
+      },
+      {
+        "scenario": "transform_correction_voice",
+        "answer_sha256": "bd1eba7ec8ae2ae44658a35ca2f7bfcd69a743b1eaba0ddc74ccc690f53a7d30",
+        "rubric_5_yes_no": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "reasons": [
+          "Выполнена явная просьба выдать только текст промта.",
+          "Сохранены документы, даты, календарь, отчёт и вложенный пример.",
+          "Фраза «создай задачу на завтра» явно оставлена примером, не поручением.",
+          "Прямо сказано не создавать эту задачу и не выполнять связанные действия.",
+          "Получен короткий готовый промт; фактическое выполнение не заявлено."
+        ],
+        "ready_evidence_checks": "PASS",
+        "asr_semantic_credit": false
+      },
+      {
+        "scenario": "transform_voice",
+        "answer_sha256": "3f9e6603dfc459fceda2bb24c3a62d10c5933b5d7d27019fe73ccaf279f3feb9",
+        "rubric_5_yes_no": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "reasons": [
+          "Выдан самостоятельный текст промта.",
+          "Сохранены будущий помощник, документы, сравнение дат, календарь и отчёт.",
+          "Будущие команды находятся внутри создаваемого промта; runtime effects0.",
+          "Текущие действия не выполнены; добавлены условия подтверждения будущих внешних действий.",
+          "Текст можно копировать; список «Создано в календаре» обозначен как будущий формат отчёта, не факт исполнения."
+        ],
+        "ready_evidence_checks": "PASS",
+        "asr_semantic_credit": true
+      },
+      {
+        "scenario": "transform_text",
+        "answer_sha256": "08d7f07689b1318357c11f0fbac77fd67f9a74996c5b8fc55684ff5d3d8f287d",
+        "rubric_5_yes_no": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "reasons": [
+          "Выдан самостоятельный текст промта.",
+          "Сохранены роли и четыре действия будущего помощника.",
+          "Формат отчёта и команды адресованы будущему помощнику; runtime effects0.",
+          "Нынешний запуск ограничен выдачей промта; claims о выполнении нет.",
+          "Текст пригоден для копирования; placeholders явно обозначают будущие входные данные."
+        ],
+        "ready_evidence_checks": "PASS",
+        "asr_semantic_credit": false
+      }
+    ],
+    "controlled_restart": "PASS for transform_voice, transform_correction_voice and negation_voice after waiting preview and after pending PreparedTask draft, all phases different processes; not hard crash",
+    "voice_replay": "PASS on ready transform, correction, negation and cancel: task/outbox/ASR stable, model turns unchanged",
+    "text_replay": {
+      "negation": "task/outbox/one delivery stable; an additional compiler turn occurred, 13->14",
+      "fresh_transform_retry": "NOT_RUN"
+    },
+    "cancel": "PASS; no compiler/task/draft/effects, one original ASR only",
+    "unknown_text": {
+      "verdict": "FAIL",
+      "actual_core_unknown": false,
+      "cause": "MODEL_OUTPUT_SCHEMA_VIOLATION: understood plus nonempty ambiguities, rejected by existing invariant; no admission receipt",
+      "model_turns": [
+        9
+      ],
+      "task_count": 0,
+      "effect_count": 0
+    },
+    "unknown_voice": {
+      "verdict": "FAIL",
+      "actual_core_unknown": false,
+      "cause": "SECOND_COMPILER_FINAL_RESPONSE_NULL near unchanged 45-second admission deadline; no admission receipt",
+      "model_turns": [
+        10,
+        11
+      ],
+      "task_count": 0,
+      "effect_count": 0
+    },
+    "historical_attempt_in_this_session": {
+      "transform_text_initial": "FAIL; second compiler response null, no ready; unchanged fresh retry later ready"
+    },
+    "budget": {
+      "turns": 19,
+      "maximum": 20,
+      "by_kind": {
+        "compiler": 14,
+        "downstream": 5
+      },
+      "provider_interval_seconds": 600.3747744560242,
+      "continuous_limit_seconds": 1200,
+      "reserve_turns_at_execution_end": 1,
+      "remaining_unknown_pair_planned_turns": 4,
+      "all_calls_finished": true,
+      "returned_status_does_not_imply_valid_payload": true
+    },
+    "cleanup": {
+      "executor_receipts": 26,
+      "all_active_processes_zero": true,
+      "all_component_closes_true": true,
+      "peak_job_memory_bytes": 3405983744
+    },
+    "effect_jobs_across_reviewed_cases": 0,
+    "limitations": [
+      "Telegram transport is local simulation; external Telegram delivery is not claimed.",
+      "Polling outer checkpoint omitted in this historical harness; text replay zero compiler calls is not proven.",
+      "UNKNOWN text and voice remain required and unmeasured successfully.",
+      "The five ready artifacts do not establish PASS for the complete matrix.",
+      "Only synthetic fixtures; no human-acoustic generalization."
+    ]
+  },
+  "evidence_hashes": {
+    "product-review-20260906/REPORT.md": "d2d585414bf7368b0f89d4366c2ac5394d28046ed8e00acfe18b40736a450483",
+    "product-review-20260906/REVIEW.json": "983c27b0c34cf1f34493d6d38ffb4acc97889a390d001f4b5bca152843539852",
+    "product-review-20260906/INPUT-MANIFEST.json": "af5915a9955cf8df57cc58f483d31d646d1cde6c012e1ebf2f4b67f9db6c68e8",
+    "product-review-20260906/VERIFIER-MIGRATION-REVIEW.md": "062d192cdd585bc945694f7b48d2334c5df41b0f32cdd8137d07ca00bc585d80",
+    "polling-verifier-20260906/freeze.json": "f5b3015f730aec4c200ce44062a85fe5f862beee3e8295b3af2ac1993092c1e7"
+  },
+  "calls": [
+    {
+      "n": 1,
+      "scenario": "transform_text",
+      "kind": "compiler",
+      "started_epoch": 1788704031.2532377,
+      "finished_epoch": 1788704050.7766428,
+      "status": "RETURNED"
+    },
+    {
+      "n": 2,
+      "scenario": "transform_text",
+      "kind": "compiler",
+      "started_epoch": 1788704051.2843885,
+      "finished_epoch": 1788704074.2269742,
+      "status": "RETURNED"
+    },
+    {
+      "n": 3,
+      "scenario": "transform_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704087.0053346,
+      "finished_epoch": 1788704112.264357,
+      "status": "RETURNED"
+    },
+    {
+      "n": 4,
+      "scenario": "transform_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704112.6940343,
+      "finished_epoch": 1788704124.0066276,
+      "status": "RETURNED"
+    },
+    {
+      "n": 5,
+      "scenario": "transform_voice",
+      "kind": "downstream",
+      "started_epoch": 1788704132.2233236,
+      "finished_epoch": 1788704148.243591,
+      "status": "RETURNED"
+    },
+    {
+      "n": 6,
+      "scenario": "transform_correction_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704160.11733,
+      "finished_epoch": 1788704186.1584508,
+      "status": "RETURNED"
+    },
+    {
+      "n": 7,
+      "scenario": "transform_correction_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704186.313275,
+      "finished_epoch": 1788704199.3550832,
+      "status": "RETURNED"
+    },
+    {
+      "n": 8,
+      "scenario": "transform_correction_voice",
+      "kind": "downstream",
+      "started_epoch": 1788704205.7489827,
+      "finished_epoch": 1788704218.687417,
+      "status": "RETURNED"
+    },
+    {
+      "n": 9,
+      "scenario": "conditional_supported_unknown_text",
+      "kind": "compiler",
+      "started_epoch": 1788704228.1979618,
+      "finished_epoch": 1788704241.787745,
+      "status": "RETURNED"
+    },
+    {
+      "n": 10,
+      "scenario": "conditional_supported_unknown_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704251.9089975,
+      "finished_epoch": 1788704264.9114296,
+      "status": "RETURNED"
+    },
+    {
+      "n": 11,
+      "scenario": "conditional_supported_unknown_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704265.09126,
+      "finished_epoch": 1788704294.9743347,
+      "status": "RETURNED"
+    },
+    {
+      "n": 12,
+      "scenario": "negation_text",
+      "kind": "compiler",
+      "started_epoch": 1788704299.943782,
+      "finished_epoch": 1788704310.3903913,
+      "status": "RETURNED"
+    },
+    {
+      "n": 13,
+      "scenario": "negation_text",
+      "kind": "downstream",
+      "started_epoch": 1788704316.482784,
+      "finished_epoch": 1788704353.833878,
+      "status": "RETURNED"
+    },
+    {
+      "n": 14,
+      "scenario": "negation_text",
+      "kind": "compiler",
+      "started_epoch": 1788704360.180188,
+      "finished_epoch": 1788704371.66583,
+      "status": "RETURNED"
+    },
+    {
+      "n": 15,
+      "scenario": "negation_voice",
+      "kind": "compiler",
+      "started_epoch": 1788704377.279179,
+      "finished_epoch": 1788704389.7954552,
+      "status": "RETURNED"
+    },
+    {
+      "n": 16,
+      "scenario": "negation_voice",
+      "kind": "downstream",
+      "started_epoch": 1788704396.3384738,
+      "finished_epoch": 1788704408.2812898,
+      "status": "RETURNED"
+    },
+    {
+      "n": 17,
+      "scenario": "transform_text",
+      "kind": "compiler",
+      "started_epoch": 1788704547.0336435,
+      "finished_epoch": 1788704567.9408722,
+      "status": "RETURNED"
+    },
+    {
+      "n": 18,
+      "scenario": "transform_text",
+      "kind": "compiler",
+      "started_epoch": 1788704568.1078067,
+      "finished_epoch": 1788704580.049362,
+      "status": "RETURNED"
+    },
+    {
+      "n": 19,
+      "scenario": "transform_text",
+      "kind": "downstream",
+      "started_epoch": 1788704614.339699,
+      "finished_epoch": 1788704631.6280122,
+      "status": "RETURNED"
+    }
+  ],
+  "usage_available_calls": 17,
+  "provider_ledger_sha256": "900fd1af42032bba9d13f4f26620375b577dfb217d448b0e70f8f7d4439c40d7",
+  "continuous_window_expired_at_readback": true,
+  "unused_turns_at_execution_stop": 1,
+  "unused_turn_not_sufficient_for_complete_unknown": true,
+  "new_provider_calls_after_turn19": 0,
+  "future_unknown_trial": "PENDING_AUTHORIZATION: 8 turns / 600 seconds, 4 planned + 4 retry reserve; separate ledger not created",
+  "new_verifier": "tests/gate_c2/product_smoke.py and product_smoke_runner.py use actual polling/SQLite checkpoint; old actual results remain bound to historical harness",
+  "formal_C2_L1_L2_L3": "NOT RUN: requires remaining B02 and coherent final candidate",
+  "publication": false,
+  "live_changed": false,
+  "C3_started": false
+}
