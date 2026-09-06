@@ -15,11 +15,13 @@ from .confirmation import (
     VoiceConfirmationStatus,
 )
 from .faster_whisper import FasterWhisperTranscriber
+from .isolated import IsolatedFasterWhisperTranscriber
 from .service import VoicePreviewService
 
 __all__ = [
     "ConfirmedVoicePreview",
     "FasterWhisperTranscriber",
+    "IsolatedFasterWhisperTranscriber",
     "InMemoryVoiceConfirmationStore",
     "TranscriptResult",
     "VoiceCleanupError",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -83,7 +84,7 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
 )
 from src.transport.miniapp import create_miniapp_app  # noqa: E402
 from src.storage import SQLiteStore  # noqa: E402
-from src.voice import FasterWhisperTranscriber, VoicePreviewService  # noqa: E402
+from src.voice import IsolatedFasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
 
 
@@ -110,6 +111,14 @@ _OWNER_READ_ROOT, _ORCHESTRATOR_ROOT, _WORKTREE = _runtime_layout(ROOT)
 _RUNTIME_ROOT = ROOT / ".runtime"
 _CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
+_VOICE_MODEL_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
+_VOICE_MODEL_FILES = {
+    "model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+    "tokenizer.json": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+    "vocabulary.txt": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+    "config.json": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+    "README.md": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8",
+}
 _VOICE_TEMP_ROOT = _RUNTIME_ROOT / "voice-temp"
 _VOICE_INITIAL_PROMPT = (
     "Нобус Спейс — личный оркестратор. Компания называется PROстранство, "
@@ -121,6 +130,34 @@ _VOICE_HOTWORDS = (
     "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon "
     "MCP idempotency оркестратор субагент"
 )
+
+
+def _build_voice_transcriber(model_directory: Path | None = None) -> IsolatedFasterWhisperTranscriber:
+    """Load only the qualified small artifact; provisioning is a separate action."""
+    model_directory = model_directory or _VOICE_MODEL_ROOT / "faster-whisper-small" / _VOICE_MODEL_REVISION
+    try:
+        for name, expected in _VOICE_MODEL_FILES.items():
+            with (model_directory / name).open("rb") as stream:
+                if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
+                    raise ValueError("voice model identity mismatch")
+    except OSError:
+        raise ValueError("voice model assets unavailable") from None
+    return IsolatedFasterWhisperTranscriber(
+        model_size=str(model_directory.resolve()),
+        device="cpu",
+        compute_type="int8",
+        download_root=_VOICE_MODEL_ROOT,
+        local_files_only=True,
+        language="ru",
+        beam_size=8,
+        patience=1.2,
+        vad_filter=True,
+        condition_on_previous_text=True,
+        initial_prompt=_VOICE_INITIAL_PROMPT,
+        hotwords=_VOICE_HOTWORDS,
+    )
+
+
 _POLLING_LEASE_SECONDS = 240
 _GATE_C1_SEMANTIC_ADMISSION_ENABLED = False
 _CHECKPOINT_PATH = _RUNTIME_ROOT / "telegram-checkpoint.sqlite3"
@@ -288,6 +325,7 @@ async def _run(
     control: ProductTelegramControlPlane | None = None
     miniapp_server: _MiniAppServer | None = None
     runtime = None
+    voice_transcriber = None
     bot_token = credential.secret.get_secret_value()
     api = TelegramBotApi(
         token=bot_token,
@@ -357,20 +395,7 @@ async def _run(
         report_stage("worker_probe")
         await runtime.probe_worker()
         report_stage("voice_warmup")
-        voice_transcriber = FasterWhisperTranscriber(
-            model_size="base",
-            device="cpu",
-            compute_type="int8",
-            download_root=_VOICE_MODEL_ROOT,
-            local_files_only=True,
-            language="ru",
-            beam_size=8,
-            patience=1.2,
-            vad_filter=True,
-            condition_on_previous_text=True,
-            initial_prompt=_VOICE_INITIAL_PROMPT,
-            hotwords=_VOICE_HOTWORDS,
-        )
+        voice_transcriber = _build_voice_transcriber()
         await voice_transcriber.warmup()
         report_stage("rate_limit_provider")
         limit_provider = build_codex_rate_limit_client(
@@ -488,7 +513,11 @@ async def _run(
                         if callable(closer):
                             await closer()
                 finally:
-                    await api.aclose()
+                    try:
+                        if voice_transcriber is not None:
+                            await voice_transcriber.close()
+                    finally:
+                        await api.aclose()
 
 
 def _extension_version(executable: Path) -> tuple[int, ...]:

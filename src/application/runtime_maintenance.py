@@ -69,7 +69,7 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
         "table:semantic_clarifications":
             "d3f9ae1e18148dd71d0645af7059ee1dc30a89b6eb7f8ea745ec0966349234fb",
         "table:telegram_jobs":
-            "125b252ef8a4ee7e6954813e81e51edea1feee986bf6c308ba6eabe048062dc8",
+            "ce29f038e79e8b2c0e27fbd313a1f60e1a5a4277eba8d2d641cf20d90a0949e7",
         "table:telegram_progress":
             "93178455126f5edaeaa6ed3af42141e688b34d9d481bfa205900d4e9127e434b",
     },
@@ -84,7 +84,7 @@ def quick_check(path: Path) -> None:
             raise RuntimeError("runtime database foreign key mismatch")
 
 
-def validate_runtime_database(path: Path) -> None:
+def validate_runtime_database(path: Path, *, content: bool = True) -> None:
     """Validate exact DDL plus every stored application digest."""
     path = Path(path)
     expected = EXPECTED_SCHEMA_DIGESTS.get(path.name)
@@ -102,6 +102,8 @@ def validate_runtime_database(path: Path) -> None:
         }
     if actual != expected:
         raise RuntimeError("runtime database schema mismatch")
+    if not content:
+        return
     if path.name == "telegram-checkpoint.sqlite3":
         _validate_checkpoint_rows(path)
     elif path.name == "task-runtime.sqlite3":
@@ -110,6 +112,28 @@ def validate_runtime_database(path: Path) -> None:
         _validate_telegram_state_rows(path)
     else:
         _validate_business_notes_rows(path)
+
+
+def expire_runtime_voice(path: Path, *, require_quiescent: bool = False) -> None:
+    """Maintenance-only expiry before content validation; never mutate backup originals."""
+    if path.name != 'telegram-state.sqlite3':
+        return
+    validate_runtime_database(path, content=False)
+    from src.application.durable_telegram_state import DpapiJsonCodec, purge_voice_rows
+    from src.application.durable_telegram_state import require_voice_quiescent
+    with closing(sqlite3.connect(path, isolation_level=None)) as connection:
+        connection.execute('PRAGMA secure_delete=ON')
+        connection.execute('BEGIN IMMEDIATE')
+        try:
+            purge_voice_rows(connection, now=datetime.now(UTC), encode=DpapiJsonCodec().encode)
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        if connection.execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone()[0] != 0:
+            raise RuntimeError('runtime voice cleanup busy')
+        if require_quiescent:
+            require_voice_quiescent(connection)
 
 
 def dead_letter_count(path: Path) -> int:
@@ -289,11 +313,15 @@ def _validate_telegram_state_rows(path: Path) -> None:
             row["lease_owner"],
             row["lease_expires_at"],
         )
+        if (row['kind']=='voice' and row['payload_digest'] != canonical_json_digest({})
+            and created+timedelta(hours=1) <= datetime.now(UTC)):
+            raise RuntimeError('runtime voice retention maintenance required')
         payload = codec.decode(bytes(row["payload"]))
         if (
             not _runtime_text(row["tenant_id"], 128)
-            or row["kind"] not in {"draft", "miniapp_draft", "patch", "effect"}
-            or row["status"] not in {"pending", "leased", "failed"}
+            or row["kind"] not in {"draft", "miniapp_draft", "patch", "effect", "voice"}
+            or row["status"] not in {"pending", "leased", "failed", "waiting", "finished"}
+            or (row["status"] in {"waiting", "finished"} and row["kind"] != "voice")
             or not _runtime_digest(row["binding_digest"])
             or not _runtime_digest(row["payload_digest"])
             or canonical_json_digest(payload) != row["payload_digest"]

@@ -49,11 +49,11 @@ class FakeTranscriber:
         self,
         text: str = "hello world",
         language: str | None = "en",
-        confidence: float | None = 0.95,
+        language_confidence: float | None = 0.95,
     ) -> None:
         self.text = text
         self.language = language
-        self.confidence = confidence
+        self.language_confidence = language_confidence
         self.calls: list[Path] = []
         self.limits: list[int] = []
 
@@ -61,7 +61,7 @@ class FakeTranscriber:
         self.calls.append(path)
         self.limits.append(max_chars)
         return TranscriptResult(
-            text=self.text, language=self.language, confidence=self.confidence
+            text=self.text, language=self.language, language_confidence=self.language_confidence
         )
 
 
@@ -88,7 +88,7 @@ class RecordingFakeTranscriber:
     async def transcribe(self, path: Path, *, max_chars: int) -> TranscriptResult:
         self.paths.append(path)
         await asyncio.sleep(0)
-        return TranscriptResult(text="hello", language="en", confidence=0.9)
+        return TranscriptResult(text="hello", language="en", language_confidence=0.9)
 
 
 class SlowThreadTranscriber:
@@ -102,7 +102,7 @@ class SlowThreadTranscriber:
         self.worker_thread = threading.current_thread()
         assert path.exists()
         time.sleep(self.delay)
-        return TranscriptResult(text="ok", language="en", confidence=0.9)
+        return TranscriptResult(text="ok", language="en", language_confidence=0.9)
 
     async def transcribe(self, path: Path, *, max_chars: int) -> TranscriptResult:
         return await asyncio.to_thread(self._sync_work, path)
@@ -126,7 +126,7 @@ class MalformedResultTranscriber:
         class BadResult:
             text = 123
             language = None
-            confidence = None
+            language_confidence = None
 
         return BadResult()
 
@@ -136,7 +136,7 @@ class DeletingTranscriber:
 
     async def transcribe(self, path: Path, *, max_chars: int) -> TranscriptResult:
         path.unlink()
-        return TranscriptResult(text="deleted", language="en", confidence=0.9)
+        return TranscriptResult(text="deleted", language="en", language_confidence=0.9)
 
 
 @pytest.fixture
@@ -160,7 +160,7 @@ async def test_success_returns_preview_and_deletes_temp(
     assert isinstance(result, VoicePreview)
     assert result.transcript == "hello world"
     assert result.language == "en"
-    assert result.confidence == 0.95
+    assert result.language_confidence == 0.95
     assert result.sha256 == hashlib.sha256(audio).hexdigest()
     assert result.size == len(audio)
     assert list(tmp_voice.iterdir()) == []
@@ -233,17 +233,17 @@ async def test_oversize_transcript_rejected_after_normalization(
 
 
 @pytest.mark.asyncio
-async def test_confidence_out_of_range_rejected(tmp_voice: Path) -> None:
-    service = make_service(tmp_voice, FakeTranscriber(confidence=1.5))
+async def test_language_confidence_out_of_range_rejected(tmp_voice: Path) -> None:
+    service = make_service(tmp_voice, FakeTranscriber(language_confidence=1.5))
     with pytest.raises(VoiceTranscriptionError, match="transcription failed"):
         await service.preview_from_bytes(b"audio")
     assert list(tmp_voice.iterdir()) == []
 
 
 @pytest.mark.asyncio
-async def test_bool_confidence_rejected(tmp_voice: Path) -> None:
+async def test_bool_language_confidence_rejected(tmp_voice: Path) -> None:
     service = make_service(
-        tmp_voice, FakeTranscriber(confidence=True)  # type: ignore[arg-type]
+        tmp_voice, FakeTranscriber(language_confidence=True)  # type: ignore[arg-type]
     )
     with pytest.raises(VoiceTranscriptionError, match="transcription failed"):
         await service.preview_from_bytes(b"audio")
@@ -779,7 +779,7 @@ async def test_partial_temp_write_is_cleaned(tmp_voice: Path, monkeypatch: Any) 
     [
         ("text", 123),
         ("language", 123),
-        ("confidence", 1.5),
+        ("language_confidence", 1.5),
     ],
 )
 @pytest.mark.asyncio
@@ -791,7 +791,7 @@ async def test_mutable_transcript_result_revalidated(
             class MutableResult(TranscriptResult):
                 model_config = ConfigDict(validate_assignment=False, frozen=False)
 
-            result = MutableResult(text="hello", language="en", confidence=0.9)
+            result = MutableResult(text="hello", language="en", language_confidence=0.9)
             setattr(result, field, value)
             return result
 
@@ -1047,7 +1047,7 @@ async def test_cancellation_drain_is_bounded_and_cleanup_is_deferred(
 
 
 def test_voice_models_forbid_extra_and_are_frozen() -> None:
-    result = TranscriptResult(text="hello", language="en", confidence=0.9)
+    result = TranscriptResult(text="hello", language="en", language_confidence=0.9)
     with pytest.raises(ValidationError):
         TranscriptResult(text="hello", unexpected="no")  # type: ignore[call-arg]
     with pytest.raises(ValidationError):
@@ -1056,7 +1056,7 @@ def test_voice_models_forbid_extra_and_are_frozen() -> None:
     preview = VoicePreview(
         transcript="hello",
         language="en",
-        confidence=0.9,
+        language_confidence=0.9,
         sha256="a" * 64,
         size=1,
     )

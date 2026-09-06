@@ -130,7 +130,7 @@ class FakeVoiceService:
         return VoicePreview(
             transcript=self.transcript,
             language="ru",
-            confidence=0.99,
+            language_confidence=0.99,
             sha256="0" * 64,
             size=len(audio),
         )

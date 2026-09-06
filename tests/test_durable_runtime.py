@@ -124,7 +124,7 @@ class FakeTranscriber:
 
     async def transcribe(self, path: Path, *, max_chars: int) -> TranscriptResult:
         self.calls += 1
-        return TranscriptResult(text=self.text, language="ru", confidence=0.99)
+        return TranscriptResult(text=self.text, language="ru", language_confidence=0.99)
 
 
 @dataclass

@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "purpose": "product-smoke fixtures, not ASR holdout or inference evidence",
+  "original_dataset_sha256": "33f108b3d992c757751cd3e1517589a4579070acfaf248a09239987987e13d7e",
+  "cases": [
+    {
+      "id": "transform",
+      "text": "Сформируй промт из следующего материала. Будущий помощник читает документы, сравнивает даты, создаёт календарь и отправляет отчёт. Сейчас нужно только подготовить текст промта, никаких действий выполнять не надо.",
+      "text_sha256": "b67cad80fac6994fa03f3d6ea1243f54bac13c1291952eac63cdfe1b73ab6022",
+      "structural_condition": "NONE",
+      "source": "original_dev",
+      "expected": "ready"
+    },
+    {
+      "id": "negation",
+      "text": "Не создавай встречу. Только объясни, как проверить её дату.",
+      "text_sha256": "6328c0b7f45459bde84fbd44b2717060bb70b4135b429e22ca6afaa4e679f294",
+      "structural_condition": "NONE",
+      "source": "original_dev",
+      "expected": "ready"
+    },
+    {
+      "id": "conditional",
+      "text": "Если в списке есть просроченные дела, преобразуй список в краткий план.",
+      "text_sha256": "efde4fa3cd680ccfcef683ffbc6f2962a24d2876a9c59875a72e7d8ddd49f45d",
+      "structural_condition": "UNSUPPORTED",
+      "source": "original_dev",
+      "expected": "unsupported"
+    },
+    {
+      "id": "conditional_supported_unknown",
+      "text": "Если в предоставленном списке есть просроченный пункт, преобразуй список в краткий план.",
+      "text_sha256": "fd61777c622739818e20546ec5a1a497395ce6e294fecf9fea8c19e276b47674",
+      "structural_condition": "SUPPORTED",
+      "source": "additional_product_dev",
+      "expected": "unknown",
+      "audio_reference": "conditional",
+      "voice_requires_correction": true
+    },
+    {
+      "id": "transform_correction",
+      "text": "Сформируй готовый промт из приведённого материала. Сохрани роли и запреты; выдай только текст промта. Никаких описанных действий сейчас не выполняй.\nНачало материала. Будущий помощник читает документы, сравнивает даты, создаёт календарь и отправляет отчёт. В примере сказано: «создай задачу на завтра». Эта цитата — вложенный пример для автора промта; саму задачу создавать не надо. Конец материала.",
+      "text_sha256": "adf3d63d5e453651448aec7d99407f3b45b21b17204a8cfd437477f1bf69c1e4",
+      "structural_condition": "NONE",
+      "source": "explicit_synthetic_owner_correction_and_material_extension",
+      "audio_reference": "transform",
+      "asr_accuracy_credit": false,
+      "expected": "ready",
+      "voice_requires_correction": true
+    },
+    {
+      "id": "cancel",
+      "text": "нет",
+      "text_sha256": "dc9337ff5b423e6828cd8f164d022d3a02b4efeaf7a0d2f60eaa032b7d9dcd3f",
+      "source": "synthetic_owner_rejects_preview",
+      "audio_reference": "direct",
+      "expected": "cancel"
+    }
+  ],
+  "provider_calls": 0,
+  "model_calls": 0,
+  "actual_product_smoke": "NOT_RUN",
+  "protocol": "c2-confirmed-voice-3.0.0"
+}

@@ -62,7 +62,8 @@ _MENTIONED_CONTEXT_BOUNDARY = re.compile(
 _TAIL_MATERIAL_BOUNDARY = re.compile(
     r"\b(?:материал|текст|образец|цитат[ау]|команд[ау])\s+"
     r"(?:ниже|далее|следующ\w*)\b|"
-    r"\bследующ\w*\s+(?:материал|текст|команд\w*)\b",
+    r"\bследующ\w*\s+(?:материал(?:а|у|ом|е|ы|ов|ам|ами|ах)?|"
+    r"текст(?:а|у|ом|е|ы|ов|ам|ами|ах)?|команд\w*)\b",
     re.I,
 )
 _COLON_MATERIAL_BOUNDARY = re.compile(
@@ -2101,6 +2102,14 @@ class SemanticAdmissionService:
             bool(bindings.text_span_bindings)
             and len(active) == 1
             and active[0].operation_kind == "transform_material"
+            # An absent trusted predicate fact has a precise UNKNOWN outcome.
+            # It cannot execute; keep the material guard for unconditional/TRUE.
+            and not (
+                bindings.conditional_structure == "SUPPORTED"
+                and active[0].role == "conditional"
+                and active[0].predicate is not None
+                and active[0].predicate.subject_ref not in bindings.material_item_states
+            )
             and not any(
                 span.trusted_origin != "DIRECT_OWNER_COMMAND"
                 for span in bindings.text_span_bindings

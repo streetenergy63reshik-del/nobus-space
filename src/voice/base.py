@@ -23,7 +23,12 @@ class TranscriptResult(BaseModel):
 
     text: str
     language: str | None = None
-    confidence: float | None = None
+    language_confidence: float | None = None
+    provider: str | None = None
+    model: str | None = None
+    provider_version: str | None = None
+    duration_seconds: float | None = Field(default=None, ge=0, le=300)
+    quality: str = 'unqualified_confirmation_required'
 
     @field_validator("text", mode="before")
     @classmethod
@@ -44,17 +49,17 @@ class TranscriptResult(BaseModel):
         normalized = value.strip().lower()
         return normalized if normalized else None
 
-    @field_validator("confidence", mode="before")
+    @field_validator("language_confidence", mode="before")
     @classmethod
-    def _validate_confidence(cls, value: Any) -> float | None:
+    def _validate_language_confidence(cls, value: Any) -> float | None:
         if value is None:
             return None
         if isinstance(value, bool):
-            raise ValueError("confidence must not be a bool")
+            raise ValueError("language_confidence must not be a bool")
         if not isinstance(value, (int, float)):
-            raise ValueError("confidence must be a number")
+            raise ValueError("language_confidence must be a number")
         if not 0 <= value <= 1:
-            raise ValueError("confidence must be between 0 and 1")
+            raise ValueError("language_confidence must be between 0 and 1")
         return float(value)
 
 
@@ -65,7 +70,12 @@ class VoicePreview(BaseModel):
 
     transcript: str
     language: str | None = None
-    confidence: float | None = None
+    language_confidence: float | None = None
+    provider: str | None = None
+    model: str | None = None
+    provider_version: str | None = None
+    duration_seconds: float | None = Field(default=None, ge=0, le=300)
+    quality: str = 'unqualified_confirmation_required'
     sha256: str
     size: int = Field(ge=0)
 

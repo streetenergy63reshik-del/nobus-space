@@ -250,6 +250,9 @@ def test_restore_rolls_back_new_and_existing_targets(
         "validate_runtime_database",
         lambda path: None,
     )
+    # This probe deliberately uses marker-only SQLite files to isolate rollback
+    # after the second replace. Real retention/schema validation has its own tests.
+    monkeypatch.setattr("src.application.runtime_maintenance.expire_runtime_voice", lambda path: None)
     monkeypatch.setattr(
         restore_telegram_runtime,
         "checkpoint",

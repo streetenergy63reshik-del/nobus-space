@@ -1,0 +1,617 @@
+{
+  "version": "2.0.0",
+  "status": "C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING",
+  "current_results": "CONFIRMED-QUALIFICATION.json",
+  "historical_document": {
+    "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",
+    "thresholds_changed": false,
+    "input": "unchanged historical 16 synthetic WAV; new 16 holdout WAV frozen but not recognized",
+    "results": [
+      {
+        "candidate": "CURRENT-matched-4cpu",
+        "split": "development",
+        "passes": 1,
+        "score_sha256": "e5719760613a79482f49898e764fafc4649474dfdee971a540dc25ebaa5dc5c7",
+        "run_sha256": "e141d3e1e1f58e41e946b59090bc8a14b8b3bd43f66ce76b1586473015537fba",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.1415929203539823,
+          "cer": 0.02728426395939086,
+          "critical_token_errors_iteration0": 5,
+          "critical_token_errors_all_passes": 5,
+          "latency_p50": 1.2650182000070345,
+          "latency_p95": 5.320529499964323,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.2649877206440411,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 28.81834640004672,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 2.938167100015562,
+          "job_final_stats": {
+            "cpu_seconds": 109.0625,
+            "peak_job_memory_bytes": 1648902144,
+            "peak_process_memory_bytes": 1508605952,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": null
+        },
+        "hard_threshold_result": "FAIL",
+        "cause": "critical_token_errors > 0",
+        "configuration": {
+          "source_script_sha256": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab",
+          "source_options": {
+            "model_size": "base",
+            "device": "cpu",
+            "compute_type": "int8",
+            "local_files_only": true,
+            "language": "ru",
+            "beam_size": 8,
+            "patience": 1.2,
+            "vad_filter": true,
+            "condition_on_previous_text": true,
+            "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+            "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+          },
+          "binding": "base identifier resolved to explicit pinned local snapshot path; no download/cache fallback",
+          "model_directory_name": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
+        }
+      },
+      {
+        "candidate": "gigaam-pinned",
+        "split": "development",
+        "passes": 1,
+        "score_sha256": "b90ac6d8d2669f37d187f0db59980600ab895207ec99043b51c7bca2c35fe92a",
+        "run_sha256": "f2b9aefe9be53a8197db7cadf6014c58b4b46238cc454d386f45a83f2d932c0e",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.0752212389380531,
+          "cer": 0.01967005076142132,
+          "critical_token_errors_iteration0": 4,
+          "critical_token_errors_all_passes": 4,
+          "latency_p50": 0.9067928000004031,
+          "latency_p95": 5.695012200041674,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.20635381137373413,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 25.682976999960374,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 3.335827899980359,
+          "job_final_stats": {
+            "cpu_seconds": 94.5625,
+            "peak_job_memory_bytes": 1147518976,
+            "peak_process_memory_bytes": 1147437056,
+            "total_processes": 2,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": "8edcacb16e0b880a67cc09a2e66cbae5b2ccb7830a90695a3fb399890eedd25d"
+        },
+        "hard_threshold_result": "FAIL",
+        "cause": "critical_token_errors > 0",
+        "configuration": {
+          "model": "gigaam-v3-e2e-rnnt",
+          "offline": true,
+          "providers": [
+            "CPUExecutionProvider"
+          ],
+          "intra_op": 4,
+          "inter_op": 1,
+          "execution_mode": "ORT_SEQUENTIAL",
+          "preprocessor_max_workers": 1,
+          "vad": {
+            "batch_size": 1,
+            "threshold": 0.5,
+            "neg_threshold": 0.35,
+            "min_speech_duration_ms": 250,
+            "max_speech_duration_s": 20,
+            "min_silence_duration_ms": 100,
+            "speech_pad_ms": 30
+          },
+          "ort_telemetry_disabled_before_sessions": true,
+          "source_comparator_sha256": "1dc1022ba627ad13265b7489e38f7de3024264d305c4e38416f49d17aaf2d876"
+        }
+      },
+      {
+        "candidate": "fw-neutral",
+        "split": "development",
+        "passes": 1,
+        "score_sha256": "8bee6c72102c20c74532062b3c8a451883f79f730f8c59437180b8ccd584d742",
+        "run_sha256": "2fb8460612696017db30e22615f0d52087ea312b77dc8f08ead94fbc4988083c",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.13716814159292035,
+          "cer": 0.031725888324873094,
+          "critical_token_errors_iteration0": 4,
+          "critical_token_errors_all_passes": 4,
+          "latency_p50": 1.0307541999791283,
+          "latency_p95": 4.499271800043061,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.21884365941948597,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 23.50361310003791,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 2.6397900000447407,
+          "job_final_stats": {
+            "cpu_seconds": 87.84375,
+            "peak_job_memory_bytes": 1648197632,
+            "peak_process_memory_bytes": 1507495936,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": null
+        },
+        "hard_threshold_result": "FAIL",
+        "cause": "critical_token_errors > 0",
+        "configuration": {
+          "source_script_sha256": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab",
+          "source_options": {
+            "model_size": "base",
+            "device": "cpu",
+            "compute_type": "int8",
+            "local_files_only": true,
+            "language": "ru",
+            "beam_size": 8,
+            "patience": 1.2,
+            "vad_filter": true,
+            "condition_on_previous_text": true,
+            "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+            "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+          },
+          "candidate_overrides": {
+            "initial_prompt": "Русская речь. Nobus Space, Codex, Telegram, idempotency key.",
+            "hotwords": "Nobus Space Codex Telegram idempotency key"
+          },
+          "overrides_sha256": "cffaac197b1352f01579cd00407e810a399416f605ad0fdff20f6911908bcb03",
+          "binding": "base identifier resolved to explicit pinned local snapshot path; no download/cache fallback",
+          "model_directory_name": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
+        }
+      },
+      {
+        "candidate": "fw-wide",
+        "split": "development",
+        "passes": 1,
+        "score_sha256": "f3691a6dffcd2c726c5c7c8a83d6c54c0c1017ef31fcd80086f78c46649128f9",
+        "run_sha256": "65ae7587ee8d061d75b2bce71975e66931ec186fe3206e9924b142c5cf2313a1",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.1504424778761062,
+          "cer": 0.02982233502538071,
+          "critical_token_errors_iteration0": 4,
+          "critical_token_errors_all_passes": 4,
+          "latency_p50": 1.1874409499869216,
+          "latency_p95": 5.575881099968683,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.2487470847523446,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 28.2118375999853,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 2.7321624999749474,
+          "job_final_stats": {
+            "cpu_seconds": 107.4375,
+            "peak_job_memory_bytes": 1649692672,
+            "peak_process_memory_bytes": 1509130240,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": null
+        },
+        "hard_threshold_result": "FAIL",
+        "cause": "critical_token_errors > 0",
+        "configuration": {
+          "source_script_sha256": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab",
+          "source_options": {
+            "model_size": "base",
+            "device": "cpu",
+            "compute_type": "int8",
+            "local_files_only": true,
+            "language": "ru",
+            "beam_size": 8,
+            "patience": 1.2,
+            "vad_filter": true,
+            "condition_on_previous_text": true,
+            "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+            "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+          },
+          "candidate_overrides": {
+            "initial_prompt": null,
+            "hotwords": "Nobus Space Codex Telegram idempotency key",
+            "beam_size": 16,
+            "patience": 2.0,
+            "condition_on_previous_text": false
+          },
+          "overrides_sha256": "afcfccc6b2c6183992270ff7edd71d98d125b31e5a411c4b09eb09b47f947186",
+          "binding": "base identifier resolved to explicit pinned local snapshot path; no download/cache fallback",
+          "model_directory_name": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
+        }
+      },
+      {
+        "candidate": "fw-plain",
+        "split": "development",
+        "passes": 1,
+        "score_sha256": "a851c506c921e7066947feb70b6bdfca5008a54768989f7a78fd83162c8260b6",
+        "run_sha256": "45a957d981329a27f196ea34ca6b1f795f3696687167c6d586c5396a22026a63",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.168141592920354,
+          "cer": 0.041243654822335024,
+          "critical_token_errors_iteration0": 5,
+          "critical_token_errors_all_passes": 5,
+          "latency_p50": 0.8670381499978248,
+          "latency_p95": 2.794139500008896,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.19094468036149806,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 19.131340499967337,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 2.557786399964243,
+          "job_final_stats": {
+            "cpu_seconds": 71.3125,
+            "peak_job_memory_bytes": 1647792128,
+            "peak_process_memory_bytes": 1506598912,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": null
+        },
+        "hard_threshold_result": "FAIL",
+        "cause": "critical_token_errors > 0",
+        "configuration": {
+          "source_script_sha256": "715ea3e805e1d65b0717a7d8a086606c07670d4e30677500dd7f3efc7faffdab",
+          "source_options": {
+            "model_size": "base",
+            "device": "cpu",
+            "compute_type": "int8",
+            "local_files_only": true,
+            "language": "ru",
+            "beam_size": 8,
+            "patience": 1.2,
+            "vad_filter": true,
+            "condition_on_previous_text": true,
+            "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+            "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+          },
+          "candidate_overrides": {
+            "initial_prompt": null,
+            "hotwords": null,
+            "beam_size": 5,
+            "patience": 1.0,
+            "condition_on_previous_text": false
+          },
+          "overrides_sha256": "588f880611e46433351bc1673c1730bfd7b5761476dffc29e89e407f05d6acec",
+          "binding": "base identifier resolved to explicit pinned local snapshot path; no download/cache fallback",
+          "model_directory_name": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
+        }
+      },
+      {
+        "candidate": "fw-small-current-decoder",
+        "split": "development",
+        "passes": 1,
+        "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+        "score_sha256": "09ec4e99dea54f3b88f403b8d4d61c625ee899131a132c65c2ba2016b44e119e",
+        "run_sha256": "aa08e5349db5fddd283a9a86c969a0a44b53a09b5b358f8a567a7d5a60f3c692",
+        "freeze_sha256": "8068adb0bef68486a54210a6674a8b89017e1bb46b11f564cf78ee707ab7ea4d",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.06637168141592921,
+          "cer": 0.012690355329949238,
+          "critical_token_errors_iteration0": 2,
+          "critical_token_errors_all_passes": 2,
+          "latency_p50": 3.629843599977903,
+          "latency_p95": 14.001760000013746,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.7916341935035205,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 78.52062520000618,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 7.651219099992886,
+          "job_final_stats": {
+            "cpu_seconds": 292.703125,
+            "peak_job_memory_bytes": 3040018432,
+            "peak_process_memory_bytes": 2899345408,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": "d47b143264b384f2c9e0a4d18f28fe6f4f507fc1f511a40a1c83714251446093"
+        },
+        "hard_threshold_result": "FAIL",
+        "causes": [
+          "critical_token_errors 2 > 0",
+          "raw warm RTF p95 0.7916341935 > 0.5"
+        ],
+        "critical_mismatch_cases": [
+          {
+            "id": "cancel",
+            "critical_token_errors": 1,
+            "critical_mismatches": [
+              {
+                "atom": "отмени",
+                "reference_count": 1,
+                "hypothesis_count": 0
+              }
+            ]
+          },
+          {
+            "id": "noise",
+            "critical_token_errors": 1,
+            "critical_mismatches": [
+              {
+                "atom": "отрицания",
+                "reference_count": 1,
+                "hypothesis_count": 0
+              }
+            ]
+          }
+        ],
+        "configuration": {
+          "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+          "device": "cpu",
+          "compute_type": "int8",
+          "local_files_only": true,
+          "language": "ru",
+          "beam_size": 8,
+          "patience": 1.2,
+          "vad_filter": true,
+          "condition_on_previous_text": true,
+          "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+          "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+        },
+        "independent_semantics": "NOT RUN: hard failure already decisive; no claimed semantic PASS",
+        "holdout_recognized": false,
+        "continuation": "One dev pass ended; no config search"
+      },
+      {
+        "candidate": "fw-small-beam1",
+        "split": "development",
+        "passes": 1,
+        "model_revision": "536b0662742c02347bc0e980a01041f333bce120",
+        "run_sha256": "501c4ebf7c2080b240aab7eec1969d71612687efe3d4ccb153fe7542d47d862b",
+        "score_sha256": "6cb3e3aa2618b33b2201758102579cb4e372a1461cd7a93c26d6217a5ed9dd3f",
+        "freeze_sha256": "1fc7608eacdea365b34283922e447a9d901563a62a484126bd0422fcf273f9d3",
+        "authorization_sha256": "fa84b96aff9cf533add27e59c82d9ed435d34a10536290e1218cf279b8cc7ac7",
+        "summary": {
+          "samples_iteration0": 16,
+          "observations": 16,
+          "wer": 0.08849557522123894,
+          "cer": 0.021573604060913704,
+          "critical_token_errors_iteration0": 2,
+          "critical_token_errors_all_passes": 2,
+          "latency_p50": 2.5792344500368927,
+          "latency_p95": 7.022141100023873,
+          "timing_observations": 16,
+          "missing_or_invalid_timing_rows": 0,
+          "raw_rtf_p95": 0.5808777073620053,
+          "per_file_budget_exceeded": 0,
+          "measurement_error_rows": 0,
+          "semantic_exact_raw": null,
+          "semantic_status": "INDEPENDENT_REVIEW_REQUIRED",
+          "asr_decision": "NOT_EVALUATED_BY_SCORER"
+        },
+        "supervisor": {
+          "outcome": "EXITED",
+          "child_exit_code": 0,
+          "elapsed_seconds": 50.63092399999732,
+          "error": null,
+          "reservation_seconds": 150.0,
+          "process_cold_seconds": 4.818859499995597,
+          "job_final_stats": {
+            "cpu_seconds": 194.765625,
+            "peak_job_memory_bytes": 2922139648,
+            "peak_process_memory_bytes": 2781388800,
+            "total_processes": 3,
+            "active_processes": 0,
+            "memory_metric": "Windows Job committed memory, including descendants; not peak working set"
+          },
+          "process_cold_boundary": "before interpreter spawn through first dev-direct transcript; OS file cache uncontrolled",
+          "controller_not_in_job": "stdlib supervisor and venv redirector have no model/audio inference allocation",
+          "cumulative_ledger_sha256": "9fd66843d084f53046477b4262f7d7db3d30b99de773f578ac83d0d738945f28"
+        },
+        "configuration": {
+          "model_size": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+          "device": "cpu",
+          "compute_type": "int8",
+          "local_files_only": true,
+          "language": "ru",
+          "beam_size": 1,
+          "patience": 1.2,
+          "vad_filter": true,
+          "condition_on_previous_text": true,
+          "initial_prompt": "Нобус Спейс — личный оркестратор. Компания называется PROстранство, про пространство. Маркетплейсы Wildberries и Ozon. Используются Codex, Telegram и Nobus Space. Термины: MCP, idempotency key, L1, L2, L3, L4 и субагент.",
+          "hotwords": "Nobus Space Нобус Спейс PROстранство Codex Telegram Wildberries Ozon MCP idempotency оркестратор субагент"
+        },
+        "hard_threshold_result": "FAIL",
+        "causes": [
+          "critical_token_errors 2 > 0",
+          "raw warm RTF p95 0.5808777074 > 0.5"
+        ],
+        "critical_mismatch_cases": [
+          {
+            "id": "cancel",
+            "critical_token_errors": 1,
+            "critical_mismatches": [
+              {
+                "atom": "отмени",
+                "reference_count": 1,
+                "hypothesis_count": 0
+              }
+            ]
+          },
+          {
+            "id": "domain",
+            "critical_token_errors": 1,
+            "critical_mismatches": [
+              {
+                "atom": "nobus",
+                "reference_count": 1,
+                "hypothesis_count": 0
+              }
+            ]
+          }
+        ],
+        "independent_semantics": "NOT RUN: hard failures already decisive; no semantic PASS claim",
+        "one_change_verified": "only beam_size8 to1; all remaining decoder settings, model, audio, gold and thresholds unchanged",
+        "holdout_recognized": false,
+        "continuation": "one separately authorized dev run completed; no automatic further configuration search"
+      }
+    ],
+    "independent_semantics": {
+      "artifact_sha256": "094c7bd35d802ea094cd59097bc79dac475b580377c6af9b6db70c01c6ef7457",
+      "CURRENT": {
+        "exact": 13,
+        "samples": 16,
+        "critical_failures": 3
+      },
+      "gigaam": {
+        "exact": 15,
+        "samples": 16,
+        "critical_failures": 1
+      },
+      "definition": "seven prespecified dimensions; raw ASR, no compiler oracle, no correction credit"
+    },
+    "selected_engine": null,
+    "decision": "BLOCKED: beam1 improves latency but fails critical-token and raw RTF thresholds; no KEEP/REPLACE",
+    "limitations": "one development pass; no final 3-pass/holdout/concurrency acceptance yet; resource timing is observed, not final qualification",
+    "historical_failure_receipts_preserved": [
+      "qualification-fw-dev0.json",
+      "qualification-fw-dev0-v2.json"
+    ],
+    "giga_seconds_including_previous_authorization": 194.91697699996038,
+    "small_seconds_including_all_execution": 129.1515492000035
+  },
+  "historical_product_results_before_unknown": {
+    "file": "PRODUCT-RESULTS.json",
+    "ready": 5,
+    "rubric_yes": 25,
+    "rubric_total": 25,
+    "calls": 19,
+    "remaining": "UNKNOWN text/voice then final C2 L1/L2/L3",
+    "verifier_tests": 24,
+    "small_charged_seconds": 858.4341655999306,
+    "next_unknown_authorization": "PENDING 8turn/600s"
+  },
+  "current_product_results": {
+    "file": "PRODUCT-RESULTS.json",
+    "source": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
+    "verdict": "PASS"
+  },
+  "ttl_handoff_rework_20260906": {
+    "source": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
+    "model_config_scorer_unchanged": true,
+    "rejected_candidate": {
+      "head": "82e76b9859fa2ba75bd800a39eba092c28c9d215",
+      "tree": "dfc797615c88351cfde43b0aa9b181a5e8485780",
+      "verdict": "REJECT",
+      "reason": "PreparedTask encoding crossing one-hour TTL could enqueue a late draft; actual restore admitted PENDING task. Independently reproduced L2 and L3.",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "L1": {
+        "passed": 1911,
+        "skipped": 2,
+        "deselected": 1,
+        "subtests_passed": 25
+      },
+      "reports": {
+        ".runtime/c2/closure/final-candidate-20260906/L1-REPORT.json": "bce4ce8633d0e9644967a2bf27cb0d6e59222db074b5725e90d4f967ca855380",
+        ".runtime/c2/closure/final-candidate-20260906/l2-code/REPORT.md": "a12a8dcc96c13e0d8ad5573b6ede03e12a044a0492d3c95953c229090601bcb4",
+        ".runtime/c2/closure/final-candidate-20260906/l2-verifier/REPORT.md": "be558ce14b6781d29a007b2e584ced4dba697a5ec5f4d9c3b369b16c9b1c484a",
+        ".runtime/c2/closure/final-candidate-20260906/l3/REPORT.md": "ce2ccc0dc17994bd6f3d7684472eba2fae0fe48038455d460826a9ce1163a841"
+      }
+    },
+    "narrow_B02": {
+      "verdict": "PASS",
+      "file": "PRODUCT-RESULTS.json"
+    },
+    "final_review": "PASS on 98aa8dc545eaf3c80a820cec4c8ab0601e4fdfc6"
+  },
+  "historical_before_final_current_product_results": {
+    "file": "PRODUCT-RESULTS.json",
+    "source": "efa0ac7e1e313bf53255b47260fa991271986399",
+    "provider_calls": 0,
+    "small_charged_seconds": 869.8101349999197,
+    "targeted_passed": 385,
+    "final_guard_passed": 11,
+    "required_authorization": "C2 B02 matrix24turn/1200s"
+  }
+}

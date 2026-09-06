@@ -1,7 +1,18 @@
 # Nobus Space — CURRENT
 
-**Актуально на:** 4 сентября 2026 года
+<!-- C2_CURRENT_START -->
+C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+<!-- C2_CURRENT_END -->
+
+## Сохранённый контекст до итоговой приёмки C2
+
+Текущий результат указан выше; нижеследующие прежние статусы относятся к своим историческим revisions.
+
+Текущий C2 product-source `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`: TTL handoff исправлен после независимого REJECT82e76;123targetedPASS и новая узкая voice→ready/replay B02 PASS. Итоговые проверки нового кандидата ещё впереди. Полная предыдущая B02 и ASR остаются связаны со своими точными bytes. Подробности — [актуальный C2 handoff](../gates/gate-c2-voice-parity/HANDOFF.md). C3 не начат.
+
+**Актуально на:** 6 сентября 2026 года
 **Текущий продуктовый verdict:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
+**Локальный C2:** `GATE CANDIDATE / FINAL REVIEW PENDING / NOT PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Следующая продуктовая линия:** `MVP-2 HOLD`
 
@@ -21,7 +32,39 @@ C1-B01/C1-B02; прежний PASS и reviews отменены. Replacement 8e5e
 product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree
 `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`. Он совпадает с tree проверенного
 candidate `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da`. C1 default-off и не
-активирован. C2 — READY TO START / NOT STARTED. Релиз `v1.0.1` остаётся
+активирован. C2 — цельный кандидат итоговой проверки. B01/B02 прошли.
+
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
+
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
+
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
+
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
+
+Актуальный product-source revision C2:
+`4ed2cd2418b58ba499ff5dfdf69605244ceb4916`, tree
+`8eee2901119bb3699477479ef810efae3608773f`. Входной checkpoint3ef14b32 сохранён;
+документационные commits после product source определяют текущий worktree HEAD,
+проверяемый через `git rev-parse HEAD` и отдельный confirmed-checkpoint receipt.
+Точная текущая проекция и старые evidence разделены в
+[индексе доказательств C2](../gates/gate-c2-voice-parity/EVIDENCE.json).
+См. [C2 acceptance](../gates/gate-c2-voice-parity/ACCEPTANCE.md)
+и [handoff](../gates/gate-c2-voice-parity/HANDOFF.md). Релиз `v1.0.1` остаётся
 историческим опубликованным Git-фактом; до C2–C6 и новой owner acceptance
 весь продукт не имеет verdict `READY`.
 
@@ -147,11 +190,11 @@ flag штатного runner — default-off.
 Один acceptance record и C2 handoff находятся в
 [C1 gate package](../gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md).
 
-### NOT ACTIVATED / NOT IMPLEMENTED
+### Ещё не активировано или не квалифицировано
 
 - activation опубликованного C1;
 - production shadow rollout C1;
-- C2 русский ASR bake-off и доказанная text/voice parity;
+- итоговая приёмка и публикация C2;
 - повторная полная C3–C6 квалификация и owner acceptance.
 
 Согласованная semantic kind substitution самим compiler остаётся ограниченным
@@ -173,8 +216,8 @@ exact result SHA/tree и handoff.
 |---|---|---|
 | C0 — единая истина и контракт | доказанный CURRENT и обязательный semantic contract | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | semantic admission и deterministic Core decision | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий text/voice Core-route и русский bake-off | READY TO START / NOT STARTED |
-| C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | HOLD до C2 |
+| C2 — voice parity и ASR qualification | durable voice, общий Core и ASR qualification | ACCEPTED / PUBLICATION PENDING |
+| C3 — стабильность Core/backend/worker | queue/state/retry/recovery/status stability | READY_AFTER_PUBLICATION / NOT_STARTED |
 | C4 — завершённый frontend/user journey | Telegram/Mini App input→result→artifact→recovery | HOLD до C3 |
 | C5 — operations/recovery/security | воспроизводимые ops, backup/restore, rollback, security | HOLD до C4 |
 | C6 — frozen release и owner acceptance | exact опубликованный active release и owner acceptance | HOLD до C5 |
@@ -196,7 +239,7 @@ exact result SHA/tree и handoff.
   передача следующему Gate;
 - [issue register](MVP-1-ISSUES.md) — подтверждённые findings и C1–C6 owners.
 - [C1 acceptance](../gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
-  [C2 handoff](../gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
+  [передача C1 → C2](../gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
   опубликованный C1 и условия перехода к C2.
 
 Historical sealed Gate 0 сохранён byte-identical и не переиздан C0.
@@ -214,19 +257,37 @@ Docs 15/16 отсутствуют в C1 predecessor/tree и не импорти�
 dirty checkout, live worktree, production config/runtime/state и recovery refs
 не изменялись.
 
-## 8. Publication boundary и следующий чат
+## 8. Публикация и завершение в текущей задаче C2
 
 C1 code publication завершена: PR #11 merged в `2732a11122179c4197a74594dd0c8ba3ed9ec52d`.
 Readback подтвердил exact tree, C0 parent и protected main. CI status contexts
 и workflow runs у PR #11 отсутствуют; это не новый PASS.
-Текущий follow-up изменяет только статусную документацию. Его итоговый
-protected-main SHA/tree и SHA-256 C1 HANDOFF/ACCEPTANCE передаются в промте C2
-после merge; собственный будущий SHA в этот документ не записывается.
-Tag, GitHub Release, deploy, activation и live effects не выполнялись.
+Документная публикация C1 уже завершена: принятой базой C2 является
+`43e753c571e1ad8db5af5f453b5db0c0b417cac8`, tree
+`a7c6328a42412a0bd269004aefa9c9d402c75564`.
+[Принятый handoff C1](../gates/gate-c1-semantic-task-compiler/HANDOFF.md)
+сохраняется без изменений.
 
-C2 разрешён только в отдельном будущем чате от принятого опубликованного exact
-protected-main SHA/tree C1 и
-[handoff](../gates/gate-c1-semantic-task-compiler/HANDOFF.md), не от floating
-`origin/main` и не от локального candidate.
+Новая B02 на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
+пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
+MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
+прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
+пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
+PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
 
-**C1 ACCEPTED / PUBLISHED / NOT DEPLOYED. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
+Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
+сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
+не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
+
+ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
+прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
+B03/B04 реализованы; собственные полные L1/L2/L3 по цельному freeze ещё впереди.
+Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
+
+Владелец6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
+и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
+Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
+C3 ещё не начат. Весь MVP1 не READY до C3–C6.
+
+**C1 ACCEPTED / PUBLISHED / NOT DEPLOYED. C2 FINAL REVIEW PENDING.**

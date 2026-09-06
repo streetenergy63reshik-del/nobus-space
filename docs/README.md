@@ -1,9 +1,14 @@
 # Документация Nobus Space
 
-**Статус:** CANONICAL INDEX
-**Актуально на:** 4 сентября 2026 года
+<!-- C2_CURRENT_START -->
+C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+<!-- C2_CURRENT_END -->
 
-**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`;
+
+**Статус:** CANONICAL INDEX
+**Актуально на:** 6 сентября 2026 года
+
+**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLICATION PENDING / NOT DEPLOYED`;
 `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Thin topology задаёт
@@ -18,7 +23,8 @@ contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-an
 checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
 evidence сохранены, acceptance всего MVP1 переоткрыта. C1 принят и опубликован
 через [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11),
-но остаётся default-off / NOT DEPLOYED; C2 готов к запуску. Historical READY claim
+но остаётся default-off / NOT DEPLOYED; C2 принят по собственным L1/L2/L3; публикация подготовлена,
+см. [C2 acceptance](gates/gate-c2-voice-parity/ACCEPTANCE.md). Historical READY claim
 superseded на protected `main` C0-публикацией
 [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @
 `70085f8bdf20d139edf042bffa2a1169daf6791c`; deployment revision не доказана,
@@ -68,12 +74,15 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — active C1 package и исторические sealed Gate.
+10. [Gate index](gates/README.md) — принятый C1, локальный C2 и исторические sealed Gate.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
-    [C2 handoff](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
+    [передача C1 → C2](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
     опубликованный C1, доказательства и условия старта C2.
+13. [Текущий C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
+    [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — локальный
+    checkpoint, результаты ASR, оставшийся B02 и условия собственной приёмки C2.
 
 ## Сохранённые контракты
 

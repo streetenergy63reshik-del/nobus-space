@@ -15,6 +15,21 @@ import httpx
 from scripts import run_telegram_mvp1 as runner
 
 
+def test_missing_pinned_asr_never_falls_back_to_download(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "IsolatedFasterWhisperTranscriber",
+                        lambda **_: pytest.fail("unverified model reached native constructor"))
+    with pytest.raises(ValueError, match="^voice model assets unavailable$"):
+        runner._build_voice_transcriber(tmp_path)
+
+
+def test_changed_pinned_asr_never_reaches_native_constructor(tmp_path, monkeypatch):
+    (tmp_path / "model.bin").write_bytes(b"changed synthetic artifact")
+    monkeypatch.setattr(runner, "IsolatedFasterWhisperTranscriber",
+                        lambda **_: pytest.fail("unverified model reached native constructor"))
+    with pytest.raises(ValueError, match="^voice model identity mismatch$"):
+        runner._build_voice_transcriber(tmp_path)
+
+
 @pytest.mark.parametrize(
     ("reported_stage", "expected_code"),
     [
@@ -398,6 +413,9 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
             startup_events.append("voice_warmup")
             raise VoiceTranscriptionError("voice model unavailable")
 
+        async def close(self) -> None:
+            pass
+
     executable = tmp_path / "codex.exe"
     executable.touch()
     worktree = tmp_path / "worktree"
@@ -473,7 +491,17 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(
         runner, "build_gate5a4_runtime", lambda **values: Runtime()
     )
-    monkeypatch.setattr(runner, "FasterWhisperTranscriber", Transcriber)
+    monkeypatch.setattr(runner, "IsolatedFasterWhisperTranscriber", Transcriber)
+    # Exercise startup/warmup with a tiny provisioned fixture. Identity failures
+    # have separate fail-closed tests and must not replace this probe scenario.
+    model_root = tmp_path / "voice-models"
+    model_dir = model_root / "faster-whisper-small" / runner._VOICE_MODEL_REVISION
+    model_dir.mkdir(parents=True)
+    (model_dir / "fixture.bin").write_bytes(b"synthetic model fixture")
+    monkeypatch.setattr(runner, "_VOICE_MODEL_ROOT", model_root)
+    monkeypatch.setattr(runner, "_VOICE_MODEL_FILES", {
+        "fixture.bin": runner.hashlib.sha256(b"synthetic model fixture").hexdigest(),
+    })
     monkeypatch.setattr(runner, "ProductTelegramControlPlane", forbidden_control)
     monkeypatch.setattr(runner, "TelegramPollingBoundary", forbidden_polling)
 

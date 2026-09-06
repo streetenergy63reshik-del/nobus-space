@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import math
 import threading
+import io
+import importlib.metadata
 from pathlib import Path
 from typing import Any
 
@@ -88,6 +90,8 @@ class FasterWhisperTranscriber:
         self._hotwords = hotwords.strip() if hotwords is not None else None
         self._model: Any | None = None
         self._model_lock = threading.Lock()
+        self._inference_lock = threading.Lock()
+        self._async_inference_lock = asyncio.Lock()
 
     def _load_model(self) -> None:
         import_failed = False
@@ -117,10 +121,13 @@ class FasterWhisperTranscriber:
 
     def _transcribe_sync(self, path: Path, max_chars: int) -> TranscriptResult:
         """Synchronous transcription pipeline; runs entirely in a worker thread."""
+        return self._transcribe_input(str(path), max_chars)
+
+    def _transcribe_input(self, source: Any, max_chars: int) -> TranscriptResult:
         model = self._model_instance()
 
         segments, info = model.transcribe(
-            str(path),
+            source,
             language=self._language,
             beam_size=self._beam_size,
             patience=self._patience,
@@ -141,11 +148,11 @@ class FasterWhisperTranscriber:
             parts.append(part)
         text = "".join(parts)
         language = getattr(info, "language", None)
-        confidence = getattr(info, "language_probability", None)
+        language_confidence = getattr(info, "language_probability", None)
 
         malformed = False
         try:
-            return TranscriptResult(text=text, language=language, confidence=confidence)
+            return TranscriptResult(text=text, language=language, language_confidence=language_confidence)
         except ValidationError:
             malformed = True
         if malformed:
@@ -157,6 +164,76 @@ class FasterWhisperTranscriber:
         if isinstance(max_chars, bool) or not isinstance(max_chars, int) or max_chars <= 0:
             raise VoiceTranscriptionError("transcription limit is invalid")
         return await asyncio.to_thread(self._transcribe_sync, path, max_chars)
+
+    def _audio_sync(self, audio: bytes, max_chars: int, cancelled: threading.Event) -> TranscriptResult:
+        import av
+
+        # Serialize the non-cancellable local worker, including decode. Cancellation
+        # cannot start a second inference while the first still uses the model.
+        if not self._inference_lock.acquire(blocking=False):
+            raise ValueError('voice recognizer is busy')
+        try:
+            if cancelled.is_set():
+                raise ValueError('voice recognition cancelled')
+            parts: list[np.ndarray] = []
+            count = 0
+            resampler = av.AudioResampler(format='s16', layout='mono', rate=16000)
+            with av.open(io.BytesIO(audio), mode='r') as container:
+                if container.format.name not in {'ogg','wav'} or len(container.streams.audio) != 1 or container.streams.video:
+                    raise ValueError('voice media is invalid')
+                for frame in container.decode(audio=0):
+                    if cancelled.is_set():
+                        raise ValueError('voice recognition cancelled')
+                    if (not 8000 <= frame.sample_rate <= 192000 or len(frame.layout.channels) > 2
+                        or frame.samples > frame.sample_rate * 2):
+                        raise ValueError('voice frame exceeds limits')
+                    for converted in resampler.resample(frame):
+                        count += converted.samples
+                        if count > 300 * 16000:
+                            raise ValueError('voice duration exceeds limit')
+                        parts.append(converted.to_ndarray().reshape(-1))
+                for converted in resampler.resample(None):
+                    count += converted.samples
+                    if count > 300 * 16000:
+                        raise ValueError('voice duration exceeds limit')
+                    parts.append(converted.to_ndarray().reshape(-1))
+            if count == 0:
+                raise ValueError('voice audio is empty')
+            samples = np.concatenate(parts).astype(np.float32) / 32768.0
+            if np.max(np.abs(samples)) <= 1e-5:
+                raise ValueError('voice contains no speech')
+            if cancelled.is_set():
+                raise ValueError('voice recognition cancelled')
+            result = self._transcribe_input(samples, max_chars)
+            if cancelled.is_set():
+                raise ValueError('voice recognition cancelled')
+            return result.model_copy(update={'provider':'faster-whisper', 'model':Path(self._model_size).name,
+                'provider_version':importlib.metadata.version('faster-whisper'), 'duration_seconds':count/16000})
+        finally:
+            self._inference_lock.release()
+
+    async def transcribe_audio(self, audio: bytes, *, max_chars: int) -> TranscriptResult:
+        if type(audio) is not bytes or not 0 < len(audio) <= 10*1024*1024 or type(max_chars) is not int or max_chars <= 0:
+            raise VoiceTranscriptionError('voice input is invalid')
+        async with self._async_inference_lock:
+            return await self._transcribe_audio_owned(audio, max_chars)
+
+    async def _transcribe_audio_owned(self, audio: bytes, max_chars: int) -> TranscriptResult:
+        cancelled = threading.Event()
+        task = asyncio.create_task(asyncio.to_thread(self._audio_sync, audio, max_chars, cancelled))
+        failed = False
+        try:
+            return await asyncio.shield(task)
+        except asyncio.CancelledError:
+            cancelled.set()
+            # Consume late errors; a bounded in-memory worker owns no temp file.
+            task.add_done_callback(lambda done: done.exception() if not done.cancelled() else None)
+            raise
+        except Exception:
+            failed = True
+        if failed:
+            raise VoiceTranscriptionError('voice recognition failed')
+        raise RuntimeError('unreachable')
 
     def _warmup_sync(self) -> None:
         """Load the model and execute one in-memory encoder inference."""

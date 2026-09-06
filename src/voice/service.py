@@ -64,6 +64,26 @@ class VoicePreviewService:
             raise ValueError("audio is empty")
         if len(audio) > self._max_bytes:
             raise ValueError("audio exceeds max bytes")
+        in_memory = getattr(self._transcriber, 'transcribe_audio', None)
+        if callable(in_memory):
+            # Production faster-whisper consumes bounded decoded memory. No raw
+            # filesystem bytes can outlive a crash, cancellation or disk failure.
+            failed = False
+            try:
+                result = await in_memory(audio, max_chars=self._max_transcript_length)
+                result = TranscriptResult.model_validate(result.model_dump())
+                text = self._normalize_transcript(result.text)
+                if not 0 < len(text) <= self._max_transcript_length:
+                    raise ValueError
+                values = result.model_dump(exclude={'text'})
+                return VoicePreview(transcript=text, sha256=hashlib.sha256(audio).hexdigest(),
+                                    size=len(audio), **values)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                failed = True
+            if failed:
+                raise VoiceTranscriptionError('transcription failed')
         return await self._process(audio)
 
     def _prepare_temp_file(self, audio: bytes) -> Path:
@@ -164,7 +184,11 @@ class VoicePreviewService:
             preview = VoicePreview(
                 transcript=transcript,
                 language=validated_result.language,
-                confidence=validated_result.confidence,
+                language_confidence=validated_result.language_confidence,
+                provider=validated_result.provider,
+                model=validated_result.model,
+                provider_version=validated_result.provider_version,
+                duration_seconds=validated_result.duration_seconds,
                 sha256=sha256_hash,
                 size=size,
             )
@@ -225,8 +249,8 @@ class VoicePreviewService:
         cleanup_task.add_done_callback(self._cleanup_tasks.discard)
 
     def _normalize_transcript(self, text: str) -> str:
-        """Collapse whitespace and strip edges."""
-        return " ".join(text.split())
+        """Preserve line/quote boundaries consumed by the same C1 text normalizer."""
+        return '\n'.join(' '.join(line.split()) for line in text.replace('\r\n','\n').replace('\r','\n').split('\n')).strip()
 
     def _unlink_failed(self, temp_path: Path) -> bool:
         """Try to remove ``temp_path``; return ``True`` if removal failed."""

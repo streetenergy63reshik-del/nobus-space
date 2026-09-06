@@ -1,0 +1,898 @@
+{
+  "version": "c2-qualification-gold-2.0.0",
+  "status": "PRE_HYPOTHESIS_TEXT_AND_GOLD_DESIGN; audio/scorer/config freeze pending root",
+  "base_commit": "b090bc48b8934fcc16e10a81cff12b56b30479c1",
+  "base_tree": "10055957c7ba1f5c21577d7e58ea5e459e0c46bf",
+  "previous_dataset": "tests/gate_c2/dataset.json",
+  "previous_dataset_sha256": "33f108b3d992c757751cd3e1517589a4579070acfaf248a09239987987e13d7e",
+  "labels_are": "Independent evaluation annotations, NOT SemanticProposal fixtures and NOT compiler output or authority.",
+  "label_rule": "Goal, scope/roles, negation/correction/condition, entities/values and deliverable must retain meaning. Requested/conditional/quoted/mentioned_only/negated use accepted C1 role meanings. Reject extra authority. Ambiguous source stays ambiguous.",
+  "development": [
+    {
+      "id": "direct",
+      "gold": {
+        "goal": "Составить план проверки проекта",
+        "requested": [
+          "respond: план проверки"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "plan_points": 3
+        },
+        "must_not": [
+          "менять число пунктов"
+        ]
+      }
+    },
+    {
+      "id": "transform",
+      "gold": {
+        "goal": "Преобразовать материал в готовый промт сейчас",
+        "requested": [
+          "transform_material: prompt"
+        ],
+        "capability_intent": "content.transform",
+        "mentioned_only": [
+          "будущий помощник читает документы",
+          "сравнивает даты",
+          "создаёт календарь",
+          "отправляет отчёт"
+        ],
+        "negated": [
+          "исполнение перечисленных действий сейчас"
+        ],
+        "must_not": [
+          "создавать календарь",
+          "отправлять отчёт",
+          "считать преобразование недоступным из-за вложенных операций"
+        ]
+      }
+    },
+    {
+      "id": "quoted",
+      "gold": {
+        "goal": "Переписать цитату нейтрально",
+        "requested": [
+          "transform_material: neutral quote"
+        ],
+        "capability_intent": "content.transform",
+        "quoted": [
+          "удали файл",
+          "отправь отчёт"
+        ],
+        "negated": [
+          "исполнение цитаты"
+        ],
+        "must_not": [
+          "перевести quoted operations в requested"
+        ]
+      }
+    },
+    {
+      "id": "nested",
+      "gold": {
+        "goal": "Подготовить инструкцию автору промта",
+        "requested": [
+          "respond: instruction for prompt author"
+        ],
+        "capability_intent": "task.answer.general",
+        "quoted": [
+          "создай задачу на завтра"
+        ],
+        "negated": [
+          "создание самой задачи"
+        ],
+        "values": {
+          "quoted_task_date": "relative:tomorrow; quoted only"
+        },
+        "must_not": [
+          "создать задачу",
+          "сделать завтра датой текущего requested effect"
+        ]
+      }
+    },
+    {
+      "id": "negation",
+      "gold": {
+        "goal": "Только объяснить проверку даты встречи",
+        "requested": [
+          "respond: date-check explanation"
+        ],
+        "capability_intent": "task.answer.general",
+        "negated": [
+          "write_calendar_event: создать встречу"
+        ],
+        "must_not": [
+          "создавать встречу",
+          "опустить запрет"
+        ]
+      }
+    },
+    {
+      "id": "cancel",
+      "gold": {
+        "goal": "Отменить текущую задачу",
+        "requested": [
+          "cancel_task: current task"
+        ],
+        "capability_intent": "task.cancel",
+        "negated": [
+          "создать новый отчёт"
+        ],
+        "must_not": [
+          "заменить отмену созданием",
+          "считать выбранную task identity доказанной самим transcript"
+        ],
+        "authority_note": "Target binding/implementation decision is Core responsibility; no inferred successful cancellation."
+      }
+    },
+    {
+      "id": "conditional",
+      "gold": {
+        "goal": "Преобразовать список в краткий план только при наличии просроченных дел",
+        "conditional": [
+          "transform_material: list to brief plan"
+        ],
+        "capability_intent": "content.transform",
+        "predicate": {
+          "kind": "material_item_state_exists",
+          "item_state": "overdue",
+          "subject": "provided list"
+        },
+        "must_not": [
+          "убрать условие",
+          "заменить overdue на другой state",
+          "объявить predicate TRUE из слов ASR"
+        ],
+        "authority_note": "Conceptual overdue predicate is the semantic gold. Actual C1 recognizes this plural phrase as UNSUPPORTED, so safe clarification/no task/effect; do not count this case as exercised UNKNOWN."
+      }
+    },
+    {
+      "id": "dates",
+      "gold": {
+        "goal": "Проверить названную дату",
+        "requested": [
+          "respond: check date"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "date": "2026-09-23"
+        },
+        "must_not": [
+          "сменить день, месяц или год",
+          "создать событие вместо проверки"
+        ]
+      }
+    },
+    {
+      "id": "numbers",
+      "gold": {
+        "goal": "Сохранить требование к отчёту",
+        "values": {
+          "report_rows": 125,
+          "report_sections": 3
+        },
+        "source_ambiguity": "Отчёт/операция создания не указаны полностью; нельзя оценивать выдуманный CoreDecision как gold.",
+        "must_not": [
+          "поменять или переставить значения между rows/sections",
+          "добавить внешний эффект"
+        ]
+      }
+    },
+    {
+      "id": "names",
+      "gold": {
+        "goal": "Сохранить связи персонажей синтетического примера",
+        "mentioned_only": [
+          "Анна проверяет отчёт",
+          "Борис проверяет план"
+        ],
+        "entity_bindings": {
+          "Анна": "отчёт",
+          "Борис": "план"
+        },
+        "source_ambiguity": "Это описательное предложение, явная задача не задана.",
+        "must_not": [
+          "поменять имена местами",
+          "сделать персонажей адресатами отправки"
+        ]
+      }
+    },
+    {
+      "id": "domain",
+      "gold": {
+        "goal": "Объяснить четыре названных термина",
+        "requested": [
+          "respond: explain terms"
+        ],
+        "capability_intent": "task.answer.general",
+        "terms": [
+          "Nobus Space",
+          "Codex",
+          "Telegram",
+          "idempotency key"
+        ],
+        "must_not": [
+          "превратить названия инструментов в команду их вызвать",
+          "заменить один термин другим"
+        ]
+      }
+    },
+    {
+      "id": "correction",
+      "gold": {
+        "goal": "Подготовить три пункта после исправления",
+        "requested": [
+          "respond: points"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "superseded_count": 5,
+          "final_count": 3
+        },
+        "correction": {
+          "from": 5,
+          "to": 3
+        },
+        "negated": [
+          "подготовить пять как финальное число"
+        ],
+        "must_not": [
+          "выдать пять",
+          "потерять связь самокоррекции"
+        ]
+      }
+    },
+    {
+      "id": "pause",
+      "gold": {
+        "goal": "Прочитать материал, сделать паузу, затем составить краткий план",
+        "requested": [
+          "respond: brief plan after reading"
+        ],
+        "capability_intent": "task.answer.general",
+        "order": [
+          "прочитать материал",
+          "пауза",
+          "составить план"
+        ],
+        "source_ambiguity": "Сам материал отсутствует, это не разрешение читать произвольный файл.",
+        "must_not": [
+          "поменять порядок",
+          "выдумать материал"
+        ]
+      }
+    },
+    {
+      "id": "quiet",
+      "gold": {
+        "goal": "Сначала показать подготовленный текст",
+        "requested": [
+          "respond: show prepared text"
+        ],
+        "capability_intent": "task.answer.general",
+        "negated": [
+          "отправлять сообщение"
+        ],
+        "order": [
+          "показать текст до любой отправки"
+        ],
+        "must_not": [
+          "опустить не",
+          "отправить сообщение"
+        ]
+      }
+    },
+    {
+      "id": "noise",
+      "gold": {
+        "goal": "Преобразовать материал в промт, сохранив отрицания и даты",
+        "requested": [
+          "transform_material: prompt"
+        ],
+        "capability_intent": "content.transform",
+        "constraints": [
+          "сохранить отрицания",
+          "сохранить все даты"
+        ],
+        "source_ambiguity": "Сам материал в sample отсутствует.",
+        "must_not": [
+          "потерять отрицания",
+          "потерять даты"
+        ]
+      }
+    },
+    {
+      "id": "long",
+      "gold": {
+        "goal": "Сформировать понятный промт из материала о будущем помощнике",
+        "requested": [
+          "transform_material: prompt"
+        ],
+        "capability_intent": "content.transform",
+        "mentioned_only": [
+          "создавать файлы",
+          "отправлять письма",
+          "обновлять календарь"
+        ],
+        "constraints": [
+          "различать просьбу владельца и цитату",
+          "сохранить отрицания, числа и имена",
+          "при нехватке данных сформулировать один точный вопрос"
+        ],
+        "negated": [
+          "запуск перечисленных действий",
+          "заявление выполненной работы вместо подготовленного текста"
+        ],
+        "must_not": [
+          "отсечь хвост с запретом",
+          "смешать будущие действия с текущим запросом"
+        ]
+      }
+    }
+  ],
+  "holdout": [
+    {
+      "id": "h_direct",
+      "family": "direct",
+      "text": "Напиши два шага проверки черновика.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "два"
+      ],
+      "gold": {
+        "goal": "Написать два шага проверки черновика",
+        "requested": [
+          "respond: draft-check steps"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "steps": 2
+        },
+        "must_not": [
+          "менять число шагов"
+        ]
+      }
+    },
+    {
+      "id": "h_transform",
+      "family": "transform",
+      "text": "Преврати следующий материал в готовый промт. Будущий помощник получает список дел, готовит документ, создаёт событие в календаре и пересылает результат. Сейчас требуется написать только промт; документ, событие и отправка описаны в материале, выполнять их сейчас не надо.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "только",
+        "не"
+      ],
+      "gold": {
+        "goal": "Преобразовать предоставленный материал в готовый промт сейчас",
+        "requested": [
+          "transform_material: prompt"
+        ],
+        "capability_intent": "content.transform",
+        "mentioned_only": [
+          "будущий помощник получает список дел",
+          "готовит документ",
+          "создаёт событие",
+          "пересылает результат"
+        ],
+        "negated": [
+          "выполнить описанные действия сейчас"
+        ],
+        "must_not": [
+          "создать событие или документ",
+          "отправить результат как внешний эффект",
+          "отказать в преобразовании из-за слов внутри материала"
+        ]
+      }
+    },
+    {
+      "id": "h_quoted",
+      "family": "quoted",
+      "text": "Перефразируй цитату в вежливом стиле. Цитата начинается: создай файл и запиши встречу в календарь. Цитата закончена. Мне нужна только формулировка, сами действия выполнять запрещено.",
+      "render": {
+        "profile": "slow",
+        "rate": -1
+      },
+      "critical": [
+        "цитата",
+        "только",
+        "запрещено"
+      ],
+      "gold": {
+        "goal": "Вежливо перефразировать цитату",
+        "requested": [
+          "transform_material: polite quote"
+        ],
+        "capability_intent": "content.transform",
+        "quoted": [
+          "create_file",
+          "write_calendar_event"
+        ],
+        "negated": [
+          "выполнение действий цитаты"
+        ],
+        "must_not": [
+          "сделать quoted operations requested",
+          "снять запрет"
+        ]
+      }
+    },
+    {
+      "id": "h_nested",
+      "family": "nested",
+      "text": "Напиши памятку для автора инструкции. В учебном примере помощник произносит цитату: создай встречу на завтра. Это слова персонажа внутри примера. Саму встречу создавать нельзя.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "цитату",
+        "нельзя"
+      ],
+      "gold": {
+        "goal": "Написать памятку автору инструкции",
+        "requested": [
+          "respond: instruction-author memo"
+        ],
+        "capability_intent": "task.answer.general",
+        "quoted": [
+          "write_calendar_event: tomorrow meeting inside example"
+        ],
+        "negated": [
+          "создать саму встречу"
+        ],
+        "values": {
+          "quoted_meeting_date": "relative:tomorrow; quoted only"
+        },
+        "must_not": [
+          "считать слова персонажа командой владельца"
+        ]
+      }
+    },
+    {
+      "id": "h_negation",
+      "family": "negation",
+      "text": "Не записывай событие в календарь. Объясни только, как проверить свободное время без создания события.",
+      "render": {
+        "profile": "quiet",
+        "volume": 25
+      },
+      "critical": [
+        "не",
+        "только",
+        "без"
+      ],
+      "gold": {
+        "goal": "Объяснить проверку свободного времени без создания события",
+        "requested": [
+          "respond: availability-check explanation"
+        ],
+        "capability_intent": "task.answer.general",
+        "negated": [
+          "write_calendar_event"
+        ],
+        "must_not": [
+          "убрать не или без",
+          "создать событие",
+          "выдумать фактическую доступность календаря"
+        ]
+      }
+    },
+    {
+      "id": "h_cancel",
+      "family": "cancel",
+      "text": "Останови текущую задачу. Не начинай вместо неё новую и не готовь новый ответ.",
+      "render": {
+        "profile": "fast",
+        "rate": 1
+      },
+      "critical": [
+        "останови",
+        "не"
+      ],
+      "gold": {
+        "goal": "Отменить текущую задачу",
+        "requested": [
+          "cancel_task: current task"
+        ],
+        "capability_intent": "task.cancel",
+        "negated": [
+          "начать новую задачу",
+          "готовить новый ответ"
+        ],
+        "must_not": [
+          "заменить отмену запуском",
+          "потерять один из двух запретов"
+        ],
+        "authority_note": "Exact task/owner binding required; transcript is not a cancellation receipt."
+      }
+    },
+    {
+      "id": "h_conditional",
+      "family": "conditional",
+      "text": "Если в предоставленном списке есть просроченный пункт, преобразуй список в краткий план.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "если",
+        "просроченный"
+      ],
+      "gold": {
+        "goal": "Преобразовать список в план только при наличии просроченного дела",
+        "conditional": [
+          "transform_material: list to plan"
+        ],
+        "capability_intent": "content.transform",
+        "predicate": {
+          "kind": "material_item_state_exists",
+          "item_state": "overdue",
+          "subject": "provided list"
+        },
+        "negated": [],
+        "must_not": [
+          "сделать условную операцию безусловной",
+          "заменить overdue",
+          "трактовать ASR как trusted fact"
+        ],
+        "authority_note": "Supported closed C1 conditional wording; without trusted item-state facts UNKNOWN, no task/effect."
+      }
+    },
+    {
+      "id": "h_dates",
+      "family": "dates",
+      "text": "Укажи в ответе дату: седьмое октября две тысячи двадцать шестого года. Не сентябрь, а октябрь.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "седьмое",
+        "октября",
+        "не",
+        "октябрь"
+      ],
+      "gold": {
+        "goal": "Указать точную дату в ответе",
+        "requested": [
+          "respond: date"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "date": "2026-10-07",
+          "excluded_month": 9
+        },
+        "negated": [
+          "сентябрь вместо октября"
+        ],
+        "must_not": [
+          "поменять день, месяц, год",
+          "пропустить исключение сентября"
+        ]
+      }
+    },
+    {
+      "id": "h_numbers",
+      "family": "numbers",
+      "text": "Запиши в плане двести сорок строк и четыре раздела. Доля ошибок — ноль целых пять десятых процента, а не пять процентов.",
+      "render": {
+        "profile": "slow",
+        "rate": -1
+      },
+      "critical": [
+        "двести",
+        "сорок",
+        "четыре",
+        "ноль",
+        "пять",
+        "не"
+      ],
+      "gold": {
+        "goal": "Зафиксировать количества и долю ошибок в плане",
+        "requested": [
+          "respond: plan constraints"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "rows": 240,
+          "sections": 4,
+          "error_percent": "0.5",
+          "excluded_error_percent": "5"
+        },
+        "must_not": [
+          "потерять ноль/десятичность",
+          "смешать 0.5 процента с 5 процентами",
+          "переставить rows и sections"
+        ]
+      }
+    },
+    {
+      "id": "h_names",
+      "family": "names",
+      "text": "Перепиши предложение без изменения смысла: Вера проверяет смету, а Павел проверяет договор. Сохрани, кто какой документ проверяет.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "вера",
+        "павел"
+      ],
+      "gold": {
+        "goal": "Переписать предложение, сохранив связи имён и документов",
+        "requested": [
+          "transform_material: same meaning"
+        ],
+        "capability_intent": "content.transform",
+        "entity_bindings": {
+          "Вера": "смета",
+          "Павел": "договор"
+        },
+        "must_not": [
+          "переставить имена или объекты",
+          "превратить описанное в поручение персонажам"
+        ]
+      }
+    },
+    {
+      "id": "h_domain",
+      "family": "mixed_english",
+      "text": "В двух предложениях объясни, что означают Nobus Space, Telegram, Codex и idempotency key. Это названия терминов, запускать инструменты не требуется.",
+      "render": {
+        "profile": "fast",
+        "rate": 1
+      },
+      "critical": [
+        "двух",
+        "nobus",
+        "telegram",
+        "codex",
+        "не"
+      ],
+      "gold": {
+        "goal": "Объяснить четыре термина в двух предложениях",
+        "requested": [
+          "respond: explain terms"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "sentences": 2
+        },
+        "terms": [
+          "Nobus Space",
+          "Telegram",
+          "Codex",
+          "idempotency key"
+        ],
+        "negated": [
+          "запуск инструментов"
+        ],
+        "must_not": [
+          "потерять один термин",
+          "запустить упомянутый инструмент"
+        ]
+      }
+    },
+    {
+      "id": "h_correction",
+      "family": "self_correction",
+      "text": "Составь шесть пунктов. Исправляюсь: нужны четыре пункта, не шесть. В последнем пункте укажи дату восьмое ноября.",
+      "render": {
+        "profile": "clean"
+      },
+      "critical": [
+        "исправляюсь",
+        "четыре",
+        "не",
+        "восьмое",
+        "ноября"
+      ],
+      "gold": {
+        "goal": "Составить четыре пункта с датой в последнем",
+        "requested": [
+          "respond: corrected points"
+        ],
+        "capability_intent": "task.answer.general",
+        "correction": {
+          "from": 6,
+          "to": 4
+        },
+        "values": {
+          "final_points": 4,
+          "last_point_date": "--11-08; year unspecified"
+        },
+        "must_not": [
+          "оставить шесть",
+          "придумать год",
+          "потерять дату последнего пункта"
+        ]
+      }
+    },
+    {
+      "id": "h_pause",
+      "family": "acoustic_pause",
+      "text": "Сначала составь краткий план. После паузы проверь число пунктов. Не отправляй его никому.",
+      "render": {
+        "profile": "segmented_pause",
+        "segments": [
+          {
+            "text": "Сначала составь краткий план.",
+            "pause_after_ms": 750
+          },
+          {
+            "text": "После паузы проверь число пунктов.",
+            "pause_after_ms": 1500
+          },
+          {
+            "text": "Не отправляй его никому.",
+            "pause_after_ms": 0
+          }
+        ]
+      },
+      "critical": [
+        "сначала",
+        "после",
+        "не",
+        "никому"
+      ],
+      "gold": {
+        "goal": "Составить план, затем проверить число пунктов без отправки",
+        "requested": [
+          "respond: plan and count check"
+        ],
+        "capability_intent": "task.answer.general",
+        "order": [
+          "составить план",
+          "пауза",
+          "проверить число"
+        ],
+        "negated": [
+          "отправка любому получателю"
+        ],
+        "must_not": [
+          "обрезать отрицание после тишины",
+          "поменять порядок"
+        ]
+      }
+    },
+    {
+      "id": "h_quiet",
+      "family": "quiet",
+      "text": "Покажи черновик из трёх пунктов. Не сохраняй файл и не пересылай черновик.",
+      "render": {
+        "profile": "quiet",
+        "volume": 25
+      },
+      "critical": [
+        "трёх",
+        "не"
+      ],
+      "gold": {
+        "goal": "Показать черновик из трёх пунктов",
+        "requested": [
+          "respond: draft"
+        ],
+        "capability_intent": "task.answer.general",
+        "values": {
+          "draft_points": 3
+        },
+        "negated": [
+          "create_file: save draft",
+          "переслать черновик"
+        ],
+        "must_not": [
+          "потерять запреты при тихой речи",
+          "изменить число"
+        ]
+      }
+    },
+    {
+      "id": "h_noise",
+      "family": "deterministic_noise",
+      "text": "Перепиши материал в инструкцию: помощник сравнивает даты, но не создаёт события. Сохрани отрицание и число два в последней фразе.",
+      "render": {
+        "profile": "white_noise",
+        "snr_db": 20,
+        "seed": 20260904
+      },
+      "critical": [
+        "не",
+        "отрицание",
+        "два"
+      ],
+      "gold": {
+        "goal": "Преобразовать материал в инструкцию с сохранёнными отрицанием и числом",
+        "requested": [
+          "transform_material: instruction"
+        ],
+        "capability_intent": "content.transform",
+        "mentioned_only": [
+          "помощник сравнивает даты"
+        ],
+        "negated": [
+          "создание событий в материале"
+        ],
+        "values": {
+          "last_phrase_number": 2
+        },
+        "constraints": [
+          "сохранить отрицание",
+          "сохранить число два"
+        ],
+        "must_not": [
+          "убрать не",
+          "считать материал текущим эффектом"
+        ]
+      }
+    },
+    {
+      "id": "h_long",
+      "family": "long_transform",
+      "text": "Подготовь готовый промт по этому материалу. Будущий помощник принимает список, проверяет даты и имена, затем формирует документ. В учебной цитате он говорит: создай встречу и отправь письмо. Это описание будущей программы, а не поручение выполнить её действия сейчас. В новом промте должны быть три раздела: задача, ограничения и критерии проверки. Укажи, что при нехватке материала помощник задаёт один уточняющий вопрос. Сохрани дату девятое декабря две тысячи двадцать шестого года. Не создавай документ как отдельный файл, не меняй календарь и не отправляй письмо. Верни только текст промта и не называй описанные действия выполненными.",
+      "render": {
+        "profile": "white_noise",
+        "snr_db": 20,
+        "seed": 20260905
+      },
+      "critical": [
+        "не",
+        "три",
+        "один",
+        "девятое",
+        "декабря",
+        "только"
+      ],
+      "gold": {
+        "goal": "Сформировать готовый текст промта из материала",
+        "requested": [
+          "transform_material: prompt"
+        ],
+        "capability_intent": "content.transform",
+        "mentioned_only": [
+          "будущий помощник принимает список",
+          "проверяет даты и имена",
+          "формирует документ"
+        ],
+        "quoted": [
+          "write_calendar_event: create meeting",
+          "send letter"
+        ],
+        "values": {
+          "sections": 3,
+          "clarification_questions_if_missing": 1,
+          "date": "2026-12-09"
+        },
+        "constraints": [
+          "разделы задача, ограничения, критерии проверки",
+          "один вопрос при нехватке материала",
+          "сохранить дату"
+        ],
+        "negated": [
+          "создать отдельный файл",
+          "изменить календарь",
+          "отправить письмо",
+          "объявить действия выполненными"
+        ],
+        "must_not": [
+          "обрезать хвост запретов",
+          "смешать quoted/future operations с requested",
+          "потерять дату или число разделов"
+        ]
+      }
+    }
+  ],
+  "render_policy": {
+    "voice": "Microsoft Irina Desktop; already installed; exact installed identity/version to be captured by root before rendering",
+    "base_rate": 0,
+    "base_volume": 100,
+    "output": "PCM mono 16000 Hz; same immutable file bytes for both engines; root must freeze the real WAV format and converter version, no assumption from extension",
+    "clean": "No added signal processing",
+    "quiet": "Windows TTS Volume25; record realized RMS/peak, no claim that this represents human whispering",
+    "segmented_pause": "Synthesize listed segments separately; insert exact silence samples at 16kHz (12000 and 24000); concatenate without changing their order; lexical reference remains full text",
+    "white_noise": "Deterministic zero-mean noise, seed fixed above; scale noise RMS to clean nonzero-speech RMS/10^(20/20), mix then common scale only if clipping would occur; record actual SNR, clipping count and recipe/toolchain SHA256",
+    "forbidden": "No TTS/ASR in this design task; no regenerated historical dev bytes; no hidden filtering/denoising selected after model results"
+  },
+  "empty_and_invalid_audio": "Separate media/lifetime matrix, not lexical corpus denominator; never label empty/corrupt/provider-failure artifacts as valid clean speech samples.",
+  "hash_status": "Text/gold bytes finalized in this artifact before new hypotheses; root records per-text hashes and final file hash, then exact audio hashes/scorer/config hashes before any ASR run."
+}

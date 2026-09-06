@@ -1104,6 +1104,47 @@ async def test_unrepresentable_second_condition_forces_concrete_clarification(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("modality", ("text", "voice_transcript"))
+@pytest.mark.parametrize("invented_tail_condition", (False, True))
+async def test_c2_unknown_tail_is_isolated_and_invented_condition_stays_blocked(
+    modality, invented_tail_condition,
+) -> None:
+    from tests.test_contracts import make_envelope
+
+    canonical, bindings = telegram_semantic_input(
+        "Если в предоставленном списке есть просроченный пункт, преобразуй список в краткий план.",
+        make_envelope(idempotency_key="c2-unknown-tail"),
+        modality=modality, chat_id=1, message_thread_id=None,
+    )
+    material = canonical.materials[0]
+    main = _security_proposal(("transform_material",))
+    main.update(input_role="material_transformation", source_need="provided_material",
+                source_material_refs=[material.model_dump(mode="json")])
+    main["operations"][0].update(role="conditional", target_ref=material.ref, predicate={
+        "kind": "material_item_state_exists", "subject_ref": material.ref,
+        "arguments": {"item_state": "overdue"},
+    })
+    tail = json.loads(json.dumps(main))
+    if not invented_tail_condition:
+        tail["operations"][0].update(role="requested", predicate=None)
+    compiler = _TailCompiler(main, tail)
+    admission = await SemanticAdmissionService(compiler).admit(canonical, bindings)
+    assert [call[0]["owner_text"] for call in compiler.calls] == [
+        canonical.owner_text, "преобразуй список в краткий план.",
+    ]
+    assert all(call[0]["modality"] == modality for call in compiler.calls)
+    assert admission.context.reference_validation == "VERIFIED"
+    assert admission.context.predicate_evaluation.outcome == "UNKNOWN"
+    assert admission.decision.decision == "CLARIFY"
+    assert admission.decision.decision_stage == (
+        "AMBIGUITY" if invented_tail_condition else "PREDICATE_UNKNOWN"
+    )
+    assert admission.decision.selected_capability is None
+    assert not admission.decision.task_contract_allowed
+    assert not admission.decision.effect_allowed
+
+
+@pytest.mark.asyncio
 async def test_supported_condition_requires_clean_unconditional_tail() -> None:
     from tests.test_contracts import make_envelope
 
