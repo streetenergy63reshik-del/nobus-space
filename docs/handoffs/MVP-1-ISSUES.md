@@ -1,7 +1,7 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 <!-- C2_CURRENT_START -->
-C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY TO START / NOT_STARTED; весь MVP1 ещё не READY.
 <!-- C2_CURRENT_END -->
 
 
@@ -13,10 +13,10 @@ C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLICATION PENDING / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Последний локальный продуктовый checkpoint C2 — `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`,
-tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **ACCEPTED / LOCAL PASS / PUBLICATION PENDING**.
+tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **ACCEPTED / PASS / PUBLISHED**.
 Действующие привязки и отдельная история прежних кандидатов —
 [C2 evidence](../gates/gate-c2-voice-parity/EVIDENCE.json).
 
@@ -66,7 +66,7 @@ C0-F01/F02 закрыты в принятом C1 code, но не в live deploym
 Frozen `8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da` опубликован через PR #11 в
 `2732a11122179c4197a74594dd0c8ba3ed9ec52d`, tree `6a8f968f2b447a7a20d88321d8610adcb76c9cb9`.
 Результаты и ограничения — [C1 evidence](../gates/gate-c1-semantic-task-compiler/EVIDENCE.json).
-C2 — ACCEPTED / LOCAL PASS / PUBLICATION PENDING. B01–B04 закрыты по собственным L1/L2/L3 кандидата 98aa8dc. Старые FAIL и принятый C1 сохраняются.
+C2 — ACCEPTED / PASS / PUBLISHED. B01–B04 закрыты по собственным L1/L2/L3 кандидата 98aa8dc. Старые FAIL и принятый C1 сохраняются.
 
 
 ## Historical сводка до incident

@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "status": "C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING",
+  "status": "C2 ACCEPTED / LOCAL PASS / PUBLISHED",
   "current_results": "CONFIRMED-QUALIFICATION.json",
   "historical_document": {
     "status": "DEVELOPMENT ONLY; SEVEN VARIANTS FAILED; HOLDOUT UNOPENED",
@@ -613,5 +613,12 @@
     "targeted_passed": 385,
     "final_guard_passed": 11,
     "required_authorization": "C2 B02 matrix24turn/1200s"
+  },
+  "publication_readback": {
+    "pr": 13,
+    "merge": "d888e6bb78b275c7669971710c2a82309d98a621",
+    "tree": "b6815bd848f401d376b0de006da464fe90da17b5",
+    "product_source_unchanged": true,
+    "C3": "READY TO START / NOT STARTED"
   }
 }

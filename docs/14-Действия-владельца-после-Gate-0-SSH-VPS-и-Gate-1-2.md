@@ -1,7 +1,7 @@
 # 14. Решения владельца и завершение Gate C2
 
 <!-- C2_CURRENT_START -->
-C2 принят локально; публикация после PASS разрешена и подготовлена. [Передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md) содержит действующие условия. C3 начнётся отдельной задачей после публикации; live не изменён.
+C2 принят и опубликован через PR #13; SHA и дерево проверены по GitHub. [Передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md) содержит действующие условия. C3 READY TO START / NOT STARTED: запуск — отдельной задачей владельца; live не изменён.
 <!-- C2_CURRENT_END -->
 
 C2: исправлена независимо воспроизведённая гонка TTL, новая узкая B02 прошла. Итоговый freeze/review и обычная публикация после PASS разрешены владельцем 6 сентября. [Актуальная передача C2](gates/gate-c2-voice-parity/HANDOFF.md). C3 не запускается в этой задаче.
@@ -9,7 +9,7 @@ C2: исправлена независимо воспроизведённая �
 **Статус документа:** CANONICAL OWNER INPUTS
 **Актуально на:** 6 сентября 2026 года
 **CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
-**Локальная разработка:** `C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED`
+**Локальная разработка:** `C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED`
 **Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
 **Program boundary:** `MVP-2 HOLD`
 
@@ -111,8 +111,8 @@ ceiling нет, region/retention неизвестны. Прежние ledgers с
 |---|---|---|
 | C0 — единая истина и контракт | published contract и exact readback | PUBLISHED / ACCEPTED |
 | C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий route, готовый результат и русский bake-off | ACCEPTED / PUBLICATION PENDING |
-| C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | READY_AFTER_PUBLICATION / NOT_STARTED |
+| C2 — voice parity и ASR qualification | общий route, готовый результат и русский bake-off | ACCEPTED / PUBLISHED |
+| C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | READY TO START / NOT_STARTED |
 | C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
 | C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |
 | C6 — frozen release и owner acceptance | exact publish/activate/readback и owner smoke | HOLD до C5 |
@@ -165,4 +165,4 @@ runtime policy конкретного effect.
 
 Точный current status: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
-**C1 опубликован; C2 принят локально и ожидает публикации. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+**C1 опубликован; C2 принят и опубликован; C3 готов к началу. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
