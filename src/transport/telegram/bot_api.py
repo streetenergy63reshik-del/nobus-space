@@ -21,7 +21,7 @@ from pydantic import SecretStr
 
 from src.application.product_status import product_task_state
 from src.models.task import TaskStatus
-from src.storage.outbox import OutboxMessage, OutboxStatus, artifact_for_message
+from src.storage.outbox import DeliveryPart, OutboxMessage, OutboxStatus, artifact_for_message, delivery_parts
 
 
 _API_ROOT = "https://api.telegram.org"
@@ -745,7 +745,7 @@ class TelegramStatusSender:
         self._technical_details = technical_details
         self._artifact_directory = artifact_root
 
-    async def __call__(self, message: OutboxMessage) -> bool:
+    def _parts(self, message: OutboxMessage) -> tuple[tuple[str, bytes, str | None], ...]:
         invalid = False
         validated: OutboxMessage | None = None
         try:
@@ -753,30 +753,48 @@ class TelegramStatusSender:
         except BaseException:
             invalid = True
         if invalid or validated is None:
-            return False
+            raise TelegramBotApiError("telegram_configuration_invalid")
         binding = self._destinations.get(validated.tenant_id)
         if (
             validated.status is not OutboxStatus.LEASED
             or binding is None
             or binding[0] != validated.destination_ref
         ):
-            return False
+            raise TelegramBotApiError("telegram_configuration_invalid")
         artifact = artifact_for_message(validated)
         if artifact is not None and self._artifact_directory is not None:
-            _project_artifact(
-                self._artifact_directory,
-                artifact.filename,
-                artifact.content_bytes(),
-            )
+            _project_artifact(self._artifact_directory, artifact.filename, artifact.content_bytes())
         text = _status_text(validated, technical_details=self._technical_details)
-        for chunk in _status_message_chunks(text):
-            await self._api.send_message(binding[1], chunk)
+        parts = [("text", chunk.encode("utf-8"), None) for chunk in _status_message_chunks(text)]
         if artifact is not None:
-            await self._api.send_document(
-                binding[1],
-                artifact.filename,
-                artifact.content_bytes(),
-            )
+            parts.append(("document", artifact.content_bytes(), artifact.filename))
+        return tuple(parts)
+
+    def delivery_manifest(self, message: OutboxMessage) -> tuple[DeliveryPart, ...]:
+        return delivery_parts(message, tuple((kind, content) for kind, content, _ in self._parts(message)))
+
+    async def send_part(self, message: OutboxMessage, part: DeliveryPart) -> bool:
+        parts = self._parts(message)
+        manifest = delivery_parts(message, tuple((kind, content) for kind, content, _ in parts))
+        if part.index >= len(manifest) or manifest[part.index] != part:
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        kind, content, filename = parts[part.index]
+        chat_id = self._destinations[message.tenant_id][1]
+        if kind == "text":
+            await self._api.send_message(chat_id, content.decode("utf-8"))
+        else:
+            await self._api.send_document(chat_id, filename, content)
+        return True
+
+    async def __call__(self, message: OutboxMessage) -> bool:
+        try:
+            manifest = self.delivery_manifest(message)
+        except TelegramBotApiError as error:
+            if error.code == "telegram_configuration_invalid":
+                return False
+            raise
+        for part in manifest:
+            await self.send_part(message, part)
         return True
 
 

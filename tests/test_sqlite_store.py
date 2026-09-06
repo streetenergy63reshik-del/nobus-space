@@ -217,8 +217,10 @@ def test_schema_init_is_idempotent_and_configures_safety_pragmas(tmp_path: Path)
             ("audit_events",),
             ("ingress_claims",),
             ("miniapp_auth_replays",),
+            ("outbox_delivery_parts",),
             ("outbox_messages",),
             ("outbox_receipts",),
+            ("sealed_answers",),
             ("task_snapshots",),
         ]
 

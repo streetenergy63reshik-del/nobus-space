@@ -7,6 +7,7 @@ import json
 import sqlite3
 from collections.abc import Callable, Mapping
 from contextlib import closing, contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -73,6 +74,26 @@ class DurableJob:
     payload: Mapping[str, Any]
     attempt_count: int
     lease_id: UUID | None = None
+
+
+# Task-local authority, inherited only by child coroutines of the claimed job.
+execution_lease: ContextVar[tuple["SQLiteTelegramState", DurableJob, UUID] | None] = ContextVar(
+    "execution_lease", default=None
+)
+
+
+@contextmanager
+def guarded_task_write(tenant_id: str, task_id: UUID, contract_digest: str) -> Iterator[None]:
+    active = execution_lease.get()
+    if active is None:
+        yield
+        return
+    state, job, owner = active
+    if (job.tenant_id != tenant_id or job.task_id != task_id
+        or (job.kind in {"draft", "miniapp_draft"} and job.binding_digest != contract_digest)):
+        raise DurableTelegramStateError("runtime_job_binding_mismatch")
+    with state.execution_guard(job, lease_owner=owner):
+        yield
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,6 +212,29 @@ class SQLiteTelegramState:
     @property
     def path(self) -> Path:
         return self._path
+
+    @contextmanager
+    def execution_guard(self, job: DurableJob, *, lease_owner: UUID) -> Iterator[None]:
+        """Hold queue authority through a synchronous Core write; never await here."""
+        job = self._validated_job(job, require_lease=True)
+        with self._transaction() as connection:
+            self._check_execution(connection, job, lease_owner)
+            yield
+
+    def _check_execution(self, connection: sqlite3.Connection, job: DurableJob, lease_owner: UUID) -> None:
+        row = connection.execute(
+            """SELECT * FROM telegram_jobs WHERE job_id=? AND status='leased'
+               AND lease_id=? AND lease_owner=? AND lease_expires_at>?""",
+            (str(job.job_id), str(job.lease_id), str(lease_owner), self._now().isoformat()),
+        ).fetchone()
+        if row is None:
+            raise DurableTelegramStateError("runtime_job_lease_lost")
+        current = self._job_from_row(row)
+        if (current.kind != job.kind or current.tenant_id != job.tenant_id
+            or current.task_id != job.task_id or current.binding_digest != job.binding_digest
+            or current.attempt_count != job.attempt_count
+            or (job.kind != "voice" and canonical_json_digest(current.payload) != canonical_json_digest(job.payload))):
+            raise DurableTelegramStateError("runtime_job_binding_mismatch")
 
     def enqueue(
         self,
@@ -398,6 +442,8 @@ class SQLiteTelegramState:
         lease_id = uuid4()
         try:
             with self._transaction() as connection:
+                now = self._now()
+                expires = now + timedelta(seconds=lease_seconds)
                 # One recovery round protects an externally completed effect
                 # after power loss. A second exhausted execution round, or an
                 # exhausted delivery round, is dead-lettered instead of looping.
@@ -444,12 +490,24 @@ class SQLiteTelegramState:
                          AND attempt_count<?""",
                     (now.isoformat(), now.isoformat(), MAX_JOB_CLAIMS),
                 )
-                row = connection.execute(
+                candidates = connection.execute(
                     """SELECT * FROM telegram_jobs
                        WHERE status='pending' AND attempt_count<?
-                       ORDER BY created_at,job_id LIMIT 1""",
-                    (MAX_JOB_CLAIMS,),
-                ).fetchone()
+                       ORDER BY created_at,job_id LIMIT ?""",
+                    (MAX_JOB_CLAIMS, self._max_jobs),
+                ).fetchall()
+                row = None
+                for candidate in candidates:
+                    try:
+                        self._job_from_row(candidate)
+                    except (DurableTelegramStateError, ValueError, TypeError, KeyError):
+                        # Preserve corrupt evidence but do not repeatedly roll back the FIFO head.
+                        connection.execute("""UPDATE telegram_jobs SET status='failed',
+                            failure_code='runtime_payload_tampered',updated_at=? WHERE job_id=?""",
+                            (now.isoformat(), candidate['job_id']))
+                        continue
+                    row = candidate
+                    break
                 if row is None:
                     return None
                 cursor = connection.execute(
@@ -480,6 +538,8 @@ class SQLiteTelegramState:
         now = self._now()
         try:
             with self._transaction() as connection:
+                self._check_execution(connection, job, lease_owner)
+                now = self._now()
                 cursor = connection.execute(
                     """DELETE FROM telegram_jobs
                        WHERE job_id=? AND status='leased' AND lease_id=?
@@ -528,6 +588,8 @@ class SQLiteTelegramState:
         now = self._now()
         try:
             with self._transaction() as connection:
+                self._check_execution(connection, job, lease_owner)
+                now = self._now()
                 job_row = connection.execute(
                     """SELECT tenant_id,task_id,binding_digest,payload,
                               payload_digest
@@ -632,6 +694,8 @@ class SQLiteTelegramState:
         now = self._now()
         try:
             with self._transaction() as connection:
+                self._check_execution(connection, job, lease_owner)
+                now = self._now()
                 cursor = connection.execute(
                     """UPDATE telegram_jobs
                        SET status=CASE WHEN attempt_count>=? THEN 'failed'
@@ -680,6 +744,8 @@ class SQLiteTelegramState:
         retry_at = now + timedelta(seconds=delay_seconds)
         try:
             with self._transaction() as connection:
+                self._check_execution(connection, job, lease_owner)
+                now = self._now()
                 cursor = connection.execute(
                     """UPDATE telegram_jobs
                        SET status='leased',
@@ -721,6 +787,8 @@ class SQLiteTelegramState:
         now = self._now()
         try:
             with self._transaction() as connection:
+                self._check_execution(connection, job, lease_owner)
+                now = self._now()
                 cursor = connection.execute(
                     """UPDATE telegram_jobs
                        SET status='failed',failure_code=?,lease_id=NULL,
@@ -757,6 +825,9 @@ class SQLiteTelegramState:
         expires = now + timedelta(seconds=lease_seconds)
         try:
             with self._transaction() as connection:
+                self._check_execution(connection, job, lease_owner)
+                now = self._now()
+                expires = now + timedelta(seconds=lease_seconds)
                 cursor = connection.execute(
                     """UPDATE telegram_jobs SET lease_expires_at=?,updated_at=?
                        WHERE job_id=? AND status='leased' AND lease_id=?
@@ -779,15 +850,49 @@ class SQLiteTelegramState:
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
     def queue_counts(self) -> tuple[int, int]:
+        snapshot = self.queue_snapshot()
+        return snapshot["active"], snapshot["pending"] + snapshot["recovering"]
+
+    @contextmanager
+    def reconciliation_jobs(self) -> Iterator[tuple[DurableJob, ...]]:
+        """Exclude admission/reclaim while Core reconciles its own task inventory."""
+        with self._transaction() as connection:
+            rows = connection.execute("""SELECT * FROM telegram_jobs
+                WHERE status IN ('pending','leased','waiting') ORDER BY created_at,job_id
+                LIMIT 1000""").fetchall()
+            jobs = []
+            for row in rows:
+                try:
+                    jobs.append(self._job_from_row(row))
+                except (DurableTelegramStateError, ValueError, TypeError, KeyError):
+                    continue
+            yield tuple(jobs)
+
+    def queue_snapshot(self, tenant_id: str | None = None) -> dict[str, int]:
+        """A single durable read; expired leases never count as active work."""
         try:
             with closing(self._connect()) as connection:
+                now = self._now().isoformat()
                 row = connection.execute(
                     """SELECT
-                       SUM(CASE WHEN status='leased' THEN 1 ELSE 0 END),
-                       SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END)
-                       FROM telegram_jobs"""
+                       SUM(CASE WHEN status='leased' AND lease_expires_at>? THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status='leased' AND lease_expires_at<=? THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status='waiting' THEN 1 ELSE 0 END),
+                       SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END)
+                       FROM telegram_jobs WHERE (? IS NULL OR tenant_id=?)""", (now, now, tenant_id, tenant_id)
                 ).fetchone()
-                return int(row[0] or 0), int(row[1] or 0)
+                return dict(zip(("active", "pending", "recovering", "waiting", "failed"),
+                                (int(value or 0) for value in row)))
+        except (OSError, sqlite3.DatabaseError, TypeError, ValueError):
+            raise DurableTelegramStateError("runtime_store_unavailable") from None
+
+    def attention_task_ids(self, tenant_id: str | None = None) -> tuple[UUID, ...]:
+        try:
+            with closing(self._connect()) as connection:
+                return tuple(UUID(row[0]) for row in connection.execute(
+                    "SELECT task_id FROM telegram_jobs WHERE status='failed' AND (? IS NULL OR tenant_id=?)",
+                    (tenant_id, tenant_id)))
         except (OSError, sqlite3.DatabaseError, TypeError, ValueError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 

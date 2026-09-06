@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from collections.abc import Awaitable, Callable, Sequence
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 from typing import Protocol
 from urllib.parse import urlsplit
@@ -14,6 +17,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.requests import ClientDisconnect
 
 from src.application.miniapp import (
     MiniAppAuthenticationError,
@@ -25,6 +29,7 @@ from src.application.miniapp import (
     MiniAppTaskDetail,
     MiniAppTaskEvent,
     MiniAppTaskNotFoundError,
+    MiniAppTaskMaterial,
     MiniAppTaskRequestError,
     MiniAppTaskResult,
     MiniAppTaskSummary,
@@ -84,6 +89,7 @@ class MiniAppCoreBoundary(Protocol):
         *,
         display_title: str | None = None,
         clarification_token: str | None = None,
+        material: MiniAppTaskMaterial | None = None,
     ) -> MiniAppTaskCreation: ...
 
 
@@ -261,13 +267,19 @@ def create_miniapp_app(
     async def create_task(request: Request) -> object:
         if request.query_params:
             return _invalid_request()
-        media_type = request.headers.get("content-type", "").split(";", 1)[0]
-        if media_type.strip().lower() != "application/json":
+        content_types = request.headers.getlist("content-type")
+        if len(content_types) != 1:
+            return _invalid_request()
+        content_type = content_types[0]
+        media_type = content_type.split(";", 1)[0].strip().lower()
+        if media_type not in {"application/json", "multipart/form-data"}:
             return JSONResponse({"detail": "unsupported_media_type"}, status_code=415)
         request_ids = request.headers.getlist("idempotency-key")
         if len(request_ids) != 1:
             return _invalid_request()
         content_length = request.headers.get("content-length")
+        if len(request.headers.getlist("content-length")) > 1:
+            return _invalid_request()
         if content_length is not None:
             try:
                 parsed_content_length = int(content_length)
@@ -289,11 +301,19 @@ def create_miniapp_app(
             return JSONResponse({"detail": "request_too_large"}, status_code=413)
         except TimeoutError:
             return JSONResponse({"detail": "request_timeout"}, status_code=408)
+        except ClientDisconnect:
+            return _invalid_request()
         try:
-            payload = json.loads(
-                raw.decode("utf-8", errors="strict"),
-                object_pairs_hook=_unique_object,
-            )
+            if content_length is not None and len(raw) != parsed_content_length:
+                raise ValueError
+            material = None
+            if media_type == "multipart/form-data":
+                payload, material = _multipart_task_payload(raw, content_type)
+            else:
+                payload = json.loads(
+                    raw.decode("utf-8", errors="strict"),
+                    object_pairs_hook=_unique_object,
+                )
             if (
                 not isinstance(payload, dict)
                 or "instruction" not in payload
@@ -315,21 +335,14 @@ def create_miniapp_app(
         except (UnicodeError, ValueError, json.JSONDecodeError):
             return _invalid_request()
         try:
-            if clarification_token is None:
-                result = await core.create_task(
-                    _bearer(request),
-                    instruction,
-                    request_ids[0],
-                    display_title=display_title,
-                )
-            else:
-                result = await core.create_task(
-                    _bearer(request),
-                    instruction,
-                    request_ids[0],
-                    display_title=display_title,
-                    clarification_token=clarification_token,
-                )
+            options = {"display_title": display_title}
+            if clarification_token is not None:
+                options["clarification_token"] = clarification_token
+            if material is not None:
+                options["material"] = material
+            result = await core.create_task(
+                _bearer(request), instruction, request_ids[0], **options
+            )
             return JSONResponse(result.model_dump(mode="json"), status_code=202)
         except MiniAppAuthenticationError:
             return JSONResponse({"detail": "unauthorized"}, status_code=401)
@@ -489,12 +502,22 @@ async def _read_bounded_body(
     request: Request, *, max_bytes: int, timeout_seconds: float
 ) -> bytes:
     body = bytearray()
-    async with asyncio.timeout(timeout_seconds):
-        async for chunk in request.stream():
-            if len(body) + len(chunk) > max_bytes:
-                raise _RequestBodyTooLarge
-            body.extend(chunk)
-    return bytes(body)
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_seconds
+    stream = request.stream()
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            raise TimeoutError
+        try:
+            # A fresh await keeps middleware cancellation scopes from consuming
+            # the total timeout after a successfully received initial chunk.
+            chunk = await asyncio.wait_for(anext(stream), timeout=remaining)
+        except StopAsyncIteration:
+            return bytes(body)
+        if len(body) + len(chunk) > max_bytes:
+            raise _RequestBodyTooLarge
+        body.extend(chunk)
 
 
 async def _body_is_empty(request: Request, *, timeout_seconds: float) -> bool:
@@ -533,6 +556,84 @@ def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
             raise ValueError("duplicate JSON key")
         result[key] = value
     return result
+
+
+def _multipart_task_payload(
+    raw: bytes, content_type: str
+) -> tuple[dict[str, object], MiniAppTaskMaterial]:
+    """Parse the bounded two-part form without disk files or an upload service."""
+    if len(content_type) > 200 or "\r" in content_type or "\n" in content_type:
+        raise ValueError("invalid multipart")
+    message = BytesParser(policy=policy.default).parsebytes(
+        b"Content-Type: " + content_type.encode("ascii") + b"\r\n\r\n" + raw
+    )
+    boundary = message.get_boundary()
+    if (
+        not isinstance(boundary, str)
+        or re.fullmatch(r"[0-9A-Za-z'()+_,./:=?-]{1,70}", boundary) is None
+        or len(message.get_params()) != 2
+        or message.get_params()[1][0].lower() != "boundary"
+        or not message.is_multipart()
+        or message.preamble is not None
+        or message.epilogue not in {None, ""}
+    ):
+        raise ValueError("invalid multipart")
+    marker = boundary.encode("ascii")
+    if not raw.startswith(b"--" + marker + b"\r\n") or not (
+        raw.endswith(b"\r\n--" + marker + b"--\r\n")
+        or raw.endswith(b"\r\n--" + marker + b"--")
+    ):
+        raise ValueError("incomplete multipart")
+    parts = {}
+    for part in message.iter_parts():
+        if (
+            part.is_multipart()
+            or sorted(name.lower() for name in part.keys())
+            != ["content-disposition", "content-type"]
+            or part.get_content_disposition() != "form-data"
+        ):
+            raise ValueError("invalid multipart part")
+        name = part.get_param("name", header="content-disposition")
+        if name not in {"metadata", "material"} or name in parts:
+            raise ValueError("invalid multipart part")
+        disposition = part.get_params(header="content-disposition")
+        expected = ["form-data", "name"] + (["filename"] if name == "material" else [])
+        if sorted(key.lower() for key, _ in disposition) != sorted(expected):
+            raise ValueError("invalid multipart disposition")
+        mime = "application/json" if name == "metadata" else "text/plain"
+        type_params = part.get_params()
+        if (
+            part.get_content_type() != mime
+            or len(type_params) > 2
+            or (len(type_params) == 2 and type_params[1] != ("charset", "utf-8"))
+            or (name == "material" and len(type_params) != 2)
+        ):
+            raise ValueError("invalid multipart media type")
+        parts[name] = part
+    if set(parts) != {"metadata", "material"} or any(
+        item.defects or any(getattr(value, "defects", ()) for value in item.values())
+        for item in message.walk()
+    ):
+        raise ValueError("invalid multipart")
+    payload = json.loads(
+        parts["metadata"].get_payload(decode=True).decode("utf-8", errors="strict"),
+        object_pairs_hook=_unique_object,
+    )
+    if not isinstance(payload, dict) or "material" not in payload:
+        raise ValueError("invalid multipart metadata")
+    metadata = payload.pop("material")
+    if not isinstance(metadata, dict) or set(metadata) != {
+        "filename", "media_type", "size", "content_digest"
+    }:
+        raise ValueError("invalid material metadata")
+    material = MiniAppTaskMaterial(
+        **metadata,
+        text=parts["material"].get_payload(decode=True).decode("utf-8", errors="strict"),
+    )
+    if material.filename != parts["material"].get_filename():
+        raise ValueError("invalid material filename")
+    material.checked_instruction("")
+    return payload, material
 
 
 def _query_is(request: Request, *, allowed: str) -> bool:

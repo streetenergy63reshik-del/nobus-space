@@ -742,8 +742,8 @@ def test_product_status_surfaces_dead_letter(tmp_path: Path) -> None:
 
     status = control._status_text()
 
-    assert "Сбойных задач: 1" in status
-    assert "Состояние очереди: требует проверки" in status
+    assert "Требуют внимания: 1" in status
+    assert "Исполнитель: недоступен" in status
 
 
 @pytest.mark.asyncio

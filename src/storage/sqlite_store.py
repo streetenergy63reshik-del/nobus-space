@@ -34,6 +34,8 @@ from src.security.dpapi import (
     unprotect_current_user,
 )
 from src.storage.outbox import (
+    DeliveryPart,
+    DeliveryPartReceipt,
     DeliveryReceipt,
     OutboxEnqueueResult,
     OutboxMessage,
@@ -41,6 +43,7 @@ from src.storage.outbox import (
     ReceiptType,
     message_fingerprint,
     message_id_for,
+    validate_delivery_parts,
 )
 
 
@@ -81,6 +84,7 @@ class OutboxCorruptionError(StoreCorruptionError):
 
 
 _TASK_DISPLAY_ENTROPY = b"nobus-space:task-display:v1"
+_SEALED_ANSWER_ENTROPY = b"nobus-space:sealed-answer:v1"
 _MAX_TASK_DISPLAY_TEXT = 120
 _MAX_TASK_DISPLAY_INSTRUCTION = 2_000
 
@@ -517,6 +521,32 @@ class SQLiteStore:
                     receipt_digest TEXT NOT NULL,
                     receipt_json TEXT NOT NULL,
                     PRIMARY KEY (tenant_id, message_id, receipt_id),
+                    FOREIGN KEY (tenant_id, message_id)
+                        REFERENCES outbox_messages (tenant_id, message_id)
+                        ON DELETE RESTRICT
+                );
+
+                CREATE TABLE IF NOT EXISTS sealed_answers (
+                    tenant_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    result_revision INTEGER NOT NULL CHECK (result_revision >= 1),
+                    payload BLOB NOT NULL,
+                    payload_digest TEXT NOT NULL,
+                    PRIMARY KEY (tenant_id, task_id, result_revision),
+                    FOREIGN KEY (tenant_id, task_id)
+                        REFERENCES task_snapshots (tenant_id, task_id)
+                        ON DELETE RESTRICT
+                );
+
+                CREATE TABLE IF NOT EXISTS outbox_delivery_parts (
+                    tenant_id TEXT NOT NULL,
+                    message_id TEXT NOT NULL,
+                    part_index INTEGER NOT NULL CHECK (part_index >= 0),
+                    part_json TEXT NOT NULL,
+                    part_digest TEXT NOT NULL,
+                    receipt_json TEXT,
+                    receipt_digest TEXT,
+                    PRIMARY KEY (tenant_id, message_id, part_index),
                     FOREIGN KEY (tenant_id, message_id)
                         REFERENCES outbox_messages (tenant_id, message_id)
                         ON DELETE RESTRICT
@@ -1329,6 +1359,7 @@ class SQLiteStore:
         event: WorkerEvent,
         *,
         expected_revision: int,
+        answer_message: str | None = None,
     ) -> StoredTaskSnapshot:
         """Atomically persist one Task transition and its worker audit event."""
         expected = _strict_revision(expected_revision)
@@ -1363,6 +1394,8 @@ class SQLiteStore:
                 self._append_event_row(
                     connection, validated_event, event_json, event_digest
                 )
+                if answer_message is not None:
+                    self._seal_answer(connection, snapshot, answer_message)
                 return snapshot
         except (
             SnapshotConflictError,
@@ -1372,6 +1405,82 @@ class SQLiteStore:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
+
+    @staticmethod
+    def _answer_binding(snapshot: StoredTaskSnapshot, message: str) -> dict[str, Any]:
+        projection = snapshot.projection
+        try:
+            content = json.loads(message)
+            if (not isinstance(content, dict) or set(content) != {"answer"}
+                or not isinstance(content["answer"], str) or not content["answer"].strip()
+                or content["answer"] != content["answer"].strip()
+                or len(content["answer"]) > 128 * 1024
+                or len(message.encode("utf-8")) > 1024 * 1024
+                or projection.result_revision < 1
+                or projection.output_digest != canonical_json_digest({"message": message})):
+                raise ValueError
+        except (ValueError, TypeError, UnicodeError):
+            raise StoreCorruptionError("sealed answer binding is invalid") from None
+        result = {"output_digest": projection.output_digest, "summary": "Worker completed.",
+                  "result_kind": "answer"}
+        if projection.result_digest != canonical_json_digest({"context": {}, "result": result}):
+            raise StoreCorruptionError("sealed answer result is invalid")
+        return {"schema_version": 1, "tenant_id": projection.tenant_id,
+                "task_id": str(projection.task_id), "contract_digest": projection.contract_digest,
+                "result_revision": projection.result_revision, "result_digest": projection.result_digest,
+                "output_digest": projection.output_digest, "message": message}
+
+    @classmethod
+    def _read_sealed_answer(cls, connection: sqlite3.Connection,
+                            snapshot: StoredTaskSnapshot) -> str | None:
+        projection = snapshot.projection
+        row = connection.execute(
+            "SELECT payload,payload_digest FROM sealed_answers WHERE tenant_id=? AND task_id=? AND result_revision=?",
+            (projection.tenant_id, str(projection.task_id), projection.result_revision),
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            payload = bytes(row["payload"])
+            if "sha256:" + hashlib.sha256(payload).hexdigest() != row["payload_digest"]:
+                raise ValueError
+            value = json.loads(unprotect_current_user(payload, entropy=_SEALED_ANSWER_ENTROPY))
+            if not isinstance(value, dict) or value != cls._answer_binding(snapshot, value.get("message")):
+                raise ValueError
+            return value["message"]
+        except (DpapiError, ValueError, TypeError, UnicodeError):
+            raise StoreCorruptionError("sealed answer is invalid") from None
+
+    @classmethod
+    def _seal_answer(cls, connection: sqlite3.Connection,
+                     snapshot: StoredTaskSnapshot, message: str) -> None:
+        value = cls._answer_binding(snapshot, message)
+        existing = cls._read_sealed_answer(connection, snapshot)
+        if existing is not None:
+            if existing != message:
+                raise SnapshotConflictError("sealed answer is immutable")
+            return
+        try:
+            payload = protect_current_user(_canonical_json(value).encode("utf-8"), entropy=_SEALED_ANSWER_ENTROPY)
+        except DpapiError:
+            raise StoreCorruptionError("sealed answer protection failed") from None
+        connection.execute(
+            "INSERT INTO sealed_answers (tenant_id,task_id,result_revision,payload,payload_digest) VALUES (?,?,?,?,?)",
+            (snapshot.projection.tenant_id, str(snapshot.projection.task_id),
+             snapshot.projection.result_revision, payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
+        )
+
+    def read_sealed_answer(self, tenant_id: str, task_id: UUID) -> str | None:
+        """Recover only normalized answer bytes bound to the current result revision."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(task_id, UUID):
+            raise ValueError("task_id must be a UUID")
+        try:
+            with closing(self._connect()) as connection:
+                snapshot = self._select_task(connection, tenant, task_id)
+                return None if snapshot is None else self._read_sealed_answer(connection, snapshot)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("sealed answer is invalid") from None
 
     def read_events(
         self, tenant_id: str, task_id: UUID, attempt_id: UUID
@@ -1476,15 +1585,14 @@ class SQLiteStore:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
 
-    @staticmethod
     def _outbox_from_row(
-        row: sqlite3.Row, *, tenant_id: str, message_id: UUID
+        self, connection: sqlite3.Connection, row: sqlite3.Row, *, tenant_id: str, message_id: UUID
     ) -> OutboxMessage:
         try:
             raw_message = json.loads(row["message_json"])
             if not isinstance(raw_message, dict):
                 raise ValueError
-            legacy = "user_message" not in raw_message
+            legacy = not {"user_message", "delivery_manifest_digest", "delivery_part_count"} <= raw_message.keys()
             message = OutboxMessage.model_validate(raw_message)
             digest = canonical_json_digest(
                 raw_message if legacy else message.model_dump(mode="json")
@@ -1528,11 +1636,22 @@ class SQLiteStore:
         )
         if not all(bindings):
             raise OutboxCorruptionError("outbox message binding mismatch")
+        if message.task_status is TaskStatus.ANSWERED:
+            snapshot = self._select_task(connection, tenant_id, message.task_id)
+            if (snapshot is None or snapshot.revision != message.task_revision
+                or snapshot.snapshot_digest != message.task_projection_digest
+                or snapshot.projection.contract_digest != message.contract_digest
+                or snapshot.projection.result_digest != message.result_digest
+                or snapshot.projection.result_revision != message.result_revision
+                or snapshot.projection.status is not TaskStatus.ANSWERED):
+                raise OutboxCorruptionError("answer task binding mismatch")
+            sealed = self._read_sealed_answer(connection, snapshot)
+            if sealed is not None and json.loads(sealed)["answer"] != message.user_message:
+                raise OutboxCorruptionError("answer differs from sealed result")
         return message
 
-    @staticmethod
     def _select_outbox_message(
-        connection: sqlite3.Connection, tenant_id: str, message_id: UUID
+        self, connection: sqlite3.Connection, tenant_id: str, message_id: UUID
     ) -> OutboxMessage | None:
         row = connection.execute(
             """SELECT tenant_id, message_id, message_fingerprint, task_id,
@@ -1546,8 +1665,8 @@ class SQLiteStore:
         ).fetchone()
         if row is None:
             return None
-        return SQLiteStore._outbox_from_row(
-            row, tenant_id=tenant_id, message_id=message_id
+        return self._outbox_from_row(
+            connection, row, tenant_id=tenant_id, message_id=message_id
         )
 
     @staticmethod
@@ -1634,6 +1753,20 @@ class SQLiteStore:
         except ValueError:
             raise SnapshotConflictError("task result projection is invalid") from None
 
+        return self._save_projection_status(
+            projection, expected_revision=expected, destination_ref=destination_ref,
+            user_message=user_message, event=event, max_attempts=max_attempts, now=timestamp,
+        )
+
+    def _save_projection_status(self, projection: DurableTaskProjection, *, expected_revision: int,
+                                 destination_ref: str, user_message: str | None = None,
+                                 event: WorkerEvent | None = None, max_attempts: int = 3,
+                                 now: datetime) -> OutboxEnqueueResult:
+        expected = _strict_revision(expected_revision)
+        timestamp = now.astimezone(UTC)
+        projection_data = projection.model_dump(mode="json")
+        projection_json = _canonical_json(projection_data)
+        projection_digest = canonical_json_digest(projection_data)
         validated_event: WorkerEvent | None = None
         event_json = ""
         event_digest = ""
@@ -1691,6 +1824,13 @@ class SQLiteStore:
         )
         try:
             with self._transaction() as connection:
+                if projection.status is TaskStatus.ANSWERED:
+                    sealed = self._read_sealed_answer(connection, StoredTaskSnapshot(
+                        revision=task_revision, updated_at=projection.updated_at,
+                        snapshot_digest=projection_digest, projection=projection,
+                    ))
+                    if sealed is not None and json.loads(sealed)["answer"] != user_message:
+                        raise OutboxConflictError("answer differs from sealed result")
                 existing = self._select_outbox_message(
                     connection, projection.tenant_id, message_id
                 )
@@ -1779,6 +1919,101 @@ class SQLiteStore:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
 
+    def mark_recovery_attention(self, tenant_id: str, task_id: UUID, contract_digest: str,
+                                *, destination_ref: str, now: datetime | None = None) -> bool:
+        """Fail an orphan from its validated Core projection, preserving sealed evidence."""
+        if not _is_digest(contract_digest) or not _is_digest(destination_ref):
+            raise ValueError("recovery binding is invalid")
+        timestamp = now or datetime.now(UTC)
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("recovery time must be timezone-aware")
+        timestamp = timestamp.astimezone(UTC)
+        snapshot = self.read_task(tenant_id, task_id)
+        if snapshot is None or snapshot.projection.contract_digest != contract_digest:
+            raise SnapshotConflictError("recovery task is unavailable")
+        projection = snapshot.projection
+        if projection.status in {TaskStatus.ANSWERED, TaskStatus.COMPLETED, TaskStatus.REJECTED,
+                                  TaskStatus.FAILED, TaskStatus.ESCALATE}:
+            return True
+        if timestamp < projection.updated_at:
+            raise SnapshotConflictError("recovery clock moved backwards")
+        if projection.status in {TaskStatus.REWORK, TaskStatus.DEFERRED}:
+            intermediate = projection.model_copy(update={"status": TaskStatus.IN_PROGRESS,
+                                                          "updated_at": timestamp})
+            data = intermediate.model_dump(mode="json")
+            with self._transaction() as connection:
+                snapshot = self._save_task_cas(connection, intermediate, _canonical_json(data),
+                                               canonical_json_digest(data), expected_revision=snapshot.revision)
+            projection = snapshot.projection
+        target = (TaskStatus.REJECTED if projection.status in {TaskStatus.PENDING, TaskStatus.HUMAN_APPROVED}
+                  else TaskStatus.FAILED if projection.status in {
+                      TaskStatus.PARSING, TaskStatus.ROUTING, TaskStatus.IN_PROGRESS,
+                      TaskStatus.WAITING_INPUT, TaskStatus.EXECUTING}
+                  else TaskStatus.ESCALATE)
+        updated = DurableTaskProjection.model_validate(projection.model_copy(
+            update={"status": target, "updated_at": timestamp}).model_dump(mode="json"))
+        self._save_projection_status(updated, expected_revision=snapshot.revision,
+                                      destination_ref=destination_ref, now=timestamp)
+        return True
+
+    def list_recoverable_tasks(self, tenant_id: str, *, limit: int = 50) -> tuple[StoredTaskSnapshot, ...]:
+        """Oldest execution states first, excluding deliberate actionable waits."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("recovery limit is invalid")
+        excluded = {TaskStatus.ANSWERED, TaskStatus.COMPLETED, TaskStatus.REJECTED,
+                    TaskStatus.FAILED, TaskStatus.ESCALATE, TaskStatus.WAITING_INPUT,
+                    TaskStatus.WAITING_HUMAN, TaskStatus.DEFERRED}
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(
+                    "SELECT task_id FROM task_snapshots WHERE tenant_id=? ORDER BY updated_at,task_id", (tenant,)
+                )
+                result = []
+                for row in rows:
+                    snapshot = self._select_task(connection, tenant, UUID(row["task_id"]))
+                    if snapshot.projection.status not in excluded:
+                        result.append(snapshot)
+                        if len(result) == limit:
+                            break
+                return tuple(result)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("recovery state is unavailable") from None
+
+    def delivery_counts(self, tenant_id: str) -> dict[str, int]:
+        """Content-free validated durable delivery counts for the product snapshot."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        counts = {"pending": 0, "leased": 0, "unknown": 0, "failed": 0, "confirmed_parts": 0}
+        try:
+            with closing(self._connect()) as connection:
+                ids = connection.execute("SELECT message_id FROM outbox_messages WHERE tenant_id=?", (tenant,)).fetchall()
+                for row in ids:
+                    message = self._select_outbox_message(connection, tenant, UUID(row["message_id"]))
+                    if message.status.value in counts:
+                        counts[message.status.value] += 1
+                    counts["confirmed_parts"] += sum(receipt is not None for _, receipt in self._delivery_parts(connection, message))
+                    if message.status is not OutboxStatus.ACKED:
+                        receipts = self.read_outbox_receipts(tenant, message.message_id)
+                        counts["unknown"] += bool(receipts and receipts[-1].receipt_type is ReceiptType.TIMEOUT)
+            return counts
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("delivery state is unavailable") from None
+
+    def attention_task_ids(self, tenant_id: str) -> tuple[UUID, ...]:
+        """Internal tenant-scoped IDs for deduplicating Core and queue attention."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute("SELECT task_id FROM task_snapshots WHERE tenant_id=?", (tenant,))
+                result = []
+                for row in rows:
+                    snapshot = self._select_task(connection, tenant, UUID(row["task_id"]))
+                    if snapshot.projection.status in {TaskStatus.FAILED, TaskStatus.ESCALATE}:
+                        result.append(snapshot.projection.task_id)
+                return tuple(result)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("attention state is unavailable") from None
+
     def claim_outbox_messages(
         self,
         tenant_id: str,
@@ -1827,6 +2062,7 @@ class SQLiteStore:
                 ).fetchall()
                 for row in expired_rows:
                     message = self._outbox_from_row(
+                        connection,
                         row,
                         tenant_id=tenant,
                         message_id=UUID(row["message_id"]),
@@ -1875,6 +2111,7 @@ class SQLiteStore:
                 leased: list[OutboxMessage] = []
                 for row in rows:
                     message = self._outbox_from_row(
+                        connection,
                         row,
                         tenant_id=tenant,
                         message_id=UUID(row["message_id"]),
@@ -1908,6 +2145,129 @@ class SQLiteStore:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
+
+    @staticmethod
+    def _require_delivery_lease(message: OutboxMessage, lease_owner: UUID,
+                                lease_id: UUID, attempt: int, now: datetime) -> None:
+        if (message.status is not OutboxStatus.LEASED or message.lease_owner != lease_owner
+            or message.lease_id != lease_id or message.attempt_count != attempt
+            or message.lease_expires_at is None or message.lease_expires_at <= now
+            or now < message.updated_at):
+            raise OutboxLeaseError("delivery does not match current lease")
+
+    @staticmethod
+    def _delivery_parts(connection: sqlite3.Connection, message: OutboxMessage
+                        ) -> tuple[tuple[DeliveryPart, DeliveryPartReceipt | None], ...]:
+        rows = connection.execute(
+            "SELECT * FROM outbox_delivery_parts WHERE tenant_id=? AND message_id=? ORDER BY part_index",
+            (message.tenant_id, str(message.message_id)),
+        ).fetchall()
+        if not rows:
+            if message.delivery_manifest_digest is not None:
+                raise OutboxCorruptionError("delivery manifest is missing")
+            return ()
+        try:
+            result = []
+            for row in rows:
+                part = DeliveryPart.model_validate_json(row["part_json"])
+                if (part.index != row["part_index"]
+                    or canonical_json_digest(part.model_dump(mode="json")) != row["part_digest"]):
+                    raise ValueError
+                receipt = None
+                if row["receipt_json"] is not None:
+                    receipt = DeliveryPartReceipt.model_validate_json(row["receipt_json"])
+                    if (receipt.tenant_id != message.tenant_id or receipt.message_id != message.message_id
+                        or receipt.part_id != part.part_id or receipt.manifest_digest != part.manifest_digest
+                        or receipt.part_index != part.index or receipt.attempt_count > message.attempt_count
+                        or canonical_json_digest(receipt.model_dump(mode="json")) != row["receipt_digest"]):
+                        raise ValueError
+                elif row["receipt_digest"] is not None:
+                    raise ValueError
+                result.append((part, receipt))
+            validate_delivery_parts(message, tuple(part for part, _ in result))
+            if (len(result) != message.delivery_part_count
+                or result[0][0].manifest_digest != message.delivery_manifest_digest):
+                raise ValueError
+            return tuple(result)
+        except (ValueError, TypeError):
+            raise OutboxCorruptionError("delivery manifest or receipt is invalid") from None
+
+    def read_delivery_parts(self, tenant_id: str, message_id: UUID
+                            ) -> tuple[tuple[DeliveryPart, DeliveryPartReceipt | None], ...]:
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not isinstance(message_id, UUID):
+            raise ValueError("message_id must be a UUID")
+        try:
+            with closing(self._connect()) as connection:
+                message = self._select_outbox_message(connection, tenant, message_id)
+                return () if message is None else self._delivery_parts(connection, message)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise OutboxCorruptionError("delivery manifest is invalid") from None
+
+    def bind_delivery_parts(self, message: OutboxMessage, parts: tuple[DeliveryPart, ...],
+                            *, lease_owner: UUID, now: datetime
+                            ) -> tuple[tuple[DeliveryPart, DeliveryPartReceipt | None], ...]:
+        """Freeze the complete manifest under the current lease before any send."""
+        validated = validate_delivery_parts(message, parts)
+        with self._transaction() as connection:
+            current = self._select_outbox_message(connection, message.tenant_id, message.message_id)
+            if current is None:
+                raise OutboxLeaseError("delivery message is unavailable")
+            self._require_delivery_lease(current, lease_owner, message.lease_id, message.attempt_count, now)
+            if current.message_fingerprint != message.message_fingerprint:
+                raise OutboxConflictError("delivery message binding mismatch")
+            existing = self._delivery_parts(connection, current)
+            if existing:
+                if tuple(part for part, _ in existing) != validated:
+                    raise OutboxConflictError("delivery manifest is immutable")
+                return existing
+            for part in validated:
+                data = part.model_dump(mode="json")
+                connection.execute(
+                    "INSERT INTO outbox_delivery_parts (tenant_id,message_id,part_index,part_json,part_digest) VALUES (?,?,?,?,?)",
+                    (current.tenant_id, str(current.message_id), part.index, _canonical_json(data), canonical_json_digest(data)),
+                )
+            previous_digest = connection.execute(
+                "SELECT message_digest FROM outbox_messages WHERE tenant_id=? AND message_id=?",
+                (current.tenant_id, str(current.message_id)),
+            ).fetchone()[0]
+            updated = OutboxMessage.model_validate(current.model_copy(update={
+                "delivery_manifest_digest": validated[0].manifest_digest,
+                "delivery_part_count": len(validated), "state_revision": current.state_revision + 1,
+                "updated_at": now,
+            }).model_dump(mode="json"))
+            self._update_outbox_message(connection, updated, previous_state_revision=current.state_revision,
+                                        previous_digest=previous_digest)
+            return tuple((part, None) for part in validated)
+
+    def record_delivery_part(self, receipt: DeliveryPartReceipt, *, lease_owner: UUID,
+                             now: datetime) -> None:
+        """Append a receipt for one exact part; confirmed parts are immutable."""
+        receipt = DeliveryPartReceipt.model_validate(receipt.model_dump(mode="json"))
+        with self._transaction() as connection:
+            message = self._select_outbox_message(connection, receipt.tenant_id, receipt.message_id)
+            if message is None:
+                raise OutboxLeaseError("delivery message is unavailable")
+            self._require_delivery_lease(message, lease_owner, receipt.lease_id, receipt.attempt_count, now)
+            if receipt.received_at > now or receipt.received_at < message.updated_at:
+                raise OutboxLeaseError("delivery receipt clock is invalid")
+            parts = self._delivery_parts(connection, message)
+            if receipt.part_index >= len(parts):
+                raise OutboxConflictError("delivery part is unavailable")
+            part, previous = parts[receipt.part_index]
+            if receipt.part_id != part.part_id or receipt.manifest_digest != part.manifest_digest:
+                raise OutboxConflictError("delivery receipt part mismatch")
+            if previous is not None:
+                if previous != receipt:
+                    raise OutboxReceiptConflictError("delivery part already acknowledged")
+                return
+            data = receipt.model_dump(mode="json")
+            cursor = connection.execute(
+                "UPDATE outbox_delivery_parts SET receipt_json=?,receipt_digest=? WHERE tenant_id=? AND message_id=? AND part_index=? AND receipt_json IS NULL",
+                (_canonical_json(data), canonical_json_digest(data), message.tenant_id, str(message.message_id), part.index),
+            )
+            if cursor.rowcount != 1:
+                raise OutboxReceiptConflictError("delivery receipt CAS failed")
 
     def record_outbox_receipt(
         self,
@@ -1953,6 +2313,7 @@ class SQLiteStore:
                 if row is None:
                     raise OutboxLeaseError("message is not leased")
                 message = self._outbox_from_row(
+                        connection,
                     row,
                     tenant_id=validated.tenant_id,
                     message_id=validated.message_id,
@@ -1969,6 +2330,9 @@ class SQLiteStore:
                     raise OutboxLeaseError("receipt does not match current lease")
 
                 if validated.receipt_type is ReceiptType.ACK:
+                    parts = self._delivery_parts(connection, message)
+                    if any(receipt is None for _, receipt in parts):
+                        raise OutboxReceiptConflictError("delivery parts are not all acknowledged")
                     new_status = OutboxStatus.ACKED
                     next_attempt_at = None
                 elif message.attempt_count >= message.max_attempts:
@@ -2100,6 +2464,7 @@ class SQLiteStore:
                         "verified answer is not unique"
                     )
                 message = self._outbox_from_row(
+                        connection,
                     rows[0],
                     tenant_id=tenant,
                     message_id=UUID(rows[0]["message_id"]),

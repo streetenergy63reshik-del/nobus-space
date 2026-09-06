@@ -146,6 +146,7 @@ class StateManager:
     async def restore_recovery_snapshot(self, task: Task) -> Task:
         validated = Task.model_validate(task.model_dump(mode="json"))
         recoverable = {
+            TaskStatus.DRAFT,
             TaskStatus.L1_VALIDATED,
             TaskStatus.L2_VERIFIED,
             TaskStatus.L3_APPROVED,
@@ -159,8 +160,13 @@ class StateManager:
             or validated.result is None
             or validated.result_revision < 1
             or validated.result_digest is None
-            or validated.verification_bundle is None
-            or validated.verification_bundle.l1 is None
+            or validated.result_digest != canonical_json_digest(
+                {"context": validated.context, "result": validated.result}
+            )
+            or (validated.status is not TaskStatus.DRAFT and (
+                validated.verification_bundle is None
+                or validated.verification_bundle.l1 is None
+            ))
         ):
             raise PolicyViolation("verified task snapshot cannot be restored")
         self._tasks[validated.id] = validated.model_copy(deep=True)
