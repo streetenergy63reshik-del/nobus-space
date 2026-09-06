@@ -2,7 +2,7 @@
   "version": "5.0.0",
   "gate": "C2",
   "date": "2026-09-06",
-  "verdict": "C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED",
+  "verdict": "C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED",
   "accepted_base": {
     "commit": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
     "tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
@@ -28,7 +28,9 @@
   "worktree_head": {
     "accepted_frozen_commit": "98aa8dc545eaf3c80a820cec4c8ab0601e4fdfc6",
     "accepted_frozen_tree": "c81539fdad74ec3f296c7926aeb77c8e78b5c656",
-    "current_HEAD": "Status/publication metadata commits are descendants; product/criteria equivalence checked before publication"
+    "current_HEAD": "Status/publication metadata commits are descendants; product/criteria equivalence checked before publication",
+    "published_product_merge": "d888e6bb78b275c7669971710c2a82309d98a621",
+    "published_product_tree": "b6815bd848f401d376b0de006da464fe90da17b5"
   },
   "owner_decision": {
     "prompt_sha256": "eead7c8f65d12612b62c301675a39332cff791072f239c810b5727101a2cdd7d",
@@ -357,14 +359,31 @@
     "git_notice_blobs_exact": 35
   },
   "publication": {
-    "authorized_after_PASS": true,
+    "status": "PUBLISHED_VERIFIED",
     "repository": "streetenergy63reshik-del/nobus-space",
-    "target_branch": "main",
-    "normal_push_pr_merge_only": true,
-    "performed": false,
-    "live": false,
-    "C3_started": false,
-    "status": "PREPARING_EXACT_MANIFEST"
+    "branch": "main",
+    "pr": 13,
+    "pr_url": "https://github.com/streetenergy63reshik-del/nobus-space/pull/13",
+    "head": "a9ed3c3380d59d3b306036c6de81c814e4922b62",
+    "merge": "d888e6bb78b275c7669971710c2a82309d98a621",
+    "tree": "b6815bd848f401d376b0de006da464fe90da17b5",
+    "tree_equals_publication_manifest": true,
+    "normal_merge": true,
+    "required_checks": [],
+    "observed_statuses": [],
+    "observed_pr_workflows": [],
+    "observed_check_runs": [],
+    "ci_note": "No GitHub checks configured/observed; not claimed as CI PASS. Local exact L1/L2/L3 and metadata readback supply evidence.",
+    "remote_handoff_blob": "a7f5aaeef53e62aaabecbea1900c1e2f24a808a3",
+    "merged_at": "2026-09-06T17:48:01Z",
+    "live_changed": false,
+    "c3_started": false,
+    "performed": true,
+    "final_status_sync": "This docs-only descendant records the verified product merge; final main SHA/tree are read back after its own merge, not self-embedded",
+    "manifest_sha256": "3231117448781e822c2a8e868ff9fd792d0c1f211e1f0ddaddd70b02eb8216c3",
+    "source_only": true,
+    "tag_release_deploy": false,
+    "force_protection_bypass": false
   },
   "historical_evidence_2026_09_04": {
     "version": "1.1.0",
@@ -3185,5 +3204,34 @@
     "canonical_foreign_files_unchanged": 20,
     "live_changed": false,
     "sealed_gate_diff": false
+  },
+  "publication_before_merge": {
+    "authorized_after_PASS": true,
+    "repository": "streetenergy63reshik-del/nobus-space",
+    "target_branch": "main",
+    "normal_push_pr_merge_only": true,
+    "performed": false,
+    "live": false,
+    "C3_started": false,
+    "status": "PREPARING_EXACT_MANIFEST"
+  },
+  "post_acceptance_status_review": {
+    "verdict": "PASS",
+    "checks": 514,
+    "report": ".runtime/c2/closure/ttl-final-candidate-20260906/l2-verifier/STATUS-READBACK.md",
+    "report_sha256": "7439e10ec77c47590b099ac12564fe3838b566c0cfba465235b1238bc070bf55",
+    "receipt_sha256": "c2bea710268233bf2376342c831b981d940dda1aa61d4d0dd453b4349ae944cc"
+  },
+  "next_gate": {
+    "gate": "C3",
+    "status": "READY TO START",
+    "started": false,
+    "owning_findings": [
+      "C0-F05",
+      "C0-F06",
+      "C0-F07",
+      "C0-F08"
+    ],
+    "whole_MVP1_ready": false
   }
 }

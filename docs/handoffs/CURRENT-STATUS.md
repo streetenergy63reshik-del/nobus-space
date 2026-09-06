@@ -1,7 +1,7 @@
 # Nobus Space — CURRENT
 
 <!-- C2_CURRENT_START -->
-C2 ACCEPTED / LOCAL PASS / PUBLICATION PENDING / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY_AFTER_PUBLICATION / NOT_STARTED; весь MVP1 ещё не READY.
+C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](../gates/gate-c2-voice-parity/HANDOFF.md). C3 READY TO START / NOT_STARTED; весь MVP1 ещё не READY.
 <!-- C2_CURRENT_END -->
 
 ## Сохранённый контекст до итоговой приёмки C2

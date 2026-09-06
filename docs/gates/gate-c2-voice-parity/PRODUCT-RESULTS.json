@@ -1,7 +1,7 @@
 {
   "version": "4.0.0",
   "date": "2026-09-06",
-  "verdict": "B02 PASS with exact unchanged-component bindings; C2 ACCEPTED / PUBLICATION PENDING",
+  "verdict": "B02 PASS with exact unchanged-component bindings; C2 ACCEPTED / PUBLISHED",
   "current_product_source_revision": "f01e9f88b48d5dd094ea28b9150da84ddb5da3e3",
   "current_product_source_tree": "896b9dbb3e7df35038a792696eadd3b5920ae27e",
   "historical_additional_session_20260906": {
@@ -1640,5 +1640,12 @@
     "correction_attempts": [],
     "review_sha256": "c890412f534162a1038cf734f6d15849077c498e2719ed6908c6570e4b6e980c",
     "report_sha256": "990c1373a54e6f79601078e60510912b58a1c65f0d7de0f6c0aae7f6ac1a9606"
+  },
+  "publication_readback": {
+    "pr": 13,
+    "merge": "d888e6bb78b275c7669971710c2a82309d98a621",
+    "tree": "b6815bd848f401d376b0de006da464fe90da17b5",
+    "product_source_unchanged": true,
+    "C3": "READY TO START / NOT STARTED"
   }
 }
