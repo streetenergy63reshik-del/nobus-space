@@ -168,7 +168,11 @@ class CodexSdkAdapter:
 
     async def start(self) -> None:
         """Open the local protocol/auth generation without a model turn."""
-        client = await self._client_instance()
+        try:
+            async with asyncio.timeout(_CONTROL_TIMEOUT_SECONDS):
+                client = await self._client_instance()
+        except TimeoutError:
+            raise CodexCliError("worker_start_failed") from None
         await self._release_client(client)
 
     async def execute(self, contract: TaskContract) -> CodexCliResult:
@@ -541,19 +545,27 @@ class CodexSdkAdapter:
                 try:
                     await client.__aenter__()
                 except asyncio.CancelledError:
-                    cleanup = asyncio.create_task(self._close_client(client))
+                    cleanup = asyncio.create_task(self._discard_starting_client(client))
                     try:
                         await asyncio.shield(cleanup)
                     except asyncio.CancelledError:
                         await self._drain(cleanup)
                     raise
                 except Exception as error:
-                    await self._close_client(client)
+                    await self._discard_starting_client(client)
                     raise CodexCliError(_sdk_failure_code(error, "worker_start_failed")) from None
                 self._client = client
             identity = id(self._client)
             self._client_users[identity] = self._client_users.get(identity, 0) + 1
             return self._client
+
+    async def _discard_starting_client(self, client: AsyncCodex) -> None:
+        # Called while initialization owns _client_lock. Keep failed physical
+        # cleanup visible to close() and prohibit another generation meanwhile.
+        if not await self._close_client(client):
+            self._retire_locked(client)
+            self._retired_outcomes[id(client)] = False
+            self._closed = True
 
     async def _thread(
         self,

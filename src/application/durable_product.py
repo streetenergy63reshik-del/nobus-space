@@ -416,9 +416,11 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 return
             self._closing = True
             workers = self._execution_workers
-            for worker in workers:
+            startup = getattr(self, "_start_task", None)
+            owned = (*workers, startup) if startup is not None and not startup.done() else workers
+            for worker in owned:
                 worker.cancel()
-            done, pending = await asyncio.wait(workers, timeout=_SHUTDOWN_SECONDS) if workers else (set(), set())
+            done, pending = await asyncio.wait(owned, timeout=_SHUTDOWN_SECONDS) if owned else (set(), set())
             results = [worker.exception() for worker in done if not worker.cancelled()]
             effects = getattr(self, "_product_effects", None)
             if effects is not None:
@@ -446,7 +448,10 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             self._closed = True
             self._close_failed = bool(failures or pending or any(
                 not task.done() for task in self._cleanup_pending))
-            self._execution_workers = tuple(pending)
+            self._execution_workers = tuple(worker for worker in workers if worker in pending)
+            if startup in pending:
+                self._cleanup_pending.add(startup)
+                startup.add_done_callback(self._cleanup_finished)
             if self._close_failed:
                 raise RuntimeError("Telegram execution queue did not close safely")
 
