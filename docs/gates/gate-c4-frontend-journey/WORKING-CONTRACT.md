@@ -18,4 +18,4 @@
 
 ## Зависимость среды
 
-Штатный Browser и Windows Computer Use при первом read-only запуске завершились ошибкой trusted RPC package (`@oai/browser-desktop/service`, `@oai/sky/service`). Скриншотов и Telegram UI evidence нет. Это ENVIRONMENT_FAILURE, не дефект C3. Обход trust-проверки не выполняется. Существующий HTTPS маршрут и owner-only identity проверяются отдельно чтением; временные переключения возможны только после одного точного smoke-разрешения.
+Штатный Browser и Windows Computer Use при первом read-only запуске завершились ошибкой trusted RPC package (`@oai/browser-desktop/service`, `@oai/sky/service`). Скриншотов и Telegram UI evidence нет. Это ENVIRONMENT_FAILURE, не дефект C3. Обход trust-проверки не выполняется. Существующий HTTPS маршрут и owner-only identity проверяются отдельно чтением; Владелец дал полное разрешение на необходимые ограниченные проверки C4; exact plan/budget/readback остаются обязательными.

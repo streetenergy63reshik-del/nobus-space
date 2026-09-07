@@ -1,168 +1,64 @@
-# 14. Решения владельца и завершение Gate C2
+# 14. Решения владельца и завершение MVP1
 
-<!-- C2_CURRENT_START -->
-C2 принят и опубликован через PR #13; SHA и дерево проверены по GitHub. [Передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md) содержит действующие условия. C3 READY TO START / NOT STARTED: запуск — отдельной задачей владельца; live не изменён.
-<!-- C2_CURRENT_END -->
+**Актуально на:** 7 сентября 2026 года.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED.
+C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 
-C2: исправлена независимо воспроизведённая гонка TTL, новая узкая B02 прошла. Итоговый freeze/review и обычная публикация после PASS разрешены владельцем 6 сентября. [Актуальная передача C2](gates/gate-c2-voice-parity/HANDOFF.md). C3 не запускается в этой задаче.
+Точные факты и следующий шаг находятся в [CURRENT-STATUS](handoffs/CURRENT-STATUS.md)
+и [единой передаче C4](gates/gate-c4-frontend-journey/HANDOFF.md).
+История принятых C0–C3 сохранена в [индексе Gate](gates/README.md).
+Один Gate выполняется в одной пользовательской задаче, включая исправления, проверки и публикацию.
 
-**Статус документа:** CANONICAL OWNER INPUTS
-**Актуально на:** 6 сентября 2026 года
-**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`
-**Локальная разработка:** `C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED`
-**Deployment identity:** `DEPLOYMENT REVISION UNVERIFIED`
-**Program boundary:** `MVP-2 HOLD`
+## Разрешённый объём C4
 
-Этот файл не выдаёт разрешение на push, PR, merge, tag/release, deploy,
-provider/VPS/DNS/TLS/BotFather, credentials, live effect, Nobus Memory write,
-HTML publication или Telegram delivery.
+Владелец поручил закончить существующие Telegram Bot и Mini App над одним Core,
+актуализировать документацию MVP1 и опубликовать результат после полного PASS.
+При возобновлении он подтвердил полное разрешение на необходимые действия и проверки.
+Повторное разрешение на каждую правку, ограниченный повтор или обычный push/PR/merge
+в этом объёме не требуется. Защита main и обязательные проверки остаются в силе.
 
-Активная thin topology остаётся привязана к
-[ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md),
-а C1 semantic boundary — к [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md).
-Telegram Mini App остаётся тонким MVP-1 ingress; полный Gate 2A —
-`FROZEN / NOT CURRENT`.
+Общий C4 budget: до 64 model turns/резервов и 5400 секунд активного времени;
+до 20 локальных ASR-запусков и 1200 секунд native wall time.
+Единый накопительный ledger включает ошибки и повторы; его нельзя обнулять.
+Существующая подписка, модельный профиль и квалифицированный ASR C2 сохраняются.
 
-## 1. Что требуется сейчас
+Настоящий owner Telegram/Mini App smoke проводится по точному ограниченному плану:
+SHA/tree, бот и личный чат, временный runtime/HTTPS route, сценарии, лимиты,
+возврат исходных настроек и readback. Он входит в полное разрешение владельца.
+Симуляция, synthetic initData и локальный API не заменяют этот smoke.
+Если штатные UI-инструменты недоступны, необходимы реальные действия владельца
+или восстановление инструментов и связанные свидетельства результата.
 
-Владелец принял exact local Gate C0 candidate
-`0d6fec08dc95e252e0d9491e7bb11b78e60adcec` / tree
-`e1ae77eba2f2b50a45b82883e4ac20071e145dfd`. Publication-safe projection
-опубликована через [PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9);
-точный predecessor для C1 зафиксирован в едином
-[handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md).
+## Что остаётся после C4
 
-C0 восстановил фактическую границу:
-
-- C0 contract publication через PR #9 дала merge `70085f8...`, tree
-  `3a31914a...`; final protected-main binding после status-only sync
-  фиксируется exact readback в итоговом C0-сообщении; annotated tag `v1.0.1`
-  остался на `f5a9119...`;
-- live runtime наблюдался 2 сентября, но текущий процесс/health и loaded
-  revision не подтверждены;
-- previous owner acceptance переоткрыта из-за false semantic reject одинаковой
-  transform-задачи в text и после успешного voice transcript;
-- forward [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
-  реализован и опубликован в default-off C1 через
-  [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11);
-  product commit `2732a11122179c4197a74594dd0c8ba3ed9ec52d`;
-- historical READY claim остаётся только в ancestry и superseded текущими
-  active docs на protected `main`.
-
-## 2. C1 опубликован; C2 принят локально
-
-Gate C1 выполнен в отдельном пользовательском чате от exact protected-main
-predecessor `5feccfd...`, tree `480b2f85...`, а не от floating
-`origin/main`, dirty local `main` или непринятого checkpoint.
-
-Продуктовый результат C1: text и voice-transcript после нормализации проходят
-один tool-less semantic compiler; strict SemanticProposal описывает смысл без
-authority; Core детерминированно выбирает capability/policy и решение. C1
-использует corpus C0 как acceptance и не меняет Faster-Whisper.
-
-**Один Gate = одна Codex-задача = один пользовательский чат.** Все Txx/Cxx,
-исправления, проверки и разрешённая публикация C2 продолжаются в существующей
-задаче C2. Принятый C1 повторно не принимается; C3 самостоятельно не начинается.
-
-Предыдущий продуктовый checkpoint C2 — `4ed2cd2418b58ba499ff5dfdf69605244ceb4916`,
-tree `8eee2901119bb3699477479ef810efae3608773f`. Владелец 5 сентября принял
-подтверждаемый ввод, два уточнения raw-критериев и конечную локальную программу.
-ASR qualification small прошла; полные результаты и ограничения —
-[HANDOFF](gates/gate-c2-voice-parity/HANDOFF.md). Старые семь hard FAIL сохранены.
-Текущий расход прежних ASR ledgers и ограничения доступны в C2 EVIDENCE.json.
-
-Полная B02 до TTL-исправления на product-source 4ed2cd2418b58ba499ff5dfdf69605244ceb4916 / tree 8eee2901119bb3699477479ef810efae3608773f прошла:
-пять реальных готовых ответов, независимая рубрика25/25 и обе фактические
-MATERIAL_ITEM_STATE_V1/UNKNOWN → CLARIFY/PREDICATE_UNKNOWN. Основная пара text/voice
-прошла без смысловой коррекции. Отдельный correction-path соответствует явной правке
-пользователя. До подтверждения compiler/task/effect0. Cancel, сохранённый preview,
-PreparedTask и controlled restart/replay проверены; второй задачи или результата нет.
-
-Сессия использовала17/24 model turns за418.837421s в одном окне1200s.
-Были заморожены code/model/profile/fixtures. Старые FAIL, включая предыдущую
-сессию21/24 с четырьмя неудачными correction-подачами, сохранены. Явная коррекция
-не засчитана как точность исходного ASR. Прежние окна закрыты, остатки не перенесены.
-
-ASR qualification PASS по протоколу3. В C2 кандидат выбран pinned small beam8 с
-прежними CPU/int8/ru/VAD/patience1.2/prompt/hotwords, без новых зависимостей.
-B01–B04 закрыты: собственные итоговые L1/L2/L3 приняли кандидат 98aa8dc, продуктовый код f01e9f8. После TTL-исправления проверены ещё два готовых ответа и replay; исходная полная B02 сохраняет привязку к 4ed2.
-Условия binary distribution и live rollout отдельно ограничены ASR-PROVENANCE.md.
-
-Владелец 6 сентября разрешил полное завершение C2, необходимые ограниченные проверки
-и обычные push/PR/merge после PASS. Повторный вопрос о том же разрешении не нужен.
-Перед публикацией — exact manifest и итоговые проверки, после — GitHub readback.
-C3 ещё не начат. Весь MVP1 не READY до C3–C6.
-
-По полному разрешению владельца выполнена новая B02-сессия24turn/1200s для
-исправленного compiler prompt. [Выполненный план](gates/gate-c2-voice-parity/PRODUCT-TRIAL-PLAN.md):
-существующая подписка ChatGPT, стандартный endpoint, синтетический текст;
-без audio upload/tools/effects/API billing/покупок. Квота расходуется, hard token
-ceiling нет, region/retention неизвестны. Прежние ledgers сохранены без продления.
-
-После собственных итоговых L1/L2/L3 C2 разрешена публикация готового SHA/tree:
-обычный push/PR/merge по полному решению владельца6 сентября. До PASS publication manifest
-не выдаётся за готовую публикацию. Native binary distribution и rollout не входят
-в текущий объём; незакрытые licence/CVE вопросы отражены отдельно. C1 не принимается
-повторно, live и C3 не запускаются.
-
-## 3. Active closure-roadmap
-
-| Gate | Результат | Статус |
+| Gate | Условие старта | Результат |
 |---|---|---|
-| C0 — единая истина и контракт | published contract и exact readback | PUBLISHED / ACCEPTED |
-| C1 — универсальное семантическое понимание | compiler/proposal/Core decision + corpus PASS | ACCEPTED / PUBLISHED / NOT DEPLOYED |
-| C2 — voice parity и ASR qualification | общий route, готовый результат и русский bake-off | ACCEPTED / PUBLISHED |
-| C3 — стабильность Core/backend/worker | retry/state/status/recovery stability | READY TO START / NOT_STARTED |
-| C4 — завершённый frontend/user journey | Telegram/Mini App complete E2E | HOLD до C3 |
-| C5 — operations/recovery/security | health, ingress, backup/restore, cleanup, rollback | HOLD до C4 |
-| C6 — frozen release и owner acceptance | exact publish/activate/readback и owner smoke | HOLD до C5 |
+| C5 — operations/recovery/security | Принятый и опубликованный C4 SHA/tree и отдельная задача владельца | Эксплуатация, ingress, backup/restore, cleanup, rollback и инструкция по проверенному UI |
+| C6 — frozen release и owner acceptance | Принятый C5 | Точная release/config identity, разрешённая активация, readback и приёмка целого MVP1 |
 
-R01–R47 — internal release checkpoints, не отдельные пользовательские чаты.
+C4 не запускает C5/C6 или MVP2. Принятие отдельного Gate не означает READY всего MVP1.
+Постоянный production deploy, tag/release, изменения provider/DNS/TLS/BotFather,
+перенос Core/token/poller на VPS и публикация редакционных docs 15/16 не входят
+в C4. Новая ASR-модель и новый frontend framework не требуются.
 
-## 4. Когда нужен точный вопрос владельцу
+## Границы продукта и подтверждений
 
-Внутри C1–C5 отдельное решение владельца нужно только если отсутствующий выбор
-меняет product scope, trust/authority/recovery invariant или требует внешней
-записи. Пауза и ответ продолжают тот же Gate-чат.
+Thin topology задаёт [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
+[ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
+оставляет semantic proposal недоверенным: Core определяет capability, policy,
+permissions, risk и возможность эффекта. Готовый текст с командой не выполняет эту команду.
 
-Перед C6 отдельно фиксируются и авторизуются только точные действия:
+Документы [06](06-Регламент-качества-L1-L4.md) и [07](07-Правила-внешней-записи.md)
+сохраняют product/runtime ApprovalRequest/ApprovalDecision и подтверждение
+внешнего эффекта receipt. Полное разрешение на разработку C4 не меняет эти
+пользовательские runtime-правила. Formal workspace quality-L4 применяется к удалению
+данных ПК и критическим изменениям кабинета маркетплейса, а не к каждой локальной правке.
 
-1. какой frozen SHA/tree публиковать;
-2. какой PR/merge/tag/release выполнять;
-3. какой exact release/config активировать и какой rollback target сохранять;
-4. какие provider/DNS/TLS/BotFather mutations нужны;
-5. какой bounded owner smoke допустим с реальными данными/effects;
-6. принимается ли итоговый exact active release как целый MVP-1.
+Новая авторизация нужна при действительном выходе за разрешённый объём или бюджеты,
+изменении trust/recovery invariant либо выборе необратимого внешнего действия.
+Отсутствующий факт для проверки требует уточнения факта, а не повторного запроса
+уже выданного разрешения.
 
-Одна авторизация не подразумевает следующую.
-
-## 5. Runtime approvals
-
-Sealed документы [06](06-Регламент-качества-L1-L4.md) и
-[07](07-Правила-внешней-записи.md) продолжают определять runtime
-`ApprovalRequest/ApprovalDecision`. Semantic model не назначает permissions,
-risk, route, approval или право на effect. Client может ответить только на
-immutable server-derived challenge. Authoritative success внешнего действия
-подтверждает effect receipt, а не текст модели.
-
-Formal workspace quality-L4 нужен только перед удалением данных с ПК или
-критическим изменением кабинета маркетплейса. Это не ослабляет более строгую
-runtime policy конкретного effect.
-
-## 6. Что пока не делать
-
-- не повторять завершённую code publication C1; документация синхронизируется
-  по отдельному прямому разрешению владельца;
-- не начинать C3–C6 или MVP-2 раньше соответствующего handoff;
-- не загружать новую ASR-модель без точного разрешения и не выбирать её для продукта до квалификации;
-- не переносить Core/token/poller на VPS;
-- не создавать universal Agent Registry/Development Control platform;
-- не считать C0 разрешением на code publication или deploy;
-- не выполнять provider/DNS/TLS/BotFather/live smoke без точной авторизации;
-- не удалять dirty WIP, live checkout, Gate 1 worktree, safety refs, bundles,
-  stash или recovery files;
-- не обновлять Nobus Memory и не публиковать docs 15/16.
-
-Точный current status: [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
-
-**C1 опубликован; C2 принят и опубликован; C3 готов к началу. NO TAG / NO DEPLOY / NO LIVE EFFECT.**
+Dirty canonical checkout, соседние worktrees, safety refs, bundles, stash и recovery
+files сохраняются. Исторические sealed Gate/ADR не переписываются. Nobus Memory
+содержит только указатель и не заменяет Git; его запись отдельно ограничена.

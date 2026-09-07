@@ -33,9 +33,9 @@
 | Long/multipart result | Part manifests/receipts | Полный ответ по порядку | Wrapped text/copy | test_c3_delivery_parts |
 | HTML/script/control/Bidi | Untrusted content | Existing safe render | textContent + control filter | JS + transport regressions |
 | Voice before confirmation | Нет task/compiler | Preview обязателен | Нет выдуманной task | test_durable_voice / C4 model smoke |
-| Direct/transform parity | C1 INERT preserved | Один Core decision | Та же task/result | C4 actual local inference PENDING |
+| Direct/transform parity | C1 INERT preserved | Один Core decision | Та же task/result | C4 actual local inference PASS; LOCAL-JOURNEYS.json |
 | Unavailable capability | No TaskContract/effect | Shared catalog | Явная недоступность | test_c4_product_journey / local inference |
 | Internal exception | Safe code, no private payload | Safe failure | Общий безопасный error | C3 guards + C4 negative |
 | False READY / verified | Только exact result state | Без internal metadata | «Результат», не verified | shared mapper / JS |
 | Actual browser320/390/768 | Exact candidate UI | — | Light/dark/keyboard/viewport | BLOCKED: штатный Browser runtime |
-| Actual owner Telegram/Mini App | Exact temporary candidate | Text/voice/file | Fresh signed auth/result/file | PENDING AUTHORIZATION / route unavailable |
+| Actual owner Telegram/Mini App | Exact temporary candidate | Text/voice/file | Fresh signed auth/result/file | AUTHORIZED; actual owner journeys PENDING; LIVE-SMOKE.json |

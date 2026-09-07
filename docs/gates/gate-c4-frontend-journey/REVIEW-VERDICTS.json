@@ -1,0 +1,156 @@
+{
+  "schema": "c4-reviews-1",
+  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+  "gate_verdict": "NOT_ACCEPTED_PENDING_REAL_SURFACES",
+  "L2": {
+    "reviewer": "/root/resume_l2",
+    "verdict": "LOCAL_CANDIDATE_ACCEPTED_IN_REVIEWED_SCOPE",
+    "own_checks": {
+      "evidence_reconstruction_pass": 634,
+      "node_pass": 7
+    },
+    "source": {
+      "local_path": ".runtime/c4/reviews/resume-l2/LOCAL-VERDICT.json",
+      "sha256": "8e41a7ec623f8c47ceb91bcdcfd2eda5cc5da29fd6ff3224f2f2a64b1ed53a2f",
+      "bytes": 2817
+    },
+    "quality_rubric": {
+      "scale": "0 absent,1 major defect,2 bounded shortcoming,3 criterion met for this fixture",
+      "criteria": [
+        "intent",
+        "scope",
+        "honesty",
+        "delivery",
+        "usefulness"
+      ],
+      "scores": "matrix in evidence-audit.json; 7 scenarios each15/15",
+      "assessment": "Actual synthetic answers read by reviewer; no raw payload copied into review",
+      "general_quality_claim": false
+    },
+    "retained_evidence_attributed": {
+      "reviewer": "/root/c4_l2_review",
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "targeted_pass": 451,
+      "node_pass": 11,
+      "actual_http_pass": 6,
+      "final_verdict_was": "NOT_ISSUED_PAUSED",
+      "not_relabelled_as_own": true
+    }
+  },
+  "L3": {
+    "reviewer": "/root/resume_l3",
+    "verdict": "ACCEPT_IN_REVIEWED_LOCAL_CODE_AND_RUN_REPLAY_SCOPE",
+    "own_adversarial_pass": 7,
+    "source": {
+      "local_path": ".runtime/c4/reviews/resume-l3/LOCAL-VERDICT.md",
+      "sha256": "bbc165ee9aa31a60acbc58bf9714708d39dd810883a6369a839be8e4f9c87b74",
+      "bytes": 4356
+    },
+    "audit": {
+      "local_path": ".runtime/c4/reviews/resume-l3/LOCAL-RECEIPT-AUDIT.json",
+      "sha256": "e2f83b88839976d0635572aa19a54ebe22530aa0d2df54ab72498048b35ec36d",
+      "bytes": 16661
+    }
+  },
+  "historical_rejects": [
+    {
+      "local_path": ".runtime/c4/reviews/l2/REVIEW.json",
+      "sha256": "812b77211406a3d358968d5645c698645a8635939b37bd9a1c4f1992975451be",
+      "bytes": 6834
+    },
+    {
+      "local_path": ".runtime/c4/reviews/l3/REVIEW.json",
+      "sha256": "608bfb4561bac9a91c09c0f215f8bef931432f9b5954a03e57d7cdbceea3f141",
+      "bytes": 8267
+    }
+  ],
+  "helper_go": {
+    "attempt1": {
+      "local_path": ".runtime/c4/reviews/resume-l3/HELPER-REVIEW.json",
+      "sha256": "d130bde354450b73e3b7fba471daeaf8d20d08adcb508bf6b12f80813b7d0fd8",
+      "bytes": 1538
+    },
+    "attempt2": {
+      "local_path": ".runtime/c4/reviews/resume-l3/attempt2/REVIEW.json",
+      "sha256": "f828a9b0fead1b4a1be781fa68fccccb61af6487bb40f4a4fa9b0d75f26b5633",
+      "bytes": 8077
+    },
+    "scope": "technical temporary helper only; not user smoke or GatePASS"
+  },
+  "docs_review": {
+    "status": "ACCEPTED_IN_DOCUMENTATION_SCOPE",
+    "reviewer": "/root/resume_l2",
+    "checks_pass": 234,
+    "links_pass": 153,
+    "source": {
+      "local_path": ".runtime/c4/reviews/resume-l2/DOCS-FINAL-VERDICT.json",
+      "sha256": "20bb5bb5350d2312a31857ec6e5dd44159da1fabde44b7c557a44ef20eb1cf85",
+      "bytes": 1263
+    },
+    "audit": {
+      "local_path": ".runtime/c4/reviews/resume-l2/DOCS-FINAL-AUDIT.json",
+      "sha256": "a5c66e9ed37f0b3ca3c42a7025cef08635d4d2e6f70e74bb427c77a063b1105c",
+      "bytes": 58061
+    },
+    "closed_findings": [
+      "L2-DOC-01",
+      "L2-DOC-02",
+      "L2-DOC-03"
+    ],
+    "runtime_context_change_separately_bound": true,
+    "no_new_normative_contract": true
+  },
+  "review_copies": [
+    {
+      "path": "reviews/historical-l2-ad02795.json",
+      "source": {
+        "local_path": ".runtime/c4/reviews/l2/REVIEW.json",
+        "sha256": "812b77211406a3d358968d5645c698645a8635939b37bd9a1c4f1992975451be",
+        "bytes": 6834
+      },
+      "canonical_sha256": "b8239b15b559f69a748fcb5f56f68395cb0bb567200fb95228133e46051c4d25",
+      "projection": "Original text and identity preserved; CRLF normalized to LF for Git. Original source bytes/hash retained locally."
+    },
+    {
+      "path": "reviews/historical-l3-ad02795.json",
+      "source": {
+        "local_path": ".runtime/c4/reviews/l3/REVIEW.json",
+        "sha256": "608bfb4561bac9a91c09c0f215f8bef931432f9b5954a03e57d7cdbceea3f141",
+        "bytes": 8267
+      },
+      "canonical_sha256": "3103c2fd1064840a1dd6a1c70b3894c29e44791635475cd396b67a69d59459b4",
+      "projection": "Original text and identity preserved; CRLF normalized to LF for Git. Original source bytes/hash retained locally."
+    },
+    {
+      "path": "reviews/local-l2-a869a69.json",
+      "source": {
+        "local_path": ".runtime/c4/reviews/resume-l2/LOCAL-VERDICT.json",
+        "sha256": "8e41a7ec623f8c47ceb91bcdcfd2eda5cc5da29fd6ff3224f2f2a64b1ed53a2f",
+        "bytes": 2817
+      },
+      "canonical_sha256": "35d72170894909fc0ef105251fe6b6b811a9b172f6077e70f66f8ec0848585a4",
+      "projection": "Original text and identity preserved; CRLF normalized to LF for Git. Original source bytes/hash retained locally."
+    },
+    {
+      "path": "reviews/local-l3-a869a69.md",
+      "source": {
+        "local_path": ".runtime/c4/reviews/resume-l3/LOCAL-VERDICT.md",
+        "sha256": "bbc165ee9aa31a60acbc58bf9714708d39dd810883a6369a839be8e4f9c87b74",
+        "bytes": 4356
+      },
+      "canonical_sha256": "bbc165ee9aa31a60acbc58bf9714708d39dd810883a6369a839be8e4f9c87b74",
+      "projection": "Original text and identity preserved; CRLF normalized to LF for Git. Original source bytes/hash retained locally."
+    },
+    {
+      "path": "reviews/docs-l2.json",
+      "source": {
+        "local_path": ".runtime/c4/reviews/resume-l2/DOCS-FINAL-VERDICT.json",
+        "sha256": "20bb5bb5350d2312a31857ec6e5dd44159da1fabde44b7c557a44ef20eb1cf85",
+        "bytes": 1263
+      },
+      "canonical_sha256": "ee5689146a31f70c1f62d328f0df46de2e3d9663a80bca4bc01a145fb19854d6",
+      "projection": "Original text and identity preserved; CRLF normalized to LF for Git. Original source bytes/hash retained locally."
+    }
+  ]
+}

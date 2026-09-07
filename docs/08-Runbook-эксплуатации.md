@@ -1,11 +1,42 @@
-> **C0 CURRENT — 2 сентября 2026.** `MVP-1 PUBLISHED / LIVE RUNTIME
-> OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION
-> UNVERIFIED`; `MVP-2 HOLD`. Read-only preflight увидел disabled main Scheduled
-> Task, отсутствие matching процесса и public health/readiness `502`. Ниже
-> сохранены operational procedures и historical successful evidence; они не
-> доказывают текущую active revision или product READY. Точный статус:
-> [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
->
+# 08. Runbook эксплуатации Nobus Space
+
+**7 сентября 2026.** C0–C3 приняты и опубликованы. C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED; C5–C6 HOLD, MVP1 NOT READY. Наличие настроенного route или старого Scheduled Task не доказывает активную revision. Exact состояние и receipts: [CURRENT](handoffs/CURRENT-STATUS.md), [C4 handoff](gates/gate-c4-frontend-journey/HANDOFF.md).
+
+Semantic path реализован и проверен в изолированном ON-кандидате C4. В штатном runner флаг _GATE_C1_SEMANTIC_ADMISSION_ENABLED остаётся False; постоянная активация не выполнена.
+
+## Действующий контракт восстановления C4
+
+1. После reload Mini App восстанавливает session через Core recovery cookie. Срок исходной Telegram подписи не продлевается.
+2. После истечения окна подписи приложение просит закрыть и открыть Mini App из Telegram заново. Старое initData не переиспользовать.
+3. При потере ACK интерфейс сохраняет opaque request key и читает прежний исход. Не отправлять тот же запрос заново до сверки.
+4. «Отменить отправку» действует только если Core ещё не записал request/ingress: tombstone запрещает поздний приём. Записанный pending/accepted не удаляется.
+5. Если записанный UNKNOWN не разрешился, оператор сверяет journal/ingress/queue по C3 recovery contract. Очистка browser storage или новая task не являются восстановлением.
+6. Result/artifact читать только по exact task/result revision. Ошибка digest/size/tenant binding запрещает выдачу.
+7. Voice-origin task появляется после подтверждения preview в Telegram. В Mini App нет второго ASR/microphone path.
+
+При диагностике не выводить DPAPI payload, initData, bearer, cookie, private
+voice или raw worker exceptions. Source revision не подменяет runtime identity.
+
+## Временная проверка C4 и постоянная эксплуатация
+
+Smoke использует отдельные state/config/workspace и связку code SHA/tree/
+helper/launcher/route. Рабочая DB, Scheduler, меню и profile не меняются.
+Один consumer, exact owner/private chat, synthetic inputs и общий budget
+обязательны. Foreign/group/unknown-principal update не подтверждается.
+Старые owner updates при необходимости сохраняются DPAPI перед ACK;
+уже подтверждённую очередь Telegram восстановить нельзя.
+
+Ранее данное владельцем разрешение не запрашивается заново на каждый шаг.
+Завершение проверяет собственный PID/starttime/Windows Job и descendants,
+остаток ledger, health и route/config readback. Недоказанный cleanup не PASS.
+
+Production activation, backup/restore drill, security/operations acceptance
+и release tag остаются C5/C6. Нижеследующие процедуры сохраняются как
+исторические/предметные инструкции; слова CURRENT/active/release относятся
+к указанным там датам и не доказывают текущий deploy.
+
+## Исторические процедуры и retained invariants
+
 > **ACTIVE OVERLAY — 25 августа 2026.** Текущую MVP topology и delivery
 > workflow определяет
 > [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):

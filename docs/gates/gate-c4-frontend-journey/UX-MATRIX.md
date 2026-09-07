@@ -35,4 +35,4 @@
 | Task/file names | Сокращение UUID / UUID в filename | Core sequence / presentation-only file alias | test_miniapp + artifact parity |
 | Mobile / keyboard | Нет light fallback; live detail spam | Light/dark tokens, 44px, focus, selective announcement | Static/JS проверены; browser matrix PENDING |
 | Two tasks / stale responses | Selection protection частичная | Generation guard list/detail/result, result revision match | frontend.test.cjs |
-| Live | Старый runtime не является кандидатом | Только exact отдельно разрешённое временное окно | PENDING, HTTPS502 / UI tool unavailable |
+| Live | Старый runtime не является кандидатом | Только exact отдельно разрешённое временное окно | Exact attempt2 HTTPS route PASS; user/UI evidence PENDING |

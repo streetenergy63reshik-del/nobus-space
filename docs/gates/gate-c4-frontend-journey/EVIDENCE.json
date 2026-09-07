@@ -1,20 +1,104 @@
 {
-  "schema_version": "c4-evidence-1",
-  "verdict": "DRAFT / NOT ACCEPTED / NOT PUBLISHED",
-  "base": {"sha": "b9283b3419928042c80278b5088b526edebab6e7", "tree": "77062335b1dbccb3694721d357e484c856ac89c7"},
-  "local_implementation": true,
-  "targeted": {"telegram_shared": 350, "miniapp_recovery": 101, "frontend_node_unit": 11, "harness_guards": 11},
-  "frozen_L1": "PENDING",
-  "independent_L2": "PENDING",
-  "independent_L3": "PENDING",
-  "actual_local_inference": "PENDING",
-  "browser_matrix": "BLOCKED: trusted RPC runtime unavailable",
-  "live_smoke": "AUTHORIZED BY OWNER; exact temporary candidate plan in preparation; HTTPS502, no local listener",
-  "screenshots": [],
-  "publication": null,
-  "model_turns": 0,
-  "asr_runs": 0,
+  "schema_version": "c4-evidence-2",
+  "verdict": "LOCAL VERIFIED / LIVE E2E PENDING / NOT ACCEPTED / NOT PUBLISHED",
+  "base": {
+    "sha": "b9283b3419928042c80278b5088b526edebab6e7",
+    "tree": "77062335b1dbccb3694721d357e484c856ac89c7"
+  },
+  "code_candidate": {
+    "sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+    "tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98"
+  },
+  "frozen_L1": {
+    "pass": 2132,
+    "subtests_pass": 25,
+    "windows_symlink_skip": 2,
+    "historical_deselect": 1,
+    "seconds": 174.67,
+    "node_pass": 17,
+    "node_source": {
+      "local_path": ".runtime/c4/a869a69-frontend.log",
+      "sha256": "d5398c9c9664efb3a892c34e63a54806a55d9eeebd9d3229c8bc79b286b7a2a1",
+      "bytes": 1486
+    }
+  },
+  "independent_L2": "ACCEPT_IN_REVIEWED_LOCAL_SCOPE",
+  "independent_L3": "ACCEPT_IN_REVIEWED_LOCAL_SCOPE",
+  "actual_local_inference": {
+    "scenarios": 7,
+    "completed_tasks": 6,
+    "restart_replays": 6,
+    "additional_replay_model_ASR": 0
+  },
+  "docs_review": {
+    "verdict": "ACCEPTED_IN_DOCUMENTATION_SCOPE",
+    "checks_pass": 234,
+    "links_pass": 153,
+    "scope_files": 16
+  },
+  "browser_matrix": "NOT VERIFIED: native trusted RPC startup failure",
+  "live_smoke": "AUTHORIZED; exactHTTPSPASS; ownerE2E_NOT_OBSERVED; temporarywindowsCLOSED; rollback/readbackPASS",
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "PR": null,
+    "last_read_main_sha": "b9283b3419928042c80278b5088b526edebab6e7",
+    "last_read_main_tree": "77062335b1dbccb3694721d357e484c856ac89c7",
+    "protected": true,
+    "protection_details": "connector403; no bypass",
+    "missing_CI_not_called_PASS": true,
+    "readback_evidence": "PUBLICATION-READBACK.json"
+  },
+  "budget": {
+    "resources": {
+      "model": {
+        "reserved_calls": 23,
+        "charged_seconds": 280.35899999993853,
+        "actual_model_turns": 18,
+        "max_calls": 64,
+        "max_seconds": 5400.0,
+        "remaining_calls": 41,
+        "remaining_seconds": 5119.6410000000615
+      },
+      "asr": {
+        "reserved_calls": 2,
+        "charged_seconds": 14.10999999998603,
+        "actual_model_turns": 0,
+        "max_calls": 20,
+        "max_seconds": 1200.0,
+        "remaining_calls": 18,
+        "remaining_seconds": 1185.890000000014
+      }
+    },
+    "active_reservations": 0,
+    "ledger_source": {
+      "local_path": ".runtime/c4/execution-budget.sqlite3",
+      "sha256": "5cd6364f569815a1c318684e2ab5c709e03cef58088b9ce12fa3898d09d96130",
+      "bytes": 12288
+    }
+  },
+  "evidence_files": [
+    "CODE-MANIFEST.json",
+    "DOCS-MANIFEST.json",
+    "MANIFEST.json",
+    "ENTRY-VERIFICATION.json",
+    "TEST-RECEIPTS.json",
+    "LOCAL-JOURNEYS.json",
+    "REVIEW-VERDICTS.json",
+    "LIVE-SMOKE.json",
+    "SCREENSHOTS.json",
+    "PRESERVATION.json"
+  ],
   "MVP1_READY": false,
   "C5_started": false,
-  "tag_release_permanent_deploy": false
+  "C6_started": false,
+  "tag_release_permanent_deploy": false,
+  "docs_L1": {
+    "pass": 4,
+    "source": {
+      "local_path": ".runtime/c4/docs-l1.xml",
+      "sha256": "b1da36c133c7c07aaed973f5e6865ca4c5feb836f9c2d72224c00d8bd962f51b",
+      "bytes": 936
+    },
+    "scope": "existing documentation tests on isolated full tracked-file copy with staged docs overlay"
+  }
 }

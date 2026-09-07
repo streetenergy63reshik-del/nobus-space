@@ -1,0 +1,161 @@
+{
+  "schema_version": "c4-independent-review-1",
+  "reviewer": "/root/c4_l3_review",
+  "role": "independent adversarial L3; not candidate author",
+  "profile": "software-development",
+  "risk": "high",
+  "lifecycle": "GATE_CANDIDATE",
+  "candidate": {
+    "sha": "ad02795c5457deb3909517efd1992cacb5ac9a73",
+    "tree": "229d7a4be82da7391ee339825fffb3538d34481d",
+    "base_sha": "b9283b3419928042c80278b5088b526edebab6e7",
+    "base_tree": "77062335b1dbccb3694721d357e484c856ac89c7"
+  },
+  "created_utc": "2026-09-07T10:09:40.319363+00:00",
+  "local_candidate_verdict": "REJECT / IMPLEMENTATION REWORK REQUIRED",
+  "total_gate_verdict": "NOT ACCEPTED / NOT PUBLISHED; actual browser and authorized Telegram/Mini App smoke pending",
+  "severity_counts": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 1
+  },
+  "findings": [
+    {
+      "id": "C4-L3-01",
+      "severity": "P1",
+      "class": "IMPLEMENTATION_DEFECT",
+      "owner": "frontend",
+      "title": "Подтверждённый отказ HTTP 408 навсегда блокирует создание новых задач",
+      "locations": [
+        {
+          "path": "src/transport/miniapp_static/app.js",
+          "line": 334
+        },
+        {
+          "path": "src/transport/miniapp_static/app.js",
+          "line": 308
+        },
+        {
+          "path": "src/transport/miniapp_static/app.js",
+          "line": 126
+        },
+        {
+          "path": "src/transport/miniapp.py",
+          "line": 343
+        }
+      ],
+      "contract": "C4.4 reconnect/reload recovery; negative 408 correction path; acceptance 5, 15, 19.",
+      "trigger": "POST /api/tasks receives exact candidate Boundary response 408 request_timeout before Core admission; subsequent GET /api/requests/{key} returns 404.",
+      "actual": "408 is absent from known rejection branch. Persistent pending marker remains. Reconciliation maps the absent request to UNKNOWN; new-task and form stay disabled after successful session recovery, refresh, and fresh page load.",
+      "impact": "One ordinary request body timeout prevents all subsequent Mini App task creation in this browser storage, despite no admitted task. No in-product recovery exit exists.",
+      "evidence": [
+        "adversarial-ui.test.cjs::L3-01",
+        "adversarial-ui.log",
+        "focused-regression.xml::tests.test_c3_multipart_input.test_partial_stream_is_bounded_and_has_no_durable_admission[timeout]"
+      ],
+      "recommendation": "Handle the exact trusted pre-admission 408 outcome as a refused request and restore the form. Keep generic network UNKNOWN and opaque 404 fail-closed; do not solve this with blind POST replay or blanket 404-as-not-executed."
+    },
+    {
+      "id": "C4-L3-02",
+      "severity": "P2",
+      "class": "IMPLEMENTATION_DEFECT",
+      "owner": "frontend",
+      "title": "Истёкшее восстановленное уточнение оставляет форму в непригодном режиме",
+      "locations": [
+        {
+          "path": "src/transport/miniapp_static/app.js",
+          "line": 299
+        },
+        {
+          "path": "src/transport/miniapp_static/app.js",
+          "line": 278
+        },
+        {
+          "path": "src/transport/miniapp_static/app.js",
+          "line": 322
+        }
+      ],
+      "contract": "C4.5 stale/expired clarification has clear next action; C4.7 consistent form/focus; acceptance 7, 15, 19.",
+      "trigger": "Restore clarification after reload (private title was not persisted); submit an answer after clarification expiry; Core returns not_accepted/clarification_invalid.",
+      "actual": "The token is cleared, but the title input remains hidden, the question and clarification heading remain displayed, and the enabled submit action does not match new-intent validation. Subsequent submit silently returns because normal requests require the hidden empty title.",
+      "impact": "The visible form cannot submit a revised task. Closing it and pressing New again works but is not the offered recovery path.",
+      "evidence": [
+        "adversarial-ui.test.cjs::L3-02",
+        "adversarial-ui.log"
+      ],
+      "recommendation": "Reset the composer to a consistent editable new-request mode when clarification closes: visible required title, normal heading/action, cleared obsolete question/token, and appropriate error/focus."
+    }
+  ],
+  "checks": {
+    "focused_candidate_regression": {
+      "passed": 122,
+      "failed": 0,
+      "skipped": 0,
+      "warnings": 1,
+      "log": "focused-regression.log",
+      "junit": "focused-regression.xml"
+    },
+    "authored_node_ui": {
+      "passed": 11,
+      "failed": 0,
+      "log": "authored-ui.log"
+    },
+    "independent_node_probes": {
+      "passed": 1,
+      "failed": 3,
+      "log": "adversarial-ui.log",
+      "material_failing_probes": [
+        "L3-01",
+        "L3-02"
+      ]
+    },
+    "diff_check": {
+      "exit_code": 0
+    },
+    "changed_file_hashes_unchanged": 36
+  },
+  "probe_triage": [
+    {
+      "id": "L3-03",
+      "class": "VERIFIER_DEFECT",
+      "disposition": "NOT A PRODUCT FINDING",
+      "reason": "The probe directly invokes a second readTask with the same generation while its first invocation awaits events. It can lower displayed revision, but the actual call graph serializes polling and increments generations for refresh/selection. No normal UI-reachable overlap was proved. Preserve the initial failing probe; do not demand implementation rework based on it."
+    }
+  ],
+  "scope_reviewed": [
+    "Core session owner/tenant/bot binding, short bearer, HMAC deadline, durable generation CAS, replay and old credentials",
+    "Boundary exact origin, empty recovery body, single-cookie and single-authorization shape, no bearer in URLs",
+    "Core request journal stable envelope/fingerprint, no raw instruction, DPAPI question/token protection, same-key conflict",
+    "Admission uncertainty and repeat prevention; request-state requires current session/context and authoritative ingress claim",
+    "Clarification readback delegated to existing C1 conversation/token/expiry state; stale record erasure",
+    "Client persisted opaque markers, session retry bounds, generation guards, create/clarification reset paths",
+    "Result tenant/task/revision/digest agreement and file digest/size/MIME/name, text-only DOM and control/Bidi filtering",
+    "Shared product mapper avoids raw progress/errors and false verified labels; C3 multipart receipts and artifact bytes preserved",
+    "C1 semantic/C2 voice/C3 execution changes inspected; no worker/effect authority, model/provider profile or ASR replacement introduced",
+    "Mobile/light/dark/keyboard/reduced-motion source inspected only; no visual PASS claimed",
+    "Gate docs correctly retain DRAFT and pending local-real/browser/live evidence rather than treating doubles as smoke"
+  ],
+  "boundaries": {
+    "tracked_source_docs_tests_edits": false,
+    "git_writes": false,
+    "external_or_live_actions": false,
+    "model_turns": 0,
+    "asr_runs": 0,
+    "quota_ledger_changes": false,
+    "owned_write_root": ".runtime/c4/reviews/l3",
+    "actual_browser_or_telegram_smoke": false,
+    "actual_local_inference_reviewed": false,
+    "browser_limitation": "Parent reports trusted RPC tool failure; no bypass attempted; actual 320/390/768 light/dark/keyboard still unproved.",
+    "live_limitation": "No authorization or live actions in reviewer scope; parent reports HTTPS route 502.",
+    "C3_reacceptance": false,
+    "memory": "Fixed bridge returned OBSIDIAN_NOT_RUNNING. Allowed direct-read fallback used only for Home MOC and project:Nobus Space pointer; stale memory did not override Git."
+  },
+  "provenance": {
+    "before": "identity-before.json",
+    "after": "identity-after.json",
+    "commands": "commands.json",
+    "sha_tree_and_hashes_unchanged": true,
+    "initial_failures_preserved": true
+  },
+  "next": "Batch UI rework, targeted failed/dependent checks, then freeze a new coherent candidate for required independent candidate-bound review. This receipt cannot be renamed to a replacement SHA."
+}

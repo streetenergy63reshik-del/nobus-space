@@ -1,0 +1,253 @@
+{
+  "schema": "c4-package-manifest-1",
+  "code_candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "code_candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+  "status": "LOCAL_VERIFIED_LIVE_E2E_PENDING; WINDOW_CLOSED; FINAL_PACKAGE_REVIEW_PENDING",
+  "manifest_excludes_self": true,
+  "files": [
+    {
+      "path": "docs/01-Единый-документ-проекта.md",
+      "sha256": "11f82c1b0a8142f077fb31c621601555f9ee17ff82f5229ea752fca29f9b43af",
+      "bytes": 11321
+    },
+    {
+      "path": "docs/02-Глоссарий.md",
+      "sha256": "8eaa5ac544c54b98092f8731afb8c8423bce07bf954050e9d7dbf81bbf113f4d",
+      "bytes": 21444
+    },
+    {
+      "path": "docs/03-Архитектурный-обзор.md",
+      "sha256": "245ea523064aabeb115b9e996fdd46ba9b75662276afd368b006803e8c5cf812",
+      "bytes": 18194
+    },
+    {
+      "path": "docs/04-Журнал-ADR.md",
+      "sha256": "7f728b7c8f211004da64d1b08fa17fef00883b0c648a329ddffe5cc5212b63a7",
+      "bytes": 10606
+    },
+    {
+      "path": "docs/05-Спецификации-контрактов.md",
+      "sha256": "decbf8575119d17c41f98b75139acf37e7c87f9120b15b5415ecb79083db2cfd",
+      "bytes": 29463
+    },
+    {
+      "path": "docs/08-Runbook-эксплуатации.md",
+      "sha256": "79337358ebf14cc22eca33912cc6cc5f06f52087954fe53ba08995b4b8e45f88",
+      "bytes": 50936
+    },
+    {
+      "path": "docs/09-Стандарты-отчётов.md",
+      "sha256": "7b35b03db0c000b0ef68ce2576c0697d83612d50d511500dcfac814d4fbffafb",
+      "bytes": 14228
+    },
+    {
+      "path": "docs/10-Политика-памяти.md",
+      "sha256": "d2388e57771471d1077e020ae455b0d0f66e42d8ad108e4705564becee350a06",
+      "bytes": 16894
+    },
+    {
+      "path": "docs/11-Контекст-продукта.md",
+      "sha256": "1d5398f0a33146a36ea959ce1a2cf92cce103b69a5abd080a46806d13deb527f",
+      "bytes": 5392
+    },
+    {
+      "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+      "sha256": "2aafce62a9c2be1ab130d10f7bc16b86e32f64970c7b86f29f0cd3b2c0f266ca",
+      "bytes": 5798
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/ACCEPTANCE.md",
+      "sha256": "f38647d53b04b8bac0bf75a495b1888744006da8b80110595c252bdbd9f988ff",
+      "bytes": 2757
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/CODE-MANIFEST.json",
+      "sha256": "b1853e708dd9e2587d7e823e608c02d8c7054d8fc5ee821eb05c741fc3d7c6f5",
+      "bytes": 18286
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/DOCS-MANIFEST.json",
+      "sha256": "223a75f864f86ee65c8fb4f945de2566a93f160fa0c664d5066a9fcc97664397",
+      "bytes": 5840
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/ENTRY-VERIFICATION.json",
+      "sha256": "1fa49d8f8d19b812d19f3287fff5cf70ed57027ae38796959841e035cd44658a",
+      "bytes": 2575
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/EVIDENCE.json",
+      "sha256": "4ce878d85164020149a58a975d7ec0bc47a56897bcff74ee0c006303cda65163",
+      "bytes": 3217
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/HANDOFF.md",
+      "sha256": "9005142d015e8346802d39af7a37712b80bcfcc116945a3cbb235b5702801f6b",
+      "bytes": 11466
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/LIVE-SMOKE.json",
+      "sha256": "c32674c1dfe6a1e05b75e4ec39e80771661bb2ce24fb676b125d5dcc4315a4ef",
+      "bytes": 10423
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/LOCAL-JOURNEYS.json",
+      "sha256": "50d5f836f100f3378ef491000de955057ecfe4a08322fbbb1379e949817b0138",
+      "bytes": 105787
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/NEGATIVE-MATRIX.md",
+      "sha256": "d51ab46198d01ae1d8409a4396081d04b91324aaac0e878c96ed809cf58f1b3c",
+      "bytes": 5556
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/PRESERVATION.json",
+      "sha256": "4c89d5b440fe28de1df7102fa2c61b730b690eeaaffcba43e3bfab4c123ebca3",
+      "bytes": 3577
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/PUBLICATION-READBACK.json",
+      "sha256": "8a1ce59f9119cedc60498b952b893dca9d8d4046b3cd0ab7257f471b689e9176",
+      "bytes": 756
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/REVIEW-VERDICTS.json",
+      "sha256": "325906c255691c24330f9b6a563b32f5ef503da83bbb1a69a73d3b7176805d78",
+      "bytes": 6057
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/reviews/docs-l2.json",
+      "sha256": "ee5689146a31f70c1f62d328f0df46de2e3d9663a80bca4bc01a145fb19854d6",
+      "bytes": 1234
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/reviews/historical-l2-ad02795.json",
+      "sha256": "b8239b15b559f69a748fcb5f56f68395cb0bb567200fb95228133e46051c4d25",
+      "bytes": 6663
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/reviews/historical-l3-ad02795.json",
+      "sha256": "3103c2fd1064840a1dd6a1c70b3894c29e44791635475cd396b67a69d59459b4",
+      "bytes": 8107
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/reviews/local-l2-a869a69.json",
+      "sha256": "35d72170894909fc0ef105251fe6b6b811a9b172f6077e70f66f8ec0848585a4",
+      "bytes": 2730
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/reviews/local-l3-a869a69.md",
+      "sha256": "bbc165ee9aa31a60acbc58bf9714708d39dd810883a6369a839be8e4f9c87b74",
+      "bytes": 4356
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/REVISION-HISTORY.md",
+      "sha256": "defdb7d24e2e4d55cbf551523a38e1790a20533e86c4a27c06d426162968ef9f",
+      "bytes": 4201
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/SCREENSHOTS.json",
+      "sha256": "de431605de04abd52e76635d8ae2f6ac4a70f13aab793134a7f82b001ac2f522",
+      "bytes": 496
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/TEST-RECEIPTS.json",
+      "sha256": "0f27b4bdf3e12d2757e3b6bc7ca06f771b75338b36d2a8e51579f0c1f58f5ba7",
+      "bytes": 3899
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/UX-MATRIX.md",
+      "sha256": "3099fd51f2cb30b19ce52719fa0cefd5f22311d83ab3274f38b9bccee7aa4304",
+      "bytes": 6241
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/WORKING-CONTRACT.md",
+      "sha256": "f641afbf57052352ef4fc7ba6ac60efc46f7ae07b08c92a9e987dfd7d581f835",
+      "bytes": 4004
+    },
+    {
+      "path": "docs/gates/README.md",
+      "sha256": "5a03c648a3388f445a8adf5db21f4b32aa92b55579615b8cadbd393f6a0c34c4",
+      "bytes": 7014
+    },
+    {
+      "path": "docs/handoffs/CURRENT-STATUS.md",
+      "sha256": "da4861fb583753550126e5e5941804a8e1f41d40936f6fd3baa97c0615a4718e",
+      "bytes": 6390
+    },
+    {
+      "path": "docs/handoffs/MVP-1-ISSUES.md",
+      "sha256": "96c91e309ec443d38dd218749af91150866d53961040a78b3a629ba4ae829bcb",
+      "bytes": 37656
+    },
+    {
+      "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+      "sha256": "91ad01bc7ed18f61e04ccab0de990065eebfa748a47b7c3f0b33390f6d0694d5",
+      "bytes": 8345
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "4aa953b3a4226ecfe7022319d1e685aded475b4f76950eb989e1043065cc46b5",
+      "bytes": 9361
+    },
+    {
+      "path": "README.md",
+      "sha256": "e90d407c08f3597a6808157035daa3dae0563b6d26d54e05cfc6a40f83365c7d",
+      "bytes": 9451
+    }
+  ],
+  "post_review_delta": {
+    "predecessor_manifest_sha256": "58435f678da5bb0f95c4ba763cf8efd38f89f81f77fff6a804c07723a15e7165",
+    "scope": "8EOF-only changes plus DOCS-MANIFEST hash/provenance; no substantive change",
+    "files": [
+      {
+        "path": "README.md",
+        "old_sha256": "71fb6d3efa4b18658d789a5c09535e0b1b6798dceb016fa7677a498286133e43",
+        "new_sha256": "e90d407c08f3597a6808157035daa3dae0563b6d26d54e05cfc6a40f83365c7d",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+        "old_sha256": "db7a9e7025a1e15c53bc26cd8aad4dcd5dd4f468a8a83b1f99966e73ece26b67",
+        "new_sha256": "2aafce62a9c2be1ab130d10f7bc16b86e32f64970c7b86f29f0cd3b2c0f266ca",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/gates/README.md",
+        "old_sha256": "d4629b26502b7c66f14b651daa47a54e025ba87b890486dcb775062aa98dc89b",
+        "new_sha256": "5a03c648a3388f445a8adf5db21f4b32aa92b55579615b8cadbd393f6a0c34c4",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/handoffs/CURRENT-STATUS.md",
+        "old_sha256": "a1eed2dc583396c256ee408fd31bbd34073a7593951a0ac28b67b53acfda098e",
+        "new_sha256": "da4861fb583753550126e5e5941804a8e1f41d40936f6fd3baa97c0615a4718e",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/handoffs/MVP-1-ISSUES.md",
+        "old_sha256": "e075dac6bb4cdbff672dadbf9b70bfecc501c0ae95673e82af4c2dd27bcc71a2",
+        "new_sha256": "96c91e309ec443d38dd218749af91150866d53961040a78b3a629ba4ae829bcb",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+        "old_sha256": "fa4bccc5118ad8530bfdb54dde9f81e76c971895d592e7d196895ca8bc5aa410",
+        "new_sha256": "91ad01bc7ed18f61e04ccab0de990065eebfa748a47b7c3f0b33390f6d0694d5",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/gates/gate-c4-frontend-journey/ACCEPTANCE.md",
+        "old_sha256": "66ed33dfd230b69cb884718222d53c3582f89123b4b43ee5ac809a583e7a9a59",
+        "new_sha256": "f38647d53b04b8bac0bf75a495b1888744006da8b80110595c252bdbd9f988ff",
+        "removed_bytes": 1
+      },
+      {
+        "path": "docs/gates/gate-c4-frontend-journey/HANDOFF.md",
+        "old_sha256": "f61ef0dc05b4e0e1280e00c83f7e1ec1598b2fc0f3a8fee20855d5e40e454ab6",
+        "new_sha256": "9005142d015e8346802d39af7a37712b80bcfcc116945a3cbb235b5702801f6b",
+        "removed_bytes": 1
+      }
+    ]
+  }
+}

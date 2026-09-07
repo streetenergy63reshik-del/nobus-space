@@ -1,0 +1,4155 @@
+{
+  "schema": "c4-local-journeys-1",
+  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+  "verdict": "LOCAL_HTTP_CORE_COMPLETED; NOT LIVE TELEGRAM OR BROWSER ACCEPTANCE",
+  "scenarios": [
+    {
+      "scenario": "clarification",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/clarification/phase-1788778224837102900-run.json",
+        "sha256": "6df334fb4bc774ca52513bb1047305da76763f8ccae9f88a8a59527171e8d94b",
+        "bytes": 41727
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "263fab92-69f8-4c50-acc3-94f63591e52d",
+        "result_revision": 1,
+        "result_digest": "sha256:35dd7674c52b2df4ff36e3b55ec5f4ef19d8a6a043aa49adc79ccea1706cfbc3",
+        "artifact_id": "21dc8e69-ad52-59fe-b682-7069c7e5a34b",
+        "artifact_digest": "sha256:39d9a681c9e490bf4f1e1249a96a443d50b7c25a4c3196a3d7a6c8dc1ecb93c9",
+        "artifact_size": 490,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:84c90c4e541190c86325632ab04035195a3b5e35bd9bc0001655b8f70bda61cf",
+        "confirmed_parts": 2
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 17,
+            "charged_seconds": 233.62499999988358,
+            "actual_model_turns": 14,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 47,
+            "remaining_seconds": 5166.375000000116
+          },
+          "asr": {
+            "reserved_calls": 2,
+            "charged_seconds": 14.10999999998603,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 18,
+            "remaining_seconds": 1185.890000000014
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 20,
+            "charged_seconds": 268.85900000005495,
+            "actual_model_turns": 17,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 44,
+            "remaining_seconds": 5131.140999999945
+          },
+          "asr": {
+            "reserved_calls": 2,
+            "charged_seconds": 14.10999999998603,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 18,
+            "remaining_seconds": 1185.890000000014
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "LOCAL_HTTP_CORE_COMPLETED",
+        "source": {
+          "local_path": ".runtime/c4/product-a869a69/clarification/phase-1788808525072863500-replay.json",
+          "sha256": "df554a5ce889f1826c22b6e8e978360b9ea9101b9745a7937a50742e086a2424",
+          "bytes": 36137
+        },
+        "additional_model_or_asr": false,
+        "result": {
+          "task_id": "263fab92-69f8-4c50-acc3-94f63591e52d",
+          "result_revision": 1,
+          "result_digest": "sha256:35dd7674c52b2df4ff36e3b55ec5f4ef19d8a6a043aa49adc79ccea1706cfbc3",
+          "artifact_id": "21dc8e69-ad52-59fe-b682-7069c7e5a34b",
+          "artifact_digest": "sha256:39d9a681c9e490bf4f1e1249a96a443d50b7c25a4c3196a3d7a6c8dc1ecb93c9",
+          "artifact_size": 490
+        },
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      "earlier_replay_attempts": [],
+      "durable_counts": {
+        "tasks": 1,
+        "jobs": 0,
+        "outbox_messages": 1,
+        "outbox_receipts": 1
+      },
+      "core_task_statuses": [
+        "answered"
+      ],
+      "unavailable": false,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/tasks",
+          "status": 409,
+          "expected": 409
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/requests/{key}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/tasks",
+          "status": 202,
+          "expected": 202
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/requests/{key}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/result?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/artifacts/21dc8e69-ad52-59fe-b682-7069c7e5a34b?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    },
+    {
+      "scenario": "direct_text",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/direct_text/phase-1788777932872000600-run.json",
+        "sha256": "8eb55f7047b7622f2e2485812870dacbae3d05c1ed67ee14e9c76d07c1725546",
+        "bytes": 41125
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "3a48ad5a-4f17-4da2-92c6-3a961dbaaf64",
+        "result_revision": 1,
+        "result_digest": "sha256:0e24647c005e6afd78eed253f1b62612a1b2ec37334bed51cf714f9a784b5982",
+        "artifact_id": "4f43a9e6-03cf-5e1f-9368-d077fedbdf58",
+        "artifact_digest": "sha256:1cd7d4bab756e04796f4f2f6914b350f989d05a341222fe0a41e18ee663432c8",
+        "artifact_size": 460,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:1ae363b9d218a123c3f866e7fbb5ddbac085d3836734eb74643a9f6b1007a259",
+        "confirmed_parts": 2
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 3,
+            "charged_seconds": 59.15700000000652,
+            "actual_model_turns": 2,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 61,
+            "remaining_seconds": 5340.8429999999935
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 5,
+            "charged_seconds": 78.42200000002049,
+            "actual_model_turns": 4,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 59,
+            "remaining_seconds": 5321.5779999999795
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "LOCAL_HTTP_CORE_COMPLETED",
+        "source": {
+          "local_path": ".runtime/c4/product-a869a69/direct_text/phase-1788808498999685200-replay.json",
+          "sha256": "70eb7804971f1eca90b816505eae7f5c51e994a51a861e54670216524f1cee37",
+          "bytes": 36133
+        },
+        "additional_model_or_asr": false,
+        "result": {
+          "task_id": "3a48ad5a-4f17-4da2-92c6-3a961dbaaf64",
+          "result_revision": 1,
+          "result_digest": "sha256:0e24647c005e6afd78eed253f1b62612a1b2ec37334bed51cf714f9a784b5982",
+          "artifact_id": "4f43a9e6-03cf-5e1f-9368-d077fedbdf58",
+          "artifact_digest": "sha256:1cd7d4bab756e04796f4f2f6914b350f989d05a341222fe0a41e18ee663432c8",
+          "artifact_size": 460
+        },
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      "earlier_replay_attempts": [
+        {
+          "source": {
+            "local_path": ".runtime/c4/product-a869a69/direct_text/phase-1788808445827645100-replay.json",
+            "sha256": "a996e335cd645cf8e7109bb3fdd4ec26aec7fc4ab36468a91f643a344f66a109",
+            "bytes": 33810
+          },
+          "status": "FAILED"
+        }
+      ],
+      "durable_counts": {
+        "tasks": 1,
+        "jobs": 0,
+        "outbox_messages": 1,
+        "outbox_receipts": 1
+      },
+      "core_task_statuses": [
+        "answered"
+      ],
+      "unavailable": false,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/tasks",
+          "status": 202,
+          "expected": 202
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/requests/{key}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/result?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/artifacts/4f43a9e6-03cf-5e1f-9368-d077fedbdf58?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    },
+    {
+      "scenario": "direct_voice",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/direct_voice/phase-1788778115374336600-run.json",
+        "sha256": "abdd7a1468efd52e2b39898c07883d6990c624fc5b72e38537e299d2cd42345e",
+        "bytes": 45103
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+        "result_revision": 1,
+        "result_digest": "sha256:f12c70836198f3a1917240e7d9a3a4cdd4cd1ae73aea7b27022af74e057ba57e",
+        "artifact_id": "e024cb5a-f01a-58ef-a39d-5759b1ef0a90",
+        "artifact_digest": "sha256:aab8f83dfd589be62047e927fecba1cd615a950ac8e596ea8df2c17316508772",
+        "artifact_size": 518,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:5e299984d09122c5f565d4d6f0b6cbc24627837cc5427f82e9952980f07e21d2",
+        "confirmed_parts": 2
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 10,
+            "charged_seconds": 161.26699999987613,
+            "actual_model_turns": 9,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 54,
+            "remaining_seconds": 5238.733000000124
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 13,
+            "charged_seconds": 180.89199999987613,
+            "actual_model_turns": 11,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 51,
+            "remaining_seconds": 5219.108000000124
+          },
+          "asr": {
+            "reserved_calls": 1,
+            "charged_seconds": 5.640999999945052,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 19,
+            "remaining_seconds": 1194.359000000055
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "LOCAL_HTTP_CORE_COMPLETED",
+        "source": {
+          "local_path": ".runtime/c4/product-a869a69/direct_voice/phase-1788808514717863000-replay.json",
+          "sha256": "74c3328b0bc6df6774344830ee6b499dfd5b39e8c972f8d4cda17522c28385a0",
+          "bytes": 36096
+        },
+        "additional_model_or_asr": false,
+        "result": {
+          "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+          "result_revision": 1,
+          "result_digest": "sha256:f12c70836198f3a1917240e7d9a3a4cdd4cd1ae73aea7b27022af74e057ba57e",
+          "artifact_id": "e024cb5a-f01a-58ef-a39d-5759b1ef0a90",
+          "artifact_digest": "sha256:aab8f83dfd589be62047e927fecba1cd615a950ac8e596ea8df2c17316508772",
+          "artifact_size": 518
+        },
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      "earlier_replay_attempts": [],
+      "durable_counts": {
+        "tasks": 1,
+        "jobs": 1,
+        "outbox_messages": 1,
+        "outbox_receipts": 1
+      },
+      "core_task_statuses": [
+        "answered"
+      ],
+      "unavailable": false,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/result?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/artifacts/e024cb5a-f01a-58ef-a39d-5759b1ef0a90?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    },
+    {
+      "scenario": "telegram_text",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/telegram_text/phase-1788778018750974700-run.json",
+        "sha256": "ffcfe9317e305b6de17e747ee616366f65f72028bae60ee49cdeccc8f78f1733",
+        "bytes": 42590
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "6d6a35be-1129-4ed8-8558-7a1a23b13cda",
+        "result_revision": 1,
+        "result_digest": "sha256:89432faa82ac5d378c22491c0b7901e5c36e3ae950e49cd5b805d455fc0278ad",
+        "artifact_id": "8ee8bced-d843-5833-80a0-33e0f1a4d9b4",
+        "artifact_digest": "sha256:76e65144cacfb6618d4bcb6da470010f7b8c3086b7eb064a9556c2bffd39a2c4",
+        "artifact_size": 487,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:8da58143fcdbe514056fa49a78655d54148a0b5ec37db14f26b91a41befa18c4",
+        "confirmed_parts": 2
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 5,
+            "charged_seconds": 78.42200000002049,
+            "actual_model_turns": 4,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 59,
+            "remaining_seconds": 5321.5779999999795
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 7,
+            "charged_seconds": 103.03099999995902,
+            "actual_model_turns": 6,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 57,
+            "remaining_seconds": 5296.969000000041
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "LOCAL_HTTP_CORE_COMPLETED",
+        "source": {
+          "local_path": ".runtime/c4/product-a869a69/telegram_text/phase-1788808505129519200-replay.json",
+          "sha256": "a38cfd396761a94a26c4c1bfd7aedcc1951c7c38d7377de6a789bfb8716e6d42",
+          "bytes": 35986
+        },
+        "additional_model_or_asr": false,
+        "result": {
+          "task_id": "6d6a35be-1129-4ed8-8558-7a1a23b13cda",
+          "result_revision": 1,
+          "result_digest": "sha256:89432faa82ac5d378c22491c0b7901e5c36e3ae950e49cd5b805d455fc0278ad",
+          "artifact_id": "8ee8bced-d843-5833-80a0-33e0f1a4d9b4",
+          "artifact_digest": "sha256:76e65144cacfb6618d4bcb6da470010f7b8c3086b7eb064a9556c2bffd39a2c4",
+          "artifact_size": 487
+        },
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      "earlier_replay_attempts": [],
+      "durable_counts": {
+        "tasks": 1,
+        "jobs": 0,
+        "outbox_messages": 1,
+        "outbox_receipts": 1
+      },
+      "core_task_statuses": [
+        "answered"
+      ],
+      "unavailable": false,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/result?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/artifacts/8ee8bced-d843-5833-80a0-33e0f1a4d9b4?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    },
+    {
+      "scenario": "transform_text",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/transform_text/phase-1788778084515797900-run.json",
+        "sha256": "5331fd63a4c24f7af97b8150d123ef1e671436b5fa41cba92d903302f6c614d5",
+        "bytes": 46632
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "421c8672-c9e0-45ba-ab9d-b74115d827a5",
+        "result_revision": 1,
+        "result_digest": "sha256:8128fe66028bc0d5ea1755511b0a1327db9b1f6935fd37adce0dd8dffa6219a4",
+        "artifact_id": "03a0fed4-c0e1-576b-bcb2-ba570dce929a",
+        "artifact_digest": "sha256:20f29ef60126a010219e3fac37ccc2fdcca706d708d3f90ce4c57b3123e350ef",
+        "artifact_size": 3593,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:82bb03275f0a160d1b627f7867fef9af584dedfd18b926d78501a0f5cd669385",
+        "confirmed_parts": 2
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 7,
+            "charged_seconds": 103.03099999995902,
+            "actual_model_turns": 6,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 57,
+            "remaining_seconds": 5296.969000000041
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 10,
+            "charged_seconds": 161.26699999987613,
+            "actual_model_turns": 9,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 54,
+            "remaining_seconds": 5238.733000000124
+          },
+          "asr": {
+            "reserved_calls": 0,
+            "charged_seconds": 0.0,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 1200.0
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "LOCAL_HTTP_CORE_COMPLETED",
+        "source": {
+          "local_path": ".runtime/c4/product-a869a69/transform_text/phase-1788808510457542100-replay.json",
+          "sha256": "2f0d170a77b8b2ba528de4df29c76c5983873175870efa6a343c22812ea3682c",
+          "bytes": 36141
+        },
+        "additional_model_or_asr": false,
+        "result": {
+          "task_id": "421c8672-c9e0-45ba-ab9d-b74115d827a5",
+          "result_revision": 1,
+          "result_digest": "sha256:8128fe66028bc0d5ea1755511b0a1327db9b1f6935fd37adce0dd8dffa6219a4",
+          "artifact_id": "03a0fed4-c0e1-576b-bcb2-ba570dce929a",
+          "artifact_digest": "sha256:20f29ef60126a010219e3fac37ccc2fdcca706d708d3f90ce4c57b3123e350ef",
+          "artifact_size": 3593
+        },
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      "earlier_replay_attempts": [],
+      "durable_counts": {
+        "tasks": 1,
+        "jobs": 0,
+        "outbox_messages": 1,
+        "outbox_receipts": 1
+      },
+      "core_task_statuses": [
+        "answered"
+      ],
+      "unavailable": false,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/tasks",
+          "status": 202,
+          "expected": 202
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/requests/{key}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/result?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/artifacts/03a0fed4-c0e1-576b-bcb2-ba570dce929a?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    },
+    {
+      "scenario": "transform_voice",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/transform_voice/phase-1788778183152047100-run.json",
+        "sha256": "5cdd09e50c81e52d0aafc697e64d985e0ff81a24b42641915525ce671566ae4d",
+        "bytes": 59757
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+        "result_revision": 1,
+        "result_digest": "sha256:b684be4c8afa643fea85f876df9697675cc23b974787bdc6483edd0d78846511",
+        "artifact_id": "de551237-82a3-5473-bd21-0a6fd0b20f32",
+        "artifact_digest": "sha256:e3b4d05243f0de8330bba10673297fe4becc84477175a8541fc89eb0ad99fadb",
+        "artifact_size": 4075,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:0a7e061f9a837a6232a16cf609b708092af0cab62b675e46c206d4fd2320f73a",
+        "confirmed_parts": 2
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 13,
+            "charged_seconds": 180.89199999987613,
+            "actual_model_turns": 11,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 51,
+            "remaining_seconds": 5219.108000000124
+          },
+          "asr": {
+            "reserved_calls": 1,
+            "charged_seconds": 5.640999999945052,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 19,
+            "remaining_seconds": 1194.359000000055
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 17,
+            "charged_seconds": 233.62499999988358,
+            "actual_model_turns": 14,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 47,
+            "remaining_seconds": 5166.375000000116
+          },
+          "asr": {
+            "reserved_calls": 2,
+            "charged_seconds": 14.10999999998603,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 18,
+            "remaining_seconds": 1185.890000000014
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "LOCAL_HTTP_CORE_COMPLETED",
+        "source": {
+          "local_path": ".runtime/c4/product-a869a69/transform_voice/phase-1788808519838246100-replay.json",
+          "sha256": "835ddcabf3c8c78f3f8b73a5097fbb749544d7b2d8ae2dd57a24195e32acdde2",
+          "bytes": 36100
+        },
+        "additional_model_or_asr": false,
+        "result": {
+          "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+          "result_revision": 1,
+          "result_digest": "sha256:b684be4c8afa643fea85f876df9697675cc23b974787bdc6483edd0d78846511",
+          "artifact_id": "de551237-82a3-5473-bd21-0a6fd0b20f32",
+          "artifact_digest": "sha256:e3b4d05243f0de8330bba10673297fe4becc84477175a8541fc89eb0ad99fadb",
+          "artifact_size": 4075
+        },
+        "cleanup": [
+          {
+            "component": "control",
+            "closed": true
+          },
+          {
+            "component": "runtime",
+            "closed": true
+          }
+        ]
+      },
+      "earlier_replay_attempts": [],
+      "durable_counts": {
+        "tasks": 1,
+        "jobs": 1,
+        "outbox_messages": 1,
+        "outbox_receipts": 1
+      },
+      "core_task_statuses": [
+        "answered"
+      ],
+      "unavailable": false,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/session/recover",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 401,
+          "expected": 401
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/result?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/artifacts/de551237-82a3-5473-bd21-0a6fd0b20f32?revision=1",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    },
+    {
+      "scenario": "unavailable",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "run_source": {
+        "local_path": ".runtime/c4/product-a869a69/unavailable/phase-1788778239433852300-run.json",
+        "sha256": "74080cb0583055d33b2918b445173b059d0cf74e64fc9c9063d2a87fb4e73d75",
+        "bytes": 31368
+      },
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {},
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 20,
+            "charged_seconds": 268.85900000005495,
+            "actual_model_turns": 17,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 44,
+            "remaining_seconds": 5131.140999999945
+          },
+          "asr": {
+            "reserved_calls": 2,
+            "charged_seconds": 14.10999999998603,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 18,
+            "remaining_seconds": 1185.890000000014
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 21,
+            "charged_seconds": 278.68700000003446,
+            "actual_model_turns": 18,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 43,
+            "remaining_seconds": 5121.3129999999655
+          },
+          "asr": {
+            "reserved_calls": 2,
+            "charged_seconds": 14.10999999998603,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 18,
+            "remaining_seconds": 1185.890000000014
+          }
+        },
+        "active_reservations": 0
+      },
+      "replay": {
+        "status": "NOT_APPLICABLE_NO_TASK"
+      },
+      "durable_counts": {
+        "tasks": 0,
+        "jobs": 0,
+        "outbox_messages": 0,
+        "outbox_receipts": 0
+      },
+      "core_task_statuses": [],
+      "unavailable": true,
+      "http_contracts": [
+        {
+          "method": "POST",
+          "path_template": "/api/session",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/app.js",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "GET",
+          "path_template": "/styles.css",
+          "status": 200,
+          "expected": 200
+        },
+        {
+          "method": "POST",
+          "path_template": "/api/tasks",
+          "status": 409,
+          "expected": 409
+        },
+        {
+          "method": "GET",
+          "path_template": "/api/requests/{key}",
+          "status": 200,
+          "expected": 200
+        }
+      ]
+    }
+  ],
+  "independent_quality": "L2 reviewed7scenarios each15/15 for intent/scope/honesty/delivery/usefulness; fixture-specific, not general model quality"
+}

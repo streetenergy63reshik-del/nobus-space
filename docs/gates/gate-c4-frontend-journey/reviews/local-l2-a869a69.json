@@ -1,0 +1,87 @@
+{
+  "schema": "c4-l2-local-verdict-1",
+  "reviewer": "/root/resume_l2",
+  "utc": "2026-09-07T19:27:31.257836+00:00",
+  "candidate": {
+    "sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+    "tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98"
+  },
+  "verdict": "LOCAL_CANDIDATE_ACCEPTED_IN_REVIEWED_SCOPE",
+  "gate_status": "NOT_ACCEPTED_NOT_PUBLISHED",
+  "source_integrity": {
+    "before": "before.json",
+    "after": "after.json",
+    "tracked_files": 551,
+    "historical_L2_files": 34,
+    "unchanged": true
+  },
+  "own_checks": {
+    "evidence_reconstruction": {
+      "pass": 634,
+      "fail": 0,
+      "receipt": "evidence-audit.json"
+    },
+    "node_assertions": {
+      "pass": 7,
+      "fail": 0,
+      "script": "independent.test.cjs",
+      "log": "independent-node.log"
+    }
+  },
+  "retained_evidence": {
+    "reviewer": "/root/c4_l2_review",
+    "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+    "targeted_pass": 451,
+    "node_pass": 11,
+    "actual_http_pass": 6,
+    "final_verdict_was": "NOT_ISSUED_PAUSED",
+    "not_relabelled_as_own": true
+  },
+  "root_L1": {
+    "pytest_pass": 2132,
+    "subtests_pass": 25,
+    "windows_symlink_skip": 2,
+    "historical_deselect": 1,
+    "node_pass": 17,
+    "independently_rerun": false
+  },
+  "historical_findings": {
+    "L2-C4-01": "CLOSED independently reconfirmed exact cancellation releases UNKNOWN; forged identity remains locked",
+    "L2-C4-02": "CLOSED independently reconfirmed unchanged successful task read clears modal error"
+  },
+  "new_confirmed_product_findings": [],
+  "quality_rubric": {
+    "scale": "0 absent,1 major defect,2 bounded shortcoming,3 criterion met for this fixture",
+    "criteria": [
+      "intent",
+      "scope",
+      "honesty",
+      "delivery",
+      "usefulness"
+    ],
+    "scores": "matrix in evidence-audit.json; 7 scenarios each15/15",
+    "assessment": "Actual synthetic answers read by reviewer; no raw payload copied into review",
+    "general_quality_claim": false
+  },
+  "limitations": [
+    "No actual browser320/390/768 light/dark keyboard evidence",
+    "No actual owner Telegram/Mini App live evidence",
+    "No independent approval of temporary live helper/launcher",
+    "Final docs-only acceptance package not yet reviewed",
+    "L1 and previous L2 runs consumed as separately attributed evidence; no redundant rerun",
+    "Local HTTP synthetic initData and Telegram transport do not prove real Telegram WebView cookie behavior"
+  ],
+  "effects": {
+    "tracked_edits": 0,
+    "git_mutations": 0,
+    "model_calls": 0,
+    "asr_inferences": 0,
+    "network_calls": 0,
+    "browser_calls": 0,
+    "live_calls": 0
+  },
+  "documents": [
+    "LOCAL-VERDICT.md",
+    "VERIFIER-INCIDENTS.json"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "c4-existing-evidence-verification-1",
+  "scope": "Read-only verification of existing C0-C3 evidence for C4 entry. Not C0-C3 reacceptance and not C4 L2/L3. No tests, model, ASR, network or Git mutation.",
+  "result": "PASS_WITH_HISTORICAL_HASH_GAP",
+  "checks_passed": 253,
+  "checks_total": 253,
+  "revisions": {
+    "c0_final": {
+      "sha": "5feccfd7626d4382259c3488a9cfb3b3e6c48a0b",
+      "tree": "480b2f85978e94a8a5a470d09fe3f343a60849bc",
+      "expected_tree": "480b2f85978e94a8a5a470d09fe3f343a60849bc"
+    },
+    "c1_reviewed": {
+      "sha": "8e5e5fd3bf5680b5dbcf78a5f7de40da63ba93da",
+      "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+      "expected_tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9"
+    },
+    "c1_squash": {
+      "sha": "2732a11122179c4197a74594dd0c8ba3ed9ec52d",
+      "tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9",
+      "expected_tree": "6a8f968f2b447a7a20d88321d8610adcb76c9cb9"
+    },
+    "c1_final": {
+      "sha": "43e753c571e1ad8db5af5f453b5db0c0b417cac8",
+      "tree": "a7c6328a42412a0bd269004aefa9c9d402c75564",
+      "expected_tree": "a7c6328a42412a0bd269004aefa9c9d402c75564"
+    },
+    "c2_final": {
+      "sha": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+      "tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+      "expected_tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7"
+    },
+    "c3_source": {
+      "sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+      "tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+      "expected_tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127"
+    },
+    "c3_package": {
+      "sha": "e45a4d42bfac8b813b8e1d6e07d0df38baace8c2",
+      "tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570",
+      "expected_tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570"
+    },
+    "c3_product_merge": {
+      "sha": "331f3566f03ae9ae5ede8cdc6b411f4102cc2e95",
+      "tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570",
+      "expected_tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570"
+    },
+    "c3_final_c4_base": {
+      "sha": "b9283b3419928042c80278b5088b526edebab6e7",
+      "tree": "77062335b1dbccb3694721d357e484c856ac89c7",
+      "expected_tree": "77062335b1dbccb3694721d357e484c856ac89c7"
+    }
+  },
+  "source": {
+    "local_path": ".runtime/c4/entry-evidence.json",
+    "sha256": "83463cc41a2f8687b9da872fd634133c6ce6e39b2377c8de410fa46b0729ce44",
+    "bytes": 52622
+  },
+  "limitation": "Historical canonical manifest lacks hash for runtime_maintenance.py; no comparison is invented.19available hashes and20dirty statuses matched at entry; noC4canonical edits."
+}

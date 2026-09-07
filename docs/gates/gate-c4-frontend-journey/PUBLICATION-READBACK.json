@@ -1,0 +1,17 @@
+{
+  "schema": "c4-publication-readback-1",
+  "status": "NOT_PUBLISHED_C4",
+  "repository": "streetenergy63reshik-del/nobus-space",
+  "source": "Authenticated GitHub connector GET branches/main, 7September2026; root tool result",
+  "main_sha": "b9283b3419928042c80278b5088b526edebab6e7",
+  "main_tree": "77062335b1dbccb3694721d357e484c856ac89c7",
+  "protected": true,
+  "branch_summary_required_contexts": [],
+  "full_protection_read": "403 Resource not accessible by integration; policy details unavailable",
+  "C4_push": false,
+  "C4_PR": null,
+  "C4_merge": false,
+  "tag_release_permanent_deploy": false,
+  "missing_checks_are_not_PASS": true,
+  "why": "User authorization allows publication after complete C4PASS; realowner/visual acceptance absent"
+}

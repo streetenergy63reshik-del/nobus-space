@@ -1,0 +1,19 @@
+{
+  "schema": "c4-screenshots-1",
+  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "status": "NOT_OBTAINED",
+  "screenshots": [],
+  "required_viewport_widths": [
+    320,
+    390,
+    768
+  ],
+  "required_themes": [
+    "light",
+    "dark"
+  ],
+  "keyboard_only": "NOT_VERIFIED",
+  "native_telegram_webview": "NOT_VERIFIED",
+  "tool_blocker": "trusted RPC package resolution for @oai/browser-desktop/service and @oai/sky/service",
+  "static_unit_checks_do_not_substitute": true
+}

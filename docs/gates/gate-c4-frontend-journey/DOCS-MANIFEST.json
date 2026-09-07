@@ -1,0 +1,118 @@
+{
+  "code_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "files": [
+    {
+      "path": "docs/01-Единый-документ-проекта.md",
+      "old_sha256": "d5fa0f239b24dc38cf6948ad4e4c0d6509632f8e8d29bf76c1745772cf0bcc99",
+      "staged_sha256": "11f82c1b0a8142f077fb31c621601555f9ee17ff82f5229ea752fca29f9b43af",
+      "bytes": 11321
+    },
+    {
+      "path": "docs/02-Глоссарий.md",
+      "old_sha256": "69e17011b0266e052df033d4dc07f3dbae52aa045466d287becf8ca238b4a121",
+      "staged_sha256": "8eaa5ac544c54b98092f8731afb8c8423bce07bf954050e9d7dbf81bbf113f4d",
+      "bytes": 21444
+    },
+    {
+      "path": "docs/03-Архитектурный-обзор.md",
+      "old_sha256": "07a898695c8b19877518d6addf705419338d9a36da483aa4e12345f7539d1269",
+      "staged_sha256": "245ea523064aabeb115b9e996fdd46ba9b75662276afd368b006803e8c5cf812",
+      "bytes": 18194
+    },
+    {
+      "path": "docs/04-Журнал-ADR.md",
+      "old_sha256": "dd1643a28c9cec711422fcc234027bf0e95791298eca5a982c586544e719a650",
+      "staged_sha256": "7f728b7c8f211004da64d1b08fa17fef00883b0c648a329ddffe5cc5212b63a7",
+      "bytes": 10606
+    },
+    {
+      "path": "docs/05-Спецификации-контрактов.md",
+      "old_sha256": "5d192121161a8415227b733276519b75aa8dc5bc85d67993faa821d83737dce6",
+      "staged_sha256": "decbf8575119d17c41f98b75139acf37e7c87f9120b15b5415ecb79083db2cfd",
+      "bytes": 29463
+    },
+    {
+      "path": "docs/08-Runbook-эксплуатации.md",
+      "old_sha256": "4288ca5ab2b130b21b7e25d537a995b59cbdca02fc0dc4a86d7d4e18d1f9d2a9",
+      "staged_sha256": "79337358ebf14cc22eca33912cc6cc5f06f52087954fe53ba08995b4b8e45f88",
+      "bytes": 50936
+    },
+    {
+      "path": "docs/09-Стандарты-отчётов.md",
+      "old_sha256": "5eccf4bb904c06eaa5a6583faca9c7713bfcee0e3640cc4bbd9b9cb810f90bf1",
+      "staged_sha256": "7b35b03db0c000b0ef68ce2576c0697d83612d50d511500dcfac814d4fbffafb",
+      "bytes": 14228
+    },
+    {
+      "path": "docs/10-Политика-памяти.md",
+      "old_sha256": "983cb9672f30bd1821244d2096d39b777c6372cb32ccb3e890e1dc2f019168cd",
+      "staged_sha256": "d2388e57771471d1077e020ae455b0d0f66e42d8ad108e4705564becee350a06",
+      "bytes": 16894
+    },
+    {
+      "path": "docs/11-Контекст-продукта.md",
+      "old_sha256": "51313e686381a1aef17ccf6425a7ec5bffc4e251f380e2d28934b95237e70eba",
+      "staged_sha256": "1d5398f0a33146a36ea959ce1a2cf92cce103b69a5abd080a46806d13deb527f",
+      "bytes": 5392
+    },
+    {
+      "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+      "old_sha256": "76601c8ac9979393caa56a7a1e2c16b2c63b66a3a8ebf36c64bf7148c6010f65",
+      "staged_sha256": "2aafce62a9c2be1ab130d10f7bc16b86e32f64970c7b86f29f0cd3b2c0f266ca",
+      "bytes": 5798,
+      "reviewed_staged_sha256": "db7a9e7025a1e15c53bc26cd8aad4dcd5dd4f468a8a83b1f99966e73ece26b67",
+      "post_review_delta": "remove extra blank line at EOF only"
+    },
+    {
+      "path": "docs/gates/README.md",
+      "old_sha256": "2d0b59336c40d670c7bba004c8d8f34793f02135cadfb57ebbc41f2419044745",
+      "staged_sha256": "5a03c648a3388f445a8adf5db21f4b32aa92b55579615b8cadbd393f6a0c34c4",
+      "bytes": 7014,
+      "reviewed_staged_sha256": "d4629b26502b7c66f14b651daa47a54e025ba87b890486dcb775062aa98dc89b",
+      "post_review_delta": "remove extra blank line at EOF only"
+    },
+    {
+      "path": "docs/handoffs/CURRENT-STATUS.md",
+      "old_sha256": "d76b665ab0f412a3f5912e291d364279f5fdfc5d1639ac84380f7d2173cf4039",
+      "staged_sha256": "da4861fb583753550126e5e5941804a8e1f41d40936f6fd3baa97c0615a4718e",
+      "bytes": 6390,
+      "reviewed_staged_sha256": "a1eed2dc583396c256ee408fd31bbd34073a7593951a0ac28b67b53acfda098e",
+      "post_review_delta": "remove extra blank line at EOF only"
+    },
+    {
+      "path": "docs/handoffs/MVP-1-ISSUES.md",
+      "old_sha256": "ee8f187e75a1dfe96646f2e6ad2963380ba29585d7475e60b5e3ddce910cd800",
+      "staged_sha256": "96c91e309ec443d38dd218749af91150866d53961040a78b3a629ba4ae829bcb",
+      "bytes": 37656,
+      "reviewed_staged_sha256": "e075dac6bb4cdbff672dadbf9b70bfecc501c0ae95673e82af4c2dd27bcc71a2",
+      "post_review_delta": "remove extra blank line at EOF only"
+    },
+    {
+      "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+      "old_sha256": "02de8f20d38979acb7340d2e7354177e1aac3c0a13661bd0dbf2ae0b6e400468",
+      "staged_sha256": "91ad01bc7ed18f61e04ccab0de990065eebfa748a47b7c3f0b33390f6d0694d5",
+      "bytes": 8345,
+      "reviewed_staged_sha256": "fa4bccc5118ad8530bfdb54dde9f81e76c971895d592e7d196895ca8bc5aa410",
+      "post_review_delta": "remove extra blank line at EOF only"
+    },
+    {
+      "path": "docs/README.md",
+      "old_sha256": "f6837a5fbd328dc007b3c82793bc9eec6cfe729062f751aaddc318a2f1918eaf",
+      "staged_sha256": "4aa953b3a4226ecfe7022319d1e685aded475b4f76950eb989e1043065cc46b5",
+      "bytes": 9361
+    },
+    {
+      "path": "README.md",
+      "old_sha256": "6561746b757eac445e1e7a0d049937304d66593d906f168ebbba008d307c9e84",
+      "staged_sha256": "e90d407c08f3597a6808157035daa3dae0563b6d26d54e05cfc6a40f83365c7d",
+      "bytes": 9451,
+      "reviewed_staged_sha256": "71fb6d3efa4b18658d789a5c09535e0b1b6798dceb016fa7677a498286133e43",
+      "post_review_delta": "remove extra blank line at EOF only"
+    }
+  ],
+  "runtime_context_note": "docs11 is read by normal runner; actual C4 local and temporary live fixtures use project_context=None; updated context bytes are separately documented, not claimed unchanged model inputs.",
+  "post_review_delta": {
+    "predecessor_package_manifest_sha256": "58435f678da5bb0f95c4ba763cf8efd38f89f81f77fff6a804c07723a15e7165",
+    "scope": "6active doc EOF-only fixes; original accepted16doc manifest retained in runtime source receipt"
+  }
+}

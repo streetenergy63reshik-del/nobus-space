@@ -1,0 +1,128 @@
+{
+  "schema": "c4-preservation-1",
+  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "all_pass": true,
+  "checks": [
+    {
+      "check": "canonical status matches C4 entry",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes README.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/01-Единый-документ-проекта.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/02-Глоссарий.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/03-Архитектурный-обзор.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/04-Журнал-ADR.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/08-Runbook-эксплуатации.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/11-Контекст-продукта.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/README.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/gates/README.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/handoffs/CURRENT-STATUS.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/handoffs/WORKSPACE-INVENTORY.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes scripts/run_telegram_mvp1.py",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes src/application/miniapp.py",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes src/application/runtime_maintenance.py",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes tests/test_documentation.py",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes tests/test_telegram_mvp1_runner.py",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/15-Продуктовая-дорожная-карта.md",
+      "pass": true
+    },
+    {
+      "check": "canonical bytes docs/16-Управленческая-карта-разработки.html",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/06-Регламент-качества-L1-L4.md",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/07-Правила-внешней-записи.md",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/13-Интегрированная-архитектура-MVP-1.md",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/gates/gate-c0-mvp1-truth-contract",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/gates/gate-c1-semantic-task-compiler",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/gates/gate-c2-voice-parity",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/gates/gate-c3-core-stability",
+      "pass": true
+    },
+    {
+      "check": "retained base docs/gates/gate-00-product-contract-baseline",
+      "pass": true
+    }
+  ],
+  "note": "Current20canonical hashes matched C4 entry; historicalC3coverage19 with1explicitgap remains. Protected docs06/07/12/13 and C0-C3/Gate0 unchanged. No broad worktree cleanup or historical reacceptance."
+}

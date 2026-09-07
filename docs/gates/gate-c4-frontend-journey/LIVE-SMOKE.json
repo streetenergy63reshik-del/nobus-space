@@ -1,0 +1,313 @@
+{
+  "schema": "c4-live-smoke-1",
+  "authorization": "Owner full C4 request and repeated explicit full permission for necessary temporary actions/tests; exact candidate/bot/owner/origin/scope preserved",
+  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+  "scope": "temporary synthetic exact owner/private only, isolated state, existing relay; no permanent deploy",
+  "bot_username": "Nobusspacebot",
+  "bot_id": 8613479322,
+  "owner_private_chat": 5666869383,
+  "origin": "https://app.nobusspace.com",
+  "limits": {
+    "seconds": 1800,
+    "owner_updates_and_http_creates": 40,
+    "model_reservations": 24,
+    "asr": 4,
+    "new_bot_messages_and_documents": 60,
+    "edits": 240
+  },
+  "attempt1": {
+    "status": "FAILED_BEFORE_USER_INPUT",
+    "approved_review_sha256": "e54365fb4684a2498627b0015ea6473764496d64bee0766984283e84866953c6",
+    "stop_source": {
+      "local_path": ".runtime/c4/live-a869a691293e/runtime-stop-1788809451449114100.json",
+      "sha256": "b56ea67af3e44fcd5bffee91cfe0a0a7a3a6d56f65a3fcaa8883c3c0e99fc7e9",
+      "bytes": 1831
+    },
+    "safe_error": "live_poll_stopped_after_three_failures",
+    "reason": "Lease300 crossed maximum300 after SQLite clock delay; reproduced offline; original detailed exception not recorded",
+    "local_polling_offset": null,
+    "local_polling_revision": 6,
+    "inputs": 0,
+    "outputs": 0,
+    "quarantine": 0,
+    "supervisor": {
+      "status": "STOPPED_REQUIRES_ROOT_READBACK",
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "review_sha256": "e54365fb4684a2498627b0015ea6473764496d64bee0766984283e84866953c6",
+      "forced": false,
+      "cleanup": {
+        "job_active_processes": 0,
+        "owned_wrappers_exited": true
+      },
+      "ended": 1788809451.6409612
+    },
+    "budget_after": {
+      "resources": {
+        "model": {
+          "reserved_calls": 22,
+          "charged_seconds": 279.01500000001397,
+          "actual_model_turns": 18,
+          "max_calls": 64,
+          "max_seconds": 5400.0,
+          "remaining_calls": 42,
+          "remaining_seconds": 5120.984999999986
+        },
+        "asr": {
+          "reserved_calls": 2,
+          "charged_seconds": 14.10999999998603,
+          "actual_model_turns": 0,
+          "max_calls": 20,
+          "max_seconds": 1200.0,
+          "remaining_calls": 18,
+          "remaining_seconds": 1185.890000000014
+        }
+      },
+      "active_reservations": 0
+    },
+    "root_post_readback": {
+      "local_path": ".runtime/c4/live-preflight-1788809732149428200.json",
+      "sha256": "96149758c23c05a7b5a57474cd1bc70835a469d89b8b5861000e1ce8d9d6aee4",
+      "bytes": 553
+    },
+    "root_no_listener_or_matching_processes": true,
+    "remote_pending_note": "Before3, postreadback1; provenance not established, cannot attribute to ACK"
+  },
+  "attempt2": {
+    "status": "STOPPED_WITHOUT_OWNER_E2E",
+    "approved_review_sha256": "4973de046f77b58f343ad29cffc8cf11d0f7e1411af4b003c57cfcaea71d2917",
+    "ready_source": {
+      "local_path": ".runtime/c4/live-a869a691293e-attempt2/runtime-ready.json",
+      "sha256": "88f988f65d6d445655827602a27a940577dd4fcb5eed13b9e187626ac6f3a543",
+      "bytes": 1368
+    },
+    "instance": "455d2194b9952b2d749cfc36dab036e41f075523fe12d280b198eaa377022849",
+    "https_readback": {
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "expected_instance": "455d2194b9952b2d749cfc36dab036e41f075523fe12d280b198eaa377022849",
+      "routes": [
+        {
+          "path": "/healthz",
+          "http_status": 200,
+          "instance_matches": true,
+          "bytes": 15,
+          "sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+        },
+        {
+          "path": "/readyz",
+          "http_status": 200,
+          "instance_matches": true,
+          "bytes": 18,
+          "sha256": "31bf75f4c0a97cc1f7b60df824fa390b3be9ba014f29b63c87c698ba63d9a9fd"
+        },
+        {
+          "path": "/",
+          "http_status": 200,
+          "instance_matches": true,
+          "bytes": 4361,
+          "sha256": "ce2d267d629be996ae0f0d2c32902c2c17425835f98ae928c59f77fe42f5ed02",
+          "static_matches_candidate": true
+        },
+        {
+          "path": "/app.js",
+          "http_status": 200,
+          "instance_matches": true,
+          "bytes": 24761,
+          "sha256": "8f12c62fd16e7e3e1499c716ada58506f7affee1c065904cfbd3998d620fc2f2",
+          "static_matches_candidate": true
+        },
+        {
+          "path": "/styles.css",
+          "http_status": 200,
+          "instance_matches": true,
+          "bytes": 8526,
+          "sha256": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2",
+          "static_matches_candidate": true
+        }
+      ],
+      "route_bound_pass": true
+    },
+    "https_source": {
+      "local_path": ".runtime/c4/live-a869a691293e-attempt2/https-readback-1788810479261031400.json",
+      "sha256": "1113069b95f0e6f41ae1aa5df1f33427a406bf049597bdf492f268fdb42a07c1",
+      "bytes": 1427
+    },
+    "owner_journeys": "NOT_OBSERVED",
+    "native_webview_screenshots": [],
+    "rollback_readback": "PASS: owned Job0, wrappers exited, listener0, matchingprocess0, publichealth/ready502 baseline, bot/menu/webhook unchanged",
+    "stop_source": {
+      "local_path": ".runtime/c4/live-a869a691293e-attempt2/runtime-stop-1788811319992859400.json",
+      "sha256": "ded969fb6c7c254278280175c3aba119e4cf994a50a74226425db84549348653",
+      "bytes": 2227
+    },
+    "stop_status": "TEMPORARY_SMOKE_WINDOW_STOPPED",
+    "stop_scope": {
+      "inputs": {},
+      "outputs": {},
+      "http": [
+        {
+          "method": "GET",
+          "route": "/healthz",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "GET",
+          "route": "/readyz",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200,
+          "count": 3
+        }
+      ],
+      "quarantine": []
+    },
+    "component_cleanup": [
+      {
+        "component": "http",
+        "closed": true
+      },
+      {
+        "component": "control",
+        "closed": true
+      },
+      {
+        "component": "runtime",
+        "closed": true
+      },
+      {
+        "component": "telegram_api",
+        "closed": true
+      }
+    ],
+    "supervisor": {
+      "status": "STOPPED_REQUIRES_ROOT_READBACK",
+      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+      "review_sha256": "4973de046f77b58f343ad29cffc8cf11d0f7e1411af4b003c57cfcaea71d2917",
+      "forced": false,
+      "cleanup": {
+        "job_active_processes": 0,
+        "owned_wrappers_exited": true
+      },
+      "ended": 1788811320.1615436
+    },
+    "supervisor_source": {
+      "local_path": ".runtime/c4/live-a869a691293e-attempt2/supervisor-stop.json",
+      "sha256": "8390596a52fba73371d1f859240c2f26b3544ada6605b9efca99c9093a10942e",
+      "bytes": 410
+    },
+    "root_process_readback": {
+      "listener8765": 0,
+      "matching_contour_processes": 0
+    },
+    "root_process_source": {
+      "local_path": ".runtime/c4/live-a869a691293e-attempt2/root-process-readback.json",
+      "sha256": "5a3200dae3d654a35d801dacfa0bf756299c6e058be3ddd0d686461b5b86424b",
+      "bytes": 63
+    },
+    "root_contour_readback": {
+      "bot_username": "Nobusspacebot",
+      "bot_id": 8613479322,
+      "private_chat_id": 5666869383,
+      "owner_binding_verified": true,
+      "/healthz": {
+        "http_status": 502,
+        "body_is_health_state": false
+      },
+      "/readyz": {
+        "http_status": 502,
+        "body_is_health_state": false
+      },
+      "getMe": {
+        "ok": true
+      },
+      "webhook": {
+        "http_status": 200,
+        "present": false,
+        "pending_update_count": 0
+      },
+      "menu": {
+        "http_status": 200,
+        "type": "web_app",
+        "web_app_url": "https://app.nobusspace.com/"
+      }
+    },
+    "root_contour_source": {
+      "local_path": ".runtime/c4/live-preflight-1788811349315371800.json",
+      "sha256": "db439b129b49144e87ef841c3ebc278c2aaa206ccfcd16f9fa230a8121211a47",
+      "bytes": 553
+    },
+    "budget_after": {
+      "resources": {
+        "model": {
+          "reserved_calls": 23,
+          "charged_seconds": 280.35899999993853,
+          "actual_model_turns": 18,
+          "max_calls": 64,
+          "max_seconds": 5400.0,
+          "remaining_calls": 41,
+          "remaining_seconds": 5119.6410000000615
+        },
+        "asr": {
+          "reserved_calls": 2,
+          "charged_seconds": 14.10999999998603,
+          "actual_model_turns": 0,
+          "max_calls": 20,
+          "max_seconds": 1200.0,
+          "remaining_calls": 18,
+          "remaining_seconds": 1185.890000000014
+        }
+      },
+      "active_reservations": 0
+    }
+  },
+  "runtime_settings_unchanged": [
+    "productionDB",
+    "Scheduler",
+    "VPS/config",
+    "Cloudflare",
+    "DNS/TLS",
+    "BotFather",
+    "menu/profile",
+    "credentials"
+  ],
+  "limitations": [
+    "No real signed owner session observed",
+    "No actual user result/copy/file receipt",
+    "No mobile/keyboard/lightdark screenshots",
+    "Source-bound HTTPS GET does not prove TelegramWebView behavior"
+  ],
+  "remote_pending_sequence_note": "Entry3, firstpoststop1, attempt2initialready0, final0; first3to1 and subsequent1to0 before attempt2ready are unattributed. No helper queue-consumption claim is inferred.",
+  "final_budget": {
+    "resources": {
+      "model": {
+        "reserved_calls": 23,
+        "charged_seconds": 280.35899999993853,
+        "actual_model_turns": 18,
+        "max_calls": 64,
+        "max_seconds": 5400.0,
+        "remaining_calls": 41,
+        "remaining_seconds": 5119.6410000000615
+      },
+      "asr": {
+        "reserved_calls": 2,
+        "charged_seconds": 14.10999999998603,
+        "actual_model_turns": 0,
+        "max_calls": 20,
+        "max_seconds": 1200.0,
+        "remaining_calls": 18,
+        "remaining_seconds": 1185.890000000014
+      }
+    },
+    "active_reservations": 0
+  },
+  "windows_closed": true,
+  "full_live_user_acceptance": false
+}
