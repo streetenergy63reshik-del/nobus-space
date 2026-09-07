@@ -1,5 +1,11 @@
 # Nobus Space — CURRENT
 
+<!-- C4_CURRENT_START -->
+**7 сентября 2026: C4 LOCAL IMPLEMENTATION / NOT ACCEPTED / NOT PUBLISHED.**
+Ветка `codex/mvp1-closure-c4-frontend-journey`, отдельный worktree от опубликованного C3 `b9283b3419928042c80278b5088b526edebab6e7` / tree `77062335b1dbccb3694721d357e484c856ac89c7`. Реализованы server session/request recovery, общий UX catalog и обновлённый Mini App. [Проверки и остаток](../gates/gate-c4-frontend-journey/EVIDENCE.json), [handoff](../gates/gate-c4-frontend-journey/HANDOFF.md).
+Browser runtime недоступен; настоящее Telegram/Mini App smoke ещё не разрешено и не выполнено, HTTPS route отвечает502. Полный C4 PASS не заявляется. C5/C6 HOLD, MVP1 NOT READY. Далее сохранён контекст опубликованного C3 и прежних revisions.
+<!-- C4_CURRENT_END -->
+
 <!-- C3_CURRENT_START -->
 C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
 Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.

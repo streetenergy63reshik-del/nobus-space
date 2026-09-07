@@ -1,0 +1,20 @@
+{
+  "schema_version": "c4-evidence-1",
+  "verdict": "DRAFT / NOT ACCEPTED / NOT PUBLISHED",
+  "base": {"sha": "b9283b3419928042c80278b5088b526edebab6e7", "tree": "77062335b1dbccb3694721d357e484c856ac89c7"},
+  "local_implementation": true,
+  "targeted": {"telegram_shared": 350, "miniapp_recovery": 101, "frontend_node_unit": 11, "harness_guards": 11},
+  "frozen_L1": "PENDING",
+  "independent_L2": "PENDING",
+  "independent_L3": "PENDING",
+  "actual_local_inference": "PENDING",
+  "browser_matrix": "BLOCKED: trusted RPC runtime unavailable",
+  "live_smoke": "NOT AUTHORIZED; HTTPS502, no local listener",
+  "screenshots": [],
+  "publication": null,
+  "model_turns": 0,
+  "asr_runs": 0,
+  "MVP1_READY": false,
+  "C5_started": false,
+  "tag_release_permanent_deploy": false
+}

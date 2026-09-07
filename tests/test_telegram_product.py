@@ -1712,7 +1712,10 @@ async def test_semantic_clarification_is_bound_before_task_contract(
 
     await harness.control.handle(text_update("Подготовь материал.", 1))
     assert harness.runtime.drafted == []
-    assert harness.api.sent[-1][1] == "Какой именно материал использовать?"
+    assert harness.api.sent[-1][1] == (
+        "Какой именно материал использовать?\n\n"
+        "Ответьте на это сообщение, чтобы продолжить исходную задачу."
+    )
     question_message_id = len(harness.api.sent)
 
     await harness.control.handle(text_update("Ответь отдельно.", 2))

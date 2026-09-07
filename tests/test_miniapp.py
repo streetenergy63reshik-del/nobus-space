@@ -657,6 +657,8 @@ def test_create_task_reuses_idempotency_after_restart_and_rejects_rebinding(
         lease_owner=UUID("00000000-0000-4000-8000-000000000098"),
     )
     with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
+        asyncio.run(restarted.create_task(second_token, "Первая задача", request_id))
+    with pytest.raises(MiniAppAuthenticationError, match="^unauthorized$"):
         asyncio.run(service.create_task(token, "Первая задача", request_id))
 
 
@@ -733,8 +735,11 @@ def test_restart_recovers_core_task_from_queue_first_admission(
     store, queue, admission = _miniapp_admission(tmp_path)
     runtime = admission._product_runtime
     original_admit = runtime.admit_prepared
+    attempts = 0
 
     async def crash_before_core_admission(*_: object) -> bool:
+        nonlocal attempts
+        attempts += 1
         raise SimulatedCrash
 
     monkeypatch.setattr(runtime, "admit_prepared", crash_before_core_admission)
@@ -751,10 +756,13 @@ def test_restart_recovers_core_task_from_queue_first_admission(
 
     with pytest.raises(SimulatedCrash):
         asyncio.run(service.create_task(token, "Восстанови задачу", request_id))
-    with pytest.raises(SimulatedCrash):
+    assert attempts == 1
+    assert service.request_state(token, request_id).state == "pending"
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
         asyncio.run(service.create_task(token, "Восстанови задачу", request_id))
     assert store.list_tasks(TENANT_ID, limit=20) == ()
     assert queue.queue_counts() == (0, 1)
+    assert attempts == 1
 
     with pytest.raises(MiniAppTaskConflictError, match="^request_conflict$"):
         asyncio.run(service.create_task(token, "Другая задача", request_id))
@@ -770,7 +778,7 @@ def test_restart_recovers_core_task_from_queue_first_admission(
         restarted,
         signed_init_data(query_id="queue-first-second-session"),
     )
-    with pytest.raises(SimulatedCrash):
+    with pytest.raises(MiniAppCoreUnavailableError, match="^core_unavailable$"):
         asyncio.run(
             restarted.create_task(
                 second_token,
@@ -779,6 +787,7 @@ def test_restart_recovers_core_task_from_queue_first_admission(
             )
         )
     assert queue.queue_counts() == (0, 1)
+    assert attempts == 1
 
     monkeypatch.setattr(runtime, "admit_prepared", original_admit)
     durable = queue.claim(
@@ -792,7 +801,7 @@ def test_restart_recovers_core_task_from_queue_first_admission(
     assert snapshot.projection.status.value == "pending"
 
     repeated = asyncio.run(
-        service.create_task(token, "Восстанови задачу", request_id)
+        restarted.create_task(second_token, "Восстанови задачу", request_id)
     )
     assert repeated.task_id == durable.task_id
 
@@ -1031,13 +1040,16 @@ def test_list_is_tenant_scoped_bounded_stable_and_safe(tmp_path: Path) -> None:
         "description_available",
         "status",
         "status_label",
+        "reason",
+        "reason_label",
+        "action",
         "terminal",
         "source",
         "risk",
         "created_at",
         "updated_at",
     }
-    assert tasks[0].description == "Задача #00000000"
+    assert tasks[0].description == "Задача №2"
     assert tasks[0].description_available is False
     assert "private content" not in repr(tasks)
     assert "workspace" not in repr(tasks)
@@ -1071,7 +1083,7 @@ def test_detail_rechecks_session_tenant_and_task_binding(tmp_path: Path) -> None
 
     assert own.status_code == 200
     assert own.json()["task_id"] == str(owner_task)
-    assert own.json()["description"] == "Задача #00000000"
+    assert own.json()["description"] == "Задача №1"
     assert own.json()["description_available"] is False
     assert own.json()["instruction"] is None
     assert own.json()["instruction_available"] is False
@@ -1119,7 +1131,7 @@ def test_task_description_is_bound_and_legacy_rows_get_safe_fallback(
             (str(task_id),),
         )
     legacy = service.list_tasks(token, limit=20)[0]
-    assert legacy.description == "Задача #00000000"
+    assert legacy.description == "Задача №1"
     assert legacy.description_available is False
 
 
@@ -1167,27 +1179,30 @@ def test_core_unavailable_returns_safe_ui_state_without_mutation() -> None:
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Nobus Space временно недоступен"}
-    assert "Nobus Space временно недоступен" in page.text
-    assert "localStorage" not in script.text
+    assert "Открываем журнал задач" in page.text
+    # ADR0025 permits opaque recovery/navigation markers only; executed storage
+    # assertions live in tests/gate_c4/frontend.test.cjs.
+    assert 'localStorage.setItem("nobus." + name, value)' in script.text
+    assert 'saveMarker("pending", requestId)' in script.text
+    assert 'saveMarker("bearer"' not in script.text
     assert "initDataUnsafe" not in script.text
     assert "Idempotency-Key" in script.text
     assert "crypto.randomUUID()" in script.text
-    assert "Задача принята. Статус временно недоступен." in script.text
+    assert "Повторная задача не отправляется" in script.text
     assert 'id="new-task"' in page.text
     assert 'id="composer-sheet"' in page.text
     assert 'id="detail-sheet"' in page.text
     assert "openComposer" in script.text
-    assert "openDetail" in script.text
+    assert "selectTask" in script.text
     assert "task.description" in script.text
     assert "task.instruction" in script.text
-    assert "Содержание задачи" in script.text
+    assert '"Запрос"' in script.text
     assert "display_title" in script.text
-    assert "position: fixed" in styles.text
-    assert "backdrop-filter" in styles.text
-    assert ".icon-button::before" in styles.text
-    assert ".icon-button::after" in styles.text
-    assert "translate(-50%, -50%) rotate(45deg)" in styles.text
-    assert "translate(-50%, -50%) rotate(-45deg)" in styles.text
-    assert script.text.index("let created;") > script.text.index(
-        'createTask.addEventListener("submit"'
-    )
+    assert "max-height: 92dvh" in styles.text
+    assert "prefers-color-scheme: dark" in styles.text
+    assert "prefers-reduced-motion: reduce" in styles.text
+    assert "min-height: 44px" in styles.text
+    assert "button:focus-visible" in styles.text
+    assert 'id="announcement"' in page.text
+    assert 'id="pending-read"' in page.text
+    assert 'id="detail" aria-live' not in page.text

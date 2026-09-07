@@ -349,7 +349,8 @@ def test_events_are_bounded_stable_and_drop_payload_worker_identity(
     events = service.task_events(token, task.id, limit=2)
 
     assert [event.kind for event in events] == ["progress", "result_ready"]
-    assert all(set(event.model_dump()) == {"kind", "emitted_at"} for event in events)
+    assert all(set(event.model_dump()) == {"kind", "label", "emitted_at"} for event in events)
+    assert all(event.label and event.label != event.kind for event in events)
     serialized = "".join(event.model_dump_json() for event in events)
     assert all(
         marker not in serialized
@@ -433,9 +434,13 @@ def test_static_ui_polls_without_persisting_bearer_or_rendering_raw_html() -> No
     assert "/result?revision=" in script
     assert "/events?limit=" in script
     assert "setTimeout" in script and "clearTimeout" in script
-    assert "let requestGeneration = 0" in script
-    assert script.count("selectionIsCurrent(taskId, generation)") >= 4
+    assert "selectionGeneration = 0" in script
+    assert script.count("current(taskId, generation)") >= 4
     assert "textContent" in script
     assert "innerHTML" not in script
-    assert "localStorage" not in script
+    assert 'saveMarker("bearer"' not in script
+    assert 'saveMarker("initData"' not in script
+    assert 'saveMarker("clarification", requestId)' in script
+    assert "result.result_revision !== task.result_revision" in script
+    assert '"Копировать результат"' in script
     assert "sessionStorage" not in script

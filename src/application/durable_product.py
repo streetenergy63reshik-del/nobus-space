@@ -21,6 +21,9 @@ from src.application.durable_telegram_state import (
     execution_lease,
 )
 from src.application.patch_confirmation import PatchProposal
+from src.application.product_status import (
+    ProductAdmissionStopped, ProductReason, product_progress_state, product_reason_state,
+)
 from src.application.semantic_admission import (
     PendingClarification,
     SemanticClarificationRejected,
@@ -165,7 +168,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             await self.deliver_pending()
         except Exception:
             await self._api.send_message(message.chat_id,
-                "Не удалось принять задачу. Попробуйте ещё раз.")
+                "Не удалось подтвердить приём задачи. " + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label)
 
     async def start(self) -> None:
         if self._execution_workers or self._closing or self._closed:
@@ -340,17 +343,16 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     semantic_clarification_question(admission),
                     token,
                 )
-            if (
-                admission.decision.decision != "EXECUTE"
-                or not admission.decision.task_contract_allowed
-                or admission.decision.selected_capability
-                not in {"task.answer.general", "content.transform"}
-            ):
-                raise RuntimeError("semantic admission did not allow a task")
             if pending is not None and not clarifications.delete(pending):
                 raise SemanticClarificationRejected(
                     "semantic clarification binding changed"
                 )
+            if admission.decision.decision != "EXECUTE":
+                raise ProductAdmissionStopped(admission.decision)
+            if (not admission.decision.task_contract_allowed
+                or admission.decision.selected_capability
+                not in {"task.answer.general", "content.transform"}):
+                raise RuntimeError("semantic admission did not allow a task")
             instruction = _SEMANTIC_NO_EFFECT_PROFILE + canonical.owner_text
         prepared = await self._product_runtime.build_instruction(
             instruction, trusted
@@ -390,6 +392,31 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         await self.start()
         self._wake()
         return prepared.contract.task_id
+
+    def miniapp_clarification_current(
+        self, envelope: TrustedIngressEnvelope, token: str,
+    ) -> bool:
+        """Read the existing C1 binding without consuming it or interpreting input."""
+        trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump(mode="json"))
+        clarifications = getattr(self, "_semantic_clarifications", None)
+        if (not getattr(self, "_enable_semantic_admission", False) or clarifications is None
+            or not isinstance(token, str) or _CLARIFICATION_TOKEN.fullmatch(token) is None):
+            return False
+        _, bindings = telegram_semantic_input(
+            "Проверка срока уточнения", trusted, modality="miniapp_text",
+            chat_id=int(trusted.auth_context_ref[7:22], 16) or 1, message_thread_id=None,
+        )
+        return clarifications.read(
+            owner_binding=bindings.owner_binding,
+            tenant_binding=bindings.tenant_binding,
+            conversation_binding=bindings.conversation_binding,
+            answer_binding=canonical_json_digest({"clarification_token": token, "source": "miniapp"}),
+            # A read has no reply envelope. The separate digest avoids claiming
+            # the original intake is a new answer; mutation still validates its own envelope.
+            reply_envelope_revision=canonical_json_digest({
+                "operation": "clarification-current-read", "envelope": trusted.envelope_revision,
+            }),
+        ) is not None
 
     def miniapp_task_submitted(
         self, tenant_id: str, task_id: UUID, contract_digest: str
@@ -535,7 +562,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 if marker:
                     self._execution_queue.task_done()
                 continue
-            await self._set_progress(job, "⏳ Выполняю задачу…")
+            await self._set_progress(job, product_reason_state(ProductReason.WORKING).reason_label)
             self._active_jobs += 1
             try:
                 await self._execute_with_lease(durable, job)
@@ -751,7 +778,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 with suppress(Exception):
                     message, _ = validate_job(current)
                     await self._api.send_message(message.chat_id,
-                        'Обработка голосовой записи прервана. Если ответ не появится, отправьте задачу текстом.')
+                        'Обработка голосовой записи прервана. ' + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label)
         finally:
             for task in (execution, heartbeat):
                 if not task.done():
@@ -808,8 +835,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     @staticmethod
     def _progress_text(stage: str, elapsed: float) -> str:
-        minutes = max(1, int(max(0.0, elapsed) // 60))
-        return f"⏳ {stage}…\n\nВ работе: {minutes} мин."
+        minutes = int(max(0.0, elapsed) // 60)
+        duration = f"{minutes} мин." if minutes else "меньше минуты"
+        return f"{product_progress_state(stage).reason_label}\n\nВ работе: {duration}"
 
     async def _submit_draft(
         self,
@@ -877,7 +905,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         progress_id: int | None = None
         try:
             progress_id = await self._api.send_message(
-                message.chat_id, "⏳ Задача в очереди…"
+                message.chat_id, product_reason_state(ProductReason.ACCEPTED).reason_label
             )
             self._telegram_state.save_progress(
                 tenant_id=prepared.contract.tenant_id,
@@ -1178,7 +1206,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         )
         if ref is None:
             return
-        text = "⚠️ Задачу не удалось восстановить. Отправьте её повторно."
+        text = product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label
         edit = getattr(self._api, "edit_message_text", None)
         try:
             if callable(edit):

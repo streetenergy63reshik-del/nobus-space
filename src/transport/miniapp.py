@@ -23,6 +23,8 @@ from src.application.miniapp import (
     MiniAppAuthenticationError,
     MiniAppCoreUnavailableError,
     MiniAppSessionGrant,
+    MiniAppRequestState,
+    MiniAppRequestNotAccepted,
     MiniAppTaskArtifactDownload,
     MiniAppTaskConflictError,
     MiniAppTaskCreation,
@@ -57,6 +59,10 @@ _AUTHORITY_HEADERS = frozenset(
 
 class MiniAppCoreBoundary(Protocol):
     def authenticate(self, raw_init_data: str) -> MiniAppSessionGrant: ...
+
+    def recover_session(self, recovery_token: str) -> MiniAppSessionGrant: ...
+
+    def request_state(self, bearer: str, idempotency_key: str) -> MiniAppRequestState: ...
 
     def list_tasks(
         self, bearer: str, *, limit: int
@@ -237,9 +243,43 @@ def create_miniapp_app(
         except UnicodeDecodeError:
             return _invalid_request()
         try:
-            return core.authenticate(init_data)
+            return _session_response(core.authenticate(init_data), secure=not local_http)
         except MiniAppAuthenticationError:
             return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except Exception:
+            return _core_unavailable()
+
+    @app.post("/api/session/recover")
+    async def recover_session(request: Request) -> object:
+        if request.query_params or not await _body_is_empty(
+            request, timeout_seconds=float(init_data_read_timeout_seconds)
+        ):
+            return _invalid_request()
+        cookies = request.headers.getlist("cookie")
+        cookie_name = "nobus_miniapp_recovery"
+        if len(cookies) != 1 or sum(
+            part.strip().split("=", 1)[0] == cookie_name for part in cookies[0].split(";")
+        ) != 1:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        try:
+            return _session_response(
+                core.recover_session(request.cookies.get(cookie_name, "")), secure=not local_http
+            )
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except Exception:
+            return _core_unavailable()
+
+    @app.get("/api/requests/{idempotency_key}")
+    async def request_state(request: Request, idempotency_key: str) -> object:
+        if request.query_params:
+            return _invalid_request()
+        try:
+            return core.request_state(_bearer(request), idempotency_key)
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except MiniAppTaskNotFoundError:
+            return _task_not_found()
         except Exception:
             return _core_unavailable()
 
@@ -363,6 +403,11 @@ def create_miniapp_app(
             )
         except MiniAppTaskConflictError:
             return JSONResponse({"detail": "request_conflict"}, status_code=409)
+        except MiniAppRequestNotAccepted as error:
+            return JSONResponse(
+                {"detail": error.state.reason.value, "state": error.state.model_dump(mode="json")},
+                status_code=409,
+            )
         except MiniAppCoreUnavailableError:
             return _core_unavailable()
         except Exception:
@@ -542,11 +587,24 @@ async def _body_is_empty(request: Request, *, timeout_seconds: float) -> bool:
 
 
 def _bearer(request: Request) -> str:
+    if len(request.headers.getlist("authorization")) != 1:
+        raise MiniAppAuthenticationError("unauthorized")
     value = request.headers.get("authorization", "")
     parts = value.split(" ")
     if len(parts) != 2 or parts[0] != "Bearer" or not 32 <= len(parts[1]) <= 128:
         raise MiniAppAuthenticationError("unauthorized")
     return parts[1]
+
+
+def _session_response(grant: MiniAppSessionGrant, *, secure: bool) -> JSONResponse:
+    response = JSONResponse(grant.model_dump(mode="json"))
+    if grant.recovery_token is not None:
+        response.set_cookie(
+            "nobus_miniapp_recovery", grant.recovery_token,
+            max_age=grant.recovery_expires_in, path="/api/session",
+            secure=secure, httponly=True, samesite="strict",
+        )
+    return response
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:

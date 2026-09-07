@@ -767,7 +767,7 @@ class TelegramStatusSender:
         text = _status_text(validated, technical_details=self._technical_details)
         parts = [("text", chunk.encode("utf-8"), None) for chunk in _status_message_chunks(text)]
         if artifact is not None:
-            parts.append(("document", artifact.content_bytes(), artifact.filename))
+            parts.append(("document", artifact.content_bytes(), "nobus-result.txt"))
         return tuple(parts)
 
     def delivery_manifest(self, message: OutboxMessage) -> tuple[DeliveryPart, ...]:
@@ -862,12 +862,12 @@ def _status_text(
     if message.task_status is TaskStatus.FAILED:
         return (
             f"{product_state.label}\n"
-            "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
+            + product_state.reason_label
         )
     if message.task_status is TaskStatus.ESCALATE:
         return (
             f"{product_state.label}\n"
-            "⚠️ Задача остановлена безопасно и требует проверки в Codex."
+            + product_state.reason_label
         )
     return f"{product_state.label}\nСтатус задачи обновлён."
 

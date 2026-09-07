@@ -1,5 +1,9 @@
 # Документация Nobus Space
 
+<!-- C4_CURRENT_START -->
+C4 — локальная реализация и проверка кандидата. Gate ещё NOT ACCEPTED / NOT PUBLISHED: обязательные browser и live Telegram/Mini App evidence ожидаются. [Пакет C4](gates/gate-c4-frontend-journey/ACCEPTANCE.md), [единая передача](gates/gate-c4-frontend-journey/HANDOFF.md). C5/C6 HOLD, весь MVP1 не READY.
+<!-- C4_CURRENT_END -->
+
 <!-- C3_CURRENT_START -->
 C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
 Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.
@@ -75,15 +79,17 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — принятый C1, локальный C2 и исторические sealed Gate.
+10. [Gate index](gates/README.md) — опубликованные C0–C3, текущий C4 и исторические sealed Gate.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
     [передача C1 → C2](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
     опубликованный C1, доказательства и условия старта C2.
-13. [Текущий C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
-    [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — локальный
-    checkpoint, результаты ASR, оставшийся B02 и условия собственной приёмки C2.
+13. [Принятый C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
+    [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — опубликованный
+    voice parity, принятый ASR и закрытая B02; исторические FAIL сохранены.
+14. [C3 handoff](gates/gate-c3-core-stability/HANDOFF.md) — принятые recovery/result/artifact contracts.
+15. [C4](gates/gate-c4-frontend-journey/ACCEPTANCE.md) — текущий кандидат frontend/user journey и явные оставшиеся проверки.
 
 ## Сохранённые контракты
 

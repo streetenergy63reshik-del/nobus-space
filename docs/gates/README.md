@@ -1,5 +1,9 @@
 # Gate index
 
+<!-- C4_CURRENT_START -->
+**C4 LOCAL IMPLEMENTATION / NOT ACCEPTED / NOT PUBLISHED.** [Пакет C4](gate-c4-frontend-journey/ACCEPTANCE.md) и [handoff C5](gate-c4-frontend-journey/HANDOFF.md). Локальные проверки не заменяют обязательный browser/live smoke. C5/C6 HOLD; MVP1 не READY. Ниже — опубликованный контекст C3 и история.
+<!-- C4_CURRENT_END -->
+
 <!-- C3_CURRENT_START -->
 C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
 Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.

@@ -12,6 +12,7 @@ from uuid import UUID
 
 from src.application.durable_runtime import PreparedTask
 from src.application.durable_telegram_state import DurableJob, SQLiteTelegramState
+from src.application.product_status import ProductReason, product_reason_state
 from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.transport.telegram import IngressStatus, TextMessage, TrustedIngressResult, VoiceMessage
@@ -161,7 +162,7 @@ class DurableVoiceIntake:
             stage = 'interrupted'
         if stage in {'received', 'downloading'}:
             execution.save(stage='downloading')
-            await self._status(message, 'Получаю голосовую запись…')
+            await self._status(message, product_reason_state(ProductReason.VOICE_RECEIVED).reason_label)
             async with asyncio.timeout(60):
                 audio = await self.control._api.download_file(message.file_id, size_limit=VOICE_BYTES)
             if (not isinstance(audio, bytes) or len(audio) != message.metadata.file_size
@@ -175,7 +176,7 @@ class DurableVoiceIntake:
             if (len(audio) > VOICE_BYTES or hashlib.sha256(audio).hexdigest() != execution.job.payload['audio_sha256']):
                 raise ValueError('voice content mismatch')
             execution.save(stage='recognizing')
-            await self._status(message, 'Распознаю запись на русском языке…')
+            await self._status(message, product_reason_state(ProductReason.VOICE_RECOGNIZING).reason_label)
             async with asyncio.timeout(180):
                 preview = await self.control._voice_service.preview_from_bytes(audio)
             preview = VoicePreview.model_validate(preview.model_dump())
@@ -188,10 +189,11 @@ class DurableVoiceIntake:
             if stage == 'transcribed':
                 preview = VoicePreview.model_validate(execution.job.payload['preview'])
                 text = ('Проверьте распознанный текст:\n\n' + preview.transcript +
-                    '\n\nВ течение часа ответьте на исходное голосовое сообщение: «да», «нет» или исправленным текстом. До подтверждения задача не запускается.')
+                    '\n\nСрок подтверждения — один час с получения записи. ' +
+                    product_reason_state(ProductReason.VOICE_CONFIRMATION).reason_label)
                 next_stage = 'waiting'
             else:
-                text = ('Распознавание было прервано. Ответьте на исходное голосовое сообщение «повторить» или напишите задачу текстом. Никаких действий не выполнялось.')
+                text = product_reason_state(ProductReason.VOICE_INTERRUPTED).reason_label
                 next_stage = 'interrupted'
             await self.control._api.send_message(message.chat_id, text, message_thread_id=message.message_thread_id)
             execution.save(stage=next_stage, status='waiting')
@@ -210,7 +212,7 @@ class DurableVoiceIntake:
             return
         if stage == 'cancelled':
             self._finish(execution)
-            await self._status(message, 'Голосовая задача отменена.')
+            await self._status(message, product_reason_state(ProductReason.INPUT_CANCELLED).reason_label)
             return
         raise ValueError('voice stage is invalid')
 

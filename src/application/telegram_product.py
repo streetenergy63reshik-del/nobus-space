@@ -27,6 +27,7 @@ from src.application.product_effects import (
     ProductEffectService,
     approval_reference,
 )
+from src.application.product_status import ProductReason, product_reason_state, product_semantic_state
 from src.application.semantic_admission import (
     PendingClarification,
     SemanticAdmissionError,
@@ -1164,15 +1165,19 @@ class ProductTelegramControlPlane(TelegramControlPlane):
     def _help_text(self) -> str:
         if not self._enable_extended_routes:
             return (
-                "Nobus Space готов к работе.\n\n"
+                "Nobus Space\n\n"
                 "Напишите задачу обычным сообщением или продиктуйте её. "
                 "Голосовое сообщение распознаётся локально и передаётся в тот же "
-                "основной контур Nobus Space без отдельного предпросмотра.\n\n"
+                "основной контур Nobus Space. "
+                + ("Сначала проверьте распознанный текст и подтвердите его ответом на исходную запись.\n\n"
+                   if self._enable_semantic_admission else "Состояние голосового ввода показано в /status.\n\n")
+                +
                 "Меню:\n"
                 "/status — состояние и очередь\n"
                 "/limit — недельный лимит Codex\n"
                 "/help — эта справка\n\n"
-                "Файлы с ПК, документы, интернет-исследование, Google, "
+                "Готовый текстовый результат можно получить и как файл. "
+                "Файлы с ПК, интернет-исследование, Google, "
                 "Заметки бизнеса, Nobus Memory и сетевые команды пока не входят "
                 "в MVP-1.\n\n"
                 "Не отправляйте пароли, токены и клиентские персональные данные."
@@ -1712,7 +1717,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             question = semantic_clarification_question(admission)
             question_message_id = await self._api.send_message(
                 message.chat_id,
-                question,
+                question + "\n\nОтветьте на это сообщение, чтобы продолжить исходную задачу.",
             )
             answer_binding = canonical_json_digest(
                 {
@@ -1752,15 +1757,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 semantic_no_effect=True,
             )
             return
-        if decision.decision == "REFUSE":
-            text = "Запрос отклонён политикой безопасности; никаких действий не выполнялось."
-        elif decision.decision == "APPROVAL":
-            text = "Для этого действия требуется отдельное точное подтверждение."
-        elif decision.user_visible_state.state == "condition_not_met":
-            text = "Условие сейчас не выполнено; действие не запускалось."
-        else:
-            text = "Запрошенная возможность сейчас недоступна; никаких действий не выполнялось."
-        await self._api.send_message(message.chat_id, text)
+        await self._api.send_message(message.chat_id, product_semantic_state(decision).reason_label)
 
     async def _analyze_owner_file(
         self,
@@ -1866,7 +1863,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 await self._terminalize_job(_QueuedDraft(prepared, message, envelope))
             await self._api.send_message(
                 message.chat_id,
-                "⚠️ Не удалось обработать задачу. Попробуйте ещё раз.",
+                product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label,
             )
 
     async def _create_voice_preview(
