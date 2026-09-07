@@ -1,0 +1,1406 @@
+{
+  "reviewed_candidate": "66eb2d7b3ccc067db4f85fe350669e76074d6313",
+  "reviewed_tree": "46575df3ba2dd44b0b0ef5cd1b7c27d7e9d05589",
+  "smoke_source": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+  "smoke_source_tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+  "utc": "2026-09-07T04:27:07.682887+00:00",
+  "verdict": "PRODUCT QUALITY AND FIXED-CANDIDATE EVIDENCE ACCEPT; final gate pending startup rework",
+  "gate_verdict": "PENDING independent startup finding resolution and final exact candidate",
+  "checks": [
+    {
+      "name": "candidate",
+      "pass": true
+    },
+    {
+      "name": "tree",
+      "pass": true
+    },
+    {
+      "name": "unchanged_src_tree",
+      "pass": true
+    },
+    {
+      "name": "clean_checkout",
+      "pass": true
+    },
+    {
+      "name": "diff_check",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/source-binding.json",
+      "pass": true
+    },
+    {
+      "name": "source_binding_exact",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/backup_telegram_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/backup_telegram_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/bind_business_notes.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/bind_business_notes.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/check_telegram_health.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/check_telegram_health.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/configure_telegram_profile.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/configure_telegram_profile.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/initialize_owner_workspace.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/initialize_owner_workspace.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/live_codex_cli_probe.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/live_codex_cli_probe.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/live_telegram_discovery.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/live_telegram_discovery.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/live_windows_job_probe.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/live_windows_job_probe.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/restore_telegram_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/restore_telegram_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/run_nobus_space_live.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/run_nobus_space_live.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/run_telegram_control.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/run_telegram_control.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:scripts/run_telegram_mvp1.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:scripts/run_telegram_mvp1.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/agents/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/agents/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/agents/audit_agent.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/agents/audit_agent.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/agents/base.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/agents/base.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/business_notes.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/business_notes.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/durable_confirmations.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/durable_confirmations.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/durable_product.py",
+      "pass": false
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/durable_product.py",
+      "pass": false
+    },
+    {
+      "name": "smoke_source_raw:src/application/durable_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/durable_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/durable_semantic.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/durable_semantic.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/durable_telegram_state.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/durable_telegram_state.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/durable_voice.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/durable_voice.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/fake_vertical.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/fake_vertical.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/gate5a3.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/gate5a3.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/gate5a4.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/gate5a4.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/network_commands.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/network_commands.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/network_tools.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/network_tools.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/nobus_memory.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/nobus_memory.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/owner_files.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/owner_files.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/owner_workspace.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/owner_workspace.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/patch_confirmation.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/patch_confirmation.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/product_effects.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/product_effects.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/product_status.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/product_status.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/runtime_maintenance.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/runtime_maintenance.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/semantic_admission.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/semantic_admission.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/task_confirmation.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/task_confirmation.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/task_profiles.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/task_profiles.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/telegram_actions.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/telegram_actions.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/telegram_control.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/telegram_control.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/telegram_product.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/telegram_product.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/application/windows_singleton.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/application/windows_singleton.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/config.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/config.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/contracts/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/contracts/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/contracts/models.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/contracts/models.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/core/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/core/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/core/policy.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/core/policy.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/integrations/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/integrations/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/integrations/google_calendar.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/integrations/google_calendar.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/integrations/google_drive.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/integrations/google_drive.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/integrations/google_tasks.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/integrations/google_tasks.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/integrations/google_transport.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/integrations/google_transport.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/main.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/main.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/memory/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/memory/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/memory/codebase_memory.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/memory/codebase_memory.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/models/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/models/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/models/task.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/models/task.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/orchestrator/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/orchestrator/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/orchestrator/graph.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/orchestrator/graph.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/orchestrator/intent_parser.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/orchestrator/intent_parser.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/orchestrator/orchestrator.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/orchestrator/orchestrator.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/orchestrator/router.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/orchestrator/router.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/orchestrator/state_manager.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/orchestrator/state_manager.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/security/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/security/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/security/dpapi.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/security/dpapi.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/security/windows_credentials.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/security/windows_credentials.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/skills/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/skills/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/skills/ponytail_rules.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/skills/ponytail_rules.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/storage/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/storage/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/storage/outbox.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/storage/outbox.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/storage/sqlite_store.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/storage/sqlite_store.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/bindings.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/bindings.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/bot_api.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/bot_api.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/checkpoint_update_store.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/checkpoint_update_store.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/discovery.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/discovery.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/gateway.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/gateway.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/models.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/models.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/transport/telegram/sqlite_checkpoint.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/transport/telegram/sqlite_checkpoint.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/base.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/base.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/confirmation.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/confirmation.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/faster_whisper.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/faster_whisper.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/isolated.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/isolated.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/isolated_worker.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/isolated_worker.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/voice/service.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/voice/service.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/__init__.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/asyncio_spawner.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/asyncio_spawner.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/codex_cli.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/codex_cli.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/codex_limits.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/codex_limits.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/codex_patch.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/codex_patch.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/codex_sdk.py",
+      "pass": false
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/codex_sdk.py",
+      "pass": false
+    },
+    {
+      "name": "smoke_source_raw:src/workers/windows_job.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/windows_job.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_raw:src/workers/windows_job_helper.py",
+      "pass": true
+    },
+    {
+      "name": "smoke_source_git_normalized:src/workers/windows_job_helper.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:docs/adr/0024-core-durable-recovery-and-part-delivery.md",
+      "pass": true
+    },
+    {
+      "name": "manifest:docs/gates/gate-c3-core-stability/FAILURE-MATRIX.md",
+      "pass": true
+    },
+    {
+      "name": "manifest:docs/gates/gate-c3-core-stability/WORKING-CONTRACT.md",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/durable_product.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/durable_runtime.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/durable_telegram_state.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/gate5a4.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/product_effects.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/runtime_maintenance.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/application/telegram_product.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/orchestrator/state_manager.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/storage/outbox.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/storage/sqlite_store.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/transport/miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/transport/telegram/bot_api.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:src/workers/codex_sdk.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/gate_c3/budget.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/gate_c3/product_smoke.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_delivery_parts.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_durable_concurrency.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_effect_unknown.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_multipart_input.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_outbox_clock.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_queue_recovery.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_result_recovery.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_review_recovery.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_shutdown.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_smoke_guards.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_c3_worker_retry.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_durable_voice.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_miniapp.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_miniapp_result.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_queue12_crash_regressions.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_sqlite_outbox.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_sqlite_store.py",
+      "pass": true
+    },
+    {
+      "name": "manifest:tests/test_telegram_product.py",
+      "pass": true
+    },
+    {
+      "name": "manifest_exact_pathset",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/rework-target2.xml",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/last-fixture.xml",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/queue-final-wip.xml",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/smoke-shutdown-green.xml",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_text/phase-1788753636418926100-admit.json",
+      "pass": true
+    },
+    {
+      "name": "direct_text:phase_binding:admit",
+      "pass": true
+    },
+    {
+      "name": "direct_text:cleanup:admit",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_text/phase-1788753739822946200-drain.json",
+      "pass": true
+    },
+    {
+      "name": "direct_text:phase_binding:drain",
+      "pass": true
+    },
+    {
+      "name": "direct_text:cleanup:drain",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_text/phase-1788753802886000900-replay.json",
+      "pass": true
+    },
+    {
+      "name": "direct_text:phase_binding:replay",
+      "pass": true
+    },
+    {
+      "name": "direct_text:cleanup:replay",
+      "pass": true
+    },
+    {
+      "name": "direct_text:one_task",
+      "pass": true
+    },
+    {
+      "name": "direct_text:approved_answer",
+      "pass": true
+    },
+    {
+      "name": "direct_text:one_result",
+      "pass": true
+    },
+    {
+      "name": "direct_text:answer_output_digest",
+      "pass": true
+    },
+    {
+      "name": "direct_text:artifact_bytes",
+      "pass": true
+    },
+    {
+      "name": "direct_text:outbox_authoritative",
+      "pass": true
+    },
+    {
+      "name": "direct_text:replay_immutable",
+      "pass": true
+    },
+    {
+      "name": "direct_text:no_replay_model_turn",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_text/transport.json",
+      "pass": true
+    },
+    {
+      "name": "direct_text:one_artifact_delivery",
+      "pass": true
+    },
+    {
+      "name": "direct_text:one_answer_delivery",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_voice/phase-1788753854055838700-admit.json",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:phase_binding:admit",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:cleanup:admit",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_voice/phase-1788753901538036900-confirm.json",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:phase_binding:confirm",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:cleanup:confirm",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_voice/phase-1788754025364072800-drain.json",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:phase_binding:drain",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:cleanup:drain",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_voice/phase-1788754346896258100-replay.json",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:phase_binding:replay",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:cleanup:replay",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:one_task",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:approved_answer",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:one_result",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:answer_output_digest",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:artifact_bytes",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:outbox_authoritative",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:replay_immutable",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:no_replay_model_turn",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/direct_voice/transport.json",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:one_artifact_delivery",
+      "pass": true
+    },
+    {
+      "name": "direct_voice:one_answer_delivery",
+      "pass": true
+    },
+    {
+      "name": "voice:preview_before_admission",
+      "pass": true
+    },
+    {
+      "name": "voice:exact_preview",
+      "pass": true
+    },
+    {
+      "name": "voice:confirm_before_task",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/material_text/phase-1788754427773859200-admit.json",
+      "pass": true
+    },
+    {
+      "name": "material_text:phase_binding:admit",
+      "pass": true
+    },
+    {
+      "name": "material_text:cleanup:admit",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/material_text/phase-1788754464593973700-drain.json",
+      "pass": true
+    },
+    {
+      "name": "material_text:phase_binding:drain",
+      "pass": true
+    },
+    {
+      "name": "material_text:cleanup:drain",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/material_text/phase-1788754510873903700-replay.json",
+      "pass": true
+    },
+    {
+      "name": "material_text:phase_binding:replay",
+      "pass": true
+    },
+    {
+      "name": "material_text:cleanup:replay",
+      "pass": true
+    },
+    {
+      "name": "material_text:one_task",
+      "pass": true
+    },
+    {
+      "name": "material_text:approved_answer",
+      "pass": true
+    },
+    {
+      "name": "material_text:one_result",
+      "pass": true
+    },
+    {
+      "name": "material_text:answer_output_digest",
+      "pass": true
+    },
+    {
+      "name": "material_text:artifact_bytes",
+      "pass": true
+    },
+    {
+      "name": "material_text:outbox_authoritative",
+      "pass": true
+    },
+    {
+      "name": "material_text:replay_immutable",
+      "pass": true
+    },
+    {
+      "name": "material_text:no_replay_model_turn",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/product-fd5f9ce/material_text/transport.json",
+      "pass": true
+    },
+    {
+      "name": "material_text:one_artifact_delivery",
+      "pass": true
+    },
+    {
+      "name": "material_text:one_answer_delivery",
+      "pass": true
+    },
+    {
+      "name": "sha256:.runtime/c3/execution-budget.sqlite3",
+      "pass": true
+    },
+    {
+      "name": "budget:model",
+      "pass": true
+    },
+    {
+      "name": "budget:asr",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:WORKING-CONTRACT.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:FAILURE-MATRIX.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:RECOVERY-CONTRACT.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:EVIDENCE.json",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:MANIFEST.json",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:PRODUCT-RESULTS.json",
+      "pass": true
+    },
+    {
+      "name": "doc_link:ACCEPTANCE.md:HANDOFF.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:FAILURE-MATRIX.md:WORKING-CONTRACT.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:FAILURE-MATRIX.md:../../adr/0024-core-durable-recovery-and-part-delivery.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:HANDOFF.md:EVIDENCE.json",
+      "pass": true
+    },
+    {
+      "name": "doc_link:HANDOFF.md:ACCEPTANCE.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:HANDOFF.md:RECOVERY-CONTRACT.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:HANDOFF.md:FAILURE-MATRIX.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:RECOVERY-CONTRACT.md:../../adr/0024-core-durable-recovery-and-part-delivery.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:RECOVERY-CONTRACT.md:WORKING-CONTRACT.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:RECOVERY-CONTRACT.md:FAILURE-MATRIX.md",
+      "pass": true
+    },
+    {
+      "name": "doc_link:RECOVERY-CONTRACT.md:EVIDENCE.json",
+      "pass": true
+    },
+    {
+      "name": "doc_link:WORKING-CONTRACT.md:../../adr/0024-core-durable-recovery-and-part-delivery.md",
+      "pass": true
+    }
+  ],
+  "check_count": 330,
+  "passed": 326,
+  "quality_review": [
+    {
+      "scenario": "direct_text",
+      "verdict": "ACCEPT",
+      "rubric": {
+        "matches_requested_deliverable": true,
+        "requested_count_or_format_preserved": true,
+        "source_roles_and_constraints_preserved": true,
+        "no_unrequested_external_action": true,
+        "ready_for_owner_to_use": true
+      },
+      "answer_sha256": "15472b65a7580d53521016af19572f1589be84f2aa06d687525a4bb3769d2fd5"
+    },
+    {
+      "scenario": "direct_voice",
+      "verdict": "ACCEPT",
+      "rubric": {
+        "matches_requested_deliverable": true,
+        "requested_count_or_format_preserved": true,
+        "source_roles_and_constraints_preserved": true,
+        "no_unrequested_external_action": true,
+        "ready_for_owner_to_use": true
+      },
+      "answer_sha256": "798cd6e30d0989a4c1198918ff9a397fb3ab866bff852f035c7545316a3d7811"
+    },
+    {
+      "scenario": "material_text",
+      "verdict": "ACCEPT",
+      "rubric": {
+        "matches_requested_deliverable": true,
+        "requested_count_or_format_preserved": true,
+        "source_roles_and_constraints_preserved": true,
+        "no_unrequested_external_action": true,
+        "ready_for_owner_to_use": true
+      },
+      "answer_sha256": "8fea345e45c79db2c91b164d6f9c176fd7ab4d3b8c9717aa20dcff0aa8a241fd"
+    }
+  ],
+  "quality_rubric_yes": 15,
+  "quality_rubric_total": 15,
+  "source_normalization": "All 97 historical smoke raw source hashes equal their original author checkout bytes; all normalize CRLF to LF exactly to Git fd5 source bytes. Raw Git hashes and raw worktree hashes are deliberately distinguished. Python universal newlines preserve parsed source semantics.",
+  "no_new_model_or_asr_calls": true,
+  "product_results_sha256": "4467782aa7191244f47885ea087ffdbca240580a0188b6782dd2324690c26f41",
+  "source_readback": {
+    "before_startup_rework": {
+      "raw_source_hash_matches": 97,
+      "normalized_fd5_git_source_matches": 97,
+      "total": 97,
+      "evidence": "Independent command readback completed before root edited startup sources; result was communicated to root immediately."
+    },
+    "after_startup_rework": {
+      "affected_paths": [
+        "src/application/durable_product.py",
+        "src/workers/codex_sdk.py"
+      ],
+      "nonpassing_checks": 4,
+      "classification": "STALE_CONTEXT: current mutable author files changed during bounded startup rework; frozen fd5/66 candidate objects and historical smoke receipts did not change.",
+      "requirement": "Final source delta must be explicitly reviewed before transferring prior successful smoke evidence."
+    }
+  },
+  "retained_verifier_corrections": [
+    "Initial standalone script needed PYTHONPATH=. to import src; no product execution occurred.",
+    "Initial verifier read UTF-8 JSON with Windows default encoding and compared lowercase status to uppercase; corrected explicit UTF-8 and approved value. Content hashes and digest claims passed after correction."
+  ],
+  "fixture_recheck": {
+    "tests": 12,
+    "passed": 12,
+    "failed": 0,
+    "skips": 0,
+    "output": "66-fixture-output.txt",
+    "output_sha256": "b6b95f33b9151e263967930ba71362aa317c1beacbc06653c110ee2df10faafc",
+    "junit_sha256": "3c2442dd7dacd36f4a5182cdb10caa1961ed9bcdbcddb46e2881c66de564b126"
+  }
+}

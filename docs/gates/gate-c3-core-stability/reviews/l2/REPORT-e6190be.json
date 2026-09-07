@@ -1,0 +1,225 @@
+{
+  "role": "Independent L2",
+  "reviewed_head": "e6190be47b1e880c87304774455e773c83470338",
+  "reviewed_tree": "8264efbcf3e610b4d57c747b4e21a45f4d98e348",
+  "utc": "2026-09-07T04:39:26.550429+00:00",
+  "code_verdict": "CODE REJECT",
+  "gate_verdict": "REJECT pending startup physical-ownership rework",
+  "source_changed_by_reviewer": false,
+  "clean_detached_checkout": true,
+  "model_calls": 0,
+  "asr_calls": 0,
+  "external_effects": 0,
+  "runs": [
+    {
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        "tests/test_c3_startup_lifecycle.py",
+        "tests/test_c3_shutdown.py",
+        "tests/test_codex_sdk.py",
+        "tests/test_c3_worker_retry.py",
+        "tests/test_c3_smoke_guards.py",
+        "tests/test_runtime_operations.py",
+        "--basetemp=.runtime/l2/pytest-e619-startup",
+        "--junitxml=../../c3/reviews/l2/e619-startup-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "94",
+          "time": "23.937",
+          "timestamp": "2026-09-07T07:33:38.600092+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "e619-startup-output.txt",
+      "output_sha256": "de1c884df3c5f8cc4691b3943d93ac24421ae33b24d22ca52b642435a8a9263a",
+      "junit_sha256": "171432f0426b73c3214f4ebfef22c344b519c4047874ea0a15406480c5a56b03"
+    },
+    {
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        ".runtime/l2/probe_startup.py",
+        "--basetemp=.runtime/l2/pytest-e619-probes",
+        "--junitxml=../../c3/reviews/l2/e619-probes-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "3",
+          "time": "0.972",
+          "timestamp": "2026-09-07T07:35:52.511182+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "e619-probes-output.txt",
+      "output_sha256": "5e06592c40153ca6e5bc64da91c0001b976dba8cfce87b7f829b03eb71702d4c",
+      "junit_sha256": "9ca0769504cfa16a1ccd8bb6d96b8fddec80dd3dbe8027b8c7b7c012f8492589"
+    },
+    {
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        ".runtime/l2/probe_sdk_thread_start.py",
+        "--basetemp=.runtime/l2/pytest-e619-thread-start",
+        "--junitxml=../../c3/reviews/l2/e619-thread-start-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 1,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "1",
+          "skipped": "0",
+          "tests": "1",
+          "time": "0.753",
+          "timestamp": "2026-09-07T07:37:32.039269+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "e619-thread-start-output.txt",
+      "output_sha256": "90bff8cf75f7d9cf49627c930438c29cd5015facdf855081541a5b4f09f26313",
+      "junit_sha256": "233a1c253e8f43da7556471b519897aba4c37fcdca6bea886668d7d9f8aa5d27"
+    }
+  ],
+  "source_delta_from_fd5": [
+    {
+      "path": "src/application/durable_product.py",
+      "changed_or_added_methods": [
+        "DurableProductTelegramControlPlane._close_once"
+      ],
+      "unchanged_method_count": 32,
+      "old_blob": "5c03224263b0c6d34454833e86ba80a8b35685b4",
+      "new_blob": "dc742a01d4aa641acff9192a2a5065e9642e7092"
+    },
+    {
+      "path": "src/workers/codex_sdk.py",
+      "changed_or_added_methods": [
+        "CodexSdkAdapter.start",
+        "CodexSdkAdapter._client_instance",
+        "CodexSdkAdapter._discard_starting_client"
+      ],
+      "unchanged_method_count": 34,
+      "old_blob": "1670764f0b93f18911ee9472de697051fe8bd78d",
+      "new_blob": "612e34eb6327f6fa615077fda475ea61e2a42b69"
+    }
+  ],
+  "delta_from_66": [
+    "src/application/durable_product.py",
+    "src/workers/codex_sdk.py",
+    "tests/test_c3_startup_lifecycle.py"
+  ],
+  "findings": [
+    {
+      "id": "ISSUE-C3-L2-04",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "severity": "Major",
+      "file": "src/workers/codex_sdk.py",
+      "line": 172,
+      "related_lines": [
+        545,
+        560
+      ],
+      "cause": "asyncio.timeout cancels AsyncCodex.__aenter__ while SDK awaits asyncio.to_thread(sync.start); the physical startup thread continues. Immediate close can see _proc=None and return success before Popen later returns. The client is neither current nor retired after the timeout, so later close cannot own the process.",
+      "evidence": "Real installed AsyncCodex, AsyncCodexClient, CodexClient with only Popen and reader startup replaced by local inert stubs. After timeout and adapter.close SUCCESS, releasing Popen allows _proc assignment; synthetic process is alive and unowned. 1 FAIL, no real process.",
+      "fix_boundary": "Keep initialization as an owned shielded operation. A cancelled waiter is not proof the physical startup drained. Bound waiter time, retain/quarantine pending initialization and schedule mandatory cleanup after its terminal result; prevent new generation during unknown cleanup."
+    }
+  ],
+  "closed_prior_findings": [
+    "ISSUE-C3-L2-01",
+    "ISSUE-C3-L2-02",
+    "ISSUE-C3-R01",
+    "ISSUE-C3-L2-03"
+  ],
+  "explicit_evidence_transfer": {
+    "from": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+    "recovery_parity_store_effect_artifact": "All src files except durable_product.py/codex_sdk.py byte-identical. Their execute/admission/recovery/receipt/prompt methods are AST-identical except declared startup/close changes. Prior C1/C2, actual lock, protected seal, completion ACK and physical answer/replay assertions remain applicable to those unchanged boundaries.",
+    "product_results": "Three root-owned real text/voice/material results remain evidence for unchanged model prompts, tool restrictions, task/result/seal/outbox/artifact paths; historical fd5 source binding is retained. No transfer to startup liveness or physical startup ownership.",
+    "not_transferred": "fd5 CODE ACCEPT and 66 initial startup liveness acceptance are superseded by new L3-05/L2-04 findings; Gate not accepted.",
+    "entry": "30 C2 entry checks retained as ancestry/unchanged historical bytes; no C0-C2 reacceptance."
+  },
+  "prior_receipts": [
+    {
+      "file": "REPORT-08cfff0.json",
+      "sha256": "36c7d59eb74d7c7e8257d2aa42eeb511bf96b752a08d4c523db99962c999f5ee"
+    },
+    {
+      "file": "REPORT-fd5f9ce.json",
+      "sha256": "121de0721141bfc2bf720bcf5fc6f2c884c4e62653813195fb285f01a82bfaef"
+    },
+    {
+      "file": "EVIDENCE-66eb2d7.json",
+      "sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451"
+    },
+    {
+      "file": "entry.json",
+      "sha256": "eda3d25d86d7127ef284f82a884a5ca15529fb6472e762a90163252b1334cc80"
+    }
+  ],
+  "independent_probes": [
+    {
+      "path": ".runtime/l2/probe_startup.py",
+      "sha256": "44ca73e8da3d0c97403c910bc8308ca1782496a63b809ae5367fe55dd607339a"
+    },
+    {
+      "path": ".runtime/l2/probe_sdk_thread_start.py",
+      "sha256": "d879502490070fadc66799a1c8dbe8f40cca502f8b4df2aca6e1b2f3c2e4b8fd"
+    }
+  ],
+  "installed_sdk_read_only": [
+    {
+      "file": "api.py",
+      "sha256": "d4218d1504aec251c98e0268ebd755d968f19afba034366e87c51ec1e1873483"
+    },
+    {
+      "file": "async_client.py",
+      "sha256": "03ff8ce0f6de0b838ab4c48da90734e616e9acba037b4786a400d74837bad964"
+    },
+    {
+      "file": "client.py",
+      "sha256": "76bdb1e63c62987c3530ea763e9655a06b308cbc4e18cb51958e85b6c23aec3b"
+    }
+  ],
+  "diff_check": {
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+      "e6190be47b1e880c87304774455e773c83470338"
+    ],
+    "exit_code": 0
+  },
+  "review_limit": "Only root can perform real model/ASR calls and final publication; no deploy/live/tag/release/C4."
+}

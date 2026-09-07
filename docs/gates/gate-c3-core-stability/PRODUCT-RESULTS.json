@@ -1,5 +1,5 @@
 {
-  "status": "EXECUTION_PASS / QUALITY_REVIEW_PENDING",
+  "status": "PASS; exact original smoke provenance retained",
   "source_revision": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
   "source_tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
   "source_binding": {
@@ -214,7 +214,7 @@
       "artifact_send_count": 1,
       "retained_finished_voice_records": [],
       "cleanup_all_closed": true,
-      "quality_review": "PENDING_INDEPENDENT_REVIEW"
+      "quality_review": "PASS, independent L2 and L3: 5/5"
     },
     {
       "scenario": "direct_voice",
@@ -287,7 +287,7 @@
         ]
       ],
       "cleanup_all_closed": true,
-      "quality_review": "PENDING_INDEPENDENT_REVIEW"
+      "quality_review": "PASS, independent L2 and L3: 5/5"
     },
     {
       "scenario": "material_text",
@@ -350,7 +350,7 @@
       "artifact_send_count": 1,
       "retained_finished_voice_records": [],
       "cleanup_all_closed": true,
-      "quality_review": "PENDING_INDEPENDENT_REVIEW"
+      "quality_review": "PASS, independent L2 and L3: 5/5"
     }
   ],
   "budget": {
@@ -605,7 +605,8 @@
     ],
     "historical_failed_run_included": true,
     "reservation_policy": "Conservative count includes zero-turn startup reservations; actual turn count is reported separately. No token hard cap claimed.",
-    "native_scope": "Pinned C2 small, existing read-only cache and synthetic audio; integration regression, not ASR requalification"
+    "native_scope": "Pinned C2 small, existing read-only cache and synthetic audio; integration regression, not ASR requalification",
+    "record_scope": "Historical snapshot after the three real scenarios, including failed08 run. Whole-task final budget is EVIDENCE.json.final_budget; later zero-turn startup time is included there."
   },
   "raw_receipts_scope": "Local .runtime paths are immutable task evidence, not links required for product use. Git stores safe synthetic summary and hashes.",
   "historical_failure": {
@@ -619,5 +620,23 @@
     "sha256": "24f9246d8e206b664e405e0b06c0af9f5483bb8980a3e1a5f8d52bc3143d7769",
     "classification": "VERIFIER_DEFECT",
     "reason": "synthetic audio argument omitted; failed before model/native; corrected command completed in same ledger"
+  },
+  "historical_reviewed_version": {
+    "git_revision": "66eb2d7b3ccc067db4f85fe350669e76074d6313",
+    "path": "docs/gates/gate-c3-core-stability/PRODUCT-RESULTS.json",
+    "sha256": "2074206d6fce60f8ba4940af838d9404e414f80f608750c7a835c704c69c802a",
+    "note": "Independent quality reports bind this previous exact document; answer and phase bytes below are unchanged."
+  },
+  "quality_reviews": [
+    "reviews/l2/EVIDENCE-66eb2d7.json",
+    "reviews/l3/PRODUCT-QUALITY-fd5f9ce.json"
+  ],
+  "accepted_source_transfer": {
+    "to": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+    "changed_source_paths": [
+      "src/application/durable_product.py",
+      "src/workers/codex_sdk.py"
+    ],
+    "boundary": "Only local SDK startup/shutdown/physical cleanup ownership changed. Prompts, model profile, permissions, semantic routes, result and effect generation unchanged. Both reviewers explicitly transfer unaffected evidence; original smoke is not relabeled as a later execution."
   }
 }

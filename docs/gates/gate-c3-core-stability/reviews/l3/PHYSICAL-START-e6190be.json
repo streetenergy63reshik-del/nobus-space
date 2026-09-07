@@ -1,0 +1,54 @@
+{
+  "candidate_commit": "e6190be47b1e880c87304774455e773c83470338",
+  "candidate_tree": "8264efbcf3e610b4d57c747b4e21a45f4d98e348",
+  "verdict": "CODE_REJECT",
+  "finding": "ISSUE-C3-L2-04",
+  "discoverer": "independent L2",
+  "independent_L3_reproduction": {
+    "copied_L2_probe": "1 FAIL 0.83s",
+    "observation": "Successful close left late Popen unowned; timeout and caller cancellation allowed replacement before old physical startup settled",
+    "own_extended_probe": "2 FAIL 2.90s",
+    "effect_scope": "Installed SDK with inert Popen stub, no real process or provider"
+  },
+  "old_receipt_superseded": "CODE-RECEIPT-e6190be.json",
+  "old_receipt_preserved": true,
+  "reviewer_model_calls": 0,
+  "reviewer_asr_calls": 0,
+  "artifacts": [
+    {
+      "sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782",
+      "bytes": 2733,
+      "file": "ADDENDUM-e6190be-REJECT.md"
+    },
+    {
+      "sha256": "d879502490070fadc66799a1c8dbe8f40cca502f8b4df2aca6e1b2f3c2e4b8fd",
+      "bytes": 2439,
+      "file": "sdk_thread_start_probe.py"
+    },
+    {
+      "sha256": "ac35243189cddab70ed89d33c949701b548a378fbbefc411e6f10ee785330f2f",
+      "bytes": 3144,
+      "file": "e619-thread-start.log"
+    },
+    {
+      "sha256": "2e5a9c1d56f131de7a443908b1140741840966ef596cb1c5d1f0e21cab627d41",
+      "bytes": 3213,
+      "file": "e619-thread-start.xml"
+    },
+    {
+      "sha256": "08202e477327190e4ce34ddfa7786b6918ebff00f03fb22d6865fe97e9e3aa26",
+      "bytes": 3272,
+      "file": "sdk_physical_ownership_probes.py"
+    },
+    {
+      "sha256": "d704fe0fdfd2b8c64fe6e189648b603eb7bb6150746e5750eae02bfea03232b3",
+      "bytes": 7642,
+      "file": "e619-physical-extended.log"
+    },
+    {
+      "sha256": "20ff699ac77b8abe4f7e2651c64aa69b52ad1e7245f8b162e104bac1cab56df1",
+      "bytes": 7745,
+      "file": "e619-physical-extended.xml"
+    }
+  ]
+}

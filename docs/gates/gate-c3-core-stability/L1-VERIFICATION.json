@@ -1,8 +1,18 @@
 {
-  "base": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
-  "candidate_sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
-  "candidate_tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
-  "files": [
+  "verdict": "PASS",
+  "sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+  "tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+  "canonical_dirty_paths_preserved": 19,
+  "C2_status_preserved": true,
+  "dependencies_unchanged": true,
+  "C1_C2_pinned_contracts_prompts_voice_scripts_unchanged": true,
+  "C2_only_historical_annotation": true,
+  "compiled_python_files": 266,
+  "negative_matrix_cases": 34,
+  "matrix_unique_test_references": 73,
+  "secret_pattern_hits": 0,
+  "scan_scope": "Changed Git bytes checked for real credential formats, prohibited live DB/private-artifact extensions and unrelated files; no heuristic absolute guarantee claimed.",
+  "changed_files": [
     {
       "path": "docs/04-Журнал-ADR.md",
       "blob": "4105b45d592b7028f20dbb0fb33cb41d4b8a1ece",
@@ -334,6 +344,19 @@
       "bytes": 98465
     }
   ],
-  "scope": "Exact base -> tested code candidate, including its then-current docs. Acceptance and publication commits change only docs; complete final manifest is in the outside-Git publication receipt.",
-  "raw_smoke_binding": "PRODUCT-RESULTS.json preserves fd5 raw execution hashes. Contemporaneous L2 confirmed raw+normalized Git correspondence; mixed EOL is explicit, not reconstructed."
+  "manifest_scope": "Exact base -> candidate including every documentation file, outside Git to avoid self-reference",
+  "full_L1": {
+    "file": ".runtime/c3/final-b1ed94c.xml",
+    "sha256": "8674159cfb0457fc8cc8ae383ea869c141036ce55706f4f405b46793d9de8460",
+    "suite": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "2",
+      "tests": "2105",
+      "time": "130.790",
+      "timestamp": "2026-09-07T07:57:44.869208+03:00"
+    },
+    "all_matrix_references_passed": true
+  }
 }

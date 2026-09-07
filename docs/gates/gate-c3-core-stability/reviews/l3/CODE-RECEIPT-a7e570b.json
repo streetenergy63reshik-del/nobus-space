@@ -1,0 +1,62 @@
+{
+  "candidate_commit": "a7e570bb084ea0324f05b1ec80328c72372a6858",
+  "candidate_tree": "2189ba333ad686be8e5ad42f6ee4dc553eeadf19",
+  "verdict": "CODE_REJECT",
+  "gate_verdict": "NOT_ACCEPTED",
+  "targeted_pass": 87,
+  "targeted_deselected": 1,
+  "physical_close_failures": 2,
+  "open_finding": "ISSUE-C3-L2-05",
+  "closed_finding": "ISSUE-C3-L2-04",
+  "discoverer": "independent L2",
+  "independent_L3_extension": "Exception before terminate also cannot be erased by no-op retry",
+  "reviewer_model_calls": 0,
+  "reviewer_asr_calls": 0,
+  "artifacts": [
+    {
+      "bytes": 2984,
+      "sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315",
+      "file": "CODE-REVIEW-a7e570b.md"
+    },
+    {
+      "bytes": 806,
+      "sha256": "fc05714512c38bb7841d9d64a6459adf56b705b038be7244a94b4050ee9a74ac",
+      "file": "a7e-own.log"
+    },
+    {
+      "bytes": 12233,
+      "sha256": "3ca9bd1780c60514b70392881f34280ba32697858f5b8f3b9c0bb422b8634989",
+      "file": "a7e-own.xml"
+    },
+    {
+      "bytes": 1845,
+      "sha256": "d4023197bc63e8730c1d4a9ba85138c9619f7ff839b07be5b0ff1f2aeb0639b3",
+      "file": "sdk_physical_close_probe.py"
+    },
+    {
+      "bytes": 2647,
+      "sha256": "d28970091596a7b89f086bdc40d941713307e45366438ad44f12a2d78c00be08",
+      "file": "a7e-physical-close.log"
+    },
+    {
+      "bytes": 2901,
+      "sha256": "68ea111d6f7e8668961a7cc12b1193556ced51a59a574857919cd3d413c38c77",
+      "file": "a7e-physical-close.xml"
+    },
+    {
+      "bytes": 1586,
+      "sha256": "959483759e0c6ec0ee74c0aa45fc70585ab121b262966c4fbeb9a78f450e2773",
+      "file": "sdk_close_exception_probe.py"
+    },
+    {
+      "bytes": 2366,
+      "sha256": "4971e47d5886281330aaa55a05d2652db521a49be1b30c87956ba95c4ec296aa",
+      "file": "a7e-close-exception.log"
+    },
+    {
+      "bytes": 2593,
+      "sha256": "45ecb042cb4c45dc4f01396eca468a74c403b3d500a7f8deddc2a0afe167172f",
+      "file": "a7e-close-exception.xml"
+    }
+  ]
+}

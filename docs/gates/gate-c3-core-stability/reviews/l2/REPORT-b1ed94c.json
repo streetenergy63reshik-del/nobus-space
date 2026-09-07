@@ -1,0 +1,211 @@
+{
+  "role": "Independent L2",
+  "reviewed_head": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+  "reviewed_tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+  "reviewed_src_tree": "ad8d33a52503aecd40ba3b7d31a07ebfbdb676bc",
+  "utc": "2026-09-07T04:56:41.471080+00:00",
+  "code_verdict": "CODE ACCEPT",
+  "gate_verdict": "PENDING exact final docs/evidence freeze",
+  "source_changed_by_reviewer": false,
+  "clean_detached_checkout": true,
+  "model_calls": 0,
+  "asr_calls": 0,
+  "external_effects": 0,
+  "runs": [
+    {
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        "tests/test_c3_startup_lifecycle.py",
+        "tests/test_c3_sdk_physical_start.py",
+        "tests/test_c3_sdk_physical_close.py",
+        "tests/test_c3_shutdown.py",
+        "tests/test_codex_sdk.py",
+        "tests/test_c3_worker_retry.py",
+        "tests/test_c3_smoke_guards.py",
+        "tests/test_runtime_operations.py",
+        ".runtime/l2/probe_sdk_thread_ownership.py",
+        ".runtime/l2/probe_sdk_physical_close.py",
+        "--basetemp=.runtime/l2/pytest-b1ed94c-targets",
+        "--junitxml=../../c3/reviews/l2/b1ed94c-targets-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "102",
+          "time": "24.232",
+          "timestamp": "2026-09-07T07:53:23.454179+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "b1ed94c-targets-output.txt",
+      "output_sha256": "92685f220e1b05021250d1afb323a4cc836f0899a7ea411defbba20aeb712eb3",
+      "junit_sha256": "2b277f2995114a23dfe1f2207dc667972a1182726c79dea48639f3f5f3d23178"
+    },
+    {
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        "tests/test_c3_sdk_close_exception.py",
+        "--basetemp=.runtime/l2/pytest-b1ed94c-exception",
+        "--junitxml=../../c3/reviews/l2/b1ed94c-exception-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "1",
+          "time": "0.576",
+          "timestamp": "2026-09-07T07:54:52.738097+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "b1ed94c-exception-output.txt",
+      "output_sha256": "779feb861d7f77335d0f1fe9e218c12a3bdc6f7a067807bdace745133df6a194",
+      "junit_sha256": "4f65a69e3a88272722213142acdcaf9d0fc470c8da2980d6801e48fb187052fb"
+    }
+  ],
+  "findings": [
+    {
+      "id": "ISSUE-C3-L2-05",
+      "disposition": "CLOSED",
+      "cause_fixed": "A physical client.close operation is cached per generation and awaited with asyncio.wait; timeout does not cancel the actual SDK to_thread operation. Pending/failed operation cannot be replaced with a misleading no-op close. Timeout/exception blocks generation and preserves failure/retirement.",
+      "evidence": "Unchanged independent actual SDK physical-close probe failed on a7 and passes on b1. Actual SDK close-exception regression passes; original false-success assertions remain unchanged. Parallel/deferred/repeated close tests now require one physical invocation and retained failed outcome rather than two potentially misleading calls.",
+      "success_cleanup": "Successful close task may be removed so the startup reaper can close a process that appears after an earlier successful no-process close."
+    },
+    {
+      "id": "ISSUE-C3-L2-04",
+      "disposition": "CLOSED, rechecked on b1",
+      "evidence": "Same independent two-mode delayed-Popen/blocked-initialize probe and four author actual SDK startup variants PASS. Caller wait is bounded; pending startup retained, close rejects pending physical outcome, late process is terminated automatically and startup user eventually drains."
+    },
+    {
+      "id": "ISSUE-C3-L2-01",
+      "disposition": "CLOSED, unchanged authority fence transfer"
+    },
+    {
+      "id": "ISSUE-C3-L2-02",
+      "disposition": "CLOSED, unchanged Core transaction guard transfer"
+    },
+    {
+      "id": "ISSUE-C3-R01",
+      "disposition": "CLOSED, unchanged completion ACK/PARSING recovery transfer"
+    },
+    {
+      "id": "ISSUE-C3-L2-03",
+      "disposition": "CLOSED, corrected fixtures independently checked66 and runtime_operations rerun b1"
+    }
+  ],
+  "source_transfer_from_product_fd5": [
+    {
+      "path": "src/application/durable_product.py",
+      "changed_or_added_methods": [
+        "DurableProductTelegramControlPlane._close_once"
+      ],
+      "unchanged_method_count": 32,
+      "product_blob": "5c03224263b0c6d34454833e86ba80a8b35685b4",
+      "current_blob": "dc742a01d4aa641acff9192a2a5065e9642e7092"
+    },
+    {
+      "path": "src/workers/codex_sdk.py",
+      "changed_or_added_methods": [
+        "CodexSdkAdapter.__init__",
+        "CodexSdkAdapter.start",
+        "CodexSdkAdapter._close_client",
+        "CodexSdkAdapter._client_instance",
+        "CodexSdkAdapter._reap_starting_client",
+        "CodexSdkAdapter._discard_starting_client"
+      ],
+      "unchanged_method_count": 32,
+      "product_blob": "1670764f0b93f18911ee9472de697051fe8bd78d",
+      "current_blob": "80584752cf5fb320393054cfa200627d29ab2a73"
+    }
+  ],
+  "source_delta_from_a7": [
+    "src/workers/codex_sdk.py"
+  ],
+  "explicit_evidence_transfer": {
+    "accepted_scope": "Product admission semantics and C1/C2; durable queue/lease/generation authority; Core recovery/seal/result; effect UNKNOWN; delivery/outbox/part manifests/receipts; artifact identity; result/replay model quality.",
+    "basis": "All src files except two declared lifecycle files are exact Git byte-identical to product fd5. AST comparison records every changed method in those files; prompt construction, model/permission/tool profile, provider turn execution, semantic compiler and validation, durable admission/recovery/ACK/delivery methods are unchanged. 103 fresh targeted checks cover all changed lifecycle paths and regressions.",
+    "old_tests": "fd5 independent actual-lock/fence/completion probes and broad C1/C2/queue/result/artifact/effect checks retain their original reviewed SHA. They support unchanged methods only; this is explicit delta acceptance rather than rewriting history.",
+    "real_product": "Three historical fd5 root-run text/voice/material result/replay receipts and L2 15/15 quality rubric remain evidence for unchanged model prompts and durable result/replay paths. 95 unaffected raw source-binding files remain exact; two lifecycle files have explicit AST delta. Actual startup liveness requires separate root current-source zero-turn receipt, not transferred from product smoke.",
+    "entry": "Original 30 exact C2 entry checks remain entry evidence. No C0-C2 reacceptance. C2 product JSON has only previously reviewed additive historical-scope annotation."
+  },
+  "prior_receipts": [
+    {
+      "file": "REPORT-08cfff0.json",
+      "sha256": "36c7d59eb74d7c7e8257d2aa42eeb511bf96b752a08d4c523db99962c999f5ee"
+    },
+    {
+      "file": "REPORT-fd5f9ce.json",
+      "sha256": "121de0721141bfc2bf720bcf5fc6f2c884c4e62653813195fb285f01a82bfaef"
+    },
+    {
+      "file": "EVIDENCE-66eb2d7.json",
+      "sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451"
+    },
+    {
+      "file": "REPORT-e6190be.json",
+      "sha256": "09a6901029938813fc99c38bbbd77f84d46c280c182c59afca308c54c2658e8e"
+    },
+    {
+      "file": "REPORT-a7e570b.json",
+      "sha256": "4d363e092735d75c54d99291e54a707209f97584d6967fb5b5a9ec1ade4932a9"
+    },
+    {
+      "file": "entry.json",
+      "sha256": "eda3d25d86d7127ef284f82a884a5ca15529fb6472e762a90163252b1334cc80"
+    }
+  ],
+  "independent_probe_hashes": [
+    {
+      "path": ".runtime/l2/probe_sdk_thread_ownership.py",
+      "sha256": "20394d98cb2da999ad0119ee44886a831a30201d3ebefa7286bbef45d4c60ee0"
+    },
+    {
+      "path": ".runtime/l2/probe_sdk_physical_close.py",
+      "sha256": "d4023197bc63e8730c1d4a9ba85138c9619f7ff839b07be5b0ff1f2aeb0639b3"
+    }
+  ],
+  "diff_check": {
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+      "b1ed94c6ddfefe957a50f4d133537f74482910cc"
+    ],
+    "exit_code": 0
+  },
+  "final_requirements": [
+    "Exact final SHA/tree and clean docs-only or explicitly reviewed test-only delta",
+    "Root final full L1 counts/hash/skips/deselect and current-source zero-turn SDK startup receipt",
+    "Final matrix/docs/evidence manifests and cumulative model/ASR budget check",
+    "Explicit final source-evidence transfer without changing historical hashes"
+  ],
+  "limitations": [
+    "Unknown/failed physical close is reported and generation quarantined; no claim of physical success after an exception.",
+    "Synthetic Telegram does not prove exactly-once remote delivery.",
+    "No deploy/live/tag/release/C4 executed by reviewer; no final Gate ACCEPT before final docs freeze."
+  ]
+}

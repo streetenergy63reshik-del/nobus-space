@@ -1,0 +1,96 @@
+{
+  "candidate_commit": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+  "candidate_tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+  "verdict": "CODE_ACCEPT",
+  "gate_verdict": "PENDING_FINAL_DOCS_FREEZE",
+  "targeted_pass": 89,
+  "targeted_failures": 0,
+  "targeted_deselected": 1,
+  "targeted_seconds": 34.38,
+  "closed_findings": [
+    "C3-L3-01",
+    "C3-L3-02",
+    "C3-L3-03",
+    "C3-L3-04",
+    "C3-L3-05",
+    "ISSUE-C3-L2-04",
+    "ISSUE-C3-L2-05"
+  ],
+  "product_source": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+  "product_tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+  "product_quality": "15/15;194 receipt checks",
+  "evidence_transfer": "Explicitly accepted for unchanged prompt/profile/permission/capability/answer semantics; historical smoke remains fd5",
+  "source_delta_from_fd5": [
+    "src/application/durable_product.py",
+    "src/workers/codex_sdk.py"
+  ],
+  "clean_checkout": true,
+  "git_diff_check": true,
+  "reviewer_model_calls": 0,
+  "reviewer_asr_calls": 0,
+  "reviewer_real_process_calls": 0,
+  "command": "python -m pytest -q ../../c3/reviews/l3/sdk_physical_ownership_probes.py ../../c3/reviews/l3/sdk_physical_close_probe.py ../../c3/reviews/l3/sdk_close_exception_probe.py tests/test_c3_sdk_physical_start.py tests/test_c3_startup_lifecycle.py tests/test_c3_shutdown.py tests/test_codex_sdk.py tests/test_c3_worker_retry.py ../../c3/reviews/l3/adversarial_recheck_probes.py ../../c3/reviews/l3/actual_lock_probes.py -k \"not part_receipt_rechecks_clock_after_store_lock\" --basetemp ../../c3/reviews/l3/temp/b1e-own --junitxml ../../c3/reviews/l3/b1e-own.xml",
+  "environment": "canonical .venv/Scripts/python.exe; DEBUG=false; PYTHONPATH=clean detached L3 worktree",
+  "artifacts": [
+    {
+      "sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09",
+      "bytes": 5328,
+      "file": "CODE-REVIEW-b1ed94c.md"
+    },
+    {
+      "sha256": "28a882dd7f674f61330b455ef418e15a1b2248e2a066508dc40b30cb7c1a5f13",
+      "bytes": 806,
+      "file": "b1e-own.log"
+    },
+    {
+      "sha256": "10465ef6795208a74d99a0c3b01b4ddbf9cda484eddf2916a7f5f9170f16116c",
+      "bytes": 12529,
+      "file": "b1e-own.xml"
+    },
+    {
+      "sha256": "08202e477327190e4ce34ddfa7786b6918ebff00f03fb22d6865fe97e9e3aa26",
+      "bytes": 3272,
+      "file": "sdk_physical_ownership_probes.py"
+    },
+    {
+      "sha256": "d4023197bc63e8730c1d4a9ba85138c9619f7ff839b07be5b0ff1f2aeb0639b3",
+      "bytes": 1845,
+      "file": "sdk_physical_close_probe.py"
+    },
+    {
+      "sha256": "959483759e0c6ec0ee74c0aa45fc70585ab121b262966c4fbeb9a78f450e2773",
+      "bytes": 1586,
+      "file": "sdk_close_exception_probe.py"
+    },
+    {
+      "sha256": "1668aa80a9d5b8af2ba9d2034dffa1995152694f0626e146ecf610106ed2cbcd",
+      "bytes": 7335,
+      "file": "adversarial_recheck_probes.py"
+    },
+    {
+      "sha256": "fe5022f78bf9f3b391b69a507a0b8f5da0dbae74cb90a4e6132fe1b01e21ec05",
+      "bytes": 4137,
+      "file": "actual_lock_probes.py"
+    },
+    {
+      "sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026",
+      "bytes": 47803,
+      "file": "PRODUCT-QUALITY-fd5f9ce.json"
+    },
+    {
+      "sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd",
+      "bytes": 5008,
+      "file": "CORRECTIONS-08cfff0.md"
+    },
+    {
+      "sha256": "af6cf2dcdadc8ae50910e936f3cec88b5982694785f5564b7bf47f7486acb234",
+      "bytes": 1929,
+      "file": "PHYSICAL-START-e6190be.json"
+    },
+    {
+      "sha256": "680dbd484af509c3bc87daeb50ed8404ce663a2d05e785b445113e5c5f8baea9",
+      "bytes": 2026,
+      "file": "CODE-RECEIPT-a7e570b.json"
+    }
+  ]
+}

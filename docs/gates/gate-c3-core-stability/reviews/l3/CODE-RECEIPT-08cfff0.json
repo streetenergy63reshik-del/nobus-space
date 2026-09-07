@@ -1,0 +1,79 @@
+{
+  "review": "independent-L3",
+  "verdict": "CODE_REJECT",
+  "candidate_commit": "08cfff031803211334f6da9da377b18226c5a393",
+  "candidate_tree": "fa265fb5a0c792ba342db025e1ecf584614cf36f",
+  "base_commit": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+  "base_tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+  "regression_pass": 316,
+  "regression_fail": 14,
+  "regression_failure_classification": "VERIFIER_DEFECT missing _cleanup_pending",
+  "adversarial_pass": 3,
+  "adversarial_fail": 4,
+  "provider_calls": 0,
+  "asr_calls": 0,
+  "external_effects": 0,
+  "gate_verdict": "NOT_PERFORMED",
+  "artifacts": [
+    {
+      "file": "adversarial_probes.py",
+      "sha256": "8b1bf369c1717c9d001fff3355f10e2cf41e709db40e976324f064a6486407f5"
+    },
+    {
+      "file": "CODE-REVIEW-08cfff0.md",
+      "sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638"
+    },
+    {
+      "file": "targeted.xml",
+      "sha256": "279dc4e7facd6c0953179b39286a96c9c001f8046746858fc5c29206dbd6af04"
+    },
+    {
+      "file": "targeted.log",
+      "sha256": "a0c616af9f6554e2852f1be86d71be6170f6914df01132ff9dc6238bf141c8fb"
+    },
+    {
+      "file": "preservation.xml",
+      "sha256": "db8a7c22b044c3aa93cad4469b5c7be2a8bbccb3ceaeb221657c3318f768074a"
+    },
+    {
+      "file": "preservation.log",
+      "sha256": "ed0735f82e8f89e1e914b3175296c2aad88aefee0bcbd68a419317050bb2a3f6"
+    },
+    {
+      "file": "probes01.xml",
+      "sha256": "a515400c252d91808c72271014a6d5dd5d8bb77c1e95edf6638792c2653f9f1c"
+    },
+    {
+      "file": "probes01.log",
+      "sha256": "4d659e0f9205b1f5519339ebe77792ed9d98e2b3f25c59a82f5f11243b4019fb"
+    },
+    {
+      "file": "probes02.xml",
+      "sha256": "f352d8b902fcc161327cd33dfb5c08f92e24312b50035a937dd4413ab56311d5"
+    },
+    {
+      "file": "probes02.log",
+      "sha256": "554c21841aa0820e54c9726bc776efea58ed3cb7ee4b0740f477fef9d3eedea6"
+    },
+    {
+      "file": "probes03.xml",
+      "sha256": "2cf3927b1ca11d6ce27dee24f820e9a459c628948d9b4d43e93c1731c3198dcd"
+    },
+    {
+      "file": "probes03.log",
+      "sha256": "53f6bc31c33207f38285cf04f78f4ad4db4a6009a50c8605039624300edd82db"
+    },
+    {
+      "file": "probes03-source-hash.json",
+      "sha256": "d7bf5f4df974584679300b40d55da26e0fb3f668146e83459b8c68f669971d83"
+    },
+    {
+      "file": "startup.xml",
+      "sha256": "07a6c05b288f03749555d0d401082fd32812107e5b992000e6ef60404af03b07"
+    },
+    {
+      "file": "startup.log",
+      "sha256": "6997db103cbecdf2bb89917c0efd8101fc8ab2f2633f66146292b41b34f9db3b"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # ADR 0024 — Восстановление задачи и доставка по частям
 
 **Статус решения:** ACCEPTED FOR C3 IMPLEMENTATION по поручению владельца выполнить Gate C3 целиком.
-**Реализация:** TARGET до приёмки цельного C3.
+**Реализация:** CURRENT — принятый C3, публикация отдельно подтверждается GitHub readback; NOT DEPLOYED.
 **Дата:** 6 сентября 2026 года.
 
 Основание: опубликованный C2 `5fdc28ce66dbb072acd6676baf72fe58ae10b4b3`,
@@ -70,3 +70,5 @@ Frozen candidate требует L1, независимые L2/L3. Старые F
 C0-F07 закрывается только в backend/recovery части; live operational evidence
 остаётся C5/C6. C4 отвечает за конечное получение в UI. MVP1 не READY до C4–C6.
 Публикация только обычным PR/merge после PASS; tag/release/deploy/live запрещены.
+
+Physical SDK startup/close ownership уточнена по независимым L2-04/05: pending либо failed thread-offloaded operation не теряет владельца и не становится success после no-op. Подробности и история rejected candidates — C3 EVIDENCE.

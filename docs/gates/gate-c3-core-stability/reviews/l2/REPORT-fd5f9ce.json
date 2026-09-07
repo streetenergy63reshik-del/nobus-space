@@ -1,0 +1,224 @@
+{
+  "role": "Independent L2",
+  "reviewed_head": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+  "reviewed_tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+  "reviewed_src_tree": "d8bb8cce1b5a550f8318b042194c82e172dd8347",
+  "base_head": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+  "base_tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+  "utc": "2026-09-07T04:20:46.922758+00:00",
+  "code_verdict": "CODE ACCEPT",
+  "gate_verdict": "PENDING final exact candidate including fixture and documents/evidence",
+  "source_changed_by_reviewer": false,
+  "clean_detached_checkout": true,
+  "model_calls": 0,
+  "asr_calls": 0,
+  "external_effects": 0,
+  "findings": [
+    {
+      "id": "ISSUE-C3-L2-01",
+      "disposition": "CLOSED",
+      "basis": "Same independent actual SQLite lock probes pass: manifest, part receipt and whole receipt reject after expiry. Both after-lock and precommit use trusted now plus observed monotonic elapsed. Claim expiry now starts after acquired lock."
+    },
+    {
+      "id": "ISSUE-C3-L2-02",
+      "disposition": "CLOSED",
+      "basis": "Same independent actual Core lock probe passes. Core transaction invokes validate_guarded_commit through held queue connection after lock and before commit; no second queue-lock acquisition."
+    },
+    {
+      "id": "ISSUE-C3-R01",
+      "disposition": "CLOSED",
+      "basis": "Actual PARSING recovery becomes FAILED/result0/outbox1 without worker execution; second reopen unchanged. Independent direct completion guard rejects unfinished task and accepts only authoritative terminal recovery."
+    },
+    {
+      "id": "ISSUE-C3-L2-03",
+      "disposition": "ORIGINAL 15 CLOSED; one same-class fixture gap remains",
+      "basis": "838 PASS / one missing _cleanup_pending in tests/test_runtime_operations.py:87; root reported local fixture correction outside reviewed fd5. Must enter final freeze and be independently rerun."
+    }
+  ],
+  "nonblocking_diff_issue": {
+    "classification": "VERIFIER_DEFECT/format",
+    "exit_code": 2,
+    "output": "tests/test_c3_outbox_clock.py:82: new blank line at EOF.",
+    "resolution_required_for_final_gate": true
+  },
+  "runs": [
+    {
+      "name": "fd5-fixes",
+      "argv": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        ".runtime/l2/probe_expiry.py",
+        "tests/test_c3_review_recovery.py",
+        "tests/test_c3_outbox_clock.py",
+        "tests/test_c3_result_recovery.py",
+        "tests/test_c3_effect_unknown.py",
+        "--basetemp=.runtime/l2/pytest-fd5-fixes",
+        "--junitxml=../../c3/reviews/l2/fd5-fixes-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "python": "canonical existing .venv/Scripts/python.exe",
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "23",
+          "time": "23.043",
+          "timestamp": "2026-09-07T07:16:21.918209+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "fd5-fixes-output.txt",
+      "output_sha256": "b6f0ee816939657d7c09749d92d713857022f70462f28fac47eb2a7c496f76f5",
+      "junit_sha256": "617a885a8afb803fc90e054e00412ac9c16c9628decea388ddb8b2cbe2bdbe76"
+    },
+    {
+      "name": "fd5-broad",
+      "argv": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        "tests/test_c3_delivery_parts.py",
+        "tests/test_c3_durable_concurrency.py",
+        "tests/test_c3_effect_unknown.py",
+        "tests/test_c3_multipart_input.py",
+        "tests/test_c3_outbox_clock.py",
+        "tests/test_c3_queue_recovery.py",
+        "tests/test_c3_result_recovery.py",
+        "tests/test_c3_review_recovery.py",
+        "tests/test_c3_shutdown.py",
+        "tests/test_c3_smoke_guards.py",
+        "tests/test_c3_worker_retry.py",
+        "tests/test_durable_telegram_state.py",
+        "tests/test_sqlite_outbox.py",
+        "tests/test_durable_runtime.py",
+        "tests/test_queue12_crash_regressions.py",
+        "tests/test_queue12_rework.py",
+        "tests/test_queue12_acceptance_rework.py",
+        "tests/test_effect_crash_recovery.py",
+        "tests/test_voice_effect_restart.py",
+        "tests/test_voice_retention.py",
+        "tests/test_durable_voice.py",
+        "tests/test_codex_sdk.py",
+        "tests/test_miniapp.py",
+        "tests/test_miniapp_artifact.py",
+        "tests/test_telegram_bot_api.py",
+        "tests/test_semantic_admission.py",
+        "tests/gate_c2/test_product_smoke_guards.py",
+        "tests/test_miniapp_result.py",
+        "tests/test_runtime_operations.py",
+        "--basetemp=.runtime/l2/pytest-fd5-broad",
+        "--junitxml=../../c3/reviews/l2/fd5-broad-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "python": "canonical existing .venv/Scripts/python.exe",
+      "exit_code": 1,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "1",
+          "skipped": "0",
+          "tests": "839",
+          "time": "87.289",
+          "timestamp": "2026-09-07T07:17:10.100662+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "fd5-broad-output.txt",
+      "output_sha256": "0ca52d4e5de567f6124b8d1134409ea490e8b8bb67c2dc07cb0aa27246f0409d",
+      "junit_sha256": "e8588bfcdfb4da2e6336284358bbafdc00dec030ac9f3deb7669bb771a9c34bc"
+    },
+    {
+      "name": "fd5-completion",
+      "argv": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "--tb=short",
+        ".runtime/l2/probe_completion.py",
+        "--basetemp=.runtime/l2/pytest-fd5-completion",
+        "--junitxml=../../c3/reviews/l2/fd5-completion-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "python": "canonical existing .venv/Scripts/python.exe",
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "1",
+          "time": "1.056",
+          "timestamp": "2026-09-07T07:19:01.686970+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output": "fd5-completion-output.txt",
+      "output_sha256": "b88748be948e9dbbff4105af7375d2686da1559a51dc7e3296d21021288cc404",
+      "junit_sha256": "7b0b360f85c108490ab4dbc7bce2e94b23dc74ce36e1024745db51f7e94a0921"
+    }
+  ],
+  "entry_transfer": {
+    "entry_receipt": "entry.json",
+    "sha256": "eda3d25d86d7127ef284f82a884a5ca15529fb6472e762a90163252b1334cc80",
+    "checks": 30,
+    "method": "Exact C2 base remains ancestor; docs and accepted C0/C1/C2 entry artifacts unchanged08cfff→fd5. Original entry receipts retain original reviewed SHA."
+  },
+  "independent_probes": [
+    {
+      "path": ".runtime/l2/probe_expiry.py",
+      "sha256": "7e5997dab7476c490c64a287fe67f349225720d8fdf80c4a20e5aa3d5d1cbeb0"
+    },
+    {
+      "path": ".runtime/l2/probe_completion.py",
+      "sha256": "c08f0ac24caad0ec58c5f014734a88700fd732e767338be29688f6f510b9911a"
+    }
+  ],
+  "reviewed_boundaries": [
+    "admission/queue and completion ACK",
+    "bounded claims, poison retention, lease generation/CAS",
+    "source material canonicalization/idempotency and C1 boundaries",
+    "C2 durable voice confirmation/PreparedTask/TTL/flag-off",
+    "non-web transient retry and SDK generation authority/deadline/cancellation",
+    "Core result/event/seal recovery and store failure rollback",
+    "outbox/artifact/manifest/part and whole receipt bindings",
+    "effect UNKNOWN and foreign/stale capability context",
+    "truthful tenant-scoped product status and worker startup/readiness",
+    "unchanged accepted contracts and no deployment scope"
+  ],
+  "clock_assessment": "Store authority is its supplied trusted server timestamp advanced by local monotonic elapsed. Changing an unrelated fake clock without passing its new value and without observed elapsed time cannot be interpreted as a store clock advance; no new defect is established by that alone. Real SQLite lock-time expiry is the acceptance regression and passes.",
+  "final_requirements": [
+    "Exact final freeze, src tree equality to fd5 or fresh review of source delta",
+    "Run corrected runtime_operations fixture",
+    "Verify EOF normalization and final git diff --check",
+    "Independently inspect final evidence hashes/counts, real text/voice/material outcomes and declared limits",
+    "Review docs-only or explicit tests-only transfer without rewriting historical receipts"
+  ],
+  "historical_reports_preserved": [
+    "REPORT-08cfff0.json",
+    "REPORT-08cfff0.md"
+  ],
+  "limitations": [
+    "No exactly-once Telegram claim",
+    "Real provider/ASR evidence owned by root, not rerun or counted by L2",
+    "No final gate ACCEPT before final candidate reviewed"
+  ]
+}

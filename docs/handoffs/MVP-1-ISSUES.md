@@ -1,19 +1,19 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 <!-- C3_CURRENT_START -->
-C3 DRAFT / GATE CANDIDATE / NOT ACCEPTED / NOT DEPLOYED: продуктовый checkpoint `fd5f9cefb64a192f0de02db314b469915bc4e6f6`; итоговая проверка продолжается. [Приёмка и доказательства C3](../gates/gate-c3-core-stability/ACCEPTANCE.md). C0–C2 приняты и опубликованы; их приёмка не переоткрывается. C4 не начат; весь MVP1 ещё не READY.
+C3 ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
 <!-- C3_CURRENT_END -->
 
 
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
-**Период:** 17 июля — 6 сентября 2026 года
+**Период:** 17 июля — 7 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий verdict: `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+Текущий verdict: `C3 ACCEPTED / PASS / NOT DEPLOYED; PUBLICATION NEXT`; `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 
 Последний локальный продуктовый checkpoint C2 — `f01e9f88b48d5dd094ea28b9150da84ddb5da3e3`,
 tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **ACCEPTED / PASS / PUBLISHED**.
@@ -33,10 +33,10 @@ tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **ACCEPTED / PASS / PUBLISHED**
 | C0-F02 | Semantic layer не отделена как tool-less boundary: route/profile и worker permissions выбираются до строгого model proposal + registry decision | `telegram_product.py`, `gate5a4.py`, `codex_cli.py`; ADR 0023 target отсутствует в published code | C1 | **CLOSED IN ACCEPTED C1 / NOT DEPLOYED**; closed proposal без authority fields, server context/registry/Core decision, deny-all read-only no-tools compiler |
 | C0-F03 | Voice должна быть durable до ASR и после transcript проходить тот же semantic route, что text | C2 predecessor hard-crash после admission до enqueue: task=1/job=0; pre-ASR immediate-loss гипотеза не подтвердилась | C2 | **CLOSED IN ACCEPTED C2 / NOT DEPLOYED**; durable intake/deferred admission, TTL fix и actual B02 подтверждены новым freeze 98aa8dc |
 | C0-F04 | ASR нуждался в независимой квалификации | Старые семь hard FAIL сохранены. Новый owner protocol: small WER5,71%/CER1,11% all32, holdout5,09%/1,00%; correction3/16+5/16 противCURRENT7/16+10/16;3passes/resources PASS | C2 | **CLOSED IN ACCEPTED C2 / NOT DEPLOYED**; REPLACE pinned small принят в source-only/local scope; binary distribution отдельно |
-| C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **REQUALIFY**; failure matrix доказывает no blind non-web/effect retry |
-| C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CONFIRMED**; полный bounded status contract и negative mappings PASS |
-| C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **CONFIRMED CURRENT BLOCKER**; restart/reclaim/dead-letter/outbox reconciliation и healthy readback PASS |
-| C0-F08 | Multipart/task admission idempotency требует end-to-end requalification | Mini App header idempotency и durable task binding существуют, но новый semantic/source-material flow не имеет multipart duplicate matrix | C3 | **CONFIRMED EVIDENCE GAP**; same bytes/key, changed bytes/key, restart и partial upload negatives PASS |
+| C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; closed non-web retry policy, same-contract generation/deadline fencing и physical cleanup PASS |
+| C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; tenant-scoped durable queue/Core/outbox и truthful worker readiness PASS |
+| C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **BACKEND RECOVERY CLOSED IN C3; LIVE OPEN C5/C6**; restart/reclaim/dead-letter/orphan/outbox проверены локально; incident, production health и supervisor здесь не принимались |
+| C0-F08 | Multipart/task admission idempotency требует end-to-end requalification | Mini App header idempotency и durable task binding существуют, но новый semantic/source-material flow не имеет multipart duplicate matrix | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; multipart same/change/new key, partial body, restart/duplicate и INERT material negatives PASS |
 | C0-F09 | Mini App session expiry не имеет доказанного complete recovery journey | in-memory TTL и expired-session rejection есть в `miniapp.py`; owner-visible resume/re-auth E2E после expiry не доказан | C4 | **CONFIRMED EVIDENCE GAP**; expiry→re-auth→same task/result без duplicate PASS |
 | C0-F10 | `ready`/`verified`/success labels могут читаться как готовность продукта без authoritative evidence | UI/backend имеют `ready`, `result_ready`, `has_verified_answer`; published docs ошибочно сохраняли current `MVP-1 READY` после incident | C4 | **CONFIRMED**; user-visible labels различают accepted/running/result/effect receipt/product readiness |
 | C0-F11 | Telegram/Mini App полный recovery journey после нового admission не доказан | prior pre-incident E2E evidence не покрывает ADR 0023 и reopened acceptance | C4 | **CONFIRMED EVIDENCE GAP**; реальные text/voice/result/artifact/recovery E2E PASS |
@@ -46,7 +46,7 @@ tree `896b9dbb3e7df35038a792696eadd3b5920ae27e`, **ACCEPTED / PASS / PUBLISHED**
 | C0-F15 | Docs/manual и active deployment identity рассинхронизированы | protected `main` содержит historical current READY claim; deployment revision readback отсутствует | C6 | **CONFIRMED**; exact release/config/readback, active docs/manual и owner acceptance связаны одним SHA/tree |
 | C0-F16 | Release и owner acceptance переоткрыты | direct owner incident 2026-09-02 имеет более новую силу, чем pre-incident acceptance | C6 | **CONFIRMED**; frozen C1–C5 result, publication/activation readbacks и новая owner smoke matrix PASS |
 
-Пункты C0-F05, F08, F09 и F12–F14 остаются открытыми именно как
+Пункты C0-F09 и F12–F14 остаются открытыми именно как
 обязательная квалификация: C0 не выдаёт наличие кода или старых тестов за
 доказательство целого продукта. Historical CLOSED строки ниже сохранены и не
 переписаны задним числом.

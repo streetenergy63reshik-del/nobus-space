@@ -1,7 +1,7 @@
 # Документация Nobus Space
 
 <!-- C3_CURRENT_START -->
-C3 DRAFT / GATE CANDIDATE / NOT ACCEPTED / NOT DEPLOYED: продуктовый checkpoint `fd5f9cefb64a192f0de02db314b469915bc4e6f6`; итоговая проверка продолжается. [Приёмка и доказательства C3](gates/gate-c3-core-stability/ACCEPTANCE.md). C0–C2 приняты и опубликованы; их приёмка не переоткрывается. C4 не начат; весь MVP1 ещё не READY.
+C3 ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
 <!-- C3_CURRENT_END -->
 
 

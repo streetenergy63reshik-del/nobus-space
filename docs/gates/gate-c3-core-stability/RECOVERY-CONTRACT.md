@@ -53,3 +53,5 @@ VERIFIER_DEFECT — исправляется проверка при неизм�
 ENVIRONMENT_FAILURE — сохраняется причина/повтор; STALE_CONTEXT — обновляется
 источник; SPECIFICATION_CONFLICT и PRODUCT_OR_SECURITY_RISK требуют точного
 разрешения границы. Старые FAIL/REJECT не превращаются в PASS новой ревизии.
+
+SDK initialization ограничена15s плюс bounded cleanup. Async cancellation не считается остановкой физического SDK thread: startup остаётся owned и quarantined, late process очищается даже при зависшем initialize. Одна pending/failed physical close сохраняется; повторный no-op не стирает UNKNOWN/failure. Foreground close ограничен, незавершённая очистка запрещает новую generation и успешный статус.

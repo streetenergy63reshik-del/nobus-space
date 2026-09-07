@@ -1,6 +1,6 @@
 {
   "schema_version": "c3-evidence-1",
-  "verdict": "DRAFT / GATE CANDIDATE / FINAL REVIEW PENDING / NOT DEPLOYED",
+  "verdict": "ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED",
   "base": {
     "sha": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
     "tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
@@ -34,44 +34,62 @@
     {
       "id": "R01",
       "classification": "IMPLEMENTATION_DEFECT",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "PARSING interruption becomes durable attention; queue ACK requires terminal or exact durable patch continuation"
     },
     {
       "id": "L2-01",
       "classification": "IMPLEMENTATION_DEFECT",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "delivery lease checked after lock and before commit against elapsed server time"
     },
     {
       "id": "L2-02",
       "classification": "IMPLEMENTATION_DEFECT",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "Core commit rechecks queue expiry through the existing held queue connection"
     },
     {
       "id": "L3-01",
       "classification": "PRODUCT_OR_SECURITY_RISK",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "answer bytes always match authoritative output_digest, including legacy rows without encrypted seal"
     },
     {
       "id": "L3-02",
       "classification": "PRODUCT_OR_SECURITY_RISK",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "effect start and capability CAS require current queue authority"
     },
     {
       "id": "L3-03",
       "classification": "IMPLEMENTATION_DEFECT",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "local SDK startup before readiness; initial probe used invalid fallback configuration and is retained as VERIFIER_DEFECT"
     },
     {
       "id": "FIXTURES",
       "classification": "VERIFIER_DEFECT",
-      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
       "boundary": "manual control fixtures initialize new cleanup field; fabricated answer digests replaced by exact synthetic answer digests"
+    },
+    {
+      "id": "C3-L3-05",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED",
+      "boundary": "Bounded initialization and owned shutdown; no late reopen"
+    },
+    {
+      "id": "C3-L2-04",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED",
+      "boundary": "Shielded physical startup ownership, quarantine and automatic late-Popen/hung-initialize cleanup"
+    },
+    {
+      "id": "C3-L2-05",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED",
+      "boundary": "One pending/failed physical close retained; no-op retry cannot establish success; failed outcome remains visible"
     }
   ],
   "acceptance": "ACCEPTANCE.md",
@@ -87,14 +105,30 @@
     "MVP1_READY": false
   },
   "publication": {
-    "status": "NOT STARTED: final PASS required"
+    "status": "AWAITING AUTHORIZED NORMAL PR AFTER FINAL DOCS PASS",
+    "base": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+    "protected_main": true,
+    "required_CI_checks_observed": [],
+    "CI_claim": "No required CI checks configured; absence is not CI success. GitHub ordinary merge enforces current protection.",
+    "prepublication_receipt": {
+      "file": ".runtime/c3/github-prepublication.json",
+      "sha256": "3f14fba168259c6cd2e339b038bca27f6635352b356e82a45bb38424cf5d0021"
+    },
+    "no_force_admin_bypass": true,
+    "tag": false,
+    "release": false,
+    "deploy": false,
+    "live_mutation": false
   },
   "source": {
-    "sha": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
-    "tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+    "sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+    "tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+    "full_tested_candidate": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
     "manifest": "MANIFEST.json",
     "real_product_results": "PRODUCT-RESULTS.json",
-    "source_edits_after_product_smoke": false
+    "original_real_smoke_source": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+    "source_edits_after_product_smoke": true,
+    "transfer": "Explicit unchanged-boundary transfer in both final code reviews; new actual zero-turn SDK startup/close bound to final source."
   },
   "entry_preservation": {
     "C2_manifest_matches": 118,
@@ -162,15 +196,239 @@
     {
       "classification": "VERIFIER_DEFECT",
       "finding": "Evidence assembler initially assumed voice tombstones are removed; finished voice row is retained by accepted C2 contract. Assert now requires finished-only records and unchanged replay snapshot."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Physical-close regression formerly expected two API close calls. C3 now requires one pending/failed operation and retained false outcome; failure assertions strengthened, no noop success accepted. Cancel-enter closed assertion preserved."
     }
   ],
   "acceptance_requirements": {
     "negative_matrix_cases": 34,
-    "full_tests": "canonical tests/ with exact C2 exclusions",
-    "L1": "PENDING on final freeze",
-    "L2": "independent code recheck closes L2-01/02; frozen gate pending",
-    "L3": "independent adversarial recheck pending",
-    "real_results": "3 execution PASS; independent quality rubric pending",
-    "publication": "after final PASS; ordinary own push/PR/merge then one status-only followup"
+    "negative_matrix": "PASS, all mapped tests passed on exact source",
+    "L1": "PASS",
+    "L2": "CODE ACCEPT",
+    "L3": "CODE ACCEPT",
+    "real_results": "3/3 execution and quality PASS, controlled restart/replay with unchanged identity/result/receipts",
+    "source_known_in_scope_bugs": 0,
+    "final_docs": "Independent exact delta review before authorized push; ordinary publication readback follows."
+  },
+  "superseded_candidates": [
+    {
+      "sha": "66eb2d7b3ccc067db4f85fe350669e76074d6313",
+      "full_pass": 2065,
+      "subtests": 25,
+      "verdict": "REJECTED",
+      "reason": "C3-L3-05 startup lifecycle"
+    },
+    {
+      "sha": "e6190be47b1e880c87304774455e773c83470338",
+      "full_pass": 2072,
+      "subtests": 25,
+      "verdict": "REJECTED",
+      "reason": "C3-L2-04; preliminary L3 code accept superseded by independent physical startup finding"
+    },
+    {
+      "sha": "a7e570bb084ea0324f05b1ec80328c72372a6858",
+      "full_pass": 2076,
+      "subtests": 25,
+      "verdict": "REJECTED",
+      "reason": "C3-L2-05 physical close; preliminary L3 acceptance superseded"
+    }
+  ],
+  "final_L1": {
+    "verdict": "PASS",
+    "candidate_sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+    "candidate_tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+    "receipt": "L1-VERIFICATION.json",
+    "raw_xml": {
+      "file": ".runtime/c3/final-b1ed94c.xml",
+      "sha256": "8674159cfb0457fc8cc8ae383ea869c141036ce55706f4f405b46793d9de8460"
+    },
+    "raw_log": {
+      "file": ".runtime/c3/final-b1ed94c.log",
+      "sha256": "ee2fed2321b3206bc6ef75c9028d2f48e2c62b4f4f08a7f2dfa6871bcac8e5e8"
+    },
+    "full_suite": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "2",
+      "tests": "2105",
+      "time": "130.790",
+      "timestamp": "2026-09-07T07:57:44.869208+03:00"
+    },
+    "command": "DEBUG=false; pinned-python -m pytest tests/ -q -ra --tb=short --ignore=tests/gate0 --ignore=tests/test_gate_c0_governance.py --deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022 --basetemp=.runtime/c3/final-b1ed94c-tmp --junitxml=.runtime/c3/final-b1ed94c.xml",
+    "skips": "2 Windows symlink tests unavailable; 1 unchanged historical architecture deselect; C0-C2 acceptance not reopened",
+    "static": "All tracked source/scripts/tests compile; dependencies unchanged; pip check clean; exact diff/data/manifest/34-case checks and WIP preservation PASS",
+    "passed": 2078,
+    "subtests_passed": 25,
+    "skipped": 2,
+    "deselected": 1,
+    "duration_seconds": 130.92,
+    "pip_check": {
+      "file": ".runtime/c3/pip-check-final.log",
+      "sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf"
+    }
+  },
+  "independent_reviews": {
+    "L2": {
+      "verdict": "CODE ACCEPT",
+      "file": "reviews/l2/REPORT-b1ed94c.json"
+    },
+    "L3": {
+      "verdict": "CODE_ACCEPT",
+      "file": "reviews/l3/CODE-RECEIPT-b1ed94c.json"
+    },
+    "product_quality": "L2 15/15; L3 15/15 with194 receipt checks",
+    "scope": "Exact source accepted. Final docs-only head requires explicit delta readback before push; that receipt is stored outside Git to avoid self-reference."
+  },
+  "review_files": [
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/EVIDENCE-66eb2d7.json",
+      "sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/EVIDENCE-66eb2d7.md",
+      "sha256": "08d719c9d9917cd67c41dbfc2b4c5d749737321d64d081f33054f39a9747e296"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-08cfff0.json",
+      "sha256": "36c7d59eb74d7c7e8257d2aa42eeb511bf96b752a08d4c523db99962c999f5ee"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-08cfff0.md",
+      "sha256": "02aa8180cc7afadfa8b9b390a91d67086f2bf3265490cc1f961935ba2e1fa13e"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-a7e570b.json",
+      "sha256": "4d363e092735d75c54d99291e54a707209f97584d6967fb5b5a9ec1ade4932a9"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-a7e570b.md",
+      "sha256": "d9fc707b1948ee79f47ff535f461ea8cb65409467532dab85ac79b3dfd0828ad"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-b1ed94c.json",
+      "sha256": "7564d1ad2141c40510b46c431f19aef881bc138c742c941ad85506da271d4ed3"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-b1ed94c.md",
+      "sha256": "c399ba2a7b671aaae6857fd7f0f1f598b0494307ec52caa085a66e1da8f079d8"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-e6190be.json",
+      "sha256": "09a6901029938813fc99c38bbbd77f84d46c280c182c59afca308c54c2658e8e"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-e6190be.md",
+      "sha256": "c120aec2ace94dd961399e5cbe6e4d3a4ca61c3101031a7550a5ca81bfda8ea7"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-fd5f9ce.json",
+      "sha256": "121de0721141bfc2bf720bcf5fc6f2c884c4e62653813195fb285f01a82bfaef"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-fd5f9ce.md",
+      "sha256": "0de905dc91543081a82dca28e77cfd1f2bd49b2a11c3b5d74546b5e6dbff6afe"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/ADDENDUM-e6190be-REJECT.md",
+      "sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-08cfff0.json",
+      "sha256": "7bdf987cd4650b7d88c2ae10de9bea538bb2d51fbd7cdc4caa820cc6876ce104"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-a7e570b.json",
+      "sha256": "680dbd484af509c3bc87daeb50ed8404ce663a2d05e785b445113e5c5f8baea9"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-b1ed94c.json",
+      "sha256": "b26c114dd6fed64dccfa77afd258105acd0699d0e6568d90695df3911501e090"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-e6190be.json",
+      "sha256": "1fafacdcc9aaf4362281dbe8984e228678384c86e5bb5b7c23017cd4bc7a659c"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-08cfff0.md",
+      "sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-a7e570b.md",
+      "sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-b1ed94c.md",
+      "sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-e6190be.md",
+      "sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CORRECTIONS-08cfff0.md",
+      "sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/PHYSICAL-START-e6190be.json",
+      "sha256": "af6cf2dcdadc8ae50910e936f3cec88b5982694785f5564b7bf47f7486acb234"
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/PRODUCT-QUALITY-fd5f9ce.json",
+      "sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026"
+    }
+  ],
+  "final_budget": {
+    "resources": {
+      "model": {
+        "reserved_calls": 19,
+        "charged_seconds": 108.04599999985658,
+        "actual_model_turns": 8,
+        "max_calls": 64,
+        "max_seconds": 5400.0,
+        "remaining_calls": 45,
+        "remaining_seconds": 5291.954000000143
+      },
+      "asr": {
+        "reserved_calls": 1,
+        "charged_seconds": 6.077999999979511,
+        "actual_model_turns": 0,
+        "max_calls": 20,
+        "max_seconds": 1200.0,
+        "remaining_calls": 19,
+        "remaining_seconds": 1193.9220000000205
+      }
+    },
+    "active_reservations": 0
+  },
+  "real_final_startup": {
+    "file": ".runtime/c3/startup-complete/receipt.json",
+    "sha256": "634940b4b8bb80752da6f696ce84a4f104ac90996a0a30dc82bcf78b8df76fbd",
+    "new_model_turns": 0,
+    "native_calls": 0,
+    "physical_cleanup": true,
+    "script": {
+      "file": ".runtime/c3/startup_smoke.py",
+      "sha256": "849729cb9c16d216f7c289dfc0fb0e01734bd5ea2a1245f76204d07105b6cf25"
+    }
+  },
+  "issues": {
+    "C0-F05": "CLOSED backend C3",
+    "C0-F06": "CLOSED backend C3",
+    "C0-F08": "CLOSED backend C3",
+    "C0-F07": "BACKEND RECOVERY CLOSED; live operational incident remains OPEN C5/C6",
+    "C4": "NOT STARTED",
+    "MVP1": "NOT READY"
+  },
+  "residuals": [
+    "Telegram remote accept before local receipt remains an at-least-once window; synthetic transport does not prove remote exactly-once.",
+    "Unproven SDK physical cleanup is retained as failure/quarantine and blocks new generation; no healthy status is claimed.",
+    "No live/production/ingress/supervisor/backup drill or owner delivery is included; those remain C4-C6."
+  ],
+  "final_budget_ledger": {
+    "file": ".runtime/c3/execution-budget.sqlite3",
+    "sha256": "989b560a061320602d0864713cf0df79fe759281cb441a5486c09f6904f4df8c"
   }
 }

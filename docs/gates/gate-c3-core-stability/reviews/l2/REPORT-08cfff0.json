@@ -1,0 +1,215 @@
+{
+  "role": "Independent L2",
+  "lifecycle": "GATE_CANDIDATE_CODE_CHECKPOINT",
+  "profile": "software-development",
+  "risk": "high",
+  "utc": "2026-09-06T19:26:36.796544+00:00",
+  "reviewed_head": "08cfff031803211334f6da9da377b18226c5a393",
+  "reviewed_tree": "fa265fb5a0c792ba342db025e1ecf584614cf36f",
+  "base_head": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+  "base_tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+  "verdict": "CODE REJECT",
+  "final_gate_verdict": "NOT ISSUED; awaits corrected source, final exact docs/evidence freeze and explicit transfer review",
+  "independence": "Detached clean worktree, no tracked edits; existing Python and fresh disposable test fixtures. Reviewer authored separate lock probes.",
+  "findings": [
+    {
+      "id": "ISSUE-C3-L2-01",
+      "severity": "Major",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "file": "src/storage/sqlite_store.py",
+      "lines": [
+        2207,
+        2243,
+        2272
+      ],
+      "cause": "Delivery methods evaluate caller now captured before BEGIN IMMEDIATE; an actual SQLite write-lock wait may expire the lease before manifest/part/whole receipt commit.",
+      "evidence": "expiry-output.txt: three independent real lock probes fail; lease 1 second, conflicting lock held 1.3 seconds.",
+      "fix_boundary": "Use bounded trusted server time advanced by monotonic elapsed after write lock; cover claim_outbox_messages, bind_delivery_parts, record_delivery_part, record_outbox_receipt; preserve deterministic clock injection.",
+      "violated_contract": "C3 stale lease/generation authority, clock boundary and immutable receipts"
+    },
+    {
+      "id": "ISSUE-C3-L2-02",
+      "severity": "Major",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "file": "src/application/durable_telegram_state.py",
+      "lines": [
+        86,
+        217
+      ],
+      "related_file": "src/application/durable_runtime.py:546",
+      "cause": "Queue execution_guard checks expiry before yielding; a second Core SQLite lock can expire queue authority before the actual result/event/seal transaction commits.",
+      "evidence": "core-lock-v2-output.txt: actual Gate5A4Runtime._record_worker_result accepted a result with lease 5 seconds after wait 4.2 seconds plus separate Core lock 1.3 seconds; no DurableTelegramStateError.",
+      "fix_boundary": "Recheck the same task-local queue authority inside actual Core transaction after lock and immediately before commit; rollback on expired authority without nested queue-lock deadlock.",
+      "violated_contract": "No stale lease may seal authoritative result/terminal/receipt"
+    },
+    {
+      "id": "ISSUE-C3-L2-03",
+      "severity": "Major verification blocker",
+      "classification": "VERIFIER_DEFECT",
+      "file": "tests/test_voice_retention.py",
+      "related_files": [
+        "tests/test_durable_voice.py",
+        "tests/test_queue12_crash_regressions.py",
+        "tests/test_miniapp.py"
+      ],
+      "cause": "Existing object.__new__ test fixtures bypass new _cleanup_pending initialization.",
+      "evidence": "target-output.txt: 15 AttributeError failures; 452 passed.",
+      "fix_boundary": "Update owning fixtures to establish required construction invariants; retain all C1/C2 safety assertions.",
+      "violated_contract": "Dependent C1/C2 regressions must pass"
+    },
+    {
+      "id": "ISSUE-C3-R01",
+      "severity": "Major",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "source": "Root finding corroborated by frozen source review and root synthetic phase snapshot; not a separately run model smoke by L2",
+      "file": "src/application/gate5a4.py",
+      "lines": [
+        1063
+      ],
+      "cause": "Interrupted PARSING recovery plus queue completion ACK can remove durable job while Core is left nonterminal with result/outbox absent.",
+      "evidence": "Root product-08cfff0/direct_text phase-drain snapshot: one PARSING task, zero jobs, zero outbox/result.",
+      "fix_boundary": "Core-owned safe actionable terminalization and authoritative completion guard before queue ACK; no blind computation/effect restart."
+    }
+  ],
+  "results": [
+    {
+      "run": "target",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "15",
+          "skipped": "0",
+          "tests": "467",
+          "time": "74.196",
+          "timestamp": "2026-09-06T22:13:16.041590+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ]
+    },
+    {
+      "run": "expiry",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "3",
+          "skipped": "0",
+          "tests": "3",
+          "time": "5.774",
+          "timestamp": "2026-09-06T22:15:28.898322+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ]
+    },
+    {
+      "run": "core-lock",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "1",
+          "skipped": "0",
+          "tests": "1",
+          "time": "1.512",
+          "timestamp": "2026-09-06T22:18:19.722077+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ]
+    },
+    {
+      "run": "core-lock-v2",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "1",
+          "skipped": "0",
+          "tests": "1",
+          "time": "7.196",
+          "timestamp": "2026-09-06T22:19:01.045884+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ]
+    },
+    {
+      "run": "semantic",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "0",
+          "time": "0.003",
+          "timestamp": "2026-09-06T22:21:37.203844+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ]
+    },
+    {
+      "run": "semantic-v2",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "353",
+          "time": "13.400",
+          "timestamp": "2026-09-06T22:22:00.592623+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ]
+    }
+  ],
+  "authoritative_summary": {
+    "repository_tests_passed": 805,
+    "repository_tests_failed": 15,
+    "independent_valid_probes_failed": 4,
+    "platform_skips": 0,
+    "entry_checks_passed": 30,
+    "real_model_calls": 0,
+    "asr_calls": 0,
+    "external_effects": 0
+  },
+  "artifacts_sha256": {
+    "core-lock-junit.xml": "f419f2cf9e8201446c36824d9faaf66893a8a0ce43d964fab1722bace3dcfc08",
+    "core-lock-output.txt": "94954a4b079115815693e44904c07dc28c6945bc3ae167a8cc9f9da7b988994a",
+    "core-lock-v2-junit.xml": "ad113bfd3adb4c59f1f4d14115593f0afa589261e69ba7ca69598a7ab303a87a",
+    "core-lock-v2-output.txt": "81dd472d5a78f880058fb17737b93670a62e3ed70dc9a1fed7dba2ab78ea41d9",
+    "entry.json": "eda3d25d86d7127ef284f82a884a5ca15529fb6472e762a90163252b1334cc80",
+    "expiry-junit.xml": "cec002f39b84d33a7fd27841c4664ab05e25a9a823f6a66e79d98e64d2475329",
+    "expiry-output.txt": "907b08e36e49f71290d80dd8a0b88a0e33b6c0aff3b79af3e5680a7223470c35",
+    "semantic-junit.xml": "f6fbd80ecc74b200f8e35ae10a74079acb73897e58491a770c526b40861acc4d",
+    "semantic-output.txt": "d0bfbd7822ef1c9d91c937fb949006785ec86b331d1ee842fe91d8c6c38879f4",
+    "semantic-v2-junit.xml": "3394466c394abd578b938fcaad7e145c9547b0fba1254560c404d9a4b09eb6f0",
+    "semantic-v2-output.txt": "abb5004dc95cd6667309a3acf0a5c15fd26794620c6e008875e34bbaacda5ee0",
+    "target-junit.xml": "7003cbead3433d40e1dd19b28db56b371d3760121a3fb6a9be0d7e37c305e859",
+    "target-output.txt": "92033b860f86287fb14226472651bce3cc2782d65349d820ea84bac99ebe1e1a"
+  },
+  "probe_path": "review_worktree/.runtime/l2/probe_expiry.py",
+  "probe_sha256": "7e5997dab7476c490c64a287fe67f349225720d8fdf80c4a20e5aa3d5d1cbeb0",
+  "scope_reviewed": [
+    "full C3 launch prompt and 34-case matrix",
+    "exact C2 accepted entry and receipt hashes, no repeated C0-C2 gate campaign",
+    "admission/queue/reclaim/poison/fencing/concurrency",
+    "worker transient/permanent retry, generations, deadline and cleanup",
+    "sealed result recovery and terminal atomicity",
+    "outbox multipart receipts, artifact and tenant bindings",
+    "status readiness/degraded/attention projection",
+    "Mini App multipart input semantic canonicalization and idempotency",
+    "C1 semantic and C2 voice/TTL regressions"
+  ],
+  "retained_verifier_failures": [
+    "Initial core-lock probe requested lease 1 below accepted queue minimum 5; corrected probe uses lease 5 and preserves failing record.",
+    "Initial semantic run referenced nonexistent tests/test_runtime_maintenance.py and collected no tests; corrected run passed 353.",
+    "Initial entry assumed docs-only delta from C2 product source, but three test harness files changed before accepted frozen candidate; corrected rule compares product src/config bytes and frozen-to-publication docs-only delta.",
+    "One shell git revision argument lacked quoting around ^{tree}; exact subprocess argument-array reproduction subsequently passed."
+  ],
+  "risks": [
+    "Synthetic transport does not prove exactly-once Telegram accept-before-local-receipt window.",
+    "No live/deployment/ASR qualification or new provider calls performed by L2.",
+    "Final C3 documents were not frozen at this review; no final gate acceptance is issued."
+  ]
+}
