@@ -426,10 +426,11 @@ async def test_progress_card_gets_stages_and_periodic_heartbeat(
 
     await control._execute_with_lease(durable, job)
 
-    assert any("Codex выполняет задачу" in text for text in edits)
+    assert any("Выполняю задачу." in text for text in edits)
     assert any("Проверяю результат" in text for text in edits)
     assert sum("В работе:" in text for text in edits) >= 3
     assert all("Task:" not in text and "Event:" not in text for text in edits)
+    assert all("Codex" not in text for text in edits)
 
 
 @pytest.mark.asyncio
@@ -472,7 +473,8 @@ async def test_recovery_error_replaces_progress_card_with_safe_final(
     await control._finish_progress_with_error(durable)
 
     assert edits == [
-        "⚠️ Задачу не удалось восстановить. Отправьте её повторно."
+        "Нужно сверить состояние задачи. Откройте её в Mini App или проверьте /status; "
+        "не отправляйте её заново до сверки."
     ]
     assert state.read_progress(tenant_id="owner", task_id=task_id) is None
 

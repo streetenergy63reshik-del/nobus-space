@@ -160,3 +160,73 @@ test("double submit sends one POST while first response is delayed",async()=>{
   await h.run("createTask({preventDefault(){}})");assert.equal(posts,1);
   resolve(json({task_id:A,status:"queued"},202));await first;
 });
+
+test("unchanged successful read clears prior detail error",async()=>{
+  let failed=false;
+  const h=harness(url=>failed&&url==="/api/tasks/"+A?json({},503):undefined);
+  await flush();h.run('selectTask("'+A+'")');await flush();
+  failed=true;await h.run("readTask(selectedTaskId,selectionGeneration)");
+  assert.equal(h.$("detail-error").hidden,false);
+  failed=false;await h.run("readTask(selectedTaskId,selectionGeneration)");
+  assert.equal(h.$("detail-error").hidden,true);
+});
+test("exact boundary408 releases intent; unproven gateway408 stays unknown",async()=>{
+  for(const body of [{detail:"request_timeout"},{detail:"gateway_timeout"}]){
+    const h=harness((url,opts)=>url==="/api/tasks"&&opts.method==="POST"?json(body,408):undefined);
+    await flush();h.$("instruction").value="Тест";h.$("display-title").value="Название";
+    await h.run("createTask({preventDefault(){}})");
+    assert.equal(h.run("Boolean(pendingRequest)"),body.detail!=="request_timeout");
+    assert.equal(h.calls.filter(x=>x.url==="/api/tasks").length,1);
+  }
+});
+test("expired restored clarification resets visible new-task fields",async()=>{
+  const key="eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee";let posted=false;
+  const h=harness((url,opts)=>{
+    if(url==="/api/tasks"){posted=true;return json({detail:"clarification_invalid"},409);}
+    if(url.startsWith("/api/requests/"))return json(posted?
+      {request_id:h.run("pendingRequest"),state:"not_accepted",detail:"clarification_invalid"}:
+      {request_id:key,state:"clarification",question:"Какой период?",clarification_token:challenge});
+  },new Map([["nobus.clarification",key]]));
+  await flush();assert.equal(h.$("display-title").closest().hidden,true);
+  h.$("instruction").value="Этот месяц";await h.run("createTask({preventDefault(){}})");
+  assert.equal(h.run("clarification"),null);
+  assert.equal(h.$("display-title").closest().hidden,false);assert.equal(h.$("display-title").required,true);
+  assert.equal(h.$("submit-task").textContent,"Создать задачу");
+  assert.match(h.$("composer-error").textContent,/Укажите новый запрос/);
+});
+test("absent unknown intent clears only after explicit server cancellation",async()=>{
+  const key="dddddddd-dddd-4ddd-dddd-dddddddddddd";
+  const h=harness((url,opts)=>url==="/api/requests/"+key+"/cancel"?
+    json({request_id:key,state:"not_accepted",detail:"request_cancelled"}):undefined,
+    new Map([["nobus.pending",key]]));
+  await flush();assert.equal(h.run("pendingRequest"),key);assert.equal(h.$("new-task").disabled,true);
+  assert.match(h.$("state").textContent,/Отменить отправку/);
+  await h.run("cancelPending()");assert.equal(h.run("pendingRequest"),null);
+  assert.equal(h.$("new-task").disabled,false);assert.equal(h.storage.has("nobus.pending"),false);
+  assert.equal(h.calls.filter(x=>x.url==="/api/tasks").length,0);
+  assert.equal(h.calls.filter(x=>x.options.method==="POST"&&x.url.endsWith("/cancel")).length,1);
+});
+test("cancel cannot erase a journal-pending or already accepted request",async()=>{
+  const key="dddddddd-dddd-4ddd-dddd-dddddddddddd";
+  for(const state of ["pending","accepted"]){
+    const h=harness(url=>url.endsWith("/cancel")?
+      json({request_id:key,state,task_id:state==="accepted"?A:null}):undefined,
+      new Map([["nobus.pending",key]]));
+    await flush();await h.run("cancelPending()");await flush();
+    assert.equal(h.run("pendingRequest"),state==="pending"?key:null);
+    assert.equal(h.calls.filter(x=>x.url==="/api/tasks").length,0);
+    if(state==="accepted")assert.equal(h.run("selectedTaskId"),A);
+  }
+});
+test("cancel ACK loss keeps marker and resolves through authoritative lookup",async()=>{
+  const key="dddddddd-dddd-4ddd-dddd-dddddddddddd";let cancelled=false;
+  const storage=new Map([["nobus.pending",key]]);
+  const handler=url=>{
+    if(url.endsWith("/cancel")){cancelled=true;throw new TypeError("lost");}
+    if(cancelled&&url==="/api/requests/"+key)return json({request_id:key,state:"not_accepted",detail:"request_cancelled"});
+  };
+  const h=harness(handler,storage);await flush();await h.run("cancelPending()");
+  assert.equal(h.run("pendingRequest"),key);
+  const next=harness(handler,storage);await flush();assert.equal(next.run("pendingRequest"),null);
+  assert.equal(next.calls.filter(x=>x.options.method==="POST"&&x.url!=="/api/session/recover").length,0);
+});

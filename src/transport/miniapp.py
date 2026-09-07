@@ -25,6 +25,7 @@ from src.application.miniapp import (
     MiniAppSessionGrant,
     MiniAppRequestState,
     MiniAppRequestNotAccepted,
+    MiniAppRequestCancelled,
     MiniAppTaskArtifactDownload,
     MiniAppTaskConflictError,
     MiniAppTaskCreation,
@@ -63,6 +64,8 @@ class MiniAppCoreBoundary(Protocol):
     def recover_session(self, recovery_token: str) -> MiniAppSessionGrant: ...
 
     def request_state(self, bearer: str, idempotency_key: str) -> MiniAppRequestState: ...
+
+    async def cancel_absent_request(self, bearer: str, idempotency_key: str) -> MiniAppRequestState: ...
 
     def list_tasks(
         self, bearer: str, *, limit: int
@@ -303,6 +306,23 @@ def create_miniapp_app(
         except Exception:
             return _core_unavailable()
 
+    @app.post("/api/requests/{idempotency_key}/cancel")
+    async def cancel_absent_request(request: Request, idempotency_key: str) -> object:
+        if request.query_params or not await _body_is_empty(
+            request, timeout_seconds=float(init_data_read_timeout_seconds)
+        ):
+            return _invalid_request()
+        try:
+            return await core.cancel_absent_request(_bearer(request), idempotency_key)
+        except MiniAppAuthenticationError:
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        except MiniAppTaskRequestError:
+            return _invalid_request()
+        except MiniAppTaskNotFoundError:
+            return _task_not_found()
+        except Exception:
+            return _core_unavailable()
+
     @app.post("/api/tasks", status_code=202)
     async def create_task(request: Request) -> object:
         if request.query_params:
@@ -403,6 +423,8 @@ def create_miniapp_app(
             )
         except MiniAppTaskConflictError:
             return JSONResponse({"detail": "request_conflict"}, status_code=409)
+        except MiniAppRequestCancelled:
+            return JSONResponse({"detail": "request_cancelled"}, status_code=409)
         except MiniAppRequestNotAccepted as error:
             return JSONResponse(
                 {"detail": error.state.reason.value, "state": error.state.model_dump(mode="json")},

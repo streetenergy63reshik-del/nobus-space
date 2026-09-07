@@ -27,6 +27,7 @@
 |---|---|---|---|
 | Session reload | In-memory bearer утрачен, initData consumed | Core HMAC-bound one-use cookie; fresh signature после deadline | test_c4_miniapp_recovery |
 | ACK loss | JS key только в памяти, кнопка повтора | Durable Core request journal, opaque marker, GET reconcile | test_c4_miniapp_recovery + frontend.test.cjs |
+| Запрос не дошёл до Core | Неизвестный исход блокирует новую отправку | Явная отмена только отсутствующего запроса; Core запрещает его поздний приём | ADR0025, cancellation negatives, frontend.test.cjs |
 | Clarification | HTTP409 question скрыт общей ошибкой | Core readback вопроса, restore после reload, answer binding | test_c4_product_journey + frontend.test.cjs |
 | Transient read | Очищение выбранной task/list/bearer | Сохранение UI и явный bounded GET | frontend.test.cjs |
 | Result labels | «Проверенный ответ» из одного digest | «Результат»; integrity claim только после download hash | frontend.test.cjs |

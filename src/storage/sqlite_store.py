@@ -121,6 +121,17 @@ class MiniAppRequestRecord(BaseModel):
         return self
 
 
+class MiniAppCancelledRequest(BaseModel):
+    """Durable reservation against a delayed create; no invented task input."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    state: Literal["cancelled"] = "cancelled"
+    tenant_id: str = Field(min_length=1, max_length=128)
+    auth_context_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    idempotency_key: str = Field(pattern=r"^[A-Za-z0-9._~-]{16,128}$")
+
+
 class DurableTaskProjection(BaseModel):
     """Recovery-safe Task metadata; raw operational content is never persisted."""
 
@@ -1406,18 +1417,20 @@ class SQLiteStore:
             raise StoreCorruptionError("durable recovery is invalid") from None
 
     @staticmethod
-    def _miniapp_request_from_row(row: sqlite3.Row) -> MiniAppRequestRecord:
+    def _miniapp_request_from_row(row: sqlite3.Row) -> MiniAppRequestRecord | MiniAppCancelledRequest:
         try:
             payload = bytes(row["payload"])
             if "sha256:" + hashlib.sha256(payload).hexdigest() != row["payload_digest"]:
                 raise ValueError("invalid request digest")
-            record = MiniAppRequestRecord.model_validate_json(
-                unprotect_current_user(payload, entropy=_MINIAPP_REQUEST_ENTROPY)
-            )
-            envelope = record.envelope
-            if (envelope.tenant_id != row["tenant_id"]
-                    or envelope.idempotency_key != row["idempotency_key"]
-                    or envelope.auth_context_ref != row["auth_context_ref"]):
+            value = json.loads(unprotect_current_user(payload, entropy=_MINIAPP_REQUEST_ENTROPY))
+            if not isinstance(value, dict):
+                raise ValueError("invalid request record")
+            record = (MiniAppCancelledRequest.model_validate(value) if value.get("state") == "cancelled"
+                      else MiniAppRequestRecord.model_validate(value))
+            binding = record if isinstance(record, MiniAppCancelledRequest) else record.envelope
+            if (binding.tenant_id != row["tenant_id"]
+                    or binding.idempotency_key != row["idempotency_key"]
+                    or binding.auth_context_ref != row["auth_context_ref"]):
                 raise ValueError("invalid request binding")
             return record
         except (DpapiError, ValueError, TypeError):
@@ -1425,7 +1438,7 @@ class SQLiteStore:
 
     def read_miniapp_request(
         self, tenant_id: str, auth_context_ref: str, idempotency_key: str,
-    ) -> MiniAppRequestRecord | None:
+    ) -> MiniAppRequestRecord | MiniAppCancelledRequest | None:
         try:
             with closing(self._connect()) as connection:
                 row = connection.execute(
@@ -1439,7 +1452,7 @@ class SQLiteStore:
 
     def write_miniapp_request(
         self, record: MiniAppRequestRecord, *, claim: bool = False,
-    ) -> tuple[bool, MiniAppRequestRecord]:
+    ) -> tuple[bool, MiniAppRequestRecord | MiniAppCancelledRequest]:
         """Claim once before admission; finishing only replaces pending metadata."""
         record = MiniAppRequestRecord.model_validate(record.model_dump())
         envelope = record.envelope
@@ -1452,6 +1465,10 @@ class SQLiteStore:
                 ).fetchone()
                 if row is not None:
                     existing = self._miniapp_request_from_row(row)
+                    if isinstance(existing, MiniAppCancelledRequest):
+                        if existing.auth_context_ref != envelope.auth_context_ref:
+                            raise IngressClaimConflictError("trusted request conflict")
+                        return False, existing
                     if _stable_ingress_fingerprint(existing.envelope) != _stable_ingress_fingerprint(envelope):
                         raise IngressClaimConflictError("trusted request conflict")
                     expiring_clarification = (existing.state == "clarification"
@@ -1473,6 +1490,42 @@ class SQLiteStore:
                      payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
                 )
                 return True, record
+        except IngressClaimConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, DpapiError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
+
+    def cancel_absent_miniapp_request(
+        self, cancellation: MiniAppCancelledRequest,
+    ) -> MiniAppRequestRecord | MiniAppCancelledRequest | None:
+        """Atomically reserve an absent key; existing requests are never cancelled."""
+        cancellation = MiniAppCancelledRequest.model_validate(cancellation.model_dump())
+        tenant, context, key = cancellation.tenant_id, cancellation.auth_context_ref, cancellation.idempotency_key
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM miniapp_requests WHERE tenant_id=? AND idempotency_key=?", (tenant, key)
+                ).fetchone()
+                if row is not None:
+                    record = self._miniapp_request_from_row(row)
+                    binding = record if isinstance(record, MiniAppCancelledRequest) else record.envelope
+                    if binding.auth_context_ref != context:
+                        raise IngressClaimConflictError("trusted request conflict")
+                    return record
+                if connection.execute(
+                    "SELECT 1 FROM ingress_claims WHERE tenant_id=? AND idempotency_key=?", (tenant, key)
+                ).fetchone() is not None:
+                    return None
+                payload = protect_current_user(
+                    cancellation.model_dump_json().encode("utf-8"), entropy=_MINIAPP_REQUEST_ENTROPY
+                )
+                connection.execute(
+                    """INSERT INTO miniapp_requests
+                       (tenant_id,idempotency_key,auth_context_ref,payload,payload_digest)
+                       VALUES (?,?,?,?,?)""",
+                    (tenant, key, context, payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
+                )
+                return cancellation
         except IngressClaimConflictError:
             raise
         except (OSError, sqlite3.DatabaseError, DpapiError, ValueError, TypeError):

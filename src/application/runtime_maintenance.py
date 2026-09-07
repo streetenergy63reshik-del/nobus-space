@@ -221,7 +221,7 @@ def _read_only_store(path: Path):
 
 
 def _validate_task_runtime_rows(path: Path) -> None:
-    from src.storage.sqlite_store import _claim_binding_digest, _is_digest
+    from src.storage.sqlite_store import MiniAppCancelledRequest, _claim_binding_digest, _is_digest
 
     store = _read_only_store(path)
     with closing(sqlite3.connect(path)) as connection:
@@ -305,6 +305,8 @@ def _validate_task_runtime_rows(path: Path) -> None:
             raise RuntimeError("miniapp recovery binding mismatch")
     for row in requests:
         record = store._miniapp_request_from_row(row)
+        if isinstance(record, MiniAppCancelledRequest):
+            continue  # The closed tombstone schema and exact row binding were validated above.
         if (re.fullmatch(r"[A-Za-z0-9._~-]{16,128}", row["idempotency_key"]) is None
                 or record.envelope.source.value != "api"
                 or record.envelope.kind.value != "text"

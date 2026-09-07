@@ -128,6 +128,8 @@ function updateComposer() {
   submit.disabled = locked || !bearer; instruction.disabled = locked; displayTitle.disabled = locked;
   submit.textContent = submitting ? "Проверяем запрос…" : clarification ? "Ответить" : "Создать задачу";
   $("pending-read").hidden = !pendingRequest || submitting;
+  $("pending-cancel").hidden = !pendingRequest || submitting;
+  $("pending-cancel").disabled = !bearer;
   $("new-task").disabled = locked;
 }
 function openComposer() {
@@ -233,6 +235,7 @@ async function readTask(taskId, generation) {
     lastTaskRevision = task.task_revision;
     const renderKey = JSON.stringify([task.task_revision, task.delivery_label, task.delivery_pending, events.events]);
     if (renderKey !== lastRender) { renderTask(task, events.events, result, generation); lastRender = renderKey; }
+    $("detail-error").hidden = true;
     if (!pendingRequest) state.hidden = true;
     if ((!task.terminal || task.delivery_pending) && current(taskId, generation)) {
       if (++pollReads <= 100) pollTimer = setTimeout(() => readTask(taskId, generation), 3000);
@@ -288,30 +291,59 @@ async function acceptCreation(created) {
   if (composer.open) composer.close();
   announce("Задача принята"); selectTask(created.task_id); await loadTasks();
 }
+function resetClarification() {
+  saveMarker("clarification", null); clarification = null;
+  $("composer-title").textContent = "Что нужно сделать?"; $("clarification-question").hidden = true;
+  displayTitle.closest("label").hidden = false; displayTitle.required = true; updateComposer();
+}
+function unknownRequest(message) {
+  composerMessage(message);
+  notice(message, "Проверить приём", reconcilePending);
+  state.append(button("Отменить отправку", cancelPending));
+  state.append(element("p", "", "Отмена возможна, только если запрос ещё не принят."));
+}
+async function handleRequestOutcome(result, requestId) {
+  if (pendingRequest !== requestId || result.request_id !== requestId) throw new ApiError(503);
+  if (result.state === "accepted") { await acceptCreation(result); return true; }
+  if (result.state === "clarification") { showClarification(result.question, result.clarification_token, requestId); return true; }
+  if (result.state === "not_accepted") {
+    clearPending(); resetClarification();
+    const message = result.detail === "capability_unavailable" ? "Эта функция пока недоступна. Задача не создана." :
+      result.detail === "request_cancelled" ? "Отправка отменена. Этот запрос не создаст задачу." :
+      result.detail === "clarification_invalid" ? "Уточнение истекло или уже использовано. Задача не создана. Укажите новый запрос и название." :
+      "Запрос не принят. Проверьте формулировку.";
+    composerMessage(message); notice(message); return true;
+  }
+  if (result.state !== "pending") throw new ApiError(503);
+  return false;
+}
+async function cancelPending() {
+  if (!pendingRequest || submitting || !bearer) return;
+  const requestId = pendingRequest;
+  submitting = true; updateComposer();
+  try {
+    const response = await request("/api/requests/" + encodeURIComponent(requestId) + "/cancel", {
+      method:"POST", headers:{Authorization:"Bearer " + bearer}});
+    const result = await jsonResponse(response);
+    if (!(await handleRequestOutcome(result, requestId)))
+      unknownRequest("Запрос уже зафиксирован, отмена не подтверждена. Проверяйте его состояние.");
+  } catch (error) {
+    if (error?.status === 401) showError(error);
+    else unknownRequest("Отмена не подтверждена. Исходный запрос сохранён; проверьте его состояние.");
+  } finally { submitting = false; updateComposer(); }
+}
 async function reconcilePending() {
   if (!pendingRequest || submitting) return;
   const requestId = pendingRequest;
   try {
     const result = await api("/api/requests/" + encodeURIComponent(requestId));
-    if (pendingRequest !== requestId || result.request_id !== requestId) return;
-    if (result.state === "accepted") { await acceptCreation(result); return; }
-    if (result.state === "clarification") { showClarification(result.question, result.clarification_token, requestId); return; }
-    if (result.state === "not_accepted") {
-      clearPending(); saveMarker("clarification", null); clarification = null;
-      const message = result.detail === "capability_unavailable" ? "Эта функция пока недоступна. Задача не создана." :
-        result.detail === "clarification_invalid" ? "Уточнение истекло или уже использовано. Задача не создана." : "Запрос не принят. Проверьте формулировку.";
-      composerMessage(message); notice(message); return;
-    }
-    if (result.state !== "pending") throw new ApiError(503);
-    composerMessage("Приём ещё не подтверждён. Повторная задача не отправляется.");
-    notice("Приём ещё не подтверждён. Проверяйте исходный запрос.", "Проверить приём", reconcilePending);
+    if (pendingRequest !== requestId) return;
+    if (await handleRequestOutcome(result, requestId)) return;
+    unknownRequest("Приём ещё не подтверждён. Повторная задача не отправляется.");
   } catch (error) {
     if (pendingRequest !== requestId) return;
     if (error?.status === 401) showError(error, reconcilePending);
-    else {
-      composerMessage("Исход отправки неизвестен. Проверьте приём после восстановления соединения.");
-      notice("Исход отправки неизвестен. Повторная задача не отправляется.", "Проверить приём", reconcilePending);
-    }
+    else unknownRequest("Исход отправки неизвестен. Повторная задача не отправляется.");
   }
   updateComposer();
 }
@@ -331,7 +363,9 @@ async function createTask(event) {
       headers:{Authorization:"Bearer " + bearer, "Content-Type":"application/json", "Idempotency-Key":requestId},
       body:JSON.stringify(payload)});
     if (response.status === 202) await acceptCreation(await jsonResponse(response));
-    else if ([400,401,403,413,415].includes(response.status)) {
+    else if ([400,401,403,408,413,415].includes(response.status)) {
+      // Only the Core boundary's exact 408 proves refusal before admission.
+      if (response.status === 408 && (await response.json()).detail !== "request_timeout") throw new ApiError(408);
       clearPending();
       if (response.status === 401) showError(new ApiError(401));
       else composerMessage(response.status === 413 ? "Запрос слишком большой. Сократите текст." :
@@ -365,6 +399,7 @@ detailSheet.addEventListener("close", () => {
 });
 $("create-task").addEventListener("submit", createTask);
 $("pending-read").addEventListener("click", reconcilePending);
+$("pending-cancel").addEventListener("click", cancelPending);
 $("refresh-tasks").addEventListener("click", refresh);
 instruction.addEventListener("input", () => { $("character-count").textContent = instruction.value.length + " / 2000"; });
 window.addEventListener("offline", () => showError(new ApiError(0)));

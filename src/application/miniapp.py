@@ -47,7 +47,7 @@ from src.storage import (
     StoredTaskSnapshot,
     artifact_for_message,
 )
-from src.storage.sqlite_store import MiniAppRequestRecord
+from src.storage.sqlite_store import MiniAppCancelledRequest, MiniAppRequestRecord
 from src.storage.outbox import OutboxStatus
 
 
@@ -74,6 +74,10 @@ class MiniAppTaskConflictError(ValueError):
 
 class MiniAppTaskRequestError(ValueError):
     """A task mutation request is syntactically invalid."""
+
+
+class MiniAppRequestCancelled(ValueError):
+    """An absent request key was durably cancelled before admission."""
 
 
 class MiniAppRequestNotAccepted(RuntimeError):
@@ -124,7 +128,7 @@ class MiniAppRequestState(BaseModel):
     status: ProductTaskStatus | None = None
     question: str | None = None
     clarification_token: str | None = Field(default=None, repr=False)
-    detail: Literal["clarification_invalid", "capability_unavailable", "request_refused", "condition_not_met", "approval_required"] | None = None
+    detail: Literal["clarification_invalid", "capability_unavailable", "request_refused", "condition_not_met", "approval_required", "request_cancelled"] | None = None
 
 
 class MiniAppTaskSummary(BaseModel):
@@ -660,6 +664,8 @@ class MiniAppCore:
             raise MiniAppTaskConflictError("request_conflict") from None
         except StoreCorruptionError:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if isinstance(record, MiniAppCancelledRequest):
+            raise MiniAppRequestCancelled("request_cancelled")
         existing = self._existing_creation(
             envelope,
             admission,
@@ -761,6 +767,9 @@ class MiniAppCore:
             )
             if record is None:
                 raise MiniAppTaskNotFoundError("task_not_found")
+            if isinstance(record, MiniAppCancelledRequest):
+                return MiniAppRequestState(request_id=idempotency_key, state="not_accepted",
+                                           detail="request_cancelled")
             snapshot = self._store.read_ingress_claim(record.envelope)
             if snapshot is not None:
                 if self._task_admission is None:
@@ -779,6 +788,25 @@ class MiniAppCore:
             question=record.question, clarification_token=record.clarification_token,
             detail=record.detail,
         )
+
+    async def cancel_absent_request(self, bearer: str, idempotency_key: str) -> MiniAppRequestState:
+        if not isinstance(idempotency_key, str) or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None:
+            raise MiniAppTaskRequestError("invalid_request")
+        async with self._mutation_lock:
+            session = self._session(bearer)
+            try:
+                record = self._store.cancel_absent_miniapp_request(MiniAppCancelledRequest(
+                    tenant_id=session.tenant_id, auth_context_ref=session.auth_context_ref,
+                    idempotency_key=idempotency_key,
+                ))
+            except IngressClaimConflictError:
+                raise MiniAppTaskNotFoundError("task_not_found") from None
+            except StoreCorruptionError:
+                raise MiniAppCoreUnavailableError("core_unavailable") from None
+            if record is None:
+                # A legacy ingress claim without a journal is not proof of rejection.
+                return MiniAppRequestState(request_id=idempotency_key, state="pending")
+            return self.request_state(bearer, idempotency_key)
 
     def _existing_creation(
         self,

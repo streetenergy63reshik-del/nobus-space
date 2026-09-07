@@ -45,6 +45,27 @@ journal дополнительно ограничивает его срок 30 �
 возвращает существующую identity/уточнение либо честный pending. При отсутствии
 доказательства admission pending не превращается в «не выполнялось».
 
+Если POST не дошёл до Core, одно чтение 404 не доказывает, что отложенный POST
+не придёт позже. Чтобы владелец мог закончить такой запрос без второй задачи,
+`POST /api/requests/{key}/cancel` с действующей session, exact Origin и пустым
+телом атомарно резервирует отмену только отсутствующего key. В одной SQLite
+write-транзакции Core проверяет отсутствие journal и ingress claim, затем
+сохраняет в той же journal-таблице DPAPI-защищённую запись отмены, связанную с
+tenant/auth_context/key. Она не содержит фиктивной инструкции или envelope.
+Ответ `not_accepted / request_cancelled` означает запрет будущего admission
+этого key. Поздний POST отклоняется до compiler/queue; отменённый key никогда
+не переиспользуется для новой задачи.
+
+Если первым пришёл create и journal уже существует, cancel ничего не отменяет:
+он возвращает существующий authoritative accepted/clarification/pending/outcome.
+Если есть ingress claim без journal, Core сохраняет pending и не создаёт запись
+отмены. Один transaction lock сериализует cancellation и request claim даже
+между Core instances. Этот endpoint не останавливает вычисление, не отменяет
+принятую задачу и не превращает неизвестный исход выполнения в отказ.
+Повторная доставка cancellation безопасна, но UI не повторяет её автоматически;
+после потери ACK он читает прежний key. Новый запрос разрешён клиентом только
+после подтверждённого `not_accepted`, с новым key и заново введённым намерением.
+
 На клиенте разрешены только opaque navigation/request markers. Они помогают
 после reload найти Core state, но сами не дают authority. Bearer, initData,
 инструкция и clarification token не сохраняются в browser storage/URL.
@@ -75,5 +96,7 @@ Mini App только читает исход. Scope: ADR 0022 session/recovery 
 foreign owner/tenant/bot/request; signature replay/expiry; cookie Origin/body;
 concurrent rotation; ACK loss/reload; rebound input; persisted clarification;
 crash до journal outcome; отсутствие private text/token в plaintext SQLite;
+отмена отсутствующего запроса, late POST, cancellation/create race, неизменность
+pending/accepted/clarification, tenant/session/Origin/body и чтение отмены после reload;
 task/result/artifact binding. Весь C4 остаётся DRAFT до собственного frozen
 L1/L2/L3 и отдельно разрешённого настоящего Telegram/Mini App smoke.

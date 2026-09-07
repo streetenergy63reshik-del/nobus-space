@@ -9,7 +9,7 @@
   "independent_L3": "PENDING",
   "actual_local_inference": "PENDING",
   "browser_matrix": "BLOCKED: trusted RPC runtime unavailable",
-  "live_smoke": "NOT AUTHORIZED; HTTPS502, no local listener",
+  "live_smoke": "AUTHORIZED BY OWNER; exact temporary candidate plan in preparation; HTTPS502, no local listener",
   "screenshots": [],
   "publication": null,
   "model_turns": 0,

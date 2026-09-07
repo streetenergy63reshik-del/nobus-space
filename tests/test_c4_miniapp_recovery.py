@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
@@ -13,17 +14,19 @@ from fastapi.testclient import TestClient
 from src.application.durable_semantic import DurableSemanticClarificationStore
 from src.application.miniapp import (
     MiniAppAuthenticationError, MiniAppCore, MiniAppCoreUnavailableError,
-    MiniAppRequestNotAccepted, MiniAppTaskConflictError, MiniAppTaskNotFoundError,
+    MiniAppRequestCancelled, MiniAppRequestNotAccepted, MiniAppTaskConflictError, MiniAppTaskNotFoundError,
 )
 from src.application.runtime_maintenance import validate_runtime_database
 from src.application.semantic_admission import (
     SemanticAdmissionService, SemanticClarificationRejected, SemanticClarificationRequired,
 )
 from src.storage import SQLiteStore
+from src.storage.sqlite_store import MiniAppCancelledRequest, MiniAppRequestRecord
 from src.transport.miniapp import create_miniapp_app
 from tests.test_miniapp import (
     BOT_TOKEN, OTHER_BOT_TOKEN, OWNER_ID, ORIGIN, Clock, _miniapp_admission,
     core, headers, signed_init_data,
+    persist_task, NOW,
 )
 from tests.test_semantic_admission import _Compiler, _security_proposal
 from tests.test_telegram_task_control import TENANT_ID
@@ -209,6 +212,7 @@ def test_clarification_survives_reload_answers_same_conversation_and_rejects_old
     assert pending.state == "clarification"
     assert pending.question == question.value.question
     assert pending.clarification_token == question.value.token
+    assert asyncio.run(restarted.cancel_absent_request(recovered.access_token, KEY)) == pending
     assert len(compiler.calls) == calls
     with sqlite3.connect(store._path) as connection:
         payload = connection.execute("SELECT payload FROM miniapp_requests").fetchone()[0]
@@ -346,3 +350,131 @@ def test_session_time_is_rechecked_after_lock_and_store_wait(tmp_path, monkeypat
     monkeypatch.setattr(store, "replace_miniapp_recovery", delayed_write)
     with pytest.raises(MiniAppAuthenticationError):
         service.authenticate(signed_init_data(auth_date=clock.now, query_id="expires-during-write"))
+
+
+def test_cancel_absent_request_survives_reload_and_fences_any_delayed_create(tmp_path):
+    store, queue, admission = _miniapp_admission(tmp_path)
+    clock = Clock()
+    service = service_for(store, admission, clock)
+    grant = service.authenticate(signed_init_data())
+    with pytest.raises(MiniAppTaskNotFoundError):
+        service.request_state(grant.access_token, KEY)
+    cancelled = asyncio.run(service.cancel_absent_request(grant.access_token, KEY))
+    assert cancelled.state == "not_accepted" and cancelled.detail == "request_cancelled"
+    assert cancelled.task_id is None and cancelled.question is None
+    assert asyncio.run(service.cancel_absent_request(grant.access_token, KEY)) == cancelled
+    restarted = service_for(SQLiteStore(store._path), admission, clock)
+    recovered = restarted.recover_session(grant.recovery_token)
+    assert restarted.request_state(recovered.access_token, KEY) == cancelled
+    for text in ("Запоздавший запрос.", "Изменённый запрос."):
+        with pytest.raises(MiniAppRequestCancelled, match="^request_cancelled$"):
+            asyncio.run(restarted.create_task(recovered.access_token, text, KEY))
+    assert queue.queue_counts() == (0, 0) and store.list_tasks(TENANT_ID) == ()
+    fresh = asyncio.run(restarted.create_task(recovered.access_token, "Новый запрос.", KEY + "-new"))
+    assert fresh.task_id is not None and queue.queue_counts() == (0, 1)
+
+
+@pytest.mark.parametrize("admitted", [False, True])
+def test_cancel_never_changes_existing_pending_or_accepted_request(tmp_path, monkeypatch, admitted):
+    store, queue, admission = _miniapp_admission(tmp_path)
+    service = service_for(store, admission, Clock())
+    grant = service.authenticate(signed_init_data())
+    if not admitted:
+        async def failed(*args, **kwargs):
+            raise OSError("unknown before durable admission")
+        monkeypatch.setattr(admission, "submit_miniapp_task", failed)
+        with pytest.raises(MiniAppCoreUnavailableError):
+            asyncio.run(service.create_task(grant.access_token, "Один запрос.", KEY))
+    else:
+        asyncio.run(service.create_task(grant.access_token, "Один запрос.", KEY))
+    before = service.request_state(grant.access_token, KEY)
+    with sqlite3.connect(store._path) as connection:
+        payload = connection.execute("SELECT payload FROM miniapp_requests").fetchone()[0]
+    assert asyncio.run(service.cancel_absent_request(grant.access_token, KEY)) == before
+    with sqlite3.connect(store._path) as connection:
+        assert connection.execute("SELECT payload FROM miniapp_requests").fetchone()[0] == payload
+    assert queue.queue_counts() == (0, int(admitted))
+
+
+def test_cancellation_and_create_claim_are_one_atomic_choice_across_stores(tmp_path):
+    service = core(tmp_path)
+    grant = service.authenticate(signed_init_data())
+    envelope = service._task_envelope(service._session(grant.access_token),
+        instruction="Один запрос.", idempotency_key=KEY, display_title=None)
+    cancellation = MiniAppCancelledRequest(tenant_id="owner", auth_context_ref=service._auth_context_ref,
+                                          idempotency_key=KEY)
+    barrier = threading.Barrier(2)
+
+    def claim():
+        barrier.wait()
+        return SQLiteStore(service._store._path).write_miniapp_request(MiniAppRequestRecord(envelope=envelope), claim=True)
+
+    def cancel():
+        barrier.wait()
+        return SQLiteStore(service._store._path).cancel_absent_miniapp_request(cancellation)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        created, cancelled = executor.submit(claim), executor.submit(cancel)
+        claimed, request = created.result()
+        result = cancelled.result()
+    assert isinstance(request, MiniAppCancelledRequest) is not claimed
+    assert type(request) is type(result)
+    with sqlite3.connect(service._store._path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM miniapp_requests").fetchone()[0] == 1
+    assert service._store.list_tasks("owner") == ()
+
+
+def test_legacy_ingress_without_journal_is_not_cancelled(tmp_path):
+    from uuid import UUID
+
+    service = core(tmp_path)
+    task_id = UUID("00000000-0000-4000-8000-000000000099")
+    persist_task(service._store, tenant_id="owner", task_id=task_id, updated_at=NOW)
+    grant = service.authenticate(signed_init_data())
+    key = f"idem-{task_id}"
+    state = asyncio.run(service.cancel_absent_request(grant.access_token, key))
+    assert state.state == "pending" and state.detail is None
+    assert service._store.read_miniapp_request("owner", service._auth_context_ref, key) is None
+    assert service._store.read_task("owner", task_id) is not None
+
+
+def test_cancel_http_contract_requires_owner_origin_empty_body_and_rejects_late_post(tmp_path):
+    store, queue, admission = _miniapp_admission(tmp_path)
+    service = service_for(store, admission, Clock())
+    grant = service.authenticate(signed_init_data())
+    path = f"/api/requests/{KEY}/cancel"
+    with TestClient(create_miniapp_app(service, allowed_host="testserver", allowed_origin=ORIGIN), base_url=ORIGIN) as client:
+        assert client.post(path, headers={"Authorization": f"Bearer {grant.access_token}"}).status_code == 403
+        assert client.post(path, headers=headers()).status_code == 401
+        assert client.post(path, headers=headers(grant.access_token), content="{}").status_code == 400
+        assert client.post(path + "?operation=create", headers=headers(grant.access_token)).status_code == 400
+        assert client.post("/api/requests/short/cancel", headers=headers(grant.access_token)).status_code == 400
+        cancelled = client.post(path, headers=headers(grant.access_token))
+        assert cancelled.status_code == 200
+        assert cancelled.json()["detail"] == "request_cancelled"
+        late = client.post("/api/tasks", headers={**headers(grant.access_token), "Idempotency-Key": KEY},
+                           json={"instruction": "Поздний запрос."})
+        assert late.status_code == 409 and late.json() == {"detail": "request_cancelled"}
+    foreign = MiniAppCore(store=store, task_admission=admission, bot_token=OTHER_BOT_TOKEN,
+        owner_user_id=OWNER_ID, tenant_id=TENANT_ID, clock=Clock())
+    other = foreign.authenticate(signed_init_data(bot_token=OTHER_BOT_TOKEN, query_id="foreign-cancel"))
+    with pytest.raises(MiniAppTaskNotFoundError):
+        asyncio.run(foreign.cancel_absent_request(other.access_token, KEY))
+    with pytest.raises(MiniAppTaskNotFoundError):
+        foreign.request_state(other.access_token, KEY)
+    assert queue.queue_counts() == (0, 0)
+
+
+def test_runtime_validator_accepts_bound_cancellation_and_rejects_tampering(tmp_path):
+    database = tmp_path / "task-runtime.sqlite3"
+    service = MiniAppCore(store=SQLiteStore(database), bot_token=BOT_TOKEN,
+                          owner_user_id=OWNER_ID, tenant_id="owner", clock=Clock())
+    grant = service.authenticate(signed_init_data())
+    asyncio.run(service.cancel_absent_request(grant.access_token, KEY))
+    validate_runtime_database(database)
+    with sqlite3.connect(database) as connection:
+        connection.execute("UPDATE miniapp_requests SET idempotency_key=?", (KEY + "-forged",))
+    with pytest.raises(MiniAppCoreUnavailableError):
+        service.request_state(grant.access_token, KEY + "-forged")
+    with pytest.raises(Exception, match="durable request is invalid"):
+        validate_runtime_database(database)

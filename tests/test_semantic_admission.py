@@ -30,6 +30,7 @@ from src.application.semantic_admission import (
 from src.application.durable_semantic import DurableSemanticClarificationStore
 from src.application.durable_product import DurableProductTelegramControlPlane
 from src.application.durable_telegram_state import SQLiteTelegramState
+from src.application.product_status import ProductAdmissionStopped, ProductReason
 from src.application.runtime_maintenance import validate_runtime_database
 from src.contracts.models import canonical_json_digest
 
@@ -371,12 +372,14 @@ async def test_c1_security_corrections_stop_before_miniapp_task_contract(scenari
     control._semantic_admission = SemanticAdmissionService(compiler)
     control._semantic_clarifications = InMemorySemanticClarificationStore()
     control._product_runtime = Runtime()
-    error = SemanticClarificationRequired if scenario == "ambiguous" else RuntimeError
-    message = "semantic_clarification_required" if scenario == "ambiguous" else "semantic admission did not allow a task"
-    with pytest.raises(error, match=message):
+    error = SemanticClarificationRequired if scenario == "ambiguous" else ProductAdmissionStopped
+    message = "semantic_clarification_required" if scenario == "ambiguous" else "request_refused"
+    with pytest.raises(error, match=message) as raised:
         await control.submit_miniapp_task(
             instruction, make_envelope(idempotency_key=f"c1-miniapp-{scenario}")
         )
+    if scenario != "ambiguous":
+        assert raised.value.state.reason is ProductReason.REQUEST_REFUSED
     assert compiler.calls[0][0]["modality"] == "miniapp_text"
 
 _TAIL_VIOLATIONS = {
@@ -577,8 +580,9 @@ async def test_conditional_tail_product_path_stops_before_task_contract(tmp_path
         control._semantic_admission = service
         control._semantic_clarifications = InMemorySemanticClarificationStore()
         control._product_runtime = NoTaskRuntime()
-        with pytest.raises(RuntimeError, match="semantic admission did not allow a task"):
+        with pytest.raises(ProductAdmissionStopped) as stopped:
             await control.submit_miniapp_task(instruction, make_envelope(idempotency_key="c1-tail-product"))
+        assert stopped.value.state.reason is ProductReason.REQUEST_REFUSED
     else:
         harness = _product(tmp_path, voice=modality == "voice_transcript", voice_text=instruction,
                            extended_routes=False, semantic_admission=service,
