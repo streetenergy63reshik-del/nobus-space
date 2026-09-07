@@ -14,6 +14,7 @@ from src.application.fake_vertical import (
     FakeVerticalResponse,
     FakeVerticalStatus,
 )
+from src.application.durable_telegram_state import guarded_task_write
 from src.contracts import (
     TaskContract,
     TrustedIngressEnvelope,
@@ -30,6 +31,7 @@ from src.storage import (
     SQLiteStore,
     StoredTaskSnapshot,
 )
+from src.storage.outbox import DeliveryPartReceipt
 from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, VoiceMessage
 from src.voice import (
     InMemoryVoiceConfirmationStore,
@@ -414,14 +416,10 @@ class DurableFakeRuntime(FakeVertical):
         task = await self._state.get(task_id)
         snapshot = self._store.read_task(tenant_id, task_id)
         return bool(
-            task is not None
-            and snapshot is not None
-            and task.tenant_id == tenant_id
-            and task.contract_digest == contract_digest
+            snapshot is not None
             and snapshot.projection.contract_digest == contract_digest
-            and task.status in self._OUTBOX_STATUSES
-            and snapshot.projection.status is task.status
-            and self._revisions.get(task.id) == snapshot.revision
+            and snapshot.projection.status in self._OUTBOX_STATUSES
+            and (task is None or (task.tenant_id == tenant_id and task.contract_digest == contract_digest))
         )
 
     async def _begin_task(
@@ -433,14 +431,15 @@ class DurableFakeRuntime(FakeVertical):
         captured: list[StoredTaskSnapshot] = []
 
         def persist(candidate: Task) -> None:
-            created, snapshot = self._store.claim_ingress_with_task(
-                envelope,
-                contract,
-                candidate,
-            )
-            if not created:
-                raise DuplicateIdempotencyKeyError("durable ingress already claimed")
-            captured.append(snapshot)
+            with guarded_task_write(candidate.tenant_id, candidate.id, candidate.contract_digest):
+                created, snapshot = self._store.claim_ingress_with_task(
+                    envelope,
+                    contract,
+                    candidate,
+                )
+                if not created:
+                    raise DuplicateIdempotencyKeyError("durable ingress already claimed")
+                captured.append(snapshot)
 
         task = await self._state.create_from_contract(
             contract,
@@ -460,23 +459,24 @@ class DurableFakeRuntime(FakeVertical):
         captured: list[int] = []
 
         def persist(candidate: Task) -> None:
-            if candidate.status in self._OUTBOX_STATUSES:
-                result = self._store.save_task_and_enqueue_status(
-                    candidate,
-                    expected_revision=revision,
-                    destination_ref=self._destination_refs[candidate.tenant_id],
-                    user_message=user_message,
-                    now=self._now(),
-                )
-                captured.append(result.task_revision)
-            else:
-                if user_message is not None:
-                    raise RuntimeError("only terminal outbox updates may carry a message")
-                snapshot = self._store.save_task(
-                    candidate,
-                    expected_revision=revision,
-                )
-                captured.append(snapshot.revision)
+            with guarded_task_write(candidate.tenant_id, candidate.id, candidate.contract_digest):
+                if candidate.status in self._OUTBOX_STATUSES:
+                    result = self._store.save_task_and_enqueue_status(
+                        candidate,
+                        expected_revision=revision,
+                        destination_ref=self._destination_refs[candidate.tenant_id],
+                        user_message=user_message,
+                        now=self._now(),
+                    )
+                    captured.append(result.task_revision)
+                else:
+                    if user_message is not None:
+                        raise RuntimeError("only terminal outbox updates may carry a message")
+                    snapshot = self._store.save_task(
+                        candidate,
+                        expected_revision=revision,
+                    )
+                    captured.append(snapshot.revision)
 
         task = await self._state.update(
             task_id,
@@ -523,13 +523,14 @@ class DurableFakeRuntime(FakeVertical):
         captured: list[StoredTaskSnapshot] = []
 
         def persist(candidate: Task) -> None:
-            captured.append(
-                self._store.save_task_and_append_event(
-                    candidate,
-                    event,
-                    expected_revision=revision,
+            with guarded_task_write(candidate.tenant_id, candidate.id, candidate.contract_digest):
+                captured.append(
+                    self._store.save_task_and_append_event(
+                        candidate,
+                        event,
+                        expected_revision=revision,
+                    )
                 )
-            )
 
         started = await self._state.update(
             task.id,
@@ -559,35 +560,37 @@ class DurableFakeRuntime(FakeVertical):
         captured: list[StoredTaskSnapshot] = []
 
         def persist(candidate: Task) -> None:
-            if candidate.result_digest is None or candidate.result is None:
-                raise RuntimeError("durable worker result binding is unavailable")
-            output_digest = candidate.result.get("output_digest")
-            if not isinstance(output_digest, str):
-                raise RuntimeError("durable worker output binding is unavailable")
-            event = WorkerEvent(
-                event_id=uuid4(),
-                tenant_id=candidate.tenant_id,
-                task_id=candidate.id,
-                attempt_id=attempt_id,
-                contract_digest=candidate.contract_digest,
-                worker_identity=self._EXECUTOR_IDENTITY,
-                sequence=2,
-                event_type=WorkerEventType.RESULT_READY,
-                emitted_at=self._now(),
-                payload={
-                    "result_ref": output_digest,
-                    "result_revision": candidate.result_revision,
-                    "result_digest": candidate.result_digest,
-                },
-            )
-            self._policy_store.accept_event(event)
-            captured.append(
-                self._store.save_task_and_append_event(
-                    candidate,
-                    event,
-                    expected_revision=revision,
+            with guarded_task_write(candidate.tenant_id, candidate.id, candidate.contract_digest):
+                if candidate.result_digest is None or candidate.result is None:
+                    raise RuntimeError("durable worker result binding is unavailable")
+                output_digest = candidate.result.get("output_digest")
+                if not isinstance(output_digest, str):
+                    raise RuntimeError("durable worker output binding is unavailable")
+                event = WorkerEvent(
+                    event_id=uuid4(),
+                    tenant_id=candidate.tenant_id,
+                    task_id=candidate.id,
+                    attempt_id=attempt_id,
+                    contract_digest=candidate.contract_digest,
+                    worker_identity=self._EXECUTOR_IDENTITY,
+                    sequence=2,
+                    event_type=WorkerEventType.RESULT_READY,
+                    emitted_at=self._now(),
+                    payload={
+                        "result_ref": output_digest,
+                        "result_revision": candidate.result_revision,
+                        "result_digest": candidate.result_digest,
+                    },
                 )
-            )
+                self._policy_store.accept_event(event)
+                captured.append(
+                    self._store.save_task_and_append_event(
+                        candidate,
+                        event,
+                        expected_revision=revision,
+                        **({"answer_message": message} if result_kind == "answer" else {}),
+                    )
+                )
 
         recorded = await self._state.update(
             task.id,
@@ -646,14 +649,15 @@ class DurableFakeRuntime(FakeVertical):
         captured: list[int] = []
 
         def persist(candidate: Task) -> None:
-            result = self._store.save_task_and_enqueue_status(
-                candidate,
-                expected_revision=revision,
-                destination_ref=self._destination_refs[candidate.tenant_id],
-                event=event,
-                now=self._now(),
-            )
-            captured.append(result.task_revision)
+            with guarded_task_write(candidate.tenant_id, candidate.id, candidate.contract_digest):
+                result = self._store.save_task_and_enqueue_status(
+                    candidate,
+                    expected_revision=revision,
+                    destination_ref=self._destination_refs[candidate.tenant_id],
+                    event=event,
+                    now=self._now(),
+                )
+                captured.append(result.task_revision)
 
         failed = await self._state.update(
             task.id,
@@ -676,46 +680,79 @@ class DurableFakeRuntime(FakeVertical):
         """Deliver content-free status records through one injected fake boundary."""
         if tenant_id not in self._destination_refs:
             raise ValueError("tenant delivery is not configured")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("delivery limit must be between 1 and 100")
         owner = uuid4()
-        claimed = self._store.claim_outbox_messages(
-            tenant_id,
-            lease_owner=owner,
-            lease_duration_seconds=lease_seconds,
-            limit=limit,
-            now=self._now(),
-        )
         outcomes: list[OutboxMessage] = []
         expected_destination = self._destination_refs[tenant_id]
-        for message in claimed:
-            if message.destination_ref != expected_destination:
-                delivered = False
-            else:
-                try:
-                    delivered = await sender(message)
-                    if type(delivered) is not bool:
-                        raise TypeError("delivery boundary must return bool")
-                except asyncio.CancelledError:
-                    raise
-                except Exception:
-                    delivered = False
-            if message.lease_id is None:
+        for _ in range(limit):
+            # Each message receives a fresh lease only when its delivery starts.
+            claimed = self._store.claim_outbox_messages(
+                tenant_id, lease_owner=owner, lease_duration_seconds=lease_seconds,
+                limit=1, now=self._now(),
+            )
+            if not claimed:
+                break
+            message = claimed[0]
+            if message.lease_id is None or message.lease_expires_at is None:
                 raise RuntimeError("claimed outbox message has no lease")
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + max(0.0, (message.lease_expires_at - self._now()).total_seconds() - 0.05)
+            outcome = ReceiptType.NACK
+            cancelled = False
+
+            async def send(call) -> bool:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    raise TimeoutError
+                delivered = await asyncio.wait_for(call(), timeout=remaining)
+                if loop.time() >= deadline:
+                    raise TimeoutError
+                if type(delivered) is not bool:
+                    raise TypeError("delivery boundary must return bool")
+                return delivered
+
+            try:
+                if message.destination_ref == expected_destination:
+                    manifest = getattr(sender, "delivery_manifest", None)
+                    send_part = getattr(sender, "send_part", None)
+                    if callable(manifest) and callable(send_part):
+                        parts = self._store.bind_delivery_parts(
+                            message, manifest(message), lease_owner=owner, now=self._now(),
+                        )
+                        outcome = ReceiptType.ACK
+                        for part, existing in parts:
+                            if existing is not None:
+                                continue
+                            outcome = ReceiptType.TIMEOUT  # Remote outcome is unknown until a local receipt.
+                            if not await send(lambda: send_part(message, part)):
+                                outcome = ReceiptType.NACK
+                                break
+                            self._store.record_delivery_part(
+                                DeliveryPartReceipt(receipt_id=uuid4(), tenant_id=message.tenant_id,
+                                    message_id=message.message_id, lease_id=message.lease_id,
+                                    attempt_count=message.attempt_count, received_at=self._now(),
+                                    part_id=part.part_id, manifest_digest=part.manifest_digest,
+                                    part_index=part.index), lease_owner=owner, now=self._now(),
+                            )
+                            outcome = ReceiptType.ACK
+                    else:
+                        outcome = ReceiptType.TIMEOUT
+                        outcome = ReceiptType.ACK if await send(lambda: sender(message)) else ReceiptType.NACK
+            except asyncio.CancelledError:
+                cancelled = True
+            except Exception:
+                pass
             receipt = DeliveryReceipt(
-                receipt_id=uuid4(),
-                tenant_id=message.tenant_id,
-                message_id=message.message_id,
-                lease_id=message.lease_id,
-                attempt_count=message.attempt_count,
-                receipt_type=ReceiptType.ACK if delivered else ReceiptType.NACK,
-                received_at=self._now(),
+                receipt_id=uuid4(), tenant_id=message.tenant_id,
+                message_id=message.message_id, lease_id=message.lease_id,
+                attempt_count=message.attempt_count, receipt_type=outcome, received_at=self._now(),
             )
-            outcomes.append(
-                self._store.record_outbox_receipt(
-                    receipt,
-                    lease_owner=owner,
-                    now=self._now(),
-                )
-            )
+            try:
+                outcomes.append(self._store.record_outbox_receipt(receipt, lease_owner=owner, now=self._now()))
+            finally:
+                if cancelled:
+                    raise asyncio.CancelledError
         return tuple(outcomes)
 
     @staticmethod

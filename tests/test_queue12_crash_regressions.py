@@ -408,6 +408,7 @@ async def test_progress_card_gets_stages_and_periodic_heartbeat(
         await asyncio.Event().wait()
 
     control._draft_and_present = draft
+    control._cleanup_pending = set()
     control._renew = renew
     monkeypatch.setattr(
         durable_product_module, "_PROGRESS_INTERVAL_SECONDS", 0.01
@@ -742,8 +743,8 @@ def test_product_status_surfaces_dead_letter(tmp_path: Path) -> None:
 
     status = control._status_text()
 
-    assert "Сбойных задач: 1" in status
-    assert "Состояние очереди: требует проверки" in status
+    assert "Требуют внимания: 1" in status
+    assert "Исполнитель: недоступен" in status
 
 
 @pytest.mark.asyncio

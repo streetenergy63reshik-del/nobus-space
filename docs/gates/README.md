@@ -1,8 +1,8 @@
 # Gate index
 
-<!-- C2_CURRENT_START -->
-C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](gate-c2-voice-parity/HANDOFF.md). C3 READY TO START / NOT_STARTED; весь MVP1 ещё не READY.
-<!-- C2_CURRENT_END -->
+<!-- C3_CURRENT_START -->
+C3 ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
+<!-- C3_CURRENT_END -->
 
 
 **Статус:** ACCEPTED C1 / ACCEPTED C2 + HISTORICAL SEALED BASELINE
@@ -29,7 +29,7 @@ checkpoints, не отдельные пользовательские чаты.
 | C0 — единая истина и контракт | `PUBLISHED / ACCEPTED` @ `70085f8...`, tree `3a31914a...` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
 | C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED / NOT DEPLOYED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
-| C3 — стабильность Core/backend/worker | READY TO START / NOT_STARTED | queue/state/retry/status/recovery |
+| C3 — стабильность Core/backend/worker | ACCEPTED / PASS / AWAITING PUBLICATION | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
 | C4 — завершённый frontend/user journey | HOLD до C3 | Telegram/Mini App E2E |
 | C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
 | C6 — frozen release и owner acceptance | HOLD до C5 | exact publication/activation/readback/acceptance |
@@ -95,5 +95,4 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Acceptance всего MVP1 переоткрыта; следующий Gate после принятого C1 —
-C2, а не historical G7/G8 sequence.
+границах. Acceptance всего MVP1 переоткрыта; текущий Gate — C3; дальнейшая последовательность — C4–C6.

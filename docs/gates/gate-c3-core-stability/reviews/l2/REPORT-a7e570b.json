@@ -1,0 +1,171 @@
+{
+  "role": "Independent L2",
+  "reviewed_head": "a7e570bb084ea0324f05b1ec80328c72372a6858",
+  "reviewed_tree": "2189ba333ad686be8e5ad42f6ee4dc553eeadf19",
+  "utc": "2026-09-07T04:48:39.317483+00:00",
+  "code_verdict": "CODE REJECT",
+  "gate_verdict": "REJECT pending physical close ownership rework",
+  "source_changed_by_reviewer": false,
+  "clean_detached_checkout": true,
+  "model_calls": 0,
+  "asr_calls": 0,
+  "external_effects": 0,
+  "runs": [
+    {
+      "reviewed_sha": "a7e570bb084ea0324f05b1ec80328c72372a6858",
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        "tests/test_c3_startup_lifecycle.py",
+        "tests/test_c3_shutdown.py",
+        "tests/test_codex_sdk.py",
+        "tests/test_c3_worker_retry.py",
+        "tests/test_c3_smoke_guards.py",
+        "tests/test_runtime_operations.py",
+        ".runtime/l2/probe_sdk_thread_ownership.py",
+        "--basetemp=.runtime/l2/pytest-a7e570b-startup",
+        "--junitxml=../../c3/reviews/l2/a7e570b-startup-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 0,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "96",
+          "time": "23.403",
+          "timestamp": "2026-09-07T07:45:53.466710+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output_sha256": "7e36cf79d71391508cfa3860562f69bc26941501f7dc9c43faf46f96ddfb55d2",
+      "junit_sha256": "69238a35599380ea071c5fc08f7ae1f5535fbe581e553fb73abdeeffe6a7f820"
+    },
+    {
+      "reviewed_sha": "a7e570bb084ea0324f05b1ec80328c72372a6858",
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        ".runtime/l2/probe_sdk_physical_close.py",
+        "tests/test_c3_sdk_physical_start.py",
+        "--basetemp=.runtime/l2/pytest-a7e570b-physical-close",
+        "--junitxml=../../c3/reviews/l2/a7e570b-physical-close-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 1,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "1",
+          "skipped": "0",
+          "tests": "5",
+          "time": "1.321",
+          "timestamp": "2026-09-07T07:46:49.890319+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output_sha256": "f34eafa961c923cd3882ffbacd1856fc0f5bb9abb61759c0f0f90886fcc84a2e",
+      "junit_sha256": "8443a4fd463df7a76ad7f48e139a41377e0370126c4cef0195abc410542e5e57"
+    },
+    {
+      "reviewed_sha": "e6190be47b1e880c87304774455e773c83470338",
+      "argv": [
+        "canonical .venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "--tb=short",
+        ".runtime/l2/probe_sdk_thread_ownership.py",
+        "--basetemp=.runtime/l2/pytest-e619-ownership",
+        "--junitxml=../../c3/reviews/l2/e619-ownership-junit.xml"
+      ],
+      "environment": {
+        "DEBUG": "false"
+      },
+      "exit_code": 1,
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "2",
+          "skipped": "0",
+          "tests": "2",
+          "time": "0.785",
+          "timestamp": "2026-09-07T07:43:17.398213+03:00",
+          "hostname": "Voyan-Vas"
+        }
+      ],
+      "output_sha256": "f4c601e737c80f282330257c2e19408ccdfb7c4317224d4d711523250c2cf52d",
+      "junit_sha256": "e10c5542dbb4d857ee573f3ca666943db3ffa8955a49f8bf434f52ce58c46a78"
+    }
+  ],
+  "closed_findings": [
+    "ISSUE-C3-L2-01",
+    "ISSUE-C3-L2-02",
+    "ISSUE-C3-R01",
+    "ISSUE-C3-L2-03",
+    "ISSUE-C3-L2-04"
+  ],
+  "L2_04_basis": "Same independent two-mode real installed SDK probe fails2 on e619 and passes2 on a7; additionally author physical-start suite4 PASS. Startup is shielded, retained/quarantined, pending close rejects, late process automatically terminated, ownership drained.",
+  "findings": [
+    {
+      "id": "ISSUE-C3-L2-05",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "severity": "Major",
+      "file": "src/workers/codex_sdk.py",
+      "line": 531,
+      "related_lines": [
+        443,
+        468
+      ],
+      "cause": "_close_client uses wait_for(client.close), cancelling its async wait when SDK is inside to_thread(sync.close). SDK sets _proc=None before stdin.close/terminate. A second _close_client invocation sees _proc=None, returns success and clears retired ownership despite first physical close still blocked before terminate.",
+      "evidence": "Actual installed AsyncCodex/AsyncCodexClient/CodexClient close with inert process; only stdin.close is controlled by a threading.Event. adapter.close returned None success, synthetic terminate flag remained false. Probe failed before cleanup release; no real process or model.",
+      "fix_boundary": "Retain/shield a single pending client.close operation per generation. Timeout remains UNKNOWN and cannot be cleared by a second no-op close. Do not clear retired ownership or claim clean close until the same physical operation actually completes."
+    }
+  ],
+  "delta_from_e619": [
+    "src/workers/codex_sdk.py",
+    "tests/test_c3_sdk_physical_start.py",
+    "tests/test_c3_startup_lifecycle.py"
+  ],
+  "explicit_evidence_transfer": {
+    "prior_report": "REPORT-e6190be.json",
+    "sha256": "09a6901029938813fc99c38bbbd77f84d46c280c182c59afca308c54c2658e8e",
+    "unchanged_boundary_scope": "e619→a7 changes only SDK startup ownership methods and startup tests. All Core/queue/outbox/C1/C2/task/result/artifact/effect source files remain byte-identical. Same model prompts, permissions, retry policy, output processing and provider turn methods. Prior product evidence continues to support only these unchanged result/replay semantics, never startup/shutdown health.",
+    "not_transferred": "No final CODE ACCEPT or Gate ACCEPT from prior reviews; physical close ownership is newly rejected.",
+    "historical_scope": "No C0-C2 reacceptance or real model/ASR rerun."
+  },
+  "independent_probes": [
+    {
+      "path": ".runtime/l2/probe_sdk_thread_ownership.py",
+      "sha256": "20394d98cb2da999ad0119ee44886a831a30201d3ebefa7286bbef45d4c60ee0"
+    },
+    {
+      "path": ".runtime/l2/probe_sdk_physical_close.py",
+      "sha256": "d4023197bc63e8730c1d4a9ba85138c9619f7ff839b07be5b0ff1f2aeb0639b3"
+    }
+  ],
+  "previous_reports_preserved": [
+    "REPORT-08cfff0.json",
+    "REPORT-fd5f9ce.json",
+    "EVIDENCE-66eb2d7.json",
+    "REPORT-e6190be.json"
+  ],
+  "diff_check_exit_code": 0
+}

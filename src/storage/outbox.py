@@ -18,6 +18,7 @@ from src.models.task import TaskStatus
 
 _MESSAGE_NAMESPACE = UUID("31e9673a-5a4f-4c0e-8c94-3dc7c80fe63a")
 _ARTIFACT_NAMESPACE = UUID("0e3fcb68-b7f4-4cdf-b01d-16bd5ac2fab7")
+_PART_NAMESPACE = UUID("a5c8ed5b-e35a-4cf4-8d65-915a6210097b")
 _MAX_ARTIFACT_BYTES = 1024 * 1024
 _MAX_ARTIFACT_BASE64 = ((_MAX_ARTIFACT_BYTES + 2) // 3) * 4
 _SAFE_ARTIFACT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -122,6 +123,8 @@ class OutboxMessage(BaseModel):
     user_message: str | None = Field(
         default=None, min_length=1, max_length=128 * 1024
     )
+    delivery_manifest_digest: str | None = Field(default=None, pattern=r"^sha256:[0-9a-f]{64}$")
+    delivery_part_count: StrictInt = Field(default=0, ge=0, le=128)
     status: OutboxStatus
     attempt_count: StrictInt = Field(ge=0)
     max_attempts: StrictInt = Field(ge=1, le=10)
@@ -159,6 +162,8 @@ class OutboxMessage(BaseModel):
                 raise ValueError(f"{field_name} must be timezone-aware")
         if self.updated_at < self.created_at:
             raise ValueError("updated_at must not precede created_at")
+        if (self.delivery_manifest_digest is None) != (self.delivery_part_count == 0):
+            raise ValueError("delivery manifest count is invalid")
         if self.result_revision == 0 and self.result_digest is not None:
             raise ValueError("result revision zero cannot have a digest")
         if self.result_revision > 0 and self.result_digest is None:
@@ -235,6 +240,79 @@ class DeliveryReceipt(BaseModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("received_at must be timezone-aware")
         return value.astimezone(UTC)
+
+
+class DeliveryPart(BaseModel):
+    """One immutable part of the exact destination-bound message manifest."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    part_id: UUID
+    message_fingerprint: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    manifest_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    index: StrictInt = Field(ge=0, le=127)
+    total: StrictInt = Field(ge=1, le=128)
+    kind: Literal["text", "document"]
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    size: StrictInt = Field(ge=1, le=_MAX_ARTIFACT_BYTES)
+
+    @model_validator(mode="after")
+    def validate_identity(self) -> "DeliveryPart":
+        if self.index >= self.total or self.part_id != uuid5(
+            _PART_NAMESPACE,
+            canonical_json_digest(self.model_dump(mode="json", exclude={"part_id"})),
+        ):
+            raise ValueError("delivery part identity is invalid")
+        return self
+
+
+class DeliveryPartReceipt(DeliveryReceipt):
+    part_id: UUID
+    manifest_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    part_index: StrictInt = Field(ge=0, le=127)
+    receipt_type: Literal[ReceiptType.ACK] = ReceiptType.ACK
+
+
+def delivery_parts(
+    message: OutboxMessage, parts: tuple[tuple[str, bytes], ...]
+) -> tuple[DeliveryPart, ...]:
+    """Bind transport-rendered bytes before any remote send."""
+    validated = OutboxMessage.model_validate(message.model_dump(mode="json"))
+    if not 1 <= len(parts) <= 128:
+        raise ValueError("delivery manifest size is invalid")
+    metadata = [
+        {"kind": kind, "content_digest": "sha256:" + hashlib.sha256(content).hexdigest(),
+         "size": len(content)}
+        for kind, content in parts
+    ]
+    manifest = canonical_json_digest(
+        {"message_fingerprint": validated.message_fingerprint, "parts": metadata}
+    )
+    result = []
+    for index, values in enumerate(metadata):
+        values = dict(values, message_fingerprint=validated.message_fingerprint,
+                      manifest_digest=manifest, index=index, total=len(parts))
+        result.append(DeliveryPart(
+            part_id=uuid5(_PART_NAMESPACE, canonical_json_digest(values)), **values
+        ))
+    return tuple(result)
+
+
+def validate_delivery_parts(
+    message: OutboxMessage, parts: tuple[DeliveryPart, ...]
+) -> tuple[DeliveryPart, ...]:
+    validated = tuple(DeliveryPart.model_validate(p.model_dump(mode="json")) for p in parts)
+    metadata = [p.model_dump(include={"kind", "content_digest", "size"}) for p in validated]
+    digest = canonical_json_digest(
+        {"message_fingerprint": message.message_fingerprint, "parts": metadata}
+    )
+    if not validated or any(
+        p.index != index or p.total != len(validated)
+        or p.message_fingerprint != message.message_fingerprint
+        or p.manifest_digest != digest for index, p in enumerate(validated)
+    ):
+        raise ValueError("delivery manifest binding is invalid")
+    return validated
 
 
 class OutboxEnqueueResult(BaseModel):

@@ -1,0 +1,525 @@
+{
+  "schema_version": "c3-evidence-1",
+  "verdict": "ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED",
+  "base": {
+    "sha": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+    "tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+    "handoff_blob": "6d0fee2bdb82af3ffdb92faac22dc0218572e0e6",
+    "entry_check": "PASS; C0-C2 acceptance not reopened",
+    "fresh_github_main_matches_base": true,
+    "protected": true,
+    "required_checks_at_entry": []
+  },
+  "historical_product_candidate": {
+    "sha": "08cfff031803211334f6da9da377b18226c5a393",
+    "tree": "fa265fb5a0c792ba342db025e1ecf584614cf36f",
+    "verdict": "REJECTED / REWORK REQUIRED",
+    "full_wip": {
+      "passed": 2053,
+      "subtests_passed": 25,
+      "failed": 1,
+      "skipped": 2,
+      "deselected": 1,
+      "failure": "VERIFIER_DEFECT: in-progress documentation linked to EVIDENCE.json before it existed; run predates child-cleanup change"
+    },
+    "real_product_smoke": {
+      "verdict": "FAIL",
+      "scenario": "direct_text controlled restart",
+      "finding": "R01: interrupted PARSING recovery attempted illegal PENDING transition and queue ACK accepted a failed result without durable completion"
+    },
+    "independent_L2": "CODE REJECT: after-lock outbox expiry, expiry while waiting Core lock, fixture initialization",
+    "independent_L3": "CODE REJECT: missing sealed answer fallback, stale effect authority, startup readiness evidence under correction"
+  },
+  "rework_findings": [
+    {
+      "id": "R01",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "PARSING interruption becomes durable attention; queue ACK requires terminal or exact durable patch continuation"
+    },
+    {
+      "id": "L2-01",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "delivery lease checked after lock and before commit against elapsed server time"
+    },
+    {
+      "id": "L2-02",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "Core commit rechecks queue expiry through the existing held queue connection"
+    },
+    {
+      "id": "L3-01",
+      "classification": "PRODUCT_OR_SECURITY_RISK",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "answer bytes always match authoritative output_digest, including legacy rows without encrypted seal"
+    },
+    {
+      "id": "L3-02",
+      "classification": "PRODUCT_OR_SECURITY_RISK",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "effect start and capability CAS require current queue authority"
+    },
+    {
+      "id": "L3-03",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "local SDK startup before readiness; initial probe used invalid fallback configuration and is retained as VERIFIER_DEFECT"
+    },
+    {
+      "id": "FIXTURES",
+      "classification": "VERIFIER_DEFECT",
+      "status": "CLOSED IN FINAL SOURCE AND INDEPENDENT REVIEW",
+      "boundary": "manual control fixtures initialize new cleanup field; fabricated answer digests replaced by exact synthetic answer digests"
+    },
+    {
+      "id": "C3-L3-05",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED",
+      "boundary": "Bounded initialization and owned shutdown; no late reopen"
+    },
+    {
+      "id": "C3-L2-04",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED",
+      "boundary": "Shielded physical startup ownership, quarantine and automatic late-Popen/hung-initialize cleanup"
+    },
+    {
+      "id": "C3-L2-05",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "CLOSED",
+      "boundary": "One pending/failed physical close retained; no-op retry cannot establish success; failed outcome remains visible"
+    }
+  ],
+  "acceptance": "ACCEPTANCE.md",
+  "handoff": "HANDOFF.md",
+  "failure_matrix": "FAILURE-MATRIX.md",
+  "recovery_contract": "RECOVERY-CONTRACT.md",
+  "scope": {
+    "live_mutation": false,
+    "deploy": false,
+    "tag": false,
+    "release": false,
+    "C4_started": false,
+    "MVP1_READY": false
+  },
+  "publication": {
+    "status": "AWAITING AUTHORIZED NORMAL PR AFTER FINAL DOCS PASS",
+    "base": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+    "protected_main": true,
+    "required_CI_checks_observed": [],
+    "CI_claim": "No required CI checks configured; absence is not CI success. GitHub ordinary merge enforces current protection.",
+    "prepublication_receipt": {
+      "file": ".runtime/c3/github-prepublication.json",
+      "sha256": "3f14fba168259c6cd2e339b038bca27f6635352b356e82a45bb38424cf5d0021"
+    },
+    "no_force_admin_bypass": true,
+    "tag": false,
+    "release": false,
+    "deploy": false,
+    "live_mutation": false
+  },
+  "source": {
+    "sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+    "tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+    "full_tested_candidate": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+    "manifest": "MANIFEST.json",
+    "real_product_results": "PRODUCT-RESULTS.json",
+    "original_real_smoke_source": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+    "source_edits_after_product_smoke": true,
+    "transfer": "Explicit unchanged-boundary transfer in both final code reviews; new actual zero-turn SDK startup/close bound to final source."
+  },
+  "entry_preservation": {
+    "C2_manifest_matches": 118,
+    "C2_manifest_total": 118,
+    "C2_final_reports_hashes_verified": 4,
+    "nested_L1_receipts_verified": 4,
+    "C1_reviewed_vs_squash_tree_equal": true,
+    "C0_frozen_contracts_unchanged": true,
+    "canonical_dirty_paths_recorded": 19,
+    "C2_worktree_read_only": true,
+    "C0_C2_reacceptance": false
+  },
+  "full_rework_history": {
+    "source_revision": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+    "passed": 2064,
+    "subtests_passed": 25,
+    "failed": 1,
+    "skipped": 2,
+    "deselected": 1,
+    "duration_seconds": 171.76,
+    "classification": "VERIFIER_DEFECT",
+    "failure": "manual test_runtime_operations control lacked _cleanup_pending initialization",
+    "followup": "12 PASS; final full run will use committed fixture fix"
+  },
+  "targeted_receipts": [
+    {
+      "file": ".runtime/c3/rework-target2.xml",
+      "sha256": "0f01ff25b13f3709107b294b4715cc2b2b03d425698771eab7bf036145ac3ed1",
+      "scope": "92 PASS; affected queue/seal/effect/outbox/startup boundaries"
+    },
+    {
+      "file": ".runtime/c3/last-fixture.xml",
+      "sha256": "3161f277dc655fbfd281d1f19924480f37772dc69e580ac925008c3eb415b436",
+      "scope": "12 PASS; runtime fixture + documentation"
+    },
+    {
+      "file": ".runtime/c3/queue-final-wip.xml",
+      "sha256": "c7105d13da0bea047dd921cab09418f0f9f50c9f91dffccd8784fe2437bf5a69",
+      "scope": "13 PASS historical root queue checkpoint"
+    },
+    {
+      "file": ".runtime/c3/smoke-shutdown-green.xml",
+      "sha256": "bc54b68e42a54248607462af0ecf220c1205129d5662642408796791e1dda324",
+      "scope": "43 PASS smoke budget/retry/shutdown guards"
+    }
+  ],
+  "historical_failures_policy": "Original raw FAIL/REJECT receipts are retained locally with their original source revisions. Final evidence never rewrites old SHA or labels old failing bytes PASS.",
+  "failure_classification_notes": [
+    {
+      "classification": "ENVIRONMENT_FAILURE",
+      "finding": "First baseline basetemp parent absent; unchanged base passed after directory creation."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Nonexistent targeted path, draft evidence link, manual fixture field and fabricated synthetic output_digest corrected without weakening contract."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Initial L3 startup probe used invalid fallback configuration; corrected old-source reproduction and rework review are separate receipts."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Artificial external Clock.advance without store clock injection replaced for authority evidence by actual SQLite-lock elapsed probes; old output retained."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Evidence assembler initially assumed voice tombstones are removed; finished voice row is retained by accepted C2 contract. Assert now requires finished-only records and unchanged replay snapshot."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Physical-close regression formerly expected two API close calls. C3 now requires one pending/failed operation and retained false outcome; failure assertions strengthened, no noop success accepted. Cancel-enter closed assertion preserved."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "candidate": "8476b68c1ca6e58d6146eb3a0eb23f1560b19d07",
+      "finding": "Report index initially labeled raw CRLF receipt hashes as published file hashes. 18 report blobs differ only by Git CRLF→LF normalization. Metadata now binds both forms; original reports, code and test outcomes unchanged."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "candidate": "8476b68c1ca6e58d6146eb3a0eb23f1560b19d07",
+      "finding": "Historical product budget ledger hash described a point-in-time mutable ledger. Fields now explicitly record historical provenance; final ledger hash and unified totals remain in final_budget_ledger."
+    }
+  ],
+  "acceptance_requirements": {
+    "negative_matrix_cases": 34,
+    "negative_matrix": "PASS, all mapped tests passed on exact source",
+    "L1": "PASS",
+    "L2": "CODE ACCEPT",
+    "L3": "CODE ACCEPT",
+    "real_results": "3/3 execution and quality PASS, controlled restart/replay with unchanged identity/result/receipts",
+    "source_known_in_scope_bugs": 0,
+    "final_docs": "Independent exact delta review before authorized push; ordinary publication readback follows."
+  },
+  "superseded_candidates": [
+    {
+      "sha": "66eb2d7b3ccc067db4f85fe350669e76074d6313",
+      "full_pass": 2065,
+      "subtests": 25,
+      "verdict": "REJECTED",
+      "reason": "C3-L3-05 startup lifecycle"
+    },
+    {
+      "sha": "e6190be47b1e880c87304774455e773c83470338",
+      "full_pass": 2072,
+      "subtests": 25,
+      "verdict": "REJECTED",
+      "reason": "C3-L2-04; preliminary L3 code accept superseded by independent physical startup finding"
+    },
+    {
+      "sha": "a7e570bb084ea0324f05b1ec80328c72372a6858",
+      "full_pass": 2076,
+      "subtests": 25,
+      "verdict": "REJECTED",
+      "reason": "C3-L2-05 physical close; preliminary L3 acceptance superseded"
+    }
+  ],
+  "final_L1": {
+    "verdict": "PASS",
+    "candidate_sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
+    "candidate_tree": "9acb41b5bf6d2a91b8964f84f4c459d072d0c127",
+    "receipt": "L1-VERIFICATION.json",
+    "raw_xml": {
+      "file": ".runtime/c3/final-b1ed94c.xml",
+      "sha256": "8674159cfb0457fc8cc8ae383ea869c141036ce55706f4f405b46793d9de8460"
+    },
+    "raw_log": {
+      "file": ".runtime/c3/final-b1ed94c.log",
+      "sha256": "ee2fed2321b3206bc6ef75c9028d2f48e2c62b4f4f08a7f2dfa6871bcac8e5e8"
+    },
+    "full_suite": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "2",
+      "tests": "2105",
+      "time": "130.790",
+      "timestamp": "2026-09-07T07:57:44.869208+03:00"
+    },
+    "command": "DEBUG=false; pinned-python -m pytest tests/ -q -ra --tb=short --ignore=tests/gate0 --ignore=tests/test_gate_c0_governance.py --deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022 --basetemp=.runtime/c3/final-b1ed94c-tmp --junitxml=.runtime/c3/final-b1ed94c.xml",
+    "skips": "2 Windows symlink tests unavailable; 1 unchanged historical architecture deselect; C0-C2 acceptance not reopened",
+    "static": "All tracked source/scripts/tests compile; dependencies unchanged; pip check clean; exact diff/data/manifest/34-case checks and WIP preservation PASS",
+    "passed": 2078,
+    "subtests_passed": 25,
+    "skipped": 2,
+    "deselected": 1,
+    "duration_seconds": 130.92,
+    "pip_check": {
+      "file": ".runtime/c3/pip-check-final.log",
+      "sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf"
+    },
+    "verification_receipt_provenance": {
+      "raw_original_file": ".runtime/c3/verification-b1ed94c.json",
+      "raw_original_receipt_sha256": "8b12edd546e5a4ba5f38d5eb56d16f766d71fb5769c7f1a53d9553dca7aeff70",
+      "published_file": "docs/gates/gate-c3-core-stability/L1-VERIFICATION.json",
+      "git_blob": "f376ece1751f80ab141e86fd5c941920dc64be75",
+      "sha256_git_blob": "e81f5937a0ab447b46c903fe1ec4d28aec64e137347611af307babde8da147b3",
+      "normalization": "Original raw receipt copied unchanged; Git normalizes CRLF to LF only. Nested original receipt hashes retain raw-byte scope."
+    }
+  },
+  "independent_reviews": {
+    "L2": {
+      "verdict": "CODE ACCEPT",
+      "file": "reviews/l2/REPORT-b1ed94c.json"
+    },
+    "L3": {
+      "verdict": "CODE_ACCEPT",
+      "file": "reviews/l3/CODE-RECEIPT-b1ed94c.json"
+    },
+    "product_quality": "L2 15/15; L3 15/15 with194 receipt checks",
+    "scope": "Exact source accepted. Final docs-only head requires explicit delta readback before push; that receipt is stored outside Git to avoid self-reference."
+  },
+  "review_files": [
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/EVIDENCE-66eb2d7.json",
+      "sha256": "d6a2167dc0e8be736b97ba3d81ac68516d548ead816371c88c149f71c5f22da2",
+      "raw_original_receipt_sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451",
+      "git_blob": "61213efe3185b972c624be727812960bd810fcb5",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/EVIDENCE-66eb2d7.md",
+      "sha256": "ff2eaae662a6345125f743e6e555773913374ae0f50759e492ffabcb0eed7fa3",
+      "raw_original_receipt_sha256": "08d719c9d9917cd67c41dbfc2b4c5d749737321d64d081f33054f39a9747e296",
+      "git_blob": "b758bbdfabb2631194999405e83d70f919885baa",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-08cfff0.json",
+      "sha256": "148d4c2344378a9584de6dbe568df69d1d0fb74e73fb87b4c1db32f23a9adb13",
+      "raw_original_receipt_sha256": "36c7d59eb74d7c7e8257d2aa42eeb511bf96b752a08d4c523db99962c999f5ee",
+      "git_blob": "86015d824960f1742e79db63403833f31d0c88d0",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-08cfff0.md",
+      "sha256": "26f2bb5fac5434dce2d031b34f3371d5c2d2fbe168631672b2da91ccb63afea5",
+      "raw_original_receipt_sha256": "02aa8180cc7afadfa8b9b390a91d67086f2bf3265490cc1f961935ba2e1fa13e",
+      "git_blob": "c2e3edc1c0b8e97fc67d0cf6acaa4fbf5465f0b9",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-a7e570b.json",
+      "sha256": "71e91c53d44d7cdb6c91fc240d21bf5acf58ad28279e71f8130abbc3c3594bd5",
+      "raw_original_receipt_sha256": "4d363e092735d75c54d99291e54a707209f97584d6967fb5b5a9ec1ade4932a9",
+      "git_blob": "fff565c4ddd8221ea7dc56da6f5c8f752b08e677",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-a7e570b.md",
+      "sha256": "a338e52ae21d11ab8871b0d4d1ee52ab32e8648e1f84f81ba5af7ae69f64a4d5",
+      "raw_original_receipt_sha256": "d9fc707b1948ee79f47ff535f461ea8cb65409467532dab85ac79b3dfd0828ad",
+      "git_blob": "bf7e386791cfdabbd00acc4824eaaf7e5340cf99",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-b1ed94c.json",
+      "sha256": "e133fc69d4b2343384b352567dee9a78b715450b89907ca18e179708bc71bb80",
+      "raw_original_receipt_sha256": "7564d1ad2141c40510b46c431f19aef881bc138c742c941ad85506da271d4ed3",
+      "git_blob": "d9de80853e3e773088dbcfcb92d2578d085405c4",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-b1ed94c.md",
+      "sha256": "fa90dde0fcb8dd78cb4ce6d66e951aca15de0669b313e1d1ce6326c22567b514",
+      "raw_original_receipt_sha256": "c399ba2a7b671aaae6857fd7f0f1f598b0494307ec52caa085a66e1da8f079d8",
+      "git_blob": "500d12db75bba6271d5d305990bdf97d91bbea76",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-e6190be.json",
+      "sha256": "b782aa73595964e17e4b593739915900ecb7431d8ce6ea8299d31e49b9fe0c45",
+      "raw_original_receipt_sha256": "09a6901029938813fc99c38bbbd77f84d46c280c182c59afca308c54c2658e8e",
+      "git_blob": "6b26b3850e8cdf82d53d4594025aa12e5f705867",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-e6190be.md",
+      "sha256": "bf530c6850967bd9efd36375d00cbf6bfc1bae0e3392a0618e3cad866ad21e54",
+      "raw_original_receipt_sha256": "c120aec2ace94dd961399e5cbe6e4d3a4ca61c3101031a7550a5ca81bfda8ea7",
+      "git_blob": "d1e8e207b9d44f9f7e805051dce0784c409b8eda",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-fd5f9ce.json",
+      "sha256": "851a507258abcf0a4ad608cfcc2dbfa777bfa146883e9f50ac80e426390c3064",
+      "raw_original_receipt_sha256": "121de0721141bfc2bf720bcf5fc6f2c884c4e62653813195fb285f01a82bfaef",
+      "git_blob": "f54459ca354a6af085ab03a16ca54e9fa6d6a4e0",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-fd5f9ce.md",
+      "sha256": "881f634ada9d621cb3c1a867a1849b7f36d4d4ab5b3283ade5cc03dc08963c4c",
+      "raw_original_receipt_sha256": "0de905dc91543081a82dca28e77cfd1f2bd49b2a11c3b5d74546b5e6dbff6afe",
+      "git_blob": "2519735f318f51074e28104b78f6f387040e74b7",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/ADDENDUM-e6190be-REJECT.md",
+      "sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782",
+      "raw_original_receipt_sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782",
+      "git_blob": "6ee827205961136c2af0d95c0e7f1d6fd8cb1cd3",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-08cfff0.json",
+      "sha256": "9c9a634170c3ef598237a9dc78158469777877ad282ba5983a44ef0876aaf10c",
+      "raw_original_receipt_sha256": "7bdf987cd4650b7d88c2ae10de9bea538bb2d51fbd7cdc4caa820cc6876ce104",
+      "git_blob": "6222805e065f176b0684cf69bbe8a51701a1b5a2",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-a7e570b.json",
+      "sha256": "9f3b431f4f8cc4c7d67fb7ed64ddd6dc25ecccb01eb8ebbca0152742699da8a6",
+      "raw_original_receipt_sha256": "680dbd484af509c3bc87daeb50ed8404ce663a2d05e785b445113e5c5f8baea9",
+      "git_blob": "89cf4ba3d3f1b27bb8522d50a78050efb9ef5cb2",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-b1ed94c.json",
+      "sha256": "4c1784a07c3d066ca862ee0221c0e454bf3719d1f7011607ebe9c4cbeac59129",
+      "raw_original_receipt_sha256": "b26c114dd6fed64dccfa77afd258105acd0699d0e6568d90695df3911501e090",
+      "git_blob": "460ebbd9e92c0fa08de3181b219d42c841b38934",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-e6190be.json",
+      "sha256": "0f97fc404ea258e24ab65a8f3a2f44ede07471b4b439a09564a7246a95dc08b0",
+      "raw_original_receipt_sha256": "1fafacdcc9aaf4362281dbe8984e228678384c86e5bb5b7c23017cd4bc7a659c",
+      "git_blob": "9d01f09689dcd295c5a9cbba189d5a9021053b81",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-08cfff0.md",
+      "sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638",
+      "raw_original_receipt_sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638",
+      "git_blob": "2d84cc317e5d5f67076e825288c34f0142f5399d",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-a7e570b.md",
+      "sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315",
+      "raw_original_receipt_sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315",
+      "git_blob": "ca0fcc865433b9a59ec4467e0838d252180c21ab",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-b1ed94c.md",
+      "sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09",
+      "raw_original_receipt_sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09",
+      "git_blob": "792c8df3bd48adf064627acd324eb40e1e2cb2e1",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-e6190be.md",
+      "sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034",
+      "raw_original_receipt_sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034",
+      "git_blob": "2db8c4b9a3db6695bb422f5d1111dbe26b564fac",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/CORRECTIONS-08cfff0.md",
+      "sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd",
+      "raw_original_receipt_sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd",
+      "git_blob": "3a2492efc4866d5d214035abd8eabda5f1d69fb8",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/PHYSICAL-START-e6190be.json",
+      "sha256": "e89d2279c6c6394f6054138feebb4927d204947d8c26e3df2d233a0b185a1d6c",
+      "raw_original_receipt_sha256": "af6cf2dcdadc8ae50910e936f3cec88b5982694785f5564b7bf47f7486acb234",
+      "git_blob": "6d7be7581528af25c34beb570947624b630f5fd8",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/PRODUCT-QUALITY-fd5f9ce.json",
+      "sha256": "7b69d7e5c9c80c3b5e86119f2bc52090caa830b934e0710aacbc3a8185378a05",
+      "raw_original_receipt_sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026",
+      "git_blob": "6ec611c43db6b6e74db389e6080f048f37e02456",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    }
+  ],
+  "final_budget": {
+    "resources": {
+      "model": {
+        "reserved_calls": 19,
+        "charged_seconds": 108.04599999985658,
+        "actual_model_turns": 8,
+        "max_calls": 64,
+        "max_seconds": 5400.0,
+        "remaining_calls": 45,
+        "remaining_seconds": 5291.954000000143
+      },
+      "asr": {
+        "reserved_calls": 1,
+        "charged_seconds": 6.077999999979511,
+        "actual_model_turns": 0,
+        "max_calls": 20,
+        "max_seconds": 1200.0,
+        "remaining_calls": 19,
+        "remaining_seconds": 1193.9220000000205
+      }
+    },
+    "active_reservations": 0
+  },
+  "real_final_startup": {
+    "file": ".runtime/c3/startup-complete/receipt.json",
+    "sha256": "634940b4b8bb80752da6f696ce84a4f104ac90996a0a30dc82bcf78b8df76fbd",
+    "new_model_turns": 0,
+    "native_calls": 0,
+    "physical_cleanup": true,
+    "script": {
+      "file": ".runtime/c3/startup_smoke.py",
+      "sha256": "849729cb9c16d216f7c289dfc0fb0e01734bd5ea2a1245f76204d07105b6cf25"
+    }
+  },
+  "issues": {
+    "C0-F05": "CLOSED backend C3",
+    "C0-F06": "CLOSED backend C3",
+    "C0-F08": "CLOSED backend C3",
+    "C0-F07": "BACKEND RECOVERY CLOSED; live operational incident remains OPEN C5/C6",
+    "C4": "NOT STARTED",
+    "MVP1": "NOT READY"
+  },
+  "residuals": [
+    "Telegram remote accept before local receipt remains an at-least-once window; synthetic transport does not prove remote exactly-once.",
+    "Unproven SDK physical cleanup is retained as failure/quarantine and blocks new generation; no healthy status is claimed.",
+    "No live/production/ingress/supervisor/backup drill or owner delivery is included; those remain C4-C6."
+  ],
+  "final_budget_ledger": {
+    "file": ".runtime/c3/execution-budget.sqlite3",
+    "sha256": "989b560a061320602d0864713cf0df79fe759281cb441a5486c09f6904f4df8c"
+  },
+  "report_provenance": "Original reports remain immutable in .runtime/c3/reviews. Committed reports use Git LF normalization. Nested original report hashes retain their original raw scope; review_files explicitly maps each raw receipt to its published Git blob/hash."
+}

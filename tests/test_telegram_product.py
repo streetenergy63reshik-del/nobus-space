@@ -216,6 +216,12 @@ class FakeProductRuntime:
     reject_failures: int = 0
     deliveries: int = 0
 
+    async def build_instruction(self, instruction: str, envelope: object) -> PreparedTask:
+        return await self.base.build_instruction(instruction, envelope)
+
+    async def admit_prepared(self, prepared: PreparedTask, envelope: object) -> bool:
+        return await self.base.admit_prepared(prepared, envelope)
+
     async def deliver_pending(self, tenant_id: str, sender: object) -> tuple[object, ...]:
         self.deliveries += 1
         return await self.base.deliver_pending(tenant_id, sender)

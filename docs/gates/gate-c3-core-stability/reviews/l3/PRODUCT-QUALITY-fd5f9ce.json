@@ -1,0 +1,849 @@
+{
+  "reviewer": "independent C3 L3",
+  "verdict": "PRODUCT_QUALITY_PASS",
+  "score": "15/15",
+  "source_revision": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+  "source_tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+  "reviewed_product_results_sha256": "2074206d6fce60f8ba4940af838d9404e414f80f608750c7a835c704c69c802a",
+  "checked_receipts_count": 194,
+  "scenarios": [
+    {
+      "scenario": "direct_text",
+      "verdict": "PASS",
+      "score": "5/5",
+      "rubric": {
+        "goal": true,
+        "material_and_constraints": true,
+        "ready_result": true,
+        "no_unauthorized_actions": true,
+        "replay_without_duplicate": true
+      },
+      "review_note": "Ровно три применимых пункта проверки проекта; ответ является планом и не заявляет выполнение проверок.",
+      "answer_sha256": "15472b65a7580d53521016af19572f1589be84f2aa06d687525a4bb3769d2fd5",
+      "model_turn_receipt_sha256": "576959d56309acbfb350414cd0ce78fd503189ec56fd8ef8ad68d68a4a8a2672"
+    },
+    {
+      "scenario": "direct_voice",
+      "verdict": "PASS",
+      "score": "5/5",
+      "rubric": {
+        "goal": true,
+        "material_and_constraints": true,
+        "ready_result": true,
+        "no_unauthorized_actions": true,
+        "replay_without_duplicate": true
+      },
+      "review_note": "Preview точно сохраняет исходную просьбу; результат содержит три пункта плана. До confirm не было task, outbox или model turn.",
+      "answer_sha256": "798cd6e30d0989a4c1198918ff9a397fb3ab866bff852f035c7545316a3d7811",
+      "model_turn_receipt_sha256": "bb44906e62de6dd19b95fa336978b03613c7142d4195cb65e55a3e7f981bcd32"
+    },
+    {
+      "scenario": "material_text",
+      "verdict": "PASS",
+      "score": "5/5",
+      "rubric": {
+        "goal": true,
+        "material_and_constraints": true,
+        "ready_result": true,
+        "no_unauthorized_actions": true,
+        "replay_without_duplicate": true
+      },
+      "review_note": "Готовый текст промта сохраняет четыре функции будущего помощника и запрещает исполнение вложенного примера о задаче на завтра; вводных пояснений нет.",
+      "answer_sha256": "8fea345e45c79db2c91b164d6f9c176fd7ab4d3b8c9717aa20dcff0aa8a241fd",
+      "model_turn_receipt_sha256": "c56e724f16ddef9e5c8cce03ec6282f70da555c5cd9f342f7bc335a9aa1aa1e0"
+    }
+  ],
+  "checks": [
+    "exact product source",
+    "exact product tree",
+    "source binding file hash",
+    "same embedded source binding",
+    "contemporaneous L2 source readback receipt hash",
+    "L2 recorded all 97 raw hashes and normalized fd5 source before startup edits",
+    "own raw hash plus normalized fd5 Git source: scripts/backup_telegram_runtime.py",
+    "own raw hash plus normalized fd5 Git source: scripts/bind_business_notes.py",
+    "own raw hash plus normalized fd5 Git source: scripts/check_telegram_health.py",
+    "own raw hash plus normalized fd5 Git source: scripts/configure_telegram_profile.py",
+    "own raw hash plus normalized fd5 Git source: scripts/initialize_owner_workspace.py",
+    "own raw hash plus normalized fd5 Git source: scripts/live_codex_cli_probe.py",
+    "own raw hash plus normalized fd5 Git source: scripts/live_telegram_discovery.py",
+    "own raw hash plus normalized fd5 Git source: scripts/live_windows_job_probe.py",
+    "own raw hash plus normalized fd5 Git source: scripts/restore_telegram_runtime.py",
+    "own raw hash plus normalized fd5 Git source: scripts/run_nobus_space_live.py",
+    "own raw hash plus normalized fd5 Git source: scripts/run_telegram_control.py",
+    "own raw hash plus normalized fd5 Git source: scripts/run_telegram_mvp1.py",
+    "own raw hash plus normalized fd5 Git source: src/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/agents/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/agents/audit_agent.py",
+    "own raw hash plus normalized fd5 Git source: src/agents/base.py",
+    "own raw hash plus normalized fd5 Git source: src/application/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/application/business_notes.py",
+    "own raw hash plus normalized fd5 Git source: src/application/durable_confirmations.py",
+    "raw source changed only within explicitly reviewed startup delta: src/application/durable_product.py",
+    "prior raw bytes equivalence attributed to contemporaneous L2 receipt: src/application/durable_product.py",
+    "own raw hash plus normalized fd5 Git source: src/application/durable_runtime.py",
+    "own raw hash plus normalized fd5 Git source: src/application/durable_semantic.py",
+    "own raw hash plus normalized fd5 Git source: src/application/durable_telegram_state.py",
+    "own raw hash plus normalized fd5 Git source: src/application/durable_voice.py",
+    "own raw hash plus normalized fd5 Git source: src/application/fake_vertical.py",
+    "own raw hash plus normalized fd5 Git source: src/application/gate5a3.py",
+    "own raw hash plus normalized fd5 Git source: src/application/gate5a4.py",
+    "own raw hash plus normalized fd5 Git source: src/application/miniapp.py",
+    "own raw hash plus normalized fd5 Git source: src/application/network_commands.py",
+    "own raw hash plus normalized fd5 Git source: src/application/network_tools.py",
+    "own raw hash plus normalized fd5 Git source: src/application/nobus_memory.py",
+    "own raw hash plus normalized fd5 Git source: src/application/owner_files.py",
+    "own raw hash plus normalized fd5 Git source: src/application/owner_workspace.py",
+    "own raw hash plus normalized fd5 Git source: src/application/patch_confirmation.py",
+    "own raw hash plus normalized fd5 Git source: src/application/product_effects.py",
+    "own raw hash plus normalized fd5 Git source: src/application/product_status.py",
+    "own raw hash plus normalized fd5 Git source: src/application/runtime_maintenance.py",
+    "own raw hash plus normalized fd5 Git source: src/application/semantic_admission.py",
+    "own raw hash plus normalized fd5 Git source: src/application/task_confirmation.py",
+    "own raw hash plus normalized fd5 Git source: src/application/task_profiles.py",
+    "own raw hash plus normalized fd5 Git source: src/application/telegram_actions.py",
+    "own raw hash plus normalized fd5 Git source: src/application/telegram_control.py",
+    "own raw hash plus normalized fd5 Git source: src/application/telegram_product.py",
+    "own raw hash plus normalized fd5 Git source: src/application/windows_singleton.py",
+    "own raw hash plus normalized fd5 Git source: src/config.py",
+    "own raw hash plus normalized fd5 Git source: src/contracts/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/contracts/models.py",
+    "own raw hash plus normalized fd5 Git source: src/core/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/core/policy.py",
+    "own raw hash plus normalized fd5 Git source: src/integrations/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/integrations/google_calendar.py",
+    "own raw hash plus normalized fd5 Git source: src/integrations/google_drive.py",
+    "own raw hash plus normalized fd5 Git source: src/integrations/google_tasks.py",
+    "own raw hash plus normalized fd5 Git source: src/integrations/google_transport.py",
+    "own raw hash plus normalized fd5 Git source: src/main.py",
+    "own raw hash plus normalized fd5 Git source: src/memory/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/memory/codebase_memory.py",
+    "own raw hash plus normalized fd5 Git source: src/models/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/models/task.py",
+    "own raw hash plus normalized fd5 Git source: src/orchestrator/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/orchestrator/graph.py",
+    "own raw hash plus normalized fd5 Git source: src/orchestrator/intent_parser.py",
+    "own raw hash plus normalized fd5 Git source: src/orchestrator/orchestrator.py",
+    "own raw hash plus normalized fd5 Git source: src/orchestrator/router.py",
+    "own raw hash plus normalized fd5 Git source: src/orchestrator/state_manager.py",
+    "own raw hash plus normalized fd5 Git source: src/security/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/security/dpapi.py",
+    "own raw hash plus normalized fd5 Git source: src/security/windows_credentials.py",
+    "own raw hash plus normalized fd5 Git source: src/skills/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/skills/ponytail_rules.py",
+    "own raw hash plus normalized fd5 Git source: src/storage/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/storage/outbox.py",
+    "own raw hash plus normalized fd5 Git source: src/storage/sqlite_store.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/miniapp.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/bindings.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/bot_api.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/checkpoint_update_store.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/discovery.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/gateway.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/models.py",
+    "own raw hash plus normalized fd5 Git source: src/transport/telegram/sqlite_checkpoint.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/base.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/confirmation.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/faster_whisper.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/isolated.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/isolated_worker.py",
+    "own raw hash plus normalized fd5 Git source: src/voice/service.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/__init__.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/asyncio_spawner.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/codex_cli.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/codex_limits.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/codex_patch.py",
+    "raw source changed only within explicitly reviewed startup delta: src/workers/codex_sdk.py",
+    "prior raw bytes equivalence attributed to contemporaneous L2 receipt: src/workers/codex_sdk.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/windows_job.py",
+    "own raw hash plus normalized fd5 Git source: src/workers/windows_job_helper.py",
+    "declared synthetic model-only scope",
+    "direct_text: phase hash phase-1788753636418926100-admit.json",
+    "direct_text: same phase source binding",
+    "direct_text: phase completed",
+    "direct_text: cleanup complete",
+    "direct_text: phase hash phase-1788753739822946200-drain.json",
+    "direct_text: same phase source binding",
+    "direct_text: phase completed",
+    "direct_text: cleanup complete",
+    "direct_text: phase hash phase-1788753802886000900-replay.json",
+    "direct_text: same phase source binding",
+    "direct_text: phase completed",
+    "direct_text: cleanup complete",
+    "direct_text: replay immutable full snapshot",
+    "direct_text: zero new model turn on replay",
+    "direct_text: one logical task",
+    "direct_text: authoritative result revision one",
+    "direct_text: exact result identity",
+    "direct_text: exact durable outbox",
+    "direct_text: one acknowledged outbox",
+    "direct_text: no active job after replay",
+    "direct_text: transport hash",
+    "direct_text: answer delivered once",
+    "direct_text: artifact delivered once",
+    "direct_text: artifact bytes hash",
+    "direct_text: artifact contains full answer",
+    "direct_text: actual worker answer preserved",
+    "direct_text: no worker tool action",
+    "direct_voice: phase hash phase-1788753854055838700-admit.json",
+    "direct_voice: same phase source binding",
+    "direct_voice: phase completed",
+    "direct_voice: cleanup complete",
+    "direct_voice: phase hash phase-1788753901538036900-confirm.json",
+    "direct_voice: same phase source binding",
+    "direct_voice: phase completed",
+    "direct_voice: cleanup complete",
+    "direct_voice: phase hash phase-1788754025364072800-drain.json",
+    "direct_voice: same phase source binding",
+    "direct_voice: phase completed",
+    "direct_voice: cleanup complete",
+    "direct_voice: phase hash phase-1788754346896258100-replay.json",
+    "direct_voice: same phase source binding",
+    "direct_voice: phase completed",
+    "direct_voice: cleanup complete",
+    "direct_voice: replay immutable full snapshot",
+    "direct_voice: zero new model turn on replay",
+    "direct_voice: one logical task",
+    "direct_voice: authoritative result revision one",
+    "direct_voice: exact result identity",
+    "direct_voice: exact durable outbox",
+    "direct_voice: one acknowledged outbox",
+    "direct_voice: no active job after replay",
+    "direct_voice: transport hash",
+    "direct_voice: answer delivered once",
+    "direct_voice: artifact delivered once",
+    "direct_voice: artifact bytes hash",
+    "direct_voice: artifact contains full answer",
+    "direct_voice: actual worker answer preserved",
+    "direct_voice: no worker tool action",
+    "voice: no task/result before confirm",
+    "voice: no model turn before confirm",
+    "voice: exact confirmation preview",
+    "material_text: phase hash phase-1788754427773859200-admit.json",
+    "material_text: same phase source binding",
+    "material_text: phase completed",
+    "material_text: cleanup complete",
+    "material_text: phase hash phase-1788754464593973700-drain.json",
+    "material_text: same phase source binding",
+    "material_text: phase completed",
+    "material_text: cleanup complete",
+    "material_text: phase hash phase-1788754510873903700-replay.json",
+    "material_text: same phase source binding",
+    "material_text: phase completed",
+    "material_text: cleanup complete",
+    "material_text: replay immutable full snapshot",
+    "material_text: zero new model turn on replay",
+    "material_text: one logical task",
+    "material_text: authoritative result revision one",
+    "material_text: exact result identity",
+    "material_text: exact durable outbox",
+    "material_text: one acknowledged outbox",
+    "material_text: no active job after replay",
+    "material_text: transport hash",
+    "material_text: answer delivered once",
+    "material_text: artifact delivered once",
+    "material_text: artifact bytes hash",
+    "material_text: artifact contains full answer",
+    "material_text: actual worker answer preserved",
+    "material_text: no worker tool action"
+  ],
+  "source_eol_normalization": [
+    {
+      "path": "scripts/backup_telegram_runtime.py",
+      "actual_smoke_sha256": "9c63686cae48f7f00f7f9d42b005ee98f4728df5b97f9732bc445c78e290ac81",
+      "frozen_git_sha256": "80a2d3bde5968fbb1730295a22e8267a707b5aec7a6f1195ed2f7dc86af8f0c1",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/bind_business_notes.py",
+      "actual_smoke_sha256": "7ad50f249eb0d4e7938e769c3d912b914543fb6ee70cf38352d4f1b81615535a",
+      "frozen_git_sha256": "3e2ee05436bb06e7483a97e489dc3e89058096380753d6288c77bfd80dd8c357",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/check_telegram_health.py",
+      "actual_smoke_sha256": "a12d82f84ae377f9fbb430db86c04c1d36489d2546346026bbba3f85203eb73b",
+      "frozen_git_sha256": "c151b14fdc1d2cac88c55adca8632d782d12de683f4256dd2509f41dc02b2abe",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/configure_telegram_profile.py",
+      "actual_smoke_sha256": "72d7346770c9966de203363a363c502703b8620e5e261764eb5b5050a5dc2c70",
+      "frozen_git_sha256": "d38c93d8bc08341a3ee2c2d6431c51cea702efc11357578d27dca76c0af86fab",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/initialize_owner_workspace.py",
+      "actual_smoke_sha256": "d71532ea22f2004874b775134442c07734fc39f55a2800385c895577abe24420",
+      "frozen_git_sha256": "2a03efc861084c93e5434e9e1028d503fd4eb12b376ff91167ca30cb0cc5c80e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/live_codex_cli_probe.py",
+      "actual_smoke_sha256": "5b3be2a377bd763094e2163f784f90996ff100e7600d3bb06cde94971b8c8828",
+      "frozen_git_sha256": "6c466b157fa2d2ccaf53092724842333a2817a13c03c66ee436085444c480b10",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/live_telegram_discovery.py",
+      "actual_smoke_sha256": "2419fb5a99a49d4a9f7ab39d488ff8e6afbd8d5c5abfed7fe9b5a625a65d5ec7",
+      "frozen_git_sha256": "57555f58c1b927025876ff17ca101c197dac19f0d006c88d52de4c75e2a26e49",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/live_windows_job_probe.py",
+      "actual_smoke_sha256": "276432b25daaab524ff7068eaf097675949569ceafa98e9e0a0403eb4d7b467c",
+      "frozen_git_sha256": "2c443469360f53ba9761198767274b9a56340e5f6505396819dc2987a56fd62e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/restore_telegram_runtime.py",
+      "actual_smoke_sha256": "36fca9e08d09d7e8a23b336108230ee3cca7b6228082845d83c84161a199ad3e",
+      "frozen_git_sha256": "b9271a2fd7f08df92ffbf16b183bb5a64002949d97be37fc1833838ccabf032c",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/run_nobus_space_live.py",
+      "actual_smoke_sha256": "3853a0420f2f2dc355149b3582aadbcba5a8a6dda8af7777f8ca6ec0569a8e47",
+      "frozen_git_sha256": "ab1b15af9a65e7172dfa83cfcc9b827ae79974ffc62b4b3dd35c5d9cc049b9ea",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/run_telegram_control.py",
+      "actual_smoke_sha256": "51147d53c765e91ae59728e2e969cdb05b5fb948ab2fcccd5319763e9ca9f9ec",
+      "frozen_git_sha256": "756e095b93711378459285c1721c641f51147a85993eb771962afceb5fdc7b35",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "scripts/run_telegram_mvp1.py",
+      "actual_smoke_sha256": "290c5cdec4d443530aee3037c4d52b700e19a98b3023953080cef3852abd6e54",
+      "frozen_git_sha256": "8d349fcd3edae0444def07e4f5861930ac24f4c86812a14ce39e32c957c1679d",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/__init__.py",
+      "actual_smoke_sha256": "064ca0cab1d7b867006892ec118237368ac415268c649fef5b315c240ef6872e",
+      "frozen_git_sha256": "d6521984eec5e1f5c50d26ac3f92f4c206e283887bdcf34bae1f1f007e303012",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/agents/__init__.py",
+      "actual_smoke_sha256": "eda76350d9b9221db108fd509b24d636ff1cb78c7cfd3b8f56d9bae0e1e82125",
+      "frozen_git_sha256": "c74dc79c4b3d2b476eddf82917be600523967fb657d1cbee57df0f78554d3d1e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/agents/audit_agent.py",
+      "actual_smoke_sha256": "ad0e7d93ecf73dc3edf212840b26e73b8556e7793de489347236d76ab3799a16",
+      "frozen_git_sha256": "665a7e4c5eb1b6d5e8b5808577937c274e1694c3564e638c9d6439e528433566",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/agents/base.py",
+      "actual_smoke_sha256": "95fff0ff9c2ed70a7ebb86004088f01330a002d87a1e1d4708baabf091a4dca8",
+      "frozen_git_sha256": "1f2bbd163ada16000ce8219074a6f303b89e35ddfaf4dd973dd28ecbddb67e0d",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/__init__.py",
+      "actual_smoke_sha256": "42d864c6dc6363a4ae58d35f433172544184431129016eead8c28d3f742e11ae",
+      "frozen_git_sha256": "bd695f6a4206836b9ed2e5ed97d0ffafc9712a61792350f0c40b60c9b23687b7",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/business_notes.py",
+      "actual_smoke_sha256": "6506a685176e01b76f6e28beaac0a017ed390cf17ee42ecc129594a28745714f",
+      "frozen_git_sha256": "ce75e3ebae1de15a370bbd526ebb50b288fb047a7d4333123a510c3192106a02",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/durable_confirmations.py",
+      "actual_smoke_sha256": "665c10cfb30006bcc0a01ffe80c27f4ec2177ad6ccc5c97e415c59fbf1f629c4",
+      "frozen_git_sha256": "4186964f8fff5ff16531397c610957f94e8f4b6aebc4d68e9aaa7c1e01883d05",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/durable_product.py",
+      "actual_smoke_sha256": "ab507511a470b7839c6c2705299310c138ed58a68156acc164ab8a869fa18d17",
+      "frozen_git_sha256": "c8cfd673f6c09a841e6a49ccf0d598f414d7c2fc36bea63874afa78b6e459595",
+      "verification": "L2 readback before startup changes; original mixed-ending bytes no longer retained separately"
+    },
+    {
+      "path": "src/application/durable_runtime.py",
+      "actual_smoke_sha256": "696520300c964ff817611475b073de65cddffd28cb680799e9e28171a126ad09",
+      "frozen_git_sha256": "04160263415f0efbe6a916f43691d6586e246a2c7692743e4bb44e0ae9ff9f9f",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/durable_semantic.py",
+      "actual_smoke_sha256": "18da658cdeaafba44ef58a237e34a7a3331f22c870d300564b791559d1c0784a",
+      "frozen_git_sha256": "5c110a0b26753fcabbbc1e836f034e7a65fcbf32b6e07e72322c4ea0f210e671",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/durable_telegram_state.py",
+      "actual_smoke_sha256": "306f41a3bda949129a4756409c4f2726a410611c94ffc0ac2905a60c1fded55e",
+      "frozen_git_sha256": "306f41a3bda949129a4756409c4f2726a410611c94ffc0ac2905a60c1fded55e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/durable_voice.py",
+      "actual_smoke_sha256": "9033a6300f867014265e75b61429019293a72d08ea74e28a1c71178c7d549b80",
+      "frozen_git_sha256": "f4131ead3cc4d6353bd4159e0336271f3cf6553d947482b664404c89ee2711d6",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/fake_vertical.py",
+      "actual_smoke_sha256": "123100225227beb15317c3a34ca9d324b4d24ebd8cc6c2c175ad7b32f66a0484",
+      "frozen_git_sha256": "6c14e4c2bd23dc241937d6e7eeff398e8773fb094b18fd78f03bffcf1ba3fb75",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/gate5a3.py",
+      "actual_smoke_sha256": "58c20a64a96ae4ed4213651916f28c0df4f673ac0cfa8f09ba819e3519160058",
+      "frozen_git_sha256": "3fb840e31bb198fccb8bf338cc6845f72ee4016b5608b205e267abc76a3d0342",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/gate5a4.py",
+      "actual_smoke_sha256": "9b8d70d52e6f0282d2ec7b8af62cf791dd76e4f2fdc915fc2f6fc31850d3bb33",
+      "frozen_git_sha256": "6f02c2a0956c151916eabf550d769587afcd9a1148ed85273cac2ad71e5013f5",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/miniapp.py",
+      "actual_smoke_sha256": "fa879fe447b16afb5cfb267794b2a2fdf63eea18cb96e800c90556bf5d099ee7",
+      "frozen_git_sha256": "c162ed7aea827e6319ab306a9d24d9c579da22d3674c247304141230f15d7a38",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/network_commands.py",
+      "actual_smoke_sha256": "450df892e8b8603de86b2a4d761443a738450c4187362f37f1001947ff28a285",
+      "frozen_git_sha256": "bd956f833ac82089609dd28bcae4c7185684f91c10bf539f0a82002525b09710",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/network_tools.py",
+      "actual_smoke_sha256": "9e6bfd780044d8aafc1fe579530f35b3c2ef0fc6b868f9d7b6d4b7879ac850ff",
+      "frozen_git_sha256": "8669d4ae4a47de0d82615bedd4a885a9cb73a463fd7754c855057db7a65bacfe",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/nobus_memory.py",
+      "actual_smoke_sha256": "78bd60ffcbbe087307de642c02af79a7714139ff6f6df99be9f9e66129b046e7",
+      "frozen_git_sha256": "0523bca6c0d36d0cff42bce66bfbd9c84229f88f9218913058497a72bf116f03",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/owner_files.py",
+      "actual_smoke_sha256": "d39eae1b4864d54e85dffb6cf17922de12702840c64586b46abaa2bd6fe67061",
+      "frozen_git_sha256": "f8399928d2fea5ed1ca0305e641a359f56bf6ea0010f4bcff7e4816b689e0938",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/owner_workspace.py",
+      "actual_smoke_sha256": "53ec191d76479402c0eec00c739c5fa060f6ad6a2ddaecdc40b538cf834f6394",
+      "frozen_git_sha256": "34a73074e778d7a3942f2e8a459b1b4a1b004e2f4e90805f85c330b98500f1e3",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/patch_confirmation.py",
+      "actual_smoke_sha256": "31a877a2a3efae03831ca843763abd8598e03cf08fdb82a5ca7e0d4320f9939e",
+      "frozen_git_sha256": "7bf67e1b98d56f4740b78fdb277c675ad8f846b4fbee4ccc8d778366073b59b5",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/product_effects.py",
+      "actual_smoke_sha256": "4ef67b88910e5d9d2fdb8dc65643d4ee2dc004f9e00989f039d03d39e3c91ecc",
+      "frozen_git_sha256": "6c92d70728d83c8dc1830e0a60544d10fa01d1a7855c769e14093df818b23a3e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/product_status.py",
+      "actual_smoke_sha256": "d23ff7031cde7f97332ae8770f92357f5999d2e1d1ef0cf03f016dbce4f11d43",
+      "frozen_git_sha256": "0a4131615527c18c179638f78233355d721c1665f75612f0a3bd1d7c8a9ca9b6",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/runtime_maintenance.py",
+      "actual_smoke_sha256": "a49b1188b9a2a8fcdf31614ebf8b3d50ee88d47914887e41c4502daeb21a1361",
+      "frozen_git_sha256": "23d9db8517f2cac7e1a871f60f0c616066a98421c8844a1bf7fb43371a33ab5a",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/semantic_admission.py",
+      "actual_smoke_sha256": "e403d84398defcbf4f8214e582dad0a2b49f6a18ab71e0e42f1463da1850b68d",
+      "frozen_git_sha256": "1577e8a718788593e76ef02433a48b1a6c3d6d1823dd30ed1f708165941fb2af",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/task_confirmation.py",
+      "actual_smoke_sha256": "2bee5a26a84966a93c7507672d8440759b6803633c9927b7e8081e46a8e1d0b3",
+      "frozen_git_sha256": "ae3e3920570f78ff673b69f143e1e73471041919327e4dcdc6edaa21d90d78ff",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/task_profiles.py",
+      "actual_smoke_sha256": "a84e5959df2369d8b1e96982aaa7f6fa68b09d99dc4b90bd045f070b469f3086",
+      "frozen_git_sha256": "40d381ae9198411223fca54653631e47869bd46c07f687f52e7f6e19f5cb6a8b",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/telegram_actions.py",
+      "actual_smoke_sha256": "7ac07e3f879dda81e803f224763ec6444823e3794ecede1f7020cef0f4bf147a",
+      "frozen_git_sha256": "065b1884aa494c118d74eeb2888fdce93681964c1c4460a1a26f0cd3b4aee497",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/telegram_control.py",
+      "actual_smoke_sha256": "1db655749e0e9950c143ed51128769538f40b0e0c6c4d273f6003a4be13c2391",
+      "frozen_git_sha256": "4ca8acc959959e43e8a326801f796a69368194b93378efc5e38bf42374ce4088",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/telegram_product.py",
+      "actual_smoke_sha256": "d3a069d0d705ccf8751801e7cf2c80b709f9742945b722f20d366d7eb7312468",
+      "frozen_git_sha256": "6440ad7a9c6720ee325c325bbd6b16695f22209499d2c80de13de4e96e19b9b2",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/application/windows_singleton.py",
+      "actual_smoke_sha256": "17dd22a2b7bd1a6f152022b6dfe0f343ba8a2648babf0adf135f061032c8b440",
+      "frozen_git_sha256": "a0f2e6825e46bf9687f1de6b8c578bd2bbbcf1538d2417fb536251be549f724e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/config.py",
+      "actual_smoke_sha256": "bacc004873045443b676a261169aa0804d44fbf495ce7afa3cd105b1a51bb071",
+      "frozen_git_sha256": "e46e6f57b4985bd2a556f600912bc997b0647724d52ee77cbab66e4074fb845b",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/contracts/__init__.py",
+      "actual_smoke_sha256": "894e7bf4fed413f9ed3dec944a7a8195e7568fced66fb46d0950889142344e53",
+      "frozen_git_sha256": "29eb118f149f09fdb36537192878d6ac092275e0deb7f6e712ae2520be4bf92c",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/contracts/models.py",
+      "actual_smoke_sha256": "b5e94d516b6398003831265d6f911548d385127d9be69d67551d46726011b4df",
+      "frozen_git_sha256": "8e5bbd29fd0db5e140f9cd103dcbe026699ac7a89053965cb70dda2dfe4d1406",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/core/__init__.py",
+      "actual_smoke_sha256": "32a860bb2807fffa8bf34a10316d2b557217aff35d1efd98585c38394413386c",
+      "frozen_git_sha256": "190e6e469763863fc1f9b7f698a0ef21776571eca7862b266da1f4e794e5da3e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/core/policy.py",
+      "actual_smoke_sha256": "25d29e32a80128c87eb9ab98bddd9558de6957453e13ca77008f8ac815b83e53",
+      "frozen_git_sha256": "8a9de4773298e7dff68672c9382c6ea36dfe4a0f57f526ccb36d2d255cd1e640",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/integrations/__init__.py",
+      "actual_smoke_sha256": "b512cb4a767e39c90418475bf1d74d75d910978cd6e97b4de83951415a253d4f",
+      "frozen_git_sha256": "b6e80f161408085d1ec46447ba35996a3e783cdfd8bdaccb574ad2889ee54f2c",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/integrations/google_calendar.py",
+      "actual_smoke_sha256": "0fddbce9c804ed382e2b7133a6b6d270c030c49cd4f7a998664afe3ed432506e",
+      "frozen_git_sha256": "9160e94af1708a4163690db9c0a24dbce5eb94114790f544ad1ed60d18e71f1a",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/integrations/google_drive.py",
+      "actual_smoke_sha256": "1aebc8e8e1a9bcc3bb48055fb9931c5ff29955cd50e35eb218a3e7550028143f",
+      "frozen_git_sha256": "0bd48a8030157163873d85a2ab3837fc0a4a0d66539749bc3682b8c87ba9abcc",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/integrations/google_tasks.py",
+      "actual_smoke_sha256": "2c934ef7bd005f93d616830f196f30d65184cf20e936b971cadd04c4952ae2f2",
+      "frozen_git_sha256": "6f8e347df07933855238196e1cd148b876e8367d8eb1febd7dc0d3b209309d08",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/integrations/google_transport.py",
+      "actual_smoke_sha256": "915cb83147d9beb4f69bda81e17eb258011dcdbb7462e463bb3b5a494c2c70e6",
+      "frozen_git_sha256": "dc4a5744c7c59a9a6369fd8d20a8bf17f932008921f98eea42085138c8c8b919",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/main.py",
+      "actual_smoke_sha256": "483f966d76a7c9bcba6cb023e6f29ce97a9c0ff9d1242eb58a4c9b83a6783190",
+      "frozen_git_sha256": "68bf51504491ffa1637e8d66a83439c226fd09a7e92927f51ba4645723456fed",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/memory/__init__.py",
+      "actual_smoke_sha256": "8180a379ef1dc76f5c36c02670285352e6bb1507f2e3fc999c0b6f0f7e45ce6f",
+      "frozen_git_sha256": "cedf25756feee70800ef17f89f48ec8fadc1ff4eb08743258e3b412aab9c585f",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/memory/codebase_memory.py",
+      "actual_smoke_sha256": "f5758c2bc0d497647858523602539a5b98b0212167d259dd46a408609c9f2fda",
+      "frozen_git_sha256": "322aa1dce55004a50c6e2953aeed0bd8f49891749e8993e985e696c6cb49ca6a",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/models/__init__.py",
+      "actual_smoke_sha256": "14ca4edbd6b42297e179af9f09a18e2ba8ff2980dd44501befc621fd478c290c",
+      "frozen_git_sha256": "6ed6186a67144f07e505d770e9a81a326a8593b64d9765de5b94660fb06daac1",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/models/task.py",
+      "actual_smoke_sha256": "dd32981a95ed84862bb8f2fd7218a479057fb873ddb276363b99b53eb7308a71",
+      "frozen_git_sha256": "aacf96f380093e39e7c066e094c7a4ed1f570897d87f30caacbd0ca9a9800b95",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/orchestrator/__init__.py",
+      "actual_smoke_sha256": "dd0fb5069a39834ac91c00521dd10c911a1816e538a2750fbaa9e72797dfeb40",
+      "frozen_git_sha256": "6ddcf73046cd8c5664258049217ca04e627953fe395bd6d0bc720251f7b7853a",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/orchestrator/graph.py",
+      "actual_smoke_sha256": "32fe013bffcd1f8a8296ee4e46effaf6548f8bb6b223baf26b422214c9fab0ab",
+      "frozen_git_sha256": "310db0da195f210572aa517490926bc2dabc196f3a959f6e2eb32c4fedd02cbc",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/orchestrator/intent_parser.py",
+      "actual_smoke_sha256": "83643567d41909609fd953a1e5d6b6d3b736e5468429dff04f4ea61c0f352c67",
+      "frozen_git_sha256": "e52a9b5de3add2929b45df49f2b77d92d73cb7b86177e1890bdebfb97bc77b61",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/orchestrator/orchestrator.py",
+      "actual_smoke_sha256": "b49fb0f5c07acbc7a41c5a25fb1f9a28e83ab7a67af3a84c01064b3e17076cb7",
+      "frozen_git_sha256": "00d2e5697bac0ce31700d3f1072b553bda05ced85778154cddfc6ad0258bdfdd",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/orchestrator/router.py",
+      "actual_smoke_sha256": "8c387aa35be45db1571fa0db91371b744f87121fb43ee88f98e53d991550bf3c",
+      "frozen_git_sha256": "a14a7acd1572ca05494b8eb78e5c997f7aef68020c30ea2057d82b80c1f747a2",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/orchestrator/state_manager.py",
+      "actual_smoke_sha256": "aa1423e5dcb44eaeefc45b7022019f8f0afc94883c6827de7117a2963fca116b",
+      "frozen_git_sha256": "9abfb115d0c4b2541ba3e79b124eef4b7f56de46099f68675733dc8c0e30d038",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/security/__init__.py",
+      "actual_smoke_sha256": "0fb6616347d52c763f121a39bfb2dd29b58c73d69dba4467c54065f6dea24fcb",
+      "frozen_git_sha256": "f5fbf21177cd753fb9d9e7409591cb25a5e2475928bd236a0b034bdb32615660",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/security/dpapi.py",
+      "actual_smoke_sha256": "57d5e135c2f33d6ebc7a3ab0d68eaab2c9c94c3f3d5e642f3e7fc399a76faee4",
+      "frozen_git_sha256": "06e4459e9f945dbf61d2a7fef0dd3937636439168c69d7a074ab4a2ed459836b",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/security/windows_credentials.py",
+      "actual_smoke_sha256": "10b69b0920c134ed68c9d7c1bcd11e6f9c159b5e6f1cbdc108731e8a4814e932",
+      "frozen_git_sha256": "0f1ed94ec9430a35fed921e2a84aec526264ed07e116e45bd45dd75d3c0d90d3",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/skills/__init__.py",
+      "actual_smoke_sha256": "3d1768869f188539bcf830ee30fe5e287dcddbcf5fb6d624c298b3a211d0fed5",
+      "frozen_git_sha256": "88d4bbd01a974f82e5954cc312e6cbc07a04b8ea969b07b75518c626b1036dfe",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/skills/ponytail_rules.py",
+      "actual_smoke_sha256": "3cf24b1f7f5d6f5d2b79d247fb4d3327d24b519ac07e4bcdc3f0ffdee6e6e509",
+      "frozen_git_sha256": "36915738adddac2677a0c5d3b2a9b846edb8a1d34b13eb484a999c5a40ddc290",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/storage/__init__.py",
+      "actual_smoke_sha256": "36143cb0449be08dde3f540d75d288258677f556b38d9e4f161c0a8b4a44ce23",
+      "frozen_git_sha256": "902e0e4fea67512825a7f7259d6510b5cbd11a77d5b6bb6194e497324ff50770",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/storage/outbox.py",
+      "actual_smoke_sha256": "ceefbbbe03ffa2c1fd4a2d01de7530f3bb3f6450f3ec0a9fd1d949b998ff1665",
+      "frozen_git_sha256": "21e2b50453d689f32df2d17cdc51ab00266f20ace75d4478031b57efa4a4a9e1",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/storage/sqlite_store.py",
+      "actual_smoke_sha256": "1d5930b254b9b55fdba8f6c8993950f6d69adf9b9da1f98a94da7400e6fe2243",
+      "frozen_git_sha256": "172f584296b1e09ab2dbd640246affabc90210812015b1150a9fdccbe8f6a30b",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/miniapp.py",
+      "actual_smoke_sha256": "7bb414e732a5f2e66562c14a55cdf2b5d5595b425ab97748346e195636982e90",
+      "frozen_git_sha256": "bd249d1f33b91de5011636d61c2eb498253b39ec0637f57a1cb2ffd2715b6a65",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/__init__.py",
+      "actual_smoke_sha256": "3ebb5938c8d094c3e1c462a39450f6d56ce5067d83752dbe7b7c6ac0d5e3d315",
+      "frozen_git_sha256": "7f9a43d061a2abeae2f42e0e9e508b70d99cf58de9084bac7d184afe98a6204e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/bindings.py",
+      "actual_smoke_sha256": "e25f8a0e9d6d25c7d33c39e4adb89faa5c1ddbe7d5d0a6facae8f30ceedb7f3f",
+      "frozen_git_sha256": "1d8256dffda941757bba41ddf0d280dc50060367ae718ca9984a1903c46e0a2c",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/bot_api.py",
+      "actual_smoke_sha256": "09f4e756936dc6f59a43ec7085a18f5f711b6ae71b4a3dbfc7ca83d813baad24",
+      "frozen_git_sha256": "40c3f3ff5c973b21b7ba12af04038b4e948e34cb9ca44820cce8979943740ff0",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/checkpoint_update_store.py",
+      "actual_smoke_sha256": "5322b7d8fcc4a2c22991ad0ef99e4cdda43bbb96dc8b932af81df8beeac43979",
+      "frozen_git_sha256": "052a42e34eacfb6f75f97e2b0e27cf96982f31c33f87e0ca2af59ea61ab2916d",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/discovery.py",
+      "actual_smoke_sha256": "ef27cf1870103f01c8fb51cbbc1e36022e7e77d42dbd35961f3d8bd46cda3791",
+      "frozen_git_sha256": "231584c579ace8a466a632939ceac65146bc95c04a76a18ce3dc2cfcdcf2f933",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/gateway.py",
+      "actual_smoke_sha256": "9c599a3b306e4fa4cf79e903ca65c92a2085e98075bc40723d0062be70dc684f",
+      "frozen_git_sha256": "3d5ffef6d2c878a4a15830302d624dfb380b8cc9c3e74d6d9ac0f79c055048de",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/models.py",
+      "actual_smoke_sha256": "e89b209f6c3849aed211d08d99305b8f4a3edb021caa28bb8aefe96302424dda",
+      "frozen_git_sha256": "c279fcf15bae2d7bbe05ae20de795e8eb7d6741402bca6b82c01290590f11ca6",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/transport/telegram/sqlite_checkpoint.py",
+      "actual_smoke_sha256": "5ca340c2723b680d24a76272322fcdaa944c2e6f017a7dda13dde7fa1be92b7c",
+      "frozen_git_sha256": "84a00b1b03d1af3e30ae9c6bf256eb3ae09d9f5db6e5ded7e9796963dabec461",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/__init__.py",
+      "actual_smoke_sha256": "c700fcf5508f44b999ff450aea4742604752293c7d5f2cd4304a71bdaf8becb5",
+      "frozen_git_sha256": "f44dca603b5e517a04ca9a9df9310beabd9985dfc688ffb2cd9d6b61a1106faf",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/base.py",
+      "actual_smoke_sha256": "8644043381beb00bdda3e53407f336227801016714763c8bcf1abe0d96a9df7a",
+      "frozen_git_sha256": "d3d28a13c0349b3ba30925369c943fa272cf4224ed04f1db4b93c7a239ed4f2d",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/confirmation.py",
+      "actual_smoke_sha256": "f0930492ed768efdd4483bce7193531bdc3b2d80a41d37515aaf3285e0c1f926",
+      "frozen_git_sha256": "7190bd738faa0a75b7f6fcb0ee968ffe723ebdfec9d12c556ef9b62111e8fe6b",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/faster_whisper.py",
+      "actual_smoke_sha256": "2ae99a642f3105a1dd05d227fab737f882faec783ca795b26a6ac503d1928ae6",
+      "frozen_git_sha256": "22b54090f672950ea61ba19a2184b9e0fa40bff8132bc7cc68753d8b2f09831e",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/isolated.py",
+      "actual_smoke_sha256": "57d08ea7f2323f857635ebedc950f898c6e9d3ebe08961606a8cf69e179b59c9",
+      "frozen_git_sha256": "20a9feadcf236e1f8b24de90945b399e480467a16f73e79b7e3e9f23392088d9",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/isolated_worker.py",
+      "actual_smoke_sha256": "3700c433a1cb6ccd29dff8d7268c98d34773e3f6777dfe4c9e2ae97f517c6c4f",
+      "frozen_git_sha256": "67c0c2887d318aeb61710eb8d3e600c373ae53250baa31ef51340bb1a2cd52ee",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/voice/service.py",
+      "actual_smoke_sha256": "c52838117a386d3fa3179be3354aa4ee3472e495c4a5727198176c22080d306b",
+      "frozen_git_sha256": "2b2f2e5a8634e589049a7c5107a21738fd248a55f90383eed0e8b0d234484d5f",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/__init__.py",
+      "actual_smoke_sha256": "b2f9d5aeb9c4d025e4d97c5d2a0caeeef819cbea36d44b1cc02ae593a6dba5e0",
+      "frozen_git_sha256": "d3b94c900858c3a630f6c16458d37ffdf1037d547bd5f8655e8111c4e8752ada",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/asyncio_spawner.py",
+      "actual_smoke_sha256": "5f8b5ccee1a7fc5f358147d3e2a49d2bcb92c79afaefdc8b3e478405d6a4eb1e",
+      "frozen_git_sha256": "06337fc0e6eaeb756a1b768ff794a2baa5061f66aac4cb0b657c0625a4a85c90",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/codex_cli.py",
+      "actual_smoke_sha256": "ba1f3f577ab88f366bc40f3fc7e92d9c236f8d973638ad0047554eef6c827648",
+      "frozen_git_sha256": "3a351d1025b0a8d866c7fb78cb3e4280c5ca338b78fc5703da73b235bf37672d",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/codex_limits.py",
+      "actual_smoke_sha256": "127886e1db53400903c36a7505799af784fa2f10a706c1e0d222ee3a7e4ab966",
+      "frozen_git_sha256": "6f342cb1e65aba2f4c29b50d00981f2e666f3f1c3d6f45ebe00b4500d0dd727a",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/codex_patch.py",
+      "actual_smoke_sha256": "a345b1e6fe095c323355b6342a64089d44754e6166d28a62f29a6d4bdbea5fe5",
+      "frozen_git_sha256": "b677af5ab365b9d17ca268bdf2f42ee153118b1869190ab824c53af8bb801731",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/codex_sdk.py",
+      "actual_smoke_sha256": "9980db0f53b06860aae8eb743ea2cbe2d617781a3411dbfb8a7fa1d00de05194",
+      "frozen_git_sha256": "72df15216101494ac8a349d905e53b0323af186e7cbc258709ff133cdd0deacd",
+      "verification": "L2 readback before startup changes; original mixed-ending bytes no longer retained separately"
+    },
+    {
+      "path": "src/workers/windows_job.py",
+      "actual_smoke_sha256": "0a1b0bfa8648baa5dbebdd946cd3f5ff9b37e4cd17efba5eb934efaccf718f27",
+      "frozen_git_sha256": "56e38c9ef116402d783348191145bc9bfe661f54e702c640e39b58635a3a3126",
+      "verification": "own raw hash and normalized source readback"
+    },
+    {
+      "path": "src/workers/windows_job_helper.py",
+      "actual_smoke_sha256": "b17269120c32663b1e46542e36da5b3a1b7c3abfcd972ab7b9a42751c5ec6b2d",
+      "frozen_git_sha256": "37807695f2f65030811d32182ab638bb45287a2e1ccc9e6e2d0d962a63f632d3",
+      "verification": "own raw hash and normalized source readback"
+    }
+  ],
+  "own_source_readbacks": 95,
+  "prior_source_readback": {
+    "file": ".runtime\\c3\\reviews\\l2\\EVIDENCE-66eb2d7.json",
+    "sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451"
+  },
+  "model_calls_by_reviewer": 0,
+  "asr_calls_by_reviewer": 0,
+  "limitations": [
+    "Three synthetic cases only",
+    "Controlled separate-process restart, not hard crash",
+    "Synthetic transport receipts do not prove exactly-once Telegram",
+    "Code and gate acceptance remain separate"
+  ]
+}

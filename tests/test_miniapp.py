@@ -576,6 +576,7 @@ def test_create_task_is_session_bound_idempotent_and_uses_existing_queue(
 
     recovery_runtime = RecoveryRuntime()
     recovery = object.__new__(DurableProductTelegramControlPlane)
+    recovery._cleanup_pending = set()
     recovery._product_runtime = recovery_runtime
     restored = asyncio.run(recovery._restore(job))
     assert restored is not None

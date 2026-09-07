@@ -1033,7 +1033,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return True
         profile = profile_for_command(command)
         if command == "/status":
-            await self._api.send_message(payload.chat_id, self._status_text())
+            await self._api.send_message(payload.chat_id, self._status_text(tenant_id=payload.tenant_id))
         elif command == "/limit":
             await self._send_limit(payload.chat_id)
         elif command == "/notes":
@@ -1146,7 +1146,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             return False
         return True
 
-    def _status_text(self) -> str:
+    def _status_text(self, tenant_id: str | None = None) -> str:
         voice = "активен" if self._voice_service is not None else "не активирован"
         queue_status = ""
         if self._execution_queue is not None:

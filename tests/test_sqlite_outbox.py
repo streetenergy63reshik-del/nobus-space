@@ -159,7 +159,8 @@ def test_verified_answer_survives_restart_in_durable_outbox(tmp_path: Path) -> N
     store, manager, task, revision = persisted_draft(
         path,
         result={
-            "output_digest": canonical_json_digest({"output": "answer"}),
+            "output_digest": canonical_json_digest({"message": json.dumps(
+                {"answer": "Проверенный ответ после перезапуска."}, ensure_ascii=False, separators=(",", ":"))}),
             "summary": "not stored",
             "result_kind": "answer",
         },

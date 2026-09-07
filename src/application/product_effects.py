@@ -581,6 +581,7 @@ class ProductEffectService:
         chat_id: int,
         approval_ref: str,
     ) -> ProductEffectResult:
+        self._vault._state.assert_effect_execution(tenant_id, token)
         binding = self._vault.read(
             token,
             tenant_id=tenant_id,

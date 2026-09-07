@@ -71,6 +71,30 @@ class MiniAppTaskRequestError(ValueError):
     """A task mutation request is syntactically invalid."""
 
 
+class MiniAppTaskMaterial(BaseModel):
+    """One bounded UTF-8 material; its metadata is part of request identity."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    filename: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+    media_type: Literal["text/plain; charset=utf-8"]
+    size: StrictInt = Field(ge=1, le=MAX_TASK_INSTRUCTION_LENGTH * 4)
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    text: str = Field(min_length=1, max_length=MAX_TASK_INSTRUCTION_LENGTH)
+
+    def checked_instruction(self, instruction: str) -> str:
+        raw = self.text.encode("utf-8", errors="strict")
+        if (
+            len(raw) != self.size
+            or "sha256:" + hashlib.sha256(raw).hexdigest() != self.content_digest
+            or "\x00" in self.text
+            or not self.text.strip()
+        ):
+            raise MiniAppTaskRequestError("invalid_request")
+        # C1's existing explicit colon boundary marks the entire suffix inert.
+        return f"{instruction}\n\nМатериал:\n{self.text}"
+
+
 class MiniAppSessionGrant(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -461,8 +485,17 @@ class MiniAppCore:
         *,
         display_title: str | None = None,
         clarification_token: str | None = None,
+        material: MiniAppTaskMaterial | None = None,
     ) -> MiniAppTaskCreation:
         normalized = instruction.strip() if isinstance(instruction, str) else ""
+        if material is not None:
+            if not isinstance(material, MiniAppTaskMaterial) or not normalized:
+                raise MiniAppTaskRequestError("invalid_request")
+            try:
+                material = MiniAppTaskMaterial.model_validate(material.model_dump())
+                normalized = material.checked_instruction(normalized)
+            except (UnicodeError, ValueError):
+                raise MiniAppTaskRequestError("invalid_request") from None
         normalized_title = (
             display_title.strip() if isinstance(display_title, str) else None
         )
@@ -497,6 +530,7 @@ class MiniAppCore:
                 idempotency_key=idempotency_key,
                 display_title=normalized_title,
                 clarification_token=clarification_token,
+                material=material,
             )
 
     async def _create_task(
@@ -507,6 +541,7 @@ class MiniAppCore:
         idempotency_key: str,
         display_title: str | None,
         clarification_token: str | None,
+        material: MiniAppTaskMaterial | None,
     ) -> MiniAppTaskCreation:
         admission = self._task_admission
         if admission is None:
@@ -516,6 +551,8 @@ class MiniAppCore:
             instruction=instruction,
             idempotency_key=idempotency_key,
             display_title=display_title,
+            material=material,
+            clarification_token=clarification_token,
         )
         existing = self._existing_creation(
             envelope,
@@ -640,12 +677,17 @@ class MiniAppCore:
         instruction: str,
         idempotency_key: str,
         display_title: str | None,
+        material: MiniAppTaskMaterial | None = None,
+        clarification_token: str | None = None,
     ) -> TrustedIngressEnvelope:
-        content_ref = canonical_json_digest(
-            {"instruction": instruction}
-            if display_title is None
-            else {"display_title": display_title, "instruction": instruction}
-        )
+        content: dict[str, object] = {"instruction": instruction}
+        if display_title is not None:
+            content["display_title"] = display_title
+        if material is not None:
+            content["material"] = material.model_dump(exclude={"text"})
+        if clarification_token is not None:
+            content["clarification_token"] = clarification_token
+        content_ref = canonical_json_digest(content)
         ingress_binding = canonical_json_digest(
             {
                 "auth_context_ref": session.auth_context_ref,

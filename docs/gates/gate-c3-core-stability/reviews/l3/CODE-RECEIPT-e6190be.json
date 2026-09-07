@@ -1,0 +1,320 @@
+{
+  "reviewer": "independent L3",
+  "verdict": "CODE_ACCEPT",
+  "gate_verdict": "PENDING_FINAL_DOCS_FREEZE",
+  "candidate_commit": "e6190be47b1e880c87304774455e773c83470338",
+  "candidate_tree": "8264efbcf3e610b4d57c747b4e21a45f4d98e348",
+  "product_smoke_source": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+  "product_smoke_tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+  "base_commit": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+  "base_tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+  "source_delta_from_smoke": [
+    "src/application/durable_product.py",
+    "src/workers/codex_sdk.py"
+  ],
+  "clean_checkout": true,
+  "git_diff_check": true,
+  "utc": "2026-09-07T04:38:15.520506+00:00",
+  "finding_closure": {
+    "C3-L3-01": "CLOSED",
+    "C3-L3-02": "CLOSED_VALID_TOKEN_PROBE",
+    "C3-L3-03": "CLOSED_CORRECTED_OLD_PROBE",
+    "C3-L3-04": "CLOSED_REAL_LOCK_PROBE",
+    "C3-L3-05": "CLOSED_OWN_STARTUP_LIFECYCLE",
+    "C3-L3-V01": "CLOSED_FIXTURE_CORRECTION"
+  },
+  "runs": [
+    {
+      "name": "corrected-old",
+      "tests": 5,
+      "failures": 5,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 0,
+      "log_sha256": "33276482a06af1a58cface11c6e3447cc53f3fa40bd612f0d0cbdc9009d269a0",
+      "xml_sha256": "75327866b62d2d83e68b4fdc292ac79c6ceb7f8bafbd2371dce6e7fe51f9dc69"
+    },
+    {
+      "name": "fd5-own",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 10,
+      "log_sha256": "76992baa2210e368cc2d5c9b8c5efe3833f4ada6ca8e03c4bea85018e607ea54",
+      "xml_sha256": "cd3b46028a245631331c6110b9b3c97d5f9385a8c00c17704acf0480057dc934"
+    },
+    {
+      "name": "fd5-regression",
+      "tests": 341,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 341,
+      "log_sha256": "4e5d0a57f778d1b42b5ab90f57fcc8180f48937a126ace700ac4dce7fe485f7b",
+      "xml_sha256": "e117a62281792e50b99833fa80c1627f236cfb58618f1fdbea1ebceb10c9cc27"
+    },
+    {
+      "name": "fd5-startup-lifecycle",
+      "tests": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 0,
+      "log_sha256": "d132151afa7f67f74746eeb1371e532c121fdfd5bed62fa6a9c6874bbd7e94aa",
+      "xml_sha256": "434ce96c3bf4aa6c87f89f09f3b62978d07a7a3dc3fad5dabba8093663f9da18"
+    },
+    {
+      "name": "fd5-startup-extended",
+      "tests": 4,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 2,
+      "log_sha256": "844887122c3c7db2d595220f91f4f81a694acdff8679998e6603830d70c4b0ed",
+      "xml_sha256": "9ee307db14d301c563bf5d07e0f11f9b485b71804c2412a3824d2d2f96067019"
+    },
+    {
+      "name": "e619-own",
+      "tests": 85,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 85,
+      "log_sha256": "65e6790bb738bec51d8361f5b4471146fa7457b9ee698bcdb73450594f9aaa21",
+      "xml_sha256": "3d40a1b65fffa7c9b7fbdbf9d5447b8a681efc7bb0b56278ec13a8739b62f901"
+    }
+  ],
+  "commands": {
+    "environment": "DEBUG=false; PYTHONPATH=absolute clean L3 checkout",
+    "python": "C:\\Хранилище\\АГЕНТ\\PROстранство\\ОРКЕСТРАТОР\\Code\\nobus-orchestrator-dev\\.venv\\Scripts\\python.exe",
+    "cwd": "C:\\Хранилище\\АГЕНТ\\PROстранство\\ОРКЕСТРАТОР\\Code\\nobus-orchestrator-dev\\.runtime\\worktrees\\mvp1-closure-c3-core-stability\\.runtime\\reviews\\l3",
+    "own_fd5": "python -m pytest -q ../../c3/reviews/l3/adversarial_recheck_probes.py ../../c3/reviews/l3/actual_lock_probes.py -k \"not part_receipt_rechecks_clock_after_store_lock\" --basetemp ../../c3/reviews/l3/temp/fd5-own --junitxml ../../c3/reviews/l3/fd5-own.xml",
+    "own_e619": "python -m pytest -q ../../c3/reviews/l3/adversarial_startup_lifecycle.py ../../c3/reviews/l3/adversarial_recheck_probes.py ../../c3/reviews/l3/actual_lock_probes.py tests/test_c3_startup_lifecycle.py tests/test_c3_shutdown.py tests/test_codex_sdk.py tests/test_c3_worker_retry.py -k \"not part_receipt_rechecks_clock_after_store_lock\" --basetemp ../../c3/reviews/l3/temp/e619-own --junitxml ../../c3/reviews/l3/e619-own.xml",
+    "fd5_extended": "python -m pytest -q ../../c3/reviews/l3/adversarial_startup_lifecycle.py --basetemp ../../c3/reviews/l3/temp/fd5-startup-extended --junitxml ../../c3/reviews/l3/fd5-startup-extended.xml",
+    "product": "python ../../c3/reviews/l3/verify_product_receipts.py",
+    "fd5_regression_tests": [
+      "tests/test_c3_delivery_parts.py",
+      "tests/test_c3_durable_concurrency.py",
+      "tests/test_c3_effect_unknown.py",
+      "tests/test_c3_multipart_input.py",
+      "tests/test_c3_queue_recovery.py",
+      "tests/test_c3_result_recovery.py",
+      "tests/test_c3_shutdown.py",
+      "tests/test_c3_worker_retry.py",
+      "tests/test_c3_review_recovery.py",
+      "tests/test_c3_outbox_clock.py",
+      "tests/test_queue12_crash_regressions.py",
+      "tests/test_queue12_rework.py",
+      "tests/test_effect_crash_recovery.py",
+      "tests/test_sqlite_outbox.py",
+      "tests/test_codex_sdk.py",
+      "tests/test_miniapp_artifact.py",
+      "tests/test_miniapp_result.py",
+      "tests/test_voice_retention.py",
+      "tests/test_durable_voice.py",
+      "tests/test_product_effects.py",
+      "tests/test_voice_effect_restart.py"
+    ]
+  },
+  "verification_corrections": "CORRECTIONS-08cfff0.md",
+  "product_quality": {
+    "verdict": "PRODUCT_QUALITY_PASS",
+    "rubric_yes": 15,
+    "rubric_total": 15,
+    "receipt_checks": 194,
+    "own_source_readbacks": 95,
+    "two_changed_raw_source_files": "Attributed to contemporaneous L2 pre-edit readback, explicitly not own reread"
+  },
+  "evidence_transfer": "Allowed fd5 product quality to e619 for unchanged prompt/profile/permission/result semantics; startup delta independently checked. Historical smoke source remains fd5.",
+  "reviewer_model_calls": 0,
+  "reviewer_asr_calls": 0,
+  "external_effects": 0,
+  "artifacts": [
+    {
+      "file": "actual_lock_probes.py",
+      "sha256": "fe5022f78bf9f3b391b69a507a0b8f5da0dbae74cb90a4e6132fe1b01e21ec05",
+      "bytes": 4137
+    },
+    {
+      "file": "adversarial_probes.py",
+      "sha256": "8b1bf369c1717c9d001fff3355f10e2cf41e709db40e976324f064a6486407f5",
+      "bytes": 7235
+    },
+    {
+      "file": "adversarial_recheck_probes.py",
+      "sha256": "1668aa80a9d5b8af2ba9d2034dffa1995152694f0626e146ecf610106ed2cbcd",
+      "bytes": 7335
+    },
+    {
+      "file": "adversarial_startup_lifecycle.py",
+      "sha256": "febe3367005db96a3e4190e9898e81fa568d75248885a19ade94fc6f434fb206",
+      "bytes": 5284
+    },
+    {
+      "file": "CODE-RECEIPT-08cfff0.json",
+      "sha256": "7bdf987cd4650b7d88c2ae10de9bea538bb2d51fbd7cdc4caa820cc6876ce104",
+      "bytes": 2624
+    },
+    {
+      "file": "CODE-REVIEW-08cfff0.md",
+      "sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638",
+      "bytes": 7923
+    },
+    {
+      "file": "CODE-REVIEW-e6190be.md",
+      "sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034",
+      "bytes": 7513
+    },
+    {
+      "file": "corrected-old.log",
+      "sha256": "33276482a06af1a58cface11c6e3447cc53f3fa40bd612f0d0cbdc9009d269a0",
+      "bytes": 11607
+    },
+    {
+      "file": "corrected-old.xml",
+      "sha256": "75327866b62d2d83e68b4fdc292ac79c6ceb7f8bafbd2371dce6e7fe51f9dc69",
+      "bytes": 11094
+    },
+    {
+      "file": "CORRECTIONS-08cfff0.md",
+      "sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd",
+      "bytes": 5008
+    },
+    {
+      "file": "e619-own.log",
+      "sha256": "65e6790bb738bec51d8361f5b4471146fa7457b9ee698bcdb73450594f9aaa21",
+      "bytes": 806
+    },
+    {
+      "file": "e619-own.xml",
+      "sha256": "3d40a1b65fffa7c9b7fbdbf9d5447b8a681efc7bb0b56278ec13a8739b62f901",
+      "bytes": 11779
+    },
+    {
+      "file": "fd5-own.log",
+      "sha256": "76992baa2210e368cc2d5c9b8c5efe3833f4ada6ca8e03c4bea85018e607ea54",
+      "bytes": 725
+    },
+    {
+      "file": "fd5-own.xml",
+      "sha256": "cd3b46028a245631331c6110b9b3c97d5f9385a8c00c17704acf0480057dc934",
+      "bytes": 1552
+    },
+    {
+      "file": "fd5-regression.log",
+      "sha256": "4e5d0a57f778d1b42b5ab90f57fcc8180f48937a126ace700ac4dce7fe485f7b",
+      "bytes": 1046
+    },
+    {
+      "file": "fd5-regression.xml",
+      "sha256": "e117a62281792e50b99833fa80c1627f236cfb58618f1fdbea1ebceb10c9cc27",
+      "bytes": 45685
+    },
+    {
+      "file": "fd5-startup-extended.log",
+      "sha256": "844887122c3c7db2d595220f91f4f81a694acdff8679998e6603830d70c4b0ed",
+      "bytes": 5068
+    },
+    {
+      "file": "fd5-startup-extended.xml",
+      "sha256": "9ee307db14d301c563bf5d07e0f11f9b485b71804c2412a3824d2d2f96067019",
+      "bytes": 6573
+    },
+    {
+      "file": "fd5-startup-lifecycle-source-hash.json",
+      "sha256": "5fc41f04887c74d0e49cc28a7d2fe244e25f556960f9d301cc4d87748ffe0b64",
+      "bytes": 84
+    },
+    {
+      "file": "fd5-startup-lifecycle.log",
+      "sha256": "d132151afa7f67f74746eeb1371e532c121fdfd5bed62fa6a9c6874bbd7e94aa",
+      "bytes": 5060
+    },
+    {
+      "file": "fd5-startup-lifecycle.xml",
+      "sha256": "434ce96c3bf4aa6c87f89f09f3b62978d07a7a3dc3fad5dabba8093663f9da18",
+      "bytes": 6291
+    },
+    {
+      "file": "preservation.log",
+      "sha256": "ed0735f82e8f89e1e914b3175296c2aad88aefee0bcbd68a419317050bb2a3f6",
+      "bytes": 59190
+    },
+    {
+      "file": "preservation.xml",
+      "sha256": "db8a7c22b044c3aa93cad4469b5c7be2a8bbccb3ceaeb221657c3318f768074a",
+      "bytes": 76347
+    },
+    {
+      "file": "probes01.log",
+      "sha256": "4d659e0f9205b1f5519339ebe77792ed9d98e2b3f25c59a82f5f11243b4019fb",
+      "bytes": 9352
+    },
+    {
+      "file": "probes01.xml",
+      "sha256": "a515400c252d91808c72271014a6d5dd5d8bb77c1e95edf6638792c2653f9f1c",
+      "bytes": 9393
+    },
+    {
+      "file": "probes02.log",
+      "sha256": "554c21841aa0820e54c9726bc776efea58ed3cb7ee4b0740f477fef9d3eedea6",
+      "bytes": 7233
+    },
+    {
+      "file": "probes02.xml",
+      "sha256": "f352d8b902fcc161327cd33dfb5c08f92e24312b50035a937dd4413ab56311d5",
+      "bytes": 7097
+    },
+    {
+      "file": "probes03-source-hash.json",
+      "sha256": "d7bf5f4df974584679300b40d55da26e0fb3f668146e83459b8c68f669971d83",
+      "bytes": 110
+    },
+    {
+      "file": "probes03.log",
+      "sha256": "53f6bc31c33207f38285cf04f78f4ad4db4a6009a50c8605039624300edd82db",
+      "bytes": 9337
+    },
+    {
+      "file": "probes03.xml",
+      "sha256": "2cf3927b1ca11d6ce27dee24f820e9a459c628948d9b4d43e93c1731c3198dcd",
+      "bytes": 9243
+    },
+    {
+      "file": "PRODUCT-QUALITY-fd5f9ce.json",
+      "sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026",
+      "bytes": 47803
+    },
+    {
+      "file": "startup.log",
+      "sha256": "6997db103cbecdf2bb89917c0efd8101fc8ab2f2633f66146292b41b34f9db3b",
+      "bytes": 2988
+    },
+    {
+      "file": "startup.xml",
+      "sha256": "07a6c05b288f03749555d0d401082fd32812107e5b992000e6ef60404af03b07",
+      "bytes": 2390
+    },
+    {
+      "file": "targeted.log",
+      "sha256": "a0c616af9f6554e2852f1be86d71be6170f6914df01132ff9dc6238bf141c8fb",
+      "bytes": 7587
+    },
+    {
+      "file": "targeted.xml",
+      "sha256": "279dc4e7facd6c0953179b39286a96c9c001f8046746858fc5c29206dbd6af04",
+      "bytes": 30865
+    },
+    {
+      "file": "verify_product_receipts.py",
+      "sha256": "f7e9a3dd03a8f75568c669d1efd8ce95603c6bbfe7611889a6900c5c6c5ea164",
+      "bytes": 8769
+    },
+    {
+      "file": "write_recheck_receipt.py",
+      "sha256": "f0e67bb43fce4c024e4f17e39d684be852d551ab64bf3d15fc2a10bbe5845346",
+      "bytes": 5867
+    }
+  ]
+}

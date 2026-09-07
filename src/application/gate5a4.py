@@ -24,6 +24,7 @@ from codex_cli_bin import bundled_codex_path
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.application.durable_runtime import DurableFakeRuntime, PreparedTask
+from src.application.durable_telegram_state import guarded_task_write
 from src.application.network_tools import SafeSourceVerifier
 from src.application.task_profiles import PROFILE_POLICIES, TaskProfile
 from src.application.patch_confirmation import PatchProposal, patch_proposal_digest
@@ -970,6 +971,95 @@ class Gate5A4Runtime(DurableFakeRuntime):
         except Exception:
             raise CodexCliError("worker_protocol_error") from None
 
+    async def _restore_sealed_task(self, prepared: PreparedTask, snapshot) -> Task:
+        projection = snapshot.projection
+        result = None
+        for kind in ("answer", "patch", None):
+            value = {"output_digest": projection.output_digest, "summary": "Worker completed.",
+                     **({"result_kind": kind} if kind is not None else {})}
+            if canonical_json_digest({"context": {}, "result": value}) == projection.result_digest:
+                result = value
+                break
+        if result is None:
+            raise RuntimeError("sealed result metadata is unavailable")
+        existing = await self._state.get(prepared.contract.task_id)
+        if existing is not None:
+            if (existing.contract_digest != projection.contract_digest
+                or existing.result_digest != projection.result_digest
+                or existing.status is not projection.status
+                or self._revisions.get(existing.id) != snapshot.revision):
+                raise RuntimeError("sealed result snapshot mismatch")
+            return existing
+        task = Task(
+            id=projection.task_id, tenant_id=projection.tenant_id,
+            contract_digest=projection.contract_digest, source=projection.source,
+            intent=prepared.contract.instruction, risk=projection.risk, status=projection.status,
+            agent_id=projection.agent_id, result=result, result_revision=projection.result_revision,
+            result_digest=projection.result_digest, verification_bundle=projection.verification_bundle,
+            verification_history=projection.verification_history, human_approval=projection.human_approval,
+            approval_history=projection.approval_history, created_at=projection.created_at,
+            updated_at=projection.updated_at,
+        )
+        task = await self._state.restore_recovery_snapshot(task)
+        self._revisions[task.id] = snapshot.revision
+        return task
+
+    async def _recover_answer(self, prepared: PreparedTask,
+                              envelope: TrustedIngressEnvelope, snapshot) -> None:
+        if await self._state.get(prepared.contract.task_id) is None:
+            self._policy_store.register_contract(prepared.contract, envelope)
+        task = await self._restore_sealed_task(prepared, snapshot)
+        message = self._store.read_sealed_answer(task.tenant_id, task.id)
+        if message is None or task.result.get("result_kind") != "answer":
+            await self._required_update(task.id, status=TaskStatus.ESCALATE,
+                                        error_message="sealed_result_recovery_required")
+            return
+        draft = parse_codex_draft(message, self._pipeline.root)
+        if not isinstance(draft, CodexAnswerDraft):
+            raise RuntimeError("sealed answer is invalid")
+        candidate = self._candidate(task, message)
+        checked_l1 = VerificationLevel.model_validate((await self._pipeline.l1(candidate)).model_dump())
+        if task.status is TaskStatus.DRAFT:
+            passed = checked_l1.status is VerificationLevelStatus.PASSED
+            task = await self._required_update(
+                task.id, status=TaskStatus.L1_VALIDATED if passed else TaskStatus.REJECTED,
+                verification_bundle=self._bundle(task, l1=checked_l1,
+                    status=VerificationBundleStatus.DRAFT if passed else VerificationBundleStatus.REJECTED),
+                error_message=None if passed else "l1_failed",
+            )
+            l1 = checked_l1
+        else:
+            l1 = task.verification_bundle.l1 if task.verification_bundle is not None else None
+            passed = (l1 is not None and checked_l1.status is VerificationLevelStatus.PASSED
+                      and checked_l1.evidence_digest == l1.evidence_digest)
+            if not passed:
+                await self._required_update(task.id, status=TaskStatus.ESCALATE,
+                                            error_message="sealed_answer_verification_changed")
+        if not passed:
+            return
+
+        async def no_progress(stage: str) -> None:
+            pass
+
+        async with self._worker_slots:
+            await self._finish_answer(task, candidate, draft, l1, prepared.contract,
+                                      CodexCliResult(message=message), no_progress)
+
+    async def fail_recovery(self, prepared: PreparedTask,
+                             original_envelope: TrustedIngressEnvelope) -> bool:
+        """Terminalize an exact unrecoverable task without repeating any computation."""
+        prepared = PreparedTask.validate(prepared)
+        envelope = TrustedIngressEnvelope.model_validate(original_envelope.model_dump(mode="json"))
+        contract = prepared.contract
+        if (envelope.tenant_id != contract.tenant_id or envelope.idempotency_key != contract.idempotency_key
+            or envelope.envelope_revision != prepared.envelope_revision):
+            raise RuntimeError("recovery admission binding mismatch")
+        with guarded_task_write(contract.tenant_id, contract.task_id, task_contract_digest(contract)):
+            return self._store.mark_recovery_attention(
+                contract.tenant_id, contract.task_id, task_contract_digest(contract),
+                destination_ref=self._destination_refs[contract.tenant_id], now=self._now(),
+            )
+
     async def recover_prepared(
         self,
         prepared: PreparedTask,
@@ -989,6 +1079,21 @@ class Gate5A4Runtime(DurableFakeRuntime):
             raise ValueError("durable admission binding mismatch")
         existing = await self._state.get(contract.task_id)
         contract_digest = task_contract_digest(contract)
+        snapshot = self._store.read_task(contract.tenant_id, contract.task_id)
+        if snapshot is None or snapshot.projection.contract_digest != contract_digest:
+            raise RuntimeError("durable admission is not recoverable")
+        if snapshot.projection.status in {TaskStatus.DRAFT, TaskStatus.L1_VALIDATED, TaskStatus.L2_VERIFIED}:
+            try:
+                await self._recover_answer(prepared, trusted, snapshot)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await self.fail_recovery(prepared, trusted)
+            return False
+        if snapshot.projection.status is TaskStatus.PARSING:
+            # The process cannot prove whether this attempt reached the provider.
+            await self.fail_recovery(prepared, trusted)
+            return False
         terminal = {
             TaskStatus.COMPLETED,
             TaskStatus.ANSWERED,
@@ -1003,6 +1108,9 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 return False
             if existing.status is not TaskStatus.PENDING:
                 raise RuntimeError("durable admission is not recoverable")
+            if (snapshot.projection.status is not TaskStatus.PENDING
+                or self._revisions.get(contract.task_id) != snapshot.revision):
+                raise RuntimeError("durable recovery snapshot mismatch")
             return True
         snapshot = self._store.read_task(contract.tenant_id, contract.task_id)
         if (
@@ -1012,10 +1120,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             raise RuntimeError("durable admission is not recoverable")
         if snapshot.projection.status in terminal:
             return False
-        if snapshot.projection.status not in {
-            TaskStatus.PENDING,
-            TaskStatus.PARSING,
-        }:
+        if snapshot.projection.status is not TaskStatus.PENDING:
             raise RuntimeError("durable admission is not recoverable")
         self._policy_store.register_contract(contract, trusted)
         projection = snapshot.projection
@@ -1040,53 +1145,10 @@ class Gate5A4Runtime(DurableFakeRuntime):
             risk=contract.risk,
             status=TaskStatus.PENDING,
             created_at=projection.created_at,
-            updated_at=projection.updated_at if projection.status is TaskStatus.PENDING else self._now(),
+            updated_at=projection.updated_at,
         )
-        task = await self._state.restore_interrupted(task)
-        if projection.status is TaskStatus.PENDING:
-            self._revisions[contract.task_id] = snapshot.revision
-            return True
-        started = self._store.read_latest_event(
-            contract.tenant_id, contract.task_id
-        )
-        if (
-            started is None
-            or started.event_type is not WorkerEventType.STARTED
-            or started.sequence != 1
-            or started.contract_digest != task.contract_digest
-        ):
-            raise RuntimeError("interrupted worker evidence is unavailable")
-        self._policy_store.bind_worker(
-            task.id,
-            task.tenant_id,
-            started.attempt_id,
-            task.contract_digest,
-            self._EXECUTOR_IDENTITY,
-        )
-        self._policy_store.accept_event(started)
-        interrupted = WorkerEvent(
-            event_id=uuid4(),
-            tenant_id=task.tenant_id,
-            task_id=task.id,
-            attempt_id=started.attempt_id,
-            contract_digest=task.contract_digest,
-            worker_identity=self._EXECUTOR_IDENTITY,
-            sequence=2,
-            event_type=WorkerEventType.FAILED,
-            emitted_at=self._now(),
-            payload={
-                "error_code": "worker_interrupted",
-                "safe_message": "Worker interrupted before producing a result.",
-                "retryable": True,
-            },
-        )
-        self._policy_store.accept_event(interrupted)
-        recovered = self._store.save_task_and_append_event(
-            task,
-            interrupted,
-            expected_revision=snapshot.revision,
-        )
-        self._revisions[task.id] = recovered.revision
+        await self._state.restore_interrupted(task)
+        self._revisions[task.id] = snapshot.revision
         return True
 
     async def recover_proposal(self, proposal: PatchProposal) -> bool:
@@ -1335,71 +1397,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
                         message="Read-only patch draft is ready for exact confirmation.",
                     )
 
-                await report("Независимо перепроверяю результат")
-                l2 = VerificationLevel.model_validate(
-                    (await self._pipeline.l2(candidate)).model_dump()
-                )
-                passed = l2.status is VerificationLevelStatus.PASSED
-                task = await self._required_update(
-                    task.id,
-                    status=TaskStatus.L2_VERIFIED if passed else TaskStatus.REJECTED,
-                    verification_bundle=self._bundle(
-                        task,
-                        l1=l1,
-                        l2=l2,
-                        status=(
-                            VerificationBundleStatus.DRAFT
-                            if passed
-                            else VerificationBundleStatus.REJECTED
-                        ),
-                    ),
-                    error_message=None if passed else "l2_failed",
-                )
-                if not passed:
-                    return Gate5A4DraftOutcome(
-                        status=FakeVerticalStatus.FAILED,
-                        task_id=task.id,
-                        message="Read-only answer verification failed.",
-                    )
-
-                await report("Провожу финальную проверку")
-                l3 = VerificationLevel.model_validate(
-                    (await self._pipeline.l3(candidate)).model_dump()
-                )
-                passed = l3.status is VerificationLevelStatus.PASSED
-                task = await self._required_update(
-                    task.id,
-                    status=TaskStatus.ANSWERED if passed else TaskStatus.REJECTED,
-                    user_message=draft.answer if passed else None,
-                    verification_bundle=self._bundle(
-                        task,
-                        l1=l1,
-                        l2=l2,
-                        l3=l3,
-                        status=(
-                            VerificationBundleStatus.APPROVED
-                            if passed
-                            else VerificationBundleStatus.REJECTED
-                        ),
-                    ),
-                    error_message=None if passed else "l3_failed",
-                )
-                if not passed:
-                    return Gate5A4DraftOutcome(
-                        status=FakeVerticalStatus.FAILED,
-                        task_id=task.id,
-                        message="Read-only answer audit failed.",
-                    )
-                await self._pipeline.finalize(task.id)
-                remember = getattr(self._worker, "remember_delivered", None)
-                if callable(remember):
-                    remember(contract, worker_result)
-                return Gate5A4DraftOutcome(
-                    status=FakeVerticalStatus.COMPLETED,
-                    task_id=task.id,
-                    answer=draft.answer,
-                    message="Verified read-only answer is ready for delivery.",
-                )
+                return await self._finish_answer(task, candidate, draft, l1, contract, worker_result, report)
             except asyncio.CancelledError:
                 if task is not None:
                     await self._pipeline.discard(task.id)
@@ -1423,28 +1421,111 @@ class Gate5A4Runtime(DurableFakeRuntime):
                     message="Read-only result failed.",
                 )
 
+    async def _finish_answer(self, task: Task, candidate: VerificationInput,
+                             draft: CodexAnswerDraft, l1: VerificationLevel,
+                             contract: TaskContract, worker_result: CodexCliResult,
+                             report: Callable[[str], Awaitable[None]]) -> Gate5A4DraftOutcome:
+        await report("Независимо перепроверяю результат")
+        if task.status is TaskStatus.L1_VALIDATED:
+            l2 = VerificationLevel.model_validate(
+                (await self._pipeline.l2(candidate)).model_dump()
+            )
+            passed = l2.status is VerificationLevelStatus.PASSED
+            task = await self._required_update(
+                task.id,
+                status=TaskStatus.L2_VERIFIED if passed else TaskStatus.REJECTED,
+                verification_bundle=self._bundle(
+                    task,
+                    l1=l1,
+                    l2=l2,
+                    status=(
+                        VerificationBundleStatus.DRAFT
+                        if passed
+                        else VerificationBundleStatus.REJECTED
+                    ),
+                ),
+                error_message=None if passed else "l2_failed",
+            )
+        else:
+            l2 = task.verification_bundle.l2 if task.verification_bundle is not None else None
+            if l2 is None:
+                raise RuntimeError("sealed answer verification is unavailable")
+            passed = l2.status is VerificationLevelStatus.PASSED
+        if not passed:
+            return Gate5A4DraftOutcome(
+                status=FakeVerticalStatus.FAILED,
+                task_id=task.id,
+                message="Read-only answer verification failed.",
+            )
+
+        await report("Провожу финальную проверку")
+        l3 = VerificationLevel.model_validate(
+            (await self._pipeline.l3(candidate)).model_dump()
+        )
+        passed = l3.status is VerificationLevelStatus.PASSED
+        task = await self._required_update(
+            task.id,
+            status=TaskStatus.ANSWERED if passed else TaskStatus.REJECTED,
+            user_message=draft.answer if passed else None,
+            verification_bundle=self._bundle(
+                task,
+                l1=l1,
+                l2=l2,
+                l3=l3,
+                status=(
+                    VerificationBundleStatus.APPROVED
+                    if passed
+                    else VerificationBundleStatus.REJECTED
+                ),
+            ),
+            error_message=None if passed else "l3_failed",
+        )
+        if not passed:
+            return Gate5A4DraftOutcome(
+                status=FakeVerticalStatus.FAILED,
+                task_id=task.id,
+                message="Read-only answer audit failed.",
+            )
+        await self._pipeline.finalize(task.id)
+        remember = getattr(self._worker, "remember_delivered", None)
+        if callable(remember):
+            remember(contract, worker_result)
+        return Gate5A4DraftOutcome(
+            status=FakeVerticalStatus.COMPLETED,
+            task_id=task.id,
+            answer=draft.answer,
+            message="Verified read-only answer is ready for delivery.",
+        )
+
     async def _execute_worker(self, contract: TaskContract) -> CodexCliResult:
         """Retry one transient read-only failure within the original deadline."""
-        worker_contract = await self._worker_contract(contract)
         loop = asyncio.get_running_loop()
         deadline = loop.time() + contract.timeout_seconds
+        try:
+            worker_contract = await asyncio.wait_for(
+                self._worker_contract(contract), timeout=contract.timeout_seconds
+            )
+        except TimeoutError:
+            raise CodexCliError("worker_timeout") from None
         attempts = 1 if getattr(self._worker, "manages_retry", False) else 2
         for attempt in range(attempts):
             remaining = deadline - loop.time()
             if remaining <= 0:
                 raise CodexCliError("worker_timeout")
             try:
-                return await asyncio.wait_for(
+                result = await asyncio.wait_for(
                     self._worker.execute(worker_contract),
                     timeout=remaining,
                 )
+                if loop.time() >= deadline:
+                    raise CodexCliError("worker_timeout")
+                return result
             except TimeoutError:
                 raise CodexCliError("worker_timeout") from None
             except CodexCliError as error:
                 if attempt == attempts - 1 or error.code not in {
                     "worker_start_failed",
                     "worker_failed",
-                    "worker_protocol_error",
                 }:
                     raise
         raise CodexCliError("worker_failed")

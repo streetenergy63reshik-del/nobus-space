@@ -18,6 +18,7 @@ from src.application.durable_telegram_state import (
     DurableJob,
     DurableTelegramStateError,
     SQLiteTelegramState,
+    execution_lease,
 )
 from src.application.patch_confirmation import PatchProposal
 from src.application.semantic_admission import (
@@ -54,6 +55,8 @@ _LEASE_SECONDS = 60
 _QUEUE_MAXSIZE = 40
 _MAX_JOB_ATTEMPTS = 3
 _PROGRESS_INTERVAL_SECONDS = 30
+_SHUTDOWN_SECONDS = 30
+_CLEANUP_SECONDS = 5
 _CLARIFICATION_TOKEN = re.compile(r"[A-Za-z0-9_-]{32,128}")
 
 
@@ -109,6 +112,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self._worker_error: str | None = None
         self._worker_error_count = 0
         self._durable_voice = DurableVoiceIntake(self, telegram_state)
+        self._close_task: asyncio.Task[None] | None = None
+        self._cleanup_pending: set[asyncio.Task] = set()
 
     async def _handle_ingress(self, ingress: Any) -> bool:
         if (self._enable_semantic_admission and ingress.status is IngressStatus.REJECTED
@@ -132,18 +137,47 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
         instruction: str, *, supplied_context: Any = None, semantic_no_effect: bool = False,
     ) -> None:
-        if not active_voice():
+        if not active_voice() and supplied_context is not None:
             return await super()._start_text_task(message, envelope, instruction,
                 supplied_context=supplied_context, semantic_no_effect=semantic_no_effect)
-        if not semantic_no_effect or supplied_context is not None:
-            raise RuntimeError('voice semantic boundary is invalid')
-        prepared = await self._durable_voice.prepare(_SEMANTIC_NO_EFFECT_PROFILE+instruction, envelope)
-        if not await self._submit_draft(prepared, message, envelope):
-            raise RuntimeError('voice draft enqueue failed')
+        if active_voice():
+            if not semantic_no_effect or supplied_context is not None:
+                raise RuntimeError('voice semantic boundary is invalid')
+            prepared = await self._durable_voice.prepare(_SEMANTIC_NO_EFFECT_PROFILE+instruction, envelope)
+            if not await self._submit_draft(prepared, message, envelope):
+                raise RuntimeError('voice draft enqueue failed')
+            return
+        try:
+            prepared = await self._product_runtime.build_instruction(
+                _SEMANTIC_NO_EFFECT_PROFILE + instruction if semantic_no_effect else instruction,
+                envelope,
+            )
+            # The accepted request determines identity even if the process dies before ACK.
+            values = prepared.contract.model_dump(mode="python")
+            values["task_id"] = _miniapp_task_id(envelope.tenant_id, envelope.idempotency_key)
+            prepared = PreparedTask(TaskContract.model_validate(values), prepared.envelope_revision)
+            if not await self._submit_draft(prepared, message, envelope, deferred_admission=True):
+                raise RuntimeError("durable admission failed")
+        except asyncio.CancelledError:
+            raise
+        except DuplicateIdempotencyKeyError:
+            # Existing exact ingress owns the task; no new contract/job/provider call.
+            await self.deliver_pending()
+        except Exception:
+            await self._api.send_message(message.chat_id,
+                "Не удалось принять задачу. Попробуйте ещё раз.")
 
     async def start(self) -> None:
         if self._execution_workers or self._closing or self._closed:
             return
+        start_worker = getattr(getattr(self._product_runtime, "_worker", None), "start", None)
+        if callable(start_worker):
+            if getattr(self, "_start_task", None) is None:
+                self._start_task = asyncio.create_task(start_worker())
+            await asyncio.shield(self._start_task)
+            if self._execution_workers or self._closing or self._closed:
+                return
+        self._reconcile_tasks()
         self._execution_workers = tuple(
             asyncio.create_task(
                 self._execution_worker(), name=f"telegram-durable-executor-{index + 1}"
@@ -152,15 +186,48 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         )
 
     def assert_healthy(self) -> None:
+        if self._closing or self._closed or len(self._execution_workers) != self._execution_concurrency:
+            raise RuntimeError("durable Telegram worker unavailable")
         for worker in self._execution_workers:
             if worker.done():
-                if worker.cancelled():
-                    raise RuntimeError("durable Telegram worker stopped")
-                error = worker.exception()
-                if error is not None:
-                    raise RuntimeError(
-                        "durable Telegram worker stopped"
-                    ) from error
+                raise RuntimeError("durable Telegram worker stopped")
+        if self._worker_error is not None:
+            raise RuntimeError("durable Telegram recovery required")
+        self._telegram_state.queue_snapshot()
+        if not getattr(getattr(self._product_runtime, "_worker", None), "generation_available", True):
+            raise RuntimeError("durable Telegram worker unavailable")
+
+    def _reconcile_tasks(self) -> None:
+        runtime = self._product_runtime
+        store = getattr(runtime, "_store", None)
+        inventory = getattr(store, "list_recoverable_tasks", None)
+        if not callable(inventory):
+            return
+        with self._telegram_state.reconciliation_jobs() as jobs:
+            valid = set()
+            for job in jobs:
+                try:
+                    if job.kind == "miniapp_draft":
+                        prepared = self._miniapp_draft_binding(job).prepared
+                    elif job.kind == "draft":
+                        prepared = self._draft_binding(job)[0].prepared
+                    elif job.kind == "patch":
+                        proposal = PatchProposal.model_validate(job.payload["proposal"])
+                        if proposal.task_id != job.task_id or proposal.patch_digest != job.binding_digest:
+                            continue
+                        valid.add((job.tenant_id, job.task_id, proposal.contract_digest))
+                        continue
+                    else:
+                        continue
+                    valid.add((job.tenant_id, job.task_id, task_contract_digest(prepared.contract)))
+                except Exception:
+                    continue
+            for tenant, destination in runtime._destination_refs.items():
+                for snapshot in inventory(tenant):
+                    item = snapshot.projection
+                    if (tenant, item.task_id, item.contract_digest) not in valid:
+                        store.mark_recovery_attention(tenant, item.task_id, item.contract_digest,
+                            destination_ref=destination, now=runtime._clock())
 
     async def submit_miniapp_task(
         self,
@@ -335,20 +402,35 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         )
 
     async def close(self) -> None:
+        # A cancelled caller must not cancel cleanup and reopen intake.
+        if self._close_task is None:
+            self._closing = True
+            self._close_task = asyncio.create_task(self._close_once())
+        await asyncio.shield(self._close_task)
+
+    async def _close_once(self) -> None:
         async with self._close_lock:
             if self._closed:
                 if self._close_failed:
                     raise RuntimeError("Telegram execution queue did not close safely")
                 return
             self._closing = True
-            workers, self._execution_workers = self._execution_workers, ()
-            for worker in workers:
+            workers = self._execution_workers
+            startup = getattr(self, "_start_task", None)
+            owned = (*workers, startup) if startup is not None and not startup.done() else workers
+            for worker in owned:
                 worker.cancel()
-            results = (
-                await asyncio.gather(*workers, return_exceptions=True)
-                if workers
-                else ()
-            )
+            done, pending = await asyncio.wait(owned, timeout=_SHUTDOWN_SECONDS) if owned else (set(), set())
+            results = [worker.exception() for worker in done if not worker.cancelled()]
+            effects = getattr(self, "_product_effects", None)
+            if effects is not None:
+                cleanup = asyncio.create_task(effects.close())
+                cleaned, unfinished = await asyncio.wait({cleanup}, timeout=_CLEANUP_SECONDS)
+                if unfinished:
+                    cleanup.cancel()
+                    results.append(RuntimeError("product effect cleanup unavailable"))
+                elif not cleanup.cancelled():
+                    results.append(cleanup.exception())
             failures = [
                 result
                 for result in results
@@ -362,21 +444,20 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     break
                 else:
                     self._execution_queue.task_done()
-            with suppress(Exception):
-                await self.deliver_pending()
-            effects_close = getattr(self._product_effects, "close", None)
-            if callable(effects_close):
-                with suppress(Exception):
-                    await effects_close()
+            # Delivery has its own durable recovery; shutdown never waits on remote I/O.
             self._closed = True
-            self._close_failed = bool(failures)
-            if failures:
-                raise RuntimeError(
-                    "Telegram execution queue did not close safely"
-                ) from failures[0]
+            self._close_failed = bool(failures or pending or any(
+                not task.done() for task in self._cleanup_pending))
+            self._execution_workers = tuple(worker for worker in workers if worker in pending)
+            if startup in pending:
+                self._cleanup_pending.add(startup)
+                startup.add_done_callback(self._cleanup_finished)
+            if self._close_failed:
+                raise RuntimeError("Telegram execution queue did not close safely")
 
     async def _execution_worker(self) -> None:
         while True:
+            execution_lease.set(None)
             marker = False
             try:
                 await asyncio.wait_for(self._execution_queue.get(), timeout=1)
@@ -402,11 +483,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 await asyncio.sleep(1)
                 continue
             if durable is None:
+                self._reconcile_tasks()
                 self._worker_error = None
                 self._worker_error_count = 0
                 if marker:
                     self._execution_queue.task_done()
                 continue
+            execution_lease.set((self._telegram_state, durable, self._lease_owner))
             if durable.kind == 'voice':
                 try:
                     await self._execute_voice_with_lease(durable)
@@ -431,12 +514,12 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                         durable, lease_owner=self._lease_owner
                     )
                 else:
+                    await self._finalize_recovery_failure(durable)
                     self._telegram_state.fail(
                         durable,
                         lease_owner=self._lease_owner,
                         failure_code=self._worker_error,
                     )
-                    await self._finalize_recovery_failure(durable)
                 if marker:
                     self._execution_queue.task_done()
                 continue
@@ -456,6 +539,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             self._active_jobs += 1
             try:
                 await self._execute_with_lease(durable, job)
+                if isinstance(job, (_QueuedDraft, _QueuedMiniAppDraft)):
+                    await self._require_draft_completion(job)
                 await self._clear_progress(job)
                 if isinstance(job, _QueuedEffect):
                     self._telegram_state.ack_effect_delivery(
@@ -632,12 +717,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             for task in (execution, lease_heartbeat, progress_heartbeat):
                 if not task.done():
                     task.cancel()
-            await asyncio.gather(
-                execution,
-                lease_heartbeat,
-                progress_heartbeat,
-                return_exceptions=True,
-            )
+            done, pending = await asyncio.wait((execution, lease_heartbeat, progress_heartbeat), timeout=_CLEANUP_SECONDS)
+            self._cleanup_pending.update(pending)
+            for task in pending:
+                task.add_done_callback(self._cleanup_finished)
+            for task in done:
+                if not task.cancelled():
+                    task.exception()
 
     async def _execute_voice_with_lease(self, durable: DurableJob) -> None:
         execution = asyncio.create_task(self._durable_voice.run(durable))
@@ -650,13 +736,11 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             await execution
         except asyncio.CancelledError:
             execution.cancel()
-            await asyncio.gather(execution, return_exceptions=True)
             with suppress(Exception):
                 self._telegram_state.release(durable, lease_owner=self._lease_owner)
             raise
         except Exception:
             execution.cancel()
-            await asyncio.gather(execution, return_exceptions=True)
             self._worker_error_count += 1
             self._worker_error = 'voice_processing_failed'
             # Only resume stages whose repeat cannot perform an unknown effect.
@@ -672,7 +756,33 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             for task in (execution, heartbeat):
                 if not task.done():
                     task.cancel()
-            await asyncio.gather(execution, heartbeat, return_exceptions=True)
+            done, pending = await asyncio.wait((execution, heartbeat), timeout=_CLEANUP_SECONDS)
+            self._cleanup_pending.update(pending)
+            for task in pending:
+                task.add_done_callback(self._cleanup_finished)
+            for task in done:
+                if not task.cancelled():
+                    task.exception()
+
+    async def _require_draft_completion(self, job: _QueuedDraft | _QueuedMiniAppDraft) -> None:
+        contract = job.prepared.contract
+        if await self._product_runtime.is_task_terminal(
+            contract.tenant_id, contract.task_id, task_contract_digest(contract)
+        ):
+            return
+        # A patch draft finishes only when its exact continuation is durable.
+        with self._telegram_state.reconciliation_jobs() as queued:
+            for item in queued:
+                if item.kind == "patch" and item.tenant_id == contract.tenant_id and item.task_id == contract.task_id:
+                    proposal = PatchProposal.model_validate(item.payload["proposal"])
+                    if proposal.patch_digest == item.binding_digest and proposal.contract_digest == task_contract_digest(contract):
+                        return
+        raise RuntimeError("queued task has no durable completion")
+
+    def _cleanup_finished(self, task: asyncio.Task) -> None:
+        self._cleanup_pending.discard(task)
+        if not task.cancelled():
+            task.exception()
 
     async def _renew(self, job: DurableJob) -> None:
         while True:
@@ -708,6 +818,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         envelope: TrustedIngressEnvelope,
         *,
         recovery_envelope: TrustedIngressEnvelope | None = None,
+        deferred_admission: bool = False,
     ) -> bool:
         if self._closing:
             return False
@@ -749,7 +860,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             "recovery_envelope": recovery_envelope.model_dump(mode="json"),
         }
         source_voice = active_voice_job()
-        if source_voice is not None:
+        if source_voice is not None or deferred_admission:
             payload['deferred_admission'] = True
         try:
             self._telegram_state.enqueue(
@@ -918,12 +1029,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             )
         job, recovery_envelope = self._draft_binding(durable)
         if payload.get('deferred_admission') is True:
-            if (not isinstance(job.message, VoiceMessage)
-                or voice_id(job.message) != job.prepared.contract.task_id):
+            if (isinstance(job.message, VoiceMessage)
+                and voice_id(job.message) != job.prepared.contract.task_id):
                 raise RuntimeError('deferred voice admission mismatch')
             instruction = job.prepared.contract.instruction
-            if (job.prepared.contract.quality_profile != 'gate-c1-semantic-no-effect@1'
-                or job.prepared.contract.permissions != ('model.inference',)):
+            if (isinstance(job.message, VoiceMessage) and (
+                job.prepared.contract.quality_profile != 'gate-c1-semantic-no-effect@1'
+                or job.prepared.contract.permissions != ('model.inference',))):
                 raise RuntimeError('deferred voice profile mismatch')
             await self._product_runtime.admit_prepared(job.prepared, recovery_envelope)
             self._product_runtime.bind_task_display_text(job.prepared, instruction[:80], display_instruction=instruction)
@@ -1030,6 +1142,15 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     async def _terminalize_job(
         self, job: _QueuedJob | _QueuedMiniAppDraft
     ) -> None:
+        recover = getattr(self._product_runtime, "fail_recovery", None)
+        if isinstance(job, (_QueuedDraft, _QueuedMiniAppDraft)) and callable(recover):
+            original = job.envelope
+            active = execution_lease.get()
+            if active is not None and active[1].kind == "draft":
+                original = self._draft_binding(active[1])[1]
+            if await recover(job.prepared, original):
+                return
+            raise RuntimeError("queued task could not be terminalized")
         if not isinstance(job, _QueuedMiniAppDraft):
             await super()._terminalize_job(job)
             return
@@ -1112,23 +1233,46 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             if not self._telegram_state.delete_progress(ref):
                 raise RuntimeError("progress message commit failed")
 
-    def _status_text(self) -> str:
+    def _status_text(self, tenant_id: str | None = None) -> str:
         voice = (
             "активен" if self._voice_service is not None else "не активирован"
         )
-        active, pending = self._telegram_state.queue_counts()
-        failed = self._telegram_state.dead_letter_count()
-        health = (
-            "\nСостояние очереди: требует проверки"
-            if self._worker_error is not None or failed
-            else ""
-        )
+        try:
+            snapshot = self._telegram_state.queue_snapshot(tenant_id)
+            attention = set(self._telegram_state.attention_task_ids(tenant_id))
+            runtime = getattr(self, "_product_runtime", None)
+            store = getattr(runtime, "_store", None)
+            delivery = {"pending": 0, "leased": 0, "unknown": 0, "failed": 0}
+            if callable(getattr(store, "delivery_counts", None)):
+                for tenant in runtime._destination_refs:
+                    if tenant_id is not None and tenant != tenant_id:
+                        continue
+                    counts = store.delivery_counts(tenant)
+                    attention.update(store.attention_task_ids(tenant))
+                    for name in delivery:
+                        delivery[name] += counts[name]
+        except Exception:
+            return "Nobus Space\nПриём задач недоступен\nХранилище задач требует проверки."
+        worker = getattr(getattr(self, "_product_runtime", None), "_worker", None)
+        generation_ready = getattr(worker, "generation_available", True)
+        workers = getattr(self, "_execution_workers", ())
+        running = (not getattr(self, "_closing", True) and not getattr(self, "_closed", True)
+            and len(workers) == getattr(self, "_execution_concurrency", 0) and bool(workers)
+            and all(not item.done() for item in workers)
+            and generation_ready and self._worker_error is None)
+        active = snapshot["active"] if running else 0
+        recovering = snapshot["recovering"] + (snapshot["active"] if not running else 0)
         return (
             "Nobus Space\n"
-            "Telegram: online\n"
+            f"Приём задач: {'доступен' if running else 'временно недоступен'}\n"
             f"Голос: {voice}\n"
+            f"Исполнитель: {'готов' if running else 'недоступен'}\n"
             f"В работе: {active}\n"
-            f"В очереди: {pending}\n"
-            f"Сбойных задач: {failed}"
-            f"{health}"
+            f"В очереди: {snapshot['pending']}\n"
+            f"Ожидают подтверждения: {snapshot['waiting']}\n"
+            f"Восстанавливаются: {recovering}\n"
+            f"Требуют внимания: {len(attention)}\n"
+            f"Доставка не удалась: {delivery['failed']}\n"
+            f"Ожидают доставки: {delivery['pending'] + delivery['leased']}\n"
+            f"Доставка требует сверки: {delivery['unknown']}"
         )

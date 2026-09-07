@@ -54,6 +54,10 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "39174bc3721c2f0b4315be0efb3b224d9935a555c29d6e52cb1488bc5f0fb40d",
         "table:outbox_receipts":
             "6713069ee549076aa984fc8d0d72d834f0ba9c3e2f68f6453be0a8f48938e693",
+        "table:outbox_delivery_parts":
+            "ccdc5edb86902a6dcd2b1f2d77af8b2db5b54eef78f7c2e52c234ba6783c6b11",
+        "table:sealed_answers":
+            "23012de2a0736440d826a5e40c85d04997c48c62f82c8de669fb6ed90a982495",
         "table:task_snapshots":
             "b1f338e3deff32d9507eda30384864f4a1baabce6b56d7f59cfdeffe65b5aef4",
     },
@@ -239,6 +243,7 @@ def _validate_task_runtime_rows(path: Path) -> None:
     for row in tasks:
         if store.read_task(row["tenant_id"], UUID(row["task_id"])) is None:
             raise RuntimeError("task snapshot is missing")
+        store.read_sealed_answer(row["tenant_id"], UUID(row["task_id"]))
     for row in claims:
         task_id = UUID(row["task_id"])
         UUID(row["ingress_id"])
@@ -268,6 +273,7 @@ def _validate_task_runtime_rows(path: Path) -> None:
         if store.read_outbox_message(row["tenant_id"], message_id) is None:
             raise RuntimeError("outbox message is missing")
         store.read_outbox_receipts(row["tenant_id"], message_id)
+        store.read_delivery_parts(row["tenant_id"], message_id)
     for row in replays:
         claimed = _aware(row["claimed_at"])
         expires = _aware(row["auth_expires_at"])
