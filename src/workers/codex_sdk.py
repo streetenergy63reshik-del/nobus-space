@@ -154,6 +154,7 @@ class CodexSdkAdapter:
         self._retired_events: dict[int, asyncio.Event] = {}
         self._retired_outcomes: dict[int, bool] = {}
         self._startup_cleanup: set[asyncio.Task[None]] = set()
+        self._client_close_tasks: dict[int, asyncio.Task[None]] = {}
         self._closed = False
         self._threads: dict[str, tuple[AsyncCodex, Any]] = {}
         self._thread_locks: dict[str, asyncio.Lock] = {}
@@ -527,15 +528,26 @@ class CodexSdkAdapter:
                     self._retired_outcomes.pop(identity, None)
             event.set()
 
-    @staticmethod
-    async def _close_client(client: AsyncCodex) -> bool:
-        try:
-            await asyncio.wait_for(
-                client.close(), timeout=_CONTROL_TIMEOUT_SECONDS
-            )
-            return True
-        except (TimeoutError, Exception):
+    async def _close_client(self, client: AsyncCodex) -> bool:
+        identity = id(client)
+        task = self._client_close_tasks.get(identity)
+        if task is None:
+            task = asyncio.create_task(client.close())
+            self._client_close_tasks[identity] = task
+            task.add_done_callback(self._consume_cleanup_result)
+        done, _ = await asyncio.wait({task}, timeout=_CONTROL_TIMEOUT_SECONDS)
+        if not done:
+            self._closed = True
             return False
+        try:
+            task.result()
+        except BaseException:
+            # SDK close clears its process pointer before terminating. A second
+            # no-op close cannot prove an earlier failed physical close safe.
+            self._closed = True
+            return False
+        self._client_close_tasks.pop(identity, None)
+        return True
 
     async def _client_instance(self) -> AsyncCodex:
         async with self._client_lock:
@@ -556,6 +568,10 @@ class CodexSdkAdapter:
                     self._startup_cleanup.add(cleanup)
                     cleanup.add_done_callback(self._startup_cleanup.discard)
                     cleanup.add_done_callback(self._consume_cleanup_result)
+                    try:
+                        await self._close_client(client)
+                    except asyncio.CancelledError:
+                        pass  # The owned reaper and physical close still drain.
                     raise
                 except Exception as error:
                     await self._discard_starting_client(client)

@@ -1066,7 +1066,8 @@ async def test_deferred_close_failure_is_reported(
     assert json.loads((await execution).message) == {"answer": "ok"}
     with pytest.raises(CodexCliError, match="worker failed"):
         await closing
-    assert client.close_calls == 2
+    assert client.close_calls == 1
+    assert adapter._retired_outcomes[id(client)] is False
 
 
 @pytest.mark.asyncio
@@ -1219,12 +1220,13 @@ async def test_concurrent_close_calls_share_one_failure_outcome(
         "worker_failed",
         "worker_failed",
     ]
-    assert client.close_calls == 2
+    assert client.close_calls == 1
+    assert adapter._retired_outcomes[id(client)] is False
     assert client.overlap == 0
 
 
 @pytest.mark.asyncio
-async def test_idle_close_failure_retries_and_reports_error(
+async def test_idle_close_failure_is_retained_and_reports_error(
     tmp_path: Path,
 ) -> None:
     class FailingCloseClient(_Client):
@@ -1250,7 +1252,9 @@ async def test_idle_close_failure_retries_and_reports_error(
     with pytest.raises(CodexCliError, match="worker failed"):
         await adapter.close()
 
-    assert client.close_calls == 2
+    # A retry could be a no-op after the SDK discarded its process pointer.
+    assert client.close_calls == 1
+    assert adapter._retired_outcomes[id(client)] is False
 
 
 @pytest.mark.asyncio
