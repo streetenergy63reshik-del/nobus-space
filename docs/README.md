@@ -1,8 +1,8 @@
 # Документация Nobus Space
 
-<!-- C2_CURRENT_START -->
-C2 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED: кандидат 98aa8dc, продуктовый код f01e9f8. B01–B04 закрыты; L1: 1937 PASS и 25 subtests; независимые L2/L3 — ACCEPT. [Точная передача C2→C3](gates/gate-c2-voice-parity/HANDOFF.md). C3 READY TO START / NOT_STARTED; весь MVP1 ещё не READY.
-<!-- C2_CURRENT_END -->
+<!-- C3_CURRENT_START -->
+C3 DRAFT / GATE CANDIDATE / NOT ACCEPTED / NOT DEPLOYED: продуктовый checkpoint `fd5f9cefb64a192f0de02db314b469915bc4e6f6`; итоговая проверка продолжается. [Приёмка и доказательства C3](gates/gate-c3-core-stability/ACCEPTANCE.md). C0–C2 приняты и опубликованы; их приёмка не переоткрывается. C4 не начат; весь MVP1 ещё не READY.
+<!-- C3_CURRENT_END -->
 
 
 **Статус:** CANONICAL INDEX

@@ -1646,6 +1646,8 @@
     "merge": "d888e6bb78b275c7669971710c2a82309d98a621",
     "tree": "b6815bd848f401d376b0de006da464fe90da17b5",
     "product_source_unchanged": true,
-    "C3": "READY TO START / NOT STARTED"
-  }
+    "C3": "READY TO START / NOT STARTED",
+    "record_scope": "HISTORICAL PR13 readback; C3 READY TO START was true at that observation, not a current C3 status. Final C2 publication authority is PR14 / 5fdc28c HANDOFF."
+  },
+  "publication_record_scope": "HISTORICAL BEFORE MERGE: publication.performed=false and C3_started=false preserve the original pre-publication observation; current C2 authority is HANDOFF.md at 5fdc28ce66dbb072acd6676baf72fe58ae10b4b3."
 }

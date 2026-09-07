@@ -79,4 +79,3 @@ async def test_core_lock_cannot_outlive_queue_authority(tmp_path):
     finally:
         execution_lease.reset(token)
         blocker.join(3)
-

@@ -33,6 +33,8 @@ PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
 | [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen | ACCEPTED; semantic/process scope by 0023 | TOPOLOGY CURRENT; OLD CLOSURE PROCESS HISTORICAL |
 | [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md) | Modality-neutral semantic admission: tool-less SemanticProposal, Core Capability Registry/policy decision, C0–C6 closure | ACCEPTED | TARGET / NOT IMPLEMENTED; C0 PUBLISHED / ACCEPTED |
 
+| [0024](adr/0024-core-durable-recovery-and-part-delivery.md) | Durable admission/recovery, lease fencing, sealed answer и part receipts | ACCEPTED FOR C3 IMPLEMENTATION | DRAFT / REWORK; NOT DEPLOYED |
+
 ## Правила статусов ADR
 
 - `PROPOSED` — решение обсуждается и не является разрешением на реализацию или действие.

@@ -1,0 +1,176 @@
+{
+  "schema_version": "c3-evidence-1",
+  "verdict": "DRAFT / GATE CANDIDATE / FINAL REVIEW PENDING / NOT DEPLOYED",
+  "base": {
+    "sha": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
+    "tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
+    "handoff_blob": "6d0fee2bdb82af3ffdb92faac22dc0218572e0e6",
+    "entry_check": "PASS; C0-C2 acceptance not reopened",
+    "fresh_github_main_matches_base": true,
+    "protected": true,
+    "required_checks_at_entry": []
+  },
+  "historical_product_candidate": {
+    "sha": "08cfff031803211334f6da9da377b18226c5a393",
+    "tree": "fa265fb5a0c792ba342db025e1ecf584614cf36f",
+    "verdict": "REJECTED / REWORK REQUIRED",
+    "full_wip": {
+      "passed": 2053,
+      "subtests_passed": 25,
+      "failed": 1,
+      "skipped": 2,
+      "deselected": 1,
+      "failure": "VERIFIER_DEFECT: in-progress documentation linked to EVIDENCE.json before it existed; run predates child-cleanup change"
+    },
+    "real_product_smoke": {
+      "verdict": "FAIL",
+      "scenario": "direct_text controlled restart",
+      "finding": "R01: interrupted PARSING recovery attempted illegal PENDING transition and queue ACK accepted a failed result without durable completion"
+    },
+    "independent_L2": "CODE REJECT: after-lock outbox expiry, expiry while waiting Core lock, fixture initialization",
+    "independent_L3": "CODE REJECT: missing sealed answer fallback, stale effect authority, startup readiness evidence under correction"
+  },
+  "rework_findings": [
+    {
+      "id": "R01",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "PARSING interruption becomes durable attention; queue ACK requires terminal or exact durable patch continuation"
+    },
+    {
+      "id": "L2-01",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "delivery lease checked after lock and before commit against elapsed server time"
+    },
+    {
+      "id": "L2-02",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "Core commit rechecks queue expiry through the existing held queue connection"
+    },
+    {
+      "id": "L3-01",
+      "classification": "PRODUCT_OR_SECURITY_RISK",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "answer bytes always match authoritative output_digest, including legacy rows without encrypted seal"
+    },
+    {
+      "id": "L3-02",
+      "classification": "PRODUCT_OR_SECURITY_RISK",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "effect start and capability CAS require current queue authority"
+    },
+    {
+      "id": "L3-03",
+      "classification": "IMPLEMENTATION_DEFECT",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "local SDK startup before readiness; initial probe used invalid fallback configuration and is retained as VERIFIER_DEFECT"
+    },
+    {
+      "id": "FIXTURES",
+      "classification": "VERIFIER_DEFECT",
+      "status": "FIXED; FINAL FROZEN REVIEW PENDING",
+      "boundary": "manual control fixtures initialize new cleanup field; fabricated answer digests replaced by exact synthetic answer digests"
+    }
+  ],
+  "acceptance": "ACCEPTANCE.md",
+  "handoff": "HANDOFF.md",
+  "failure_matrix": "FAILURE-MATRIX.md",
+  "recovery_contract": "RECOVERY-CONTRACT.md",
+  "scope": {
+    "live_mutation": false,
+    "deploy": false,
+    "tag": false,
+    "release": false,
+    "C4_started": false,
+    "MVP1_READY": false
+  },
+  "publication": {
+    "status": "NOT STARTED: final PASS required"
+  },
+  "source": {
+    "sha": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+    "tree": "65c3230bceeca7cae7fd3d9e902eae1887f0fb3f",
+    "manifest": "MANIFEST.json",
+    "real_product_results": "PRODUCT-RESULTS.json",
+    "source_edits_after_product_smoke": false
+  },
+  "entry_preservation": {
+    "C2_manifest_matches": 118,
+    "C2_manifest_total": 118,
+    "C2_final_reports_hashes_verified": 4,
+    "nested_L1_receipts_verified": 4,
+    "C1_reviewed_vs_squash_tree_equal": true,
+    "C0_frozen_contracts_unchanged": true,
+    "canonical_dirty_paths_recorded": 19,
+    "C2_worktree_read_only": true,
+    "C0_C2_reacceptance": false
+  },
+  "full_rework_history": {
+    "source_revision": "fd5f9cefb64a192f0de02db314b469915bc4e6f6",
+    "passed": 2064,
+    "subtests_passed": 25,
+    "failed": 1,
+    "skipped": 2,
+    "deselected": 1,
+    "duration_seconds": 171.76,
+    "classification": "VERIFIER_DEFECT",
+    "failure": "manual test_runtime_operations control lacked _cleanup_pending initialization",
+    "followup": "12 PASS; final full run will use committed fixture fix"
+  },
+  "targeted_receipts": [
+    {
+      "file": ".runtime/c3/rework-target2.xml",
+      "sha256": "0f01ff25b13f3709107b294b4715cc2b2b03d425698771eab7bf036145ac3ed1",
+      "scope": "92 PASS; affected queue/seal/effect/outbox/startup boundaries"
+    },
+    {
+      "file": ".runtime/c3/last-fixture.xml",
+      "sha256": "3161f277dc655fbfd281d1f19924480f37772dc69e580ac925008c3eb415b436",
+      "scope": "12 PASS; runtime fixture + documentation"
+    },
+    {
+      "file": ".runtime/c3/queue-final-wip.xml",
+      "sha256": "c7105d13da0bea047dd921cab09418f0f9f50c9f91dffccd8784fe2437bf5a69",
+      "scope": "13 PASS historical root queue checkpoint"
+    },
+    {
+      "file": ".runtime/c3/smoke-shutdown-green.xml",
+      "sha256": "bc54b68e42a54248607462af0ecf220c1205129d5662642408796791e1dda324",
+      "scope": "43 PASS smoke budget/retry/shutdown guards"
+    }
+  ],
+  "historical_failures_policy": "Original raw FAIL/REJECT receipts are retained locally with their original source revisions. Final evidence never rewrites old SHA or labels old failing bytes PASS.",
+  "failure_classification_notes": [
+    {
+      "classification": "ENVIRONMENT_FAILURE",
+      "finding": "First baseline basetemp parent absent; unchanged base passed after directory creation."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Nonexistent targeted path, draft evidence link, manual fixture field and fabricated synthetic output_digest corrected without weakening contract."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Initial L3 startup probe used invalid fallback configuration; corrected old-source reproduction and rework review are separate receipts."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Artificial external Clock.advance without store clock injection replaced for authority evidence by actual SQLite-lock elapsed probes; old output retained."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "finding": "Evidence assembler initially assumed voice tombstones are removed; finished voice row is retained by accepted C2 contract. Assert now requires finished-only records and unchanged replay snapshot."
+    }
+  ],
+  "acceptance_requirements": {
+    "negative_matrix_cases": 34,
+    "full_tests": "canonical tests/ with exact C2 exclusions",
+    "L1": "PENDING on final freeze",
+    "L2": "independent code recheck closes L2-01/02; frozen gate pending",
+    "L3": "independent adversarial recheck pending",
+    "real_results": "3 execution PASS; independent quality rubric pending",
+    "publication": "after final PASS; ordinary own push/PR/merge then one status-only followup"
+  }
+}
