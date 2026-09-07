@@ -1,6 +1,6 @@
 {
   "schema_version": "c3-evidence-1",
-  "verdict": "ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED",
+  "verdict": "ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED",
   "base": {
     "sha": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
     "tree": "c8e756fb00874c5db2f6105c6d65154d0ed243e7",
@@ -105,7 +105,7 @@
     "MVP1_READY": false
   },
   "publication": {
-    "status": "AWAITING AUTHORIZED NORMAL PR AFTER FINAL DOCS PASS",
+    "status": "PUBLISHED",
     "base": "5fdc28ce66dbb072acd6676baf72fe58ae10b4b3",
     "protected_main": true,
     "required_CI_checks_observed": [],
@@ -118,7 +118,14 @@
     "tag": false,
     "release": false,
     "deploy": false,
-    "live_mutation": false
+    "live_mutation": false,
+    "product_pr": "https://github.com/streetenergy63reshik-del/nobus-space/pull/15",
+    "product_merge_sha": "331f3566f03ae9ae5ede8cdc6b411f4102cc2e95",
+    "product_merge_tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570",
+    "accepted_candidate_sha": "e45a4d42bfac8b813b8e1d6e07d0df38baace8c2",
+    "accepted_candidate_tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570",
+    "readback": "Fresh GitHub main/PR readback and fetch confirm exact accepted tree. One authorized status-only follow-up records publication; final main identity is in the outside-Git publication receipt.",
+    "final_publication_receipt": ".runtime/c3/publication-receipt.json"
   },
   "source": {
     "sha": "b1ed94c6ddfefe957a50f4d133537f74482910cc",
@@ -216,11 +223,11 @@
     "negative_matrix_cases": 34,
     "negative_matrix": "PASS, all mapped tests passed on exact source",
     "L1": "PASS",
-    "L2": "CODE ACCEPT",
-    "L3": "CODE ACCEPT",
+    "L2": "ACCEPT",
+    "L3": "ACCEPT",
     "real_results": "3/3 execution and quality PASS, controlled restart/replay with unchanged identity/result/receipts",
     "source_known_in_scope_bugs": 0,
-    "final_docs": "Independent exact delta review before authorized push; ordinary publication readback follows."
+    "final_docs": "Both independent final reviews ACCEPT exact e45a4d4 docs/source candidate. Publication-only delta retains all source/evidence bytes and is verified separately."
   },
   "superseded_candidates": [
     {
@@ -291,14 +298,26 @@
   "independent_reviews": {
     "L2": {
       "verdict": "CODE ACCEPT",
-      "file": "reviews/l2/REPORT-b1ed94c.json"
+      "file": "reviews/l2/REPORT-b1ed94c.json",
+      "final_gate": {
+        "verdict": "ACCEPT",
+        "file": "reviews/l2/FINAL-e45a4d4.json",
+        "candidate_sha": "e45a4d42bfac8b813b8e1d6e07d0df38baace8c2",
+        "candidate_tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570"
+      }
     },
     "L3": {
       "verdict": "CODE_ACCEPT",
-      "file": "reviews/l3/CODE-RECEIPT-b1ed94c.json"
+      "file": "reviews/l3/CODE-RECEIPT-b1ed94c.json",
+      "final_gate": {
+        "verdict": "ACCEPT",
+        "file": "reviews/l3/FINAL-e45a4d4.json",
+        "candidate_sha": "e45a4d42bfac8b813b8e1d6e07d0df38baace8c2",
+        "candidate_tree": "baedf0da25ab6e6599829684961b9f3c7dcf7570"
+      }
     },
     "product_quality": "L2 15/15; L3 15/15 with194 receipt checks",
-    "scope": "Exact source accepted. Final docs-only head requires explicit delta readback before push; that receipt is stored outside Git to avoid self-reference."
+    "scope": "Final Gate acceptance binds e45a4d4; original source and product receipts retain their own revisions. Added final reports and publication facts form the sole status-only follow-up."
   },
   "review_files": [
     {
@@ -468,6 +487,34 @@
       "raw_original_receipt_sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026",
       "git_blob": "6ec611c43db6b6e74db389e6080f048f37e02456",
       "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/FINAL-e45a4d4.json",
+      "sha256": "f7d773220623c3d69ded01cb3b5cd9bbdcf2262bee0edc5f0856a1dd68d8e362",
+      "raw_original_receipt_sha256": "c751961eaffbadf63e8af4dafc5134ba726af92a72660072a5e455db8a78ef58",
+      "git_blob": "18d30c8b7a6006847f62e7b1120a673d4fd76206",
+      "hash_scope": "sha256 hashes published Git LF bytes; raw_original_receipt_sha256 hashes immutable original reviewer bytes. Only EOL normalization is allowed."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l2/FINAL-e45a4d4.md",
+      "sha256": "b6eed2425ddc8b9c3754b5c215c805613c0c035cfa3ea3db2789482a050ac0f6",
+      "raw_original_receipt_sha256": "b4212eeb2ba25938db398eeb2f22d24f0198d1a863c8e800ff408c1dc248eee6",
+      "git_blob": "d55258c722938a63e392114af1cf0b8faf1b2c1e",
+      "hash_scope": "sha256 hashes published Git LF bytes; raw_original_receipt_sha256 hashes immutable original reviewer bytes. Only EOL normalization is allowed."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/FINAL-e45a4d4.json",
+      "sha256": "2a41d3bad082905f6cc756ba1283b5f795035fa8ffc7be1bfa8bb1a9ad12aa5f",
+      "raw_original_receipt_sha256": "a8d53cbd3503674a758afd698128ba450deb87811896addc0aca1e3b6172b5dc",
+      "git_blob": "e4258690037af51dd16d6b1278f75eb0e329e4d9",
+      "hash_scope": "sha256 hashes published Git LF bytes; raw_original_receipt_sha256 hashes immutable original reviewer bytes. Only EOL normalization is allowed."
+    },
+    {
+      "file": "docs/gates/gate-c3-core-stability/reviews/l3/FINAL-e45a4d4.md",
+      "sha256": "34d4c0264f2399ece71cca78d494b370079fe1c21eace1ca9288e4e8351fe974",
+      "raw_original_receipt_sha256": "34d4c0264f2399ece71cca78d494b370079fe1c21eace1ca9288e4e8351fe974",
+      "git_blob": "1180441091f35ebbbf864aff744cd1d79e7ea548",
+      "hash_scope": "sha256 hashes published Git LF bytes; raw_original_receipt_sha256 hashes immutable original reviewer bytes. Only EOL normalization is allowed."
     }
   ],
   "final_budget": {
@@ -521,5 +568,5 @@
     "file": ".runtime/c3/execution-budget.sqlite3",
     "sha256": "989b560a061320602d0864713cf0df79fe759281cb441a5486c09f6904f4df8c"
   },
-  "report_provenance": "Original reports remain immutable in .runtime/c3/reviews. Committed reports use Git LF normalization. Nested original report hashes retain their original raw scope; review_files explicitly maps each raw receipt to its published Git blob/hash."
+  "report_provenance": "Original reports remain immutable in .runtime/c3/reviews. Committed reports use Git LF normalization. Nested original report hashes retain their original raw scope; review_files explicitly maps each raw receipt to its published Git blob/hash. Status fields inside immutable reports describe their reviewed moment, not current publication state."
 }

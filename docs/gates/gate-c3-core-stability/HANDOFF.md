@@ -1,6 +1,8 @@
 # Передача Gate C3 → Gate C4
 
-**C3 ACCEPTED / PASS / NOT DEPLOYED. Публикация ещё должна быть подтверждена. C4 не начат.**
+**C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. C4 READY TO START / NOT STARTED.**
+Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.
+
 Проверенный code candidate: `b1ed94c6ddfefe957a50f4d133537f74482910cc`, tree `9acb41b5bf6d2a91b8964f84f4c459d072d0c127`. База C2: `5fdc28ce66dbb072acd6676baf72fe58ae10b4b3`, tree `c8e756fb00874c5db2f6105c6d65154d0ed243e7`. Canonical repository — `streetenergy63reshik-del/nobus-space`, C3 branch — `codex/mvp1-closure-c3-core-stability`.
 
 Перед запуском отдельной задачи C4 нужно прочитать published GitHub main, точный SHA/tree, [ACCEPTANCE](ACCEPTANCE.md), [EVIDENCE](EVIDENCE.json), [MANIFEST](MANIFEST.json) и сверить код с принятым кандидатом. Финальный main SHA/tree фиксируется в локальном publication receipt и итоговом ответе, без самоссылочного commit. C4 разрешён только от принятого опубликованного C3.
