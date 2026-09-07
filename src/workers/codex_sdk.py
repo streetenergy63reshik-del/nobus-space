@@ -153,6 +153,7 @@ class CodexSdkAdapter:
         self._retired_clients: dict[int, AsyncCodex] = {}
         self._retired_events: dict[int, asyncio.Event] = {}
         self._retired_outcomes: dict[int, bool] = {}
+        self._startup_cleanup: set[asyncio.Task[None]] = set()
         self._closed = False
         self._threads: dict[str, tuple[AsyncCodex, Any]] = {}
         self._thread_locks: dict[str, asyncio.Lock] = {}
@@ -542,14 +543,19 @@ class CodexSdkAdapter:
                 raise CodexCliError("worker_start_failed")
             if self._client is None:
                 client = self._client_factory(self._config)
+                startup = asyncio.create_task(client.__aenter__())
                 try:
-                    await client.__aenter__()
+                    # The pinned SDK offloads Popen to a thread. Cancelling its
+                    # await would lose ownership before a late process appears.
+                    await asyncio.shield(startup)
                 except asyncio.CancelledError:
-                    cleanup = asyncio.create_task(self._discard_starting_client(client))
-                    try:
-                        await asyncio.shield(cleanup)
-                    except asyncio.CancelledError:
-                        await self._drain(cleanup)
+                    self._retire_locked(client)
+                    self._client_users[id(client)] = 1
+                    self._closed = True
+                    cleanup = asyncio.create_task(self._reap_starting_client(client, startup))
+                    self._startup_cleanup.add(cleanup)
+                    cleanup.add_done_callback(self._startup_cleanup.discard)
+                    cleanup.add_done_callback(self._consume_cleanup_result)
                     raise
                 except Exception as error:
                     await self._discard_starting_client(client)
@@ -558,6 +564,19 @@ class CodexSdkAdapter:
             identity = id(self._client)
             self._client_users[identity] = self._client_users.get(identity, 0) + 1
             return self._client
+
+    async def _reap_starting_client(
+        self, client: AsyncCodex, startup: asyncio.Task[Any]
+    ) -> None:
+        # A close before Popen returns sees no process. Repeat cleanup while
+        # startup is owned, so a late process is closed even if its initialize
+        # RPC never answers. Foreground close remains bounded and fails while
+        # the retired generation has this live startup user.
+        while not startup.done():
+            await self._close_client(client)
+            await asyncio.wait({startup}, timeout=0.1)
+        self._consume_cleanup_result(startup)
+        await self._release_client(client)
 
     async def _discard_starting_client(self, client: AsyncCodex) -> None:
         # Called while initialization owns _client_lock. Keep failed physical

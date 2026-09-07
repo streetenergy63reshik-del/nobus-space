@@ -103,9 +103,11 @@ async def test_resistant_startup_marks_shutdown_failure_and_never_reopens(tmp_pa
 @pytest.mark.asyncio
 async def test_failed_startup_cleanup_is_retained_and_blocks_new_generation(tmp_path, monkeypatch):
     monkeypatch.setattr(codex_sdk, '_CONTROL_TIMEOUT_SECONDS', 0.02)
+    release = asyncio.Event()
     class BrokenClient(_Client):
         async def __aenter__(self):
-            await asyncio.Event().wait()
+            await release.wait()
+            return self
         async def close(self):
             raise RuntimeError('synthetic cleanup failure')
     client = BrokenClient()
@@ -121,6 +123,9 @@ async def test_failed_startup_cleanup_is_retained_and_blocks_new_generation(tmp_
     with pytest.raises(codex_sdk.CodexCliError) as failure:
         await asyncio.wait_for(adapter.close(), 1)
     assert failure.value.code == 'worker_failed'
+    release.set()
+    await asyncio.gather(*tuple(adapter._startup_cleanup))
+    assert adapter._retired_outcomes[id(client)] is False
 
 
 @pytest.mark.asyncio
