@@ -1,14 +1,15 @@
 # Gate index
 
 <!-- C3_CURRENT_START -->
-C3 ACCEPTED / PASS / AWAITING NORMAL PUBLICATION / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
+C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
+Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.
 <!-- C3_CURRENT_END -->
 
 
-**Статус:** ACCEPTED C1 / ACCEPTED C2 + HISTORICAL SEALED BASELINE
-**CURRENT:** `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`
-**Active roadmap:** [C1 acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md)
-и [текущий C2 handoff](gate-c2-voice-parity/HANDOFF.md).
+**Статус:** ACCEPTED C1 / ACCEPTED C2 / ACCEPTED C3 + HISTORICAL SEALED BASELINE
+**CURRENT:** `C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED`; `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`
+**Active roadmap:** [C3 acceptance](gate-c3-core-stability/ACCEPTANCE.md)
+и [передача C4](gate-c3-core-stability/HANDOFF.md).
 Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
 и не входит в published tree.
 
@@ -29,8 +30,8 @@ checkpoints, не отдельные пользовательские чаты.
 | C0 — единая истина и контракт | `PUBLISHED / ACCEPTED` @ `70085f8...`, tree `3a31914a...` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
 | C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED / NOT DEPLOYED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
-| C3 — стабильность Core/backend/worker | ACCEPTED / PASS / AWAITING PUBLICATION | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
-| C4 — завершённый frontend/user journey | HOLD до C3 | Telegram/Mini App E2E |
+| C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
+| C4 — завершённый frontend/user journey | READY TO START / NOT STARTED | [C3 handoff](gate-c3-core-stability/HANDOFF.md), Telegram/Mini App E2E |
 | C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
 | C6 — frozen release и owner acceptance | HOLD до C5 | exact publication/activation/readback/acceptance |
 
