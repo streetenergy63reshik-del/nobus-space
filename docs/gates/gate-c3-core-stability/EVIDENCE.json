@@ -200,6 +200,16 @@
     {
       "classification": "VERIFIER_DEFECT",
       "finding": "Physical-close regression formerly expected two API close calls. C3 now requires one pending/failed operation and retained false outcome; failure assertions strengthened, no noop success accepted. Cancel-enter closed assertion preserved."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "candidate": "8476b68c1ca6e58d6146eb3a0eb23f1560b19d07",
+      "finding": "Report index initially labeled raw CRLF receipt hashes as published file hashes. 18 report blobs differ only by Git CRLF→LF normalization. Metadata now binds both forms; original reports, code and test outcomes unchanged."
+    },
+    {
+      "classification": "VERIFIER_DEFECT",
+      "candidate": "8476b68c1ca6e58d6146eb3a0eb23f1560b19d07",
+      "finding": "Historical product budget ledger hash described a point-in-time mutable ledger. Fields now explicitly record historical provenance; final ledger hash and unified totals remain in final_budget_ledger."
     }
   ],
   "acceptance_requirements": {
@@ -268,6 +278,14 @@
     "pip_check": {
       "file": ".runtime/c3/pip-check-final.log",
       "sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf"
+    },
+    "verification_receipt_provenance": {
+      "raw_original_file": ".runtime/c3/verification-b1ed94c.json",
+      "raw_original_receipt_sha256": "8b12edd546e5a4ba5f38d5eb56d16f766d71fb5769c7f1a53d9553dca7aeff70",
+      "published_file": "docs/gates/gate-c3-core-stability/L1-VERIFICATION.json",
+      "git_blob": "f376ece1751f80ab141e86fd5c941920dc64be75",
+      "sha256_git_blob": "e81f5937a0ab447b46c903fe1ec4d28aec64e137347611af307babde8da147b3",
+      "normalization": "Original raw receipt copied unchanged; Git normalizes CRLF to LF only. Nested original receipt hashes retain raw-byte scope."
     }
   },
   "independent_reviews": {
@@ -285,99 +303,171 @@
   "review_files": [
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/EVIDENCE-66eb2d7.json",
-      "sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451"
+      "sha256": "d6a2167dc0e8be736b97ba3d81ac68516d548ead816371c88c149f71c5f22da2",
+      "raw_original_receipt_sha256": "3b6d1f74bb36786c665916f6f75a5fa31cc8ff6d295de8c9221d08e20dfd1451",
+      "git_blob": "61213efe3185b972c624be727812960bd810fcb5",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/EVIDENCE-66eb2d7.md",
-      "sha256": "08d719c9d9917cd67c41dbfc2b4c5d749737321d64d081f33054f39a9747e296"
+      "sha256": "ff2eaae662a6345125f743e6e555773913374ae0f50759e492ffabcb0eed7fa3",
+      "raw_original_receipt_sha256": "08d719c9d9917cd67c41dbfc2b4c5d749737321d64d081f33054f39a9747e296",
+      "git_blob": "b758bbdfabb2631194999405e83d70f919885baa",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-08cfff0.json",
-      "sha256": "36c7d59eb74d7c7e8257d2aa42eeb511bf96b752a08d4c523db99962c999f5ee"
+      "sha256": "148d4c2344378a9584de6dbe568df69d1d0fb74e73fb87b4c1db32f23a9adb13",
+      "raw_original_receipt_sha256": "36c7d59eb74d7c7e8257d2aa42eeb511bf96b752a08d4c523db99962c999f5ee",
+      "git_blob": "86015d824960f1742e79db63403833f31d0c88d0",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-08cfff0.md",
-      "sha256": "02aa8180cc7afadfa8b9b390a91d67086f2bf3265490cc1f961935ba2e1fa13e"
+      "sha256": "26f2bb5fac5434dce2d031b34f3371d5c2d2fbe168631672b2da91ccb63afea5",
+      "raw_original_receipt_sha256": "02aa8180cc7afadfa8b9b390a91d67086f2bf3265490cc1f961935ba2e1fa13e",
+      "git_blob": "c2e3edc1c0b8e97fc67d0cf6acaa4fbf5465f0b9",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-a7e570b.json",
-      "sha256": "4d363e092735d75c54d99291e54a707209f97584d6967fb5b5a9ec1ade4932a9"
+      "sha256": "71e91c53d44d7cdb6c91fc240d21bf5acf58ad28279e71f8130abbc3c3594bd5",
+      "raw_original_receipt_sha256": "4d363e092735d75c54d99291e54a707209f97584d6967fb5b5a9ec1ade4932a9",
+      "git_blob": "fff565c4ddd8221ea7dc56da6f5c8f752b08e677",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-a7e570b.md",
-      "sha256": "d9fc707b1948ee79f47ff535f461ea8cb65409467532dab85ac79b3dfd0828ad"
+      "sha256": "a338e52ae21d11ab8871b0d4d1ee52ab32e8648e1f84f81ba5af7ae69f64a4d5",
+      "raw_original_receipt_sha256": "d9fc707b1948ee79f47ff535f461ea8cb65409467532dab85ac79b3dfd0828ad",
+      "git_blob": "bf7e386791cfdabbd00acc4824eaaf7e5340cf99",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-b1ed94c.json",
-      "sha256": "7564d1ad2141c40510b46c431f19aef881bc138c742c941ad85506da271d4ed3"
+      "sha256": "e133fc69d4b2343384b352567dee9a78b715450b89907ca18e179708bc71bb80",
+      "raw_original_receipt_sha256": "7564d1ad2141c40510b46c431f19aef881bc138c742c941ad85506da271d4ed3",
+      "git_blob": "d9de80853e3e773088dbcfcb92d2578d085405c4",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-b1ed94c.md",
-      "sha256": "c399ba2a7b671aaae6857fd7f0f1f598b0494307ec52caa085a66e1da8f079d8"
+      "sha256": "fa90dde0fcb8dd78cb4ce6d66e951aca15de0669b313e1d1ce6326c22567b514",
+      "raw_original_receipt_sha256": "c399ba2a7b671aaae6857fd7f0f1f598b0494307ec52caa085a66e1da8f079d8",
+      "git_blob": "500d12db75bba6271d5d305990bdf97d91bbea76",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-e6190be.json",
-      "sha256": "09a6901029938813fc99c38bbbd77f84d46c280c182c59afca308c54c2658e8e"
+      "sha256": "b782aa73595964e17e4b593739915900ecb7431d8ce6ea8299d31e49b9fe0c45",
+      "raw_original_receipt_sha256": "09a6901029938813fc99c38bbbd77f84d46c280c182c59afca308c54c2658e8e",
+      "git_blob": "6b26b3850e8cdf82d53d4594025aa12e5f705867",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-e6190be.md",
-      "sha256": "c120aec2ace94dd961399e5cbe6e4d3a4ca61c3101031a7550a5ca81bfda8ea7"
+      "sha256": "bf530c6850967bd9efd36375d00cbf6bfc1bae0e3392a0618e3cad866ad21e54",
+      "raw_original_receipt_sha256": "c120aec2ace94dd961399e5cbe6e4d3a4ca61c3101031a7550a5ca81bfda8ea7",
+      "git_blob": "d1e8e207b9d44f9f7e805051dce0784c409b8eda",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-fd5f9ce.json",
-      "sha256": "121de0721141bfc2bf720bcf5fc6f2c884c4e62653813195fb285f01a82bfaef"
+      "sha256": "851a507258abcf0a4ad608cfcc2dbfa777bfa146883e9f50ac80e426390c3064",
+      "raw_original_receipt_sha256": "121de0721141bfc2bf720bcf5fc6f2c884c4e62653813195fb285f01a82bfaef",
+      "git_blob": "f54459ca354a6af085ab03a16ca54e9fa6d6a4e0",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l2/REPORT-fd5f9ce.md",
-      "sha256": "0de905dc91543081a82dca28e77cfd1f2bd49b2a11c3b5d74546b5e6dbff6afe"
+      "sha256": "881f634ada9d621cb3c1a867a1849b7f36d4d4ab5b3283ade5cc03dc08963c4c",
+      "raw_original_receipt_sha256": "0de905dc91543081a82dca28e77cfd1f2bd49b2a11c3b5d74546b5e6dbff6afe",
+      "git_blob": "2519735f318f51074e28104b78f6f387040e74b7",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/ADDENDUM-e6190be-REJECT.md",
-      "sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782"
+      "sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782",
+      "raw_original_receipt_sha256": "c2d1bcb77070214f1f32dfa92719cc744d52533d0b1458e3fb0ab3fd8124a782",
+      "git_blob": "6ee827205961136c2af0d95c0e7f1d6fd8cb1cd3",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-08cfff0.json",
-      "sha256": "7bdf987cd4650b7d88c2ae10de9bea538bb2d51fbd7cdc4caa820cc6876ce104"
+      "sha256": "9c9a634170c3ef598237a9dc78158469777877ad282ba5983a44ef0876aaf10c",
+      "raw_original_receipt_sha256": "7bdf987cd4650b7d88c2ae10de9bea538bb2d51fbd7cdc4caa820cc6876ce104",
+      "git_blob": "6222805e065f176b0684cf69bbe8a51701a1b5a2",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-a7e570b.json",
-      "sha256": "680dbd484af509c3bc87daeb50ed8404ce663a2d05e785b445113e5c5f8baea9"
+      "sha256": "9f3b431f4f8cc4c7d67fb7ed64ddd6dc25ecccb01eb8ebbca0152742699da8a6",
+      "raw_original_receipt_sha256": "680dbd484af509c3bc87daeb50ed8404ce663a2d05e785b445113e5c5f8baea9",
+      "git_blob": "89cf4ba3d3f1b27bb8522d50a78050efb9ef5cb2",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-b1ed94c.json",
-      "sha256": "b26c114dd6fed64dccfa77afd258105acd0699d0e6568d90695df3911501e090"
+      "sha256": "4c1784a07c3d066ca862ee0221c0e454bf3719d1f7011607ebe9c4cbeac59129",
+      "raw_original_receipt_sha256": "b26c114dd6fed64dccfa77afd258105acd0699d0e6568d90695df3911501e090",
+      "git_blob": "460ebbd9e92c0fa08de3181b219d42c841b38934",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-RECEIPT-e6190be.json",
-      "sha256": "1fafacdcc9aaf4362281dbe8984e228678384c86e5bb5b7c23017cd4bc7a659c"
+      "sha256": "0f97fc404ea258e24ab65a8f3a2f44ede07471b4b439a09564a7246a95dc08b0",
+      "raw_original_receipt_sha256": "1fafacdcc9aaf4362281dbe8984e228678384c86e5bb5b7c23017cd4bc7a659c",
+      "git_blob": "9d01f09689dcd295c5a9cbba189d5a9021053b81",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-08cfff0.md",
-      "sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638"
+      "sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638",
+      "raw_original_receipt_sha256": "025f33ec6478c6606e46dd6ad5e2ef6f07cee5bef4f5b8b9d5110bf651bc1638",
+      "git_blob": "2d84cc317e5d5f67076e825288c34f0142f5399d",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-a7e570b.md",
-      "sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315"
+      "sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315",
+      "raw_original_receipt_sha256": "a7a3196dd3533adff505679e49578c8776d3348902e40779a439565085834315",
+      "git_blob": "ca0fcc865433b9a59ec4467e0838d252180c21ab",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-b1ed94c.md",
-      "sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09"
+      "sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09",
+      "raw_original_receipt_sha256": "3f53a6bb6da60d57a9a0fdd452c8a6acba161c868154a94ca618ec94cdad0c09",
+      "git_blob": "792c8df3bd48adf064627acd324eb40e1e2cb2e1",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CODE-REVIEW-e6190be.md",
-      "sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034"
+      "sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034",
+      "raw_original_receipt_sha256": "e7f7926d9b0bb75b21df4f1364c63880edf95254e96126a70aecb08ec0e4a034",
+      "git_blob": "2db8c4b9a3db6695bb422f5d1111dbe26b564fac",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/CORRECTIONS-08cfff0.md",
-      "sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd"
+      "sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd",
+      "raw_original_receipt_sha256": "6c5c69b17764a0da68a5182917d0f7b5a0f82394cbe3ecf1bb809353f26303dd",
+      "git_blob": "3a2492efc4866d5d214035abd8eabda5f1d69fb8",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/PHYSICAL-START-e6190be.json",
-      "sha256": "af6cf2dcdadc8ae50910e936f3cec88b5982694785f5564b7bf47f7486acb234"
+      "sha256": "e89d2279c6c6394f6054138feebb4927d204947d8c26e3df2d233a0b185a1d6c",
+      "raw_original_receipt_sha256": "af6cf2dcdadc8ae50910e936f3cec88b5982694785f5564b7bf47f7486acb234",
+      "git_blob": "6d7be7581528af25c34beb570947624b630f5fd8",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     },
     {
       "file": "docs/gates/gate-c3-core-stability/reviews/l3/PRODUCT-QUALITY-fd5f9ce.json",
-      "sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026"
+      "sha256": "7b69d7e5c9c80c3b5e86119f2bc52090caa830b934e0710aacbc3a8185378a05",
+      "raw_original_receipt_sha256": "b293a25a5b35de8b9c80d125c1da77ba83cfea10709207987957774a4afac026",
+      "git_blob": "6ec611c43db6b6e74db389e6080f048f37e02456",
+      "hash_scope": "sha256 hashes published Git bytes; raw_original_receipt_sha256 hashes unchanged reviewer receipt before Git EOL normalization. Payload differs only by CRLF to LF."
     }
   ],
   "final_budget": {
@@ -430,5 +520,6 @@
   "final_budget_ledger": {
     "file": ".runtime/c3/execution-budget.sqlite3",
     "sha256": "989b560a061320602d0864713cf0df79fe759281cb441a5486c09f6904f4df8c"
-  }
+  },
+  "report_provenance": "Original reports remain immutable in .runtime/c3/reviews. Committed reports use Git LF normalization. Nested original report hashes retain their original raw scope; review_files explicitly maps each raw receipt to its published Git blob/hash."
 }

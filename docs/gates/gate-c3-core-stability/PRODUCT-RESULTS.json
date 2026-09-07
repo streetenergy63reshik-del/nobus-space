@@ -355,8 +355,9 @@
   ],
   "budget": {
     "ledger": {
-      "file": ".runtime/c3/execution-budget.sqlite3",
-      "sha256": "f5a5bcb3952deb815a4b6421ca930843a3bbcfe03efb5b43e9888d2dc3bbce9b"
+      "file_at_time": ".runtime/c3/execution-budget.sqlite3",
+      "historical_sha256": "f5a5bcb3952deb815a4b6421ca930843a3bbcfe03efb5b43e9888d2dc3bbce9b",
+      "scope": "Historical point-in-time receipt, not a frozen file available at this live path. The same unified ledger continued accumulating startup reservations; final hash and totals are in EVIDENCE.json final_budget_ledger."
     },
     "totals": {
       "model": {
@@ -624,8 +625,9 @@
   "historical_reviewed_version": {
     "git_revision": "66eb2d7b3ccc067db4f85fe350669e76074d6313",
     "path": "docs/gates/gate-c3-core-stability/PRODUCT-RESULTS.json",
-    "sha256": "2074206d6fce60f8ba4940af838d9404e414f80f608750c7a835c704c69c802a",
-    "note": "Independent quality reports bind this previous exact document; answer and phase bytes below are unchanged."
+    "note": "Independent quality reports bind the previous raw CRLF document. Its immutable Git revision stores LF-normalized bytes; both hashes are explicit. Answer, phase and transport data below are unchanged.",
+    "raw_reviewed_receipt_sha256": "2074206d6fce60f8ba4940af838d9404e414f80f608750c7a835c704c69c802a",
+    "sha256_git_blob": "4467782aa7191244f47885ea087ffdbca240580a0188b6782dd2324690c26f41"
   },
   "quality_reviews": [
     "reviews/l2/EVIDENCE-66eb2d7.json",
