@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import time
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -414,10 +415,13 @@ class SQLiteStore:
 
     @contextmanager
     def _transaction(self) -> Iterator[sqlite3.Connection]:
+        from src.application.durable_telegram_state import validate_guarded_commit
         connection = self._connect()
         try:
             connection.execute("BEGIN IMMEDIATE")
+            validate_guarded_commit()
             yield connection
+            validate_guarded_commit()
             connection.commit()
         except BaseException:
             connection.rollback()
@@ -1646,6 +1650,9 @@ class SQLiteStore:
                 or snapshot.projection.status is not TaskStatus.ANSWERED):
                 raise OutboxCorruptionError("answer task binding mismatch")
             sealed = self._read_sealed_answer(connection, snapshot)
+            normalized = json.dumps({"answer": message.user_message}, ensure_ascii=False, separators=(",", ":"))
+            if snapshot.projection.output_digest != canonical_json_digest({"message": normalized}):
+                raise OutboxCorruptionError("answer output digest mismatch")
             if sealed is not None and json.loads(sealed)["answer"] != message.user_message:
                 raise OutboxCorruptionError("answer differs from sealed result")
         return message
@@ -1825,6 +1832,9 @@ class SQLiteStore:
         try:
             with self._transaction() as connection:
                 if projection.status is TaskStatus.ANSWERED:
+                    normalized = json.dumps({"answer": user_message}, ensure_ascii=False, separators=(",", ":"))
+                    if projection.output_digest != canonical_json_digest({"message": normalized}):
+                        raise OutboxConflictError("answer output digest mismatch")
                     sealed = self._read_sealed_answer(connection, StoredTaskSnapshot(
                         revision=task_revision, updated_at=projection.updated_at,
                         snapshot_digest=projection_digest, projection=projection,
@@ -2024,6 +2034,7 @@ class SQLiteStore:
         now: datetime | None = None,
     ) -> tuple[OutboxMessage, ...]:
         """Reclaim expired work and return post-update leased messages."""
+        started = time.monotonic()
         tenant = _required_text(tenant_id, "tenant_id")
         if not isinstance(lease_owner, UUID):
             raise ValueError("lease_owner must be a UUID")
@@ -2048,6 +2059,8 @@ class SQLiteStore:
 
         try:
             with self._transaction() as connection:
+                fence_time = timestamp + timedelta(seconds=time.monotonic() - started)
+                lease_expires_at = fence_time + timedelta(seconds=lease_duration_seconds)
                 expired_rows = connection.execute(
                     """SELECT tenant_id, message_id, message_fingerprint, task_id,
                               task_revision, task_projection_digest, status, attempt_count, max_attempts,
@@ -2058,7 +2071,7 @@ class SQLiteStore:
                        WHERE tenant_id = ? AND status = 'leased'
                          AND lease_expires_at <= ?
                        ORDER BY lease_expires_at, message_id LIMIT ?""",
-                    (tenant, timestamp.isoformat(), limit),
+                    (tenant, fence_time.isoformat(), limit),
                 ).fetchall()
                 for row in expired_rows:
                     message = self._outbox_from_row(
@@ -2106,7 +2119,7 @@ class SQLiteStore:
                          AND attempt_count < max_attempts
                          AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
                        ORDER BY created_at, message_id LIMIT ?""",
-                    (tenant, timestamp.isoformat(), limit),
+                    (tenant, fence_time.isoformat(), limit),
                 ).fetchall()
                 leased: list[OutboxMessage] = []
                 for row in rows:
@@ -2208,12 +2221,14 @@ class SQLiteStore:
                             *, lease_owner: UUID, now: datetime
                             ) -> tuple[tuple[DeliveryPart, DeliveryPartReceipt | None], ...]:
         """Freeze the complete manifest under the current lease before any send."""
+        started = time.monotonic()
         validated = validate_delivery_parts(message, parts)
         with self._transaction() as connection:
             current = self._select_outbox_message(connection, message.tenant_id, message.message_id)
             if current is None:
                 raise OutboxLeaseError("delivery message is unavailable")
-            self._require_delivery_lease(current, lease_owner, message.lease_id, message.attempt_count, now)
+            self._require_delivery_lease(current, lease_owner, message.lease_id, message.attempt_count,
+                now + timedelta(seconds=time.monotonic() - started))
             if current.message_fingerprint != message.message_fingerprint:
                 raise OutboxConflictError("delivery message binding mismatch")
             existing = self._delivery_parts(connection, current)
@@ -2238,17 +2253,21 @@ class SQLiteStore:
             }).model_dump(mode="json"))
             self._update_outbox_message(connection, updated, previous_state_revision=current.state_revision,
                                         previous_digest=previous_digest)
+            self._require_delivery_lease(current, lease_owner, message.lease_id, message.attempt_count,
+                now + timedelta(seconds=time.monotonic() - started))
             return tuple((part, None) for part in validated)
 
     def record_delivery_part(self, receipt: DeliveryPartReceipt, *, lease_owner: UUID,
                              now: datetime) -> None:
         """Append a receipt for one exact part; confirmed parts are immutable."""
+        started = time.monotonic()
         receipt = DeliveryPartReceipt.model_validate(receipt.model_dump(mode="json"))
         with self._transaction() as connection:
             message = self._select_outbox_message(connection, receipt.tenant_id, receipt.message_id)
             if message is None:
                 raise OutboxLeaseError("delivery message is unavailable")
-            self._require_delivery_lease(message, lease_owner, receipt.lease_id, receipt.attempt_count, now)
+            self._require_delivery_lease(message, lease_owner, receipt.lease_id, receipt.attempt_count,
+                now + timedelta(seconds=time.monotonic() - started))
             if receipt.received_at > now or receipt.received_at < message.updated_at:
                 raise OutboxLeaseError("delivery receipt clock is invalid")
             parts = self._delivery_parts(connection, message)
@@ -2268,6 +2287,8 @@ class SQLiteStore:
             )
             if cursor.rowcount != 1:
                 raise OutboxReceiptConflictError("delivery receipt CAS failed")
+            self._require_delivery_lease(message, lease_owner, receipt.lease_id, receipt.attempt_count,
+                now + timedelta(seconds=time.monotonic() - started))
 
     def record_outbox_receipt(
         self,
@@ -2277,6 +2298,7 @@ class SQLiteStore:
         now: datetime | None = None,
     ) -> OutboxMessage:
         """Record an outcome only for the exact current unexpired lease."""
+        started = time.monotonic()
         validated = DeliveryReceipt.model_validate(receipt.model_dump(mode="json"))
         if not isinstance(lease_owner, UUID):
             raise ValueError("lease_owner must be a UUID")
@@ -2324,7 +2346,7 @@ class SQLiteStore:
                     or message.lease_id != validated.lease_id
                     or message.attempt_count != validated.attempt_count
                     or message.lease_expires_at is None
-                    or message.lease_expires_at <= timestamp
+                    or message.lease_expires_at <= timestamp + timedelta(seconds=time.monotonic() - started)
                     or validated.received_at < message.updated_at
                 ):
                     raise OutboxLeaseError("receipt does not match current lease")
@@ -2381,6 +2403,8 @@ class SQLiteStore:
                         _canonical_json(receipt_data),
                     ),
                 )
+                self._require_delivery_lease(message, lease_owner, validated.lease_id, validated.attempt_count,
+                    timestamp + timedelta(seconds=time.monotonic() - started))
                 return updated
         except (
             OutboxCorruptionError,

@@ -223,6 +223,11 @@ async def run(args):
     checkpoint = old.SQLitePollingCheckpointStore(folder / "polling.sqlite3", consumer_id="c3-product-smoke", lease_duration_seconds=240)
     polling = old.TelegramPollingBoundary(api, control.handle, checkpoint)
     original = old.update(None, audio) if args.scenario == "direct_voice" else old.update(fixture(args.scenario))
+    if args.phase in {"admit", "confirm"}:
+        async def restart_barrier():
+            # Controlled scheduler cut: durable admission finishes before claim.
+            return None
+        control.start = restart_barrier
     before, status, cleanup = ledger.snapshot(), "FAILED", []
     try:
         async with asyncio.timeout(240):

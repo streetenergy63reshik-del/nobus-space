@@ -408,6 +408,7 @@ async def test_progress_card_gets_stages_and_periodic_heartbeat(
         await asyncio.Event().wait()
 
     control._draft_and_present = draft
+    control._cleanup_pending = set()
     control._renew = renew
     monkeypatch.setattr(
         durable_product_module, "_PROGRESS_INTERVAL_SECONDS", 0.01

@@ -51,7 +51,8 @@ def _answered_store(path: Path) -> tuple[SQLiteStore, Task, OutboxMessage]:
     store, manager, task, revision = persisted_draft(
         path,
         result={
-            "output_digest": canonical_json_digest({"output": "answer"}),
+            "output_digest": canonical_json_digest({"message": json.dumps(
+                {"answer": "Проверенный ответ владельцу."}, ensure_ascii=False, separators=(",", ":"))}),
             "summary": "must not be exposed",
             "result_kind": "answer",
         },

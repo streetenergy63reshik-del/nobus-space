@@ -166,6 +166,11 @@ class CodexSdkAdapter:
             and id(self._client) not in self._retired_clients
         )
 
+    async def start(self) -> None:
+        """Open the local protocol/auth generation without a model turn."""
+        client = await self._client_instance()
+        await self._release_client(client)
+
     async def execute(self, contract: TaskContract) -> CodexCliResult:
         permissions = frozenset(contract.permissions)
         if (
@@ -968,6 +973,11 @@ class ResilientCodexAdapter:
     def generation_available(self) -> bool:
         """Expose local generation admission without claiming provider health."""
         return getattr(self._primary, "generation_available", False) is True
+
+    async def start(self) -> None:
+        starter = getattr(self._primary, "start", None)
+        if callable(starter):
+            await starter()
 
     def _with_delivered_web_context(self, contract: TaskContract) -> TaskContract:
         reference = contract.conversation_ref

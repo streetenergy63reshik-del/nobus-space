@@ -80,6 +80,17 @@ class DurableJob:
 execution_lease: ContextVar[tuple["SQLiteTelegramState", DurableJob, UUID] | None] = ContextVar(
     "execution_lease", default=None
 )
+_held_execution: ContextVar[tuple[Any, Any, DurableJob, UUID] | None] = ContextVar(
+    "held_execution", default=None
+)
+
+
+def validate_guarded_commit() -> None:
+    """Recheck expiry through the already-held queue lock, without a second lock."""
+    active = _held_execution.get()
+    if active is not None:
+        state, connection, job, owner = active
+        state._check_execution(connection, job, owner)
 
 
 @contextmanager
@@ -219,7 +230,11 @@ class SQLiteTelegramState:
         job = self._validated_job(job, require_lease=True)
         with self._transaction() as connection:
             self._check_execution(connection, job, lease_owner)
-            yield
+            marker = _held_execution.set((self, connection, job, lease_owner))
+            try:
+                yield
+            finally:
+                _held_execution.reset(marker)
 
     def _check_execution(self, connection: sqlite3.Connection, job: DurableJob, lease_owner: UUID) -> None:
         row = connection.execute(
@@ -982,6 +997,21 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def _check_effect_context(self, connection: sqlite3.Connection, tenant_id: str, token: str) -> None:
+        active = execution_lease.get()
+        if active is None:
+            return
+        state, job, owner = active
+        if (state.path.resolve() != self.path.resolve() or job.kind != "effect"
+            or job.tenant_id != tenant_id or job.payload.get("capability_token") != token):
+            raise DurableTelegramStateError("runtime_effect_binding_mismatch")
+        self._check_execution(connection, job, owner)
+
+    def assert_effect_execution(self, tenant_id: str, token: str) -> None:
+        if execution_lease.get() is not None:
+            with self._transaction() as connection:
+                self._check_effect_context(connection, tenant_id, token)
+
     def replace_capability(
         self,
         *,
@@ -1003,6 +1033,8 @@ class SQLiteTelegramState:
         now = self._now()
         try:
             with self._transaction() as connection:
+                if kind == "action" and isinstance(expected_payload.get("token"), str):
+                    self._check_effect_context(connection, tenant_id, expected_payload["token"])
                 self._sweep_capabilities(connection, now)
                 cursor = connection.execute(
                     """UPDATE telegram_capabilities
@@ -1018,6 +1050,8 @@ class SQLiteTelegramState:
                         expected_digest,
                     ),
                 )
+                if kind == "action" and isinstance(expected_payload.get("token"), str):
+                    self._check_effect_context(connection, tenant_id, expected_payload["token"])
                 return cursor.rowcount == 1
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None

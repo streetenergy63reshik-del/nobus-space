@@ -41,6 +41,7 @@ def harness(tmp_path):
     c._lease_owner = uuid4()
     c._durable_voice = DurableVoiceIntake(c, c._telegram_state)
     c._execution_queue = asyncio.Queue(40)
+    c._cleanup_pending = set()
     # Exercise the real no-effect contract normalization, not the generic test runtime prefix.
     from src.application.gate5a4 import Gate5A4Runtime
     contract_runtime = object.__new__(Gate5A4Runtime)

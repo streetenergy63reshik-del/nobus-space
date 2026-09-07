@@ -219,3 +219,34 @@ async def test_expired_job_cannot_seal_real_core_result(tmp_path):
         execution_lease.reset(token)
     assert core._store.read_task(task.tenant_id, task.id) == before
     assert core._store.read_sealed_answer(task.tenant_id, task.id) is None
+
+
+@pytest.mark.asyncio
+async def test_restart_parsing_requires_attention_without_provider_replay(tmp_path):
+    from src.core.policy import task_contract_digest
+    from src.contracts import IngressSource
+    from src.application.durable_runtime import PreparedTask
+    from src.models.task import TaskStatus
+    from src.workers.codex_cli import CodexCliResult
+    from tests.test_c3_result_recovery import runtime
+    from tests.test_sqlite_store import contract_for, envelope
+    incoming = envelope(source=IngressSource.API)
+    contract = contract_for(incoming)
+    prepared = PreparedTask(contract, incoming.envelope_revision)
+    core = runtime(tmp_path)
+    task = await core._begin_task(contract, incoming)
+    await core._start_worker(contract, task)
+    restarted = runtime(tmp_path)
+    calls = []
+    async def execute(value):
+        calls.append(value)
+        return CodexCliResult(message='{"answer":"A recovered synthetic result."}')
+    restarted._execute_worker = execute
+    assert not await restarted.recover_prepared(prepared, incoming)
+    assert calls == []
+    snapshot = restarted._store.read_task(contract.tenant_id, contract.task_id)
+    assert snapshot.projection.status is TaskStatus.FAILED
+    assert await restarted.is_task_terminal(contract.tenant_id, contract.task_id, task_contract_digest(contract))
+    again = runtime(tmp_path)
+    assert not await again.recover_prepared(prepared, incoming)
+    assert again._store.read_task(contract.tenant_id, contract.task_id) == snapshot

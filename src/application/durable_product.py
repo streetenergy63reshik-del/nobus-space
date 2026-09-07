@@ -170,6 +170,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     async def start(self) -> None:
         if self._execution_workers or self._closing or self._closed:
             return
+        start_worker = getattr(getattr(self._product_runtime, "_worker", None), "start", None)
+        if callable(start_worker):
+            if getattr(self, "_start_task", None) is None:
+                self._start_task = asyncio.create_task(start_worker())
+            await asyncio.shield(self._start_task)
+            if self._execution_workers or self._closing or self._closed:
+                return
         self._reconcile_tasks()
         self._execution_workers = tuple(
             asyncio.create_task(
@@ -527,6 +534,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             self._active_jobs += 1
             try:
                 await self._execute_with_lease(durable, job)
+                if isinstance(job, (_QueuedDraft, _QueuedMiniAppDraft)):
+                    await self._require_draft_completion(job)
                 await self._clear_progress(job)
                 if isinstance(job, _QueuedEffect):
                     self._telegram_state.ack_effect_delivery(
@@ -749,6 +758,21 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             for task in done:
                 if not task.cancelled():
                     task.exception()
+
+    async def _require_draft_completion(self, job: _QueuedDraft | _QueuedMiniAppDraft) -> None:
+        contract = job.prepared.contract
+        if await self._product_runtime.is_task_terminal(
+            contract.tenant_id, contract.task_id, task_contract_digest(contract)
+        ):
+            return
+        # A patch draft finishes only when its exact continuation is durable.
+        with self._telegram_state.reconciliation_jobs() as queued:
+            for item in queued:
+                if item.kind == "patch" and item.tenant_id == contract.tenant_id and item.task_id == contract.task_id:
+                    proposal = PatchProposal.model_validate(item.payload["proposal"])
+                    if proposal.patch_digest == item.binding_digest and proposal.contract_digest == task_contract_digest(contract):
+                        return
+        raise RuntimeError("queued task has no durable completion")
 
     def _cleanup_finished(self, task: asyncio.Task) -> None:
         self._cleanup_pending.discard(task)

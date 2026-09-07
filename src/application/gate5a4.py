@@ -1090,6 +1090,10 @@ class Gate5A4Runtime(DurableFakeRuntime):
             except Exception:
                 await self.fail_recovery(prepared, trusted)
             return False
+        if snapshot.projection.status is TaskStatus.PARSING:
+            # The process cannot prove whether this attempt reached the provider.
+            await self.fail_recovery(prepared, trusted)
+            return False
         terminal = {
             TaskStatus.COMPLETED,
             TaskStatus.ANSWERED,
@@ -1104,6 +1108,9 @@ class Gate5A4Runtime(DurableFakeRuntime):
                 return False
             if existing.status is not TaskStatus.PENDING:
                 raise RuntimeError("durable admission is not recoverable")
+            if (snapshot.projection.status is not TaskStatus.PENDING
+                or self._revisions.get(contract.task_id) != snapshot.revision):
+                raise RuntimeError("durable recovery snapshot mismatch")
             return True
         snapshot = self._store.read_task(contract.tenant_id, contract.task_id)
         if (
@@ -1113,10 +1120,7 @@ class Gate5A4Runtime(DurableFakeRuntime):
             raise RuntimeError("durable admission is not recoverable")
         if snapshot.projection.status in terminal:
             return False
-        if snapshot.projection.status not in {
-            TaskStatus.PENDING,
-            TaskStatus.PARSING,
-        }:
+        if snapshot.projection.status is not TaskStatus.PENDING:
             raise RuntimeError("durable admission is not recoverable")
         self._policy_store.register_contract(contract, trusted)
         projection = snapshot.projection
@@ -1141,52 +1145,10 @@ class Gate5A4Runtime(DurableFakeRuntime):
             risk=contract.risk,
             status=TaskStatus.PENDING,
             created_at=projection.created_at,
-            updated_at=projection.updated_at if projection.status is TaskStatus.PENDING else self._now(),
+            updated_at=projection.updated_at,
         )
-        task = await self._state.restore_interrupted(task)
-        if projection.status is TaskStatus.PENDING:
-            self._revisions[contract.task_id] = snapshot.revision
-            return True
-        started = self._store.read_latest_event(
-            contract.tenant_id, contract.task_id
-        )
-        if (
-            started is None
-            or started.event_type is not WorkerEventType.STARTED
-            or started.sequence != 1
-            or started.contract_digest != task.contract_digest
-        ):
-            raise RuntimeError("interrupted worker evidence is unavailable")
-        self._policy_store.bind_worker(
-            task.id,
-            task.tenant_id,
-            started.attempt_id,
-            task.contract_digest,
-            self._EXECUTOR_IDENTITY,
-        )
-        self._policy_store.accept_event(started)
-        interrupted = WorkerEvent(
-            event_id=uuid4(),
-            tenant_id=task.tenant_id,
-            task_id=task.id,
-            attempt_id=started.attempt_id,
-            contract_digest=task.contract_digest,
-            worker_identity=self._EXECUTOR_IDENTITY,
-            sequence=2,
-            event_type=WorkerEventType.FAILED,
-            emitted_at=self._now(),
-            payload={
-                "error_code": "worker_interrupted",
-                "safe_message": "Worker interrupted before producing a result.",
-                "retryable": True,
-            },
-        )
-        self._policy_store.accept_event(interrupted)
-        with guarded_task_write(task.tenant_id, task.id, task.contract_digest):
-            recovered = self._store.save_task_and_append_event(
-                task, interrupted, expected_revision=snapshot.revision,
-            )
-        self._revisions[task.id] = recovered.revision
+        await self._state.restore_interrupted(task)
+        self._revisions[task.id] = snapshot.revision
         return True
 
     async def recover_proposal(self, proposal: PatchProposal) -> bool:

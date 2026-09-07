@@ -160,6 +160,10 @@ async def test_two_durable_workers_preserve_capacity_fifo_and_tenant_bindings(tm
 
     control._set_progress = control._clear_progress = progress
     control._execute_with_lease = execute
+    async def simulated_terminal(tenant, task, digest):
+        expected_tenant, name = expected[task]
+        return tenant == expected_tenant and name in finished[tenant]
+    control._product_runtime.is_task_terminal = simulated_terminal
     try:
         await control.start()
         assert len(control._execution_workers) == 2
