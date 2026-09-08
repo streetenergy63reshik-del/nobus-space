@@ -9,3 +9,12 @@
 Новые проверки покрывают отказ graceful/forced stop, отказ после записи snapshot, до certificate, перед pointer publish, replay, чужую попытку, посторонний файл, nested bytes и предел карантина. Целевой rework-набор: 36 passed за 38,93 с. Первоначальный вызов с неверным именем test_c5_runtime_supervisor.py не запустил тестов; исправленный запуск использовал test_live_supervisor.py, исходная ошибка сохранена.
 
 Изменённые bytes требуют новой source freeze и независимой проверки. Статус здесь DRAFT, не приёмка релиза. Native licence decision, настоящий полный RTO, активация, реальные owner journeys и окончательное подтверждение владельца остаются отдельными необходимыми условиями.
+
+
+## Проверка взаимодействия после первого исправления
+
+6f5d26757ea40ba841049ea78e17a18c64b419b3: полный L1 — 2339 passed, 25 subtests, 2 skipped и 2 исторических deselected за 280,21 с. Независимые L2/L3 подтвердили закрытие прежних прямых STOP/retention сценариев, но нашли два связанных P1: плановый hold мог завершить Core с ошибкой через health/Telegram handler; повторно неудачный recovery терял исходный attempt_id. Их FAIL receipts и reproducer сохранены. L2: 53 целевых PASS и оба воспроизведения; один дефект собственных тестовых часов исправлен с сохранением исходного verifier FAIL.
+
+Исправление сохраняет logical attempt_id во всех подтверждённых повторах того же цикла. RuntimeAdmissionPaused отделяет плановую паузу от неисправности: hold блокирует startup и новое admission, но не мешает operational health/drain. Freshness/disk продолжают проверяться в health. Typed pause проходит через Telegram polling boundary без ACK, с освобождением lease, и обрабатывается внешним циклом с паузой 1 секунда; cancellation штатного shutdown сохраняется. Настоящие handler/checkpoint ошибки не преобразуются в повтор. Mini App отвечает503 и не создаёт задачу.
+
+Целевой integration набор: 130 passed за30,88 с. Включает настоящий polling/outer loop с MockTransport, actual Core health и synthetic SQLite, повторный partial recovery после временного отказа, Mini App503 без task/queue/compiler call. Это не реальные owner journeys, не native inference и не полный RTO.

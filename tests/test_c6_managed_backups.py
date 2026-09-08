@@ -173,7 +173,7 @@ def test_unavailable_backup_never_accepts_or_queues_miniapp_task(tmp_path):
     from fastapi.testclient import TestClient
     from tests.test_c3_multipart_input import setup,post,form
     app,token,store,queue,admission,compiler=setup(tmp_path)
-    def unavailable(): raise RuntimeError('synthetic expired backup')
+    def unavailable(*, for_admission): raise RuntimeError('synthetic expired backup')
     admission._admission_readiness=unavailable
     with TestClient(app) as client:
         response=post(client,token,*form())
@@ -316,3 +316,109 @@ def test_interrupted_staging_is_bound_and_unknown_nested_data_is_preserved(tmp_p
         after.pop('recovery.dpapi')
         assert after==before
         assert b._quarantine(root,ownership)[1]==1
+
+
+def test_repeated_explicit_recovery_keeps_original_attempt_after_transient_failure(tmp_path,monkeypatch):
+    from scripts import backup_telegram_runtime as backup
+    path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
+    original_backup=backup.backup
+    def partial(sources,destination):
+        original_backup(sources,destination)
+        raise OSError('synthetic crash after snapshot')
+    monkeypatch.setattr(backup,'backup',partial)
+    with pytest.raises(OSError):cycle.cycle(path,digest)
+    root=tmp_path/'backups'
+    generation=next(p for p in root.iterdir() if p.is_dir())
+    original_attempt=b._certificate(generation/'intent.dpapi')['attempt_id']
+    monkeypatch.setattr(backup,'backup',original_backup)
+    original_move=b._move_to_quarantine
+    monkeypatch.setattr(b,'_move_to_quarantine',lambda *args:(_ for _ in ()).throw(OSError('synthetic transient capacity/move failure')))
+    failed=b._certificate(tmp_path/'backup-cycle-state.dpapi')
+    with pytest.raises(OSError):
+        cycle.cycle(path,digest,recover_failure_digest=canonical_json_digest(failed))
+    monkeypatch.setattr(b,'_move_to_quarantine',original_move)
+    failed=b._certificate(tmp_path/'backup-cycle-state.dpapi')
+    assert failed['attempt_id']==original_attempt
+    result=cycle.cycle(path,digest,recover_failure_digest=canonical_json_digest(failed))
+    assert result['status']=='PASS'
+    assert (root/'quarantine'/generation.name/'recovery.dpapi').exists()
+
+
+def healthy_control(tmp_path,root,runtime,ownership):
+    from tests.test_miniapp import _miniapp_admission
+    _,queue,control=_miniapp_admission(tmp_path)
+    control._closed=False
+    control._execution_concurrency=0
+    control._worker_error=None
+    control._admission_readiness=lambda *,for_admission:b.assert_recent(root,ownership,runtime,for_admission=for_admission)
+    return control,queue
+
+
+def test_planned_hold_does_not_turn_operational_health_into_abnormal_exit(tmp_path,monkeypatch):
+    path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
+    config=json.loads(path.read_text())
+    root,runtime=tmp_path/'backups',tmp_path/'runtime'
+    b.create_generation(root,runtime,config['ownership'])
+    control,queue=healthy_control(tmp_path/'control',root,runtime,config['ownership'])
+    original=b.hold_admission
+    checked=[]
+    def hold_then_health(*args):
+        original(*args)
+        control.assert_healthy()
+        checked.append(True)
+    monkeypatch.setattr(b,'hold_admission',hold_then_health)
+    result=cycle.cycle(path,digest)
+    assert result['status']=='PASS' and checked==[True]
+    assert states['NobusSpaceTestMain']['last_result']==0
+    assert queue.queue_counts()==(0,0)
+
+
+def test_planned_pause_crosses_real_polling_without_ack_and_allows_shutdown(tmp_path):
+    import asyncio
+    from scripts.run_telegram_control import _poll_with_unavailable_backoff
+    from src.transport.telegram.bot_api import TelegramPollingBoundary
+    from tests.test_telegram_bot_api import Checkpoint,api_for,response
+    runtime=tmp_path/'runtime'
+    fixture_runtime(runtime)
+    root=tmp_path/'backups'
+    ownership=b.initialize(root,runtime,'sha256:'+'a'*64)
+    b.create_generation(root,runtime,ownership)
+    control,queue=healthy_control(tmp_path/'control',root,runtime,ownership)
+    b.hold_admission(root,ownership)
+    async def probe():
+        api=api_for(lambda request:response([{'update_id':10}]))
+        checkpoint=Checkpoint(10)
+        async def handler(update):
+            return await control._handle_ingress(None)
+        polling=TelegramPollingBoundary(api,handler,checkpoint)
+        sleeps=[]
+        async def sleep(seconds):
+            sleeps.append(seconds)
+            assert checkpoint.advances==[] and not checkpoint.owned
+            control.assert_healthy()
+            raise asyncio.CancelledError
+        try:
+            with pytest.raises(asyncio.CancelledError):
+                await _poll_with_unavailable_backoff(polling,api,{},timeout=0,announce=False,sleeper=sleep,health_check=control.assert_healthy)
+            assert sleeps==[1.0] and checkpoint.offset==10 and not checkpoint.owned
+        finally:
+            await api.aclose()
+    asyncio.run(probe())
+    assert queue.queue_counts()==(0,0)
+
+
+def test_planned_hold_still_returns_503_without_miniapp_creation(tmp_path):
+    from fastapi.testclient import TestClient
+    from tests.test_c3_multipart_input import setup,post,form
+    runtime=tmp_path/'runtime'
+    fixture_runtime(runtime)
+    root=tmp_path/'backups'
+    ownership=b.initialize(root,runtime,'sha256:'+'a'*64)
+    b.create_generation(root,runtime,ownership)
+    b.hold_admission(root,ownership)
+    app,token,store,queue,admission,compiler=setup(tmp_path/'app')
+    admission._admission_readiness=lambda *,for_admission:b.assert_recent(root,ownership,runtime,for_admission=for_admission)
+    with TestClient(app) as client:
+        result=post(client,token,*form())
+    assert result.status_code==503 and queue.queue_counts()==(0,0) and compiler.calls==[]
+    assert len(store.list_tasks('owner',limit=20))==0

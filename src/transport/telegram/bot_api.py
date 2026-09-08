@@ -19,7 +19,7 @@ from uuid import UUID, uuid4
 import httpx
 from pydantic import SecretStr
 
-from src.application.product_status import product_task_state
+from src.application.product_status import RuntimeAdmissionPaused, product_task_state
 from src.models.task import TaskStatus
 from src.storage.outbox import DeliveryPart, OutboxMessage, OutboxStatus, artifact_for_message, delivery_parts
 
@@ -587,6 +587,10 @@ class TelegramPollingBoundary:
                             self._handler(update), timeout=remaining
                         )
                     except asyncio.CancelledError:
+                        raise
+                    except RuntimeAdmissionPaused:
+                        # No checkpoint advance. The outer loop waits; the lease
+                        # is still released by the existing finally below.
                         raise
                     except TimeoutError:
                         handler_failure = "telegram_checkpoint_failed"

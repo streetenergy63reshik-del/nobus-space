@@ -1,6 +1,6 @@
 {
   "schema": "c6-checkpoint-evidence-1",
-  "recorded_at": "2026-09-08T22:10:31.820269+00:00",
+  "recorded_at": "2026-09-08T22:32:53.385256+00:00",
   "canonical_preserved_files": 20,
   "live_mutated": false,
   "model_turns": 0,
@@ -59,6 +59,14 @@
     "c6-rework-backup-04": {
       "bytes": 722,
       "sha256": "aade06a52a61f6b601710991a73a385b5e0afc1c368d3f97ece78a2b668c1d1d"
+    },
+    "c6-l1-6f5d267": {
+      "bytes": 3347,
+      "sha256": "1b034896f3a0e5c36bb0a2f1a1bd6f1455f47c3a13be374afa288e4d3703e37f"
+    },
+    "c6-integration-rework-01": {
+      "bytes": 804,
+      "sha256": "a802c48f649e269e3b9f923a1a9f37cc4daf969a12c8a81fcd57a721908c967e"
     }
   },
   "migration_rehearsal": {
@@ -77,5 +85,11 @@
     "L3": "FAIL: same three findings",
     "status": "fixes awaiting new source freeze and independent readback"
   },
-  "canonical_preservation_rechecked_at": "2026-09-08T22:18:15.465538+00:00"
+  "canonical_preservation_rechecked_at": "2026-09-08T22:18:15.465538+00:00",
+  "integration_rework": {
+    "previous_source": "6f5d26757ea40ba841049ea78e17a18c64b419b3",
+    "L1": "2339 passed;25 subtests;280.21s",
+    "L2_L3": "two Major integration findings; fixed and awaiting frozen readback",
+    "target_tests": "130 passed;30.88s"
+  }
 }

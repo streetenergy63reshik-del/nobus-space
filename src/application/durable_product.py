@@ -126,7 +126,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     async def _handle_ingress(self, ingress: Any) -> bool:
         if self._admission_readiness is not None:
-            self._admission_readiness()
+            self._admission_readiness(for_admission=True)
         if (self._enable_semantic_admission and ingress.status is IngressStatus.REJECTED
             and ingress.rejection_chat_id is not None):
             await self._api.send_message(ingress.rejection_chat_id,
@@ -251,7 +251,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     def assert_healthy(self) -> None:
         if self._admission_readiness is not None:
-            self._admission_readiness()
+            self._admission_readiness(for_admission=False)
         if self._closing or self._closed or len(self._execution_workers) != self._execution_concurrency:
             raise RuntimeError("durable Telegram worker unavailable")
         for worker in self._execution_workers:
@@ -304,7 +304,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     ) -> UUID:
         """Admit one Mini App task through the existing Core and durable queue."""
         if self._admission_readiness is not None:
-            self._admission_readiness()
+            self._admission_readiness(for_admission=True)
         if self._closing:
             raise RuntimeError("runtime queue is closing")
         trusted = TrustedIngressEnvelope.model_validate(

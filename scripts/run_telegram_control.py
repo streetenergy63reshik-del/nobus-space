@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.application.gate5a3 import build_gate5a3_runtime  # noqa: E402
+from src.application.product_status import RuntimeAdmissionPaused  # noqa: E402
 from src.application.task_confirmation import InMemoryTaskConfirmationStore  # noqa: E402
 from src.application.telegram_control import TelegramControlPlane  # noqa: E402
 from src.contracts.models import canonical_json_digest  # noqa: E402
@@ -255,6 +256,10 @@ async def _poll_with_unavailable_backoff(
                 timeout=timeout,
                 announce=announce,
             )
+        except RuntimeAdmissionPaused:
+            health_check()
+            await sleeper(1.0)
+            health_check()
         except TelegramBotApiError as error:
             if error.code != "telegram_unavailable":
                 raise

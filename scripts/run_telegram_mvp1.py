@@ -427,11 +427,11 @@ async def _run(
     artifacts = runtime_root / "artifacts" if isolated else _TELEGRAM_PROJECTS_ROOT
     poll_health = {"last_success": 0.0}
     backup_root = getattr(values, "backup_root", None)
-    def admission_readiness():
+    def admission_readiness(*, for_admission):
         if backup_root is not None:
             from src.application.managed_backups import assert_recent
-            assert_recent(backup_root, values.backup_ownership, runtime_root)
-    admission_readiness()
+            assert_recent(backup_root, values.backup_ownership, runtime_root, for_admission=for_admission)
+    admission_readiness(for_admission=True)
     report_stage("credentials")
     credential = read_generic_credential(_CREDENTIAL_TARGET)
     if credential.username.casefold() != f"@{_EXPECTED_USERNAME}".casefold():

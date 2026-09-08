@@ -10,6 +10,7 @@ import re
 from uuid import uuid4
 
 from src.application import runtime_maintenance as m
+from src.application.product_status import RuntimeAdmissionPaused
 from src.application.durable_telegram_state import DpapiJsonCodec
 from src.contracts.models import canonical_json_digest
 
@@ -180,10 +181,10 @@ def latest_manifest(root: Path, expected: str, runtime: Path):
     return path
 
 
-def assert_recent(root: Path, expected: str, runtime: Path):
+def assert_recent(root: Path, expected: str, runtime: Path, *, for_admission=True):
     import shutil
-    if m.checked_path(root/'admission-hold',root=root).exists():
-        raise RuntimeError('admission stopped for backup cycle')
+    if for_admission and m.checked_path(root/'admission-hold',root=root).exists():
+        raise RuntimeAdmissionPaused('admission stopped for backup cycle')
     if shutil.disk_usage(m.checked_path(runtime)).free<256*1024*1024:
         raise RuntimeError('admission stopped for disk capacity')
     path=latest_manifest(root,expected,runtime)

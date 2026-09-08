@@ -164,7 +164,9 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
                 return {'status':'SKIPPED','reason':'runtime_intentionally_disabled','backup_created':False}
             if initial['state']!='Running' and not cold_start:
                 raise ValueError('runtime stop state is ambiguous')
-        attempt_id=uuid4().hex
+        attempt_id=old.get('attempt_id') if recovering else uuid4().hex
+        if not isinstance(attempt_id,str) or not re.fullmatch('[0-9a-f]{32}',attempt_id):
+            raise ValueError('failed cycle attempt binding invalid')
         def record(phase,**details):
             _journal(journal,expected,phase,attempt_id=attempt_id,**details)
         try:
