@@ -18,3 +18,10 @@
 Исправление сохраняет logical attempt_id во всех подтверждённых повторах того же цикла. RuntimeAdmissionPaused отделяет плановую паузу от неисправности: hold блокирует startup и новое admission, но не мешает operational health/drain. Freshness/disk продолжают проверяться в health. Typed pause проходит через Telegram polling boundary без ACK, с освобождением lease, и обрабатывается внешним циклом с паузой 1 секунда; cancellation штатного shutdown сохраняется. Настоящие handler/checkpoint ошибки не преобразуются в повтор. Mini App отвечает503 и не создаёт задачу.
 
 Целевой integration набор: 130 passed за30,88 с. Включает настоящий polling/outer loop с MockTransport, actual Core health и synthetic SQLite, повторный partial recovery после временного отказа, Mini App503 без task/queue/compiler call. Это не реальные owner journeys, не native inference и не полный RTO.
+
+
+## Последняя граница polling cleanup
+
+89982cf25b1f2c26f9f159ee62fafb03462ed3ad: полный L1 — 2343 passed,25 subtests,2 skipped,2 исторических deselected за275,38 с. L2/L3 закрыли прежние Major. Остался один дефект: release=False/exception мог скрыться за recoverable RuntimeAdmissionPaused. L2 оценил P2 (потеря ACK/effects не выявлена), L3 P1 из-за подавления checkpoint failure; оба подтвердили один и тот же сценарий. Промежуточный L3 PASS отозван и сохранён как superseded.
+
+Одноусловная поправка сохраняет telegram_checkpoint_failed при неподтверждённом освобождении lease и активной planned pause. Приоритет cancellation и прежних terminal exceptions не меняется. Новые negative tests проходят через настоящий outer polling: ни ACK, ни backoff при failed release. Целевой набор —132 passed за31,09 с. Final frozen readback требуется только для этой изменённой границы и evidence package; прошлые подтверждённые результаты сохраняют свой точный scope/revision.

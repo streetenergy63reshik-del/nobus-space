@@ -1,6 +1,6 @@
 {
   "schema": "c6-checkpoint-evidence-1",
-  "recorded_at": "2026-09-08T22:32:53.385256+00:00",
+  "recorded_at": "2026-09-08T22:43:51.577997+00:00",
   "canonical_preserved_files": 20,
   "live_mutated": false,
   "model_turns": 0,
@@ -67,6 +67,14 @@
     "c6-integration-rework-01": {
       "bytes": 804,
       "sha256": "a802c48f649e269e3b9f923a1a9f37cc4daf969a12c8a81fcd57a721908c967e"
+    },
+    "c6-l1-89982cf": {
+      "bytes": 3347,
+      "sha256": "f25bba8fb2dfe14644cbae596e576a0ea80298748386bb6454622005c66f7106"
+    },
+    "c6-pause-release-01": {
+      "bytes": 804,
+      "sha256": "9b9bcb24731981dcfc97be12d4d51b281c3299d71d6d905b6a043fcdd3e380e7"
     }
   },
   "migration_rehearsal": {
@@ -77,7 +85,7 @@
     "bytes": 1628,
     "sha256": "383134e12f50770238bc600c8c552dc90be7d1e74532f74bcede29398c4acd49"
   },
-  "native_licence": "OWNER DECISION PENDING",
+  "native_licence": "cuDNN OWNER DECISION PENDING; Intel exact redist licence/notices recovered with byte-identical DLL",
   "rework": {
     "previous_source": "924576804ac33cc251d6e5316e69ce6d3460ee29",
     "L1": "2330 passed; 25 subtests; 263.70s",
@@ -91,5 +99,10 @@
     "L1": "2339 passed;25 subtests;280.21s",
     "L2_L3": "two Major integration findings; fixed and awaiting frozen readback",
     "target_tests": "130 passed;30.88s"
-  }
+  },
+  "intel_exact_redist": {
+    "bytes": 1341,
+    "sha256": "76a2b1669b8788c3a17fdc3ed108bf92bea17168ec58e0f233573d06dc8a9e56"
+  },
+  "latest_target_tests": "132 passed;31.09s"
 }

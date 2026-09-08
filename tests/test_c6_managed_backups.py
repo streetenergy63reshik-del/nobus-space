@@ -422,3 +422,30 @@ def test_planned_hold_still_returns_503_without_miniapp_creation(tmp_path):
         result=post(client,token,*form())
     assert result.status_code==503 and queue.queue_counts()==(0,0) and compiler.calls==[]
     assert len(store.list_tasks('owner',limit=20))==0
+
+
+@pytest.mark.parametrize('failure',['false','exception'])
+def test_planned_pause_does_not_hide_checkpoint_release_failure(failure):
+    import asyncio
+    from scripts.run_telegram_control import _poll_with_unavailable_backoff
+    from src.application.product_status import RuntimeAdmissionPaused
+    from src.transport.telegram.bot_api import TelegramPollingBoundary,TelegramBotApiError
+    from tests.test_telegram_bot_api import Checkpoint,api_for,response
+    class FailedRelease(Checkpoint):
+        def release(self,lease):
+            if failure=='exception':raise OSError('synthetic release failure')
+            return False
+    async def probe():
+        api=api_for(lambda request:response([{'update_id':10}]))
+        checkpoint=FailedRelease(10)
+        async def paused(update):raise RuntimeAdmissionPaused('maintenance')
+        polling=TelegramPollingBoundary(api,paused,checkpoint)
+        async def sleep(seconds):raise AssertionError('checkpoint failure must not become pause retry')
+        try:
+            with pytest.raises(TelegramBotApiError) as caught:
+                await _poll_with_unavailable_backoff(polling,api,{},timeout=0,announce=False,sleeper=sleep)
+            assert caught.value.code=='telegram_checkpoint_failed'
+            assert checkpoint.advances==[] and checkpoint.offset==10
+        finally:
+            await api.aclose()
+    asyncio.run(probe())

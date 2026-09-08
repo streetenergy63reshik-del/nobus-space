@@ -622,7 +622,7 @@ class TelegramPollingBoundary:
             finally:
                 active_error = sys.exception()
                 released = self._release_lease(lease)
-                if not released and active_error is None:
+                if not released and (active_error is None or isinstance(active_error, RuntimeAdmissionPaused)):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
 
     def _now(self) -> datetime:
