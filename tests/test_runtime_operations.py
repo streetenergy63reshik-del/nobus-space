@@ -198,85 +198,16 @@ def test_restore_manifest_v2_requires_exact_shape(
         restore_telegram_runtime._restore_quiescent(manifest, runtime)
 
 
-def test_restore_rolls_back_new_and_existing_targets(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    runtime = tmp_path / "runtime"
-    backup = tmp_path / "backup"
-    runtime.mkdir()
-    backup.mkdir()
-    names = sorted(restore_telegram_runtime._NAMES)
-    manifest_files = []
-    for name in names:
-        source = backup / name
-        _database(source, f"new:{name}")
-        content = source.read_bytes()
-        manifest_files.append(
-            {
-                "name": name,
-                "bytes": len(content),
-                "sha256": hashlib.sha256(content).hexdigest(),
-            }
-        )
-    _database(runtime / names[0], "old")
-    manifest = backup / "manifest.json"
-    unsigned = {
-        "schema_version": 2,
-        "created_at": "2026-07-24T00:00:00+00:00",
-        "quiescent": True,
-        "files": manifest_files,
-    }
-    manifest_digest = canonical_json_digest(unsigned)
-    manifest.write_text(
-        json.dumps(
-            {
-                **unsigned,
-                "authentication": {
-                    "file": "manifest-auth.bin",
-                    "manifest_digest": manifest_digest,
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    (backup / "manifest-auth.bin").write_bytes(b"test-auth")
-    monkeypatch.setattr(
-        restore_telegram_runtime,
-        "unprotect_current_user",
-        lambda value, *, entropy: manifest_digest.encode("ascii"),
-    )
-    monkeypatch.setattr(restore_telegram_runtime, "RUNTIME", runtime)
-    monkeypatch.setattr(
-        restore_telegram_runtime,
-        "validate_runtime_database",
-        lambda path: None,
-    )
-    # This probe deliberately uses marker-only SQLite files to isolate rollback
-    # after the second replace. Real retention/schema validation has its own tests.
-    monkeypatch.setattr("src.application.runtime_maintenance.expire_runtime_voice", lambda path: None)
-    monkeypatch.setattr(
-        restore_telegram_runtime,
-        "checkpoint",
-        lambda path: None,
-    )
-    original_replace = restore_telegram_runtime.replace_durable
-    installed = 0
-
-    def fail_second(source, target):
-        nonlocal installed
-        if Path(source).name in names:
-            installed += 1
-            if installed == 2:
-                raise OSError("simulated interruption")
-        return original_replace(source, target)
-
-    monkeypatch.setattr(
-        restore_telegram_runtime, "replace_durable", fail_second
-    )
-    approval = "telegram-owner-confirmation:sha256:" + "a" * 64
-    with pytest.raises(OSError, match="simulated"):
-        restore_telegram_runtime.restore(manifest, approval_ref=approval)
-
-    assert _marker(runtime / names[0]) == "old"
-    assert not (runtime / names[1]).exists()
-    assert not (runtime / names[2]).exists()
+def test_restore_refuses_partial_existing_target(tmp_path: Path) -> None:
+    from tests.test_c5_backup_recovery import fixture_runtime, safe_restore
+    from scripts.backup_telegram_runtime import _backup_quiescent
+    from src.application.runtime_maintenance import runtime_database_paths
+    source = tmp_path / "source"
+    fixture_runtime(source)
+    manifest = _backup_quiescent(runtime_database_paths(source), tmp_path / "backup")
+    target = tmp_path / "partial"
+    target.mkdir()
+    _database(target / "task-runtime.sqlite3", "preserve-original")
+    with pytest.raises(RuntimeError, match="reconciliation"):
+        safe_restore(manifest, target)
+    assert _marker(target / "task-runtime.sqlite3") == "preserve-original"

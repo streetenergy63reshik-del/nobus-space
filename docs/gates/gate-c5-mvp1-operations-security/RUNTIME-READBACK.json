@@ -1,0 +1,32 @@
+{
+  "schema": "c5-runtime-readback-1",
+  "checked_utc": "2026-09-08T18:31:15.0502974Z",
+  "tasks": [
+    {
+      "name": "NobusSpaceBot",
+      "state": "Disabled",
+      "enabled": false,
+      "restart_count": 10,
+      "legacy_live_action": true
+    },
+    {
+      "name": "NobusSpaceBot-Health",
+      "state": "Disabled",
+      "enabled": false,
+      "restart_count": 0,
+      "legacy_live_action": false
+    }
+  ],
+  "product_process_count": 0,
+  "port8765_listeners": 0,
+  "public_readyz_http": 502,
+  "live_window": "NOT RUN",
+  "product_model_turns": 0,
+  "asr_inferences": 0,
+  "outbound_bot_messages": 0,
+  "scheduler_changed": false,
+  "live_database_restore": false,
+  "permanent_deploy": false,
+  "tag_release": false,
+  "c6_started": false
+}

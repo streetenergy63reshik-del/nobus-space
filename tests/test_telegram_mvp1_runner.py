@@ -238,6 +238,14 @@ async def test_miniapp_server_lifecycle_disables_access_logging(
         "log_level": "warning",
         "access_log": False,
         "server_header": False,
+        "http": runner.BoundedH11Protocol,
+        "ws": "none",
+        "proxy_headers": False,
+        "limit_concurrency": 16,
+        "backlog": 32,
+        "timeout_keep_alive": 5,
+        "timeout_graceful_shutdown": 10,
+        "h11_max_incomplete_event_size": 16384,
     }
     assert instances[0].should_exit is True
 
@@ -449,6 +457,8 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(runner, "_required_executable", lambda name: executable)
     monkeypatch.setattr(runner, "_validated_worktree", lambda: worktree)
     monkeypatch.setattr(runner, "NobusMemory", lambda path: object())
+    monkeypatch.setattr(runner, "validate_runtime_set", lambda path: None)
+    monkeypatch.setattr(runner, "assert_runtime_admission_ready", lambda path: None)
     monkeypatch.setattr(runner, "_CODEX_TEMP", tmp_path / "codex-temp")
     binding_path = tmp_path / "telegram-bindings.local.json"
     binding_path.write_text("{}", encoding="utf-8")
@@ -570,3 +580,22 @@ def test_validated_worktree_accepts_only_an_isolated_release_checkout(
     monkeypatch.setattr(runner, "_WORKTREE", isolated)
 
     assert runner._validated_worktree() == isolated.resolve()
+
+
+@pytest.mark.parametrize("output", [b"codex-cli 9.9.9\n", b"not-a-cli\n"])
+def test_production_cli_rejects_wrong_version_without_ambient_fallback(tmp_path, monkeypatch, output):
+    pinned = tmp_path / "codex.exe"
+    pinned.touch()
+    monkeypatch.setattr(runner, "bundled_codex_path", lambda: pinned)
+    monkeypatch.setattr(runner.shutil, "which", lambda _: pytest.fail("production attempted unpinned discovery"))
+    monkeypatch.setattr(runner.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        returncode=0, stdout=output, stderr=b""))
+    with pytest.raises(RuntimeError, match="working Codex CLI is unavailable"):
+        runner._required_codex_executable()
+
+
+def test_production_cli_rejects_missing_bundle_without_ambient_fallback(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "bundled_codex_path", lambda: tmp_path / "missing.exe")
+    monkeypatch.setattr(runner.shutil, "which", lambda _: pytest.fail("production attempted unpinned discovery"))
+    with pytest.raises(RuntimeError, match="working Codex CLI is unavailable"):
+        runner._required_codex_executable()

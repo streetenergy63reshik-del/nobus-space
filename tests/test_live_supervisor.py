@@ -49,7 +49,12 @@ def test_live_supervisor_readiness_uses_exact_host(monkeypatch: object) -> None:
         observed["timeout"] = timeout
         return Response()
 
-    monkeypatch.setattr(module.urllib.request, "urlopen", open_request)
+    from types import SimpleNamespace
+    def opener(handler, redirect):
+        assert handler.proxies == {}
+        assert isinstance(redirect, __import__("urllib.request", fromlist=["HTTPRedirectHandler"]).HTTPRedirectHandler)
+        return SimpleNamespace(open=open_request)
+    monkeypatch.setattr(module.urllib.request, "build_opener", opener)
 
     assert module.ready() is True
     assert observed == {

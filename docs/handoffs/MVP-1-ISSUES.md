@@ -8,8 +8,14 @@
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
-Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C4 evidence](../gates/gate-c4-frontend-journey/EVIDENCE.json).
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLICATION_PENDING; C6 HOLD; MVP1 NOT READY.
+Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C5 handoff](../gates/gate-c5-mvp1-operations-security/HANDOFF.md).
+
+## Проверки C5
+
+C0-F07 operational/supervisor, F12 ingress, F13 restore и F14 cleanup приняты в разрешённом изолированном объёме C5; фактическая активация остаётся C6. Прежние строки сохраняют исторический контекст, включая502. Текущий preflight дал403 при остановленном runtime.
+Доказанные пробелы C5: race ребёнка до Job, stop без graceful cleanup, health restart storm, недостаточные readiness/HTTP budgets, неподвязанные version/target restore и оживление auth/effects. Исправления и исходные FAIL — [пакет C5](../gates/gate-c5-mvp1-operations-security/HANDOFF.md). Final source9efad0f2: L1/L2/L3 PASS; [закрытие найденных дефектов](../gates/gate-c5-mvp1-operations-security/EVIDENCE.json).
+Inherited binary/license/pip/SQLite риски — [проверка](../gates/gate-c5-mvp1-operations-security/DEPENDENCIES.md); Git source publication не является binary distribution.
 
 ## Активные findings после переоткрытия acceptance
 
@@ -26,21 +32,18 @@
 | C0-F04 | ASR нуждался в независимой квалификации | Старые семь hard FAIL сохранены. Новый owner protocol: small WER5,71%/CER1,11% all32, holdout5,09%/1,00%; correction3/16+5/16 противCURRENT7/16+10/16;3passes/resources PASS | C2 | **CLOSED IN ACCEPTED C2 / NOT DEPLOYED**; REPLACE pinned small принят в source-only/local scope; binary distribution отдельно |
 | C0-F05 | Retry boundary worker требует доказательства: не-web generation нельзя повторять после неизвестного исполнения | `_execute_worker`/`ResilientCodexAdapter` содержат разные retry paths; старые web-specific claims не доказывают весь non-web path | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; closed non-web retry policy, same-contract generation/deadline fencing и physical cleanup PASS |
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; tenant-scoped durable queue/Core/outbox и truthful worker readiness PASS |
-| C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **BACKEND RECOVERY CLOSED IN C3; LIVE OPEN C5/C6**; restart/reclaim/dead-letter/orphan/outbox проверены локально; incident, production health и supervisor здесь не принимались |
+| C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **C3 BACKEND / C5 LOCAL OPS CLOSED; LIVE C6 OPEN**; C3 restart/reclaim/outbox и C5 supervisor/Job/readiness приняты локально; фактический production runtime принимает C6 |
 | C0-F08 | Multipart/task admission idempotency требует end-to-end requalification | Mini App header idempotency и durable task binding существуют, но новый semantic/source-material flow не имеет multipart duplicate matrix | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; multipart same/change/new key, partial body, restart/duplicate и INERT material negatives PASS |
 | C0-F09 | Mini App session expiry не имеет доказанного complete recovery journey | in-memory TTL и expired-session rejection есть в `miniapp.py`; owner-visible resume/re-auth E2E после expiry не доказан | C4 | **C4 FIX VERIFIED**; current68 Core recovery/readback, browser expiry/reload и owner attempt8 PASS; source/proof identities в C4 пакете |
 | C0-F10 | `ready`/`verified`/success labels могут читаться как готовность продукта без authoritative evidence | UI/backend имеют `ready`, `result_ready`, `has_verified_answer`; published docs ошибочно сохраняли current `MVP-1 READY` после incident | C4 | **C4 FIX VERIFIED**; actual browser нашёл PARSING→queued; теперь STARTED/PARSING отображается «В работе», terminal evidence не менялся |
 | C0-F11 | Telegram/Mini App полный recovery journey после нового admission не доказан | prior pre-incident E2E evidence не покрывает ADR 0023 и reopened acceptance | C4 | **C4 FIX VERIFIED**; b89 voice owner PASS сохранён; exact68 owner text/result/copy/file446байт PASS, shutdown/readback PASS |
-| C0-F12 | Ingress budgets и HSTS требуют active-release evidence | CSP/body/idempotency checks видны в `src/transport/miniapp.py`; exact active ingress headers/rate/time budgets не прочитаны из working deployment, public endpoint `502` | C5 | **CONFIRMED EVIDENCE GAP**; external negative/budget/header matrix на exact active release PASS |
-| C0-F13 | Backup/restore и rollback должны быть повторно привязаны к exact release | scripts/tests и historical drill существуют; current runtime revision/config не доказаны и runtime inactive | C5 | **REQUALIFY**; exact release backup→restore→health/data reconciliation и rollback drill PASS |
-| C0-F14 | Temp/audio/artifact cleanup требует сквозного доказательства | voice temp cleanup и artifact retention механизмы существуют отдельно; новый durable voice/material path и active host cleanup не квалифицированы вместе | C5 | **REQUALIFY**; cancellation/crash/restart/expiry leaves zero unauthorized residuals |
+| C0-F12 | Ingress budgets и HSTS требуют active-release evidence | CSP/body/idempotency checks видны в `src/transport/miniapp.py`; exact active ingress headers/rate/time budgets не прочитаны из working deployment, public endpoint `502` | C5 | **C5 LOCAL INGRESS ACCEPTED; ACTIVE C6 OPEN**; budgets/slow/burst/spoof проверены на exact9efad0f2; фактические edge/TLS настройки принимает C6 |
+| C0-F13 | Backup/restore и rollback должны быть повторно привязаны к exact release | scripts/tests и historical drill существуют; current runtime revision/config не доказаны и runtime inactive | C5 | **C5 DISPOSABLE RESTORE/CRASH/ROLLBACK PASS**; exact source/application/manifest, reconciliation hold; live restore не выполнялся |
+| C0-F14 | Temp/audio/artifact cleanup требует сквозного доказательства | voice temp cleanup и artifact retention механизмы существуют отдельно; новый durable voice/material path и active host cleanup не квалифицированы вместе | C5 | **C5 OWNED CLEANUP/NEGATIVES PASS; LIVE DRY-RUN**; exact ownership/reparse/hardlink, cleanup failure видима; пользовательские файлы не удалялись |
 | C0-F15 | Docs/manual и active deployment identity рассинхронизированы | protected `main` содержит historical current READY claim; deployment revision readback отсутствует | C6 | **CONFIRMED**; exact release/config/readback, active docs/manual и owner acceptance связаны одним SHA/tree |
 | C0-F16 | Release и owner acceptance переоткрыты | direct owner incident 2026-09-02 имеет более новую силу, чем pre-incident acceptance | C6 | **CONFIRMED**; frozen C1–C5 result, publication/activation readbacks и новая owner smoke matrix PASS |
 
-Пункты C0-F09 и F12–F14 остаются открытыми именно как
-обязательная квалификация: C0 не выдаёт наличие кода или старых тестов за
-доказательство целого продукта. Historical CLOSED строки ниже сохранены и не
-переписаны задним числом.
+Исходные требования C0 требовали квалификации F09 и F12–F14. F09 принят в C4; F12–F14 проверяются в C5 в разрешённом изолированном объёме, а фактическая активация остаётся C6. Исторические CLOSED строки ниже сохраняются со своим исходным evidence.
 
 C1 candidate `9de145ccc1c456927623885212f8d5ac64ff8ef0` отклонён.
 C1-B01 (ambiguous/partial corroboration) и C1-B02 (single-quote/inline-code

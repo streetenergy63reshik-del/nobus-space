@@ -1,0 +1,521 @@
+{
+  "schema": "c5-independent-l2-2",
+  "reviewer": "/root/c5_dependency_l2",
+  "verdict": "PASS",
+  "verdict_scope": "Final frozen runtime rework, inherited unchanged product review applicability, fresh disposable recovery measurements and exact manual v3. Final documentation acceptance package still requires its own scoped readback; this is not publication proof.",
+  "source_sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+  "source_tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c",
+  "checked_utc": "2026-09-08T18:29:32.077059+00:00",
+  "independence": {
+    "authored_product_code_tests_manual_runbook": false,
+    "excluded_own_files": [
+      "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCIES.md",
+      "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCY-EVIDENCE.json"
+    ],
+    "method": "Read exact final diff and affected runtime functions; independently execute inspected source regressions, three real SQLite/WAL/DPAPI/process-crash test functions in new fixtures, and exact generated Health here-string with four local stub outcomes. No product author self-verdict."
+  },
+  "findings": {
+    "open_critical": 0,
+    "open_major": 0,
+    "open_minor_in_scope": 0,
+    "closed": [
+      {
+        "id": "C5-L3-RUNTIME-01",
+        "proof": "Checked isolated artifacts root is created before worker/ASR probes. ON/OFF regression uses actual TelegramStatusSender constructor and real API subclass without network; artifacts existence asserted before worker probe."
+      },
+      {
+        "id": "C5-L3-RUNTIME-02",
+        "proof": "Shared HTTPRedirectHandler refuses redirects; actual cross-origin 302 tests leave foreign hit count zero; exact body/status checks retained."
+      },
+      {
+        "id": "C5-L3-RUNTIME-03",
+        "proof": "Total monotonic 2s/5s caller deadlines and STOP checks; one daemon slot prevents DNS/chunked work accumulation, late PASS discarded; actual valid chunked drip and stop scenarios pass."
+      },
+      {
+        "id": "C5-L1-SCHEMA",
+        "proof": "Expected table list includes miniapp_restore_fence; idempotent schema safety test PASS."
+      },
+      {
+        "id": "C5-L2-MANUAL",
+        "proof": "Final manual references revision-bound measured data instead of stale WIP times; accepted policy and unmeasured full startup retained; startup bound 368 seconds matches bounded cycle."
+      }
+    ]
+  },
+  "pytest": {
+    "passed": 82,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 15.605,
+    "command": [
+      "<existing-product-python>",
+      "-B",
+      "-m",
+      "pytest",
+      "tests/test_c5_runtime_operations.py",
+      "tests/test_telegram_mvp1_runner.py",
+      "tests/test_live_supervisor.py",
+      "tests/test_ops_queue1.py",
+      "tests/test_sqlite_store.py::test_schema_init_is_idempotent_and_configures_safety_pragmas",
+      "--basetemp",
+      "<C5>\\.runtime\\c5\\new-l2-9efad0f2-63cd2660\\pytest",
+      "-p",
+      "no:cacheprovider",
+      "-q",
+      "--junitxml",
+      "<C5>\\.runtime\\c5\\new-l2-9efad0f2-63cd2660\\pytest.xml"
+    ],
+    "stdout_sha256": "1a76fe8a7a057a1bdea5f6ca84eac3f4d4c4cc773a4d32e922b28f2ca9f5cfe7"
+  },
+  "drill": {
+    "reviewer": "/root/c5_dependency_l2",
+    "source_sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "source_tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c",
+    "application": {
+      "source_commit": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+      "code_digest": "sha256:d5b72e7fafedecb643a55892491813ed6746c57f0968d12a901f42afaa14f504",
+      "schema_digest": "sha256:5ff632b379b321745171cc278b1deab119b3b1f76f2abc7eabe1a98583c76208",
+      "protection": "current-user-dpapi",
+      "database_limit_bytes": 50331648
+    },
+    "scope": "Fresh independent execution of inspected synthetic storage drill assertions and runtime rework regressions; no provider, model, ASR, live database or scheduler changes.",
+    "started_utc": "2026-09-08T18:21:45.300523+00:00",
+    "author_functions_sha256": "d140d84b0bfad3acac735f9e3d1bab90f448a203352707c8b01784969f1f5854",
+    "runs": [
+      {
+        "case": "snapshot_restore",
+        "status": "PASS",
+        "wall_seconds": 1.738832
+      },
+      {
+        "case": "exception_rollback",
+        "status": "PASS",
+        "wall_seconds": 1.470969
+      },
+      {
+        "case": "process_crash_recovery",
+        "status": "PASS",
+        "wall_seconds": 2.385757
+      }
+    ],
+    "measurements": [
+      {
+        "backup_seconds": 0.537,
+        "check": "c5_storage_drill",
+        "full_product_startup_rto_measured": false,
+        "lost_accepted_tasks": 0,
+        "lost_confirmed_delivery_parts": 0,
+        "repeated_confirmed_delivery_parts": 0,
+        "restore_and_validation_seconds": 0.687975,
+        "snapshot_age_at_simulated_failure_seconds": 0.342264
+      },
+      {
+        "check": "c5_interruption_rollback",
+        "seconds": 0.807785,
+        "lost_accepted_records": 0
+      },
+      {
+        "check": "c5_actual_process_crash",
+        "crash_process_seconds": 1.668171,
+        "startup_recovery_seconds": 0.06799,
+        "job_active_processes_after": 0,
+        "lost_accepted_records": 0,
+        "full_product_startup_rto_measured": false
+      }
+    ],
+    "completed_utc": "2026-09-08T18:21:50.906306+00:00",
+    "stdout_sha256": "91fa866993b459eeee88c2e22b575abb9a1b066162cf72e4b5fb2e80a9c2759e"
+  },
+  "generated_health": {
+    "reviewer": "/root/c5_dependency_l2",
+    "source_sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "installer_sha256": "5833657276068f575cc5404cfcd3c2d0f701da8a831cd6e1845c74359999fb5e",
+    "method": "Extract and evaluate exact installer here-string using fresh synthetic paths and local stub commands. Run generated PowerShell using the same process flags as its declared HealthAction; no Windows policy is changed. Verify native exit-code aggregation, flags and alert. Installer itself never invoked; no scheduler/product call.",
+    "process_flags": [
+      "-WindowStyle",
+      "Hidden",
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File"
+    ],
+    "cases": [
+      {
+        "case": 0,
+        "data_exit": 0,
+        "readiness_exit": 0,
+        "observed_exit": 0,
+        "expected_exit": 0,
+        "call_flags": [
+          {
+            "kind": "health",
+            "flags": [
+              "--runtime"
+            ]
+          },
+          {
+            "kind": "runner",
+            "flags": [
+              "--check-ready"
+            ]
+          }
+        ],
+        "alert_as_expected": true,
+        "generated_launcher_sha256": "08ecbf2c0f7de8559eb3b7f115f386adccf92e3154204d8fe7225821c6b8a4ad"
+      },
+      {
+        "case": 1,
+        "data_exit": 1,
+        "readiness_exit": 0,
+        "observed_exit": 1,
+        "expected_exit": 1,
+        "call_flags": [
+          {
+            "kind": "health",
+            "flags": [
+              "--runtime"
+            ]
+          },
+          {
+            "kind": "runner",
+            "flags": [
+              "--check-ready"
+            ]
+          }
+        ],
+        "alert_as_expected": true,
+        "generated_launcher_sha256": "ac55d6ffeeb51773a6d9a066453c5db72255562f96c57cb0c4b8e056003fe75a"
+      },
+      {
+        "case": 2,
+        "data_exit": 0,
+        "readiness_exit": 1,
+        "observed_exit": 1,
+        "expected_exit": 1,
+        "call_flags": [
+          {
+            "kind": "health",
+            "flags": [
+              "--runtime"
+            ]
+          },
+          {
+            "kind": "runner",
+            "flags": [
+              "--check-ready"
+            ]
+          }
+        ],
+        "alert_as_expected": true,
+        "generated_launcher_sha256": "12c08cb45098cbf64025aba93a26f991358e64c82ff010d4a35fa09f0d89c92f"
+      },
+      {
+        "case": 3,
+        "data_exit": 1,
+        "readiness_exit": 1,
+        "observed_exit": 1,
+        "expected_exit": 1,
+        "call_flags": [
+          {
+            "kind": "health",
+            "flags": [
+              "--runtime"
+            ]
+          },
+          {
+            "kind": "runner",
+            "flags": [
+              "--check-ready"
+            ]
+          }
+        ],
+        "alert_as_expected": true,
+        "generated_launcher_sha256": "403afb40cf34972a9097ddd0247de176e323e5af981b0c0f68ef54fc197b089d"
+      }
+    ],
+    "status": "PASS",
+    "history": [
+      {
+        "attempt": 1,
+        "status": "HARNESS_BLOCKED_BEFORE_GENERATED_BODY",
+        "cause": "Harness omitted HealthAction's declared Process ExecutionPolicy flag; OS script policy rejected generator. No product assertion executed. Fixture retained as generated-health-0.",
+        "resolution": "Attempt 2 uses exact declared HealthAction process flags on fresh synthetic scripts."
+      }
+    ],
+    "checked_utc": "2026-09-08T18:27:16.372829+00:00"
+  },
+  "manual": {
+    "status": "PASS",
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "bytes": 44591,
+    "all_actual_file_text_pdf_png_hashes_match": true,
+    "all_text_read": true,
+    "v3_text_delta_from_v2": "Only 360→368 seconds in startup sentence.",
+    "pages_visually_inspected": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "layout": "No clipping, overflow, overlap or unreadable command; all six v3 pages independently viewed, including changed page4.",
+    "older_v2_review": ".runtime/c5/new-l2-manual-v2.json"
+  },
+  "retained_prior_review": {
+    "receipt": {
+      "path": ".runtime/c5/l2-final-29d09d6.json",
+      "bytes": 10976,
+      "sha256": "db9e00b509fcbb55e11792373bb787d2a9807a475c9ae4ee744683f4a0b38f18"
+    },
+    "source_sha": "29d09d625ec7cc5fdc3b63ce1e0179ded8424174",
+    "source_tree": "a675aaa7046dfb128298089ec2eedc07602ae10b",
+    "scope": "Unchanged blobs only; prior candidate HOLD and its findings preserved. New measurements and changed runtime bytes use this final source.",
+    "comparison": [
+      {
+        "path": "ops/windows/Install-NobusSpaceBot.ps1",
+        "prior_blob": "9a45a87aecef06777886448ec173dab65217990c",
+        "final_blob": "bd560d18411cabc3b7419b551ecf674fb8cd5c65",
+        "unchanged": false
+      },
+      {
+        "path": "scripts/backup_telegram_runtime.py",
+        "prior_blob": "504bfd612c261f22255c4421fa1ac3908b0e4fbd",
+        "final_blob": "504bfd612c261f22255c4421fa1ac3908b0e4fbd",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/check_telegram_health.py",
+        "prior_blob": "8064a995fea205dd6d78576d605352f8a597d768",
+        "final_blob": "8064a995fea205dd6d78576d605352f8a597d768",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/restore_telegram_runtime.py",
+        "prior_blob": "baaeb7f4fc390c8b1e63b3bea67488b23f601ba7",
+        "final_blob": "baaeb7f4fc390c8b1e63b3bea67488b23f601ba7",
+        "unchanged": true
+      },
+      {
+        "path": "scripts/run_nobus_space_live.py",
+        "prior_blob": "18bfbb665d015588afef3c69dfed86d7bec87e15",
+        "final_blob": "c9972ab8dda46d1c7650dac20501501666926a9b",
+        "unchanged": false
+      },
+      {
+        "path": "scripts/run_telegram_mvp1.py",
+        "prior_blob": "c32dad75bc5a8440e103dd7096494051871532b9",
+        "final_blob": "f453af0b0e5cd49d8074add236fe670903350e83",
+        "unchanged": false
+      },
+      {
+        "path": "src/application/miniapp.py",
+        "prior_blob": "804de28b941339daad5307ffa1eb033169ab7a0c",
+        "final_blob": "804de28b941339daad5307ffa1eb033169ab7a0c",
+        "unchanged": true
+      },
+      {
+        "path": "src/application/runtime_maintenance.py",
+        "prior_blob": "19502e5dd3a5c17cad4728eb8d3e7578f6e3682d",
+        "final_blob": "19502e5dd3a5c17cad4728eb8d3e7578f6e3682d",
+        "unchanged": true
+      },
+      {
+        "path": "src/application/windows_singleton.py",
+        "prior_blob": "5d934ba9e4bdba5b87ff0da5a3230f12c42f40ab",
+        "final_blob": "5d934ba9e4bdba5b87ff0da5a3230f12c42f40ab",
+        "unchanged": true
+      },
+      {
+        "path": "src/storage/sqlite_store.py",
+        "prior_blob": "d4750553ee1d24453d6a99c841f468a7fcd593f9",
+        "final_blob": "d4750553ee1d24453d6a99c841f468a7fcd593f9",
+        "unchanged": true
+      },
+      {
+        "path": "src/transport/miniapp.py",
+        "prior_blob": "f4785a1cc1c6a3e62ef9febdb123c2601267c30f",
+        "final_blob": "f4785a1cc1c6a3e62ef9febdb123c2601267c30f",
+        "unchanged": true
+      },
+      {
+        "path": "src/transport/telegram/bot_api.py",
+        "prior_blob": "c17fa155cf541d94052e6dc749b938ed60355d59",
+        "final_blob": "c17fa155cf541d94052e6dc749b938ed60355d59",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_c5_backup_recovery.py",
+        "prior_blob": "29bf8942c9bdbd140b6a2c8acd261636606b62e4",
+        "final_blob": "29bf8942c9bdbd140b6a2c8acd261636606b62e4",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_c5_ingress.py",
+        "prior_blob": "4479465cdac3bcad9637e23b026d3d73e116a37a",
+        "final_blob": "4479465cdac3bcad9637e23b026d3d73e116a37a",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_c5_runtime_operations.py",
+        "prior_blob": "2651078bf4af4381dba081c85e1273bd4d4d0453",
+        "final_blob": "ce5f77b548d5e1a378b2159f62ed0ef1d239f735",
+        "unchanged": false
+      },
+      {
+        "path": "tests/test_live_supervisor.py",
+        "prior_blob": "d267cae3a31cff1da382287fa3982c6e6c67ee97",
+        "final_blob": "7786161f6a30c605e47118b1402db9c6ab45d4d0",
+        "unchanged": false
+      },
+      {
+        "path": "tests/test_ops_queue1.py",
+        "prior_blob": "c7388a66a2b56266b6b3d8c472271ae9d6be7c66",
+        "final_blob": "035a721d1acf0d6814d3c20f932ae7fc47d1a3b7",
+        "unchanged": false
+      },
+      {
+        "path": "tests/test_queue12_acceptance_rework.py",
+        "prior_blob": "963e4199b674a4b31cb6503eaee2ca98f203120c",
+        "final_blob": "963e4199b674a4b31cb6503eaee2ca98f203120c",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_queue12_crash_regressions.py",
+        "prior_blob": "a4c3296657ade2f6c1a353211f72e149bc4b71e2",
+        "final_blob": "a4c3296657ade2f6c1a353211f72e149bc4b71e2",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_runtime_operations.py",
+        "prior_blob": "af9c1620c9d14262a8b951d534c1b8f612c82a67",
+        "final_blob": "af9c1620c9d14262a8b951d534c1b8f612c82a67",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_telegram_mvp1_runner.py",
+        "prior_blob": "a4361935500961725de591ad4c71ae589caaebad",
+        "final_blob": "a4361935500961725de591ad4c71ae589caaebad",
+        "unchanged": true
+      },
+      {
+        "path": "tests/test_voice_retention.py",
+        "prior_blob": "91012cca8df25c82e2a1163deadd329a0defbd33",
+        "final_blob": "91012cca8df25c82e2a1163deadd329a0defbd33",
+        "unchanged": true
+      }
+    ]
+  },
+  "reviewed_rework_product_manifest": [
+    {
+      "path": "ops/windows/Install-NobusSpaceBot.ps1",
+      "git_blob": "bd560d18411cabc3b7419b551ecf674fb8cd5c65",
+      "git_bytes_sha256": "b87785a52880015a8079ac2757edaf087df074e9f5cb5b2b9b9b93417af91cc4",
+      "git_bytes": 6227
+    },
+    {
+      "path": "scripts/run_nobus_space_live.py",
+      "git_blob": "c9972ab8dda46d1c7650dac20501501666926a9b",
+      "git_bytes_sha256": "8b7df977d307467674a9844c2feee13e8dc7cefe9f8597d68656bfb28605d5f9",
+      "git_bytes": 16247
+    },
+    {
+      "path": "scripts/run_telegram_mvp1.py",
+      "git_blob": "f453af0b0e5cd49d8074add236fe670903350e83",
+      "git_bytes_sha256": "074abf116ee9626c1689a4d53c86d7e33644cd11e9833dd5cc83d0b2712e5240",
+      "git_bytes": 29376
+    },
+    {
+      "path": "tests/test_c5_runtime_operations.py",
+      "git_blob": "ce5f77b548d5e1a378b2159f62ed0ef1d239f735",
+      "git_bytes_sha256": "60c5bfe688f8fb1e6888a88419b6009f9776e89de0492f7ddc7d882cce6c2340",
+      "git_bytes": 33252
+    },
+    {
+      "path": "tests/test_live_supervisor.py",
+      "git_blob": "7786161f6a30c605e47118b1402db9c6ab45d4d0",
+      "git_bytes_sha256": "62b28697631d1159970ff71f6d95efc267d97042313ad05edcf0e4f1c4aa31d3",
+      "git_bytes": 2115
+    },
+    {
+      "path": "tests/test_ops_queue1.py",
+      "git_blob": "035a721d1acf0d6814d3c20f932ae7fc47d1a3b7",
+      "git_bytes_sha256": "7241845f6968d8718fc501ef0b36235be956d76568e7834e6b1d9481916220b3",
+      "git_bytes": 10461
+    },
+    {
+      "path": "tests/test_sqlite_store.py",
+      "git_blob": "de7f3382ba87d5bf843d164678b26df474900615",
+      "git_bytes_sha256": "fbb8dd46c1d1a39811894117f646c515b3e5c43d6dc04eb67cc8af98b8ab1e8a",
+      "git_bytes": 40889
+    }
+  ],
+  "checks": {
+    "source_still_exact": true,
+    "working_tree_clean": true,
+    "c4_acceptance_repeated": false
+  },
+  "limits": {
+    "full_product_startup_rto_measured": false,
+    "live_window_run": false,
+    "models_or_asr_inference": 0,
+    "outbound_messages": 0,
+    "dependency_install": false,
+    "scheduler_changed": false,
+    "live_database_restore": false,
+    "permanent_activation": false,
+    "tracked_or_git_mutations_during_final_review": false
+  },
+  "history": [
+    {
+      "event": "Initial source remains REWORK/HOLD; prior results not renamed."
+    },
+    {
+      "event": "Generated Health harness attempt1 omitted declared ExecutionPolicy Process flag and was rejected by OS before body execution; attempt2 used exact declared source flags. No policy or scheduler changed."
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".runtime/c5/new-l2-review.py",
+      "bytes": 4227,
+      "sha256": "79d56c9f54bef5a8d9727c4a7d754fd00b587cb68ff4dca12e020f3629498473"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/drill.json",
+      "bytes": 2144,
+      "sha256": "758813ae5e4f55d8b4227d7260c3c7cce8e5850c73e9bddae5a1b1c340badc03"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/drill-stdout.txt",
+      "bytes": 601,
+      "sha256": "91fa866993b459eeee88c2e22b575abb9a1b066162cf72e4b5fb2e80a9c2759e"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/pytest.xml",
+      "bytes": 11722,
+      "sha256": "cade9767e05c39957a743872cab0a9f64459b7f2f873756845822c0913543134"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/pytest-stdout.txt",
+      "bytes": 183,
+      "sha256": "1a76fe8a7a057a1bdea5f6ca84eac3f4d4c4cc773a4d32e922b28f2ca9f5cfe7"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/pytest-receipt.json",
+      "bytes": 763,
+      "sha256": "353b8610a7f95403a372b76095c0aa91f2b6a5fee75da540867514757853c365"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/generated-health-harness.py",
+      "bytes": 4507,
+      "sha256": "22654757d97b1fbd4cd635242c2e30f7612d078cf48f2b61c3a8cce7222518ef"
+    },
+    {
+      "path": ".runtime/c5/new-l2-9efad0f2-63cd2660/generated-health.json",
+      "bytes": 3373,
+      "sha256": "eb86b2b14461718f2eda7b9c47d0c2e7f7bb00ea403f6662cdc7754e3a1c7d33"
+    }
+  ]
+}

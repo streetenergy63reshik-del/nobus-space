@@ -1,0 +1,39 @@
+{
+  "schema": "c5-live-retention-readonly-1",
+  "checked_at": "2026-09-08T16:23:57.194601+00:00",
+  "mode": "read-only metadata; no file content read; no deletion",
+  "source_layout": "unchanged telegram-live runner and supervisor exact path definitions",
+  "roots": {
+    "voice": {
+      "root_binding": "sha256:d6cd47c00dae54e5f8649e9ed32ddc4d425f402d6bdb2f99a6df89e06adcdc31",
+      "exists": true,
+      "entries": 0,
+      "bytes": 0,
+      "blocked_links": 0,
+      "ownership": "unresolved_no_deletion",
+      "deleted": 0
+    },
+    "temp": {
+      "root_binding": "sha256:d334a652651eea68f1386e5151836c44ed2c3f42171cb81128b7d020fe05b866",
+      "exists": true,
+      "entries": 39,
+      "bytes": 0,
+      "blocked_links": 0,
+      "ownership": "unresolved_no_deletion",
+      "deleted": 0
+    },
+    "logs": {
+      "root_binding": "sha256:f84af0e6d117d0548503d350cc81b5ee6cdf159431cb8971811d06c47d99ad83",
+      "exists": true,
+      "entries": 9,
+      "bytes": 2766744,
+      "blocked_links": 0,
+      "ownership": "unresolved_no_deletion",
+      "deleted": 0
+    }
+  },
+  "downloads": "No separate current ASR download spool; bytes/in-memory. Existing user Downloads directory not inspected.",
+  "staging": "No C5 live restore/backup was started; no C5-owned live staging manifest exists. No orphan glob deletion authorized.",
+  "artifact_projection": "C5 validates exact per-operation identity; existing user project artifacts not retention-deleted.",
+  "orphan_processes": "Preflight product process count0; disposable Job proofs separate RUNTIME-RECEIPTS.json."
+}

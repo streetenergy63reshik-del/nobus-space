@@ -1,41 +1,96 @@
 # 08. Runbook эксплуатации Nobus Space
 
-**8 сентября 2026.** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD, MVP1 NOT READY. Наличие настроенного route или старого Scheduled Task не доказывает активную revision. Exact состояние и receipts: [CURRENT](handoffs/CURRENT-STATUS.md), [C4 handoff](gates/gate-c4-frontend-journey/HANDOFF.md).
+**8 сентября 2026: C5 ACCEPTED / PASS / PUBLICATION_PENDING; C4 ACCEPTED / PASS / PUBLISHED.** MVP1 NOT READY; постоянная активация относится к C6.
+Точные проверки и ограничения: [C5 handoff](gates/gate-c5-mvp1-operations-security/HANDOFF.md), [приёмка](gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md), [операции](gates/gate-c5-mvp1-operations-security/OPERATIONS.md), [восстановление](gates/gate-c5-mvp1-operations-security/STORAGE-DRILL.md).
 
-Semantic path реализован и проверен в изолированном ON-кандидате C4. В штатном runner флаг _GATE_C1_SEMANTIC_ADMISSION_ENABLED остаётся False; постоянная активация не выполнена.
+## Текущее состояние и правило запуска
 
-## Действующий контракт восстановления C4
+Preflight C5: задания NobusSpaceBot и NobusSpaceBot-Health отключены, pollers 0, port 8765 свободен; локальный HTTP не работает, публичный /readyz отвечает 403. Конечное прямое HTTPS-чтение дало502 при прежнем остановленном runtime; исходный403 остаётся preflight. Старое задание указывает на telegram-live и не содержит новый код C5. Ни read-only диагностика, ни merge этого не меняют.
 
-1. После reload Mini App восстанавливает session через Core recovery cookie. Срок исходной Telegram подписи не продлевается.
-2. После истечения окна подписи приложение просит закрыть и открыть Mini App из Telegram заново. Старое initData не переиспользовать.
-3. При потере ACK интерфейс сохраняет opaque request key и читает прежний исход. Не отправлять тот же запрос заново до сверки.
-4. «Отменить отправку» действует только если Core ещё не записал request/ingress: tombstone запрещает поздний приём. Записанный pending/accepted не удаляется.
-5. Если записанный UNKNOWN не разрешился, оператор сверяет journal/ingress/queue по C3 recovery contract. Очистка browser storage или новая task не являются восстановлением.
-6. Result/artifact читать только по exact task/result revision. Ошибка digest/size/tenant binding запрещает выдачу.
-7. Голосовая задача появляется после кнопки «Подтверждаю» под расшифровкой в Telegram. «Записать заново» отменяет этот ввод; пользователь отправляет новое голосовое сообщение. В Mini App нет второго ASR/microphone path.
+Semantic default остаётся False. Новый runner/supervisor принимает явные --semantic-admission, --runtime-root и --voice-model-directory. Installer предоставляет соответствующие default-off параметры; в C5 он не устанавливался. Изолированный ON/OFF composition проверен с fake providers, без модели и ASR inference. Постоянная активация и рабочие данные — отдельный C6.
 
-При диагностике не выводить DPAPI payload, initData, bearer, cookie, private
-voice или raw worker exceptions. Source revision не подменяет runtime identity.
+## Read-only диагностика
 
-Промежуточное сообщение Telegram обновляется на месте и удаляется после подтверждённой доставки итогового ответа/файла. При сбое удаления существующий runtime повторяет очистку. Для отменённого голоса без Core-задачи безопасная сверка возможна пока сохранён 24-часовой voice tombstone; после его удаления неизвестную ссылку автоматически не удаляют.
+В PowerShell задайте Python принятого окружения, C5 — каталог принятой версии, Runtime — точный каталог проверяемого экземпляра. Не применяйте код новой схемы к старой live-базе вслепую.
 
-## Временная проверка C4 и постоянная эксплуатация
+~~~powershell
+Get-ScheduledTask -TaskName 'NobusSpaceBot','NobusSpaceBot-Health' |
+  Select-Object TaskName,State
+(Get-ScheduledTask -TaskName 'NobusSpaceBot').Actions
+& $Python (Join-Path $C5 'scripts/check_telegram_health.py') --help
+& $Python (Join-Path $C5 'scripts/check_telegram_health.py') --runtime $Runtime --details
+~~~
 
-Smoke использует отдельные state/config/workspace и связку code SHA/tree/
-helper/launcher/route. Рабочая DB, Scheduler, меню и profile не меняются.
-Один consumer, exact owner/private chat, synthetic inputs и общий budget
-обязательны. Foreign/group/unknown-principal update не подтверждается.
-Старые owner updates при необходимости сохраняются DPAPI перед ACK;
-уже подтверждённую очередь Telegram восстановить нельзя.
+Safe JSON содержит code/schema binding, inventory/размеры БД, disk free, очередь/возраст и UNKNOWN. PASS означает проверку данных; runtime=not_probed не является готовностью продукта. С опциями --backup-manifest и --drill-receipt возраст берётся только из проверяемого комплекта. Неизвестный возраст честно остаётся unknown.
 
-Ранее данное владельцем разрешение не запрашивается заново на каждый шаг.
-Завершение проверяет собственный PID/starttime/Windows Job и descendants,
-остаток ledger, health и route/config readback. Недоказанный cleanup не PASS.
+| Сигнал | Действие владельца |
+|---|---|
+| readiness503 / public403 или другой неверный ответ | Проверить версию/зависимости/route; не объявлять продукт готовым |
+| store growth≥36МиБ | До предела backup 48 МиБ на БД принять решение о ёмкости; не удалять state ради PASS |
+| disk free<256МиБ | Остановить новый приём; сохранить журналы и согласовать точную очистку |
+| queue age≥1ч | Сверить lease/provider/outbox; неизвестный исход не повторять |
+| delivery UNKNOWN | Сверить receipt/parts и внешний факт доставки; не отправлять файл повторно вслепую |
+| backup/drill unknown | Выполнить проверенный backup/drill по принятому плану, а не считать защиту действующей |
+| cleanup_failed / restore hold | Оставить admission закрытым до сверки своего дерева/данных |
 
-Production activation, backup/restore drill, security/operations acceptance
-и release tag остаются C5/C6. Нижеследующие процедуры сохраняются как
-исторические/предметные инструкции; слова CURRENT/active/release относятся
-к указанным там датам и не доказывают текущий deploy.
+Это локальная диагностика; независимые оповещения при потере всего ПК не реализованы. Не выводите env целиком, credentials, initData, bearer, cookies, raw logs, аудио или task payload.
+
+## Start, stop и восстановление процесса
+
+После отдельной приёмки C6 и проверки Actions запуск — Start-ScheduledTask -TaskName 'NobusSpaceBot'. До C6 эту команду не исполнять.
+Singleton supervisor и runner препятствуют двум pollers. Потомки создаются под Windows Job до снятия launch gate; kill-on-close охватывает всё дерево. Scheduler ограничивает restart count десятью попытками; health task больше не вызывает Start-ScheduledTask.
+
+Новый supervisor допускает начало startup-проверки в течение 360 с; последняя пара local/public probes занимает ещё до 7 с, ожидание между попытками — до 1 с. Общая граница цикла — до 368 с без гарантии жёсткого реального времени. Регулярные probes проверяют local Core и public HTTPS. Три последовательных сбоя закрывают собственную Job. Подробные временные границы и реальные native receipts — OPERATIONS.md.
+
+Штатная остановка нового супервизора из той же Windows-сессии:
+~~~powershell
+& $Python (Join-Path $C5 'scripts/run_nobus_space_live.py') --stop
+~~~
+stop_requested — запрос. Core прекращает admission, заканчивает cleanup/checkpoints в пределах 90 с; затем supervisor закрывает Job и проверяет пустое дерево до 10 с. Убедиться в завершении own PID/start-time/tree и освобождении исходного порта. Никогда не kill по имени python/ssh. При чужом poller/порте операция останавливается. Старый supervisor не считается совместимым с новым stop control.
+
+Перезапуск допустим после доказанного STOP, проверки store/UNKNOWN и принятой версии. Неизвестные provider effects и delivery parts не становятся повторяемыми из-за restart.
+
+## Backup и restore
+
+Принято владельцем в C5: RPO ≤24 ч (целевой предел потери данных по времени), RTO ≤30 мин (целевое время возврата продукта); backup ежедневно и перед изменениями; 7 ежедневных и 4 еженедельных копии. Расписание и live retention в C5 не включены. На том же диске копии не защищают от потери диска. Полный RTO с SDK/ASR должен быть измерен в C6.
+
+В изолированной среде выполнены backup, восстановление данных и recovery после прерывания. Точные измерения и их source/application binding перечислены в приёмке C5; ранние WIP-замеры сохранены только в исходных receipts. В проверенном наборе потерянных принятых задач и повторно доставленных подтверждённых частей — 0. Полный запуск с SDK/ASR не входит в измеренное время восстановления данных. После restore admission остаётся закрытым до сверки возможных внешних действий после снимка.
+
+Обязательны task-runtime.sqlite3, telegram-state.sqlite3 и telegram-checkpoint.sqlite3. business-notes.sqlite3 включается, если существует как legacy store. Task store содержит admission/request/auth/recovery/tombstones/task/audit/outbox/part receipts/sealed answers и restore fence; state содержит queue/voice/confirmation/clarification/progress. TXT на диске — проекция, authoritative bytes остаются в durable result/outbox.
+
+После согласованной остановки/подтверждения quiescent:
+~~~powershell
+& $Python (Join-Path $C5 'scripts/backup_telegram_runtime.py') $NewBackup --runtime $Runtime
+~~~
+NewBackup — новый путь одной генерации. Сохранить manifest.json, manifest-auth.bin и все .dpapi. Snapshot учитывает WAL и удерживает writer reservations полного набора. DPAPI защищает комплект текущим пользователем Windows. Копия связана с source commit, code/schema/protection и точным root; документальный commit допустим только при неизменном application binding.
+
+Live restore этим C5 не разрешён. До будущего restore — отдельное решение с exact target/manifest и reconciliation post-snapshot данных/effects. Read-only target_binding даёт health --details, manifest_digest — успешный backup.
+~~~powershell
+& $Python (Join-Path $C5 'scripts/restore_telegram_runtime.py') --help
+& $Python (Join-Path $C5 'scripts/restore_telegram_runtime.py') $Manifest --runtime $Target --approval-ref $ApprovalRef --target-binding $TargetBinding --manifest-digest $ManifestDigest
+~~~
+Сначала только согласованный disposable target. Повреждение, неполный комплект, code/schema mismatch, неправильная цель, lock/no-space или новая watermark запрещают замену. Authenticated journal и exact staging identity восстанавливают прерванную замену; не исправлять и не удалять journal вручную.
+
+После restore недействительны старые recovery tokens, подтверждения и уточнения. Telegram initData до cutoff отвергается, pending effects становятся UNKNOWN; подтверждённые parts/tombstones сохраняются. Admission остаётся закрыт до отдельной сверки. C5 не реализует автоматический сброс hold: сама копия не доказывает отсутствие более поздних effects.
+
+Rollback кода не равен restore данных и не отменяет внешние actions. Новый accepted state/receipt нельзя откатить ради совместимости старого кода.
+
+## Retention и cleanup
+
+C2/C4 сроки сохраняются: voice/raw/transcript до1ч, confirmation≤15мин, terminal voice tombstone24ч. Idempotency/request/outbox tombstones не удаляются по произвольному общему TTL.
+Retention backup7daily/4weekly — принятая политика, а не разрешение удалить существующие копии в C5.
+
+Для рабочих voice/temp/downloads/logs/staging только dry-run:
+~~~powershell
+& $Python (Join-Path $C5 'scripts/check_telegram_health.py') --runtime $Runtime --details --retention-root "voice=$VoiceRoot" --retention-root "temp=$TempRoot"
+~~~
+Каждый корень должен быть точным. Inventory ограничен; reparse/junction/symlink/hardlink и traversal проверяются. Если ownership не доказан, deleted=0. Никаких broad glob/remove old worktrees/backups. В C5 удаляются лишь disposable fixtures и staging по доказанному manifest собственной операции.
+
+## Пользовательское восстановление C4
+
+Голос выполняется только после «Подтверждаю»; «Записать заново» отменяет ввод. Reload восстанавливает session/request/выбранную задачу без продления Telegram signature. При истечении закрыть и открыть Mini App заново. Утраченный ACK сначала читать через «Проверить приём»; отмена допустима лишь для доказанно не принятого запроса. Result/TXT сверяются по exact revision, bytes/size/digest. Provider UNKNOWN, delivery UNKNOWN и cleanup failure не скрываются.
+
+Ниже сохранены исторические процедуры. Их старые CURRENT/READY/version/start/watchdog команды не переопределяют этот C5 раздел и не разрешают deployment.
 
 ## Исторические процедуры и retained invariants
 

@@ -218,6 +218,7 @@ def test_schema_init_is_idempotent_and_configures_safety_pragmas(tmp_path: Path)
             ("ingress_claims",),
             ("miniapp_auth_replays",),
             ("miniapp_requests",),
+            ("miniapp_restore_fence",),
             ("miniapp_session_recovery",),
             ("outbox_delivery_parts",),
             ("outbox_messages",),

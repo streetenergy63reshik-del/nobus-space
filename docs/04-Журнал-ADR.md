@@ -2,7 +2,7 @@
 
 **Статус документа:** CANONICAL
 
-**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED. C5 ACCEPTED / PASS / PUBLICATION_PENDING; C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 Точная кодовая ревизия и проверки — [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
 Наличие старого адаптера в коде не означает доступность возможности в текущей

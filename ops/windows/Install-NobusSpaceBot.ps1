@@ -2,10 +2,35 @@
 param(
     [string]$TaskName = 'NobusSpaceBot',
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$RuntimeRoot = ''
+    [string]$RuntimeRoot = '',
+    [switch]$SemanticAdmission,
+    [string]$StateRoot = '',
+    [string]$VoiceModelDirectory = ''
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Resolve-CompositionDirectory([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $null }
+    if ($Path -notmatch '^[A-Za-z]:[\\/]') {
+        throw 'Composition directory must be an absolute local path.'
+    }
+    $directory = Get-Item -LiteralPath $Path -ErrorAction Stop
+    if (-not $directory.PSIsContainer -or $directory.FullName.StartsWith('\\')) {
+        throw 'Composition directory must be a local directory.'
+    }
+    $ancestor = $directory
+    while ($null -ne $ancestor) {
+        if (($ancestor.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Composition directory cannot use a reparse point.'
+        }
+        $ancestor = $ancestor.Parent
+    }
+    return $directory.FullName
+}
+
+$stateDirectory = Resolve-CompositionDirectory $StateRoot
+$modelDirectory = Resolve-CompositionDirectory $VoiceModelDirectory
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 $runtimeOwner = if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) {
     $root
@@ -23,6 +48,18 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
     -not (Test-Path -LiteralPath $runner -PathType Leaf) -or
     -not (Test-Path -LiteralPath $health -PathType Leaf)) {
     throw 'Canonical runner, health probe or virtual environment is unavailable.'
+}
+
+$healthStateDirectory = if ($null -ne $stateDirectory) { $stateDirectory } else { Join-Path $root '.runtime' }
+$runnerArguments = @('"' + $runner + '"')
+if ($SemanticAdmission.IsPresent) {
+    $runnerArguments += '--semantic-admission'
+}
+if ($null -ne $stateDirectory) {
+    $runnerArguments += @('--runtime-root', ('"' + $stateDirectory + '"'))
+}
+if ($null -ne $modelDirectory) {
+    $runnerArguments += @('--voice-model-directory', ('"' + $modelDirectory + '"'))
 }
 
 if (-not $PSCmdlet.ShouldProcess(
@@ -50,46 +87,20 @@ foreach (`$path in @(`$log, `$alert)) {
     }
 }
 `$healthy = `$true
-& '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' *>> `$log
+& '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' --runtime '$($healthStateDirectory.Replace("'", "''"))' *>> `$log
 if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }
-try {
-    `$local = Invoke-WebRequest -UseBasicParsing -Headers @{ Host = 'app.nobusspace.com' } -Uri 'http://127.0.0.1:8765/readyz' -TimeoutSec 5
-    if (`$local.StatusCode -ne 200) {
-        `$healthy = `$false
-    }
-}
-catch {
-    `$healthy = `$false
-}
-try {
-    `$public = Invoke-WebRequest -UseBasicParsing -Uri 'https://app.nobusspace.com/readyz' -TimeoutSec 10
-    if (`$public.StatusCode -ne 200) {
-        `$healthy = `$false
-    }
-}
-catch {
+# The shared read-only CLI enforces exact body, no redirects and total2s/5s deadlines.
+& '$($python.Replace("'", "''"))' '$($runner.Replace("'", "''"))' --check-ready *>> `$log
+if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }
 if (-not `$healthy) {
     Add-Content -LiteralPath `$alert -Value (
         (Get-Date).ToUniversalTime().ToString('o') + ' product health probe failed'
     )
-    try {
-        `$task = Get-ScheduledTask -TaskName `$taskName -ErrorAction Stop
-        if (`$task.State -eq 'Ready') {
-            Start-ScheduledTask -TaskName `$taskName
-            Add-Content -LiteralPath `$alert -Value (
-                (Get-Date).ToUniversalTime().ToString('o') + ' recovery start requested'
-            )
-        }
-    }
-    catch {
-        Add-Content -LiteralPath `$alert -Value (
-            (Get-Date).ToUniversalTime().ToString('o') + ' recovery check failed'
-        )
-    }
+    # Recovery belongs to the main task RestartCount budget; no minute-by-minute reset.
     exit 1
 }
 exit 0
@@ -109,7 +120,7 @@ if ($parseErrors.Count -ne 0) {
 
 $action = New-ScheduledTaskAction `
     -Execute $pythonw `
-    -Argument "`"$runner`"" `
+    -Argument ($runnerArguments -join ' ') `
     -WorkingDirectory $root
 $healthAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
     "-WindowStyle Hidden -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$healthLauncher`""

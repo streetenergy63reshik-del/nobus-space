@@ -308,7 +308,11 @@ def test_real_runtime_schema_backup_restore_roundtrip(
     ):
         database.unlink()
     monkeypatch.setattr(restore_telegram_runtime, "RUNTIME", runtime)
-    restore_telegram_runtime.restore(manifest, approval_ref=APPROVAL)
+    from src.application.runtime_maintenance import runtime_target_binding
+    import json
+    restore_telegram_runtime.restore(manifest, approval_ref=APPROVAL,
+        expected_target=runtime_target_binding(runtime),
+        expected_manifest=json.loads(manifest.read_text())["authentication"]["manifest_digest"])
     assert check(
         (checkpoint, task_runtime, telegram_state, business_notes)
     )["status"] == "PASS"

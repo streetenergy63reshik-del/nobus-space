@@ -450,6 +450,11 @@ class SQLiteStore:
             isolation_level=None,
             timeout=self._busy_timeout_ms / 1_000,
         )
+        if not hasattr(connection, "setconfig"):
+            connection.close()
+            raise StoreCorruptionError("SQLite defensive configuration unavailable")
+        connection.setconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE, True)
+        connection.setconfig(sqlite3.SQLITE_DBCONFIG_TRUSTED_SCHEMA, False)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
@@ -470,6 +475,31 @@ class SQLiteStore:
             raise
         finally:
             connection.close()
+
+    def restore_reconciliation_required(self) -> bool:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute("SELECT reconciliation_required FROM miniapp_restore_fence WHERE singleton=1").fetchone()
+            if row is None:
+                return False
+            if type(row[0]) is not int or row[0] not in (0, 1):
+                raise ValueError
+            return row[0] == 1
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("restore reconciliation state unavailable") from None
+
+    def miniapp_restore_cutoff(self) -> datetime | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute("SELECT auth_not_before FROM miniapp_restore_fence WHERE singleton=1").fetchone()
+            if row is None:
+                return None
+            cutoff = datetime.fromisoformat(row[0])
+            if cutoff.tzinfo is None or cutoff.utcoffset() != timedelta(0):
+                raise ValueError
+            return cutoff
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("restore authentication fence unavailable") from None
 
     def _initialize(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -518,6 +548,12 @@ class SQLiteStore:
                     FOREIGN KEY (tenant_id, task_id)
                         REFERENCES task_snapshots (tenant_id, task_id)
                         ON DELETE RESTRICT
+                );
+
+                CREATE TABLE IF NOT EXISTS miniapp_restore_fence (
+                    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                    auth_not_before TEXT NOT NULL,
+                    reconciliation_required INTEGER NOT NULL CHECK (reconciliation_required IN (0, 1))
                 );
 
                 CREATE TABLE IF NOT EXISTS miniapp_auth_replays (
