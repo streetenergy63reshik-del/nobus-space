@@ -1294,7 +1294,15 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             return
         snapshot = store.read_task(tenant_id, task_id)
         if snapshot is None:
-            return  # Previews and admission receipts have no Core task yet.
+            # Finished voice previews may have no Core task (replacement/expiry).
+            # Do not mistake the interval before deferred admission for cleanup.
+            with self._telegram_state.finished_voice_cleanup(tenant_id=tenant_id, task_id=task_id) as finished:
+                if not finished:
+                    return
+                snapshot = store.read_task(tenant_id, task_id)
+            if snapshot is None:
+                await self._clear_progress_binding(tenant_id, task_id)
+                return
         projection = snapshot.projection
         if projection.status is TaskStatus.ANSWERED:
             message = store.read_verified_answer(tenant_id, task_id,
