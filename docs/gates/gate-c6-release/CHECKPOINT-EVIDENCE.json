@@ -1,0 +1,108 @@
+{
+  "schema": "c6-checkpoint-evidence-1",
+  "recorded_at": "2026-09-08T22:43:51.577997+00:00",
+  "canonical_preserved_files": 20,
+  "live_mutated": false,
+  "model_turns": 0,
+  "asr_inferences": 0,
+  "bot_new_messages_documents": 0,
+  "bot_edits_cleanup": 0,
+  "tests": {
+    "c6-checkpoint-tests-01": {
+      "bytes": 803,
+      "sha256": "5bed2ef8498929a1f4c0520eb6849e5b288e8a2f347dc3d66bf923258c56b6bf"
+    },
+    "c6-completion-tests-01": {
+      "bytes": 722,
+      "sha256": "bf9afc4084abe3f776009ae1c07a834f4db70650f67f5ea5134fecd778188826"
+    },
+    "c6-operations-tests-02": {
+      "bytes": 813,
+      "sha256": "d251e03043f3d5a304a479dc5288047e0cadb38afc49b2c69cdf35a238ae1a9b"
+    },
+    "c6-readiness-fixture-tests-01": {
+      "bytes": 722,
+      "sha256": "0d15d8c19cb1c40621cfff4649b5ecb73934cd67b5e68c929bc0d44ff6ec7b9e"
+    },
+    "c6-regression-checkpoint-01": {
+      "bytes": 1148,
+      "sha256": "77997e848068426bba1f193b1365ca50c927dddd33781b205d655c550a6a43ed"
+    },
+    "c6-first-failure-01": {
+      "bytes": 1534,
+      "sha256": "a6829de7228e597a65c7563812201ce4b5c94cbc6632d6382a66800697685cf2"
+    },
+    "c6-regression-checkpoint-02": {
+      "bytes": 85690,
+      "sha256": "75171fb33ca73572f8ce9910cb75c0f52e298be0ac29c672a9c93577089e0bc6"
+    },
+    "c6-source-proof-tests-01": {
+      "bytes": 1548,
+      "sha256": "5a2ba3f2e010bc2e2137ceaa558810453bc8d6acbbb22dd0944b0c682fde255d"
+    },
+    "c6-frontend-checkpoint-01": {
+      "bytes": 1788,
+      "sha256": "366a95a6ed637dc97cfc801c66eb4bffb58934e508eb8aa54b5565f9cc282908"
+    },
+    "c6-l1-9245768": {
+      "bytes": 3347,
+      "sha256": "158b800e1e6be32e4fabfa772fa81c267f03cad6a83e4533a5e4aaa3ffc0f2b3"
+    },
+    "c6-rework-backup-02": {
+      "bytes": 100,
+      "sha256": "4fc4568bc179b884a6ac948fe94d8eab7a15aff4f2a29fd04f20f041afe98a60"
+    },
+    "c6-rework-backup-03": {
+      "bytes": 722,
+      "sha256": "0f89a4a1f3dd77538a50f4d71b4995923cc2def94f16e0002d02d5dbff4e5b85"
+    },
+    "c6-rework-backup-04": {
+      "bytes": 722,
+      "sha256": "aade06a52a61f6b601710991a73a385b5e0afc1c368d3f97ece78a2b668c1d1d"
+    },
+    "c6-l1-6f5d267": {
+      "bytes": 3347,
+      "sha256": "1b034896f3a0e5c36bb0a2f1a1bd6f1455f47c3a13be374afa288e4d3703e37f"
+    },
+    "c6-integration-rework-01": {
+      "bytes": 804,
+      "sha256": "a802c48f649e269e3b9f923a1a9f37cc4daf969a12c8a81fcd57a721908c967e"
+    },
+    "c6-l1-89982cf": {
+      "bytes": 3347,
+      "sha256": "f25bba8fb2dfe14644cbae596e576a0ea80298748386bb6454622005c66f7106"
+    },
+    "c6-pause-release-01": {
+      "bytes": 804,
+      "sha256": "9b9bcb24731981dcfc97be12d4d51b281c3299d71d6d905b6a043fcdd3e380e7"
+    }
+  },
+  "migration_rehearsal": {
+    "bytes": 5428,
+    "sha256": "84d8f75386f311159cc9ada79673cded2b0eee3245c6212d565d87ab227ca0d8"
+  },
+  "environment": {
+    "bytes": 1628,
+    "sha256": "383134e12f50770238bc600c8c552dc90be7d1e74532f74bcede29398c4acd49"
+  },
+  "native_licence": "cuDNN OWNER DECISION PENDING; Intel exact redist licence/notices recovered with byte-identical DLL",
+  "rework": {
+    "previous_source": "924576804ac33cc251d6e5316e69ce6d3460ee29",
+    "L1": "2330 passed; 25 subtests; 263.70s",
+    "L2": "REWORK: 2 Major, 1 Moderate; 47 independent tests/reproducers passed",
+    "L3": "FAIL: same three findings",
+    "status": "fixes awaiting new source freeze and independent readback"
+  },
+  "canonical_preservation_rechecked_at": "2026-09-08T22:18:15.465538+00:00",
+  "integration_rework": {
+    "previous_source": "6f5d26757ea40ba841049ea78e17a18c64b419b3",
+    "L1": "2339 passed;25 subtests;280.21s",
+    "L2_L3": "two Major integration findings; fixed and awaiting frozen readback",
+    "target_tests": "130 passed;30.88s"
+  },
+  "intel_exact_redist": {
+    "bytes": 1341,
+    "sha256": "76a2b1669b8788c3a17fdc3ed108bf92bea17168ec58e0f233573d06dc8a9e56"
+  },
+  "latest_target_tests": "132 passed;31.09s"
+}

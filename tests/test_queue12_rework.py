@@ -177,6 +177,7 @@ async def test_effect_callback_is_durably_enqueued_and_strictly_restored(
             calls.append(values)
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._telegram_state = State()
     control._execution_workers = ()

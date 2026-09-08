@@ -286,6 +286,8 @@ def _arguments(argv=None):
     parser.add_argument("--semantic-admission", action="store_true")
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--voice-model-directory", type=Path)
+    parser.add_argument("--backup-root", type=Path)
+    parser.add_argument("--backup-ownership")
     return parser.parse_args(argv)
 
 
@@ -295,8 +297,8 @@ def core_command(python: Path, values) -> list[str]:
                "--miniapp-port", "8765", "--miniapp-origin", PUBLIC_ORIGIN]
     if values.semantic_admission:
         command.append("--semantic-admission")
-    for name in ("runtime_root", "voice_model_directory"):
-        value = getattr(values, name)
+    for name in ("runtime_root", "voice_model_directory", "backup_root"):
+        value = getattr(values, name, None)
         if value is not None:
             if not value.is_absolute() or not value.is_dir():
                 raise ValueError("runtime composition is invalid")
@@ -304,6 +306,11 @@ def core_command(python: Path, values) -> list[str]:
                 if candidate.is_symlink() or candidate.is_junction():
                     raise ValueError("runtime composition is invalid")
             command.extend(["--" + name.replace("_", "-"), str(value.resolve(strict=True))])
+    backup_owner = getattr(values, "backup_ownership", None)
+    if bool(getattr(values, "backup_root", None)) != bool(backup_owner):
+        raise ValueError("backup root and ownership must be supplied together")
+    if backup_owner:
+        command.extend(["--backup-ownership", backup_owner])
     return command
 
 

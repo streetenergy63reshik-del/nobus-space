@@ -43,6 +43,7 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "49efdc53c50e91d899b3ee17f48e3f33f1deeb149c9e55ab6060e5184f3e1393",
     },
     "task-runtime.sqlite3": {
+        "table:runtime_reconciliations": "a5388c00aa769418ff70ba4baac4b139559c641c5870480c40627e0109676283",
         "index:idx_miniapp_auth_replays_expiry":
             "9468112a0c4b4afbb54dfc0ab5c8984d41a8070cce1a209c61229e518d8ab280",
         "index:idx_outbox_expired":
@@ -174,13 +175,15 @@ def file_evidence(path: Path) -> dict[str, object] | None:
     return {"bytes": path.stat().st_size, "sha256": digest.hexdigest()}
 
 
-def database_state_digest(path: Path) -> str:
+def database_state_digest(path: Path, *, exclude_reconciliation: bool = False) -> str:
     """Logical state includes WAL commits and every authority/replay row."""
     digest = hashlib.sha256()
     with closing(_read_connection(path)) as connection:
         tables = sorted(row[0] for row in connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
         for name in tables:
+            if exclude_reconciliation and name == "runtime_reconciliations":
+                continue
             if not re.fullmatch(r"[a-z_]+", name):
                 raise RuntimeError("runtime table invalid")
             digest.update(name.encode() + b"\x00")
@@ -452,6 +455,9 @@ def _validate_task_runtime_rows(path: Path) -> None:
         ).fetchall()
         recoveries = connection.execute("SELECT * FROM miniapp_session_recovery").fetchall()
         requests = connection.execute("SELECT * FROM miniapp_requests").fetchall()
+    from src.application.runtime_reconciliation import validate_records
+    with closing(_read_connection(path)) as connection:
+        validate_records(connection)
     for row in tasks:
         if store.read_task(row["tenant_id"], UUID(row["task_id"])) is None:
             raise RuntimeError("task snapshot is missing")

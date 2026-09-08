@@ -202,11 +202,15 @@ def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--shutdown-stdin", action="store_true")
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--voice-model-directory", type=Path)
+    parser.add_argument("--backup-root", type=Path)
+    parser.add_argument("--backup-ownership")
     own, remaining = parser.parse_known_args(sys.argv[1:] if argv is None else argv)
+    if bool(own.backup_root) != bool(own.backup_ownership):
+        parser.error("backup root and ownership must be supplied together")
     values = _control_arguments(remaining)
     for name, value in vars(own).items():
         setattr(values, name, value)
-    for name in ("runtime_root", "voice_model_directory"):
+    for name in ("runtime_root", "voice_model_directory", "backup_root"):
         value = getattr(values, name)
         if value is not None:
             if not value.is_absolute() or not value.is_dir():
@@ -422,6 +426,12 @@ async def _run(
     voice_temp = runtime_root / "voice-temp"
     artifacts = runtime_root / "artifacts" if isolated else _TELEGRAM_PROJECTS_ROOT
     poll_health = {"last_success": 0.0}
+    backup_root = getattr(values, "backup_root", None)
+    def admission_readiness(*, for_admission):
+        if backup_root is not None:
+            from src.application.managed_backups import assert_recent
+            assert_recent(backup_root, values.backup_ownership, runtime_root, for_admission=for_admission)
+    admission_readiness(for_admission=True)
     report_stage("credentials")
     credential = read_generic_credential(_CREDENTIAL_TARGET)
     if credential.username.casefold() != f"@{_EXPECTED_USERNAME}".casefold():
@@ -558,6 +568,7 @@ async def _run(
             enable_extended_routes=False,
             execution_concurrency=GATE5A4_EXECUTION_CONCURRENCY,
             telegram_state=telegram_state,
+            admission_readiness=admission_readiness,
             task_tenants=destination_refs,
             task_status_sender=TelegramStatusSender(
                 api,

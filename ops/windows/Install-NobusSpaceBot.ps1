@@ -5,7 +5,9 @@ param(
     [string]$RuntimeRoot = '',
     [switch]$SemanticAdmission,
     [string]$StateRoot = '',
-    [string]$VoiceModelDirectory = ''
+    [string]$VoiceModelDirectory = '',
+    [string]$BackupRoot = '',
+    [string]$BackupOwnership = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +33,8 @@ function Resolve-CompositionDirectory([string]$Path) {
 
 $stateDirectory = Resolve-CompositionDirectory $StateRoot
 $modelDirectory = Resolve-CompositionDirectory $VoiceModelDirectory
+$backupDirectory = Resolve-CompositionDirectory $BackupRoot
+if ([bool]$backupDirectory -ne [bool]$BackupOwnership -or ($BackupOwnership -and $BackupOwnership -notmatch "^sha256:[0-9a-f]{64}$")) { throw "Backup root and ownership must be supplied together." }
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 $runtimeOwner = if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) {
     $root
@@ -60,6 +64,10 @@ if ($null -ne $stateDirectory) {
 }
 if ($null -ne $modelDirectory) {
     $runnerArguments += @('--voice-model-directory', ('"' + $modelDirectory + '"'))
+}
+
+if ($null -ne $backupDirectory) {
+    $runnerArguments += @('--backup-root', ('"' + $backupDirectory + '"'), '--backup-ownership', $BackupOwnership)
 }
 
 if (-not $PSCmdlet.ShouldProcess(

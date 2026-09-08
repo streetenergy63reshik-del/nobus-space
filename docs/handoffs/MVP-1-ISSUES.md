@@ -1,15 +1,29 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
-**Период:** 17 июля — 8 сентября 2026 года
+**Период:** 17 июля — 9 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLISHED; C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLISHED; C6 CANDIDATE WIP; MVP1 NOT READY.
 Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C5 handoff](../gates/gate-c5-mvp1-operations-security/HANDOFF.md).
+
+## Проверки C6
+
+C6-D01: нет production migration старой live-схемы — реализован exact stopped-source snapshot/stage; на защищённой копии сохранены 79 задач, original v1.0.1 storage read PASS. Live migration ещё не выполнялась.
+
+C6-D02: нет операторского открытия после restore — реализован узкий no-delta путь с exact snapshot/target/watermark/owner, более поздним доказательством, atomic hold/audit и replay protection. Любой post-snapshot delta или UNKNOWN остаётся на hold. Независимая release-проверка и полный RTO впереди.
+
+C6-D03: ежедневная копия/retention не действуют — реализован quiescent coordinator, 7daily/4weekly quarantine, журнал ошибки и exact повтор. Target tests PASS; настоящий Scheduler запуск и next run остаются частью activation.
+
+C6-V01: широкий regression дал 503 — test fixtures обходили constructor и не задавали новый optional readiness callback. Обновлены 22 fixture; затронутый набор 63 PASS. Исходный FAIL сохранён, production guard не ослаблен; полный regression ещё проверяется.
+
+C6-E01 RESOLVED: packaged renderer не нашёл LibreOffice; Word export зависал во вложенном Windows PowerShell5 на новой и исходной копиях. Тот же helper через PowerShell7.6.5 STA успешно выполнил export; все6 страниц текущей редакции visual PASS. Памятка DRAFT до owner acceptance; [receipt](../gates/gate-c6-release/MANUAL.json).
+
+CuDNN licence decision, actual RTO/owner/UI/download, publication/activation и финальная приёмка остаются OPEN. [Пакет C6](../gates/gate-c6-release/HANDOFF.md). C0-F15/F16 не закрываются одним code checkpoint.
 
 ## Проверки C5
 

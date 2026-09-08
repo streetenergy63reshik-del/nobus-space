@@ -107,6 +107,7 @@ async def test_two_durable_workers_preserve_capacity_fifo_and_tenant_bindings(tm
         enqueue(tenant, name)
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = queue
     control._product_runtime = SimpleNamespace()
     control._product_effects = None

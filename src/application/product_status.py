@@ -194,6 +194,10 @@ def product_semantic_state(decision: object) -> ProductTaskState:
     return product_reason_state(reasons[decision.user_visible_state.state])
 
 
+class RuntimeAdmissionPaused(RuntimeError):
+    """Planned maintenance: keep ingress unacknowledged until orderly shutdown."""
+
+
 class ProductAdmissionStopped(RuntimeError):
     """One Core-owned semantic decision that created no task or effect."""
 

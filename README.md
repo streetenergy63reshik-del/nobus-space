@@ -3,15 +3,15 @@
 Nobus Space — Telegram Bot и обязательный тонкий Mini App над одним существующим
 локальным Windows Core/Codex runtime.
 
-**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED. C5 ACCEPTED / PASS / PUBLISHED; C6 не запущен; MVP1 NOT READY; MVP2 HOLD.
-Постоянное развёртывание в C5 не выполняется; его принимает отдельный C6.
+**9 сентября 2026:** C0–C5 сохраняют ACCEPTED / PUBLISHED. C6 выполняется: CANDIDATE WIP, постоянная активация и owner acceptance впереди. MVP1 NOT READY; MVP2 HOLD.
+[Пакет C6](docs/gates/gate-c6-release/HANDOFF.md) содержит проверенные изменения и точные незакрытые условия. Выпуск и активация остаются в одной задаче владельца.
 
 [Текущий статус](docs/handoffs/CURRENT-STATUS.md) содержит точные ревизии,
 проверки и следующий шаг. [Документация](docs/README.md) —
 архитектуру, API, пользовательские состояния и эксплуатационные границы.
 [Пакет C5](docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md) связывает эксплуатацию, восстановление, проверки и условия отдельного C6.
 
-Опубликованная база C5 после C4: `1b3cf67405c4523258dd8b400d17d09601f815ff`,
+Историческая база C5 после C4: `1b3cf67405c4523258dd8b400d17d09601f815ff`,
 tree `c302123e6f3ae93668e4fca7580b24d424056f94`.
 Код C4 проверен на `68f87f18da3de7c995f83b9cb08b391d0af5cdfb`,
 tree `5ae168bf613b18fc2f14e24973b5167a2b4c7b74`.

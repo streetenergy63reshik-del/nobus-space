@@ -223,6 +223,7 @@ def test_schema_init_is_idempotent_and_configures_safety_pragmas(tmp_path: Path)
             ("outbox_delivery_parts",),
             ("outbox_messages",),
             ("outbox_receipts",),
+            ("runtime_reconciliations",),
             ("sealed_answers",),
             ("task_snapshots",),
         ]

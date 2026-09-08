@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-09-08T22:36:45.279280+00:00",
+  "source": "https://www.nuget.org/api/v2/package/intelopenmp.redist.win/2025.3.0.640",
+  "final_url": "https://globalcdn.nuget.org/packages/intelopenmp.redist.win.2025.3.0.640.nupkg?packageVersion=2025.3.0.640",
+  "archive": {
+    "bytes": 2155170,
+    "sha256": "a4212c4aec3e528864d56d8b0c87103cd5c21a888d1985124909a1f85624a449"
+  },
+  "members": [
+    {
+      "name": "intelopenmp.redist.win.nuspec",
+      "bytes": 1362,
+      "sha256": "169e023b1c2ccae233ad90ee601a88945084ceb8258a76f9d1371d3099ca1cac",
+      "saved_notice": "0-intelopenmp.redist.win.nuspec"
+    },
+    {
+      "name": "runtimes/win-x64/native/libiomp5md.dll",
+      "bytes": 1614192,
+      "sha256": "982233366b0afcda1e0f55a0b134097e35b779613f54ddb69e685e6cd06b755f"
+    },
+    {
+      "name": "share/doc/compiler/licensing/openmp/third-party-programs.txt",
+      "bytes": 31578,
+      "sha256": "f8ce918fe7311ce279e68380a2e233f8a42b1cd3dda8f4c48d6de97a0255c1d7",
+      "saved_notice": "2-third-party-programs.txt"
+    },
+    {
+      "name": "license.txt",
+      "bytes": 4090,
+      "sha256": "6c00ae54b2a610ea009e0f5c5d3aa79023eb694c7fb72857654c53c6e99d7c97",
+      "saved_notice": "3-license.txt"
+    }
+  ],
+  "installed_or_executed": false,
+  "binary_files_saved": false
+}

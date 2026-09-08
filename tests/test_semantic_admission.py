@@ -367,6 +367,7 @@ async def test_c1_security_corrections_stop_before_miniapp_task_contract(scenari
 
     compiler = _MainAndDirectCompiler(main, direct)
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._enable_semantic_admission = True
     control._semantic_admission = SemanticAdmissionService(compiler)
@@ -575,6 +576,7 @@ async def test_conditional_tail_product_path_stops_before_task_contract(tmp_path
             async def build_instruction(self, *_):
                 pytest.fail("TaskContract/effect boundary reached")
         control = object.__new__(DurableProductTelegramControlPlane)
+        control._admission_readiness = None
         control._closing = False
         control._enable_semantic_admission = True
         control._semantic_admission = service
@@ -1958,6 +1960,7 @@ async def test_miniapp_ambiguity_stops_before_existing_core_contract() -> None:
             raise AssertionError("TaskContract must not exist before clarification")
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._enable_semantic_admission = True
     control._semantic_admission = SemanticAdmissionService(AmbiguousCompiler())  # type: ignore[arg-type]
@@ -1989,6 +1992,7 @@ async def test_miniapp_execute_uses_the_same_answer_only_profile_as_telegram() -
             raise RuntimeBoundaryReached
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._enable_semantic_admission = True
     control._semantic_admission = SemanticAdmissionService(_Compiler(proposal))  # type: ignore[arg-type]
@@ -2050,6 +2054,7 @@ async def test_miniapp_clarification_requires_exact_token_and_keeps_new_intent_i
 
     runtime = Runtime()
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._enable_semantic_admission = True
     control._semantic_admission = SemanticAdmissionService(SequenceCompiler())  # type: ignore[arg-type]

@@ -19,7 +19,7 @@ from uuid import UUID, uuid4
 import httpx
 from pydantic import SecretStr
 
-from src.application.product_status import product_task_state
+from src.application.product_status import RuntimeAdmissionPaused, product_task_state
 from src.models.task import TaskStatus
 from src.storage.outbox import DeliveryPart, OutboxMessage, OutboxStatus, artifact_for_message, delivery_parts
 
@@ -588,6 +588,10 @@ class TelegramPollingBoundary:
                         )
                     except asyncio.CancelledError:
                         raise
+                    except RuntimeAdmissionPaused:
+                        # No checkpoint advance. The outer loop waits; the lease
+                        # is still released by the existing finally below.
+                        raise
                     except TimeoutError:
                         handler_failure = "telegram_checkpoint_failed"
                         accepted = False
@@ -618,7 +622,7 @@ class TelegramPollingBoundary:
             finally:
                 active_error = sys.exception()
                 released = self._release_lease(lease)
-                if not released and active_error is None:
+                if not released and (active_error is None or isinstance(active_error, RuntimeAdmissionPaused)):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
 
     def _now(self) -> datetime:

@@ -1,5 +1,17 @@
 # Nobus Space — текущее состояние
 
+**C6 source PASS:** `3a5625898ce4f66ff39c85685e926ea1e0e8afa1`, tree `f730d670d4a4b782df87b27c429a8d16e633f31a`. L1:2345 passed и25 subtests; независимые L2/L3 SOURCE-SCOPED PASS, открытых замечаний0. Это допускает source publication; runtime, окончательная приёмка и релиз остаются NOT READY. Точные hashes и границы зафиксированы в SOURCE-ACCEPTANCE.json пакета C6.
+
+**9 сентября 2026. C6 CANDIDATE WIP / NOT READY.** Выпуск, публикация, постоянная активация и приёмка остаются в одной задаче владельца. C0–C5 сохраняют принятую публикацию; C6 base — final main `14d95b2001a4f49fb96a84e767cf62bbcf5dffdb`, tree `fdcc3537268df303a31faca1bd8499a126e87d09`, включая обычные PR19/20.
+
+Реализуются совместимая миграция, owner-confirmed reconciliation, managed daily backup/retention и admission guard. На защищённой копии сохранены 79 задач; исходный v1.0.1 прочитал восстановленные original bytes. Live source unchanged. Полный L1 кандидата 9245768: 2330 PASS и 25 subtests. L2/L3 потребовали исправить три backup-сценария; исправления и 58 целевых PASS сохранены в C6. Полные L1 следующих ревизий дали2339 и2343PASS; integration findings исправлены, последняя узкая поправка проверена132 целевыми tests. Новая source freeze проходит независимую проверку. Точная лицензия Intel OpenMP подтверждена byte-identical vendor redist; cuDNN ждёт владельца. Candidate PASS ещё нет; frontend20 сохраняется для неизменных bytes.
+
+Остаются licence decision для cuDNN, настоящий полный RTO, publication и exact activation plan, действующий backup/scheduler, реальные owner journeys, 15 минут наблюдения и явная приёмка. [C6 handoff](../gates/gate-c6-release/HANDOFF.md) содержит ограничения и сохранённые FAIL. Памятка обновлена на месте как DRAFT; все6 страниц прошли visual QA после успешного Word export через PowerShell7.
+
+Фактический live до подтверждения плана не менялся: v1.0.1, два задания Disabled, poller0, порт8765 свободен, публичный readyz502. 20 canonical dirty paths и held docs15/16 сохраняются; MVP2 HOLD.
+
+## Сохранённый итог C5
+
 **8 сентября 2026. C5 ACCEPTED / PASS / PUBLISHED.** C0–C4 сохраняют принятую публикацию. MVP1 NOT READY; C6 не начат, постоянной активации нет.
 
 Источник C5: `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. [Передача](../gates/gate-c5-mvp1-operations-security/HANDOFF.md) и [приёмка](../gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md) связывают L1 2305 PASS +25 subtests, Node20, независимые L2/L3 и фактический drill. Пакет `e7efeaaadb2006e204ff3fea1b27b15128d39acf` опубликован обычным [PR19](https://github.com/streetenergy63reshik-del/nobus-space/pull/19); main merge `efff730b9caeceae0afdaff840c5082d818c84d5`. Все56 опубликованных файлов сверены с пакетом.

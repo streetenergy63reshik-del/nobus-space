@@ -31,6 +31,7 @@ async def test_voice_origin_effect_roundtrips_through_durable_restore(
             queued.append(values)
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._telegram_state = State()
     control._execution_workers = ()
@@ -84,6 +85,7 @@ async def test_voice_origin_draft_roundtrips_through_durable_restore(
             return None
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._closing = False
     control._telegram_state = State()
     control._execution_workers = ()

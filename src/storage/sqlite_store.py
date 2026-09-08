@@ -550,6 +550,13 @@ class SQLiteStore:
                         ON DELETE RESTRICT
                 );
 
+                CREATE TABLE IF NOT EXISTS runtime_reconciliations (
+    recovery_id TEXT PRIMARY KEY,
+    state TEXT NOT NULL CHECK(state IN ('pending','approved')),
+    payload BLOB NOT NULL,
+    payload_digest TEXT NOT NULL
+);
+
                 CREATE TABLE IF NOT EXISTS miniapp_restore_fence (
                     singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
                     auth_not_before TEXT NOT NULL,

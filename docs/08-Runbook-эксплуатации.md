@@ -1,5 +1,13 @@
 # 08. Runbook эксплуатации Nobus Space
 
+**9 сентября 2026: C6 CANDIDATE WIP / NOT READY.** Текущие инструкции подготовки — [C6 OPERATIONS](gates/gate-c6-release/OPERATIONS.md), факты и незакрытые условия — [C6 HANDOFF](gates/gate-c6-release/HANDOFF.md). Новые scripts не применяются к старым live-данным без exact migration/activation plan. Scheduler и live не менялись; backup timetable и полный RTO пока не подтверждены.
+
+После принятой активации профиль явно включает semantic admission, qualified model, authoritative StateRoot и bound backup root/ownership. Admission блокируется при копии старше24ч/непроверяемой копии или свободном месте<256МиБ. Ошибка backup оставляет STOP и durable receipt; восстановление или повтор не выполняются вслепую. До готового опубликованного SHA и подтверждения единого activation plan постоянный запуск запрещён.
+
+## Сохранённая эксплуатационная инструкция C5
+
+Следующие команды и measured facts относятся к C5 и его точным каталогам. Приоритет для нового профиля имеет C6 OPERATIONS; раздел не является автоматическим разрешением запуска старого task.
+
 **8 сентября 2026: C5 ACCEPTED / PASS / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED.** MVP1 NOT READY; постоянная активация относится к C6.
 Точные проверки и ограничения: [C5 handoff](gates/gate-c5-mvp1-operations-security/HANDOFF.md), [приёмка](gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md), [операции](gates/gate-c5-mvp1-operations-security/OPERATIONS.md), [восстановление](gates/gate-c5-mvp1-operations-security/STORAGE-DRILL.md).
 

@@ -1,0 +1,62 @@
+{
+  "schema": "c6-manual-1",
+  "status": "DRAFT CONTENT / VISUAL QA PASS",
+  "name": "Памятка — управление Nobus Space Bot.docx",
+  "before": {
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "bytes": 44591
+  },
+  "current": {
+    "bytes": 44787,
+    "sha256": "c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba"
+  },
+  "pages": 6,
+  "renderer": "Installed Word COM via PowerShell 7.6.5 STA; read-only OpenNoRepairDialog and SaveAs2 PDF; own instance closed",
+  "qa": "Latest pages5/6 viewed at110dpi, no clipping or overlap; pages1–4 PNGs byte-identical to previously viewed PASS; original style retained",
+  "pdf": {
+    "bytes": 287433,
+    "sha256": "f103c51629ac396944b3a2577f1808b8251ace55d8e7a40dec197504f3fd7389"
+  },
+  "page_pngs": [
+    {
+      "page": 1,
+      "bytes": 170031,
+      "sha256": "98fd074289f4ae80b68ac1e5dda0c2f2a0ce3a114d40cc2a38bb137ca44dcd7a"
+    },
+    {
+      "page": 2,
+      "bytes": 192427,
+      "sha256": "e8d0ffd1e2b02a16ea9ebf8ca5a1e6b2824235727b20be550e19e8bd18043842"
+    },
+    {
+      "page": 3,
+      "bytes": 177285,
+      "sha256": "d20d664877a19651dc69f4cc4d84fdbe3fc2a168babc853200248cd0aa634265"
+    },
+    {
+      "page": 4,
+      "bytes": 196418,
+      "sha256": "d9e4f7f4b5bab3e32cd356843c187bdf4d9c51603e7fdb824cbfc85d93c2e42f"
+    },
+    {
+      "page": 5,
+      "bytes": 218048,
+      "sha256": "9cf7a05bb2b9c6a614442555981f86f694d9343574ad31257d8d9ebd4ce70f6a"
+    },
+    {
+      "page": 6,
+      "bytes": 241321,
+      "sha256": "54302d506e72ed57276346381a4017936f768126b87189627442e739c10dcb95"
+    }
+  ],
+  "preserved_failures": [
+    "packaged render_docx.py: LibreOffice soffice.exe unavailable",
+    "nested Windows PowerShell 5 Word ExportAsFixedFormat hung; owned processes stopped",
+    "nested Windows PowerShell 5 SaveAs2 hung on current and original control document; owned processes stopped",
+    "Rework render in sandbox: Word COM 0x80070520; same helper succeeded in owner session, no installation"
+  ],
+  "resolution": "Same installed Word/helper succeeded in current PowerShell 7 in about6seconds; no install or environment replacement",
+  "owner_acceptance": "PENDING",
+  "activation": "PENDING",
+  "recorded_at": "2026-09-08T22:18:15.453533+00:00"
+}
