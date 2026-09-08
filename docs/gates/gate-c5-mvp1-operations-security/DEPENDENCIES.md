@@ -24,12 +24,17 @@ Python distributions с точными версиями, зависимостя�
 | Model | Systran small, revision 536b0662742c02347bc0e980a01041f333bce120 | Пять asset hashes перенесены как retained C2 evidence. C5 не скачивал, не переоценивал модель и не выполнял inference |
 | CT2 native | cuDNN 9.10.2.21; Intel OpenMP PE 20250910 / product 5.0 | PE metadata прочитана без LoadLibrary. Intel 2025.3 и oneDNN 3.1.1 — сведения точного upstream build recipe |
 | PyAV native | FFmpeg 8.1.2 и 18 дополнительных codec/runtime DLL | Состав всех DLL закреплён hashes. Версии codec из прежнего C2 static review сохраняют свою исходную степень доказательства |
-| Другие native consumers | ONNXRuntime 1.27.0; tokenizers 0.23.1; Codex CLI 0.144.4; NumPy/OpenBLAS и остальные расширения | Включены в 175-file native inventory; весь статический состав каждой библиотеки не восстановлен |
+| Другие native consumers | ONNXRuntime 1.27.0; tokenizers 0.23.1; Codex CLI 0.144.4; NumPy/OpenBLAS и остальные расширения | Включены в native inventory из 174 уникальных файлов; весь статический состав каждой библиотеки не восстановлен |
 
-Всего пересчитаны 175 package native файлов и 400 metadata/notice файлов.
-174 native SHA256 совпали с установленным RECORD; у
-`ormsgpack/ormsgpack.cp312-win_amd64.pyd` в RECORD нет хеша, поэтому его текущий
-SHA256 только зафиксирован. RECORD не является независимой подписью поставщика.
+Инвентарь сохраняет 175 строк RECORD для 174 уникальных native файлов и 400
+строк metadata/notice для 395 уникальных файлов. Пути нормализованы с учётом
+регистра Windows и разделителей; размеры и SHA256 повторных строк совпадают.
+Все 174 уникальных native файла имеют совпадающий SHA256 в установленном RECORD.
+Для `ormsgpack/ormsgpack.cp312-win_amd64.pyd` одна строка не содержит хеша,
+а вторая строка того же файла содержит совпадающий хеш. Ранее число строк было
+ошибочно названо числом файлов, а отсутствие хеша у первой строки — отсутствием
+хеша у файла; исправление и исходные данные сохранены в JSON.
+RECORD не является независимой подписью поставщика.
 PyPI metadata содержит совпадающие с локальными WHEEL tags filenames и wheel
 hashes; оригинальные wheel bytes не загружались и с installed bytes не сравнивались.
 

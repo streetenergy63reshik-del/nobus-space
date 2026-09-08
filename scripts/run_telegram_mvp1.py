@@ -53,6 +53,7 @@ from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: 
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
+    checked_path,
     recover_interrupted_restore,
     validate_runtime_database,
     validate_runtime_set,
@@ -426,6 +427,8 @@ async def _run(
     if credential.username.casefold() != f"@{_EXPECTED_USERNAME}".casefold():
         raise CredentialStoreError("credential_unavailable")
     report_stage("local_preflight")
+    if isolated:
+        checked_path(artifacts, root=runtime_root).mkdir(exist_ok=True)
     executable = _required_codex_executable()
     git = _required_executable("git")
     python = Path(sys.executable).resolve(strict=True)

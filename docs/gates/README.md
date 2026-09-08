@@ -4,7 +4,7 @@
 
 **Актуально на:** 8 сентября 2026 года.
 **CURRENT:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED.
-C5 DRAFT; C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C4](gate-c4-frontend-journey/HANDOFF.md)
+C5 DRAFT; C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C5](gate-c5-mvp1-operations-security/HANDOFF.md)
 содержит точную ревизию, проверки и условия завершения.
 Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
 и не входит в published tree.
@@ -92,4 +92,4 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Acceptance всего MVP1 переоткрыта; текущий Gate — C4; далее C5 и C6.
+границах. Acceptance всего MVP1 переоткрыта; текущий Gate — C5; итоговая активация и приёмка остаются в отдельном C6.

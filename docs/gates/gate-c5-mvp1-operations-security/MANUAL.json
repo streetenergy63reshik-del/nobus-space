@@ -1,5 +1,5 @@
 {
-  "schema": "c5-manual-1",
+  "schema": "c5-manual-3",
   "name": "Памятка — управление Nobus Space Bot.docx",
   "version": "C5 2026-09-08",
   "operation": "edit same authorized DOCX; CAS original hash checked before replacement",
@@ -9,53 +9,159 @@
     "mtime_utc": "2026-09-02T14:56:23.2535796Z"
   },
   "final": {
-    "bytes": 44544,
-    "sha256": "e54a6662374d7be841fb831bc4bea1e2a358494702caedec67caf56cace2fe43"
+    "bytes": 44591,
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc"
   },
-  "final_mtime_utc": "2026-09-08T16:12:27.470962+00:00",
+  "final_mtime_utc": "2026-09-08T18:20:20.976463+00:00",
   "renderer": "Installed Microsoft Word COM, read-only open, ExportAsFixedFormat PDF; new hidden application closed",
   "renderer_fallback": "Bundled render_docx.py failed: soffice.exe unavailable. No install or download. Actual Word render used.",
   "pages": 6,
-  "all_page_visual_qa": "PASS; all six PNGs viewed at 100dpi; no clipping, overlap or spill pages; code lines readable",
+  "all_page_visual_qa": "PASS; all six v3 Word-rendered pages viewed at100dpi. Only startup number changed360→368; no clipping/overlap or layout defect. Existing design preserved.",
   "text": {
-    "bytes": 18282,
-    "sha256": "379d356afff0be8151dafbddafd55d48398c35791ba4afd02d3664f290d9df86"
+    "bytes": 18507,
+    "sha256": "f7b9c5bbc96852f3d417bc53d645d8d1202f6278a9d535280a3586a6a555414d"
   },
   "pdf": {
-    "bytes": 286429,
-    "sha256": "f9238b03b93663633ba0889e09418b6cac2fe25f53be1eeb3ba885a1ea7dc065"
+    "bytes": 286534,
+    "sha256": "f5972d8b205029a1c4bc2caa150d10aa9bc15fbf39f98b5925a9cce31db01d49"
   },
   "page_pngs": [
     {
       "page": 1,
-      "bytes": 162539,
-      "sha256": "646a94581217ae34168b12efded9336be5ee77e9734cad5c454f317770aafb0c"
+      "bytes": 160074,
+      "sha256": "8230b65dfa80479f40cdc3eac7ccaf56ae6f9e0b096e013deadc030594bc0a6e"
     },
     {
       "page": 2,
-      "bytes": 168969,
-      "sha256": "5d66d5ca3ac32093327a94f082e9ca7fcaf3b64c6bb1881eda7d403bd009e7b2"
+      "bytes": 168482,
+      "sha256": "c9f154c8b0ae73f997f1385064a22aff64255210a748f88a7d17f4b1bd110d58"
     },
     {
       "page": 3,
-      "bytes": 165317,
-      "sha256": "9454fcd86bec35bfac515aaf51b7514460216cdf0222c6d099d1ccb71e5251a1"
+      "bytes": 163182,
+      "sha256": "ca76e000c5ae2237539885b08b21b6c55ec9755f1175e63d53b1b296b5e4d427"
     },
     {
       "page": 4,
-      "bytes": 159549,
-      "sha256": "b90a7b4b8b6488299847897186278e7f439bb716eb7f5e6da9e3007e917525eb"
+      "bytes": 158057,
+      "sha256": "1965807cbb6fa20a795c9c8ebeb15faf2a2c0e17857571d723869890231e4ffd"
     },
     {
       "page": 5,
-      "bytes": 175589,
-      "sha256": "9f9d4620e8c6f501da4793c2034dfcd8fa299700c96a114de7957acf23489b8b"
+      "bytes": 181192,
+      "sha256": "75b1ad50b614facc0034dd36458933aaf0e9daddb6e21985159137ecdfc942b1"
     },
     {
       "page": 6,
-      "bytes": 209607,
-      "sha256": "b90457289225c9851cd07ddfe2471142bce2ba3e97154c39d13a09ab96e1c971"
+      "bytes": 208382,
+      "sha256": "9f0f757fbbe7a146dc2b62ed9faff56d4a45e59bd98d7511867166531edf754b"
     }
   ],
-  "limitations": "Manual states current stopped status, C6 activation boundary, owner-accepted RPO/RTO targets and unmeasured full product RTO; private paths remain only in owner-local DOCX, not published binary."
+  "limitations": "RPO/RTO are owner-accepted targets; full SDK/ASR startup unmeasured. Variable drill measurements point to exact revision acceptance; permanent activation deferred C6.",
+  "previous_candidate": {
+    "final": {
+      "bytes": 44544,
+      "sha256": "e54a6662374d7be841fb831bc4bea1e2a358494702caedec67caf56cace2fe43"
+    },
+    "text": {
+      "bytes": 18282,
+      "sha256": "379d356afff0be8151dafbddafd55d48398c35791ba4afd02d3664f290d9df86"
+    },
+    "pdf": {
+      "bytes": 286429,
+      "sha256": "f9238b03b93663633ba0889e09418b6cac2fe25f53be1eeb3ba885a1ea7dc065"
+    },
+    "page_pngs": [
+      {
+        "page": 1,
+        "bytes": 162539,
+        "sha256": "646a94581217ae34168b12efded9336be5ee77e9734cad5c454f317770aafb0c"
+      },
+      {
+        "page": 2,
+        "bytes": 168969,
+        "sha256": "5d66d5ca3ac32093327a94f082e9ca7fcaf3b64c6bb1881eda7d403bd009e7b2"
+      },
+      {
+        "page": 3,
+        "bytes": 165317,
+        "sha256": "9454fcd86bec35bfac515aaf51b7514460216cdf0222c6d099d1ccb71e5251a1"
+      },
+      {
+        "page": 4,
+        "bytes": 159549,
+        "sha256": "b90a7b4b8b6488299847897186278e7f439bb716eb7f5e6da9e3007e917525eb"
+      },
+      {
+        "page": 5,
+        "bytes": 175589,
+        "sha256": "9f9d4620e8c6f501da4793c2034dfcd8fa299700c96a114de7957acf23489b8b"
+      },
+      {
+        "page": 6,
+        "bytes": 209607,
+        "sha256": "b90457289225c9851cd07ddfe2471142bce2ba3e97154c39d13a09ab96e1c971"
+      }
+    ],
+    "reason": "Replaced first WIP millisecond timings with exact acceptance reference; explained RPO/RTO. Original preliminary proofs retained."
+  },
+  "render_comparison": {
+    "text_change_only": "360→368 startup bound",
+    "pages_rendered": 6,
+    "all_six_v3_pages_viewed": true,
+    "pngs_byte_identical_to_v2": false,
+    "render_dpi": 100
+  },
+  "previous_v2": {
+    "final": {
+      "bytes": 44591,
+      "sha256": "eca1ea65a23d8c78ee0f5a5fbf65c214326db58d9f1bed0b0b5628604deaf3e8"
+    },
+    "text": {
+      "bytes": 18507,
+      "sha256": "af4d24acc8af2aca145ea145d041f68c09c0bf083a3b91d575dcc6a76e35edb3"
+    },
+    "pdf": {
+      "bytes": 286536,
+      "sha256": "bb0cb7e07529f0180afa8c76c5b559ca35e6e5c16c84eb1b44fe657b5c98c73b"
+    },
+    "page_pngs": [
+      {
+        "page": 1,
+        "bytes": 162539,
+        "sha256": "646a94581217ae34168b12efded9336be5ee77e9734cad5c454f317770aafb0c"
+      },
+      {
+        "page": 2,
+        "bytes": 168969,
+        "sha256": "5d66d5ca3ac32093327a94f082e9ca7fcaf3b64c6bb1881eda7d403bd009e7b2"
+      },
+      {
+        "page": 3,
+        "bytes": 165317,
+        "sha256": "9454fcd86bec35bfac515aaf51b7514460216cdf0222c6d099d1ccb71e5251a1"
+      },
+      {
+        "page": 4,
+        "bytes": 159549,
+        "sha256": "b90a7b4b8b6488299847897186278e7f439bb716eb7f5e6da9e3007e917525eb"
+      },
+      {
+        "page": 5,
+        "bytes": 183131,
+        "sha256": "848227450c10bf6ebcb5206cfa690f01043a8d4f0ec558ee86073b447da9eb69"
+      },
+      {
+        "page": 6,
+        "bytes": 209391,
+        "sha256": "7b1c1d2531e93f216bb202ba033b1ed5ad97e01ed23c612193d9829d835e776c"
+      }
+    ],
+    "all_page_visual_qa": "PASS; six pages: pages1-4 byte-identical PNG to fully inspected v1; changed PNG pages5-6 independently viewed after new Word render, no clipping/overlap. All six page hashes verified.",
+    "render_comparison": {
+      "bytes": 865,
+      "sha256": "5c29afd048f2ef21c39a2752fe6c1847def7d329c5bd53c634093cd8ec69c237"
+    },
+    "reason": "One run changed: startup upper bound360→368 seconds, matching360+7+1. All other text unchanged."
+  }
 }

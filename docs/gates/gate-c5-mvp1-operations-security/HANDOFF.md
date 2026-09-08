@@ -9,7 +9,7 @@ C4 source: 68f87f18da3de7c995f83b9cb08b391d0af5cdfb, tree 5ae168bf613b18fc2f14e2
 C4 package: 2812390052573fb8846cd942cca7a9e5aed82a31, tree 4f307fb7b6c05c8ad4e39089c287b3733d442737.
 PR17 и PR18 сохранены в lineage; HANDOFF/ACCEPTANCE C4 проверены по Git blobs и не меняются.
 
-Отдельная ветка codex/mvp1-closure-c5-ops-security и worktree mvp1-closure-c5. Canonical с20dirty paths, telegram-live и принятый C4 worktree не используются для изменений. Nobus Memory дала устаревший указатель; точный Git победил. Память не менялась.
+Отдельная ветка codex/mvp1-closure-c5-ops-security и worktree mvp1-closure-c5. Canonical с 20 незавершёнными файлами, telegram-live и принятый C4 worktree не используются для изменений. Nobus Memory дала устаревший указатель; точный Git победил. Память не менялась.
 
 ## Результат кандидата
 
@@ -20,23 +20,23 @@ PR17 и PR18 сохранены в lineage; HANDOFF/ACCEPTANCE C4 провере
 | C: восстановление | Полный inventory, DPAPI/WAL snapshot, code/schema/target binding, restore journal/rollback, admission hold до сверки | [Drill](STORAGE-DRILL.md), [receipts](STORAGE-RECEIPTS.json) |
 | D: очистка | Точное владение/пути, рабочий dry-run, tombstones сохраняются | Storage drill и retained C2/C4 retention |
 | E: безопасность | Изоляция/UNKNOWN не ослаблены, точный native/dependency inventory | [Зависимости](DEPENDENCIES.md), DEPENDENCY-EVIDENCE.json |
-| F: инструкция | Runbook и тот же DOCX; текст и визуальная проверка всех6страниц | MANUAL.json в acceptance package |
+| F: инструкция | Runbook и тот же DOCX; текст и визуальная проверка всех 6 страниц | MANUAL.json в acceptance package |
 
 Telegram/Mini App сохраняют один Core, compiler, durable state и sealed result/TXT. Голос выполняется только после owner-bound подтверждения. Recovery не продлевает Telegram signature; утраченный ACK сначала сверяется чтением. Provider UNKNOWN и delivery UNKNOWN различаются.
 
 ## Нормы и ограничения
 
-Владелец явно принял в этой задаче целевые RPO≤24ч и RTO≤30мин; backup ежедневно и перед изменениями; 7ежедневных и4еженедельных копии. Это политика и критерии C6: расписание не включается, рабочие копии не удаляются. Копии на том же ПК не защищают от потери диска; полный RTO с SDK/ASR ещё не измерен.
+Владелец явно принял в этой задаче целевые RPO ≤24 ч и RTO ≤30 мин; backup ежедневно и перед изменениями; 7 ежедневных и 4 еженедельных копии. Это политика и критерии C6: расписание не включается, рабочие копии не удаляются. Копии на том же ПК не защищают от потери диска; полный RTO с SDK/ASR ещё не измерен.
 
-Representative disposable drill: backup0,623862с; staged restore/validation0,834647с; interruption rollback0,833848с; возраст снимка при simulated failure0,408410с. Потеря принятых задач и подтверждённых частей доставки0. Числа не являются полным RTO и не доказывают отсутствие post-snapshot effects после утраты БД. Restored admission остаётся закрыт до отдельной сверки.
+В изолированной среде выполнены backup, восстановление данных и recovery после прерывания. Точные измерения и их source/application binding перечислены в приёмке C5; ранние WIP-замеры сохранены только в исходных receipts. В проверенном наборе потерянных принятых задач и повторно доставленных подтверждённых частей — 0. Полный запуск с SDK/ASR не входит в измеренное время восстановления данных. После restore admission остаётся закрытым до сверки возможных внешних действий после снимка.
 
-Предел DPAPI backup48МиБ на БД, предупреждение с36МиБ. При свободном месте менее256МиБ оператор останавливает новый приём. Автоматического масштабирования и независимого оповещения вне ПК нет.
+Предел DPAPI backup 48 МиБ на БД, предупреждение с 36 МиБ. При свободном месте менее 256 МиБ оператор останавливает новый приём. Автоматического масштабирования и независимого оповещения вне ПК нет.
 Inherited native/license/pip/SQLite риски описаны по фактической достижимости в DEPENDENCIES. Git публикует исходники и безопасные evidence, а не wheels/models/FFmpeg/cuDNN; новое binary distribution или установка требует отдельной проверки.
 
 ## Фактический runtime
 
-Live window **NOT RUN**: новых model/ASR inference, исходящих bot messages и изменений внешней конфигурации0.
-Preflight: оба Scheduler tasks Disabled, port8765 свободен, pollers0; local HTTP отсутствует, public /readyz403. Это новое чтение, не повторная приёмка historical C4 stopped/502.
+Live window **NOT RUN**: новых model/ASR inference, исходящих bot messages и изменений внешней конфигурации 0.
+Preflight: оба Scheduler tasks Disabled, port 8765 свободен, pollers 0; local HTTP отсутствует, public /readyz 403. Это новое чтение, не повторная приёмка historical C4 stopped/502.
 Новые защиты проверены на изолированном кандидате; старый live checkout, TLS/route/config не менялись. Source/merge не означает deploy.
 
 ## Следующая отдельная задача C6

@@ -3,17 +3,16 @@
 Nobus Space — Telegram Bot и обязательный тонкий Mini App над одним существующим
 локальным Windows Core/Codex runtime.
 
-**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
-Постоянное развёртывание в C4 не выполняется.
+**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED. C5 DRAFT; C6 не запущен; MVP1 NOT READY; MVP2 HOLD.
+Постоянное развёртывание в C5 не выполняется; его принимает отдельный C6.
 
 [Текущий статус](docs/handoffs/CURRENT-STATUS.md) содержит точные ревизии,
 проверки и следующий шаг. [Документация](docs/README.md) —
 архитектуру, API, пользовательские состояния и эксплуатационные границы.
-[Пакет C4](docs/gates/gate-c4-frontend-journey/HANDOFF.md) связывает результат,
-доказательства и условия передачи C5.
+[Пакет C5](docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md) связывает эксплуатацию, восстановление, проверки и условия отдельного C6.
 
-Опубликованная база C3: `b9283b3419928042c80278b5088b526edebab6e7`,
-tree `77062335b1dbccb3694721d357e484c856ac89c7`.
+Опубликованная база C5 после C4: `1b3cf67405c4523258dd8b400d17d09601f815ff`,
+tree `c302123e6f3ae93668e4fca7580b24d424056f94`.
 Код C4 проверен на `68f87f18da3de7c995f83b9cb08b391d0af5cdfb`,
 tree `5ae168bf613b18fc2f14e24973b5167a2b4c7b74`.
 Исторический READY и прежний live не доказывают приёмку этого кандидата.
@@ -39,7 +38,7 @@ bearer; после срока нужна новая Telegram-сессия. Mini 
 owner-bound список, детали, события, результат и авторизованные bytes файла.
 Имя скачивания `nobus-result.txt` — представление; C3 identity/digest/part receipts сохранены.
 
-Полный C4 L1: 2227 PASS и 25 subtests PASS, 2 Windows symlink SKIP,
+Сохранённые доказательства C4 (не новый C5 smoke): полный C4 L1: 2227 PASS и 25 subtests PASS, 2 Windows symlink SKIP,
 2 явно объяснённых historical deselect; frontend Node20 PASS. Настоящий владелец
 подтвердил голос кнопкой, получил результат и TXT в обоих интерфейсах. Отдельный
 локальный браузер проверил 320/390/768, светлую/тёмную темы, клавиатуру, копирование,
@@ -68,19 +67,15 @@ Git хранит code/tests/ADR/current docs и принятую историю.
 
 ## Локальный product composition
 
-Одна команда запускает существующий Telegram/Core/Codex runtime и Mini App в
-одном процессе, с одной authoritative task DB/queue:
+Код C5 подготовлен для явных параметров `--semantic-admission`, `--runtime-root` и `--voice-model-directory`; штатный semantic default остаётся False. Read-only описание команды:
 
-```powershell
-& '..\..\nobus-orchestrator-dev\.venv\Scripts\python.exe' `
-  scripts\run_telegram_mvp1.py --serve --timeout 30
-```
+~~~powershell
+& $python scripts/run_telegram_mvp1.py --help
+~~~
 
-После успешного fail-closed startup локальный frontend доступен по
-`http://127.0.0.1:8765/`, liveness — `/healthz`, readiness — `/readyz`.
-Loopback HTTP разрешён только для локальной проверки; любой нелокальный origin
-остаётся HTTPS-only. Остановка процесса сначала закрывает web admission, затем
-durable control workers, Core/runtime и Telegram API client.
+Точные условия будущего запуска и остановки, проверка единственного экземпляра, диагностика и backup/restore находятся в [Runbook](docs/08-Runbook-эксплуатации.md). Постоянный запуск требует отдельного C6. В C5 действующий scheduler и live checkout не меняются; тесты используют отдельные данные и loopback.
+
+C5 ограничивает HTTP приём, проверяет readiness и завершает только собственное дерево процессов. Восстановление БД инвалидирует прежние сессии/подтверждения и закрывает новый приём до сверки возможных внешних действий. Snapshot не отменяет доставку сообщений и не разрешает повторить UNKNOWN.
 
 Активная Telegram-поверхность MVP-1 ограничена обычными текстовыми и голосовыми
 задачами и командами `/start`, `/status`, `/limit`, `/help`. Маршруты `/task`,

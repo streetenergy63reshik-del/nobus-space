@@ -1,11 +1,11 @@
 # Nobus Space — workspace inventory
 
-**C5, 8 сентября 2026:** отдельный Code/worktrees/mvp1-closure-c5, ветка codex/mvp1-closure-c5-ops-security, база1b3cf67405c4523258dd8b400d17d09601f815ff. Canonical20dirty paths, telegram-live и принятый C4 worktree сохраняются. Это WIP, не deploy. Recovery refs и копии не удаляются.
+**C5, 8 сентября 2026:** отдельный Code/worktrees/mvp1-closure-c5, ветка codex/mvp1-closure-c5-ops-security, база 1b3cf67405c4523258dd8b400d17d09601f815ff. 20 незавершённых файлов canonical, telegram-live и принятый C4 worktree сохраняются. Это WIP, не deploy. Recovery refs и копии не удаляются.
 
 **Актуально на:** 8 сентября 2026 года
 **Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 DRAFT; C6 HOLD; MVP1 NOT READY.
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. Protected
 GitHub `main` и release tags — канон принятой опубликованной истории после

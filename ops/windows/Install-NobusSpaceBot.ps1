@@ -91,22 +91,9 @@ foreach (`$path in @(`$log, `$alert)) {
 if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }
-try {
-    `$local = Invoke-WebRequest -UseBasicParsing -Headers @{ Host = 'app.nobusspace.com' } -Uri 'http://127.0.0.1:8765/readyz' -TimeoutSec 5
-    if (`$local.StatusCode -ne 200 -or ([string]`$local.Content).Trim() -cne '{"status":"ready"}') {
-        `$healthy = `$false
-    }
-}
-catch {
-    `$healthy = `$false
-}
-try {
-    `$public = Invoke-WebRequest -UseBasicParsing -Uri 'https://app.nobusspace.com/readyz' -TimeoutSec 10
-    if (`$public.StatusCode -ne 200 -or ([string]`$public.Content).Trim() -cne '{"status":"ready"}') {
-        `$healthy = `$false
-    }
-}
-catch {
+# The shared read-only CLI enforces exact body, no redirects and total2s/5s deadlines.
+& '$($python.Replace("'", "''"))' '$($runner.Replace("'", "''"))' --check-ready *>> `$log
+if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }
 if (-not `$healthy) {

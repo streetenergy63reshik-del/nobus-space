@@ -199,8 +199,8 @@ def test_health_reports_dead_letter_as_degraded_with_bounded_stopped_recovery(
     assert "-Execute $pythonw" in installer
     assert "-WindowStyle Hidden" in installer
     assert "-RepetitionInterval (New-TimeSpan -Minutes 1)" in installer
-    assert "http://127.0.0.1:8765/readyz" in installer
-    assert "https://app.nobusspace.com/readyz" in installer
+    assert "--check-ready" in installer
+    assert "Invoke-WebRequest" not in installer
     assert "Generated health launcher is invalid." in installer
     assert "[System.Text.UTF8Encoding]::new($true)" in installer
 

@@ -26,7 +26,7 @@ Safe JSON содержит code/schema binding, inventory/размеры БД, d
 | Сигнал | Действие владельца |
 |---|---|
 | readiness503 / public403 или другой неверный ответ | Проверить версию/зависимости/route; не объявлять продукт готовым |
-| store growth≥36МиБ | До предела backup48МиБ на БД принять решение о ёмкости; не удалять state ради PASS |
+| store growth≥36МиБ | До предела backup 48 МиБ на БД принять решение о ёмкости; не удалять state ради PASS |
 | disk free<256МиБ | Остановить новый приём; сохранить журналы и согласовать точную очистку |
 | queue age≥1ч | Сверить lease/provider/outbox; неизвестный исход не повторять |
 | delivery UNKNOWN | Сверить receipt/parts и внешний факт доставки; не отправлять файл повторно вслепую |
@@ -40,21 +40,21 @@ Safe JSON содержит code/schema binding, inventory/размеры БД, d
 После отдельной приёмки C6 и проверки Actions запуск — Start-ScheduledTask -TaskName 'NobusSpaceBot'. До C6 эту команду не исполнять.
 Singleton supervisor и runner препятствуют двум pollers. Потомки создаются под Windows Job до снятия launch gate; kill-on-close охватывает всё дерево. Scheduler ограничивает restart count десятью попытками; health task больше не вызывает Start-ScheduledTask.
 
-Новый supervisor ожидает readiness до360с; регулярные probes проверяют local Core и public HTTPS. Три последовательных сбоя закрывают собственную Job. Подробные временные границы и реальные native receipts — OPERATIONS.md.
+Новый supervisor допускает начало startup-проверки в течение 360 с; последняя пара local/public probes занимает ещё до 7 с, ожидание между попытками — до 1 с. Общая граница цикла — до 368 с без гарантии жёсткого реального времени. Регулярные probes проверяют local Core и public HTTPS. Три последовательных сбоя закрывают собственную Job. Подробные временные границы и реальные native receipts — OPERATIONS.md.
 
 Штатная остановка нового супервизора из той же Windows-сессии:
 ~~~powershell
 & $Python (Join-Path $C5 'scripts/run_nobus_space_live.py') --stop
 ~~~
-stop_requested — запрос. Core прекращает admission, заканчивает cleanup/checkpoints в пределах90с; затем supervisor закрывает Job и проверяет пустое дерево до10с. Убедиться в завершении own PID/start-time/tree и освобождении исходного порта. Никогда не kill по имени python/ssh. При чужом poller/порте операция останавливается. Старый supervisor не считается совместимым с новым stop control.
+stop_requested — запрос. Core прекращает admission, заканчивает cleanup/checkpoints в пределах 90 с; затем supervisor закрывает Job и проверяет пустое дерево до 10 с. Убедиться в завершении own PID/start-time/tree и освобождении исходного порта. Никогда не kill по имени python/ssh. При чужом poller/порте операция останавливается. Старый supervisor не считается совместимым с новым stop control.
 
 Перезапуск допустим после доказанного STOP, проверки store/UNKNOWN и принятой версии. Неизвестные provider effects и delivery parts не становятся повторяемыми из-за restart.
 
 ## Backup и restore
 
-Принято владельцем в C5: RPO≤24ч (целевой предел потери данных по времени), RTO≤30мин (целевое время возврата продукта); backup ежедневно и перед изменениями; 7ежедневных и4еженедельных копии. Расписание и live retention в C5 не включены. На том же диске копии не защищают от потери диска. Полный RTO с SDK/ASR должен быть измерен в C6.
+Принято владельцем в C5: RPO ≤24 ч (целевой предел потери данных по времени), RTO ≤30 мин (целевое время возврата продукта); backup ежедневно и перед изменениями; 7 ежедневных и 4 еженедельных копии. Расписание и live retention в C5 не включены. На том же диске копии не защищают от потери диска. Полный RTO с SDK/ASR должен быть измерен в C6.
 
-Фактический representative drill: backup0,623862с; stagedrestore/validation0,834647с; crash rollback0,833848с; возраст снимка0,408410с. Потеря принятых задач и подтверждённых частей доставки0. Полный startup в измерение не входит. Точный комплект — STORAGE-RECEIPTS.json.
+В изолированной среде выполнены backup, восстановление данных и recovery после прерывания. Точные измерения и их source/application binding перечислены в приёмке C5; ранние WIP-замеры сохранены только в исходных receipts. В проверенном наборе потерянных принятых задач и повторно доставленных подтверждённых частей — 0. Полный запуск с SDK/ASR не входит в измеренное время восстановления данных. После restore admission остаётся закрытым до сверки возможных внешних действий после снимка.
 
 Обязательны task-runtime.sqlite3, telegram-state.sqlite3 и telegram-checkpoint.sqlite3. business-notes.sqlite3 включается, если существует как legacy store. Task store содержит admission/request/auth/recovery/tombstones/task/audit/outbox/part receipts/sealed answers и restore fence; state содержит queue/voice/confirmation/clarification/progress. TXT на диске — проекция, authoritative bytes остаются в durable result/outbox.
 

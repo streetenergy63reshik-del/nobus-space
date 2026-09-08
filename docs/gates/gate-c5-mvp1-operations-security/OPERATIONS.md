@@ -32,13 +32,24 @@
 
 ## Пределы
 
-- Startup — до 360 секунд. Штатный Core shutdown — до 90 секунд, затем только
-  собственный Job; ожидание нулевого числа процессов Job — ещё до 10 секунд.
+- Новая startup probe допускается в течение 360 секунд; последняя проверка
+  может добавить до 7 секунд (local + public) и ожидание до 1 секунды. Это
+  ограниченное окно примерно 368 секунд, а не hard deadline 360 секунд.
+  Штатный Core shutdown — до 90 секунд, затем только собственный Job; ожидание нулевого числа процессов Job — ещё до 10 секунд.
   Ошибка очистки даёт failure и требует проверки владельцем.
 - После готовности supervisor делает проверку через каждые 10 секунд; три
   последовательных отказа завершают текущий runtime. Один локальный probe имеет
-  timeout 2 секунды, публичный — 5 секунд, поэтому период включает время probe.
-  Внешняя недоступность не запускает бесконечные внутренние попытки.
+  общий monotonic deadline 2 секунды, публичный — 5 секунд, поэтому период
+  включает время probe. Редиректы запрещены; другое назначение не может
+  подтвердить готовность текущего Core. Внешняя недоступность не запускает
+  бесконечные внутренние попытки.
+- Local/public probes используют один общий daemon slot на процесс. При
+  зависании DNS или chunked body управляющий поток прекращает ожидание по
+  deadline и проверяет STOP каждые 50 мс. Пока прежний probe жив, новый поток
+  не создаётся; поздний PASS не применяется. Read-only daemon может оставаться
+  до окончания своего сетевого вызова или выхода supervisor. Это не
+  доказательство завершения runtime: собственный process tree проверяется
+  отдельно после остановки.
 - Polling readiness допускает не более 90 секунд после последнего успешного
   batch. Lease 240 секунд и её fencing сохраняются. Готовность локального worker
   не обещает успешный следующий ответ внешнего model provider.
@@ -77,9 +88,19 @@ credentials остаются в существующем Windows credential stor
 
 State/model directories должны уже существовать, быть абсолютными локальными
 путями без reparse points в цепочке родителей. Отсутствующий switch сохраняет
-semantic OFF. Health launcher использует тот же StateRoot через `--runtime`.
+semantic OFF. Artifacts-каталог создаётся только под проверенным isolated root,
+до worker/ASR probes и подключения настоящего TelegramStatusSender. ON/OFF
+проверки используют реальный Sender constructor с synthetic API type.
+Health launcher использует тот же StateRoot через `--runtime`.
 Прежний `-RuntimeRoot` выбирает каталог установленного Python/logs и не подменяет
 `-StateRoot`. Проверка параметров и `-WhatIf` не меняют Scheduler.
+
+После проверки БД Health вызывает read-only `run_nobus_space_live.py
+--check-ready`: safe JSON PASS/FAIL, exit 0/1, тот же local/public deadline и
+запрет redirects. Эта команда не получает runtime mutex и не запускает
+Core/relay. Весь Health task сохраняет ExecutionTimeLimit 2 минуты; actual
+Scheduler в C5 не переустанавливался. Такой общий предел task отличается от
+2/5 секунд непосредственно сетевых probes.
 
 После отдельного разрешения C6 владелец задаёт точные значения переменных,
 проверяет accepted checkout, backup и текущую identity, затем просматривает план:
@@ -130,8 +151,8 @@ Windows Jobs. Сеть, credentials, реальные model/ASR inference и liv
 handle, PID и время создания; после завершения handles signaled. Для terminate
 и полного штатного cleanup отдельно измерен `ActiveProcesses=0`.
 
-Авторские целевые результаты: 60 runtime/supervisor checks и 13 operational
-checks PASS; compile и PowerShell parse PASS. Это не независимый L2/L3 и не
+Авторские целевые результаты после единого rework: 68 runtime/supervisor checks
+и 13 operational checks PASS; compile и PowerShell parse PASS. Это не независимый L2/L3 и не
 замена общего regression кандидата. Первоначальные FAIL сохранены: гонка
 времени жизни startup event, две ошибки предположений verifier о conhost и
 отдельный stale bytecode случай во время изменения storage schema. Новые PASS
@@ -140,6 +161,15 @@ checks PASS; compile и PowerShell parse PASS. Это не независимы�
 и Health HTTP200 с чужим телом. Оба дефекта исправлены; общий целевой набор
 из 73 проверок прошёл. Первый прогон этих негативных проверок также сохранил
 четыре ошибки setup из-за отсутствия родительского каталога временных файлов.
+
+Независимая проверка frozen 29d09d6 затем выявила три дефекта: отсутствующий
+artifacts root, принятие redirect и отсутствие общего срока сетевого чтения.
+Повторное воспроизведение до правок сохранено. После единого исправления
+real Sender ON/OFF, cross-origin redirect, valid chunked drip, STOP во время
+DNS и slow body, single in-flight и discard late PASS покрыты целевыми тестами.
+Первый общий прогон дал 80 PASS и одну устаревшую проверку literal URLs в
+installer; она обновлена на общий CLI. Итог — 81 PASS. Новая авторская проверка
+не заменяет независимую приёмку следующего frozen кандидата.
 
 По read-only preflight основной задачи оба старых Scheduled Tasks выключены,
 product processes отсутствуют, локальный порт свободен, публичный HTTPS вернул

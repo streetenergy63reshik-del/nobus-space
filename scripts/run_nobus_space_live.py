@@ -9,6 +9,7 @@ import signal
 import subprocess
 import sys
 import time
+import threading
 import urllib.request
 from ctypes import wintypes
 from pathlib import Path
@@ -187,28 +188,77 @@ def stop_process(process, *, graceful: bool = False) -> bool:
     return False
 
 
-def ready() -> bool:
-    request = urllib.request.Request(
-        "http://127.0.0.1:8765/readyz", headers={"Host": "app.nobusspace.com"})
-    try:
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        with opener.open(request, timeout=2) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+
+class _ReadinessProbe:
+    """One read-only daemon slot; timed-out/DNS-stalled work cannot accumulate."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._thread = None
+
+    def run(self, read, *, seconds, stop_event=None):
+        deadline = time.monotonic() + seconds
+        if stop_event is not None and stop_event.is_set():
+            return False
+        done = threading.Event()
+        result = [False]
+
+        def work():
+            try:
+                result[0] = read() is True
+            except Exception:
+                pass
+            finally:
+                done.set()
+
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                return False
+            worker = threading.Thread(target=work, name="nobus-readiness", daemon=True)
+            self._thread = worker
+            worker.start()
+        while True:
+            if stop_event is not None and stop_event.is_set():
+                return False
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            if done.wait(min(.05, remaining)):
+                worker.join(timeout=max(0.0, deadline - time.monotonic()))
+                # Never consume a late PASS or carry it into another request.
+                return (not worker.is_alive() and time.monotonic() < deadline
+                        and (stop_event is None or not stop_event.is_set())
+                        and result[0])
+
+
+_READINESS_PROBE = _ReadinessProbe()
+
+
+def _ready_request(url, *, seconds, headers=None, stop_event=None):
+    def read():
+        request = urllib.request.Request(url, headers=headers or {})
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+        with opener.open(request, timeout=seconds) as response:
             return response.status == 200 and response.read(256) == b'{"status":"ready"}'
-    except Exception:
-        return False
+    return _READINESS_PROBE.run(read, seconds=seconds, stop_event=stop_event)
 
 
-def public_ready() -> bool:
-    request = urllib.request.Request(PUBLIC_ORIGIN + "/readyz")
-    try:
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        with opener.open(request, timeout=5) as response:
-            return response.status == 200 and response.read(256) == b'{"status":"ready"}'
-    except Exception:
-        return False
+def ready(*, stop_event=None) -> bool:
+    return _ready_request("http://127.0.0.1:8765/readyz", seconds=2,
+                          headers={"Host": "app.nobusspace.com"}, stop_event=stop_event)
 
 
-def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=ready) -> int:
+def public_ready(*, stop_event=None) -> bool:
+    return _ready_request(PUBLIC_ORIGIN + "/readyz", seconds=5, stop_event=stop_event)
+
+
+def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=None) -> int:
+    if probe is None:
+        probe = lambda: ready(stop_event=stop_event) and public_ready(stop_event=stop_event)
     deadline = clock() + STARTUP_SECONDS
     while not stop_event.is_set() and clock() < deadline:
         if relay.poll() is not None or core.poll() is not None:
@@ -230,7 +280,9 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
 
 def _arguments(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stop", action="store_true")
+    commands = parser.add_mutually_exclusive_group()
+    commands.add_argument("--stop", action="store_true")
+    commands.add_argument("--check-ready", action="store_true")
     parser.add_argument("--semantic-admission", action="store_true")
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--voice-model-directory", type=Path)
@@ -263,6 +315,10 @@ def main() -> int:
     from src.application.windows_singleton import WindowsNamedMutex, RunnerAlreadyActive
     try:
         values = _arguments()
+        if values.check_ready:
+            healthy = ready() and public_ready()
+            print('{"status":"PASS"}' if healthy else '{"status":"FAIL"}')
+            return 0 if healthy else 1
         if values.stop:
             event = StopEvent(request=True)
             try:
@@ -307,7 +363,7 @@ def _main(values) -> int:
             "-o", "ConnectTimeout=15", "-R", REVERSE_BINDING, RELAY_TARGET])
         if not stop_event.wait(2) and relay.poll() is None:
             core = spawn_owned(api, job, command)
-            status = supervise(api, job, relay, core, stop_event, probe=lambda: ready() and public_ready())
+            status = supervise(api, job, relay, core, stop_event)
     except Exception:
         status = 1
     finally:

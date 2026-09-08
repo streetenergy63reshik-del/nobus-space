@@ -9,7 +9,7 @@
 регрессионные тесты и owner smoke.
 
 Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 DRAFT; C6 HOLD; MVP1 NOT READY.
-Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C4 evidence](../gates/gate-c4-frontend-journey/EVIDENCE.json).
+Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C5 handoff](../gates/gate-c5-mvp1-operations-security/HANDOFF.md).
 
 ## Проверки C5
 
@@ -43,10 +43,7 @@ Inherited binary/license/pip/SQLite риски — [проверка](../gates/g
 | C0-F15 | Docs/manual и active deployment identity рассинхронизированы | protected `main` содержит historical current READY claim; deployment revision readback отсутствует | C6 | **CONFIRMED**; exact release/config/readback, active docs/manual и owner acceptance связаны одним SHA/tree |
 | C0-F16 | Release и owner acceptance переоткрыты | direct owner incident 2026-09-02 имеет более новую силу, чем pre-incident acceptance | C6 | **CONFIRMED**; frozen C1–C5 result, publication/activation readbacks и новая owner smoke matrix PASS |
 
-Пункты C0-F09 и F12–F14 остаются открытыми именно как
-обязательная квалификация: C0 не выдаёт наличие кода или старых тестов за
-доказательство целого продукта. Historical CLOSED строки ниже сохранены и не
-переписаны задним числом.
+Исходные требования C0 требовали квалификации F09 и F12–F14. F09 принят в C4; F12–F14 проверяются в C5 в разрешённом изолированном объёме, а фактическая активация остаётся C6. Исторические CLOSED строки ниже сохраняются со своим исходным evidence.
 
 C1 candidate `9de145ccc1c456927623885212f8d5ac64ff8ef0` отклонён.
 C1-B01 (ambiguous/partial corroboration) и C1-B02 (single-quote/inline-code

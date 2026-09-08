@@ -1,0 +1,130 @@
+{
+  "schema": "c5-rework-1",
+  "candidate": {
+    "sha": "29d09d625ec7cc5fdc3b63ce1e0179ded8424174",
+    "tree": "a675aaa7046dfb128298089ec2eedc07602ae10b",
+    "status": "REWORK"
+  },
+  "root_l1": {
+    "passed": 2296,
+    "subtests_passed": 25,
+    "failed": 1,
+    "skipped": 2,
+    "historical_deselected": 2,
+    "seconds": 285.95,
+    "frontend_passed": 20,
+    "compiled_files": 97,
+    "local_receipt": ".runtime/c5/l1-29d09d62-c770dc12/verification.json"
+  },
+  "findings": [
+    {
+      "id": "C5-L1-SCHEMA",
+      "scope": "tests/test_sqlite_store.py",
+      "severity": "Minor",
+      "cause": "Expected table list predates miniapp_restore_fence; implementation added required restore fencing.",
+      "rework": "Add exact table to idempotent schema expectation; targeted1PASS."
+    },
+    {
+      "id": "C5-L3-RUNTIME-01",
+      "scope": "scripts/run_telegram_mvp1.py",
+      "severity": "Major",
+      "cause": "Empty isolated runtime-root lacks artifacts directory required by real TelegramStatusSender.",
+      "status": "REWORK"
+    },
+    {
+      "id": "C5-L3-RUNTIME-02",
+      "scope": "scripts/run_nobus_space_live.py",
+      "severity": "Major",
+      "cause": "Readiness follows302 to another origin/port and accepts its ready body.",
+      "status": "REWORK"
+    },
+    {
+      "id": "C5-L3-RUNTIME-03",
+      "scope": "scripts/run_nobus_space_live.py",
+      "severity": "Major",
+      "cause": "Socket inactivity timeout is not total deadline; synthetic chunked probe took6.578s with5s timeout and delayed requested stop.",
+      "negative_hypothesis": "Content-Length variants ~5.1s did not reproduce; retained as non-confirming evidence.",
+      "status": "REWORK"
+    },
+    {
+      "id": "C5-L2-DEPENDENCY",
+      "scope": "DEPENDENCIES.md / DEPENDENCY-EVIDENCE.json",
+      "severity": "Minor",
+      "cause": "175native records represent174unique;400notice records represent395unique. Normalized ormsgpack duplicate has matching RECORD hash.",
+      "status": "REWORK"
+    },
+    {
+      "id": "C5-L2-MANUAL",
+      "scope": "owner DOCX / timing prose",
+      "severity": "Minor",
+      "cause": "First WIP timings differed from revision-bound drill receipts.",
+      "rework": "Manual uses accepted policy and exact acceptance reference; v2 sha256 eca1ea65a23d8c78ee0f5a5fbf65c214326db58d9f1bed0b0b5628604deaf3e8. Timing prose will identify exact provenance."
+    }
+  ],
+  "secret_scan": {
+    "method": "Git HEAD text bytes; fixed private-key/OpenAI/GitHub/Telegram token-shaped patterns; no claim of exhaustive secret detection.",
+    "new_candidate_matches": 0,
+    "triaged_inherited_matches": [
+      {
+        "path": "tests/test_codex_patch.py",
+        "line": 219,
+        "rule": "telegram_token",
+        "classification": "explicit synthetic invalid-answer rejection fixture; unchanged from base"
+      },
+      {
+        "path": "tests/test_owner_files.py",
+        "line": 208,
+        "rule": "private_key",
+        "classification": "key header marker only in sensitive-content refusal test; no private key material"
+      },
+      {
+        "path": "tests/test_owner_files.py",
+        "line": 260,
+        "rule": "github_token",
+        "classification": "synthetic detector assertion; unchanged from base"
+      }
+    ]
+  },
+  "independence": {
+    "l2": "dependency_audit reviews product/manual excluding its authored dependency report; runtime_ops supplements dependency audit independently",
+    "l3": "storage_ops reviews runtime/supervisor/installer/root ingress/manual; runtime_ops reviews storage/restore/cleanup/root ingress/manual; each excludes own authored code",
+    "cli_route": "Separate ephemeral CLI reviewer was denied by automatic approval for unapproved possible private repository egress. No process ran and no retry/workaround. Current-task authorized reviewers used with disjoint non-author scopes."
+  },
+  "retained_local_evidence": [
+    {
+      "path": ".runtime/c5/l1-29d09d62-c770dc12/verification.json",
+      "sha256": "6b336755c97dea75b233dbe1b74378dd474e2c7ae583244dd7891c1bbeac578c",
+      "bytes": 17931
+    },
+    {
+      "path": ".runtime/c5/l2-final-29d09d6.json",
+      "sha256": "db9e00b509fcbb55e11792373bb787d2a9807a475c9ae4ee744683f4a0b38f18",
+      "bytes": 10976
+    },
+    {
+      "path": ".runtime/c5/l3-storage-ingress-29d09d6.json",
+      "sha256": "018f0384cff32571c43e925b4e39abc40e9fa9569f7e79c3043d4c98fa4c595c",
+      "bytes": 7216
+    },
+    {
+      "path": ".runtime/c5/l3-runtime-ingress-29d09d6/test_l3_adversarial.py",
+      "sha256": "ffba041ea647a7af78ad1a57a1a974c84b3fa35d9f58f815bf33ffd55cef9628",
+      "bytes": 2892
+    },
+    {
+      "path": ".runtime/c5/l3-runtime-ingress-29d09d6/test_l3_probe_bounds.py",
+      "sha256": "ae894d7ebc3e3c50ac1394bca3ecf16ef868ccf2f4fb9b7b15dc85fb74efea68",
+      "bytes": 3437
+    }
+  ],
+  "runtime_initial_observation_provenance": "Three runtime findings were reported by the independent storage reviewer in this task; reproducer scripts retained. No completed initial summary file exists. REWORK preserves observed results, not a new run.",
+  "review_continuation": {
+    "l2": "c5_dependency_l2 reviews final product/manual, excluding its corrected dependency reports",
+    "l3": "c5_adversarial authored no product files; reviews runtime rework, storage/ingress applicability, dependency corrections and manual",
+    "prior_independence": "Original scoped foreign-author reviews remain retained with their initial identities and verdicts."
+  },
+  "manual_final_correction": {
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "change": "v2 startup bound360→368 only; previous v1/v2 retained in MANUAL.json"
+  }
+}

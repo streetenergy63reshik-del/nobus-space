@@ -298,13 +298,17 @@ def test_c5_stop_signal_is_bound_to_exact_runtime_name():
 @pytest.mark.parametrize("enabled,fail_store,restore_hold", [(False, False, False), (True, False, False), (True, True, False), (True, False, True)])
 async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, monkeypatch, enabled, fail_store, restore_hold):
     events, stores, controls, semantic = [], {}, [], []
-    class Api:
+    from src.transport.telegram.bot_api import TelegramBotApi as RealApi
+    class Api(RealApi):
+        def __init__(self):
+            pass  # No transport/network; real Sender still validates the real API type.
         async def get_me(self):
             return SimpleNamespace(bot_id=1, username="Nobusspacebot")
         async def aclose(self):
             events.append("api_closed")
     class Runtime:
         async def probe_worker(self):
+            assert (tmp_path / "artifacts").is_dir()
             events.append("synthetic_worker_probe")
         async def close(self):
             events.append("runtime_closed")
@@ -356,7 +360,7 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
     monkeypatch.setattr(runner, "TelegramBindingConfig", SimpleNamespace(model_validate=lambda _: SimpleNamespace(
         bindings=[SimpleNamespace(purpose="owner_private")])))
     monkeypatch.setattr(runner, "load_telegram_bindings", lambda *a, **k: {})
-    monkeypatch.setattr(runner, "_task_destinations", lambda _: ({"owner": "synthetic"}, {}))
+    monkeypatch.setattr(runner, "_task_destinations", lambda _: ({"owner": "sha256:" + "a" * 64}, {"owner": ("sha256:" + "a" * 64, 1)}))
     monkeypatch.setattr(runner, "SQLitePollingCheckpointStore", checkpoint_store)
     monkeypatch.setattr(runner, "SQLiteTelegramState", state_store)
     monkeypatch.setattr(runner, "TelegramGateway", lambda **_: object())
@@ -378,7 +382,6 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
                  "DurableTelegramActionStore", "DurableSemanticClarificationStore"):
         monkeypatch.setattr(runner, name, lambda state: object())
     monkeypatch.setattr(runner, "DurableProductTelegramControlPlane", control_factory)
-    monkeypatch.setattr(runner, "TelegramStatusSender", lambda *a, **k: object())
     monkeypatch.setattr(runner, "TelegramPollingBoundary", lambda *a, **k: object())
     monkeypatch.setattr(runner, "_poll_once_and_announce", poll)
     values = runner._arguments(["--once", "--runtime-root", str(tmp_path)] + (["--semantic-admission"] if enabled else []))
@@ -392,6 +395,8 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
     result = await runner._run(values)
     assert result["status"] == "PASS" and result["acknowledged"] == 1
     assert len(controls) == 1 and controls[0]["task_runtime"] is runtime
+    assert isinstance(controls[0]["task_status_sender"], runner.TelegramStatusSender)
+    assert (tmp_path / "artifacts").is_dir()
     assert controls[0]["telegram_state"] is state
     assert controls[0]["enable_semantic_admission"] is enabled
     assert controls[0]["semantic_admission"] is (semantic[0] if enabled else None)
@@ -520,8 +525,9 @@ def test_c5_public_ingress_requires_exact_core_readiness(monkeypatch, body, stat
         assert request.full_url == supervisor.PUBLIC_ORIGIN + "/readyz"
         assert timeout == 5
         return response
-    def opener(handler):
+    def opener(handler, redirect):
         assert handler.proxies == {}
+        assert isinstance(redirect, __import__("urllib.request", fromlist=["HTTPRedirectHandler"]).HTTPRedirectHandler)
         return SimpleNamespace(open=request)
     monkeypatch.setattr(supervisor.urllib.request, "build_opener", opener)
     assert supervisor.public_ready() is expected
@@ -575,37 +581,127 @@ def test_c5_supervisor_rejects_original_reparse_path_before_resolving(tmp_path, 
         supervisor.core_command(Path(sys.executable), supervisor._arguments([argument, str(directory)]))
 
 
-@pytest.mark.skipif(os.name != "nt", reason="PowerShell generated probe contract")
-def test_c5_installer_health_requires_exact_local_and_public_ready_body():
+def test_c5_installer_health_delegates_exact_bounded_probe_and_has_total_task_limit():
     installer = (Path(__file__).parents[1] / "ops/windows/Install-NobusSpaceBot.ps1").read_text(encoding="utf-8")
     body = installer.split('$healthBody = @"', 1)[1].split('"@', 1)[0]
-    probes = body[body.index("try {"):body.index("if (-not `$healthy)")].replace("`$", "$")
-    # Evaluate the actual generated local/public probes with synthetic replies only.
-    check = r'''
-$ErrorActionPreference = 'Stop'
-function Invoke-WebRequest {
-    param([switch]$UseBasicParsing, $Headers, $Uri, $TimeoutSec)
-    if ($Uri.StartsWith('http://')) { return $script:localReply }
-    return $script:publicReply
-}
-$ready = '{"status":"ready"}'
-foreach ($case in @(
-    @(200, $ready, 200, $ready, $true),
-    @(200, '{"status":"ok"}', 200, $ready, $false),
-    @(200, $ready, 200, '{"status":"ok"}', $false),
-    @(200, '<html>foreign service</html>', 200, $ready, $false),
-    @(503, $ready, 200, $ready, $false),
-    @(200, $ready, 503, $ready, $false)
-)) {
-    $script:localReply = @{StatusCode = $case[0]; Content = $case[1]}
-    $script:publicReply = @{StatusCode = $case[2]; Content = $case[3]}
-    $healthy = $true
-    __PROBES__
-    if ($healthy -ne $case[4]) { throw 'Readiness body or status accepted incorrectly' }
-}
-'''.replace("__PROBES__", probes)
-    result = subprocess.run(
-        ['powershell.exe', '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', check],
-        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
-    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    assert "Invoke-WebRequest" not in body
+    assert "--check-ready *>> `$log" in body
+    assert "if (`$LASTEXITCODE -ne 0)" in body
+    assert "Start-ScheduledTask" not in body
+    assert "-ExecutionTimeLimit (New-TimeSpan -Minutes 2)" in installer
+
+
+@pytest.mark.parametrize("outcomes, expected", [((True, True),0),((True,False),1),((False,True),1)])
+def test_c5_readiness_cli_safe_json_and_never_starts_runtime(monkeypatch,capsys,outcomes,expected):
+    monkeypatch.setattr(supervisor.sys,"argv",["runner","--check-ready"])
+    monkeypatch.setattr(supervisor,"ready",lambda:outcomes[0])
+    monkeypatch.setattr(supervisor,"public_ready",lambda:outcomes[1])
+    monkeypatch.setattr(supervisor,"_main",lambda *_:pytest.fail("read-only probe started runtime"))
+    assert supervisor.main()==expected
+    assert json.loads(capsys.readouterr().out)=={"status":"PASS" if expected==0 else "FAIL"}
+
+
+def test_c5_probe_deadline_dns_stall_has_one_inflight_and_discards_late_pass():
+    import threading
+    probe=supervisor._ReadinessProbe()
+    entered,release=threading.Event(),threading.Event()
+    calls=[]
+    def stalled_dns():
+        calls.append(1);entered.set();release.wait(2);return True
+    start=time.monotonic()
+    try:
+        assert not probe.run(stalled_dns,seconds=.08)
+        assert entered.is_set() and time.monotonic()-start<.5
+        original=probe._thread
+        for _ in range(20):
+            assert not probe.run(stalled_dns,seconds=.08)
+            assert probe._thread is original
+        assert len(calls)==1 and original.daemon
+    finally:
+        release.set();probe._thread.join(2)
+    assert not probe._thread.is_alive()
+    assert not probe.run(lambda:False,seconds=.5)  # Late True cannot become next result.
+    for _ in range(10):
+        assert probe.run(lambda:True,seconds=.5)  # Completed local->public never races thread exit.
+
+
+def test_c5_probe_stop_during_dns_is_prompt_and_late_pass_is_discarded():
+    import threading
+    probe=supervisor._ReadinessProbe();stopped=threading.Event();release=threading.Event()
+    timer=threading.Timer(.08,stopped.set);timer.daemon=True;timer.start()
+    start=time.monotonic()
+    try:
+        assert not probe.run(lambda:release.wait(2),seconds=5,stop_event=stopped)
+        assert time.monotonic()-start<.5
+    finally:
+        release.set();timer.cancel();timer.join(1);probe._thread.join(2)
+    assert not probe.run(lambda:True,seconds=5,stop_event=stopped)
+
+
+@pytest.fixture
+def probe_server():
+    from contextlib import contextmanager
+    from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+    import threading
+    @contextmanager
+    def serve(reply):
+        stopping=threading.Event()
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*args):pass
+            def do_GET(self):reply(self,stopping)
+        server=ThreadingHTTPServer(("127.0.0.1",0),Handler);server.daemon_threads=True
+        worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+        try:yield f"http://127.0.0.1:{server.server_port}",stopping
+        finally:
+            stopping.set();server.shutdown();server.server_close();worker.join(2)
+    return serve
+
+
+def test_c5_real_redirect_never_reaches_other_origin(monkeypatch,probe_server):
+    foreign_hits=[]
+    def foreign(handler,stop):
+        foreign_hits.append(handler.path);body=b'{"status":"ready"}'
+        handler.send_response(200);handler.send_header("Content-Length",str(len(body)));handler.end_headers();handler.wfile.write(body)
+    with probe_server(foreign) as (foreign_url,_):
+        def redirect(handler,stop):
+            handler.send_response(302);handler.send_header("Location",foreign_url+'/foreign');handler.send_header("Content-Length","0");handler.end_headers()
+        with probe_server(redirect) as (origin,_):
+            monkeypatch.setattr(supervisor,"_READINESS_PROBE",supervisor._ReadinessProbe())
+            monkeypatch.setattr(supervisor,"PUBLIC_ORIGIN",origin)
+            assert supervisor.public_ready() is False
+            assert supervisor._ready_request(origin+'/readyz',seconds=2,headers={"Host":"app.nobusspace.com"}) is False
+    assert foreign_hits==[]
+
+
+@pytest.mark.parametrize("stop_early",[False,True])
+def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch,probe_server,stop_early):
+    import threading
+    progress=[]
+    def slow(handler,stopping):
+        handler.send_response(200);handler.send_header("Transfer-Encoding","chunked");handler.end_headers()
+        for byte in b'{"status":"ready"}':
+            if stopping.wait(.36):return
+            try:handler.wfile.write(b'1\r\n'+bytes([byte])+b'\r\n');handler.wfile.flush();progress.append(time.monotonic())
+            except OSError:return
+        try:handler.wfile.write(b'0\r\n\r\n');handler.wfile.flush()
+        except OSError:pass
+    probe=supervisor._ReadinessProbe();monkeypatch.setattr(supervisor,"_READINESS_PROBE",probe)
+    with probe_server(slow) as (origin,server_stop):
+        monkeypatch.setattr(supervisor,"PUBLIC_ORIGIN",origin)
+        stopped=threading.Event();timer=None;start=time.monotonic()
+        try:
+            if stop_early:
+                monkeypatch.setattr(supervisor,"ready",lambda **_:True)
+                process=SimpleNamespace(poll=lambda:None)
+                timer=threading.Timer(.2,stopped.set);timer.daemon=True;timer.start()
+                assert supervisor.supervise(None,None,process,process,stopped)==0
+                assert time.monotonic()-start<.7
+            else:
+                assert supervisor.public_ready() is False
+                assert 4.7<=time.monotonic()-start<5.7
+                assert len(progress)>=10  # Valid chunks keep defeating an inactivity-only timeout.
+        finally:
+            server_stop.set()
+            if timer is not None:timer.cancel();timer.join(1)
+    probe._thread.join(2)
+    assert not probe._thread.is_alive()

@@ -26,16 +26,18 @@
   "counts": {
     "installed_distributions": 80,
     "requirements_transitive_closure": 79,
-    "native_files": 175,
-    "metadata_and_notice_files": 400,
+    "native_files": 174,
+    "metadata_and_notice_files": 395,
     "python_native_files": 11,
     "pypi_success": 80,
-    "osv_query_count": 80
+    "osv_query_count": 80,
+    "native_record_rows": 175,
+    "metadata_and_notice_record_rows": 400
   },
   "method": {
     "closure": "PEP508 Requires-Dist traversal from15 requirements, markers evaluated on Windows CPython3.12, extras propagated including uvicorn[standard]. Tests are included because requirements.txt declares them.",
     "advisories": "PyPI exact-version JSON plus OSV querybatch PyPI/name/version for all80 distributions; no scanner installed. The feeds share OSV data and are not independent databases.",
-    "hashes": "SHA256 over actual installed native/metadata/notice bytes.174 native files match SHA256 from their installed RECORD. RECORD is not a publisher attestation. Matching PyPI wheel metadata is fetched but original wheel bytes are not downloaded or compared.",
+    "hashes": "SHA256 over actual installed native/metadata/notice bytes. The retained inventory arrays preserve 175 native RECORD-derived rows for 174 unique normalized physical paths and 400 metadata/notice rows for 395 unique paths. All 174 unique native files have a matching installed RECORD SHA256. The ormsgpack slash/backslash duplicate includes one unhashed row and one matching hashed row for the same file. RECORD is not a publisher attestation. Matching PyPI wheel metadata is fetched but original wheel bytes are not downloaded or compared.",
     "native_versions": "PE VersionInfo and retained C2 static byte inspection; SSL and SQLite expose stdlib versions. No ASR/CT2/AV/native model imports or inference.",
     "licensing": "Package metadata labels are declarations, not full licence clearance. Existing C2 notices and proprietary/copyleft residuals retained.",
     "publication": "No installed binary, wheel, venv or model is copied into tracked candidate. Final frozen Git publication manifest belongs to gate acceptance."
@@ -8605,7 +8607,9 @@
     "defensive_default": false,
     "trusted_schema_default": true,
     "native_record_verified": 174,
-    "native_record_mismatches": []
+    "native_record_mismatches": [],
+    "native_record_verified_unique_files": 174,
+    "native_record_normalized_unique_without_matching_hash": 0
   },
   "retained_c2": {
     "receipt_sha256": "2c6407c2677cfe1ef7961d548d069b444f58f479417beb26648d7ca4806304f9",
@@ -9122,5 +9126,24 @@
     "Intel pages read by web tool; raw urllib retrieval failure remains recorded.",
     "SQLite default defensive=False requires application/restore applicability closure; see DEPENDENCIES.md.",
     "Installer pip25.0.1 retains six known CVEs; no C5 install/download authorized."
+  ],
+  "correction_history": [
+    {
+      "finding": "C5-L2-DEPENDENCY",
+      "candidate": "29d09d625ec7cc5fdc3b63ce1e0179ded8424174",
+      "previous_counts": {
+        "installed_distributions": 80,
+        "requirements_transitive_closure": 79,
+        "native_files": 175,
+        "metadata_and_notice_files": 400,
+        "python_native_files": 11,
+        "pypi_success": 80,
+        "osv_query_count": 80
+      },
+      "previous_hash_method": "SHA256 over actual installed native/metadata/notice bytes.174 native files match SHA256 from their installed RECORD. RECORD is not a publisher attestation. Matching PyPI wheel metadata is fetched but original wheel bytes are not downloaded or compared.",
+      "previous_prose_claim": "175 native files and 400 metadata/notice files; ormsgpack current hash only because no RECORD hash.",
+      "correction": "Counts distinguish retained RECORD-derived rows from unique normalized physical paths. Duplicate ormsgpack rows refer to the same bytes; the second row provides a matching RECORD SHA256. Raw evidence, inventory rows, hashes and acquisition timestamps are unchanged.",
+      "normalization": "Windows case-insensitive relative path; backslash normalized to slash; duplicate sizes and SHA256 must agree."
+    }
   ]
 }
