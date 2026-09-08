@@ -1,8 +1,10 @@
 # Gate C5 — эксплуатация, восстановление и безопасность
 
-**ACCEPTED / PASS / PUBLICATION_PENDING.** 8 сентября 2026. C4 принят и не переоткрыт. Постоянная активация, C6, tag/release не выполняются. MVP1 NOT READY.
+**ACCEPTED / PASS / PUBLISHED.** 8 сентября 2026. C4 принят и не переоткрыт. Постоянная активация, C6, tag/release не выполняются. MVP1 NOT READY.
 
 Проверенный C5 source: `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. [Приёмка](ACCEPTANCE.md), [связанные доказательства](EVIDENCE.json). Памятка SHA-256 `36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc`.
+
+Публикация: [PR19](https://github.com/streetenergy63reshik-del/nobus-space/pull/19), package `e7efeaaadb2006e204ff3fea1b27b15128d39acf`, merge `efff730b9caeceae0afdaff840c5082d818c84d5`, tree `f44ea1d24726c7f1608da1da520b514bc1c7e2b3`. [Readback](PUBLICATION-READBACK.json) подтверждает56 файлов. Последующее единственное документальное уточнение не меняет code/tests/config; его final main проверяется отдельно без самоссылочного хеша.
 
 ## Вход
 

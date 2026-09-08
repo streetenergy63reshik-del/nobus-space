@@ -1,6 +1,6 @@
 {
   "schema": "c5-accepted-evidence-1",
-  "status": "ACCEPTED / PASS / PUBLICATION_PENDING",
+  "status": "ACCEPTED / PASS / PUBLISHED",
   "source": {
     "sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
     "tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c"
@@ -144,7 +144,8 @@
     "self_reference_rule": "Manifest excludes itself; package/merge SHA are recorded after commit/merge in a separate receipt. Final followup readback stays external to avoid cycles.",
     "permanent_deploy": false,
     "tag_release": false,
-    "c6_started": false
+    "c6_started": false,
+    "followup_scope": "One documentation-only publication record; initial PUBLISH-MANIFEST stays bound to initial acceptance package, not later status bytes. Final merge readback is external."
   },
   "accepted_limits": [
     {
@@ -247,5 +248,21 @@
     }
   ],
   "accepted_at_utc": "2026-09-08T18:35:15.097862+00:00",
-  "evidence_hash_basis": "Git blob bytes, including canonical LF; external DOCX hashes use actual binary file bytes."
+  "evidence_hash_basis": "Git blob bytes, including canonical LF; external DOCX hashes use actual binary file bytes.",
+  "initial_publication": {
+    "package_sha": "e7efeaaadb2006e204ff3fea1b27b15128d39acf",
+    "package_tree": "f44ea1d24726c7f1608da1da520b514bc1c7e2b3",
+    "pr": 19,
+    "merge_sha": "efff730b9caeceae0afdaff840c5082d818c84d5",
+    "merge_tree": "f44ea1d24726c7f1608da1da520b514bc1c7e2b3",
+    "receipt": "PUBLICATION-READBACK.json",
+    "files_read_back": 56,
+    "protected_main": true,
+    "ci_checks_present": false,
+    "claimed_ci_pass": false
+  },
+  "documentation_package_reviews": [
+    "L2-PACKAGE.json",
+    "L3-PACKAGE.json"
+  ]
 }

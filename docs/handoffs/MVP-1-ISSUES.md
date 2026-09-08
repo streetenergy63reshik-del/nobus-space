@@ -8,7 +8,7 @@
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLICATION_PENDING; C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLISHED; C6 HOLD; MVP1 NOT READY.
 Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C5 handoff](../gates/gate-c5-mvp1-operations-security/HANDOFF.md).
 
 ## Проверки C5

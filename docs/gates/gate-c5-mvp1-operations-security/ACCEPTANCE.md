@@ -1,6 +1,6 @@
 # Gate C5 — приёмка
 
-**ACCEPTED / PASS / PUBLICATION_PENDING.** Проверен исходный код `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. Пакет документации формируется после проверок; обычный PR/merge и чтение опубликованных байтов ещё впереди. MVP1 NOT READY; постоянная активация относится к отдельному C6.
+**ACCEPTED / PASS / PUBLISHED.** Проверен исходный код `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. Acceptance package `e7efeaaadb2006e204ff3fea1b27b15128d39acf`, tree `f44ea1d24726c7f1608da1da520b514bc1c7e2b3` опубликован обычным [PR19](https://github.com/streetenergy63reshik-del/nobus-space/pull/19). Merge `efff730b9caeceae0afdaff840c5082d818c84d5` имеет то же дерево; прочитанные56 файлов совпали с пакетом. [Publication readback](PUBLICATION-READBACK.json). MVP1 NOT READY; постоянная активация относится к отдельному C6.
 
 ## Связанные доказательства
 
@@ -40,4 +40,4 @@ Final application digest: `sha256:d5b72e7fafedecb643a55892491813ed6746c57f0968d1
 
 Live window **NOT RUN**. [Конечное чтение](RUNTIME-READBACK.json): оба задания Disabled, процессов0, port8765 свободен, прямой HTTPS readyz502. Начальный preflight403 сохранён как более раннее наблюдение; памятка указывает именно этот preflight. Код и тесты не запускали production. [Сохранность](PRESERVATION.json): canonical20dirty paths, live/C4 checkout,19 прежних worktree identities и6 recovery refs сохранены.
 
-Обычные push/PR/merge после PASS разрешены контрактом задачи. Protection не обходится; пустой список CI не является CI PASS. Публикация завершается отдельным readback с package/merge SHA/tree. Для C6 нужны отдельное поручение, exact active profile и owner binding, совместимые данные и сверка restore hold, полный RTO и реальные пользовательские journeys. C6, постоянный deploy и tag/release здесь не выполняются.
+Обычные push/PR/merge после PASS разрешены контрактом задачи. Protection не обходится; пустой список CI не является CI PASS. Публикация подтверждена [отдельным readback](PUBLICATION-READBACK.json) с package/merge SHA/tree; это единственное документальное уточнение после PR19. Для C6 нужны отдельное поручение, exact active profile и owner binding, совместимые данные и сверка restore hold, полный RTO и реальные пользовательские journeys. C6, постоянный deploy и tag/release здесь не выполняются.
