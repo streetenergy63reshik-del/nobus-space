@@ -1,8 +1,8 @@
 # Nobus Space — текущее состояние
 
-**8 сентября 2026. C5 ACCEPTED / PASS / PUBLICATION_PENDING.** C0–C4 сохраняют принятую публикацию. MVP1 NOT READY; C6 не начат, постоянной активации нет.
+**8 сентября 2026. C5 ACCEPTED / PASS / PUBLISHED.** C0–C4 сохраняют принятую публикацию. MVP1 NOT READY; C6 не начат, постоянной активации нет.
 
-Источник C5: `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. [Передача](../gates/gate-c5-mvp1-operations-security/HANDOFF.md) и [приёмка](../gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md) связывают L1 2305 PASS +25 subtests, Node20, независимые L2/L3 и фактический drill. Документальный package будет опубликован обычным PR/merge.
+Источник C5: `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. [Передача](../gates/gate-c5-mvp1-operations-security/HANDOFF.md) и [приёмка](../gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md) связывают L1 2305 PASS +25 subtests, Node20, независимые L2/L3 и фактический drill. Пакет `e7efeaaadb2006e204ff3fea1b27b15128d39acf` опубликован обычным [PR19](https://github.com/streetenergy63reshik-del/nobus-space/pull/19); main merge `efff730b9caeceae0afdaff840c5082d818c84d5`. Все56 опубликованных файлов сверены с пакетом.
 
 Live window NOT RUN. В конечном чтении оба задания Disabled, процессов бота0, порт8765 свободен, прямой HTTPS readyz502; preflight403 остаётся прежним наблюдением. Semantic default=False. Canonical20dirty paths и остальные checkout/history сохранены.
 

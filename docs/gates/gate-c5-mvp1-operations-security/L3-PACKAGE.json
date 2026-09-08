@@ -1,0 +1,144 @@
+{
+  "schema": "c5-independent-doc-package-readback-1",
+  "verdict": "PASS",
+  "checked_utc": "2026-09-08T18:42:09.901530+00:00",
+  "reviewer": "c5_adversarial; no package/source/docs authorship",
+  "package_sha": "e7efeaaadb2006e204ff3fea1b27b15128d39acf",
+  "package_tree": "f44ea1d24726c7f1608da1da520b514bc1c7e2b3",
+  "accepted_source": {
+    "sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c"
+  },
+  "scope": "Only documentation package delta, active claims, manifest Git blobs, exact manual and prior verdict transfer; no product test rerun or C4 reacceptance.",
+  "product_bytes_unchanged": true,
+  "package_changed_paths": [
+    ".nobus-quality/cases.ndjson",
+    "README.md",
+    "docs/01-Единый-документ-проекта.md",
+    "docs/03-Архитектурный-обзор.md",
+    "docs/04-Журнал-ADR.md",
+    "docs/08-Runbook-эксплуатации.md",
+    "docs/11-Контекст-продукта.md",
+    "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+    "docs/README.md",
+    "docs/gates/README.md",
+    "docs/gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md",
+    "docs/gates/gate-c5-mvp1-operations-security/EVIDENCE.json",
+    "docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md",
+    "docs/gates/gate-c5-mvp1-operations-security/L2.json",
+    "docs/gates/gate-c5-mvp1-operations-security/L3.json",
+    "docs/gates/gate-c5-mvp1-operations-security/PRESERVATION.json",
+    "docs/gates/gate-c5-mvp1-operations-security/PUBLISH-MANIFEST.json",
+    "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-READBACK.json",
+    "docs/gates/gate-c5-mvp1-operations-security/VERIFICATION.json",
+    "docs/handoffs/CURRENT-STATUS.md",
+    "docs/handoffs/MVP-1-ISSUES.md",
+    "docs/handoffs/WORKSPACE-INVENTORY.md"
+  ],
+  "manifests": [
+    {
+      "manifest": "publish",
+      "entries_verified": 55,
+      "hash_basis": "exact Git blob bytes; canonical LF for Git text"
+    },
+    {
+      "manifest": "evidence",
+      "entries_verified": 11,
+      "hash_basis": "exact Git blob bytes; canonical LF for Git text"
+    }
+  ],
+  "manifest_membership_exact": true,
+  "publish_manifest_self_exclusion_verified": true,
+  "source_application_schema_binding_matches_all_reviews": true,
+  "l1": {
+    "passed": 2305,
+    "subtests_passed": 25,
+    "frontend_passed": 20,
+    "compiled_files": 97
+  },
+  "l2_drill_measurements_match_acceptance_evidence": true,
+  "l3_published_json_semantically_equal_independent_original": true,
+  "manual": {
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "bytes": 44591,
+    "same_authorized_target_verified": true,
+    "root_and_independent_l2_final_six_page_qa_evidenced": true
+  },
+  "runtime_claims": {
+    "preflight_http": 403,
+    "final_http": 502,
+    "final_recorded_utc": "2026-09-08T18:31:15.0502974Z",
+    "both_tasks_disabled": true,
+    "processes": 0,
+    "listeners8765": 0,
+    "live_window": "NOT RUN",
+    "distinct_observations_not_conflated": true,
+    "new_network_probe_by_this_readback": false
+  },
+  "publication_claims": {
+    "pending_correctly_stated": true,
+    "normal_pr_merge_required": true,
+    "deploy_tag_release_c6_not_authorized_or_claimed": true
+  },
+  "owner_policy": {
+    "accepted_in_this_task": true,
+    "rpo_target_hours": 24,
+    "full_rto_target_minutes": 30,
+    "backup_schedule": "daily and before changes",
+    "retention_daily": 7,
+    "retention_weekly": 4,
+    "schedule_activated": false,
+    "live_generations_deleted": 0,
+    "same_pc_disk_loss_covered": false,
+    "full_sdk_asr_startup_rto_measured": false
+  },
+  "quality_case": {
+    "one_append_only_case": true,
+    "candidate_revision": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "old_cases_preserved": true
+  },
+  "findings_open": {
+    "critical": 0,
+    "major": 0,
+    "minor_in_reviewed_delta": 0
+  },
+  "limits": [
+    "This is package acceptance readback, not remote publication proof. Root must read back normal PR/merge and published hashes.",
+    "Historical unchanged sections were not reaccepted; product source verdict remains exact9efad0f2.",
+    "Native/license constraints, full SDK/ASR RTO, off-PC recovery and active ingress remain explicit C6 conditions."
+  ],
+  "evidence_git_blobs": {
+    "docs/gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md": {
+      "git_blob": "bbae7f4099d737ee010f7849e3a4236959b24f12",
+      "sha256": "7e4dc4084279dccd2299e2d0dc2928f1391921fdc4b6060bda032c44a93d416f",
+      "bytes": 7446
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md": {
+      "git_blob": "15b05f238ccf78be74f24c0aa1bef267cc0ee638",
+      "sha256": "b471e149c894bb8e7d11334134b08863ffd8ca954244f60b662bdfe69842eaed",
+      "bytes": 7000
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/EVIDENCE.json": {
+      "git_blob": "cbd008f4356992f021a9f44ff2ec40a777be74a3",
+      "sha256": "1fbecd34aa24713b6c326efe3a9cbf701e52ba75996307ab76e944b5e8ccab00",
+      "bytes": 10909
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/PUBLISH-MANIFEST.json": {
+      "git_blob": "4e3091c364711a4383d2bae83b90fdc9ad83affb",
+      "sha256": "3bec0df0e51275aff6c329ef3956c85d231bda84d014d2191ca32ea3ea218057",
+      "bytes": 13726
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-READBACK.json": {
+      "git_blob": "6b8979022a7622521e3572119079671d02893a66",
+      "sha256": "584204905d7a395dc1ac0dac2656fd81953fe4b014183055512ece8e4711ee7c",
+      "bytes": 758
+    },
+    "docs/handoffs/CURRENT-STATUS.md": {
+      "git_blob": "e2e5910a2f26fdd33e62538d6a4fe0b64eb820ab",
+      "sha256": "0cd455188a6fdfe106aaa8ae781c22d21b2baefff24919d6f8c77bac298debbf",
+      "bytes": 4698
+    }
+  },
+  "head_after": "e7efeaaadb2006e204ff3fea1b27b15128d39acf",
+  "git_clean_after": true
+}

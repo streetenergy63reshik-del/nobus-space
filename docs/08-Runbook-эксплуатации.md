@@ -1,6 +1,6 @@
 # 08. Runbook эксплуатации Nobus Space
 
-**8 сентября 2026: C5 ACCEPTED / PASS / PUBLICATION_PENDING; C4 ACCEPTED / PASS / PUBLISHED.** MVP1 NOT READY; постоянная активация относится к C6.
+**8 сентября 2026: C5 ACCEPTED / PASS / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED.** MVP1 NOT READY; постоянная активация относится к C6.
 Точные проверки и ограничения: [C5 handoff](gates/gate-c5-mvp1-operations-security/HANDOFF.md), [приёмка](gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md), [операции](gates/gate-c5-mvp1-operations-security/OPERATIONS.md), [восстановление](gates/gate-c5-mvp1-operations-security/STORAGE-DRILL.md).
 
 ## Текущее состояние и правило запуска

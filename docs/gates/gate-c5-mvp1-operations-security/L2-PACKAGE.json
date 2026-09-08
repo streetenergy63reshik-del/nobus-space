@@ -1,0 +1,89 @@
+{
+  "schema": "c5-independent-package-readback-1",
+  "reviewer": "/root/c5_dependency_l2",
+  "verdict": "PASS",
+  "checked_utc": "2026-09-08T18:41:15.829510+00:00",
+  "package_sha": "e7efeaaadb2006e204ff3fea1b27b15128d39acf",
+  "package_tree": "f44ea1d24726c7f1608da1da520b514bc1c7e2b3",
+  "source_sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+  "source_tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c",
+  "scope": "One documentation-only acceptance package readback; no product tests or C4 acceptance rerun. Authored dependency corrections excluded from substantive self-review; their package hashes are verified as transport integrity.",
+  "checks": {
+    "working_tree_clean": true,
+    "code_tests_ops_requirements_unchanged_from_source": true,
+    "documentation_case_changed_paths": 22,
+    "evidence_file_hashes_git_lf_verified": 11,
+    "publish_manifest_entries_git_lf_verified": 55,
+    "publish_manifest_exact_diff_minus_self": true,
+    "source_application_schema_binding_matches_final_drill": true,
+    "l1_l2_l3_verdict_source_and_counts_match": true,
+    "l2_published_content_equals_review_except_arrow_encoding_repair": true,
+    "six_final_measurements_match_actual_l2": true,
+    "same_actual_docx_sha256_matches": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "manual_bytes": 44591,
+    "accepted_policy_and_inactive_schedule_limits_preserved": true,
+    "current_status_is_publication_pending": true,
+    "no_false_c5_published_or_live_ready_claim": true,
+    "initial403_and_final502_are_distinct_dated_readbacks": true,
+    "runtime_disabled_zero_processes_zero_port_in_safe_receipt": true,
+    "self_referential_package_hash_cycle_absent": true,
+    "initial_rework_and_previous_proof_identities_preserved": true,
+    "c6_deploy_tag_release_not_authorized_or_run": true
+  },
+  "findings": [],
+  "limits": [
+    "This receipt confirms prepared package bytes, not GitHub publication.",
+    "Runtime endpoint was not called again by this reviewer; final direct HTTP502 is bound to the root readback at 18:31:15 UTC; original403 remains preflight.",
+    "Source-level native licence/security conditions and unmeasured full SDK/ASR RTO remain explicit; no installation or activation performed."
+  ],
+  "reviewed_manifest": [
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md",
+      "git_blob": "bbae7f4099d737ee010f7849e3a4236959b24f12",
+      "git_bytes": 7446,
+      "git_sha256": "7e4dc4084279dccd2299e2d0dc2928f1391921fdc4b6060bda032c44a93d416f"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/EVIDENCE.json",
+      "git_blob": "cbd008f4356992f021a9f44ff2ec40a777be74a3",
+      "git_bytes": 10909,
+      "git_sha256": "1fbecd34aa24713b6c326efe3a9cbf701e52ba75996307ab76e944b5e8ccab00"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/PUBLISH-MANIFEST.json",
+      "git_blob": "4e3091c364711a4383d2bae83b90fdc9ad83affb",
+      "git_bytes": 13726,
+      "git_sha256": "3bec0df0e51275aff6c329ef3956c85d231bda84d014d2191ca32ea3ea218057"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/L2.json",
+      "git_blob": "2f803b5cc1080dce834cb4969d9fca659733e8e6",
+      "git_bytes": 19041,
+      "git_sha256": "8c1e4dbc8daf4893eb1f4213bdb61eadbfb266fb0f50e948994205202209e0d9"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/L3.json",
+      "git_blob": "5429bc41f7cd686b110c15f952c04e9072a5c673",
+      "git_bytes": 18266,
+      "git_sha256": "19497076a28dc07e0cf24c30194aa4d0747b32e90b710086ff13569ec2858916"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/VERIFICATION.json",
+      "git_blob": "bc40e28e3e9b67f20561638957ce5db22ef432d8",
+      "git_bytes": 19744,
+      "git_sha256": "3b4cb23304f3e5024a46cfc649c0fc6c425980a5fa6663f130d1e81300e46258"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-READBACK.json",
+      "git_blob": "6b8979022a7622521e3572119079671d02893a66",
+      "git_bytes": 758,
+      "git_sha256": "584204905d7a395dc1ac0dac2656fd81953fe4b014183055512ece8e4711ee7c"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md",
+      "git_blob": "15b05f238ccf78be74f24c0aa1bef267cc0ee638",
+      "git_bytes": 7000,
+      "git_sha256": "b471e149c894bb8e7d11334134b08863ffd8ca954244f60b662bdfe69842eaed"
+    }
+  ]
+}
