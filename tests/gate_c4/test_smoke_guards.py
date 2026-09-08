@@ -17,7 +17,8 @@ from tests.gate_c4.server import candidate_server
 
 
 def test_c4_uses_one_distinct_fixed_ledger_and_accepted_accounting():
-    assert budget.Budget is C3Budget
+    assert issubclass(budget.Budget, C3Budget)
+    assert budget.Budget is not C3Budget
     assert budget.LIMITS == {"model": (64, 5400.0), "asr": (20, 1200.0)}
     assert budget.ledger_path().as_posix().endswith(
         "/mvp1-closure-c4-frontend-journey/.runtime/c4/execution-budget.sqlite3")

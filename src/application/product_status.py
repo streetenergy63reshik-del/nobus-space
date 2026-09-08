@@ -137,7 +137,8 @@ if set(_REASONS) != set(ProductReason):  # pragma: no cover
 
 _TASK_STATUS = {
     TaskStatus.PENDING: ProductTaskStatus.QUEUED,
-    TaskStatus.PARSING: ProductTaskStatus.QUEUED,
+    # Core records STARTED/PARSING before entering the provider.
+    TaskStatus.PARSING: ProductTaskStatus.WORKING,
     TaskStatus.ROUTING: ProductTaskStatus.QUEUED,
     TaskStatus.IN_PROGRESS: ProductTaskStatus.WORKING,
     TaskStatus.DRAFT: ProductTaskStatus.WORKING,
