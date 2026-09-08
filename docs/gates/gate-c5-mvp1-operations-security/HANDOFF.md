@@ -1,6 +1,8 @@
 # Gate C5 — эксплуатация, восстановление и безопасность
 
-**DRAFT / GATE CANDIDATE.** 8 сентября 2026. C4 принят и не переоткрыт. Постоянная активация, C6, tag/release не выполняются. MVP1 NOT READY.
+**ACCEPTED / PASS / PUBLICATION_PENDING.** 8 сентября 2026. C4 принят и не переоткрыт. Постоянная активация, C6, tag/release не выполняются. MVP1 NOT READY.
+
+Проверенный C5 source: `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. [Приёмка](ACCEPTANCE.md), [связанные доказательства](EVIDENCE.json). Памятка SHA-256 `36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc`.
 
 ## Вход
 
@@ -11,7 +13,7 @@ PR17 и PR18 сохранены в lineage; HANDOFF/ACCEPTANCE C4 провере
 
 Отдельная ветка codex/mvp1-closure-c5-ops-security и worktree mvp1-closure-c5. Canonical с 20 незавершёнными файлами, telegram-live и принятый C4 worktree не используются для изменений. Nobus Memory дала устаревший указатель; точный Git победил. Память не менялась.
 
-## Результат кандидата
+## Принятый результат
 
 | Обязательство | Изменение и проверка | Доказательство |
 |---|---|---|
@@ -37,6 +39,7 @@ Inherited native/license/pip/SQLite риски описаны по фактич�
 
 Live window **NOT RUN**: новых model/ASR inference, исходящих bot messages и изменений внешней конфигурации 0.
 Preflight: оба Scheduler tasks Disabled, port 8765 свободен, pollers 0; local HTTP отсутствует, public /readyz 403. Это новое чтение, не повторная приёмка historical C4 stopped/502.
+Конечный прямой readback дал HTTPS502 при тех же Disabled/0процессов/свободном порте; исходный403 сохранён как preflight. [Runtime receipt](RUNTIME-READBACK.json).
 Новые защиты проверены на изолированном кандидате; старый live checkout, TLS/route/config не менялись. Source/merge не означает deploy.
 
 ## Следующая отдельная задача C6

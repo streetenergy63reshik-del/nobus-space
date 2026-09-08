@@ -2,7 +2,7 @@
 
 **Актуально на:** 8 сентября 2026 года.
 **CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED.
-C5 DRAFT; C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
+C5 ACCEPTED / PASS / PUBLICATION_PENDING; C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 
 Точные факты и следующий шаг находятся в [CURRENT-STATUS](handoffs/CURRENT-STATUS.md)
 и [единой передаче C5](gates/gate-c5-mvp1-operations-security/HANDOFF.md).

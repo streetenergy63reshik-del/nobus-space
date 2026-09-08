@@ -1,0 +1,532 @@
+{
+  "schema": "c5-frozen-l1-2",
+  "source_sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+  "source_tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c",
+  "completed_at": "2026-09-08T18:27:34.457458+00:00",
+  "runs": [
+    {
+      "name": "pytest",
+      "exit_code": 0,
+      "seconds": 274.365,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/pytest.log",
+        "sha256": "8a410afe9ddad4b51d40257c0d600d7337aeeed6642b6d81df097899bb710e17",
+        "bytes": 3552
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/",
+        "-q",
+        "-ra",
+        "--tb=short",
+        "--ignore=tests/gate0",
+        "--ignore=tests/test_gate_c0_governance.py",
+        "--deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022",
+        "--deselect=tests/test_pre_gate1_architecture_integration.py::test_gate0_catalog_required_sources_remain_byte_identical",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "<C5>\\.runtime\\c5\\l1-9efad0f2-42a97f2f\\pytest-owned",
+        "--junitxml",
+        "<C5>\\.runtime\\c5\\l1-9efad0f2-42a97f2f\\full.xml"
+      ]
+    },
+    {
+      "name": "frontend",
+      "exit_code": 0,
+      "seconds": 0.37,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/frontend.log",
+        "sha256": "25cab67f8a4218b23984a0761f3f7f0e7d159eb65955983d87a0b0b1f4ad755c",
+        "bytes": 1760
+      },
+      "command": [
+        "<bundled-runtime>\\node\\bin\\node.exe",
+        "--test",
+        "tests/gate_c4/frontend.test.cjs"
+      ]
+    },
+    {
+      "name": "pip-check",
+      "exit_code": 0,
+      "seconds": 1.985,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/pip-check.log",
+        "sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf",
+        "bytes": 31
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pip",
+        "check"
+      ]
+    },
+    {
+      "name": "ps-parse",
+      "exit_code": 0,
+      "seconds": 0.399,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/ps-parse.log",
+        "sha256": "3260938f8fb9defaf966a6cdfa8c303b52f2280e79f7b40ab45817fac96cb12a",
+        "bytes": 23
+      },
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-Command",
+        "$tokens=$null; $errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'ops/windows/Install-NobusSpaceBot.ps1'),[ref]$tokens,[ref]$errors); if($errors.Count){throw 'PowerShell parse failed'}; 'PowerShell parse PASS'"
+      ]
+    },
+    {
+      "name": "diff-check",
+      "exit_code": 0,
+      "seconds": 0.107,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/diff-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "command": [
+        "git",
+        "-c",
+        "core.safecrlf=false",
+        "diff",
+        "--check",
+        "1b3cf67405c4523258dd8b400d17d09601f815ff",
+        "HEAD"
+      ]
+    },
+    {
+      "name": "help-check_telegram_health.py",
+      "exit_code": 0,
+      "seconds": 1.904,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/help-check_telegram_health.py.log",
+        "sha256": "77ffdf1f7a35e1904f8e86fa1b5ad1d0d7f3d3a96748b7f39d0f12f6b101b3db",
+        "bytes": 557
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "scripts/check_telegram_health.py",
+        "--help"
+      ]
+    },
+    {
+      "name": "help-backup_telegram_runtime.py",
+      "exit_code": 0,
+      "seconds": 1.637,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/help-backup_telegram_runtime.py.log",
+        "sha256": "7896f7e2b7f36d90b8e1f571779cc4f6c99d7abbc847b989e0ee42d0eaf2e24e",
+        "bytes": 271
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "scripts/backup_telegram_runtime.py",
+        "--help"
+      ]
+    },
+    {
+      "name": "help-restore_telegram_runtime.py",
+      "exit_code": 0,
+      "seconds": 1.775,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/help-restore_telegram_runtime.py.log",
+        "sha256": "92a7b5dde8fe5a042cda46e3b0fede58bb9c9dd00abf0cbbbfa71d587218f494",
+        "bytes": 538
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "scripts/restore_telegram_runtime.py",
+        "--help"
+      ]
+    },
+    {
+      "name": "help-run_nobus_space_live.py",
+      "exit_code": 0,
+      "seconds": 1.842,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/help-run_nobus_space_live.py.log",
+        "sha256": "d328409fe8a7321d6a9f7e27678ff6acaa600119429aa1e247fc557adbf2d3f5",
+        "bytes": 459
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "scripts/run_nobus_space_live.py",
+        "--help"
+      ]
+    },
+    {
+      "name": "help-run_telegram_mvp1.py",
+      "exit_code": 0,
+      "seconds": 3.556,
+      "log": {
+        "path": ".runtime/c5/l1-9efad0f2-42a97f2f/help-run_telegram_mvp1.py.log",
+        "sha256": "3a1fc6240c3419de82763e4fa963de7c7b3120b153786c93c4c338fc83491bed",
+        "bytes": 642
+      },
+      "command": [
+        "<canonical>\\.venv\\Scripts\\python.exe",
+        "scripts/run_telegram_mvp1.py",
+        "--help"
+      ]
+    }
+  ],
+  "junit": {
+    "path": ".runtime/c5/l1-9efad0f2-42a97f2f/full.xml",
+    "sha256": "949abb0f9a16cb2155a1053f86a43ff777a8a39a9ecc0a915e6d8c2d70e9bca9",
+    "bytes": 359394
+  },
+  "compile_files": 97,
+  "secret_pattern_findings": [
+    {
+      "path": "tests/test_codex_patch.py",
+      "rule": "telegram_token",
+      "changed": false,
+      "triage": "explicit synthetic invalid-answer refusal fixture"
+    },
+    {
+      "path": "tests/test_owner_files.py",
+      "rule": "private_key",
+      "changed": false,
+      "triage": "private-key header marker only; sensitive text refusal fixture"
+    },
+    {
+      "path": "tests/test_owner_files.py",
+      "rule": "github_token",
+      "changed": false,
+      "triage": "synthetic detector assertion"
+    }
+  ],
+  "new_unresolved_secret_matches": 0,
+  "broken_changed_doc_links": [],
+  "c0_c4_gate_bytes_unchanged": true,
+  "manual_hash_matches": true,
+  "changed_git_manifest": [
+    {
+      "path": "README.md",
+      "git_blob": "5e33456dc48fb8d9653c7bfbb87e973f98b5c4c3",
+      "git_bytes": 10284,
+      "git_sha256": "5584b0f77f449c9b730e60e7952bdfafd92a5c7314d0367232cd59cd345c194b"
+    },
+    {
+      "path": "docs/01-Единый-документ-проекта.md",
+      "git_blob": "99f55cda061aee3d65cae2bd8d2cc056871a9b18",
+      "git_bytes": 11691,
+      "git_sha256": "79d87f9a6fa99608834d1c4f587f66da61530867b029bb493cb6e20515d03385"
+    },
+    {
+      "path": "docs/03-Архитектурный-обзор.md",
+      "git_blob": "c155ff06204e76a0b5e0b7bb29ca9090abc35b86",
+      "git_bytes": 18375,
+      "git_sha256": "4ecfb057983aedcdf535709bec62f8df402471885dbb6e958759ff25ea73d9be"
+    },
+    {
+      "path": "docs/04-Журнал-ADR.md",
+      "git_blob": "faa412b82d9e12fd213a9a9610e4cac446aa20ea",
+      "git_bytes": 10569,
+      "git_sha256": "4009b0862ce9df998f855306084be99623b15ece0b5fef010670f98a48896ea8"
+    },
+    {
+      "path": "docs/08-Runbook-эксплуатации.md",
+      "git_blob": "5ac291bc44afe7ffc3c7bf3d2cec46cee5920fdd",
+      "git_bytes": 60258,
+      "git_sha256": "41f30e668c6bbb66fa2425ca6b14a811370bc6c1a4dbbafa5e09b3ed6442dd6e"
+    },
+    {
+      "path": "docs/11-Контекст-продукта.md",
+      "git_blob": "3aae7b5bfc841e6ad113c84dda4ecfbe4c3521cb",
+      "git_bytes": 5695,
+      "git_sha256": "2851611058b87a34baf1745fd090b4849bb6a8c4415acaac90112b429991f4bc"
+    },
+    {
+      "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+      "git_blob": "889f42bbb092285c78db42abcecc3e9d1af02ccd",
+      "git_bytes": 7150,
+      "git_sha256": "46d36d1f3ee52051f4dd99770d1615982e9787cb0bac4fac3fd8e1cfd3a5cf06"
+    },
+    {
+      "path": "docs/README.md",
+      "git_blob": "df7babd9d65ee8356bbe53d27f28f8ab4a3b4ec5",
+      "git_bytes": 9489,
+      "git_sha256": "8f425d3ffaa83a07c8a40d5da4eaae0bd0a208bb586f2a5ca57403ffdedf9f0c"
+    },
+    {
+      "path": "docs/gates/README.md",
+      "git_blob": "84f7709d6fd6f2c824825141da7d9afcf1ccd3b2",
+      "git_bytes": 7352,
+      "git_sha256": "882625c7d889ded2f6629c022248e3162d8d1920857fc12198d6dde825c20df5"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md",
+      "git_blob": "438ffe93fae239f377dae00ef843fab6444ddcbc",
+      "git_bytes": 1086,
+      "git_sha256": "a385a394f4882ad0f98fdd2b03de7deceac2438db4370878fe0f3dc4d1f68aa7"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCIES.md",
+      "git_blob": "a28f20200940160de8106981196cba7528f7c52d",
+      "git_bytes": 16202,
+      "git_sha256": "a52e9a399244a3d0c9d1decb67820574ee26af25d531aafc97860161c744094d"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCY-EVIDENCE.json",
+      "git_blob": "f738a11c11afe51acad57dd9abd90a39659d65ac",
+      "git_bytes": 328472,
+      "git_sha256": "411b62ba5e4a59d32bec5dc2ca71519ba5b5d6991bbc202a67970f06b6d6f0b1"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md",
+      "git_blob": "123da831e677eb7e8bd436faabdca61d91d47e93",
+      "git_bytes": 6438,
+      "git_sha256": "86a661629a122ba444c274d29c9ab3fd23f5e2c1fb003c6696038d40ff345fc2"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/INGRESS.md",
+      "git_blob": "43d476fccb9bce05243aca8d9bb75924940e1a8b",
+      "git_bytes": 2867,
+      "git_sha256": "1bbeaf742b9f6f61a6abced2aa92684dac15e81654e6061f1aeccaef7e0f81d7"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/MANUAL.json",
+      "git_blob": "2f1d2accb2cf7b05a125732fdc0394d7b9519556",
+      "git_bytes": 5707,
+      "git_sha256": "85cf87142fcf59f84429c72976905851fd6ed27ba114ddc48ffbb7707ccaff53"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/OPERATIONS.md",
+      "git_blob": "9546bf1ae1d33b683b44ffc9b3aa8888f266d9a9",
+      "git_bytes": 17351,
+      "git_sha256": "0fd8a138c35770b7b1ca2f86b4978d0e7d2ac46e21c2b479301a2ec3007a40a9"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/PRESERVATION.json",
+      "git_blob": "17ca6653ab474589f06159856b5b74626b9851a3",
+      "git_bytes": 969,
+      "git_sha256": "93058e8adb03b16b50bf06e0388cd7a044518ea151f4d75ae69bdb7da3b6746f"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/RETENTION-DRY-RUN.json",
+      "git_blob": "0ad37fb4b0d42472e42e9bba71703585ead518fb",
+      "git_bytes": 1582,
+      "git_sha256": "b59cfc3232176d29dd9eaef3db2ae06de56bda06d92064d4c3c16293a6019d2c"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/REWORK.json",
+      "git_blob": "e203c5d53081481f1066d0038d81ab14cbdf9f30",
+      "git_bytes": 5708,
+      "git_sha256": "3e06fb19790d7f8ff4cae50b1608e0114c4871cfd878eff3ff0fc46f357f8b0a"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-RECEIPTS.json",
+      "git_blob": "d88483e95e5fc11a3171ef39e5e0da598abb1cb3",
+      "git_bytes": 13529,
+      "git_sha256": "e1ae1a904cff4ce629d08a2c4bffc5b99d437bf688e5d7df0fb2b61ba5185322"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/STORAGE-DRILL.md",
+      "git_blob": "d8ef9ee31146645f3cd100e233b1614e533dee66",
+      "git_bytes": 14500,
+      "git_sha256": "39f63ca016de591a2e161dc6c188bbe1a0eec50596336d9b413650316b144c4f"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/STORAGE-RECEIPTS.json",
+      "git_blob": "ddb8d56b9de0275ea0ac3b398888a60033a1754a",
+      "git_bytes": 8187,
+      "git_sha256": "5ff4d5818004586a75b514eb7f7b8906852dd5e6efaa85566c6b087b7939e464"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/WORKING-CONTRACT.md",
+      "git_blob": "5ec2cb9b4a199df3b5230a6954c3ccf55bcc0e23",
+      "git_bytes": 3251,
+      "git_sha256": "04896d4d791ae07b5b1ab21c8277ecc6060dc5dcae108206728152ea2baeeae0"
+    },
+    {
+      "path": "docs/handoffs/CURRENT-STATUS.md",
+      "git_blob": "ef0e4321a57c42886f2d1aa7dde36193902c562f",
+      "git_bytes": 4550,
+      "git_sha256": "32bc427ded46cd8bf654226e21c05e272e06d83eb06a37306cfca58559b5964c"
+    },
+    {
+      "path": "docs/handoffs/MVP-1-ISSUES.md",
+      "git_blob": "8e25c5b4ad512dc2c6dc57c4086031d8ff8450dd",
+      "git_bytes": 40446,
+      "git_sha256": "937af3f4275664f1495350cdd361eafd820f09cf994f2f2616a7312df6c4b27f"
+    },
+    {
+      "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+      "git_blob": "13e8cb516954ef998ccec21c91155e7e0071393c",
+      "git_bytes": 8713,
+      "git_sha256": "d1ba4ce5f8d724a774d96d5ca979d981c3c17ee3d9b98b593f22f25235cdf676"
+    },
+    {
+      "path": "ops/windows/Install-NobusSpaceBot.ps1",
+      "git_blob": "bd560d18411cabc3b7419b551ecf674fb8cd5c65",
+      "git_bytes": 6227,
+      "git_sha256": "b87785a52880015a8079ac2757edaf087df074e9f5cb5b2b9b9b93417af91cc4"
+    },
+    {
+      "path": "scripts/backup_telegram_runtime.py",
+      "git_blob": "504bfd612c261f22255c4421fa1ac3908b0e4fbd",
+      "git_bytes": 5617,
+      "git_sha256": "ab829325f0401b3c06ecddbdbace147cd57fab15ba86e3321b533eaf85c8aff3"
+    },
+    {
+      "path": "scripts/check_telegram_health.py",
+      "git_blob": "8064a995fea205dd6d78576d605352f8a597d768",
+      "git_bytes": 10012,
+      "git_sha256": "08fda42fdf23e2adec253b52590372fd0bf9eebf82cc82c6dca1b8c263ce3899"
+    },
+    {
+      "path": "scripts/restore_telegram_runtime.py",
+      "git_blob": "baaeb7f4fc390c8b1e63b3bea67488b23f601ba7",
+      "git_bytes": 9517,
+      "git_sha256": "0260ac04351ee20ec66f883eee981747d6e46abf5210c1057eb9e9136ee50eb4"
+    },
+    {
+      "path": "scripts/run_nobus_space_live.py",
+      "git_blob": "c9972ab8dda46d1c7650dac20501501666926a9b",
+      "git_bytes": 16247,
+      "git_sha256": "8b7df977d307467674a9844c2feee13e8dc7cefe9f8597d68656bfb28605d5f9"
+    },
+    {
+      "path": "scripts/run_telegram_mvp1.py",
+      "git_blob": "f453af0b0e5cd49d8074add236fe670903350e83",
+      "git_bytes": 29376,
+      "git_sha256": "074abf116ee9626c1689a4d53c86d7e33644cd11e9833dd5cc83d0b2712e5240"
+    },
+    {
+      "path": "src/application/miniapp.py",
+      "git_blob": "804de28b941339daad5307ffa1eb033169ab7a0c",
+      "git_bytes": 44835,
+      "git_sha256": "6c861fe562b6911234bef8be1985540069fab86bbb16adf1014b11a252793311"
+    },
+    {
+      "path": "src/application/runtime_maintenance.py",
+      "git_blob": "19502e5dd3a5c17cad4728eb8d3e7578f6e3682d",
+      "git_bytes": 39321,
+      "git_sha256": "41b3731fff6332463a603e882f3c0f7635d19337e2959dc1c685f857d0c5c7a3"
+    },
+    {
+      "path": "src/application/windows_singleton.py",
+      "git_blob": "5d934ba9e4bdba5b87ff0da5a3230f12c42f40ab",
+      "git_bytes": 1887,
+      "git_sha256": "2c479731e1cae7097a455f5fce645d7452f0e9feca76298861516becd4bbdd87"
+    },
+    {
+      "path": "src/storage/sqlite_store.py",
+      "git_blob": "d4750553ee1d24453d6a99c841f468a7fcd593f9",
+      "git_bytes": 134897,
+      "git_sha256": "5ee8aa1cca38bb4f9e54c8045041c6d04f92055704a50da937ef636cdc58d2c8"
+    },
+    {
+      "path": "src/transport/miniapp.py",
+      "git_blob": "f4785a1cc1c6a3e62ef9febdb123c2601267c30f",
+      "git_bytes": 35795,
+      "git_sha256": "c44cc8cc69ec5c1f05ce1fa0bdfd0dd9a794843b1d5e75b20774a898410f3f60"
+    },
+    {
+      "path": "src/transport/telegram/bot_api.py",
+      "git_blob": "c17fa155cf541d94052e6dc749b938ed60355d59",
+      "git_bytes": 38714,
+      "git_sha256": "cbdaa6b7915c0247282d19424b276c522efa533777bdf00dcf21da2f2fc68c6c"
+    },
+    {
+      "path": "tests/test_c5_backup_recovery.py",
+      "git_blob": "29bf8942c9bdbd140b6a2c8acd261636606b62e4",
+      "git_bytes": 23509,
+      "git_sha256": "769541dc046b125513a2d9eb936a4c9e42efdc3fcf7a8898c806b86ed86c689b"
+    },
+    {
+      "path": "tests/test_c5_ingress.py",
+      "git_blob": "4479465cdac3bcad9637e23b026d3d73e116a37a",
+      "git_bytes": 6285,
+      "git_sha256": "a89314f35308528a7890d97827272e85ddd03839708ae1dddab49951a450b443"
+    },
+    {
+      "path": "tests/test_c5_runtime_operations.py",
+      "git_blob": "ce5f77b548d5e1a378b2159f62ed0ef1d239f735",
+      "git_bytes": 33252,
+      "git_sha256": "60c5bfe688f8fb1e6888a88419b6009f9776e89de0492f7ddc7d882cce6c2340"
+    },
+    {
+      "path": "tests/test_live_supervisor.py",
+      "git_blob": "7786161f6a30c605e47118b1402db9c6ab45d4d0",
+      "git_bytes": 2115,
+      "git_sha256": "62b28697631d1159970ff71f6d95efc267d97042313ad05edcf0e4f1c4aa31d3"
+    },
+    {
+      "path": "tests/test_ops_queue1.py",
+      "git_blob": "035a721d1acf0d6814d3c20f932ae7fc47d1a3b7",
+      "git_bytes": 10461,
+      "git_sha256": "7241845f6968d8718fc501ef0b36235be956d76568e7834e6b1d9481916220b3"
+    },
+    {
+      "path": "tests/test_queue12_acceptance_rework.py",
+      "git_blob": "963e4199b674a4b31cb6503eaee2ca98f203120c",
+      "git_bytes": 12823,
+      "git_sha256": "9f4f13ba2a3ceb2b815036abc954068fe27c43e787cf66c6aca6898ac9558a89"
+    },
+    {
+      "path": "tests/test_queue12_crash_regressions.py",
+      "git_blob": "a4c3296657ade2f6c1a353211f72e149bc4b71e2",
+      "git_bytes": 25010,
+      "git_sha256": "782fe831c25737472ac03709f7636407173ac38db10bcade94e2232c2ad1f7e4"
+    },
+    {
+      "path": "tests/test_runtime_operations.py",
+      "git_blob": "af9c1620c9d14262a8b951d534c1b8f612c82a67",
+      "git_bytes": 6817,
+      "git_sha256": "710edb9d319e84f975d62add69581fec2f8dbd7055582966a9cfb0fa77ca00e8"
+    },
+    {
+      "path": "tests/test_sqlite_store.py",
+      "git_blob": "de7f3382ba87d5bf843d164678b26df474900615",
+      "git_bytes": 40889,
+      "git_sha256": "fbb8dd46c1d1a39811894117f646c515b3e5c43d6dc04eb67cc8af98b8ab1e8a"
+    },
+    {
+      "path": "tests/test_telegram_mvp1_runner.py",
+      "git_blob": "a4361935500961725de591ad4c71ae589caaebad",
+      "git_bytes": 21090,
+      "git_sha256": "7683eb7da5493ac5fd738b6f6e51712c7b2211e43f994f39b07dfde68b2029d4"
+    },
+    {
+      "path": "tests/test_voice_retention.py",
+      "git_blob": "91012cca8df25c82e2a1163deadd329a0defbd33",
+      "git_bytes": 22678,
+      "git_sha256": "cdbe262158360d84f117a803a6b09c9c9e2f09abf93718db6c56227b725d3939"
+    }
+  ],
+  "historical_deselections": "Same two C4 documented historical projection/catalog checks; tests/gate0 and test_gate_c0_governance.py retained sealed acceptance not rerun. No product tests waived.",
+  "driver": {
+    "path": ".runtime/c5/run-final-l1.py",
+    "sha256": "2bbbd700e226c8e9f1b1728b460035c54e191829948b64389ccde0c106120dab",
+    "bytes": 5256
+  },
+  "previous_rework_source": "29d09d625ec7cc5fdc3b63ce1e0179ded8424174",
+  "status": "PASS",
+  "pytest_summary": {
+    "passed": 2305,
+    "subtests_passed": 25,
+    "skipped": 2,
+    "deselected": 2,
+    "warnings": 1,
+    "pytest_seconds": 269.26,
+    "warning": "Inherited StarletteDeprecationWarning for httpx TestClient; no dependency install in C5."
+  },
+  "frontend_summary": {
+    "passed": 20,
+    "failed": 0
+  },
+  "limits": "Candidate-bound C5 regression; historical C4 acceptance not repeated. Fixed-pattern scan is not exhaustive detection. Three inherited synthetic refusal/detector fixtures retain their original bytes.",
+  "raw_receipt": {
+    "path": ".runtime/c5/l1-9efad0f2-42a97f2f/verification.json",
+    "sha256": "bed09fd7b5ad32a4adcce20ad7854701fad4beba15baf7525ca336bee6c7d890",
+    "bytes": 20442
+  },
+  "executor": "root L1; independent L2/L3 separately bound"
+}

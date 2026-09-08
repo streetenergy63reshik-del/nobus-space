@@ -1,11 +1,11 @@
 # 08. Runbook эксплуатации Nobus Space
 
-**8 сентября 2026: C5 DRAFT / GATE CANDIDATE; C4 ACCEPTED / PASS / PUBLISHED.** MVP1 NOT READY; постоянная активация относится к C6.
+**8 сентября 2026: C5 ACCEPTED / PASS / PUBLICATION_PENDING; C4 ACCEPTED / PASS / PUBLISHED.** MVP1 NOT READY; постоянная активация относится к C6.
 Точные проверки и ограничения: [C5 handoff](gates/gate-c5-mvp1-operations-security/HANDOFF.md), [приёмка](gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md), [операции](gates/gate-c5-mvp1-operations-security/OPERATIONS.md), [восстановление](gates/gate-c5-mvp1-operations-security/STORAGE-DRILL.md).
 
 ## Текущее состояние и правило запуска
 
-Preflight C5: задания NobusSpaceBot и NobusSpaceBot-Health отключены, pollers 0, port 8765 свободен; локальный HTTP не работает, публичный /readyz отвечает 403. Старое задание указывает на telegram-live и не содержит новый код C5. Ни read-only диагностика, ни merge этого не меняют.
+Preflight C5: задания NobusSpaceBot и NobusSpaceBot-Health отключены, pollers 0, port 8765 свободен; локальный HTTP не работает, публичный /readyz отвечает 403. Конечное прямое HTTPS-чтение дало502 при прежнем остановленном runtime; исходный403 остаётся preflight. Старое задание указывает на telegram-live и не содержит новый код C5. Ни read-only диагностика, ни merge этого не меняют.
 
 Semantic default остаётся False. Новый runner/supervisor принимает явные --semantic-admission, --runtime-root и --voice-model-directory. Installer предоставляет соответствующие default-off параметры; в C5 он не устанавливался. Изолированный ON/OFF composition проверен с fake providers, без модели и ASR inference. Постоянная активация и рабочие данные — отдельный C6.
 

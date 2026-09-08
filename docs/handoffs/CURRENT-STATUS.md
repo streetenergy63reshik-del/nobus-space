@@ -1,11 +1,10 @@
 # Nobus Space — текущее состояние
 
-**8 сентября 2026. C5 DRAFT / GATE CANDIDATE; C4 ACCEPTED / PASS / PUBLISHED.**
-MVP1 NOT READY; C6 не запущен; постоянной активации нет.
+**8 сентября 2026. C5 ACCEPTED / PASS / PUBLICATION_PENDING.** C0–C4 сохраняют принятую публикацию. MVP1 NOT READY; C6 не начат, постоянной активации нет.
 
-C5 начат от опубликованного main 1b3cf67405c4523258dd8b400d17d09601f815ff в отдельной ветке/worktree. [C5 handoff](../gates/gate-c5-mvp1-operations-security/HANDOFF.md) и [приёмка](../gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md) содержат нормы, проверки и ограничения. До полного L1/L2/L3 статус DRAFT; публикация требует обычного merge/readback.
+Источник C5: `9efad0f2eb152ff71ec684786c07ad38c906db1b`, tree `2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c`. [Передача](../gates/gate-c5-mvp1-operations-security/HANDOFF.md) и [приёмка](../gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md) связывают L1 2305 PASS +25 subtests, Node20, независимые L2/L3 и фактический drill. Документальный package будет опубликован обычным PR/merge.
 
-Preflight: оба Scheduler tasks Disabled, pollers0, port8765 свободен; local HTTP отсутствует, public readyz403. Live window NOT RUN; semantic defaultFalse. Canonical20dirty paths и другие worktrees сохраняются.
+Live window NOT RUN. В конечном чтении оба задания Disabled, процессов бота0, порт8765 свободен, прямой HTTPS readyz502; preflight403 остаётся прежним наблюдением. Semantic default=False. Canonical20dirty paths и остальные checkout/history сохранены.
 
 ## Сохранённый итог C4 (историческая проекция)
 

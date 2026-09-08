@@ -1,0 +1,412 @@
+{
+  "schema": "c5-final-independent-l3-1",
+  "reviewed_utc": "2026-09-08T18:30:34.197571+00:00",
+  "profile": "software-development",
+  "risk": "high",
+  "lifecycle": "GATE_CANDIDATE",
+  "verdict": "PASS",
+  "source_revision": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+  "source_tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c",
+  "application_binding": {
+    "source_commit": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "code_digest": "sha256:d5b72e7fafedecb643a55892491813ed6746c57f0968d12a901f42afaa14f504",
+    "schema_digest": "sha256:5ff632b379b321745171cc278b1deab119b3b1f76f2abc7eabe1a98583c76208",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "reviewer": {
+    "identity": "c5_adversarial",
+    "authored_product_or_docs": false,
+    "scope": "Final runtime and Health changes; storage/ingress negative scenarios; dependency correction and same owner DOCX; no C4 acceptance rerun."
+  },
+  "open_findings": {
+    "critical": 0,
+    "major": 0,
+    "minor": 0
+  },
+  "closed_findings": [
+    {
+      "id": "C5-L3-RUNTIME-01",
+      "severity": "Major",
+      "evidence": "Real TelegramStatusSender constructed in empty isolated root in semantic OFF and ON; real model/ASR/API calls replaced by synthetic stubs."
+    },
+    {
+      "id": "C5-L3-RUNTIME-02",
+      "severity": "Major",
+      "evidence": "Actual local and public302 responses refused; zero requests reached foreign destination."
+    },
+    {
+      "id": "C5-L3-RUNTIME-03",
+      "severity": "Major",
+      "evidence": "Actual chunked response returned unavailable at5.0000s. Default supervisor stopped at0.3280s for nominal STOP at0.25s. DNS STOP at0.2190s;20 retries caused one DNS call; late ready not reused."
+    },
+    {
+      "id": "C5-L2-DEPENDENCY",
+      "severity": "Minor",
+      "evidence": "Independent normalization gives175 rows/174 native files and400 rows/395 notices; every unique native file has matching retained RECORD SHA. ormsgpack has2 rows and1 matching hash; history/raw acquisition unchanged."
+    },
+    {
+      "id": "C5-L2-MANUAL",
+      "severity": "Minor",
+      "evidence": "WIP timings replaced by source-bound acceptance reference. v3 changes only360 to368 seconds; actual same owner DOCX/text/PDF/six PNG hashes match. Full RTO unmeasured."
+    }
+  ],
+  "dynamic": {
+    "passed": 22,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": 1,
+    "pytest_seconds": 20.13,
+    "new_runtime_health_cases": 10,
+    "storage_ingress_cases": 12,
+    "metrics": [
+      {
+        "external_calls": 0,
+        "foreign_hits": 0,
+        "l3_metric": "redirect_local",
+        "ready": false
+      },
+      {
+        "external_calls": 0,
+        "foreign_hits": 0,
+        "l3_metric": "redirect_public",
+        "ready": false
+      },
+      {
+        "l3_metric": "chunked_total_deadline",
+        "late_ready_discarded": true,
+        "origin_hits": 1,
+        "rapid_retry_seconds": 0.0,
+        "ready": false,
+        "seconds": 5.0
+      },
+      {
+        "l3_metric": "default_supervision_stop",
+        "seconds": 0.328,
+        "status": 0,
+        "stop_requested_after": 0.25
+      },
+      {
+        "dns_calls": 1,
+        "l3_metric": "dns_single_slot_stop",
+        "rapid_retries": 20,
+        "stop_seconds": 0.219
+      },
+      {
+        "external_calls": 0,
+        "l3_metric": "empty_root_real_sender",
+        "model_asr_calls": 0,
+        "semantic": false,
+        "status": "PASS"
+      },
+      {
+        "external_calls": 0,
+        "l3_metric": "empty_root_real_sender",
+        "model_asr_calls": 0,
+        "semantic": true,
+        "status": "PASS"
+      },
+      {
+        "l3_metric": "health_cli_read_only",
+        "local": false,
+        "mutation_attempts": 0,
+        "passed": false,
+        "public": true
+      },
+      {
+        "l3_metric": "health_cli_read_only",
+        "local": true,
+        "mutation_attempts": 0,
+        "passed": false,
+        "public": false
+      },
+      {
+        "l3_metric": "health_cli_read_only",
+        "local": true,
+        "mutation_attempts": 0,
+        "passed": true,
+        "public": true
+      }
+    ]
+  },
+  "static_checks": [
+    "Default supervise passes StopEvent to both ready functions; main uses default.",
+    "Shared daemon slot has total monotonic2s/5s deadlines, stop polling50ms, no redirects or accumulation; bounded join closes sequential local/public race and late results are discarded.",
+    "Installer Health delegates exact read-only CLI and has no restart; main RestartCount10 and Health execution limit2min remain. Actual Scheduler was not invoked.",
+    "Restore exact source/target/schema/authentication and durable hold, post-snapshot evidence refusal, ownership-safe journal/cleanup, UNKNOWN semantics and HTTP resource limits remain enforced.",
+    "368-second readiness window is360+7+1; complete SDK/ASR startup remains a separate unmeasured RTO."
+  ],
+  "unchanged_storage_ingress_files_sha256": {
+    "scripts/restore_telegram_runtime.py": "f5199995fd46a2ec75234aae43df33d21181efaf86f8560015a0078d52a7ce13",
+    "scripts/backup_telegram_runtime.py": "716217780623c74621d6c117840a2285b2000759762fc008c13d62caa9ae0ff2",
+    "scripts/check_telegram_health.py": "fa18f0a2bb97f1a1e6be9cee9938760df04e27c79bd77fb2a011b15cee87b2fb",
+    "src/application/runtime_maintenance.py": "cca05491e4a43e245efd25bd83dbcefec5a1cff0a07f5a2540cf85f48c3655b8",
+    "src/application/miniapp.py": "666d03fd254d6a47fd143ac61ac9a16d06390648913722402107b84e6260b926",
+    "src/storage/sqlite_store.py": "7b8cdafd48eff6c02714e34393884a0cbc3a1aa269ea5f2f2344f10e6638f5ac",
+    "src/transport/miniapp.py": "c44cc8cc69ec5c1f05ce1fa0bdfd0dd9a794843b1d5e75b20774a898410f3f60",
+    "src/transport/telegram/bot_api.py": "e426f659764cf68703d540dcdd098623fb6d4cbe76dd3e36cb2c605cf491ee5e",
+    "tests/test_c5_backup_recovery.py": "d140d84b0bfad3acac735f9e3d1bab90f448a203352707c8b01784969f1f5854",
+    "tests/test_c5_ingress.py": "a89314f35308528a7890d97827272e85ddd03839708ae1dddab49951a450b443"
+  },
+  "dependency": {
+    "native_record_rows": 175,
+    "unique_native_files": 174,
+    "notice_record_rows": 400,
+    "unique_notice_files": 395,
+    "unique_native_without_matching_retained_record": 0,
+    "ormsgpack_rows": 2,
+    "ormsgpack_matching_rows": 1,
+    "original_acquisition_sections_unchanged": true,
+    "correction_history_preserved": true,
+    "reacquisition_performed": false
+  },
+  "manual": {
+    "name": "Памятка — управление Nobus Space Bot.docx",
+    "schema": "c5-manual-3",
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "bytes": 44591,
+    "same_authorized_owner_path_hash_matches": true,
+    "text_pdf_six_page_png_hashes_match": true,
+    "docx_v2_to_v3_only_member_changed": "word/document.xml",
+    "docx_v2_to_v3_exact_change": "360 seconds to368 seconds; all other member bytes unchanged",
+    "own_visual_qa": false,
+    "visual_qa_reference": "Root six-page Word render in MANUAL.json; independent L2 separately bound."
+  },
+  "retained_previous_candidate": {
+    "revision": "29d09d625ec7cc5fdc3b63ce1e0179ded8424174",
+    "tree": "a675aaa7046dfb128298089ec2eedc07602ae10b",
+    "status": "REWORK",
+    "finding_origin": "Inherited observed findings in REWORK.json and RUNTIME-RECEIPTS.json, with retained reproducer hashes. This reviewer did not rerun historical FAIL.",
+    "old_chunked_seconds": 6.578,
+    "old_stop_nominal_seconds": 0.2,
+    "negative_hypothesis": "Content-Length variants about5.1s did not confirm issue.",
+    "preserved_proofs": {
+      ".runtime/c5/l3-runtime-ingress-29d09d6/test_l3_adversarial.py": {
+        "sha256": "ffba041ea647a7af78ad1a57a1a974c84b3fa35d9f58f815bf33ffd55cef9628",
+        "bytes": 2892
+      },
+      ".runtime/c5/l3-runtime-ingress-29d09d6/test_l3_probe_bounds.py": {
+        "sha256": "ae894d7ebc3e3c50ac1394bca3ecf16ef868ccf2f4fb9b7b15dc85fb74efea68",
+        "bytes": 3437
+      },
+      ".runtime/c5/l3-storage-ingress-29d09d6.md": {
+        "sha256": "74464b240bd08a771c7801d7a166f1178c4341de18ec8ea8cf91e01e907aa078",
+        "bytes": 6039
+      },
+      ".runtime/c5/l3-storage-ingress-29d09d6.json": {
+        "sha256": "018f0384cff32571c43e925b4e39abc40e9fa9569f7e79c3043d4c98fa4c595c",
+        "bytes": 7216
+      },
+      ".runtime/c5/l3-storage-ingress-29d09d6.log": {
+        "sha256": "c3c7bd01582470c4597a830cc5f3782463bd5fbb500d9213190d5397750787e6",
+        "bytes": 687
+      },
+      ".runtime/c5/l3-tests-storage-ingress-29d09d6.py": {
+        "sha256": "166510c4caa3f3b64301aa255a77aada718d44aedf482badbd1db857eb2b4bbd",
+        "bytes": 5875
+      }
+    }
+  },
+  "verifier_history": {
+    "classification": "VERIFIER_DEFECT",
+    "phase": "before tests",
+    "source": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "reason": "git diff --name-only quoted Cyrillic paths; local hash collector treated quoted output as literal filename",
+    "fix": "per-command core.quotepath=false for Git output; no repository config or product changes",
+    "prior_driver_sha256": "650a1353ef2aa4e77e26b7f20de18e48649bfac3aad4ec48d506b9d9f5f4abc1",
+    "product_tests_executed": false,
+    "additional_verifier_defect": {
+      "phase": "Extra DOCX structure check after successful hashes/text checks",
+      "reason": "Unscoped replace of every XML byte sequence360 also changed unrelated layout attribute numbers in the expected value; actual XML diff had one text edit only.",
+      "resolution": "Verified exact360 seconds text replacement in word/document.xml; all other DOCX members byte-identical.",
+      "product_or_document_changes": false
+    }
+  },
+  "limits": [
+    "Source-only Gate verdict; no deployment, tag/release, binary redistribution or C6 activation.",
+    "No live runtime, real external API/model/ASR calls.",
+    "Accepted RPO24h/fullRTO30min and7daily/4weekly retention are inactive policy targets; full runtime RTO and off-host loss recovery are unmeasured.",
+    "Native dependency/license limitations in DEPENDENCIES remain; no exhaustive native CVE clearance is claimed.",
+    "One timed-out read-only daemon may remain until network call returns or supervisor exits; process-tree proof is separate."
+  ],
+  "boundaries": {
+    "live_started": false,
+    "model_asr_calls": 0,
+    "real_external_calls": 0,
+    "scheduler_credentials_routes_modified": false,
+    "tracked_files_modified": false,
+    "c4_acceptance_repeated": false
+  },
+  "source_after": {
+    "sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c",
+    "clean": true,
+    "reviewed_delta_unchanged": true
+  },
+  "reviewed_delta_files": {
+    "README.md": {
+      "sha256": "5584b0f77f449c9b730e60e7952bdfafd92a5c7314d0367232cd59cd345c194b",
+      "git_blob": "5e33456dc48fb8d9653c7bfbb87e973f98b5c4c3",
+      "bytes": 10284
+    },
+    "docs/01-Единый-документ-проекта.md": {
+      "sha256": "79d87f9a6fa99608834d1c4f587f66da61530867b029bb493cb6e20515d03385",
+      "git_blob": "99f55cda061aee3d65cae2bd8d2cc056871a9b18",
+      "bytes": 11691
+    },
+    "docs/03-Архитектурный-обзор.md": {
+      "sha256": "4ecfb057983aedcdf535709bec62f8df402471885dbb6e958759ff25ea73d9be",
+      "git_blob": "c155ff06204e76a0b5e0b7bb29ca9090abc35b86",
+      "bytes": 18375
+    },
+    "docs/04-Журнал-ADR.md": {
+      "sha256": "4009b0862ce9df998f855306084be99623b15ece0b5fef010670f98a48896ea8",
+      "git_blob": "faa412b82d9e12fd213a9a9610e4cac446aa20ea",
+      "bytes": 10569
+    },
+    "docs/08-Runbook-эксплуатации.md": {
+      "sha256": "41f30e668c6bbb66fa2425ca6b14a811370bc6c1a4dbbafa5e09b3ed6442dd6e",
+      "git_blob": "5ac291bc44afe7ffc3c7bf3d2cec46cee5920fdd",
+      "bytes": 60258
+    },
+    "docs/11-Контекст-продукта.md": {
+      "sha256": "2851611058b87a34baf1745fd090b4849bb6a8c4415acaac90112b429991f4bc",
+      "git_blob": "3aae7b5bfc841e6ad113c84dda4ecfbe4c3521cb",
+      "bytes": 5695
+    },
+    "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md": {
+      "sha256": "46d36d1f3ee52051f4dd99770d1615982e9787cb0bac4fac3fd8e1cfd3a5cf06",
+      "git_blob": "889f42bbb092285c78db42abcecc3e9d1af02ccd",
+      "bytes": 7150
+    },
+    "docs/gates/README.md": {
+      "sha256": "882625c7d889ded2f6629c022248e3162d8d1920857fc12198d6dde825c20df5",
+      "git_blob": "84f7709d6fd6f2c824825141da7d9afcf1ccd3b2",
+      "bytes": 7352
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCIES.md": {
+      "sha256": "a52e9a399244a3d0c9d1decb67820574ee26af25d531aafc97860161c744094d",
+      "git_blob": "a28f20200940160de8106981196cba7528f7c52d",
+      "bytes": 16202
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCY-EVIDENCE.json": {
+      "sha256": "411b62ba5e4a59d32bec5dc2ca71519ba5b5d6991bbc202a67970f06b6d6f0b1",
+      "git_blob": "f738a11c11afe51acad57dd9abd90a39659d65ac",
+      "bytes": 328472
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/HANDOFF.md": {
+      "sha256": "86a661629a122ba444c274d29c9ab3fd23f5e2c1fb003c6696038d40ff345fc2",
+      "git_blob": "123da831e677eb7e8bd436faabdca61d91d47e93",
+      "bytes": 6438
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/MANUAL.json": {
+      "sha256": "7226e0f62e94a709c4b40e691d95fd4bc17ad5e28e21dc2247f475f0fb9211c0",
+      "git_blob": "2f1d2accb2cf7b05a125732fdc0394d7b9519556",
+      "bytes": 5874
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/OPERATIONS.md": {
+      "sha256": "13411ef2ff8abc64a2dba18f7bfd9403e4adafc522263ab51a383f3839de47b3",
+      "git_blob": "9546bf1ae1d33b683b44ffc9b3aa8888f266d9a9",
+      "bytes": 17529
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/REWORK.json": {
+      "sha256": "21ccceebdac67780c3a47c2136fffaf900b69c428377ab3a97983877cb2a8810",
+      "git_blob": "e203c5d53081481f1066d0038d81ab14cbdf9f30",
+      "bytes": 5838
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-RECEIPTS.json": {
+      "sha256": "b81cd6f73e32098771c9a292aba6b3a9c6abcd61abf49bb30dc0b76f4aa3d933",
+      "git_blob": "d88483e95e5fc11a3171ef39e5e0da598abb1cb3",
+      "bytes": 13810
+    },
+    "docs/gates/gate-c5-mvp1-operations-security/WORKING-CONTRACT.md": {
+      "sha256": "04896d4d791ae07b5b1ab21c8277ecc6060dc5dcae108206728152ea2baeeae0",
+      "git_blob": "5ec2cb9b4a199df3b5230a6954c3ccf55bcc0e23",
+      "bytes": 3251
+    },
+    "docs/handoffs/MVP-1-ISSUES.md": {
+      "sha256": "937af3f4275664f1495350cdd361eafd820f09cf994f2f2616a7312df6c4b27f",
+      "git_blob": "8e25c5b4ad512dc2c6dc57c4086031d8ff8450dd",
+      "bytes": 40446
+    },
+    "docs/handoffs/WORKSPACE-INVENTORY.md": {
+      "sha256": "d1ba4ce5f8d724a774d96d5ca979d981c3c17ee3d9b98b593f22f25235cdf676",
+      "git_blob": "13e8cb516954ef998ccec21c91155e7e0071393c",
+      "bytes": 8713
+    },
+    "ops/windows/Install-NobusSpaceBot.ps1": {
+      "sha256": "5833657276068f575cc5404cfcd3c2d0f701da8a831cd6e1845c74359999fb5e",
+      "git_blob": "bd560d18411cabc3b7419b551ecf674fb8cd5c65",
+      "bytes": 6396
+    },
+    "scripts/run_nobus_space_live.py": {
+      "sha256": "b783614cabfec0a4d9843436495eea9382b70d240631676efbf5649cf1cf23d0",
+      "git_blob": "c9972ab8dda46d1c7650dac20501501666926a9b",
+      "bytes": 16656
+    },
+    "scripts/run_telegram_mvp1.py": {
+      "sha256": "37098796bb80685320dd10e22d8e6a08d137fd9079e3db513c55de0a0a26a77f",
+      "git_blob": "f453af0b0e5cd49d8074add236fe670903350e83",
+      "bytes": 30155
+    },
+    "tests/test_c5_runtime_operations.py": {
+      "sha256": "7775bf9f387403904bd8b7e2d66ae3c10965ed1cbc1d22b3efb51fcca280c9bc",
+      "git_blob": "ce5f77b548d5e1a378b2159f62ed0ef1d239f735",
+      "bytes": 33959
+    },
+    "tests/test_live_supervisor.py": {
+      "sha256": "5eeedba6a4cfe54bb1dcd278846ec5a0cb68fe782f11a74a6c75eba8b8144819",
+      "git_blob": "7786161f6a30c605e47118b1402db9c6ab45d4d0",
+      "bytes": 2179
+    },
+    "tests/test_ops_queue1.py": {
+      "sha256": "7541b2e663b632b4dda36ac42fb3229f7c2ef90f4480bfdb76d15934c077d5b4",
+      "git_blob": "035a721d1acf0d6814d3c20f932ae7fc47d1a3b7",
+      "bytes": 10765
+    },
+    "tests/test_sqlite_store.py": {
+      "sha256": "fbb8dd46c1d1a39811894117f646c515b3e5c43d6dc04eb67cc8af98b8ab1e8a",
+      "git_blob": "de7f3382ba87d5bf843d164678b26df474900615",
+      "bytes": 40889
+    }
+  },
+  "evidence": {
+    ".runtime/c5/l3-final-20260908-adversarial/run-9efad0f2-3bd7f5af/run.json": {
+      "sha256": "28a3350d563fa1674b38d633c87501877027ecca16caae7ee2ce9c98fbfc9bdb",
+      "bytes": 8283
+    },
+    ".runtime/c5/l3-final-20260908-adversarial/run-9efad0f2-3bd7f5af/tests.log": {
+      "sha256": "410f0270f5841af206f614ffea4d69d2c452e644827e899d6ba2d880cc4eb223",
+      "bytes": 1162
+    },
+    ".runtime/c5/l3-final-20260908-adversarial/run-9efad0f2-3bd7f5af/tests.xml": {
+      "sha256": "7a55300124e471d81ebc3ef4f3966e7c57f9ce8e3e386d7c25b19d0efec33d65",
+      "bytes": 3802
+    },
+    ".runtime/c5/l3-final-20260908-adversarial/test_final_adversarial.py": {
+      "sha256": "9dfa3b712e43af92f98b5af8386beedac359271694fa9579593a4e5a64881d74",
+      "bytes": 12807
+    },
+    ".runtime/c5/l3-final-20260908-adversarial/run_frozen.py": {
+      "sha256": "272f13b0c00059acea4859789945e569c267ca2f4f1fbb248b81a3e263109a29",
+      "bytes": 3468
+    },
+    ".runtime/c5/l3-final-20260908-adversarial/verifier-history.json": {
+      "sha256": "6f1949ec7aca2977c6d651f8f67c988421db8de56e19c720869f71160101726b",
+      "bytes": 950
+    },
+    ".runtime/c5/l3-final-20260908-adversarial/plan.json": {
+      "sha256": "9d8e704ff8f6b34f2ced8f8a4602f8ec10fd369dc554e092fc46c6af7b65f72a",
+      "bytes": 3009
+    }
+  },
+  "gate_document_hashes": {
+    "DEPENDENCIES.md": "a52e9a399244a3d0c9d1decb67820574ee26af25d531aafc97860161c744094d",
+    "DEPENDENCY-EVIDENCE.json": "411b62ba5e4a59d32bec5dc2ca71519ba5b5d6991bbc202a67970f06b6d6f0b1",
+    "MANUAL.json": "7226e0f62e94a709c4b40e691d95fd4bc17ad5e28e21dc2247f475f0fb9211c0",
+    "OPERATIONS.md": "13411ef2ff8abc64a2dba18f7bfd9403e4adafc522263ab51a383f3839de47b3",
+    "RUNTIME-RECEIPTS.json": "b81cd6f73e32098771c9a292aba6b3a9c6abcd61abf49bb30dc0b76f4aa3d933",
+    "REWORK.json": "21ccceebdac67780c3a47c2136fffaf900b69c428377ab3a97983877cb2a8810"
+  }
+}

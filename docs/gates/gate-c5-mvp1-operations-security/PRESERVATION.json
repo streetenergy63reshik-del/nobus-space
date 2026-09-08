@@ -30,5 +30,38 @@
   "c0_c4_gate_bytes_unchanged": true,
   "held_docs15_16_in_c5": false,
   "manual_separate_authorized_target": "MANUAL.json",
-  "no_stash_reset_clean": true
+  "no_stash_reset_clean": true,
+  "final_readback": {
+    "schema": "c5-preservation-final-1",
+    "checked_at": "2026-09-08T18:32:18.850673+00:00",
+    "checkouts": [
+      {
+        "scope": "canonical",
+        "head": "f18a664f2fab2fbd193e894bc93d5624683badf2",
+        "dirty_paths": 20,
+        "status_and_bytes_unchanged": true,
+        "mtime_unchanged_at_microsecond_precision": true
+      },
+      {
+        "scope": "telegram-live",
+        "head": "f5a9119cc0aa1bcce735a3c608f9751747002694",
+        "dirty_paths": 0,
+        "status_and_bytes_unchanged": true,
+        "mtime_unchanged_at_microsecond_precision": true
+      },
+      {
+        "scope": "mvp1-closure-c4-frontend-journey",
+        "head": "af80be2513d5fcb8b14435ba9526aa9060d32af7",
+        "dirty_paths": 0,
+        "status_and_bytes_unchanged": true,
+        "mtime_unchanged_at_microsecond_precision": true
+      }
+    ],
+    "recovery_refs_preserved": 6,
+    "prior_worktree_identities_preserved": true,
+    "prior_worktree_count": 19,
+    "c5_worktree_added": true,
+    "no_stash_reset_clean": true,
+    "status": "PASS"
+  }
 }

@@ -1,0 +1,251 @@
+{
+  "schema": "c5-accepted-evidence-1",
+  "status": "ACCEPTED / PASS / PUBLICATION_PENDING",
+  "source": {
+    "sha": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "tree": "2e31c2f2e6dd72585c9e3a794f7ee8ec7475d78c"
+  },
+  "published_entry": {
+    "sha": "1b3cf67405c4523258dd8b400d17d09601f815ff",
+    "tree": "c302123e6f3ae93668e4fca7580b24d424056f94"
+  },
+  "manual": {
+    "name": "Памятка — управление Nobus Space Bot.docx",
+    "bytes": 44591,
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "pages": 6,
+    "qa": "root and independent L2 viewed all final pages; L3 checked exact bytes/text/ZIP delta"
+  },
+  "application_binding": {
+    "source_commit": "9efad0f2eb152ff71ec684786c07ad38c906db1b",
+    "code_digest": "sha256:d5b72e7fafedecb643a55892491813ed6746c57f0968d12a901f42afaa14f504",
+    "schema_digest": "sha256:5ff632b379b321745171cc278b1deab119b3b1f76f2abc7eabe1a98583c76208",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "verification": {
+    "l1": "PASS",
+    "l2": "PASS",
+    "l3": "PASS",
+    "open_critical": 0,
+    "open_major": 0,
+    "open_minor_in_reviewed_scope": 0
+  },
+  "owner_policy": {
+    "accepted_in_this_task": true,
+    "rpo_target_hours": 24,
+    "full_rto_target_minutes": 30,
+    "backup_schedule": "daily and before changes",
+    "retention_daily": 7,
+    "retention_weekly": 4,
+    "schedule_activated": false,
+    "live_generations_deleted": 0,
+    "same_pc_disk_loss_covered": false,
+    "full_sdk_asr_startup_rto_measured": false
+  },
+  "measured_drill": [
+    {
+      "backup_seconds": 0.537,
+      "check": "c5_storage_drill",
+      "full_product_startup_rto_measured": false,
+      "lost_accepted_tasks": 0,
+      "lost_confirmed_delivery_parts": 0,
+      "repeated_confirmed_delivery_parts": 0,
+      "restore_and_validation_seconds": 0.687975,
+      "snapshot_age_at_simulated_failure_seconds": 0.342264
+    },
+    {
+      "check": "c5_interruption_rollback",
+      "seconds": 0.807785,
+      "lost_accepted_records": 0
+    },
+    {
+      "check": "c5_actual_process_crash",
+      "crash_process_seconds": 1.668171,
+      "startup_recovery_seconds": 0.06799,
+      "job_active_processes_after": 0,
+      "lost_accepted_records": 0,
+      "full_product_startup_rto_measured": false
+    }
+  ],
+  "initial_rework": {
+    "source": "29d09d625ec7cc5fdc3b63ce1e0179ded8424174",
+    "tree": "a675aaa7046dfb128298089ec2eedc07602ae10b",
+    "receipt": "REWORK.json",
+    "preserved_status": "REWORK",
+    "final_closure": [
+      {
+        "id": "C5-L3-RUNTIME-01",
+        "proof": "Checked isolated artifacts root is created before worker/ASR probes. ON/OFF regression uses actual TelegramStatusSender constructor and real API subclass without network; artifacts existence asserted before worker probe."
+      },
+      {
+        "id": "C5-L3-RUNTIME-02",
+        "proof": "Shared HTTPRedirectHandler refuses redirects; actual cross-origin 302 tests leave foreign hit count zero; exact body/status checks retained."
+      },
+      {
+        "id": "C5-L3-RUNTIME-03",
+        "proof": "Total monotonic 2s/5s caller deadlines and STOP checks; one daemon slot prevents DNS/chunked work accumulation, late PASS discarded; actual valid chunked drip and stop scenarios pass."
+      },
+      {
+        "id": "C5-L1-SCHEMA",
+        "proof": "Expected table list includes miniapp_restore_fence; idempotent schema safety test PASS."
+      },
+      {
+        "id": "C5-L2-MANUAL",
+        "proof": "Final manual references revision-bound measured data instead of stale WIP times; accepted policy and unmeasured full startup retained; startup bound 368 seconds matches bounded cycle."
+      },
+      {
+        "id": "C5-L3-RUNTIME-01",
+        "severity": "Major",
+        "evidence": "Real TelegramStatusSender constructed in empty isolated root in semantic OFF and ON; real model/ASR/API calls replaced by synthetic stubs."
+      },
+      {
+        "id": "C5-L3-RUNTIME-02",
+        "severity": "Major",
+        "evidence": "Actual local and public302 responses refused; zero requests reached foreign destination."
+      },
+      {
+        "id": "C5-L3-RUNTIME-03",
+        "severity": "Major",
+        "evidence": "Actual chunked response returned unavailable at5.0000s. Default supervisor stopped at0.3280s for nominal STOP at0.25s. DNS STOP at0.2190s;20 retries caused one DNS call; late ready not reused."
+      },
+      {
+        "id": "C5-L2-DEPENDENCY",
+        "severity": "Minor",
+        "evidence": "Independent normalization gives175 rows/174 native files and400 rows/395 notices; every unique native file has matching retained RECORD SHA. ormsgpack has2 rows and1 matching hash; history/raw acquisition unchanged."
+      },
+      {
+        "id": "C5-L2-MANUAL",
+        "severity": "Minor",
+        "evidence": "WIP timings replaced by source-bound acceptance reference. v3 changes only360 to368 seconds; actual same owner DOCX/text/PDF/six PNG hashes match. Full RTO unmeasured."
+      }
+    ]
+  },
+  "retained_evidence": {
+    "c0_c4_gate_bytes_unchanged": true,
+    "c4_frontend_static_unchanged": true,
+    "c4_real_owner_source": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+    "c4_real_owner_txt_bytes": 446,
+    "scope": "Original C4 source/proof identities, including older voice/browser scopes, remain unchanged. No new C4 owner/model/ASR acceptance. C5 runs candidate regression and only its new operational risks.",
+    "earlier_c5_drills": "STORAGE-RECEIPTS.json and REWORK.json keep original source/code bindings; final measurements are L2.json."
+  },
+  "runtime": {
+    "window": "NOT RUN",
+    "final_readback": "RUNTIME-READBACK.json",
+    "initial_public_http": 403,
+    "final_direct_public_http": 502,
+    "note": "Different dated readbacks retained; no infrastructure mutation inferred. DOCX records the initial8September preflight, not a new active deployment."
+  },
+  "publication_protocol": {
+    "source_before_acceptance_package": true,
+    "normal_pr_merge_only": true,
+    "one_documentation_followup_allowed": true,
+    "publish_manifest": "PUBLISH-MANIFEST.json",
+    "self_reference_rule": "Manifest excludes itself; package/merge SHA are recorded after commit/merge in a separate receipt. Final followup readback stays external to avoid cycles.",
+    "permanent_deploy": false,
+    "tag_release": false,
+    "c6_started": false
+  },
+  "accepted_limits": [
+    {
+      "id": "C5-R1",
+      "impact": "Full startup RTO and scheduled retention are not active guarantees.",
+      "workaround": "Keep admission stopped until C6 activation plan; backup before changes.",
+      "owner": "owner and C6 operator"
+    },
+    {
+      "id": "C5-R2",
+      "impact": "Current-user DPAPI/same-PC copies cannot recover loss of this disk or account.",
+      "workaround": "Retain existing copies; separately decide off-host/account recovery before expanding resilience claims.",
+      "owner": "owner at C6"
+    },
+    {
+      "id": "C5-R3",
+      "impact": "48MiB per DB backup ceiling; alert at36MiB and256MiB free disk; no off-PC alert.",
+      "workaround": "Observe health; stop new admission and agree capacity/cleanup before threshold.",
+      "owner": "operator at C6"
+    },
+    {
+      "id": "C5-R4",
+      "impact": "Inherited pip/native/SQLite licence and security limitations remain, detailed inDEPENDENCIES.",
+      "workaround": "No installs/binary redistribution inC5; preserve SQL guards and close relevant conditions before runtime expansion/distribution.",
+      "owner": "owner and developer at C6"
+    },
+    {
+      "id": "C5-R5",
+      "impact": "Local HTTP/Job limits do not prove live edge settings or hard realtime preemption.",
+      "workaround": "Validate exact active profile/route in separately authorized C6; UNKNOWN never grants retry.",
+      "owner": "C6 operator"
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/VERIFICATION.json",
+      "sha256": "3b4cb23304f3e5024a46cfc649c0fc6c425980a5fa6663f130d1e81300e46258",
+      "bytes": 19744,
+      "git_blob": "bc40e28e3e9b67f20561638957ce5db22ef432d8"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/L2.json",
+      "sha256": "8c1e4dbc8daf4893eb1f4213bdb61eadbfb266fb0f50e948994205202209e0d9",
+      "bytes": 19041,
+      "git_blob": "2f803b5cc1080dce834cb4969d9fca659733e8e6"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/L3.json",
+      "sha256": "19497076a28dc07e0cf24c30194aa4d0747b32e90b710086ff13569ec2858916",
+      "bytes": 18266,
+      "git_blob": "5429bc41f7cd686b110c15f952c04e9072a5c673"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/MANUAL.json",
+      "sha256": "85cf87142fcf59f84429c72976905851fd6ed27ba114ddc48ffbb7707ccaff53",
+      "bytes": 5707,
+      "git_blob": "2f1d2accb2cf7b05a125732fdc0394d7b9519556"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-READBACK.json",
+      "sha256": "584204905d7a395dc1ac0dac2656fd81953fe4b014183055512ece8e4711ee7c",
+      "bytes": 758,
+      "git_blob": "6b8979022a7622521e3572119079671d02893a66"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/PRESERVATION.json",
+      "sha256": "d89927b4fcd6e2cc18e06f5ef563f1115ed697772d7a73510330630fd33e9c8c",
+      "bytes": 2047,
+      "git_blob": "8dea55197ea3e3a49dde435700778a48b47c3a98"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/RETENTION-DRY-RUN.json",
+      "sha256": "b59cfc3232176d29dd9eaef3db2ae06de56bda06d92064d4c3c16293a6019d2c",
+      "bytes": 1582,
+      "git_blob": "0ad37fb4b0d42472e42e9bba71703585ead518fb"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/REWORK.json",
+      "sha256": "3e06fb19790d7f8ff4cae50b1608e0114c4871cfd878eff3ff0fc46f357f8b0a",
+      "bytes": 5708,
+      "git_blob": "e203c5d53081481f1066d0038d81ab14cbdf9f30"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/RUNTIME-RECEIPTS.json",
+      "sha256": "e1ae1a904cff4ce629d08a2c4bffc5b99d437bf688e5d7df0fb2b61ba5185322",
+      "bytes": 13529,
+      "git_blob": "d88483e95e5fc11a3171ef39e5e0da598abb1cb3"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/STORAGE-RECEIPTS.json",
+      "sha256": "5ff4d5818004586a75b514eb7f7b8906852dd5e6efaa85566c6b087b7939e464",
+      "bytes": 8187,
+      "git_blob": "ddb8d56b9de0275ea0ac3b398888a60033a1754a"
+    },
+    {
+      "path": "docs/gates/gate-c5-mvp1-operations-security/DEPENDENCY-EVIDENCE.json",
+      "sha256": "411b62ba5e4a59d32bec5dc2ca71519ba5b5d6991bbc202a67970f06b6d6f0b1",
+      "bytes": 328472,
+      "git_blob": "f738a11c11afe51acad57dd9abd90a39659d65ac"
+    }
+  ],
+  "accepted_at_utc": "2026-09-08T18:35:15.097862+00:00",
+  "evidence_hash_basis": "Git blob bytes, including canonical LF; external DOCX hashes use actual binary file bytes."
+}
