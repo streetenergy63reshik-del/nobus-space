@@ -1,6 +1,6 @@
 {
   "schema": "c6-checkpoint-evidence-1",
-  "recorded_at": "2026-09-08T21:46:20.324789+00:00",
+  "recorded_at": "2026-09-08T22:10:31.820269+00:00",
   "canonical_preserved_files": 20,
   "live_mutated": false,
   "model_turns": 0,
@@ -43,6 +43,22 @@
     "c6-frontend-checkpoint-01": {
       "bytes": 1788,
       "sha256": "366a95a6ed637dc97cfc801c66eb4bffb58934e508eb8aa54b5565f9cc282908"
+    },
+    "c6-l1-9245768": {
+      "bytes": 3347,
+      "sha256": "158b800e1e6be32e4fabfa772fa81c267f03cad6a83e4533a5e4aaa3ffc0f2b3"
+    },
+    "c6-rework-backup-02": {
+      "bytes": 100,
+      "sha256": "4fc4568bc179b884a6ac948fe94d8eab7a15aff4f2a29fd04f20f041afe98a60"
+    },
+    "c6-rework-backup-03": {
+      "bytes": 722,
+      "sha256": "0f89a4a1f3dd77538a50f4d71b4995923cc2def94f16e0002d02d5dbff4e5b85"
+    },
+    "c6-rework-backup-04": {
+      "bytes": 722,
+      "sha256": "aade06a52a61f6b601710991a73a385b5e0afc1c368d3f97ece78a2b668c1d1d"
     }
   },
   "migration_rehearsal": {
@@ -53,5 +69,13 @@
     "bytes": 1628,
     "sha256": "383134e12f50770238bc600c8c552dc90be7d1e74532f74bcede29398c4acd49"
   },
-  "native_licence": "OWNER DECISION PENDING"
+  "native_licence": "OWNER DECISION PENDING",
+  "rework": {
+    "previous_source": "924576804ac33cc251d6e5316e69ce6d3460ee29",
+    "L1": "2330 passed; 25 subtests; 263.70s",
+    "L2": "REWORK: 2 Major, 1 Moderate; 47 independent tests/reproducers passed",
+    "L3": "FAIL: same three findings",
+    "status": "fixes awaiting new source freeze and independent readback"
+  },
+  "canonical_preservation_rechecked_at": "2026-09-08T22:18:15.465538+00:00"
 }

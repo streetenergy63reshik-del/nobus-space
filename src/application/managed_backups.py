@@ -14,6 +14,9 @@ from src.application.durable_telegram_state import DpapiJsonCodec
 from src.contracts.models import canonical_json_digest
 
 CODEC = DpapiJsonCodec()
+MAX_QUARANTINE_ENTRIES = 64
+MAX_QUARANTINE_BYTES = 2*1024*1024*1024
+MAX_GENERATION_BYTES = 768*1024*1024
 GENERATION = re.compile(r'^(daily|prechange)-[0-9]{8}T[0-9]{6}-[0-9a-f]{32}$')
 
 
@@ -59,29 +62,99 @@ def verify_backup(manifest):
     return values
 
 
-def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily', now=None):
+def _identity(path):
+    info=m.checked_path(path).stat()
+    return [info.st_dev,info.st_ino]
+
+
+def hold_admission(root, expected):
+    owned_root(root,expected)
+    path=m.checked_path(root/'admission-hold',root=root)
+    if not path.exists():
+        m.write_bytes_durable(path,b'')
+    elif m.file_evidence(path)!={'bytes':0,'sha256':hashlib.sha256(b'').hexdigest()}:
+        raise ValueError('admission hold changed')
+
+
+def permit_admission(root, expected):
+    owned_root(root,expected)
+    path=m.checked_path(root/'admission-hold',root=root)
+    if m.file_evidence(path)!={'bytes':0,'sha256':hashlib.sha256(b'').hexdigest()}:
+        raise ValueError('admission hold missing or changed')
+    # This is an exact zero-byte control flag, never a user-data cleanup.
+    m.unlink_durable(path)
+
+
+def _inventory(path):
+    """Bounded, no-alias inventory of one authenticated wrapper, including staging."""
+    path=m.checked_path(path)
+    result={}
+    total=0
+    def visit(directory, depth):
+        nonlocal total
+        if depth>3:
+            raise ValueError('backup inventory depth exceeded')
+        for child in directory.iterdir():
+            m.checked_path(child,root=path)
+            if len(result)>=64:
+                raise ValueError('backup inventory file bound exceeded')
+            relative=child.relative_to(path).as_posix()
+            if child.is_dir():
+                result[relative]={'identity':_identity(child)}
+                visit(child,depth+1)
+            elif child.is_file():
+                total+=child.stat().st_size
+                if total>MAX_GENERATION_BYTES:
+                    raise ValueError('backup inventory size exceeded')
+                result[relative]=m.file_evidence(child)
+            else:
+                raise ValueError('backup inventory entry invalid')
+    visit(path,0)
+    return result,total
+
+
+def _intent(root,path,expected):
+    path=m.checked_path(path,root=root)
+    value=_certificate(path/'intent.dpapi')
+    if (set(value)!={'schema','root_ownership','name','identity','attempt_id','local_time'}
+            or value['schema']!='c6-backup-intent-1' or value['root_ownership']!=expected
+            or value['name']!=path.name or not GENERATION.fullmatch(path.name)
+            or value['identity']!=_identity(path)
+            or not re.fullmatch('[0-9a-f]{32}',value['attempt_id'])):
+        raise ValueError('backup attempt ownership mismatch')
+    return value
+
+
+def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily', now=None, attempt_id=None):
     from scripts.backup_telegram_runtime import backup
-    value = owned_root(root, expected)
-    if value['runtime_binding'] != m.runtime_target_binding(runtime) or kind not in {'daily','prechange'}:
+    value=owned_root(root,expected)
+    if value['runtime_binding']!=m.runtime_target_binding(runtime) or kind not in {'daily','prechange'}:
         raise ValueError('backup generation target mismatch')
-    now = now or datetime.now().astimezone()
-    if now.tzinfo is None:
-        raise ValueError('backup timezone required')
-    generation=root/(kind+'-'+now.strftime('%Y%m%dT%H%M%S')+'-'+uuid4().hex)
-    manifest=backup(m.runtime_database_paths(runtime),generation)
+    now=now or datetime.now().astimezone()
+    attempt_id=attempt_id or uuid4().hex
+    if now.tzinfo is None or not re.fullmatch('[0-9a-f]{32}',attempt_id):
+        raise ValueError('backup attempt invalid')
+    generation=m.checked_path(root/(kind+'-'+now.strftime('%Y%m%dT%H%M%S')+'-'+uuid4().hex),root=root)
+    generation.mkdir()
+    intent={'schema':'c6-backup-intent-1','root_ownership':expected,'name':generation.name,
+        'identity':_identity(generation),'attempt_id':attempt_id,'local_time':now.isoformat()}
+    # Before C5 writes any data, ownership of its enclosing directory is durable.
+    m.write_bytes_durable(generation/'intent.dpapi',CODEC.encode(intent))
+    manifest=backup(m.runtime_database_paths(runtime),generation/'snapshot')
     values=verify_backup(manifest)
-    if values['source_binding'] != value['runtime_binding']:
+    if values['source_binding']!=value['runtime_binding']:
         raise ValueError('backup source mismatch')
-    entries={p.name:m.file_evidence(p) for p in generation.iterdir()}
-    certificate={'schema':'c6-backup-generation-1','root_ownership':expected,'name':generation.name,
-        'identity':[generation.stat().st_dev,generation.stat().st_ino],
-        'local_time':now.isoformat(),'files':entries,
-        'manifest_digest':values['authentication']['manifest_digest']}
-    m.write_bytes_durable(generation/'generation.dpapi',CODEC.encode(certificate))
     latest={'schema':'c6-latest-backup-1','root_ownership':expected,'name':generation.name,
         'manifest_digest':values['authentication']['manifest_digest']}
-    temporary=root/('latest-'+uuid4().hex+'.dpapi')
-    m.write_bytes_durable(temporary,CODEC.encode(latest))
+    pointer_bytes=CODEC.encode(latest)
+    entries,_=_inventory(generation)
+    certificate={'schema':'c6-backup-generation-2','root_ownership':expected,'name':generation.name,
+        'identity':_identity(generation),'local_time':now.isoformat(),'files':entries,
+        'pending_pointer':{'bytes':len(pointer_bytes),'sha256':hashlib.sha256(pointer_bytes).hexdigest()},
+        'manifest_digest':values['authentication']['manifest_digest']}
+    m.write_bytes_durable(generation/'generation.dpapi',CODEC.encode(certificate))
+    temporary=m.checked_path(generation/'latest-pending.dpapi',root=generation)
+    m.write_bytes_durable(temporary,pointer_bytes)
     os.replace(temporary,m.checked_path(root/'latest.dpapi',root=root))
     return generation
 
@@ -98,7 +171,7 @@ def latest_manifest(root: Path, expected: str, runtime: Path):
         raise ValueError('latest backup pointer invalid')
     generation=root/pointer['name']
     certificate=_generation(root,generation,expected)
-    path=generation/'manifest.json'
+    path=generation/'snapshot/manifest.json'
     manifest=_verified_manifest(path)
     if (manifest['source_binding']!=owner['runtime_binding']
             or manifest['authentication']['manifest_digest']!=pointer['manifest_digest']
@@ -109,6 +182,8 @@ def latest_manifest(root: Path, expected: str, runtime: Path):
 
 def assert_recent(root: Path, expected: str, runtime: Path):
     import shutil
+    if m.checked_path(root/'admission-hold',root=root).exists():
+        raise RuntimeError('admission stopped for backup cycle')
     if shutil.disk_usage(m.checked_path(runtime)).free<256*1024*1024:
         raise RuntimeError('admission stopped for disk capacity')
     path=latest_manifest(root,expected,runtime)
@@ -119,24 +194,119 @@ def assert_recent(root: Path, expected: str, runtime: Path):
 
 
 def _generation(root, path, expected):
-    path=m.checked_path(path,root=root)
-    if not path.is_dir() or not GENERATION.fullmatch(path.name):
-        raise ValueError('unmanaged backup generation')
+    intent=_intent(root,path,expected)
     value=_certificate(path/'generation.dpapi')
-    if (set(value)!={'schema','root_ownership','name','identity','local_time','files','manifest_digest'}
-            or value['schema']!='c6-backup-generation-1' or value['root_ownership']!=expected
-            or value['name']!=path.name or value['identity']!=[path.stat().st_dev,path.stat().st_ino]):
+    if (set(value)!={'schema','root_ownership','name','identity','local_time','files','manifest_digest','pending_pointer'}
+            or value['schema']!='c6-backup-generation-2' or value['root_ownership']!=expected
+            or value['name']!=path.name or value['identity']!=_identity(path)
+            or value['local_time']!=intent['local_time']):
         raise ValueError('backup generation ownership mismatch')
-    names=set(value['files'])
-    if {p.name for p in path.iterdir()}!=names|{'generation.dpapi'}:
-        raise ValueError('backup generation contains unowned files')
-    for name in names:
-        if Path(name).name!=name or m.file_evidence(m.checked_path(path/name,root=path))!=value['files'][name]:
-            raise ValueError('backup generation file changed')
+    actual,_=_inventory(path)
+    actual.pop('generation.dpapi',None)
+    pending=actual.pop('latest-pending.dpapi',None)
+    if pending is not None and pending!=value['pending_pointer']:
+        raise ValueError('backup pending pointer changed')
+    if actual!=value['files']:
+        raise ValueError('backup generation contains unowned or changed files')
     stamp=datetime.fromisoformat(value['local_time'])
     if stamp.tzinfo is None:
         raise ValueError('backup generation timezone missing')
     return value
+
+
+def _quarantine(root,expected):
+    path=m.checked_path(root/'quarantine',root=root)
+    if not path.exists():
+        return path,0,0
+    entries=list(path.iterdir())
+    if len(entries)>MAX_QUARANTINE_ENTRIES:
+        raise ValueError('quarantine capacity requires operator archive')
+    size=0
+    for entry in entries:
+        _intent(root,entry,expected)
+        inventory,amount=_inventory(entry)
+        if (entry/'recovery.dpapi').exists():
+            receipt=_certificate(entry/'recovery.dpapi')
+            inventory.pop('recovery.dpapi')
+            if (set(receipt)!={'schema','root_ownership','identity','inventory'}
+                    or receipt['schema']!='c6-partial-quarantine-1' or receipt['root_ownership']!=expected
+                    or receipt['identity']!=_identity(entry) or receipt['inventory']!=inventory):
+                raise ValueError('partial quarantine changed')
+        else:
+            _generation(root,entry,expected)
+        size+=amount
+        if size>MAX_QUARANTINE_BYTES:
+            raise ValueError('quarantine capacity requires operator archive')
+    return path,len(entries),size
+
+
+def _move_to_quarantine(root,expected,selected):
+    quarantine,count,size=_quarantine(root,expected)
+    inventories={path:_inventory(path) for path in selected}
+    if count+len(selected)>MAX_QUARANTINE_ENTRIES or size+sum(v[1] for v in inventories.values())>MAX_QUARANTINE_BYTES:
+        raise ValueError('quarantine capacity requires operator archive')
+    # All paths, bytes and total capacity are checked before the first move.
+    for path in selected:
+        if m.checked_path(quarantine/path.name,root=root).exists():
+            raise ValueError('quarantine target already exists')
+    if selected:
+        quarantine.mkdir(exist_ok=True)
+    for path in selected:
+        identity=_identity(path)
+        if _inventory(path)!=inventories[path]:
+            raise ValueError('quarantine source changed')
+        target=m.checked_path(quarantine/path.name,root=quarantine)
+        os.rename(m.checked_path(path,root=root),target)
+        if _identity(target)!=identity or _inventory(target)!=inventories[path]:
+            raise ValueError('quarantine move verification failed')
+
+
+def recover_partial(root,expected,attempt_id):
+    """Only called after explicit failed-cycle confirmation and proven STOP."""
+    owned_root(root,expected)
+    selected=[]
+    entries=list(root.iterdir())
+    if len(entries)>128:
+        raise ValueError('backup inventory bound exceeded')
+    for path in entries:
+        if path.name in {'ownership.dpapi','latest.dpapi','quarantine','admission-hold'}:
+            m.checked_path(path,root=root)
+            continue
+        intent=_intent(root,path,expected)
+        try:
+            _generation(root,path,expected)
+            continue
+        except (OSError,ValueError):
+            if intent['attempt_id']!=attempt_id:
+                raise ValueError('partial backup belongs to another cycle')
+        inventory,_=_inventory(path)
+        # Own wrapper may contain interrupted C5 plaintext staging, kept private.
+        # Unknown top-level members are never adopted even inside this wrapper.
+        if {name.split('/')[0] for name in inventory}-{'intent.dpapi','snapshot','generation.dpapi','latest-pending.dpapi','recovery.dpapi'}:
+            raise ValueError('partial backup contains unowned files')
+        database_names=set(m.REQUIRED_RUNTIME_DATABASE_NAMES)|{'business-notes.sqlite3'}
+        for name in inventory:
+            parts=name.split('/')
+            if parts[0]!='snapshot' or len(parts)==1:
+                continue
+            if len(parts)==2 and parts[1] in {'manifest.json','manifest-auth.bin'}|{n+'.dpapi' for n in database_names}:
+                continue
+            if (re.fullmatch('backup-[a-z0-9_]{8}',parts[1]) and len(parts)<=3
+                    and (len(parts)==2 or parts[2] in {n+suffix for n in database_names for suffix in ('','-wal','-shm','.previous','.rollback')})):
+                continue
+            raise ValueError('partial backup contains unowned snapshot member')
+        inventory.pop('recovery.dpapi',None)
+        receipt={'schema':'c6-partial-quarantine-1','root_ownership':expected,
+            'identity':_identity(path),'inventory':inventory}
+        evidence=m.checked_path(path/'recovery.dpapi',root=path)
+        if evidence.exists():
+            if _certificate(evidence)!=receipt:
+                raise ValueError('partial recovery inventory changed')
+        else:
+            m.write_bytes_durable(evidence,CODEC.encode(receipt))
+        selected.append(path)
+    _move_to_quarantine(root,expected,selected)
+    return len(selected)
 
 
 def retained_names(generations):
@@ -153,30 +323,24 @@ def retained_names(generations):
 
 def retention(root: Path, expected: str, *, apply=False):
     owned_root(root,expected)
+    _quarantine(root,expected)
     candidates=[]
-    # Only direct children of this dedicated owned root. Previous/unowned backups
-    # are not adopted by name. Incomplete generations stop retention for inspection.
     entries=list(root.iterdir())
     if len(entries)>128:
         raise ValueError('backup inventory bound exceeded')
     for path in entries:
-        if path.name in {'ownership.dpapi','latest.dpapi','quarantine'}:
+        if path.name in {'ownership.dpapi','latest.dpapi','quarantine','admission-hold'}:
             m.checked_path(path,root=root)
             continue
         candidates.append(_generation(root,path,expected))
     keep=retained_names(candidates)
+    if (root/'latest.dpapi').exists():
+        pointer=_certificate(root/'latest.dpapi')
+        if pointer.get('root_ownership')!=expected or pointer.get('name') not in {x['name'] for x in candidates}:
+            raise ValueError('latest backup retention binding invalid')
+        keep.add(pointer['name'])
     selected=[x for x in candidates if x['name'] not in keep]
-    if apply and selected:
-        quarantine=m.checked_path(root/'quarantine',root=root)
-        quarantine.mkdir(exist_ok=True)
-        for item in selected:
-            source=m.checked_path(root/item['name'],root=root)
-            target=m.checked_path(quarantine/item['name'],root=quarantine)
-            if target.exists() or _generation(root,source,expected)!=item:
-                raise ValueError('retention target changed')
-            # Exact fully enumerated new managed generation; reversible, no delete.
-            os.rename(source,target)
-            if [target.stat().st_dev,target.stat().st_ino]!=item['identity']:
-                raise ValueError('quarantine identity mismatch')
+    if apply:
+        _move_to_quarantine(root,expected,[root/x['name'] for x in selected])
     return {'kept':sorted(keep),'selected':[x['name'] for x in selected],
             'quarantined':len(selected) if apply else 0,'deleted':0}

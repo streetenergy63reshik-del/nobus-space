@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory)][ValidateSet('Inspect','Disable','Enable','Start')][string]$Operation,
+    [Parameter(Mandatory)][ValidateSet('Inspect','Disable','Enable','Start','Stop')][string]$Operation,
     [Parameter(Mandatory)][ValidatePattern('^NobusSpace[A-Za-z0-9-]{1,64}$')][string]$TaskName
 )
 $ErrorActionPreference='Stop'
@@ -11,6 +11,7 @@ try {
         'Disable' { $task | Disable-ScheduledTask | Out-Null }
         'Enable' { $task | Enable-ScheduledTask | Out-Null }
         'Start' { $task | Start-ScheduledTask }
+        'Stop' { $task | Stop-ScheduledTask }
     }
     $task=Get-ScheduledTask -TaskName $TaskName -TaskPath '\'
     $info=$task | Get-ScheduledTaskInfo

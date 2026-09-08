@@ -7,15 +7,15 @@
     "bytes": 44591
   },
   "current": {
-    "bytes": 44768,
-    "sha256": "35b793820cf938fdafad55fae4289201e396e9b475bd4d8954476b24c3eae7ee"
+    "bytes": 44787,
+    "sha256": "c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba"
   },
   "pages": 6,
   "renderer": "Installed Word COM via PowerShell 7.6.5 STA; read-only OpenNoRepairDialog and SaveAs2 PDF; own instance closed",
-  "qa": "All six page PNGs viewed after latest render,110dpi; no clipping/overlap; original style retained; footer C6 checked",
+  "qa": "Latest pages5/6 viewed at110dpi, no clipping or overlap; pages1–4 PNGs byte-identical to previously viewed PASS; original style retained",
   "pdf": {
-    "bytes": 287004,
-    "sha256": "24920846c80adc5e3fdc0cef67b6b08b2117131236f6baa66baf86b5c176be63"
+    "bytes": 287433,
+    "sha256": "f103c51629ac396944b3a2577f1808b8251ace55d8e7a40dec197504f3fd7389"
   },
   "page_pngs": [
     {
@@ -40,22 +40,23 @@
     },
     {
       "page": 5,
-      "bytes": 219033,
-      "sha256": "2c8d8344a3eadc64215b943d48db5ed4b9d7ceb1faa460022ed17546b6399ae2"
+      "bytes": 218048,
+      "sha256": "9cf7a05bb2b9c6a614442555981f86f694d9343574ad31257d8d9ebd4ce70f6a"
     },
     {
       "page": 6,
-      "bytes": 241704,
-      "sha256": "98974a8db8b61477bdd039e5ecd0ee33affa626844ac452cfc9a85dd4bcd0675"
+      "bytes": 241321,
+      "sha256": "54302d506e72ed57276346381a4017936f768126b87189627442e739c10dcb95"
     }
   ],
   "preserved_failures": [
     "packaged render_docx.py: LibreOffice soffice.exe unavailable",
     "nested Windows PowerShell 5 Word ExportAsFixedFormat hung; owned processes stopped",
-    "nested Windows PowerShell 5 SaveAs2 hung on current and original control document; owned processes stopped"
+    "nested Windows PowerShell 5 SaveAs2 hung on current and original control document; owned processes stopped",
+    "Rework render in sandbox: Word COM 0x80070520; same helper succeeded in owner session, no installation"
   ],
   "resolution": "Same installed Word/helper succeeded in current PowerShell 7 in about6seconds; no install or environment replacement",
   "owner_acceptance": "PENDING",
   "activation": "PENDING",
-  "recorded_at": "2026-09-08T21:46:20.323790+00:00"
+  "recorded_at": "2026-09-08T22:18:15.453533+00:00"
 }

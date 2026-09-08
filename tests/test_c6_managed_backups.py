@@ -25,9 +25,11 @@ def test_retention_7days_4weeks_is_reversible_and_never_adopts_old_backups(tmp_p
         name='daily-'+stamp.strftime('%Y%m%dT%H%M%S')+'-'+f'{number:032x}'
         dest=root/name
         dest.mkdir()
-        for filename in entries['files']:
-            shutil.copyfile(first/filename,dest/filename)
-        value=dict(entries,name=name,identity=[dest.stat().st_dev,dest.stat().st_ino],local_time=stamp.isoformat())
+        shutil.copytree(first/'snapshot',dest/'snapshot')
+        intent=dict(b._certificate(first/'intent.dpapi'),name=name,identity=b._identity(dest),local_time=stamp.isoformat())
+        (dest/'intent.dpapi').write_bytes(b.CODEC.encode(intent))
+        inventory,_=b._inventory(dest)
+        value=dict(entries,name=name,identity=b._identity(dest),local_time=stamp.isoformat(),files=inventory)
         (dest/'generation.dpapi').write_bytes(b.CODEC.encode(value))
     old=tmp_path/'previous-user-backup'
     old.mkdir()
@@ -69,6 +71,7 @@ def fake_cycle(tmp_path,monkeypatch):
         if operation=='Disable': states[name]['enabled']=False
         if operation=='Enable': states[name]['enabled']=True
         if operation=='Start': states[name]['state']='Running'
+        if operation=='Stop': states[name]['state']='Disabled'
         return dict(states[name])
     def runner(mode):
         events.append(mode)
@@ -141,7 +144,7 @@ def test_backup_freshness_and_capacity_block_admission(tmp_path,monkeypatch):
 def test_explicit_failed_cycle_recovery_retains_failure_and_rejects_replay(tmp_path,monkeypatch):
     path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
     original=b.create_generation
-    monkeypatch.setattr(b,'create_generation',lambda *args:(_ for _ in ()).throw(OSError('synthetic')))
+    monkeypatch.setattr(b,'create_generation',lambda *args,**kwargs:(_ for _ in ()).throw(OSError('synthetic')))
     with pytest.raises(OSError): cycle.cycle(path,digest)
     old=b._certificate(tmp_path/'backup-cycle-state.dpapi')
     confirmation=canonical_json_digest(old)
@@ -177,3 +180,139 @@ def test_unavailable_backup_never_accepts_or_queues_miniapp_task(tmp_path):
     assert response.status_code==503
     assert queue.queue_counts()==(0,0) and compiler.calls==[]
     assert len(store.list_tasks('owner',limit=20))==0
+
+
+def test_refused_graceful_stop_is_forced_verified_and_keeps_admission_hold(tmp_path,monkeypatch):
+    path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
+    config=json.loads(path.read_text())
+    b.create_generation(tmp_path/'backups',tmp_path/'runtime',config['ownership'])
+    monkeypatch.setattr(cycle,'_runner',lambda _:False)
+    with pytest.raises(ValueError,match='graceful stop'):
+        cycle.cycle(path,digest)
+    assert all(not s['enabled'] and s['state']!='Running' for s in states.values())
+    receipt=b._certificate(tmp_path/'backup-cycle-state.dpapi')
+    assert receipt['cleanup_proven'] is True and receipt['admission_hold'] is True
+    assert 'Stop:NobusSpaceTestMain' in events
+    with pytest.raises(RuntimeError,match='backup cycle'):
+        b.assert_recent(tmp_path/'backups',config['ownership'],tmp_path/'runtime')
+
+
+def test_failed_forced_stop_is_reported_without_false_cleanup_proof(tmp_path,monkeypatch):
+    path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
+    original=cycle._task
+    def refuses_stop(operation,name):
+        if operation=='Stop': return dict(states[name])
+        return original(operation,name)
+    monkeypatch.setattr(cycle,'_task',refuses_stop)
+    monkeypatch.setattr(cycle,'_runner',lambda _:False)
+    tick=[0]
+    def clock():
+        tick[0]+=10
+        return tick[0]
+    with pytest.raises(ValueError):
+        cycle.cycle(path,digest,clock=clock,wait=lambda _:None)
+    receipt=b._certificate(tmp_path/'backup-cycle-state.dpapi')
+    assert receipt['cleanup_proven'] is False and receipt['admission_hold'] is True
+    assert states['NobusSpaceTestMain']['state']=='Running'
+    assert 'Start:NobusSpaceTestMain' not in events
+
+
+@pytest.mark.parametrize('failure',['snapshot','certificate','pointer'])
+def test_partial_generation_can_be_recovered_once_without_adopting_other_data(tmp_path,monkeypatch,failure):
+    from scripts import backup_telegram_runtime as backup_module
+    path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
+    config=json.loads(path.read_text())
+    original_backup=backup_module.backup
+    original_write=m.write_bytes_durable
+    def interrupted_backup(sources,destination):
+        original_backup(sources,destination)
+        raise OSError('synthetic crash after data write')
+    def interrupted_write(destination,content):
+        if (failure=='certificate' and destination.name=='generation.dpapi'):
+            raise OSError('synthetic certificate write')
+        original_write(destination,content)
+        if failure=='pointer' and destination.name=='latest-pending.dpapi':
+            raise OSError('synthetic crash before pointer publish')
+    if failure=='snapshot': monkeypatch.setattr(backup_module,'backup',interrupted_backup)
+    else: monkeypatch.setattr(m,'write_bytes_durable',interrupted_write)
+    with pytest.raises(OSError): cycle.cycle(path,digest)
+    root=tmp_path/'backups'
+    failed=b._certificate(tmp_path/'backup-cycle-state.dpapi')
+    names={p.name for p in root.iterdir() if p.is_dir()}
+    assert len(names)==1
+    monkeypatch.setattr(backup_module,'backup',original_backup)
+    monkeypatch.setattr(m,'write_bytes_durable',original_write)
+    result=cycle.cycle(path,digest,recover_failure_digest=canonical_json_digest(failed))
+    assert result['status']=='PASS'
+    if failure!='pointer':
+        assert {p.name for p in (root/'quarantine').iterdir()}==names
+    # A complete certificate with a valid pending pointer is already a usable copy.
+    b.assert_recent(root,config['ownership'],tmp_path/'runtime')
+    with pytest.raises(ValueError,match='no matching'):
+        cycle.cycle(path,digest,recover_failure_digest=canonical_json_digest(failed))
+
+
+def test_quarantine_limits_include_nested_files_and_preflight_preserves_all_sources(tmp_path,monkeypatch):
+    runtime=tmp_path/'runtime'
+    fixture_runtime(runtime)
+    root=tmp_path/'backups'
+    ownership=b.initialize(root,runtime,'sha256:'+'a'*64)
+    generation=b.create_generation(root,runtime,ownership)
+    _,amount=b._inventory(generation)
+    monkeypatch.setattr(b,'MAX_QUARANTINE_BYTES',amount-1)
+    with pytest.raises(ValueError,match='quarantine capacity'):
+        b._move_to_quarantine(root,ownership,[generation])
+    assert generation.exists() and not (root/'quarantine').exists()
+    monkeypatch.setattr(b,'MAX_QUARANTINE_BYTES',amount+1024)
+    b._move_to_quarantine(root,ownership,[generation])
+    monkeypatch.setattr(b,'MAX_QUARANTINE_ENTRIES',0)
+    with pytest.raises(ValueError,match='quarantine capacity'):
+        b.retention(root,ownership)
+
+
+def test_partial_recovery_rejects_foreign_attempt_and_unknown_member(tmp_path,monkeypatch):
+    from scripts import backup_telegram_runtime as backup_module
+    runtime=tmp_path/'runtime'
+    fixture_runtime(runtime)
+    root=tmp_path/'backups'
+    ownership=b.initialize(root,runtime,'sha256:'+'a'*64)
+    def failure(*args): raise OSError('synthetic')
+    monkeypatch.setattr(backup_module,'backup',failure)
+    with pytest.raises(OSError): b.create_generation(root,runtime,ownership,attempt_id='a'*32)
+    generation=next(p for p in root.iterdir() if p.is_dir())
+    with pytest.raises(ValueError,match='another cycle'):
+        b.recover_partial(root,ownership,'b'*32)
+    (generation/'unexpected').write_bytes(b'preserve')
+    with pytest.raises(ValueError,match='unowned'):
+        b.recover_partial(root,ownership,'a'*32)
+    assert (generation/'unexpected').read_bytes()==b'preserve'
+
+
+@pytest.mark.parametrize('unknown',[False,True])
+def test_interrupted_staging_is_bound_and_unknown_nested_data_is_preserved(tmp_path,monkeypatch,unknown):
+    from scripts import backup_telegram_runtime as backup_module
+    runtime=tmp_path/'runtime'
+    fixture_runtime(runtime)
+    root=tmp_path/'backups'
+    ownership=b.initialize(root,runtime,'sha256:'+'a'*64)
+    def interrupted(sources,destination):
+        staging=destination/'backup-12345678'
+        staging.mkdir(parents=True)
+        shutil.copyfile(sources[0],staging/sources[0].name)
+        if unknown: (staging/'foreign-document').write_bytes(b'preserve')
+        raise OSError('synthetic power loss inside staging')
+    monkeypatch.setattr(backup_module,'backup',interrupted)
+    with pytest.raises(OSError): b.create_generation(root,runtime,ownership,attempt_id='a'*32)
+    generation=next(p for p in root.iterdir() if p.is_dir())
+    if unknown:
+        with pytest.raises(ValueError,match='unowned snapshot'):
+            b.recover_partial(root,ownership,'a'*32)
+        assert (generation/'snapshot/backup-12345678/foreign-document').read_bytes()==b'preserve'
+    else:
+        before,_=b._inventory(generation)
+        assert b.recover_partial(root,ownership,'a'*32)==1
+        quarantined=root/'quarantine'/generation.name
+        after,_=b._inventory(quarantined)
+        after.pop('recovery.dpapi')
+        assert after==before
+        assert b._quarantine(root,ownership)[1]==1

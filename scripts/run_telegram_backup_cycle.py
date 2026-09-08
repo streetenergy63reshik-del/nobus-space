@@ -29,7 +29,7 @@ from src.contracts.models import canonical_json_digest
 
 
 def _task(operation,name):
-    if not re.fullmatch('NobusSpace[A-Za-z0-9-]{1,64}',name) or operation not in {'Inspect','Disable','Enable','Start'}:
+    if not re.fullmatch('NobusSpace[A-Za-z0-9-]{1,64}',name) or operation not in {'Inspect','Disable','Enable','Start','Stop'}:
         raise ValueError('scheduler command invalid')
     ps=Path(os.environ['SYSTEMROOT'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
     result=subprocess.run([str(ps),'-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',
@@ -89,6 +89,48 @@ def _journal(path,config_digest,phase,**details):
     os.replace(temporary,m.checked_path(path,root=path.parent))
 
 
+def _bound_task(config,operation,name):
+    binding=next(item for item in config['tasks'].values() if item['name']==name)
+    if _task('Inspect',name)['signature']!=binding['signature']:
+        raise ValueError('scheduler task changed before action')
+    return _task(operation,name)
+
+
+def _stopped(config):
+    for item in config['tasks'].values():
+        actual=_task('Inspect',item['name'])
+        if actual['signature']!=item['signature'] or actual['enabled'] or actual['state']=='Running':
+            return False
+    if not _port_closed():
+        return False
+    try:
+        with WindowsNamedMutex(r'Global\NobusSpaceBotSupervisor'), WindowsNamedMutex():
+            return True
+    except RuntimeError:
+        return False
+
+
+def _cleanup(config,clock,wait):
+    # Disable does not stop an already running task. The supervisor Job closes
+    # every owned child on termination; verify both mutexes and the loopback port.
+    for item in config['tasks'].values():
+        try: _bound_task(config,'Disable',item['name'])
+        except Exception: pass
+    try: _runner('--stop')
+    except Exception: pass
+    for item in config['tasks'].values():
+        try: _bound_task(config,'Stop',item['name'])
+        except Exception: pass
+    deadline=clock()+30
+    while clock()<deadline:
+        try:
+            if _stopped(config):
+                return True
+        except Exception: pass
+        wait(1)
+    return False
+
+
 def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotonic,wait=time.sleep):
     with WindowsNamedMutex(r'Global\NobusSpaceBackupCycle'):
         config=load_config(config_path,expected)
@@ -122,10 +164,15 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
                 return {'status':'SKIPPED','reason':'runtime_intentionally_disabled','backup_created':False}
             if initial['state']!='Running' and not cold_start:
                 raise ValueError('runtime stop state is ambiguous')
-        _journal(journal,expected,'closing_admission',recovery_confirmation=recover_failure_digest)
+        attempt_id=uuid4().hex
+        def record(phase,**details):
+            _journal(journal,expected,phase,attempt_id=attempt_id,**details)
         try:
-            _task('Disable',health)
-            _task('Disable',main)
+            managed.hold_admission(backups,config['ownership'])
+            record('closing_admission',recovery_confirmation=recover_failure_digest)
+            _bound_task(config,'Disable',health)
+            _bound_task(config,'Disable',main)
+            _bound_task(config,'Stop',health)
             # A missed run may find admission stopped by the 24-hour freshness
             # guard. Create a fresh snapshot before restarting that enabled task.
             if _task('Inspect',main)['state']=='Running' and not _runner('--stop'):
@@ -133,22 +180,28 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             deadline=clock()+115
             while clock()<deadline:
                 state=_task('Inspect',main)
-                if state['state']!='Running' and (recovering or cold_start or state['last_result']==0) and _port_closed():
+                if state['state']!='Running' and (recovering or cold_start or state['last_result']==0) and _stopped(config):
                     break
                 wait(1)
             else:
                 raise ValueError('runtime stop not proven')
-            _journal(journal,expected,'stopped')
+            record('stopped')
+            if recovering:
+                managed.recover_partial(backups,config['ownership'],old.get('attempt_id'))
             if shutil.disk_usage(runtime).free<256*1024*1024:
                 raise ValueError('runtime disk pressure')
-            generation=managed.create_generation(backups,runtime,config['ownership'])
+            generation=managed.create_generation(backups,runtime,config['ownership'],attempt_id=attempt_id)
             retention=managed.retention(backups,config['ownership'],apply=True)
-            _journal(journal,expected,'backed_up',generation=generation.name)
+            record('backed_up',generation=generation.name)
             # Recheck exact inputs/actions after snapshot before resuming the one task.
             load_config(config_path,expected)
-            _task('Enable',main)
-            _task('Start',main)
-            _journal(journal,expected,'starting',generation=generation.name)
+            if not _stopped(config):
+                raise ValueError('runtime changed before restart')
+            record('restart_permitted',generation=generation.name)
+            managed.permit_admission(backups,config['ownership'])
+            _bound_task(config,'Enable',main)
+            _bound_task(config,'Start',main)
+            record('starting',generation=generation.name)
             deadline=clock()+375
             while clock()<deadline:
                 if _task('Inspect',main)['state']=='Running' and _runner('--check-ready'):
@@ -156,20 +209,20 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
                 wait(3)
             else:
                 raise ValueError('runtime restart readiness failed')
-            _task('Enable',health)
-            _journal(journal,expected,'complete',generation=generation.name)
+            _bound_task(config,'Enable',health)
+            record('complete',generation=generation.name)
             return {'status':'PASS','backup_created':True,'generation':generation.name,
                 'quarantined':retention['quarantined'],'runtime_ready':True}
         except BaseException:
-            # No automatic data restore or retry. A copy/retention/restart failure
-            # cannot publish PASS or reset Scheduler retry budgets indefinitely.
-            for name in (main,health):
-                try: _task('Disable',name)
-                except Exception: pass
-            try: _runner('--stop')
+            hold_proven=False
+            try:
+                managed.hold_admission(backups,config['ownership'])
+                hold_proven=True
             except Exception: pass
-            _journal(journal,expected,'failed_operator_required')
+            cleanup_proven=_cleanup(config,clock,wait)
+            record('failed_operator_required',admission_hold=hold_proven,cleanup_proven=cleanup_proven)
             raise
+
 
 
 def main():
