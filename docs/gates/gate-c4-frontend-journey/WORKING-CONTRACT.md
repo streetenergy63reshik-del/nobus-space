@@ -1,6 +1,6 @@
 # Gate C4 — рабочий контракт
 
-Статус: WIP / NOT ACCEPTED / NOT PUBLISHED. База C3: `b9283b3419928042c80278b5088b526edebab6e7`, tree `77062335b1dbccb3694721d357e484c856ac89c7`.
+Статус исполнения: ACCEPTED / PASS / NOT PUBLISHED. База C3: `b9283b3419928042c80278b5088b526edebab6e7`, tree `77062335b1dbccb3694721d357e484c856ac89c7`.
 
 Цель — владелец ставит текстовую или подтверждённую голосовую задачу, видит её состояние и получает результат с одним связанным файлом в Telegram и Mini App. Reload, reconnect и истечение сессии сохраняют возможность прочитать исходную задачу; неизвестный POST не даёт новую задачу.
 
@@ -16,6 +16,6 @@
 
 Системный шрифт Segoe UI / системный sans-serif. Заголовок 28–40px/700, основной текст 16px/1.5, подписи 13px. Шаги отступов 4/8/12/16/24px. Кнопки минимум 44px; focus 3px с отступом. Dialog ограничен доступной высотой viewport, safe-area сохраняется. Reduced motion отключает появление. Полный результат text-only, с копированием; download проверяет фактические bytes и освобождает object URL.
 
-## Зависимость среды
+## Проверенные поверхности
 
-Штатный Browser и Windows Computer Use при первом read-only запуске завершились ошибкой trusted RPC package (`@oai/browser-desktop/service`, `@oai/sky/service`). Скриншотов и Telegram UI evidence нет. Это ENVIRONMENT_FAILURE, не дефект C3. Обход trust-проверки не выполняется. Существующий HTTPS маршрут и owner-only identity проверяются отдельно чтением; Владелец дал полное разрешение на необходимые ограниченные проверки C4; exact plan/budget/readback остаются обязательными.
+Первоначальная ошибка штатного Browser сохранена в истории. Локальная браузерная приёмка выполнена штатным bundled Playwright и одноразовым Edge context поверх настоящего MiniAppCore, без пользовательского профиля или обхода trust-проверки. Отдельно настоящий владелец прошёл Telegram/Mini App smoke attempt6 (голос, исходный b89) и attempt8 (точный68 text/result/file и recovery). Локальные synthetic initData не выдаются за Telegram-подпись владельца.

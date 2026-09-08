@@ -1,0 +1,219 @@
+{
+  "schema": "c4-reviews-2",
+  "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+  "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+  "status": "FINAL_PACKAGE_REVIEW_PENDING",
+  "exact_code_reviews": [
+    {
+      "source": {
+        "local_path": ".runtime/c4/reviews/buttons-l2-b89b651/REVIEW.json",
+        "sha256": "7d08312266a08874b173ff40159fd7abdd149d2b235d9c1150d7cb8aa473c0ac",
+        "bytes": 6619
+      },
+      "receipt": {
+        "reviewer": "/root/manual_smoke_review",
+        "review_level": "independent L2",
+        "created_utc": "2026-09-08T10:46:37.255951+00:00",
+        "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+        "delta_base": "90c867ca524df8b76ff3f2a9db4b50fb1ee2aff6",
+        "verdict": "SCOPED_GO_LOCAL_CANDIDATE",
+        "full_gate_pass": false,
+        "published": false,
+        "scope": "Independent source and synthetic local verification of voice callbacks, owned progress and ACK cleanup, Telegram edit buttons, local harness and truthful documentation; narrow frozen follow-up after a984 replacement-cleanup finding.",
+        "integrity": {
+          "before_after_exact_sha_tree": true,
+          "before_after_clean_tracked_checkout": true,
+          "tracked_working_bytes_unchanged": true,
+          "tracked_files": 577
+        },
+        "tests": {
+          "total_pass": 49,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "independently_authored_cases": 9,
+          "author_targeted_cases_independently_rerun": 40,
+          "duration_seconds": 18.471,
+          "warning": "One existing Starlette TestClient deprecation warning; no dependency changes."
+        },
+        "independent_checks": [
+          "Opposite confirm/replace callbacks through the actual gateway and action CAS admit at most one selected operation.",
+          "Claim made before confirmation expiry cannot commit at the exact expiry deadline.",
+          "Delivery cleanup compare-and-swap preserves a replacement progress reference.",
+          "Exhausted TXT delivery retains progress, avoids repeated text, and exposes honest delivery uncertainty.",
+          "ESCALATE progress cleanup requires the existing exact terminal notice ACK.",
+          "Telegram edit buttons preserve exact 64 UTF-8-byte capability boundary and explicit empty keyboard removal.",
+          "Reopening SQLite and five deletion outages leave finished voice state, empty payload and attempt_count unchanged; a later delivery cycle deletes only its saved status.",
+          "Expired preview is reconciled using the accepted content TTL, without new inference or execution claims."
+        ],
+        "author_negatives_rerun": [
+          "Foreign owner/chat/tenant and altered preview/generation cannot confirm.",
+          "Restart and action-commit uncertainty cannot produce duplicate draft work.",
+          "Unknown delivery, stale result revision and unacknowledged TXT cannot erase progress.",
+          "Waiting preview remains when Core is empty; pending, failed and corrupt associated draft rows block pre-Core cleanup.",
+          "A task appearing between the two Core reads switches to the ordinary terminal ACK guard."
+        ],
+        "source_review": [
+          "The full 90c867 to a984 coherent delta was independently read; its tracked source remains unchanged except the following reviewed cleanup correction.",
+          "finished_voice_cleanup uses exact tenant/task/kind voice, finished status, validated empty payload, and SQL absence of every associated non-voice row under the existing queue transaction.",
+          "The Core snapshot is read again while queue authority remains locked; network deletion occurs after releasing that lock.",
+          "The source_voice live-lease guard prevents a new voice-to-draft transfer after its finished tombstone; no new recovery allowance or attempt-count reset is introduced.",
+          "Current ANSWERED result binding and all-parts outbox ACK continue to gate task progress cleanup; terminal failures and ESCALATE use their exact existing notice fingerprint.",
+          "Existing configured tenant and destination guards, owned-message deletion and reference CAS remain in force.",
+          "One optional edit buttons parameter reuses the existing transport validator; no new framework, Core, queue, ASR, dependency, schema or public endpoint.",
+          "Documentation records the 24-hour tombstone cleanup boundary and retains real owner/visual acceptance as pending."
+        ],
+        "historical_evidence": {
+          "a984_L2": "Original 41-pass receipt is preserved as candidate superseded with no GO; not relabeled.",
+          "a984_L3": "Replacement delete outage finding was attributed to independent L3; the new frozen corrective delta is verified here.",
+          "a984_L1": "Root-reported 2209 passes plus 25 subtests remains historical, not b89b651 full-suite evidence.",
+          "older_actual_model_ASR": "All earlier provider and native ASR verdicts retain their original revision bindings. This receipt does not promote old results to this candidate.",
+          "C0_C3": "Accepted prior-gate evidence was not rerun or reaccepted."
+        },
+        "own_execution_limits": {
+          "external_network_calls": 0,
+          "model_calls": 0,
+          "native_ASR_calls": 0,
+          "credential_reads": 0,
+          "tracked_file_edits": 0,
+          "live_launches": 0
+        },
+        "budget_observation": {
+          "before_ledger_sha256": "12229ea60ac415db66d48439e9122095422d0b55edf128240a4391413b6ec8ed",
+          "after_ledger_sha256": "12229ea60ac415db66d48439e9122095422d0b55edf128240a4391413b6ec8ed",
+          "note": "Read-only artifact hashes. Root may concurrently consume its shared authorized budget; no reviewer provider/ASR execution."
+        },
+        "limitations": [
+          "Full root L1 on b89b651 is pending separate evidence at receipt creation.",
+          "New exact-candidate actual voice/replay proof awaits separate readback.",
+          "Live helper manifest is not covered by this receipt.",
+          "Real owner Telegram and Mini App retest, visual acceptance and full Gate C4 PASS remain pending.",
+          "Pre-Core cancellation cleanup is intentionally limited to the existing 24-hour finished voice tombstone; after its removal the code preserves unproven messages rather than guessing ownership of a completed flow."
+        ],
+        "artifacts": {
+          ".runtime/c4/reviews/buttons-l2-b89b651/before.json": "3042772266b8369463e6c6f26513b53eb5fd5e706382fc0c8f13ad4e7daea2a4",
+          ".runtime/c4/reviews/buttons-l2-b89b651/after.json": "3042772266b8369463e6c6f26513b53eb5fd5e706382fc0c8f13ad4e7daea2a4",
+          ".runtime/c4/reviews/buttons-l2-b89b651/tests.xml": "93c53076b34dfa31a656f1fa502e08fa20be17abc9ec1af9527b9ac1788eb067",
+          ".runtime/c4/reviews/buttons-l2-b89b651/integrity.py": "61498a4aaf7c54431b95c7e2b0d3cb0c87510a33a5d3cb0349e7ed8d7c7eff47",
+          ".runtime/c4/reviews/buttons-l2-b89b651/test_recovery_independent.py": "d5534bd8da50e07c8266cd85438c299baf067eb679f220b1f0fbf37b7184d148",
+          ".runtime/c4/reviews/buttons-l2-a984b4b/test_independent.py": "c63970f8b1ed33168929f220a1751a50434e033bde3484d9b0b9afdcea9a471d",
+          ".runtime/c4/reviews/buttons-l2-a984b4b/REVIEW.json": "0b9bc5681ccd02a38b8566f0a60b5fa92d19bae8d276e077e58b79f83cc129df"
+        }
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/reviews/buttons-l3-b89b651/REVIEW.json",
+        "sha256": "0c91951d39213d371ecf32faa0b420006619a9fc047cfaa1e591aadb4fad55dd",
+        "bytes": 5060
+      },
+      "receipt": {
+        "schema": "nobus-c4-independent-review-v1",
+        "reviewer": "buttons_l3",
+        "level": "L3",
+        "created_at": "2026-09-08T10:47:37.815285+00:00",
+        "candidate": {
+          "sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+          "tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+          "base": "90c867ca524df8b76ff3f2a9db4b50fb1ee2aff6"
+        },
+        "before": {
+          "sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+          "tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+          "tracked_clean": true
+        },
+        "after": {
+          "sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+          "tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+          "tracked_clean": true
+        },
+        "verdict": "GO",
+        "verdict_scope": "Candidate delta and exact temporary helper technical GO only. Full C4 acceptance is not granted.",
+        "gate_acceptance": false,
+        "real_owner_smoke_required": true,
+        "code_checks": {
+          "passed": 13,
+          "failed": 0,
+          "junit": "adversarial.xml",
+          "junit_sha256": "2833ce4a385988817d30fe791286daff610ade87153625f31702a4698133e8d2",
+          "test_files": {
+            "test_adversarial.py": "d6ea28185effc72aff8ae69acf6defa143c9d1c0a1ce0c589a76a015bc6f84a1",
+            "test_cleanup_reconcile.py": "e2071ca9c83d1880eaa026e331836b5cbfeba0803a995a96e74b86aff4a864d3"
+          }
+        },
+        "helper_checks": {
+          "passed": 9,
+          "failed": 0,
+          "junit": "helper-adversarial.xml",
+          "junit_sha256": "bb0037af4dddd16df5262181a23eebccd8e9395d4cc6770db8417ff40a0b1e0d",
+          "test_file": "test_helper_adversarial.py",
+          "test_sha256": "9ea847c7fde110b2f5dd1dd9786d7177f85f7afae4b78da62d7dea28db5973d9",
+          "launcher_verify_only": "EXACT_OFFLINE_BINDING_PASS",
+          "manifest_sha256": "ef6a873c5330f8ee5860f22ee4dc54b0f17b9cb07d12ca12bd46eb483c13a34a",
+          "manifest": {
+            "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+            "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+            "files": {
+              "live-candidate.py": "db447b4dfa54aad9908573ede7ecc465d3281213f6bfd32b416f479382985f21",
+              "start-temporary-smoke.ps1": "29b0c91e47b30f0f1e48e18970f3d8dc58501a7dc1e7d4c60a2f6a8c14407ae2",
+              "live-supervisor.py": "846665b0e024cae112dc5c5bd79ca1d3e8e941c57c7c8f42d024b7793ddc1d74"
+            }
+          }
+        },
+        "closed_finding": {
+          "id": "C4-L3-01",
+          "previous_candidate": "a984b4b20e02510d52f54a29074f732dd6ae6074",
+          "previous_verdict": "REJECT",
+          "fix": "Existing finished voice tombstone plus absence of any related other-kind queue row permits a fresh Core read under the queue transaction, then deletion outside the transaction. Repeated deletion failures preserve the reference for the next delivery cycle without another voice claim or inference."
+        },
+        "coverage": [
+          "Single edited bot progress message through actual callback confirmation; no reply message required",
+          "Independent durable action stores compete safely through one voice CAS",
+          "Saved preview and generation changes invalidate earlier tokens",
+          "Expired voice content cannot be revived",
+          "Four cleanup outages recover without ASR, model or voice claims",
+          "Waiting preview and pending/failed/corrupt draft preserve progress",
+          "Stale initial empty Core read is rechecked before cleanup",
+          "Latest voice arm wins; each arm allows one recording; replay cannot rearm",
+          "Rebound voice update and callback query identities are rejected",
+          "Extra callback attack fields and oversized UTF-8 token stop before recording",
+          "Closed window cannot answer a previously admitted owner query"
+        ],
+        "helper_effect_bounds": {
+          "duration_seconds": 1800,
+          "owner_inputs_and_http_creates": 40,
+          "live_model_cumulative_cap": 24,
+          "live_asr_cumulative_cap": 6,
+          "live_asr_already_reserved_readonly": 2,
+          "max_new_live_asr": 4,
+          "live_model_already_reserved_readonly": 9,
+          "global_c4_ledger_reset": false,
+          "global_model_turn_cap": 64,
+          "global_model_seconds_cap": 5400,
+          "global_asr_cap": 20,
+          "global_asr_seconds_cap": 1200,
+          "bot": "Nobusspacebot",
+          "owner_private_chat_only": true,
+          "new_messages_and_documents": 60,
+          "edit_callback_answer_counter": 240
+        },
+        "independence": "No tracked file changes, native ASR, model calls, Telegram requests, network requests or runtime start were performed by this reviewer. Helper tests use synthetic local fixtures; they are not live evidence.",
+        "limitations": [
+          "Actual owner Telegram buttons and cleanup, Mini App copy/download, session/reload/reconnect and visual/accessibility checks still require evidence on this exact candidate.",
+          "Finished voice tombstones retain the accepted 24-hour TTL. Without a retained tombstone, cleanup cannot infer authority and leaves an unresolved progress reference safely.",
+          "Technical GO requires the root to preserve this exact manifest and present the exact bounded plan before the already-authorized temporary launch.",
+          "C5-C6, permanent deploy, tag/release and full MVP1 readiness are outside this GO."
+        ]
+      }
+    }
+  ],
+  "historical_rejects": [
+    {
+      "local_path": ".runtime/c4/reviews/buttons-l3-a984b4b/REVIEW.json",
+      "sha256": "38537eed9388ea08cb7e3140305eb7f610c514fb953b5cc468e17487b1def618",
+      "bytes": 3339
+    }
+  ],
+  "independence": "Root implements/integrates; named L2 and L3 reviewers supplied their own bounded checks. Browser runner execution is attributed separately from independent code review."
+}

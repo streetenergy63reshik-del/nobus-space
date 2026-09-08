@@ -1,7 +1,8 @@
 # ADR 0025 — Восстановление сессии и принятого запроса Mini App
 
 Статус решения: ACCEPTED FOR C4 IMPLEMENTATION по поручению владельца выполнить
-Gate C4 целиком. Статус реализации: DRAFT, собственная приёмка C4 обязательна.
+Gate C4 целиком. Статус реализации: FINAL REVIEW PENDING; факты собственной приёмки — в
+[C4 HANDOFF](../gates/gate-c4-frontend-journey/HANDOFF.md).
 Дата: 7 сентября 2026 года. База: C3 `b9283b3419928042c80278b5088b526edebab6e7`,
 tree `77062335b1dbccb3694721d357e484c856ac89c7`.
 

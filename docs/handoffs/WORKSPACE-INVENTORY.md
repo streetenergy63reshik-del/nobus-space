@@ -1,9 +1,9 @@
 # Nobus Space — workspace inventory
 
-**Актуально на:** 7 сентября 2026 года
+**Актуально на:** 8 сентября 2026 года
 **Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. Protected
 GitHub `main` и release tags — канон принятой опубликованной истории после
@@ -16,8 +16,8 @@ C4 выполняется только в `.runtime/worktrees/mvp1-closure-c4-fr
 ветка `codex/mvp1-closure-c4-frontend-journey`, от принятой базы C3
 `b9283b3419928042c80278b5088b526edebab6e7` /
 `77062335b1dbccb3694721d357e484c856ac89c7`.
-Проверенный code checkpoint: `a869a691293e45a1a3e65303be627d684acfa16e` /
-`9a7cab97fb9947ebdfedeb5baffa57f9627a4c98`.
+Проверенный code checkpoint: `68f87f18da3de7c995f83b9cb08b391d0af5cdfb` /
+`5ae168bf613b18fc2f14e24973b5167a2b4c7b74`.
 Позднейшие docs/evidence-only изменения имеют отдельный manifest.
 
 Canonical checkout остаётся чужим dirty WIP @ f18a664; его 20 dirty paths

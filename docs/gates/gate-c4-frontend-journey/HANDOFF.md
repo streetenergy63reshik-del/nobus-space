@@ -1,141 +1,154 @@
 # Единая передача Gate C4 → C5
 
-**Обновление 8 сентября: C4 REWORK / NOT ACCEPTED / NOT PUBLISHED.** Повторный настоящий smoke подтвердил текст, TXT и восстановление Mini App. По запросу владельца новый кандидат добавляет две кнопки для голоса и очистку промежуточного сообщения; его ручная проверка ещё требуется. [Исправления и доказательства](SMOKE-REWORK.md). Ниже сохранены результаты предыдущего локального checkpoint; они не принимают новый код.
+**8 сентября 2026. C4 ACCEPTED / PASS / NOT PUBLISHED.**
+Этот документ объединяет код, проверки и публикацию C4. C5–C6 не запущены;
+MVP1 NOT READY; MVP2 HOLD. Постоянного production deploy нет.
 
-**C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT ACCEPTED / NOT PUBLISHED.**
-Передача сохраняет весь результат C4, но не разрешает старт C5.
-C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD. Актуально на 7 сентября 2026 года.
+## Результат для владельца
 
-## Продуктовый результат
+Telegram Bot и Mini App используют один существующий Core. Текстовая задача
+принимается через любой из двух интерфейсов. Голосовое сообщение сначала
+распознаётся локальным ASR; бот показывает расшифровку и две кнопки:
+«Подтверждаю» и «Записать заново». До подтверждения задача не выполняется.
+Ответ с исправленным текстом также поддерживается. Автоматический запуск
+голоса без подтверждения остаётся будущим изменением за пределами C4.
 
-Существующие Telegram Bot и Mini App работают над одним Core.
-Текстовая и подтверждённая голосовая задача проходят общий semantic admission.
-Уточнение продолжается с проверкой владельца, контекста и срока.
-Оба канала используют единый каталог состояния, причины и следующего действия.
+Бот сразу сообщает о получении сообщения до долгого разбора запроса. Один
+промежуточный ответ обновляется по ходу выполнения и удаляется после
+подтверждённой доставки результата и файла. В чате остаются итог и TXT.
+Старые сообщения, созданные предыдущими test runtime, задним числом не удаляются.
 
-Mini App восстанавливает сессию, уточнение и исход запроса после reload/reconnect.
-Потерянный ответ POST не повторяет выполнение: клиент читает Core journal.
-Core отменяет только точно ещё не принятый key и закрывает его для позднего create.
-Результат можно прочитать/скопировать, а один связанный файл — получить в обоих каналах.
-Light/dark, mobile и keyboard/focus реализованы; фактическая визуальная приёмка остаётся открытой.
+Если запрос непонятен, Core задаёт уточнение; продолжение связано с исходным
+запросом и владельцем. Неподдерживаемая операция получает понятный отказ без
+задачи и эффекта. Статус, прогресс и ошибки берутся из Core; процентов или
+обещаний успешного выполнения интерфейс не придумывает.
 
-## Точные привязки
+Mini App восстанавливает выбранную задачу, сессию и исход запроса после reload,
+reconnect и истечения короткого bearer. При неизвестном результате POST клиент
+читает существующий request journal. Новый POST автоматически не отправляется.
+Отмена разрешена только для точно ещё не принятого key; tombstone закрывает
+поздний create. После исходного срока Telegram-подписи требуется снова открыть
+Mini App из Telegram.
 
+Результат можно прочитать и скопировать; один связанный `nobus-result.txt`
+получается через оба канала. Mini App проверяет фактически скачанные bytes,
+размер и digest до передачи файла браузеру. Имя файла — представление;
+C3 artifact identity, result revision, digest и receipts сохраняются.
+
+## Ревизии и доказательства
+
+Ветка: `codex/mvp1-closure-c4-frontend-journey` в изолированном C4 worktree.
 Repository: `streetenergy63reshik-del/nobus-space`.
-Branch: `codex/mvp1-closure-c4-frontend-journey`.
-Worktree относительно каталога Code:
-`nobus-orchestrator-dev/.runtime/worktrees/mvp1-closure-c4-frontend-journey`.
 
 | Роль | SHA | Tree |
 |---|---|---|
-| Принятая опубликованная база C3 / последнее readback main | b9283b3419928042c80278b5088b526edebab6e7 | 77062335b1dbccb3694721d357e484c856ac89c7 |
-| Проверенный код C4 | a869a691293e45a1a3e65303be627d684acfa16e | 9a7cab97fb9947ebdfedeb5baffa57f9627a4c98 |
-| Сохранённый первый REJECT | ad02795c5457deb3909517efd1992cacb5ac9a73 | 229d7a4be82da7391ee339825fffb3538d34481d |
+| Принятая опубликованная C3 база | b9283b3419928042c80278b5088b526edebab6e7 | 77062335b1dbccb3694721d357e484c856ac89c7 |
+| Итоговый код C4 | 68f87f18da3de7c995f83b9cb08b391d0af5cdfb | 5ae168bf613b18fc2f14e24973b5167a2b4c7b74 |
 
-[CODE-MANIFEST](CODE-MANIFEST.json) фиксирует 40 изменённых файлов замороженного
-кандидата. [MANIFEST](MANIFEST.json) и [DOCS-MANIFEST](DOCS-MANIFEST.json) отдельно
-связывают итоговые документы и evidence. Они не содержат SHA собственного commit.
-Последняя local docs revision записывается в отдельный локальный checkpoint receipt.
+[CODE-MANIFEST](CODE-MANIFEST.json) связывает все product/test bytes относительно C3.
+[DOCS-MANIFEST](DOCS-MANIFEST.json) отдельно связывает активную документацию;
+[MANIFEST](MANIFEST.json) — весь пакет без собственного файла. Документационный
+commit не переименовывает source checks. PR и опубликованная main находятся в
+[PUBLICATION-READBACK](PUBLICATION-READBACK.json).
 
-Semantic path проверялся в изолированном ON-кандидате; штатный runner по-прежнему
-имеет default-off flag. Временные тесты используют project_context=None.
-Обновлённый docs11 читается обычным runner и имеет новый явно записанный digest;
-старые model runs не объявляются проверкой этих новых context bytes.
-Изменение фактической проекции docs не меняет Core policy/capabilities или pinned prompts.
+На66cff24 полный собственный L1 дал2227PASS+25subtests,2Windows symlink SKIP,
+2объяснённых historical deselect. На68f87f1 собственный полный L1 дал2227PASS+25subtests за187.03с;
+Node frontend20PASS. Команды, counts и исходные receipts —
+[TEST-RECEIPTS](TEST-RECEIPTS.json). C0–C3 повторно не принимались.
+Независимые scoped L2/L3 и окончательная проверка пакета связаны отдельно в
+[REVIEW-VERDICTS](REVIEW-VERDICTS.json).
 
-## Контракты и матрицы
+Последняя правка касается первого чтения карточки: при404 действие «К списку
+задач» закрывает недоступную карточку; после ошибки исчезает «Загружаем…».
+Сохранённый pending request не отменяется, новый POST не появляется. При
+временной ошибке уже полученные данные сохраняются. Новые URL статических
+файлов исключают загрузку старого cached script после обновления HTML.
 
-[UX-MATRIX](UX-MATRIX.md) сопоставляет Telegram ↔ Mini App, состояния и gaps до/после;
-[NEGATIVE-MATRIX](NEGATIVE-MATRIX.md) связывает негативные проверки с Core truth.
+[LOCAL-JOURNEYS](LOCAL-JOURNEYS.json) сохраняет b89b651 direct/transform
+text/voice, clarification/unavailable, шесть restart/replay и шесть отдельных
+чтений прежних sealed результатов через новый66cff24 Core/HTTP. Первоначальные
+model/ASR вызовы остаются привязанными к b89b651. Provider timeout и failed
+attempts сохранены; подтверждённый voice input продолжен до Core admission
+без нового ASR, а replay не повторял model/ASR или доставку.
 
-[ADR0025](../../adr/0025-miniapp-session-and-request-recovery.md): fresh raw initData
-сохраняет durable anti-replay. HttpOnly SameSite=Strict recovery credential вращается
-однократно, сохраняет исходный deadline, отзывает прежнее поколение bearer и не
-расширяет owner/tenant scope. После deadline нужна новая Telegram-подпись.
-Bearer только в памяти; localStorage содержит лишь opaque navigation/request markers.
-Unknown POST читается, а не повторяется; cancellation tombstone закрывает late create.
+[RETAINED-66-TWO-TASKS](RETAINED-66-TWO-TASKS.json) подтверждает две реальные
+задачи через браузер, Core и provider: очередь→«В работе», reload/reconnect,
+потерю настоящего202 без второго POST, отдельные результаты/TXT и защиту от
+запоздалого ответа первой задачи. Четыре model turns, ASR0. У локального
+синтетического Telegram sender обнаружилось ограничение одинакового имени
+файла; доставлена только оставшаяся часть из существующего outbox. L3 отдельно
+подтвердил2ACK/4partACK без повторного выполнения. Старый FAIL не переписан.
 
-[ADR0026](../../adr/0026-channel-neutral-product-projection.md): только Core даёт
-состояние/причину. «Результат» не обещает истинность модели или готовность MVP1.
-Неизменные C3 result revision/digest, artifact identity/bytes и part receipts
-сохраняются. `nobus-result.txt` — только имя представления.
-Mini App проверяет реально полученные size/hash/MIME перед Blob download;
-Telegram получает те же bytes. [LOCAL-JOURNEYS](LOCAL-JOURNEYS.json) содержит
-точные result/artifact digests и размеры шести результатов.
+[SCREENSHOTS](SCREENSHOTS.json) связывает текущую матрицу320/390/768px,
+light/dark, клавиатуру/focus, копирование, download, expiry/recovery и negative
+initial404. Локальный браузер работает над настоящим MiniAppCore и копией
+sealed synthetic task store; user profile, raw Telegram initData и продуктовые
+моки не используются. Реальная Telegram-проверка выделена отдельно.
 
-## Проверки и оставшийся пробел
+## Настоящий Telegram и Mini App
 
-Собственный frozen L1: **2132 PASS + 25 subtests PASS**; 2 Windows symlink SKIP,
-1 historical deselect; frontend Node17 PASS. [TEST-RECEIPTS](TEST-RECEIPTS.json)
-сохраняет команды, исходные хэши receipts и исторический failed L1.
+На b89b651 владелец подтвердил голос кнопкой, получил результат/TXT и проверил
+копирование. Исходные523байта и SHA256
+`069eca0c5dbb084c9e906e20dabcc5e0f6b6843aa1f87aac5db54bc44f9b985d`
+связаны в [RETAINED-B89-LIVE-SMOKE](RETAINED-B89-LIVE-SMOKE.json).
 
-Локальные actual-provider/ASR пути: direct_text, telegram_text, transform_text,
-direct_voice, transform_voice, clarification, unavailable. Шесть задач завершены
-и имеют 12 подтверждённых частей доставки; unavailable имеет task/job/outbox0.
-Все шесть отдельных restart/replay сохранили результат без новых model/ASR calls.
-Транспорт Telegram и initData в этих локальных проверках синтетические.
+На66cff24 владелец создал текстовую задачу из Mini App, наблюдал «В работе» и
+результат; Telegram подтвердил answer/document356байт. До её создания UI
+пытался восстановить старую выбранную карточку и показал ошибочный loader.
+Этот defect исправлен в68f87f1. Владелец сообщил об успешном скачивании,
+но artifactHTTPGET/физический файл этого окна не наблюдались; этот шаг не
+объявлен доказанным. Точная область —
+[RETAINED-66-OWNER-SMOKE](RETAINED-66-OWNER-SMOKE.json).
 
-Независимый L2: 634 evidence checks и 7 собственных Node checks PASS; семь реальных
-синтетических ответов оценены по intent/scope/honesty/delivery/usefulness, каждый15/15.
-Независимый L3: 7 новых adversarial PASS; проверены source/result/artifact/replay bindings.
-[REVIEW-VERDICTS](REVIEW-VERDICTS.json) различает identities, исходные REJECT,
-прежние paused evidence и текущий ограниченный ACCEPT.
-Доказательства прежнего автора не названы собственными проверками нового reviewer.
+Ограниченное окно attempt8 exact68f87f1 на `@Nobusspacebot`, в проверенном
+личном чате и `https://app.nobusspace.com` завершено успешно.
+[LIVE-SMOKE](LIVE-SMOKE.json) связывает подписанную Telegram-сессию, одну
+задачу, результат, скачивание446байт из Mini App и тот же digest в Telegram.
+Владелец подтвердил проверку. После штатного STOP JobActiveProcesses=0,
+все компоненты закрыты; HTTPS вернулся к исходному502, bot/menu/webhook прежние.
+Полные owner screenshots не публикуются из-за посторонней переписки/фона;
+сохраняются hashes и связанный readback.
 
-[SCREENSHOTS](SCREENSHOTS.json): снимков нет. Viewports320/390/768, light/dark,
-keyboard-only и реальный Telegram WebView не проверены.
-Причина — повторяемый startup error штатных Browser/Windows tools.
-Минимальный недостающий шаг: восстановить штатную UI-поверхность либо пройти
-точный owner-run сценарий настоящим владельцем с проверяемыми результатами
-и снимками без credentials/initData/private data. Разрешение на C4 уже выдано.
+Неизменные доказательства прежних SHA сохраняются только в явно названной
+области с независимой проверкой применимости. Ни b89 неверный running status,
+ни66 ошибочный initial404 не переносятся как PASS новой версии.
 
-## Временный smoke, сохранность и бюджет
+## Границы и сохранность
 
-[Сводный live receipt](LIVE-SMOKE.json) содержит точные бот/чат, origin,
-helper manifest, лимиты, фактические результаты и stop/readback.
-Первая попытка завершилась до пользовательского input: lease300s пересёк строгую
-границу из-за разницы часов; причина воспроизведена офлайн и исправлена на240s.
-Исходные FAIL, STOP, DB, manifest и reviewer verdict сохранены.
-Изменение Telegram pending count3→1 до контрольного запуска не имеет установленного
-происхождения; локальный offsetNULL не позволяет приписать его ACK помощника.
+Semantic path проверен в изолированном ON-кандидате. Штатный runner сохраняет
+`_GATE_C1_SEMANTIC_ADMISSION_ENABLED=False`; постоянная активация не выполнена.
+Local/live fixtures используют `project_context=None`. Новый docs11 имеет
+отдельный digest и не объявляется проверенным прежними model inputs.
 
-Контрольная attempt2 использует отдельную папку/окно, тот же exact code/bot/owner/origin,
-существующий relay и общий C4 ledger. Exact HTTPS instance и три static hashes
-совпали. Это route check, не завершённый owner smoke.
-Никакие production DB, Scheduler, VPS/network config, menu/profile или credentials
-не изменялись. Останавливаются только процессы собственного Windows Job;
-Оба окна закрыты. Root readback подтвердил JobActiveProcesses0, отсутствие
-слушателя8765 и consumer/relay, baseline health/readiness502, прежние bot/menu/webhook.
-Настоящих ownerinputs и botoutputs во второй попытке0.
+C1 tenant/meaning/policy, C2 qualified small ASR/confirmation и C3 durable
+queue/recovery/part delivery остаются действующими. Новых Core, очереди, ASR,
+frontend framework или dependency не добавлено.
 
-Единый бюджет C4:64 model reservations/turns,5400s active;20localASR,1200s native.
-Фактический накопленный расход:23 model reservations /18actual turns /280.359s;
-ASR2runs /14.11s; active reservations0. Остаток41model reservations /5119.641s,
-18ASR /1185.89s. [EVIDENCE](EVIDENCE.json) и LIVE-SMOKE сохраняют точные значения;
-старые ошибки/retries/bootstrap включены, ledger не обнулялся.
-Новых моделей, зависимостей, API billing или покупок нет.
+Callback голоса связан с owner/tenant/chat, exact preview message, generation,
+transcript digest и одноразовым token со сроком до15мин. «Записать заново»
+отменяет данный ввод. Очистка прогресса подтверждается Core/outbox; для
+отменённого голоса без задачи используется существующий finished-voice
+24-часовой tombstone. После его удаления неизвестная progress reference
+автоматически не удаляется. Неизвестный исход не разрешает повтор задачи.
 
-[PRESERVATION](PRESERVATION.json):20 текущих canonical dirty hashes/status
-совпали с C4 entry. Все19 исторически записанных C3 hashes совпали;
-отсутствующий старый hash runtime_maintenance.py не выдуман.
-Docs06/07/12/13, C0–C3 и sealed Gate0 сохранены; соседние worktrees не редактировались.
+[Сохранность](PRESERVATION.json): все20 dirty canonical paths совпадают с C4 entry;
+C0–C3 sealed packages и защищённые документы сохранены. Исторический C3 manifest
+имел19 hashes и один явный пробел; отсутствующий hash не придуман.
+[История исправлений](SMOKE-REWORK.md) сохраняет прежние FAIL и временные окна.
+Общий сохраняемый журнал расходов всех попыток приведён в [EVIDENCE](EVIDENCE.json):
+лимиты64 фактических model turns/5400с и20 ASR/1200с не сбрасываются. C4 accounting считает фактические model turns перед SDK;
+старты без inference не расходуют turns, но всё их время остаётся в5400с.
+Все прежние строки сохранены; принятый код учёта C3 не изменён.
 
-## Публикация и C5
+## Передача C5
 
-C4 push/PR/merge не выполнены; C4 PR отсутствует. GitHub main прочитана обратно:
-`b9283b3419928042c80278b5088b526edebab6e7`,
-tree `77062335b1dbccb3694721d357e484c856ac89c7`, protected=true.
-Подробная protection policy через connector вернула403; её детали не считаются
-доказанными. Отсутствующие CI checks не названы PASS.
+C5 запускается отдельной задачей владельца после публикации принятого C4.
+Его точная база — опубликованная main из PUBLICATION-READBACK, а не dirty
+canonical checkout и не старый live. C5 должен завершить эксплуатационные
+health/ingress/security, backup/restore, очистку, rollback и существующую единую
+инструкцию по фактически принятому UI. В неё входят голосовые кнопки,
+восстановление сессии/UNKNOWN и получение файла.
 
-После настоящего полного C4 PASS необходимо в этой же C4 задаче завершить ordinary
-push/PR/merge с обязательными checks/reviews, exact head/base/manifest check,
-fetch/readback final main SHA/tree и при необходимости один разрешённый
-status-only follow-up. Нельзя обходить protection или публиковать незавершённый Gate.
-
-C5 может начаться только отдельной задачей владельца от exact ACCEPTED/PUBLISHED
-C4 SHA/tree. Его объём: operations/ingress/security, backup/restore, cleanup,
-rollback и актуализация существующей единой инструкции по доказанному UI.
-C6 завершит frozen release/activation/readback и owner acceptance целого MVP1.
-
-**NO TAG / RELEASE / PERMANENT PRODUCTION DEPLOY. C5/C6 НЕ ЗАПУЩЕНЫ. MVP1 NOT READY.**
+C6 принимает frozen release, разрешённую активацию и весь MVP1.
+C4 не запускает C5/C6/MVP2, не делает постоянный deploy, tag/release или
+публикацию редакционной roadmap/HTML. Полного MVP1 READY пока нет.

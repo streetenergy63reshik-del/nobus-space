@@ -1,0 +1,184 @@
+{
+  "schema": "c4-reviews-3",
+  "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+  "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+  "status": "FINAL_PACKAGE_REVIEW_PENDING",
+  "exact_code_reviews": [
+    {
+      "source": {
+        "local_path": ".runtime/c4/reviews/running-l2-66cff24/REVIEW.json",
+        "sha256": "cfff7e43c034fc3f98ff2a5922c1ff2942041694cc3c169f894a95330b42b624",
+        "bytes": 3672
+      },
+      "receipt": {
+        "reviewer": "/root/manual_smoke_review",
+        "review_level": "independent L2",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "delta_base": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "verdict": "SCOPED_GO_LOCAL_SOURCE_AND_ACCOUNTING",
+        "full_gate_pass": false,
+        "checks": {
+          "passed": 19,
+          "independent_new_budget_cases": 6,
+          "author_budget_negatives_reproduced": 10,
+          "real_core_provider_fault_projection_regressions": 2,
+          "relevant_existing_no_replay_recovery_regression": 1,
+          "duration_seconds": 22.225
+        },
+        "source_findings": [],
+        "scope_conclusions": [
+          "PARSING now maps to WORKING in the shared presentation catalogue; Core states, STARTED event, worker ownership and C3 unknown-outcome recovery are unchanged.",
+          "Independent execution reproduced current PARSING/WORKING via real Core/worker/HTTP; only the external provider boundary was controlled for failure injection, with no actual provider call.",
+          "Interrupted PARSING still fails recovery without executing a provider on either first or repeated restart. This is targeted candidate regression, not C3 reacceptance.",
+          "C4 budget enforces the original launch document allowance of 64 actual model turns and 5400 active seconds. Marking remains immediately before real SDK turn creation.",
+          "All original shared ledger rows and file bytes are unchanged by this review. No startup/failure/cleanup time or historical row is removed.",
+          "Startup reservations cannot be marked as turns; the actual GuardedThread cannot reach its SDK delegate with startup, finished or ASR reservations.",
+          "The potential last turn, competing claims, double/late marking, final 65th turn, time cap, ASR20/1200 and cleanup quarantine are covered.",
+          "C3 budget implementation/schema remain unchanged. New override is limited to C4 fixture accounting; existing lease and recovery safety is preserved."
+        ],
+        "shared_ledger_readonly": {
+          "rows": 71,
+          "resource_summary": [
+            [
+              "asr",
+              10,
+              0,
+              80.82799999974668
+            ],
+            [
+              "model",
+              61,
+              48,
+              868.5459999993909
+            ]
+          ],
+          "active_reservations": 0,
+          "before_after_file_sha256": "417904c15285d5deda6b60a5889f668767b29d6b164792822cdfdde9de74e16a",
+          "ordered_rows_sha256": "0512408429dc9336745a07a2315528b6f642d4f285a64e56fad8ef429e624cdd"
+        },
+        "integrity": {
+          "exact_before_after_sha_tree": true,
+          "tracked_files": 579,
+          "tracked_bytes_unchanged": true,
+          "clean_worktree": true
+        },
+        "execution_limits": {
+          "actual_provider_calls": 0,
+          "native_asr_calls": 0,
+          "external_network_calls": 0,
+          "credential_reads": 0,
+          "tracked_edits": 0
+        },
+        "historical_evidence": "The rejected b89 overall verdict and its successful scoped checks remain bound to b89. No old browser/owner/provider evidence is relabeled as 66cff24 acceptance.",
+        "pending": [
+          "Actual browser/provider two-task journey on exact new candidate",
+          "Current bounded owner smoke and candidate-bound evidence package review"
+        ],
+        "artifacts": {
+          "before.json": "206f5766e80585f45e2c987fedd3de2b348aa49315490187a604188cf3b86926",
+          "after.json": "206f5766e80585f45e2c987fedd3de2b348aa49315490187a604188cf3b86926",
+          "tests.xml": "7b68166f0e4dea8a2781cc4eaf5d78e33a6e8a0c91dbb65654c9165a0f6b9964",
+          "test_independent.py": "22ae10d69beeecd15c2bdc336d1afb78a87f0409764d579d850a83f0b548b19c",
+          "integrity.py": "948e0ec4a7302ed37f2b4c0e6553b911dddb40a6a89d01b7ae7d00c20ca21c70"
+        }
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/reviews/running-l3-66cff24/REVIEW.json",
+        "sha256": "23b86ca96249453b9fcc928aebe3545795099ff558768f009278f837d5802dcf",
+        "bytes": 4820
+      },
+      "receipt": {
+        "reviewer": "/root/buttons_l3",
+        "scope": "Independent L3 full delta b89b651 ->66cff24; C4 turn accounting, claimed working status, bounded attempt7 helper delta",
+        "status": "TECHNICAL_GO_SCOPED_NOT_FULL_C4_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "source_before_after": "exact HEAD/tree; tracked clean",
+        "changed_files": 6,
+        "own_tests": {
+          "count": 13,
+          "passed": 13,
+          "failures": 0,
+          "external_model_calls": 0,
+          "native_asr_calls": 0,
+          "scope": [
+            "actual GuardedThread cannot convert startup to SDK even at64 marked turns",
+            "actual GuardedThread mark precedes SDK failure and cannot call SDK twice",
+            "reopened last potential turn; concurrent mark single winner",
+            "reopened marked/unmarked CLEANUP_FAILED blocks both model/startup/ASR",
+            "ASR cannot convert to model; one global active slot",
+            "all startup+cleanup time remains charged to5400s; ASR cap20/1200 unchanged",
+            "legacy initial rows retained; C3 still enforces its accepted reservation policy",
+            "global71 original rows and C3 code byte digest untouched",
+            "PENDING queued; PARSING working; terminal/error authority unchanged",
+            "actual provider-boundary failure2cases through Core/queue/HTTP list/detail/events/noresult/outbox/no duplicate/no leakage"
+          ]
+        },
+        "findings": [],
+        "budget_authorization": {
+          "normative_cap": "64 model turns;5400s including all startup/failure/timeout/cleanup",
+          "result": "Matches original C4 controlling prompt; no allowance increase",
+          "potential_slot": "Every non-startup active model reservation occupies1 slot until finished or marked; startup cannot reach SDK because mark_turn rejects it",
+          "pre_sdk_guard": "GuardedThread marks before real.turn; once marked it remains charged after failure",
+          "C3_source_unchanged": true,
+          "original_ledger": {
+            "rows": 71,
+            "rows_digest": "0512408429dc9336745a07a2315528b6f642d4f285a64e56fad8ef429e624cdd",
+            "active": 0,
+            "model": [
+              61,
+              48,
+              868.5459999993909
+            ],
+            "asr": [
+              10,
+              80.82799999974668
+            ]
+          }
+        },
+        "helper_delta": {
+          "manifest_sha256": "2a33043902f59422a2628770713ff652ff7d0ddf903e29c73b99ac4f45100125",
+          "archive": "live-helper-history/attempt6-ef6a873c",
+          "review": "Exact3 file hashes, candidate/attempt7 pins, owner instructions and remaining ASR3/6 only; execution security/scope limits unchanged",
+          "live_asr_already_used": 3,
+          "launcher_verify_only": "EXACT_OFFLINE_BINDING_PASS",
+          "launched_live": false,
+          "status": "TECHNICAL_GO_BOUND_MANIFEST_ONLY"
+        },
+        "preserved_evidence": {
+          "previous_scoped_review": ".runtime/c4/reviews/buttons-l3-b89b651/REVIEW.json",
+          "acceptance": "Previous unchanged callback owner/token/message binding, CAS/replay/expiry, cleanup and trust boundaries remain accepted for their original SHA. Full delta reviewed; only product status mapping changed in src. This review does not relabel historical live evidence or progress proof.",
+          "C0_C3": "No reacceptance; unchanged implementation/evidence retains prior accepted scope"
+        },
+        "remaining_before_any_final_PASS": [
+          "Root full L1 current freeze result",
+          "new exact candidate browser running/reload/ACK-loss/two-task results",
+          "exact candidate actual owner Telegram+Mini App result/file smoke and rollback/readback",
+          "final documentation/provenance review and permitted publication readback"
+        ],
+        "artifacts": {
+          ".runtime/c4/reviews/running-l3-66cff24/test_adversarial.py": "e03dd76561bfc852ce972f6b427e6ac2d64b794a6b25a532d4ef02ef74060ec9",
+          ".runtime/c4/reviews/running-l3-66cff24/test_real_core.py": "791049777afc48034b2159b9f23153dc49be4c8a17ea4ca26963378fd05215b7",
+          ".runtime/c4/reviews/running-l3-66cff24/adversarial.xml": "be7fdf08b7000dcc2a1ad3ee47367eda7552ed772ab3139318bd8abb9d0f3b70",
+          ".runtime/c4/reviews/running-l3-66cff24/worker_failed-receipt.json": "cbf37d4ca30dec1152bee0257b766906de3020d31139e8eda9e42a10e55473ab",
+          ".runtime/c4/reviews/running-l3-66cff24/worker_timeout-receipt.json": "b2de4074edfbf2b8ec2689da868ba5897d9539825837a428934e0dd1b8b4386d",
+          "tests/gate_c4/budget.py": "c15cfbdbbfddf6eac05e1bf48549ff36f51cab94c36e186d3b223f812ca675e6",
+          "src/application/product_status.py": "ac42e271a2e412220374c31b4a6bfded0aa27f0e7754e09f62c2d1d4a8f0f6c0",
+          "tests/gate_c3/budget.py": "454cbafd85cb04696ea9918336c647bd9a059d5f49a10d7a0d620298e4af3535",
+          ".runtime/c4/live-review-binding.json": "2a33043902f59422a2628770713ff652ff7d0ddf903e29c73b99ac4f45100125"
+        },
+        "generated_at_utc": "2026-09-08T12:13:26.865061+00:00"
+      }
+    }
+  ],
+  "retained_prior_scoped_reviews": "RETAINED-B89-REVIEW-VERDICTS.json",
+  "historical_running_reject": {
+    "local_path": ".runtime/c4/visual-b89b651/GATE-FINDING.json",
+    "sha256": "47477e17816b7ce5bbd5399407e4dd76594734096d466d49e90b6c3188162aab",
+    "bytes": 3273
+  },
+  "independence": "Root implements/integrates; independent L2 and L3 own probes/receipts. Browser executor is separately attributed."
+}

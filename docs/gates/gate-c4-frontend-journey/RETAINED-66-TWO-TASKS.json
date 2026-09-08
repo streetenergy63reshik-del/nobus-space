@@ -1,0 +1,308 @@
+{
+  "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+  "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+  "status": "SCOPED_PASS_BROWSER_AND_SEPARATE_DELIVERY_READBACK",
+  "browser_report": {
+    "local_path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+    "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+    "bytes": 13235
+  },
+  "checks": [
+    {
+      "name": "lost_actual_202_reload_same_request_readback_no_second_post",
+      "pass": true,
+      "request_id": "66d723bf-07ec-4aed-8c07-3e3c94d55cf4",
+      "task_id": "3de49ec6-9e27-49e0-b795-e0655850e479"
+    },
+    {
+      "name": "queued_to_actual_core_working_visible",
+      "pass": true
+    },
+    {
+      "name": "reload_and_offline_reconnect_preserve_running_task_identity_without_resubmission",
+      "pass": true
+    },
+    {
+      "name": "first_download_bound_to_exact_task_result",
+      "pass": true,
+      "task_id": "3de49ec6-9e27-49e0-b795-e0655850e479",
+      "digest": "sha256:7354758885b605ce530f4e6cc5cf11b64f653a22f453ae675e7227b64fc0e2cc"
+    },
+    {
+      "name": "actual_provider_first_task_ready_after_running",
+      "pass": true
+    },
+    {
+      "name": "second_download_bound_to_exact_task_result",
+      "pass": true,
+      "task_id": "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc",
+      "digest": "sha256:844425cc2b5d1eba709ccfe597b52f768628a17790df9d0f2e6b410a8ed677c3"
+    },
+    {
+      "name": "two_sequential_real_tasks_one_core_and_session",
+      "pass": true,
+      "ids": [
+        "3de49ec6-9e27-49e0-b795-e0655850e479",
+        "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc"
+      ]
+    },
+    {
+      "name": "late_actual_first_result_cannot_replace_second_task_detail",
+      "pass": true
+    },
+    {
+      "name": "no_third_post_no_page_errors",
+      "pass": true
+    }
+  ],
+  "original_phase": {
+    "local_path": ".runtime/c4/visual-66cff24/two-task-product/phase.json",
+    "sha256": "6c7bf6c7f524909fa77bdafae0955a53d1ff1de7cea75f6f2be5775e071df3f3",
+    "bytes": 38468
+  },
+  "original_phase_status": "FAILED_AT_SYNTHETIC_DOCUMENT_STORAGE",
+  "delivery": {
+    "source": {
+      "local_path": ".runtime/c4/visual-66cff24/delivery-only/RECEIPT.json",
+      "sha256": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895",
+      "bytes": 5031
+    },
+    "receipt": {
+      "status": "DELIVERY_ONLY_READBACK_PASS",
+      "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+      "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+      "delivery_helper_sha256": "d78a1d222a1d646cd1004bcbe98a472fdafb220b60d634719f84c27490df342f",
+      "verifier_sha256": "38a9b157e15400a9a3d7c2f812fae431e8129750cb49e55348d8620e0da383dd",
+      "original_failed_phase_preserved": true,
+      "original_phase_sha256": "6c7bf6c7f524909fa77bdafae0955a53d1ff1de7cea75f6f2be5775e071df3f3",
+      "verification_helper_defect_preserved": "FAILED-VERIFIER.json",
+      "before": {
+        "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc": {
+          "task_id": "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc",
+          "revision": 6,
+          "snapshot_digest": "sha256:b51dab89f5c3182708b0371f114e9b839553f7c9e8423f3b424d244e4f012d2b",
+          "result_digest": "sha256:356a8762d5e65877141cfcf80072c21e9353b5f3c335d3632442393cd12b6613",
+          "artifact_digest": "sha256:844425cc2b5d1eba709ccfe597b52f768628a17790df9d0f2e6b410a8ed677c3",
+          "artifact_size": 476,
+          "message_id": "f119b878-b17d-5d15-9186-6b498295da02",
+          "status": "pending",
+          "part_acks": [
+            true,
+            false
+          ]
+        },
+        "3de49ec6-9e27-49e0-b795-e0655850e479": {
+          "task_id": "3de49ec6-9e27-49e0-b795-e0655850e479",
+          "revision": 6,
+          "snapshot_digest": "sha256:9cacce5eda2a87f7d9d048bc7e0a3edabd0ce8d28f8d79cdd2d6a4e22310f004",
+          "result_digest": "sha256:19da16ea58205a62b9b11905e93d7ae82bd1f2a799ca5d1f44a9bde924db87a7",
+          "artifact_digest": "sha256:7354758885b605ce530f4e6cc5cf11b64f653a22f453ae675e7227b64fc0e2cc",
+          "artifact_size": 492,
+          "message_id": "e979473d-7185-574f-b510-317829f423e4",
+          "status": "acked",
+          "part_acks": [
+            true,
+            true
+          ]
+        }
+      },
+      "after": {
+        "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc": {
+          "task_id": "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc",
+          "revision": 6,
+          "snapshot_digest": "sha256:b51dab89f5c3182708b0371f114e9b839553f7c9e8423f3b424d244e4f012d2b",
+          "result_digest": "sha256:356a8762d5e65877141cfcf80072c21e9353b5f3c335d3632442393cd12b6613",
+          "artifact_digest": "sha256:844425cc2b5d1eba709ccfe597b52f768628a17790df9d0f2e6b410a8ed677c3",
+          "artifact_size": 476,
+          "message_id": "f119b878-b17d-5d15-9186-6b498295da02",
+          "status": "acked",
+          "part_acks": [
+            true,
+            true
+          ]
+        },
+        "3de49ec6-9e27-49e0-b795-e0655850e479": {
+          "task_id": "3de49ec6-9e27-49e0-b795-e0655850e479",
+          "revision": 6,
+          "snapshot_digest": "sha256:9cacce5eda2a87f7d9d048bc7e0a3edabd0ce8d28f8d79cdd2d6a4e22310f004",
+          "result_digest": "sha256:19da16ea58205a62b9b11905e93d7ae82bd1f2a799ca5d1f44a9bde924db87a7",
+          "artifact_digest": "sha256:7354758885b605ce530f4e6cc5cf11b64f653a22f453ae675e7227b64fc0e2cc",
+          "artifact_size": 492,
+          "message_id": "e979473d-7185-574f-b510-317829f423e4",
+          "status": "acked",
+          "part_acks": [
+            true,
+            true
+          ]
+        }
+      },
+      "changed_database_tables": [
+        "outbox_delivery_parts",
+        "outbox_messages",
+        "outbox_receipts"
+      ],
+      "nondelivery_tables_byte_values_unchanged": true,
+      "sealed_answers": 2,
+      "pending_or_leased_outbox": 0,
+      "delivered_document": {
+        "filename": "nobus-result.txt",
+        "sha256": "844425cc2b5d1eba709ccfe597b52f768628a17790df9d0f2e6b410a8ed677c3",
+        "size": 476
+      },
+      "replay_sent_parts": 0,
+      "replay_evidence": "First delivery helper passed its second deliver_pending == () assertion at line124 before failing line130; read-only current store confirms no pending/leased messages. No delivery replay is executed by this verifier.",
+      "budget_original_delivery_before": {
+        "sha256": "283b28bc8724f30b3e9484c1c2b388e1ccbbda80c9b81f86b91fc3c198093e78",
+        "rows_digest": "717d582d0668ec5759bc7905aa0d3918726bf6379883f5a4e2e6f706b3ad75b9",
+        "rows": 75,
+        "active": 0
+      },
+      "budget_prefix_before": {
+        "preserved_rows": 75,
+        "preserved_rows_digest": "717d582d0668ec5759bc7905aa0d3918726bf6379883f5a4e2e6f706b3ad75b9",
+        "current_total_rows": 76,
+        "later_owner_rows": 1
+      },
+      "budget_prefix_after": {
+        "preserved_rows": 75,
+        "preserved_rows_digest": "717d582d0668ec5759bc7905aa0d3918726bf6379883f5a4e2e6f706b3ad75b9",
+        "current_total_rows": 76,
+        "later_owner_rows": 1
+      },
+      "budget_timing": "Original delivery passed full ledger equality before line130. Later owner attempt7 started at15:46:43; prefix75rows remain exact and later owner rows are not attributed to this zero-inference verifier.",
+      "provider_calls": 0,
+      "native_asr_calls": 0,
+      "worker_initialized": false,
+      "network_client_initialized": false,
+      "external_calls": 0,
+      "scope": "Local synthetic delivery continuation only. Browser report independently passed all 9 actual frontend/Core/provider checks. Original overall helper FAILED is retained, and this read-only receipt closes only final delivery readback."
+    }
+  },
+  "independent_L3": {
+    "source": {
+      "local_path": ".runtime/c4/reviews/final-package-l3-66cff24/DELIVERY-POST-READBACK.json",
+      "sha256": "4ef47b55573897c59c4e43caf9265243d739b4b966c2ff1d3614024abccbb6b2",
+      "bytes": 4481
+    },
+    "receipt": {
+      "reviewer": "/root/final_c4_l3",
+      "status": "ACCEPT_DELIVERY_READBACK_VERIFIER_SIDECAR_FAILURE",
+      "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+      "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+      "checks": [
+        {
+          "name": "same_tables",
+          "pass": true
+        },
+        {
+          "name": "all_nondelivery_rows_byteidentical",
+          "pass": true
+        },
+        {
+          "name": "two_exact_tasks_and_outboxes",
+          "pass": true
+        },
+        {
+          "name": "both_outboxes_acked",
+          "pass": true
+        },
+        {
+          "name": "four_part_receipts",
+          "pass": true
+        },
+        {
+          "name": "only_one_new_outbox_receipt",
+          "pass": true
+        },
+        {
+          "name": "only_second_document_part_changed",
+          "pass": true
+        },
+        {
+          "name": "first_entire_outbox_row_unchanged",
+          "pass": true
+        },
+        {
+          "name": "new_document_exact_browser_bytes",
+          "pass": true
+        },
+        {
+          "name": "original_failed_phase_untouched",
+          "pass": true
+        },
+        {
+          "name": "all75original_ledger_rows_unchanged",
+          "pass": true
+        },
+        {
+          "name": "SQLite_sidecars_only_expected_size",
+          "pass": true
+        },
+        {
+          "name": "current_source_clean_66c",
+          "pass": true
+        },
+        {
+          "name": "independent_readonly_copy_creates_sidecars_without_DB_byte_change",
+          "pass": true
+        }
+      ],
+      "classification": "VERIFIER_DEFECT",
+      "conclusion": "Actual browser9checks and two completed Core/provider tasks accepted for local scope. Existing sender delivered only the previously unacked second document. Both outboxes ACKED and four parts receipted; all nondelivery rows unchanged. Final broad inventory guard is a verifier failure. SQLite sidecar creation is independently reproduced and consistent with the failure; the lost pre-run inventory prevents asserting its exact original filename/hash diff. No task/provider/delivery repeat is required.",
+      "messages": [
+        [
+          "e979473d-7185-574f-b510-317829f423e4",
+          "3de49ec6-9e27-49e0-b795-e0655850e479",
+          "acked"
+        ],
+        [
+          "f119b878-b17d-5d15-9186-6b498295da02",
+          "e02f84b0-d33e-44f3-bb1e-8d94e922d3cc",
+          "acked"
+        ]
+      ],
+      "part_ack_count": 4,
+      "ledger_history": {
+        "original_prefix_rows": 75,
+        "original_prefix_unchanged": true,
+        "current_rows": 77,
+        "note": "Owner attempt7 started after delivery; later legitimate owner rows are outside this delivery comparison. Initial whole-file probe detected that expected concurrent append; no delivery-induced mutation."
+      },
+      "sha256": {
+        "before_tasks_backup": "21bc66bf9adbaf65e74c748940099cd5beba898eaf7582d3392eff64bd9347e2",
+        "after_tasks_file": "9f8024d27657d841d46ccdb1661f0d09414a9d2f7bf1cf4dead2d1a52da50abf",
+        "helper": "d78a1d222a1d646cd1004bcbe98a472fdafb220b60d634719f84c27490df342f",
+        "original_failed_phase": "6c7bf6c7f524909fa77bdafae0955a53d1ff1de7cea75f6f2be5775e071df3f3",
+        "delivered_second_document": "844425cc2b5d1eba709ccfe597b52f768628a17790df9d0f2e6b410a8ed677c3"
+      },
+      "limitations": [
+        "Original enclosing phase remains FAILED at transport readback. Delivery helper guard failure is retained separately; completion is proven by this read-only logical comparison and original browser proof.",
+        "Replay no additional send is evidenced by helper execution before final inventory guard; this review does not call deliver_pending again.",
+        "Local browser and synthetic delivery do not replace actual owner Telegram E2E."
+      ],
+      "execution": {
+        "DB_mode": "read-only",
+        "model_calls": 0,
+        "ASR_calls": 0,
+        "external_calls": 0,
+        "product_edits": 0,
+        "delivery_calls": 0
+      },
+      "sidecar_diagnosis": {
+        "independent_copy_reproduction": true,
+        "added_files": [
+          "telegram-copy.sqlite3-shm",
+          "telegram-copy.sqlite3-wal"
+        ],
+        "copy_main_DB_bytes_unchanged": true,
+        "original_exact_file_diff_known": false,
+        "limit": "Original helper kept pre-run broad inventory only in memory; its exact failed diff cannot be recovered. Core logical state and delivery completion are independently proven by before-backup/current values."
+      },
+      "supplemental_sources": {
+        "delivery_only_receipt": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895",
+        "failed_verifier": "cb9a0b0f53fa71803c88007f880262de7c09e46d5cf28678445e3973b3fc539c"
+      }
+    }
+  },
+  "limits": "4 actual model turns/4 reservations; ASR0; no later task reexecution. Broader sidecar inventory assertion was a verifier defect, old inventory not saved; logical rows/oldproof/ledger prefix checked independently."
+}

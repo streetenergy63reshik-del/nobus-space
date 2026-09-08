@@ -1,128 +1,135 @@
 {
-  "schema": "c4-preservation-1",
-  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "schema": "c4-preservation-3",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
   "all_pass": true,
   "checks": [
     {
-      "check": "canonical status matches C4 entry",
+      "check": "canonical_status_unchanged",
       "pass": true
     },
     {
-      "check": "canonical bytes README.md",
+      "check": "canonical_bytes README.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/01-Единый-документ-проекта.md",
+      "check": "canonical_bytes docs/01-Единый-документ-проекта.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/02-Глоссарий.md",
+      "check": "canonical_bytes docs/02-Глоссарий.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/03-Архитектурный-обзор.md",
+      "check": "canonical_bytes docs/03-Архитектурный-обзор.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/04-Журнал-ADR.md",
+      "check": "canonical_bytes docs/04-Журнал-ADR.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/08-Runbook-эксплуатации.md",
+      "check": "canonical_bytes docs/08-Runbook-эксплуатации.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/11-Контекст-продукта.md",
+      "check": "canonical_bytes docs/11-Контекст-продукта.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+      "check": "canonical_bytes docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/README.md",
+      "check": "canonical_bytes docs/README.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md",
+      "check": "canonical_bytes docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/gates/README.md",
+      "check": "canonical_bytes docs/gates/README.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/handoffs/CURRENT-STATUS.md",
+      "check": "canonical_bytes docs/handoffs/CURRENT-STATUS.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/handoffs/WORKSPACE-INVENTORY.md",
+      "check": "canonical_bytes docs/handoffs/WORKSPACE-INVENTORY.md",
       "pass": true
     },
     {
-      "check": "canonical bytes scripts/run_telegram_mvp1.py",
+      "check": "canonical_bytes scripts/run_telegram_mvp1.py",
       "pass": true
     },
     {
-      "check": "canonical bytes src/application/miniapp.py",
+      "check": "canonical_bytes src/application/miniapp.py",
       "pass": true
     },
     {
-      "check": "canonical bytes src/application/runtime_maintenance.py",
+      "check": "canonical_bytes src/application/runtime_maintenance.py",
       "pass": true
     },
     {
-      "check": "canonical bytes tests/test_documentation.py",
+      "check": "canonical_bytes tests/test_documentation.py",
       "pass": true
     },
     {
-      "check": "canonical bytes tests/test_telegram_mvp1_runner.py",
+      "check": "canonical_bytes tests/test_telegram_mvp1_runner.py",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/15-Продуктовая-дорожная-карта.md",
+      "check": "canonical_bytes docs/15-Продуктовая-дорожная-карта.md",
       "pass": true
     },
     {
-      "check": "canonical bytes docs/16-Управленческая-карта-разработки.html",
+      "check": "canonical_bytes docs/16-Управленческая-карта-разработки.html",
       "pass": true
     },
     {
-      "check": "retained base docs/06-Регламент-качества-L1-L4.md",
+      "check": "retained_base docs/06-Регламент-качества-L1-L4.md",
       "pass": true
     },
     {
-      "check": "retained base docs/07-Правила-внешней-записи.md",
+      "check": "retained_base docs/07-Правила-внешней-записи.md",
       "pass": true
     },
     {
-      "check": "retained base docs/12-Эталон-MVP-1-и-дорожная-карта.md",
+      "check": "retained_base docs/12-Эталон-MVP-1-и-дорожная-карта.md",
       "pass": true
     },
     {
-      "check": "retained base docs/13-Интегрированная-архитектура-MVP-1.md",
+      "check": "retained_base docs/13-Интегрированная-архитектура-MVP-1.md",
       "pass": true
     },
     {
-      "check": "retained base docs/gates/gate-c0-mvp1-truth-contract",
+      "check": "retained_base docs/gates/gate-c0-mvp1-truth-contract",
       "pass": true
     },
     {
-      "check": "retained base docs/gates/gate-c1-semantic-task-compiler",
+      "check": "retained_base docs/gates/gate-c1-semantic-task-compiler",
       "pass": true
     },
     {
-      "check": "retained base docs/gates/gate-c2-voice-parity",
+      "check": "retained_base docs/gates/gate-c2-voice-parity",
       "pass": true
     },
     {
-      "check": "retained base docs/gates/gate-c3-core-stability",
+      "check": "retained_base docs/gates/gate-c3-core-stability",
       "pass": true
     },
     {
-      "check": "retained base docs/gates/gate-00-product-contract-baseline",
+      "check": "retained_base docs/gates/gate-00-product-contract-baseline",
+      "pass": true
+    },
+    {
+      "check": "retained_base AGENTS.md",
       "pass": true
     }
   ],
-  "note": "Current20canonical hashes matched C4 entry; historicalC3coverage19 with1explicitgap remains. Protected docs06/07/12/13 and C0-C3/Gate0 unchanged. No broad worktree cleanup or historical reacceptance."
+  "historical_manifest_gap": "C3 entry historically hashed19dirtyfiles with1explicitgap; all20 current C4 entry files are matched. No missing historical hash invented.",
+  "no_canonical_edits": true,
+  "no_permanent_deploy": true,
+  "no_C5_C6_MVP2_started": true
 }

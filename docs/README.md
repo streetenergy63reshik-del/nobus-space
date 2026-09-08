@@ -1,9 +1,9 @@
 # Документация Nobus Space
 
 **Статус:** CANONICAL INDEX
-**Актуально на:** 7 сентября 2026 года
+**Актуально на:** 8 сентября 2026 года
 
-**CURRENT:** C0–C3 приняты и опубликованы. Повторный настоящий smoke C4 подтвердил текст, TXT и восстановление Mini App. По запросу владельца добавлены кнопки подтверждения голоса и очистка промежуточного сообщения; новый кандидат ожидает своих проверок и ручного smoke. C4 NOT ACCEPTED / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
+**CURRENT:** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / NOT PUBLISHED. Реальный владелец проверил голос с кнопками, результат и файл в Telegram/Mini App. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
 
 Thin topology задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
@@ -77,7 +77,7 @@ pointer, короткий status, decisions и freshness.
     [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — опубликованный
     voice parity, принятый ASR и закрытая B02; исторические FAIL сохранены.
 14. [C3 handoff](gates/gate-c3-core-stability/HANDOFF.md) — принятые recovery/result/artifact contracts.
-15. [C4](gates/gate-c4-frontend-journey/ACCEPTANCE.md) — текущий кандидат frontend/user journey и явные оставшиеся проверки.
+15. [C4](gates/gate-c4-frontend-journey/ACCEPTANCE.md) — frontend/user journey, проверки и граница передачи C5.
 
 ## Сохранённые контракты
 

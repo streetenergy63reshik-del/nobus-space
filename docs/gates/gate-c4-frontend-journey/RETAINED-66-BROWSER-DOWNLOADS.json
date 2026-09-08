@@ -1,0 +1,40 @@
+{
+  "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+  "status": "PASS",
+  "files": [
+    {
+      "local_path": ".runtime/c4/visual-66cff24/320-dark-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-66cff24/320-light-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-66cff24/390-dark-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-66cff24/390-light-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-66cff24/768-dark-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-66cff24/768-light-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    }
+  ],
+  "bytes_each": 460,
+  "utf8_opened": true,
+  "strict_bytes_digest": true,
+  "clipboard_note": "Windows clipboard converts LF to CRLF; text comparison normalizes newline only. Downloaded bytes are compared strictly."
+}

@@ -2,7 +2,7 @@
 
 **Статус документа:** CANONICAL
 
-**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 Точная кодовая ревизия и проверки — [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
 Наличие старого адаптера в коде не означает доступность возможности в текущей
@@ -37,8 +37,8 @@ semantic composition. Реализованные исторические ADR001
 | [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen | ACCEPTED; semantic/process scope by 0023 | TOPOLOGY CURRENT; OLD CLOSURE PROCESS HISTORICAL |
 | [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md) | Modality-neutral semantic admission: tool-less SemanticProposal, Core Capability Registry/policy decision, C0–C6 closure | ACCEPTED | CURRENT; C1–C3 PUBLISHED / ACCEPTED |
 | [0024](adr/0024-core-durable-recovery-and-part-delivery.md) | Durable admission/recovery, lease fencing, sealed answer и part receipts | ACCEPTED IN C3 | CURRENT; NOT DEPLOYED |
-| [0025](adr/0025-miniapp-session-and-request-recovery.md) | Core-owned session rotation и восстановление запроса Mini App без повторного admission | ACCEPTED FOR C4 IMPLEMENTATION | C4 LOCAL VERIFIED; GATE LIVE E2E PENDING; NOT DEPLOYED |
-| [0026](adr/0026-channel-neutral-product-projection.md) | Общие состояния, причины, действия и безопасное представление результата в Telegram и Mini App | ACCEPTED FOR C4 IMPLEMENTATION | C4 LOCAL VERIFIED; GATE LIVE E2E PENDING; NOT DEPLOYED |
+| [0025](adr/0025-miniapp-session-and-request-recovery.md) | Core-owned session rotation и восстановление запроса Mini App без повторного admission | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / NOT PUBLISHED; NOT DEPLOYED |
+| [0026](adr/0026-channel-neutral-product-projection.md) | Общие состояния, причины, действия и безопасное представление результата в Telegram и Mini App | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / NOT PUBLISHED; NOT DEPLOYED |
 
 ## Правила статусов ADR
 

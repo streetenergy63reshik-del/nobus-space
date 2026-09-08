@@ -1,7 +1,7 @@
 # 14. Решения владельца и завершение MVP1
 
-**Актуально на:** 7 сентября 2026 года.
-**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED.
+**Актуально на:** 8 сентября 2026 года.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED.
 C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 
 Точные факты и следующий шаг находятся в [CURRENT-STATUS](handoffs/CURRENT-STATUS.md)
@@ -17,9 +17,10 @@ C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 Повторное разрешение на каждую правку, ограниченный повтор или обычный push/PR/merge
 в этом объёме не требуется. Защита main и обязательные проверки остаются в силе.
 
-Общий C4 budget: до 64 model turns/резервов и 5400 секунд активного времени;
+Общий C4 budget: до 64 фактических model turns и 5400 секунд активного времени;
 до 20 локальных ASR-запусков и 1200 секунд native wall time.
 Единый накопительный ledger включает ошибки и повторы; его нельзя обнулять.
+Старты SDK без inference сохраняют расход времени, но не считаются model turns.
 Существующая подписка, модельный профиль и квалифицированный ASR C2 сохраняются.
 
 Настоящий owner Telegram/Mini App smoke проводится по точному ограниченному плану:

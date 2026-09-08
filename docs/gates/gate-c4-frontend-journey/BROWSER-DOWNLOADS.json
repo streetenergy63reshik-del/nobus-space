@@ -1,0 +1,41 @@
+{
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "status": "PASS",
+  "files": [
+    {
+      "local_path": ".runtime/c4/visual-68f87f1/320-dark-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-68f87f1/320-light-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-68f87f1/390-dark-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-68f87f1/390-light-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-68f87f1/768-dark-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    },
+    {
+      "local_path": ".runtime/c4/visual-68f87f1/768-light-nobus-result.txt",
+      "sha256": "90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+      "bytes": 460
+    }
+  ],
+  "bytes_each": 460,
+  "utf8_opened": true,
+  "strict_bytes_digest": true,
+  "clipboard_note": "Windows clipboard comparison normalizes LF/CRLF only; file digest uses exact bytes."
+}

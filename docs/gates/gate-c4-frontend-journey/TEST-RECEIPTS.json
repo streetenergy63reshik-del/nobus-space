@@ -1,136 +1,60 @@
 {
-  "schema": "c4-tests-1",
-  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
-  "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
-  "root_frozen_L1": {
-    "pass": 2132,
-    "subtests_pass": 25,
-    "windows_symlink_skip": 2,
-    "historical_deselect": 1,
-    "seconds": 174.67,
-    "node_pass": 17,
-    "node_source": {
-      "local_path": ".runtime/c4/a869a69-frontend.log",
-      "sha256": "d5398c9c9664efb3a892c34e63a54806a55d9eeebd9d3229c8bc79b286b7a2a1",
-      "bytes": 1486
+  "schema": "c4-tests-3",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "status": "PASS",
+  "node_current": {
+    "passed": 20,
+    "source": {
+      "local_path": ".runtime/c4/initial-error-node-green-final.log",
+      "sha256": "414a7faa9c5557ab437175d8c845f09223c00e84080cd7fccf5d8d0b14c9f8aa",
+      "bytes": 1787
     }
   },
-  "receipts": [
-    {
-      "source": {
-        "local_path": ".runtime/c4/a869a69-l1.xml",
-        "sha256": "126145863edbe25d84832f5e7e6541e1ffd524905e415584a743235488a220c0",
-        "bytes": 334581
-      },
-      "suites": [
-        {
-          "tests": "2159",
-          "failures": "0",
-          "errors": "0",
-          "skipped": "2",
-          "time": "174.575"
-        }
-      ],
-      "failure_case_count": 0,
-      "skipped_case_count": 2
+  "retained_66": "RETAINED-66-TEST-RECEIPTS.json",
+  "C0_C3_reaccepted": false,
+  "root_frozen_L1": {
+    "passed": 2227,
+    "subtests_passed": 25,
+    "windows_symlink_skip": 2,
+    "historical_deselect": 2,
+    "seconds": 187.03,
+    "source": {
+      "local_path": ".runtime/c4/full-68f87f1.xml",
+      "sha256": "a486f20da60e3b6bc12ea855833a88acf3b67d23557a04f269dc30cb1334118f",
+      "bytes": 348248
     },
+    "log": {
+      "local_path": ".runtime/c4/full-68f87f1.log",
+      "sha256": "8e1672e8d8016432eb9ed3a7bfa4a6cd7bc28ac19517366eef1c3e3db3a9f0df",
+      "bytes": 3451
+    }
+  },
+  "junit": [
     {
-      "source": {
-        "local_path": ".runtime/c4/ad02795-l1.xml",
-        "sha256": "dae8a3746fc6575ac87c0ba598537bba972a6d40c60ec228c34dd0893595fcde",
-        "bytes": 339501
-      },
-      "suites": [
-        {
-          "tests": "2152",
-          "failures": "9",
-          "errors": "0",
-          "skipped": "2",
-          "time": "166.593"
-        }
-      ],
-      "failure_case_count": 9,
-      "skipped_case_count": 2
-    },
-    {
-      "source": {
-        "local_path": ".runtime/c4/ad02795-contract-rework-final.xml",
-        "sha256": "e72ee94907ce6ed2d861075cc58babf9c3012632906c7309b7d74cce2021829f",
-        "bytes": 70795
-      },
-      "suites": [
-        {
-          "tests": "400",
-          "failures": "0",
-          "errors": "0",
-          "skipped": "0",
-          "time": "13.515"
-        }
-      ],
-      "failure_case_count": 0,
-      "skipped_case_count": 0
-    },
-    {
-      "source": {
-        "local_path": ".runtime/c4/miniapp-cancel-first.xml",
-        "sha256": "b372afe92c6086f2a2cf45614e219689fba37cb3d6e351a242ff7ce67e4ea1c3",
-        "bytes": 6885
-      },
-      "suites": [
-        {
-          "tests": "51",
-          "failures": "0",
-          "errors": "0",
-          "skipped": "0",
-          "time": "6.199"
-        }
-      ],
-      "failure_case_count": 0,
-      "skipped_case_count": 0
-    },
-    {
-      "source": {
-        "local_path": ".runtime/c4/telegram-targeted.xml",
-        "sha256": "bd5aec9975c2dd585c2dc015786fc016972fc22ae819ecc8a44f18438f0c54bf",
-        "bytes": 70802
-      },
-      "suites": [
-        {
-          "tests": "350",
-          "failures": "0",
-          "errors": "0",
-          "skipped": "0",
-          "time": "29.760"
-        }
-      ],
-      "failure_case_count": 0,
-      "skipped_case_count": 0
-    },
-    {
-      "source": {
-        "local_path": ".runtime/c4/miniapp-recovery-final.xml",
-        "sha256": "8057692a23277be2ff73d73322381fa6632046fe80a0a63ff56ea4cb33f27cb1",
-        "bytes": 14291
-      },
-      "suites": [
-        {
-          "tests": "100",
-          "failures": "0",
-          "errors": "0",
-          "skipped": "0",
-          "time": "11.880"
-        }
-      ],
-      "failure_case_count": 0,
-      "skipped_case_count": 0
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "2",
+      "tests": "2254",
+      "time": "186.924",
+      "timestamp": "2026-09-08T16:01:41.363978+03:00"
     }
   ],
-  "historical_fail_retained": true,
-  "repeated_C0_C3_acceptance": false,
-  "full_command": "DEBUG=false PYTHONIOENCODING=utf-8 python -m pytest tests/ -q -ra --tb=short --ignore=tests/gate0 --ignore=tests/test_gate_c0_governance.py --deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022 -p no:cacheprovider --basetemp=<isolated C4 temp> --junitxml=<C4 receipt>",
-  "environment": {
-    "DEBUG": "false",
-    "PYTHONIOENCODING": "utf-8"
-  },
-  "command_scope": "Same argv, environment and exclusions; disposable temp/receipt paths shown as placeholders. Source XML and log hashes identify actual execution."
+  "full_command": "DEBUG=false PYTHONIOENCODING=utf-8 python -m pytest tests/ -q -ra --tb=short --ignore=tests/gate0 --ignore=tests/test_gate_c0_governance.py --deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022 --deselect=tests/test_pre_gate1_architecture_integration.py::test_gate0_catalog_required_sources_remain_byte_identical -p no:cacheprovider --basetemp=<unique C4 temp> --junitxml=<receipt>",
+  "deselections": [
+    {
+      "name": "test_active_projections_and_authority_point_to_adr0022",
+      "classification": "HISTORICAL_BASELINE",
+      "reason": "Historical projection assertion predates accepted C1-C3 and C4; not a current acceptance check."
+    },
+    {
+      "name": "test_gate0_catalog_required_sources_remain_byte_identical",
+      "classification": "STALE_CONTEXT",
+      "reason": "Historical C0 catalog pins active docs05/10 before their reviewed C4 documentation update; the earlier failed run is retained. This does not waive product tests or reaccept C0."
+    }
+  ],
+  "warnings": [
+    "Existing Starlette/httpx deprecation; no dependency update in C4."
+  ]
 }

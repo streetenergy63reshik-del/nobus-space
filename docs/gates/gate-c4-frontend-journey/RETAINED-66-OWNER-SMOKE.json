@@ -1,0 +1,413 @@
+{
+  "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+  "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+  "attempt": 7,
+  "status": "NEW_TEXT_RESULT_SCOPE_PASS_INITIAL404_UI_REJECT",
+  "owner_evidence": {
+    "local_path": ".runtime/c4/live-66cff24fbc33-attempt7/owner-evidence/text-result-readback.json",
+    "sha256": "e2484065011d1327deadd932a14e2a229f0d4884b9679dca91fbe70f91233d66",
+    "bytes": 8806
+  },
+  "owner_confirmation": "Да, всё это получилось",
+  "bound_result": {
+    "task_id": "a00980f6-26a8-4a27-bed9-209c3de69444",
+    "task_revision": 6,
+    "result_revision": 1,
+    "result_digest": "sha256:ac02181fa42496f3a6354105aa85fc31a68e315a5def3cb10c73fdc29c83b458",
+    "artifact_id": "29239be6-1849-573a-83c0-94b789654633",
+    "content_digest": "sha256:50c34f471d0b055f4f0e28903679c609025e01b8b0ea5f998013c573edfcaeff",
+    "size": 356,
+    "telegram_document_digest_matches": true,
+    "utf8_answer_matches": true,
+    "outbox_acked_all_parts": true,
+    "miniapp_download_200": false,
+    "physical_download_found": false,
+    "copy_supported_by_owner_confirmation": true
+  },
+  "inputs": [
+    [
+      "miniapp",
+      1
+    ]
+  ],
+  "sent_counts": {
+    "text": 1,
+    "document": 1
+  },
+  "artifact_download_note": "Owner reported success, but no artifactHTTPGET or matching physical download was observed. Do not call the MiniApp artifact step verified.",
+  "stale_card_finding": "task404 before first POST/tasks202; selected marker from previous isolated window; initial loading placeholder wrongly remains behind modal error. New actual task runs successfully. Full gate66 not accepted until UI rework.",
+  "screenshots": [
+    {
+      "name": "codex-clipboard-c4982ba6-c161-484b-a5c9-dff20a6de56a.png",
+      "sha256": "c28a3ccfa0aa8fdf4c4dd34dde88c381cefa24677bac1add105077bb8f203cbc",
+      "published": false
+    },
+    {
+      "name": "codex-clipboard-00adf360-9ef6-4896-b715-eba6e011e07f.png",
+      "sha256": "fc7748fce547cc0da0d0d895ed5f92ad7db2095b5fe361b639b64732f3914a6b",
+      "published": false
+    },
+    {
+      "name": "codex-clipboard-85d25265-3cb3-4efa-8b1f-626f3a242fd8.png",
+      "sha256": "72b7076670f8abab70ec641b7a8212adff04875745cc9b93969a528ddacfd899",
+      "published": false
+    },
+    {
+      "name": "codex-clipboard-b9e9faf2-5ac6-4b54-a753-01c8fa275ca2.png",
+      "sha256": "23e66a490da34dad5add3741f4e360f9be796e9ab860bb6994e417abb0d0189e",
+      "published": false
+    }
+  ],
+  "source_http": [
+    {
+      "at": 1788871679.5203876,
+      "method": "GET",
+      "route": "/healthz",
+      "status": 200
+    },
+    {
+      "at": 1788871679.7755282,
+      "method": "GET",
+      "route": "/readyz",
+      "status": 200
+    },
+    {
+      "at": 1788871680.116611,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 200
+    },
+    {
+      "at": 1788871680.3543906,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 200
+    },
+    {
+      "at": 1788871680.5919495,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 200
+    },
+    {
+      "at": 1788871717.6148112,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 200
+    },
+    {
+      "at": 1788871717.8314345,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 304
+    },
+    {
+      "at": 1788871717.9685707,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 304
+    },
+    {
+      "at": 1788871718.1831412,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 404
+    },
+    {
+      "at": 1788871718.2352371,
+      "method": "POST",
+      "route": "/api/session/recover",
+      "status": 401
+    },
+    {
+      "at": 1788871718.5033302,
+      "method": "POST",
+      "route": "/api/session",
+      "status": 200
+    },
+    {
+      "at": 1788871718.6550949,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871718.9057148,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871720.4384468,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871720.5816672,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871729.5604312,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871729.8211968,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871744.2326884,
+      "method": "GET",
+      "route": "static_or_unmatched",
+      "status": 304
+    },
+    {
+      "at": 1788871744.3731859,
+      "method": "POST",
+      "route": "/api/session/recover",
+      "status": 200
+    },
+    {
+      "at": 1788871744.543957,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871744.6904082,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871745.810047,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871745.9597301,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871746.2856667,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871746.4233384,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871746.5650308,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871746.7765238,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871746.7943227,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871747.0274417,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871747.3102834,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871747.4348168,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 404
+    },
+    {
+      "at": 1788871749.7258856,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871771.22089,
+      "method": "POST",
+      "route": "/api/tasks",
+      "status": 202
+    },
+    {
+      "at": 1788871771.4755962,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 200
+    },
+    {
+      "at": 1788871771.6070604,
+      "method": "GET",
+      "route": "/api/tasks",
+      "status": 200
+    },
+    {
+      "at": 1788871771.720031,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/events",
+      "status": 200
+    },
+    {
+      "at": 1788871774.8673713,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 200
+    },
+    {
+      "at": 1788871775.0346732,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/events",
+      "status": 200
+    },
+    {
+      "at": 1788871778.2158291,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 200
+    },
+    {
+      "at": 1788871778.4473808,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/events",
+      "status": 200
+    },
+    {
+      "at": 1788871781.6420493,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 200
+    },
+    {
+      "at": 1788871781.9070196,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/events",
+      "status": 200
+    },
+    {
+      "at": 1788871785.0864522,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 200
+    },
+    {
+      "at": 1788871785.3845243,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/events",
+      "status": 200
+    },
+    {
+      "at": 1788871785.5735383,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/result",
+      "status": 200
+    },
+    {
+      "at": 1788871788.7655303,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}",
+      "status": 200
+    },
+    {
+      "at": 1788871788.9996312,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/events",
+      "status": 200
+    },
+    {
+      "at": 1788871789.3729627,
+      "method": "GET",
+      "route": "/api/tasks/{task_id}/result",
+      "status": 200
+    }
+  ],
+  "stop": {
+    "status": "STOPPED_REQUIRES_ROOT_READBACK",
+    "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+    "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+    "review_sha256": "2a33043902f59422a2628770713ff652ff7d0ddf903e29c73b99ac4f45100125",
+    "forced": false,
+    "cleanup": {
+      "job_active_processes": 0,
+      "owned_wrappers_exited": true
+    },
+    "ended": 1788872159.0014415
+  },
+  "runtime_cleanup": [
+    {
+      "component": "http",
+      "closed": true
+    },
+    {
+      "component": "control",
+      "closed": true
+    },
+    {
+      "component": "runtime",
+      "closed": true
+    },
+    {
+      "component": "telegram_api",
+      "closed": true
+    }
+  ],
+  "runtime_stop_source": {
+    "local_path": ".runtime/c4/live-66cff24fbc33-attempt7/runtime-stop-1788872158663913700.json",
+    "sha256": "13cce046c6f6b51c1b6d2e812c374771521937f953b74369bc34d2ecb062cb8f",
+    "bytes": 4006
+  },
+  "budget_after": {
+    "resources": {
+      "model": {
+        "reserved_calls": 68,
+        "charged_seconds": 959.8899999994319,
+        "actual_model_turns": 54,
+        "max_calls": 64,
+        "max_seconds": 5400.0,
+        "remaining_calls": 10,
+        "remaining_seconds": 4440.110000000568,
+        "counting_basis": "actual_model_turns_plus_active_potential_turns",
+        "active_potential_turns": 0,
+        "max_model_turns": 64
+      },
+      "asr": {
+        "reserved_calls": 10,
+        "charged_seconds": 80.82799999974668,
+        "actual_model_turns": 0,
+        "max_calls": 20,
+        "max_seconds": 1200.0,
+        "remaining_calls": 10,
+        "remaining_seconds": 1119.1720000002533
+      }
+    },
+    "active_reservations": 0
+  },
+  "permanent_deploy": false
+}

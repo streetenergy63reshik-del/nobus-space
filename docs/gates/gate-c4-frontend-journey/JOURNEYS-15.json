@@ -1,0 +1,641 @@
+{
+  "status": "ACCEPTED_14_APPLICABLE_PASS_1_CONDITIONAL_NA",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "prompt_section": "GATE-C4-LAUNCH-PROMPT.md C4.8 lines437–455",
+  "local_summary": {
+    "applicable": 14,
+    "supported_exact_or_explicitly_retained": 14,
+    "conditional_not_applicable": 1
+  },
+  "live_acceptance": "PASS exact68 attempt8; LIVE-SMOKE.json; stopped/readback",
+  "no_false_rebinding": "Neither original b89/66 proofs nor originalFAILED/REJECT verdicts are renamed. Current proof is composed from unchanged scoped producers and newlyexecuted68 errorUI/browser/fullL1.",
+  "journeys": [
+    {
+      "id": 1,
+      "journey": "direct text task",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/product-b89b651/direct_text/phase-1788866808440699900-run.json",
+          "sha256": "9728de5c329622eca313bcd54f54e3a83973b6b21a1b23822feeb432ce12dd85",
+          "claim": "Actual provider/Core/HTTP run; Telegram transport and initData synthetic; original b89 binding."
+        },
+        {
+          "path": ".runtime/c4/product-b89b651/direct_text/phase-1788866813265663600-replay.json",
+          "sha256": "d0c75e99df167ba989d94c240db4c52274c01f1c228e518d12ad4b6e323f192b",
+          "claim": "Restart/readback preserved exact result/artifact and consumed no additional inference."
+        },
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+          "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          "claim": "Two actual frontend POSTs and real provider tasks; original66.",
+          "selector": "checks[name=two_sequential_real_tasks_one_core_and_session]"
+        },
+        {
+          "path": "LIVE-SMOKE.json",
+          "claim": "One actual owner MiniApp task, current authentic session/recovery, result and artifactHTTP200; exact446byte physical download and Telegram digest match; owner confirms successful test."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 146,
+          "test": "test_ack_loss_reload_and_changed_input_use_one_durable_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual b89 admission/provider/ASR/result evidence: those code bytes are unchanged. Do not retain b89 queued-as-running projection; current running is proved by66 actual browser and68 full L1. Current error UI/26screenshots are proved separately on68. Original SHA/status remain. Retain actual66 frontend/Core/provider identity, working, idempotency and result/delivery scopes. The68 delta only alters error presentation/recovery and static cache URLs. Original66 overall helper FAILED remains; its isolated transport defect is closed by separate delivery-only receipt. New error UI is independently tested on68.",
+      "unverified": [],
+      "current_live_status": "PASS exact68 owner attempt8; LIVE-SMOKE.json"
+    },
+    {
+      "id": 2,
+      "journey": "transform-text incident regression",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/product-b89b651/transform_text/phase-1788866925315541800-run.json",
+          "sha256": "a5048755a4402d6ab3bd938a4b3022ff4aa8a28d93921a5611fa3611d99fd12b",
+          "claim": "Actual provider/Core/HTTP run; Telegram transport and initData synthetic; original b89 binding."
+        },
+        {
+          "path": ".runtime/c4/product-b89b651/transform_text/phase-1788866930331001600-replay.json",
+          "sha256": "7d948f6a2938378ceca7d66f2fc13bf13046b9637edd326da6e25f5e4c85632e",
+          "claim": "Restart/readback preserved exact result/artifact and consumed no additional inference."
+        },
+        {
+          "path": ".runtime/c4/retained-replay-66cff24/transform_text/read-replay.json",
+          "sha256": "a8d5b7900eaedf917440bcef2d1ad700bdc80b0ebc89df71d655b45fa63bd134",
+          "claim": "Fresh66 Core/HTTP reads on copied b89 sealed result; no new model."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_semantic_admission.py",
+          "line": 326,
+          "test": "test_c1_security_corrections_preserve_the_original_transform_incident",
+          "candidate_l1_matches": 3,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_semantic_admission.py",
+          "line": 264,
+          "test": "test_c1_b02_quoted_operations_stay_inert_across_modalities",
+          "candidate_l1_matches": 39,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual b89 admission/provider/ASR/result evidence: those code bytes are unchanged. Do not retain b89 queued-as-running projection; current running is proved by66 actual browser and68 full L1. Current error UI/26screenshots are proved separately on68. Original SHA/status remain.",
+      "unverified": [
+        "No claim that the exact68 browser independently retyped the transform incident; its semantic and effect path is retained, not renamed."
+      ],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 3,
+      "journey": "direct Telegram voice task",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/product-b89b651/direct_voice/phase-1788864489253991100-run.json",
+          "sha256": "c7b335c483975805e7f967c168e32d709c38d8f0ba9d9b93d1ebeb15e5ddc6b0",
+          "claim": "Actual provider/Core/HTTP run; Telegram transport and initData synthetic; original b89 binding."
+        },
+        {
+          "path": ".runtime/c4/product-b89b651/direct_voice/phase-1788864526806389700-replay.json",
+          "sha256": "fa02aa31f318c86343222219424a900ceb3cd03ba743ac9e83ea9c07e0140913",
+          "claim": "Restart/readback preserved exact result/artifact and consumed no additional inference."
+        },
+        {
+          "path": ".runtime/c4/live-b89b651b43f1-attempt6/owner-evidence/voice-buttons-result-readback.json",
+          "sha256": "111786d80a63c17c41f9daea121cf3cd7079be599837eebf9edd94fe64c0bbcb",
+          "claim": "Historical real owner voice/button, same task/result/file in both surfaces; original b89 only."
+        },
+        {
+          "path": ".runtime/c4/visual-68f87f1/verification.json",
+          "sha256": "efb4d517c323cbb047a8b13cecba5eac3e9a00870e4f1a14c80108ff1385d6df",
+          "claim": "Current68 real frontend/Core views copied sealed b89 voice-origin task, keyboard/copy/download."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_voice_buttons.py",
+          "line": 55,
+          "test": "test_confirm_survives_restart_and_conflicting_button_cannot_repeat_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c4_voice_buttons.py",
+          "line": 184,
+          "test": "test_actual_control_dispatch_accepts_button_without_reply",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual b89 admission/provider/ASR/result evidence: those code bytes are unchanged. Do not retain b89 queued-as-running projection; current running is proved by66 actual browser and68 full L1. Current error UI/26screenshots are proved separately on68. Original SHA/status remain.",
+      "unverified": [
+        "Exact68 current live acceptance remains a separate root criterion; historical real voice is not renamed."
+      ],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 4,
+      "journey": "transform-voice incident regression",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788867377853792300-run.json",
+          "sha256": "9b98bc03933fe4129531832d28edb76f6e4f739224e87a1aa6a7676be85dae68",
+          "claim": "Original failed helper phase retained: ASR/confirmation already persisted before compiler invocation failed."
+        },
+        {
+          "path": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788868231602775800-resume.json",
+          "sha256": "9858b1652fc28430e0cdfec66a260d307fa3a47576e4c982059febccca3d9777",
+          "claim": "Existing confirmed voice resumed before any Core task existed; original b89 actual completion,4507byte artifact,2parts; zero newASR."
+        },
+        {
+          "path": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788868349970653400-replay.json",
+          "sha256": "fa43f95b25ba626a9f46e8764e8e25367e6418bfb0ea8e939e3cabe469de0150",
+          "claim": "Exact sealed result/artifact restart replay, no inference delta."
+        },
+        {
+          "path": ".runtime/c4/retained-replay-66cff24/transform_voice/read-replay.json",
+          "sha256": "2b39b0a314a59ff9d5fb71bbb4ee99966fbfd7a57d9643baa6a16274c2a769fe",
+          "claim": "Fresh66 HTTP/session/result/file readback of copied old sealed result."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_semantic_admission.py",
+          "line": 326,
+          "test": "test_c1_security_corrections_preserve_the_original_transform_incident",
+          "candidate_l1_matches": 3,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_semantic_admission.py",
+          "line": 264,
+          "test": "test_c1_b02_quoted_operations_stay_inert_across_modalities",
+          "candidate_l1_matches": 39,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c2_material_boundary.py",
+          "line": 12,
+          "test": "test_inflected_material_boundary_keeps_commands_inert",
+          "candidate_l1_matches": 4,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual b89 admission/provider/ASR/result evidence: those code bytes are unchanged. Do not retain b89 queued-as-running projection; current running is proved by66 actual browser and68 full L1. Current error UI/26screenshots are proved separately on68. Original SHA/status remain.",
+      "unverified": [
+        "Initial/other compiler timeout FAILs stay historical. No PARSING task/provider restart was used: resumer required no Core tasks and one existing confirmed voice job."
+      ],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 5,
+      "journey": "clarification → answer → completion",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/product-b89b651/clarification/phase-1788867335406248500-run.json",
+          "sha256": "7006888de1f15e8671255c8ab36fabb0ea60ab6ba3909b40a3d286fbf36cacc0",
+          "claim": "Actual provider/Core/HTTP run; Telegram transport and initData synthetic; original b89 binding."
+        },
+        {
+          "path": ".runtime/c4/product-b89b651/clarification/phase-1788867341119639600-replay.json",
+          "sha256": "281ec73ffbf1e91b3201c203ccbbfed8e226bd63dc4f180122660f28207f1f69",
+          "claim": "Restart/readback preserved exact result/artifact and consumed no additional inference."
+        },
+        {
+          "path": ".runtime/c4/retained-replay-66cff24/clarification/read-replay.json",
+          "sha256": "132eff03b91c29496961f71cc71175036d46fb50de4ec601a2cf509d7bd27f68",
+          "claim": "New66 Core HTTP read/recovery on retained completed answer."
+        },
+        {
+          "path": "tests/gate_c4/frontend.test.cjs",
+          "sha256": "f21b86ad1f52d7db75c0e7e338195b8f6fefb44a3ee5dc0d14850f72ccdb7b62",
+          "claim": "UI clarification marker restoration/answer interaction is a deterministic DOM test, not actual semantic E2E.",
+          "selector": "clarification survives reload using only original opaque marker"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 196,
+          "test": "test_clarification_survives_reload_answers_same_conversation_and_rejects_old_token",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c4_product_journey.py",
+          "line": 115,
+          "test": "test_clarification_read_is_bound_current_and_does_not_consume",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual b89 admission/provider/ASR/result evidence: those code bytes are unchanged. Do not retain b89 queued-as-running projection; current running is proved by66 actual browser and68 full L1. Current error UI/26screenshots are proved separately on68. Original SHA/status remain.",
+      "unverified": [
+        "Actual semantic question/answer uses HTTP/Core/provider; no claim that a real browser or owner manually typed this branch during68 smoke."
+      ],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 6,
+      "journey": "unavailable capability",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/product-b89b651/unavailable/phase-1788867359289608600-run.json",
+          "sha256": "f9dd8b44c16ef0088c0e2380697e2deee454c3d82cc92ee4aca96ea077c74ee1",
+          "claim": "Actual b89 semantic admission returns409 capability_unavailable, authoritative request not_accepted and zero Core tasks/effects."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 240,
+          "test": "test_unavailable_is_durable_closed_outcome_without_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c4_product_journey.py",
+          "line": 102,
+          "test": "test_miniapp_semantic_stop_is_typed_and_creates_no_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual b89 admission/provider/ASR/result evidence: those code bytes are unchanged. Do not retain b89 queued-as-running projection; current running is proved by66 actual browser and68 full L1. Current error UI/26screenshots are proved separately on68. Original SHA/status remain.",
+      "unverified": [
+        "No unavailable external capability is enabled or executed for this negative case."
+      ],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 7,
+      "journey": "long-running task with progress",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+          "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          "claim": "Actual Core STARTED/PARSING and provider execution, visible working while bounded observation barrier waits.",
+          "selector": "checks[name=queued_to_actual_core_working_visible]"
+        },
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/first-working-after-reload-reconnect.png",
+          "sha256": "400b19b16cc8c5b3b38bbd8c0a89eba085ad029fcda579059dcca24351e4f1e9",
+          "claim": "Visible actual working state under retained66 UI."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_running_projection.py",
+          "line": 28,
+          "test": "test_claimed_task_is_working_until_provider_failure_without_duplicate",
+          "candidate_l1_matches": 2,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual66 frontend/Core/provider identity, working, idempotency and result/delivery scopes. The68 delta only alters error presentation/recovery and static cache URLs. Original66 overall helper FAILED remains; its isolated transport defect is closed by separate delivery-only receipt. New error UI is independently tested on68.",
+      "unverified": [
+        "The observation barrier controls scheduling only; no fake Core state/provider result. This is bounded running evidence, not a soak/performance test."
+      ],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 8,
+      "journey": "session expiry during read",
+      "local_status": "PASS_EXACT68_LOCAL_BROWSER",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-68f87f1/browser-report.json",
+          "sha256": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+          "claim": "Six contexts hit real Core session expiry401→recover200→successful read.",
+          "selector": "cases[*].checks[name=expired_bearer_rotates_through_real_core]"
+        },
+        {
+          "path": "LIVE-SMOKE.json",
+          "claim": "One actual owner MiniApp task, current authentic session/recovery, result and artifactHTTP200; exact446byte physical download and Telegram digest match; owner confirms successful test."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 44,
+          "test": "test_cookie_recovery_survives_reload_rotates_and_never_extends_signature",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 93,
+          "test": "test_restart_and_concurrent_rotation_keep_one_generation",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Exact68 UI+HTTP+Core; only the local configured bearer lifetime is shortened. Data producer stays b89; no new provider/ASR.",
+      "unverified": [],
+      "current_live_status": "PASS exact68 owner attempt8; LIVE-SMOKE.json"
+    },
+    {
+      "id": 9,
+      "journey": "reconnect/reload during running task",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+          "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          "claim": "Reload/offline/reconnect during actual Core working retains identity and sends no task again.",
+          "selector": "checks[name=reload_and_offline_reconnect_preserve_running_task_identity_without_resubmission]"
+        },
+        {
+          "path": ".runtime/c4/visual-68f87f1/browser-report.json",
+          "sha256": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+          "claim": "Exact68 completed selection/session offline recovery and new404 recovery.",
+          "selector": "cases[*].checks"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_running_projection.py",
+          "line": 28,
+          "test": "test_claimed_task_is_working_until_provider_failure_without_duplicate",
+          "candidate_l1_matches": 2,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual66 frontend/Core/provider identity, working, idempotency and result/delivery scopes. The68 delta only alters error presentation/recovery and static cache URLs. Original66 overall helper FAILED remains; its isolated transport defect is closed by separate delivery-only receipt. New error UI is independently tested on68.",
+      "unverified": [],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 10,
+      "journey": "create ACK loss/retry with same idempotency",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+          "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          "claim": "Browser route first fetches real202, then loses response; reload reads same requestID, only1POST for first task.",
+          "selector": "checks[name=lost_actual_202_reload_same_request_readback_no_second_post]"
+        },
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/actual-first-post.json",
+          "sha256": "6c712267b4d7461b44239cedead9ff2375ff2d762d9f84b54763993f30d6c497",
+          "claim": "Original real202 receipt before browser response abort."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 146,
+          "test": "test_ack_loss_reload_and_changed_input_use_one_durable_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 176,
+          "test": "test_unknown_before_admission_never_replays_compiler_or_claims_not_accepted",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual66 frontend/Core/provider identity, working, idempotency and result/delivery scopes. The68 delta only alters error presentation/recovery and static cache URLs. Original66 overall helper FAILED remains; its isolated transport defect is closed by separate delivery-only receipt. New error UI is independently tested on68.",
+      "unverified": [],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 11,
+      "journey": "provider transient/failure",
+      "local_status": "PASS_EXACT68_LOCAL_FAULT_BOUNDARY",
+      "evidence": [
+        {
+          "path": ".runtime/c4/full-68f87f1.xml",
+          "sha256": "a486f20da60e3b6bc12ea855833a88acf3b67d23557a04f269dc30cb1334118f",
+          "claim": "Both current worker_failed and worker_timeout parametrizations PASS; real Core/queue/resilient worker/HTTP, fault only external primary.execute."
+        },
+        {
+          "path": ".runtime/c4/reviews/final-gap-b89b651/worker_failed-receipt.json",
+          "sha256": "87edcf5d96a435b76fd936b5233007716092aa32269c18debc379469e2815f81",
+          "claim": "Historical independent same failure mechanism2attempts, terminalfailed, noresult,1ACK; old queued before-state excluded."
+        },
+        {
+          "path": ".runtime/c4/reviews/final-gap-b89b651/worker_timeout-receipt.json",
+          "sha256": "edc10ed9b5574b0c487132f4ab984f071ff70dd3e07cd48a0ad46d201e458aa1",
+          "claim": "Historical timeout case1attempt and no replay; old before-state excluded."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_running_projection.py",
+          "line": 28,
+          "test": "test_claimed_task_is_working_until_provider_failure_without_duplicate",
+          "candidate_l1_matches": 2,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Current exact68 test proves working→failed/error/result404 and no duplicate. External failure injected at provider boundary; semantic compiler is neither mocked nor invoked for already accepted no-effect contract. Do not call this a new paid provider failure.",
+      "unverified": [],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 12,
+      "journey": "result read in Telegram and Mini App",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-66cff24/delivery-only/RECEIPT.json",
+          "sha256": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895",
+          "claim": "Both original66 sealed answers have final outboxACK, exact Telegram parts/result bindings."
+        },
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+          "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          "claim": "Both answers rendered by actual66 UI and bound to distinct result revisions."
+        },
+        {
+          "path": ".runtime/c4/visual-68f87f1/browser-report.json",
+          "sha256": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+          "claim": "Exact68 current UI renders copied completed voice result and copy matches clipboard."
+        },
+        {
+          "path": "LIVE-SMOKE.json",
+          "claim": "One actual owner MiniApp task, current authentic session/recovery, result and artifactHTTP200; exact446byte physical download and Telegram digest match; owner confirms successful test."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_miniapp_result.py",
+          "line": 159,
+          "test": "test_core_result_rechecks_session_task_revision_and_safe_allowlist",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_miniapp_result.py",
+          "line": 228,
+          "test": "test_verified_answer_is_repeatable_after_ack_and_restart",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual66 frontend/Core/provider identity, working, idempotency and result/delivery scopes. The68 delta only alters error presentation/recovery and static cache URLs. Original66 overall helper FAILED remains; its isolated transport defect is closed by separate delivery-only receipt. New error UI is independently tested on68.",
+      "unverified": [],
+      "current_live_status": "PASS exact68 owner attempt8; LIVE-SMOKE.json"
+    },
+    {
+      "id": 13,
+      "journey": "artifact received/downloaded/opened with matching digest",
+      "local_status": "PASS_EXACT68_LOCAL_BROWSER_PLUS_RETAINED_DELIVERY",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-68f87f1/browser-report.json",
+          "sha256": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+          "claim": "Six actual68 browser downloads460bytes match Core digest/UTF8 answer; keyboard copy verified.",
+          "selector": "cases[*].checks[name=keyboard_download_real_core_bytes_match_result_and_receipt]"
+        },
+        {
+          "path": ".runtime/c4/visual-66cff24/delivery-only/RECEIPT.json",
+          "sha256": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895",
+          "claim": "Remaining second real-provider TXT476bytes delivered once using existingoutbox; first492byte answer alreadyacked."
+        },
+        {
+          "path": ".runtime/c4/live-b89b651b43f1-attempt6/owner-evidence/voice-buttons-result-readback.json",
+          "sha256": "111786d80a63c17c41f9daea121cf3cd7079be599837eebf9edd94fe64c0bbcb",
+          "claim": "Historical real Telegram/Mini App523byte file, owner copy/readback, original b89 only."
+        },
+        {
+          "path": "LIVE-SMOKE.json",
+          "claim": "One actual owner MiniApp task, current authentic session/recovery, result and artifactHTTP200; exact446byte physical download and Telegram digest match; owner confirms successful test."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_miniapp_artifact.py",
+          "line": 214,
+          "test": "test_telegram_and_miniapp_deliver_identical_artifact_bytes",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_miniapp_artifact.py",
+          "line": 187,
+          "test": "test_artifact_content_tamper_is_safe_unavailable",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Exact68 local browser proves received/downloaded bytes, not just metadata. Retained old real owner/file evidence remains old; C4 live criterion requires currentowner receipt.",
+      "unverified": [],
+      "current_live_status": "PASS exact68 owner attempt8; LIVE-SMOKE.json"
+    },
+    {
+      "id": 14,
+      "journey": "two sequential tasks without state mixing",
+      "local_status": "PASS_COMPOSED_RETAINED",
+      "evidence": [
+        {
+          "path": ".runtime/c4/visual-66cff24/two-task-product/browser-report.json",
+          "sha256": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          "claim": "Exactly2realPOSTs/tasks,2provider answers, distinctresults; delayed first result cannot overwrite second detail.",
+          "selector": "checks[name=two_sequential_real_tasks_one_core_and_session]; checks[name=late_actual_first_result_cannot_replace_second_task_detail]"
+        },
+        {
+          "path": ".runtime/c4/visual-66cff24/delivery-only/RECEIPT.json",
+          "sha256": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895",
+          "claim": "Both exact result and artifact identities sealed+ACKed; no third task/model rerun."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_miniapp_recovery.py",
+          "line": 146,
+          "test": "test_ack_loss_reload_and_changed_input_use_one_durable_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Retain actual66 frontend/Core/provider identity, working, idempotency and result/delivery scopes. The68 delta only alters error presentation/recovery and static cache URLs. Original66 overall helper FAILED remains; its isolated transport defect is closed by separate delivery-only receipt. New error UI is independently tested on68.",
+      "unverified": [],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    },
+    {
+      "id": 15,
+      "journey": "approval/reject/replay only if CURRENT capability requires approval",
+      "local_status": "NOT_APPLICABLE_CURRENT_CAPABILITIES",
+      "evidence": [
+        {
+          "path": "docs/gates/gate-c0-mvp1-truth-contract/capability-registry.v1.json",
+          "sha256": "2acda8c62d21e95af6e9665e60a4364f65253e76390c15558206919848737c43",
+          "claim": "All5CURRENT capabilities have approval_requirement=none; external approval-required capabilities are not enabled."
+        },
+        {
+          "path": "tests/test_c4_voice_buttons.py",
+          "sha256": "d8cbd2c326dd215655d107cddd3fca8d885c658bbf74a44e3bbfc87c9f65174e",
+          "claim": "Voice preview confirmation/replay is separately tested input authorization, not activation of unavailable effect capability."
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_c4_voice_buttons.py",
+          "line": 55,
+          "test": "test_confirm_survives_restart_and_conflicting_button_cannot_repeat_task",
+          "candidate_l1_matches": 1,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        },
+        {
+          "path": "tests/test_c4_voice_buttons.py",
+          "line": 126,
+          "test": "test_other_user_or_chat_cannot_claim_button",
+          "candidate_l1_matches": 2,
+          "candidate_l1_status": "PASS",
+          "receipt": ".runtime/c4/full-68f87f1.xml"
+        }
+      ],
+      "retention_and_scope": "Conditional C4.8 item15 is N/A for current5capabilities. C1/C2 challenge/reject/replay constraints remain tested; no new capability or external effects enabled.",
+      "unverified": [],
+      "current_live_status": "NOT_SEPARATELY_REQUIRED_FOR_EVERY_LOCAL_ROW"
+    }
+  ],
+  "source_preflight": {
+    "local_path": ".runtime/c4/reviews/final68-docs-l2-preflight/JOURNEYS-15.json",
+    "sha256": "2f47e1de50d4c7b1a062c6b0b65fc86be11d6bcc6164652aacc89d920835ef96",
+    "bytes": 32863
+  },
+  "current_live_receipt": "LIVE-SMOKE.json"
+}

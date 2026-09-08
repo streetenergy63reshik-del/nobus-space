@@ -1,7 +1,7 @@
 # Gate index
 
-**Актуально на:** 7 сентября 2026 года.
-**CURRENT:** C0–C3 ACCEPTED / PUBLISHED. C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED.
+**Актуально на:** 8 сентября 2026 года.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / NOT PUBLISHED.
 C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C4](gate-c4-frontend-journey/HANDOFF.md)
 содержит точную ревизию, проверки и условия завершения.
 Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
@@ -25,7 +25,7 @@ checkpoints, не отдельные пользовательские чаты.
 | C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED / NOT DEPLOYED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
 | C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
-| C4 — завершённый frontend/user journey | LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
+| C4 — завершённый frontend/user journey | ACCEPTED / PASS / NOT PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
 | C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
 | C6 — frozen release и owner acceptance | HOLD до C5 | exact publication/activation/readback/acceptance |
 

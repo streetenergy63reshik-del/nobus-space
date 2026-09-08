@@ -1,6 +1,6 @@
 # 08. Runbook эксплуатации Nobus Space
 
-**7 сентября 2026.** C0–C3 приняты и опубликованы. C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED; C5–C6 HOLD, MVP1 NOT READY. Наличие настроенного route или старого Scheduled Task не доказывает активную revision. Exact состояние и receipts: [CURRENT](handoffs/CURRENT-STATUS.md), [C4 handoff](gates/gate-c4-frontend-journey/HANDOFF.md).
+**8 сентября 2026.** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD, MVP1 NOT READY. Наличие настроенного route или старого Scheduled Task не доказывает активную revision. Exact состояние и receipts: [CURRENT](handoffs/CURRENT-STATUS.md), [C4 handoff](gates/gate-c4-frontend-journey/HANDOFF.md).
 
 Semantic path реализован и проверен в изолированном ON-кандидате C4. В штатном runner флаг _GATE_C1_SEMANTIC_ADMISSION_ENABLED остаётся False; постоянная активация не выполнена.
 
@@ -12,10 +12,12 @@ Semantic path реализован и проверен в изолированн
 4. «Отменить отправку» действует только если Core ещё не записал request/ingress: tombstone запрещает поздний приём. Записанный pending/accepted не удаляется.
 5. Если записанный UNKNOWN не разрешился, оператор сверяет journal/ingress/queue по C3 recovery contract. Очистка browser storage или новая task не являются восстановлением.
 6. Result/artifact читать только по exact task/result revision. Ошибка digest/size/tenant binding запрещает выдачу.
-7. Voice-origin task появляется после подтверждения preview в Telegram. В Mini App нет второго ASR/microphone path.
+7. Голосовая задача появляется после кнопки «Подтверждаю» под расшифровкой в Telegram. «Записать заново» отменяет этот ввод; пользователь отправляет новое голосовое сообщение. В Mini App нет второго ASR/microphone path.
 
 При диагностике не выводить DPAPI payload, initData, bearer, cookie, private
 voice или raw worker exceptions. Source revision не подменяет runtime identity.
+
+Промежуточное сообщение Telegram обновляется на месте и удаляется после подтверждённой доставки итогового ответа/файла. При сбое удаления существующий runtime повторяет очистку. Для отменённого голоса без Core-задачи безопасная сверка возможна пока сохранён 24-часовой voice tombstone; после его удаления неизвестную ссылку автоматически не удаляют.
 
 ## Временная проверка C4 и постоянная эксплуатация
 

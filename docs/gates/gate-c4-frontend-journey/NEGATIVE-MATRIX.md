@@ -1,13 +1,13 @@
 # Gate C4 — отрицательные сценарии
 
-Каждая строка проверяет один Core truth. Таблица фиксирует ожидаемое поведение; итоговые receipts и пробелы — EVIDENCE.json. Существующие C3 проверки запускаются как регрессии кандидата C4, без повторной приёмки C3.
+Каждая строка проверяет один Core truth. Таблица фиксирует ожидаемое поведение; выполнение и точные test references — NEGATIVE-RESULTS.json и TEST-RECEIPTS.json. Существующие C3 проверки запускаются как регрессии кандидата C4, без повторной приёмки C3.
 
 | Сценарий | Core | Telegram copy/action | Mini App copy/action | Recovery / проверка |
 |---|---|---|---|---|
 | 400 malformed / extra fields | До admission отказ | Некорректный запрос | Запрос не принят | test_miniapp, test_c3_multipart_input |
 | 401 expired | Недействительная session | Task сохранена | Recovery один раз, затем переоткрыть | test_c4_miniapp_recovery |
 | 403 wrong origin | Boundary отвергает | Не применяется | Нет нового intent | test_miniapp |
-| Foreign/unknown task | Opaque404 | Не раскрывать объект | Обновить список | test_miniapp/result/artifact |
+| Foreign/unknown task | Opaque404 | Не раскрывать объект | К списку задач; убрать первый loader | test_miniapp/result/artifact + current68 Node/L2/L3 |
 | 408 partial/slow body | Admission отсутствует | — | Исправить/прочитать исход | test_c3_multipart_input |
 | 409 rebound key | Старое намерение неизменно | Не создавать дубль | Читать прежний key | test_c4_miniapp_recovery |
 | 413 large text/material | Boundary limit | Лимит ввода | Сократить запрос | test_c3_multipart_input |
@@ -25,7 +25,7 @@
 | Cookie replay/tamper | HMAC/deadline/digest fail | — | Fresh Telegram launch | test_c4_miniapp_recovery |
 | Clarification stale/foreign | C1 owner/conversation/token TTL | Новый корректный ответ | Clarification invalid | test_c4_product_journey |
 | Approval stale/replay | Immutable policy unchanged | Только Core challenge | Неприменимо CURRENT semantic scope | Registry + retained tests |
-| Failure after progress | FAILED/attention durable | Честное завершение | «Не выполнено» | C3 worker/recovery regressions |
+| Failure after progress | FAILED/attention durable | Честное завершение | «Не выполнено» | test_c4_running_projection + independent L3 actual Core/HTTP faults |
 | Changed result revision | Exact binding reject | Не менять sealed answer | Не показывать stale | test_miniapp_result + JS |
 | Artifact foreign/missing | Exact tenant/task/result/ref | Safe delivery failure | Файл не получен | test_miniapp_artifact |
 | Artifact corrupt bytes | Digest/size mismatch | Fail closed | Нет download/object URL | test_miniapp_artifact + JS |
@@ -37,5 +37,5 @@
 | Unavailable capability | No TaskContract/effect | Shared catalog | Явная недоступность | test_c4_product_journey / local inference |
 | Internal exception | Safe code, no private payload | Safe failure | Общий безопасный error | C3 guards + C4 negative |
 | False READY / verified | Только exact result state | Без internal metadata | «Результат», не verified | shared mapper / JS |
-| Actual browser320/390/768 | Exact candidate UI | — | Light/dark/keyboard/viewport | BLOCKED: штатный Browser runtime |
-| Actual owner Telegram/Mini App | Exact temporary candidate | Text/voice/file | Fresh signed auth/result/file | AUTHORIZED; actual owner journeys PENDING; LIVE-SMOKE.json |
+| Actual browser320/390/768 | Exact candidate UI | — | Light/dark/keyboard/viewport | PASS: actual local bundled Playwright/Edge,26screens/68checks/6viewport-theme cases; source68f87f1 |
+| Actual owner Telegram/Mini App | Exact temporary candidate | Text/voice/file | Fresh signed auth/result/file | PASS: exact68 attempt8 text/result/file; retained b89 owner voice; LIVE-SMOKE.json |

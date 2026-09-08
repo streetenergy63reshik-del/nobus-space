@@ -1,97 +1,52 @@
 {
-  "schema": "c4-live-smoke-1",
-  "authorization": "Owner full C4 request and repeated explicit full permission for necessary temporary actions/tests; exact candidate/bot/owner/origin/scope preserved",
-  "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
-  "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
-  "scope": "temporary synthetic exact owner/private only, isolated state, existing relay; no permanent deploy",
-  "bot_username": "Nobusspacebot",
-  "bot_id": 8613479322,
-  "owner_private_chat": 5666869383,
-  "origin": "https://app.nobusspace.com",
-  "limits": {
-    "seconds": 1800,
-    "owner_updates_and_http_creates": 40,
-    "model_reservations": 24,
-    "asr": 4,
-    "new_bot_messages_and_documents": 60,
-    "edits": 240
+  "schema": "c4-live-smoke-4",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "status": "PASS_STOPPED_READBACK_CONFIRMED",
+  "attempt": 8,
+  "owner_authorization": "Explicit original C4 delegation plus repeated full necessary test authorization and request to run bot; same bot/owner/origin/limits. Exact updated plan announced before launch.",
+  "plan": {
+    "bot_username": "Nobusspacebot",
+    "bot_id": 8613479322,
+    "destination": "verified owner private chat; numeric owner id retained locally only",
+    "origin": "https://app.nobusspace.com",
+    "limits": {
+      "seconds": 1800,
+      "owner_updates_and_http_creates": 40,
+      "model_reservations": 24,
+      "asr_cumulative_live": 6,
+      "asr_new_this_window_max": 3,
+      "new_bot_messages_and_documents": 60,
+      "edits": 240
+    },
+    "candidate_source": {
+      "local_path": ".runtime/c4/live-68f87f18da3d-attempt8/plan.json",
+      "sha256": "5f95978a9b4e74d2e0a2348f3db446bbdbb4c1b445a07cd62029181f19e3ea3f",
+      "bytes": 4164
+    },
+    "launcher_manifest_sha256": "d505e651ff7dac98c8d178ae67e9333052a43a20ab854da76e700a3efec8d62a",
+    "runtime": "isolated local127.0.0.1:8765 plus existing scoped relay; no new VPS/tunnel/config"
   },
-  "attempt1": {
-    "status": "FAILED_BEFORE_USER_INPUT",
-    "approved_review_sha256": "e54365fb4684a2498627b0015ea6473764496d64bee0766984283e84866953c6",
-    "stop_source": {
-      "local_path": ".runtime/c4/live-a869a691293e/runtime-stop-1788809451449114100.json",
-      "sha256": "b56ea67af3e44fcd5bffee91cfe0a0a7a3a6d56f65a3fcaa8883c3c0e99fc7e9",
-      "bytes": 1831
+  "instance": "834cfa33e845a5ca8d0dbdd0ae5596f3ac41dfe101b8540217e0ff594700dd52",
+  "ready_utc": "2026-09-08T13:08:54.752936+00:00",
+  "ended_utc": "2026-09-08T13:22:29.095385+00:00",
+  "uncached_https": {
+    "source": {
+      "local_path": ".runtime/c4/live-68f87f18da3d-attempt8/https-uncached-readback-1788872986588123800.json",
+      "sha256": "7831abbafce0241a95c304b228744b029b4e5023377cc2a6da6a3f39d08524bf",
+      "bytes": 2452
     },
-    "safe_error": "live_poll_stopped_after_three_failures",
-    "reason": "Lease300 crossed maximum300 after SQLite clock delay; reproduced offline; original detailed exception not recorded",
-    "local_polling_offset": null,
-    "local_polling_revision": 6,
-    "inputs": 0,
-    "outputs": 0,
-    "quarantine": 0,
-    "supervisor": {
-      "status": "STOPPED_REQUIRES_ROOT_READBACK",
-      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
-      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
-      "review_sha256": "e54365fb4684a2498627b0015ea6473764496d64bee0766984283e84866953c6",
-      "forced": false,
-      "cleanup": {
-        "job_active_processes": 0,
-        "owned_wrappers_exited": true
-      },
-      "ended": 1788809451.6409612
-    },
-    "budget_after": {
-      "resources": {
-        "model": {
-          "reserved_calls": 22,
-          "charged_seconds": 279.01500000001397,
-          "actual_model_turns": 18,
-          "max_calls": 64,
-          "max_seconds": 5400.0,
-          "remaining_calls": 42,
-          "remaining_seconds": 5120.984999999986
-        },
-        "asr": {
-          "reserved_calls": 2,
-          "charged_seconds": 14.10999999998603,
-          "actual_model_turns": 0,
-          "max_calls": 20,
-          "max_seconds": 1200.0,
-          "remaining_calls": 18,
-          "remaining_seconds": 1185.890000000014
-        }
-      },
-      "active_reservations": 0
-    },
-    "root_post_readback": {
-      "local_path": ".runtime/c4/live-preflight-1788809732149428200.json",
-      "sha256": "96149758c23c05a7b5a57474cd1bc70835a469d89b8b5861000e1ce8d9d6aee4",
-      "bytes": 553
-    },
-    "root_no_listener_or_matching_processes": true,
-    "remote_pending_note": "Before3, postreadback1; provenance not established, cannot attribute to ACK"
-  },
-  "attempt2": {
-    "status": "STOPPED_WITHOUT_OWNER_E2E",
-    "approved_review_sha256": "4973de046f77b58f343ad29cffc8cf11d0f7e1411af4b003c57cfcaea71d2917",
-    "ready_source": {
-      "local_path": ".runtime/c4/live-a869a691293e-attempt2/runtime-ready.json",
-      "sha256": "88f988f65d6d445655827602a27a940577dd4fcb5eed13b9e187626ac6f3a543",
-      "bytes": 1368
-    },
-    "instance": "455d2194b9952b2d749cfc36dab036e41f075523fe12d280b198eaa377022849",
-    "https_readback": {
-      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
-      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
-      "expected_instance": "455d2194b9952b2d749cfc36dab036e41f075523fe12d280b198eaa377022849",
+    "receipt": {
+      "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+      "expected_instance": "834cfa33e845a5ca8d0dbdd0ae5596f3ac41dfe101b8540217e0ff594700dd52",
       "routes": [
         {
           "path": "/healthz",
           "http_status": 200,
           "instance_matches": true,
+          "cache_status": "DYNAMIC",
+          "cache_control": "no-store",
           "bytes": 15,
           "sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
         },
@@ -99,6 +54,8 @@
           "path": "/readyz",
           "http_status": 200,
           "instance_matches": true,
+          "cache_status": "DYNAMIC",
+          "cache_control": "no-store",
           "bytes": 18,
           "sha256": "31bf75f4c0a97cc1f7b60df824fa390b3be9ba014f29b63c87c698ba63d9a9fd"
         },
@@ -106,69 +63,516 @@
           "path": "/",
           "http_status": 200,
           "instance_matches": true,
-          "bytes": 4361,
-          "sha256": "ce2d267d629be996ae0f0d2c32902c2c17425835f98ae928c59f77fe42f5ed02",
+          "cache_status": "DYNAMIC",
+          "cache_control": null,
+          "bytes": 4333,
+          "sha256": "e73b08f5ea5e93ef5fce55916b7122a6685fdd8f72e26d55cc4195d06186c184",
           "static_matches_candidate": true
         },
         {
           "path": "/app.js",
           "http_status": 200,
           "instance_matches": true,
-          "bytes": 24761,
-          "sha256": "8f12c62fd16e7e3e1499c716ada58506f7affee1c065904cfbd3998d620fc2f2",
+          "cache_status": "MISS",
+          "cache_control": "max-age=14400",
+          "bytes": 24972,
+          "sha256": "93bacdff7536312ad8da836236ded81a6af6b0e1e155d6e91f3c8483bf8badc6",
           "static_matches_candidate": true
         },
         {
           "path": "/styles.css",
           "http_status": 200,
           "instance_matches": true,
+          "cache_status": "MISS",
+          "cache_control": "max-age=14400",
+          "bytes": 8526,
+          "sha256": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2",
+          "static_matches_candidate": true
+        },
+        {
+          "path": "/app.js?v=93bacdff7536",
+          "http_status": 200,
+          "instance_matches": true,
+          "cache_status": "MISS",
+          "cache_control": "max-age=14400",
+          "bytes": 24972,
+          "sha256": "93bacdff7536312ad8da836236ded81a6af6b0e1e155d6e91f3c8483bf8badc6",
+          "static_matches_candidate": true
+        },
+        {
+          "path": "/styles.css?v=fd7f08a131ca",
+          "http_status": 200,
+          "instance_matches": true,
+          "cache_status": "MISS",
+          "cache_control": "max-age=14400",
           "bytes": 8526,
           "sha256": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2",
           "static_matches_candidate": true
         }
       ],
       "route_bound_pass": true
+    }
+  },
+  "owner": {
+    "source": {
+      "local_path": ".runtime/c4/live-68f87f18da3d-attempt8/owner-evidence/text-result-readback.json",
+      "sha256": "f8e6d98fd288a17eeee36c5f08cc53cde85e7fe85a1783cb0ee7f551a791455d",
+      "bytes": 9860
     },
-    "https_source": {
-      "local_path": ".runtime/c4/live-a869a691293e-attempt2/https-readback-1788810479261031400.json",
-      "sha256": "1113069b95f0e6f41ae1aa5df1f33427a406bf049597bdf492f268fdb42a07c1",
-      "bytes": 1427
-    },
-    "owner_journeys": "NOT_OBSERVED",
-    "native_webview_screenshots": [],
-    "rollback_readback": "PASS: owned Job0, wrappers exited, listener0, matchingprocess0, publichealth/ready502 baseline, bot/menu/webhook unchanged",
-    "stop_source": {
-      "local_path": ".runtime/c4/live-a869a691293e-attempt2/runtime-stop-1788811319992859400.json",
-      "sha256": "ded969fb6c7c254278280175c3aba119e4cf994a50a74226425db84549348653",
-      "bytes": 2227
-    },
-    "stop_status": "TEMPORARY_SMOKE_WINDOW_STOPPED",
-    "stop_scope": {
-      "inputs": {},
-      "outputs": {},
-      "http": [
+    "receipt": {
+      "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+      "instance": "834cfa33e845a5ca8d0dbdd0ae5596f3ac41dfe101b8540217e0ff594700dd52",
+      "status": "OWNER_SMOKE_PASS",
+      "owner_confirmation": "Всё ок. Всё скачивается. тест проведён",
+      "confirmation_scope": "Latest exact68 instructions: create/read result/copy and download TXT in MiniApp; Telegram result/file. Earlier explicit copy/both-channel confirmation remains separately attributed to66.",
+      "tasks.sqlite3": {
+        "task_snapshots": 1,
+        "outbox_messages": 1,
+        "outbox_delivery_parts": 2,
+        "outbox_receipts": 1
+      },
+      "telegram.sqlite3": {
+        "telegram_jobs": 0,
+        "telegram_progress": 0
+      },
+      "bound_result": {
+        "task_id": "e821a81e-6ec9-426d-ae09-aa7b29ec7ca5",
+        "task_revision": 6,
+        "result_revision": 1,
+        "result_digest": "sha256:834fa299aa8e056b9802233810f3c318a50c53797297e5581085f0edce50ffe8",
+        "artifact_id": "754b8fe2-3415-5d63-87cc-7819c8b23a8e",
+        "content_digest": "sha256:a6be0f714c7a7f72ce7b1f7bf33e03b29d76c5d0de190c490716e051c1a325ab",
+        "size": 446,
+        "telegram_document_digest_matches": true,
+        "utf8_answer_matches": true,
+        "outbox_acked_all_parts": true,
+        "miniapp_download_200": true,
+        "physical_download_found": true,
+        "copy_supported_by_owner_confirmation": true
+      },
+      "matching_downloaded_files": [
         {
-          "method": "GET",
-          "route": "/healthz",
-          "status": 200,
-          "count": 1
-        },
-        {
-          "method": "GET",
-          "route": "/readyz",
-          "status": 200,
-          "count": 1
-        },
-        {
-          "method": "GET",
-          "route": "static_or_unmatched",
-          "status": 200,
-          "count": 3
+          "file_name": "nobus-result.txt",
+          "folder_kind": "owner_Downloads",
+          "bytes": 446,
+          "sha256": "a6be0f714c7a7f72ce7b1f7bf33e03b29d76c5d0de190c490716e051c1a325ab",
+          "utf8_opened": true
         }
       ],
-      "quarantine": []
+      "http_receipts": [
+        {
+          "at": 1788872981.7932813,
+          "method": "GET",
+          "route": "/healthz",
+          "status": 200
+        },
+        {
+          "at": 1788872983.7816513,
+          "method": "GET",
+          "route": "/readyz",
+          "status": 200
+        },
+        {
+          "at": 1788872984.2656822,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788872984.6584935,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788872985.2471876,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788872985.7372763,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788872986.1659455,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788873332.192249,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788873332.4060252,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788873332.4651515,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200
+        },
+        {
+          "at": 1788873332.758446,
+          "method": "POST",
+          "route": "/api/session/recover",
+          "status": 401
+        },
+        {
+          "at": 1788873332.988194,
+          "method": "POST",
+          "route": "/api/session",
+          "status": 200
+        },
+        {
+          "at": 1788873333.3155673,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873333.6336222,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 404
+        },
+        {
+          "at": 1788873336.5047085,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873337.6327915,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873358.3840516,
+          "method": "POST",
+          "route": "/api/tasks",
+          "status": 400
+        },
+        {
+          "at": 1788873366.2702851,
+          "method": "POST",
+          "route": "/api/tasks",
+          "status": 400
+        },
+        {
+          "at": 1788873388.9424338,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873532.1593773,
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 304
+        },
+        {
+          "at": 1788873532.4021187,
+          "method": "POST",
+          "route": "/api/session/recover",
+          "status": 200
+        },
+        {
+          "at": 1788873532.5746908,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873535.0948126,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873559.50487,
+          "method": "POST",
+          "route": "/api/tasks",
+          "status": 202
+        },
+        {
+          "at": 1788873559.8318622,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873560.0250099,
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200
+        },
+        {
+          "at": 1788873560.109377,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873563.2873764,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873563.5794396,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873566.8054266,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873567.0374439,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873570.2215521,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873570.488415,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873573.7160144,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873573.9685977,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873577.1916573,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873577.4483194,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873580.6643484,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873580.9282706,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873584.126373,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873584.4569738,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873587.67312,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873587.9423854,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873591.1746695,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873591.537036,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873594.7583592,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873595.0965283,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873598.3401308,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873598.5973291,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873601.8233109,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873602.271258,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873602.4883206,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/result",
+          "status": 200
+        },
+        {
+          "at": 1788873605.7933395,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200
+        },
+        {
+          "at": 1788873606.088232,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200
+        },
+        {
+          "at": 1788873606.3912232,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/result",
+          "status": 200
+        },
+        {
+          "at": 1788873622.5733695,
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/artifacts/{artifact_id}",
+          "status": 200
+        }
+      ],
+      "inputs": [
+        [
+          "miniapp",
+          1
+        ]
+      ],
+      "sent_counts": {
+        "text": 1,
+        "document": 1
+      },
+      "owner_screenshots": [
+        {
+          "name": "codex-clipboard-df3926e7-c6a8-47a6-892d-e3ebecd5c012.png",
+          "sha256": "61c39b1d06afa188d886d5522319c95e0fb57886a73b3f6795159ae32824bc29",
+          "published": false
+        }
+      ],
+      "refused_inputs": "Two400 before admission from exact test allowlist missing final period. No tasks/model; same live helper unchanged. Exact phrase then accepted once. Diagnosis separate.",
+      "recovery": "Initial prior-task404, then reachable list/composer; session recovery200 and existing task/result reads200; no duplicate task."
+    }
+  },
+  "verifier_refusal": {
+    "source": {
+      "local_path": ".runtime/c4/live-68f87f18da3d-attempt8/owner-input-refusal-diagnosis.json",
+      "sha256": "0ce3b6c283fb36ff14ca1c4ceb993576e0ce72651257f21d5e76a8a38f394f63",
+      "bytes": 692
     },
-    "component_cleanup": [
+    "receipt": {
+      "classification": "VERIFIER_DEFECT_EXACT_HTTP_FIXTURE_PUNCTUATION",
+      "observed_http_400": 2,
+      "tasks": 0,
+      "checks": [
+        {
+          "instruction": "Составь три пункта плана проверки проекта",
+          "outcome": "400_from_test_allowlist",
+          "Core_calls": 0,
+          "model_calls": 0
+        },
+        {
+          "instruction": "Составь три пункта плана проверки проекта.",
+          "outcome": "accepted_by_test_allowlist",
+          "Core_calls": 0,
+          "model_calls": 0
+        }
+      ],
+      "source_sha256": "aaa4694b4c637c09b11b47e5e9aebf1091bcdda410525dfa03933128dfb1f856",
+      "not_product_text_validation": true
+    }
+  },
+  "supervisor_stop": {
+    "source": {
+      "local_path": ".runtime/c4/live-68f87f18da3d-attempt8/supervisor-stop.json",
+      "sha256": "7bdb38d26de50e2ce262df4e18a713f0bc7034c11c7d803376152f0b8010f074",
+      "bytes": 410
+    },
+    "receipt": {
+      "status": "STOPPED_REQUIRES_ROOT_READBACK",
+      "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+      "review_sha256": "d505e651ff7dac98c8d178ae67e9333052a43a20ab854da76e700a3efec8d62a",
+      "forced": false,
+      "cleanup": {
+        "job_active_processes": 0,
+        "owned_wrappers_exited": true
+      },
+      "ended": 1788873749.0953846
+    }
+  },
+  "runtime_stop": {
+    "source": {
+      "local_path": ".runtime/c4/live-68f87f18da3d-attempt8/runtime-stop-1788873748863209200.json",
+      "sha256": "2c680fe01f47017c359c9554c5c438a1a219308090a4d3ea5a3eff2d95484171",
+      "bytes": 4153
+    },
+    "cleanup": [
       {
         "component": "http",
         "closed": true
@@ -186,128 +590,159 @@
         "closed": true
       }
     ],
-    "supervisor": {
-      "status": "STOPPED_REQUIRES_ROOT_READBACK",
-      "candidate_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
-      "candidate_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
-      "review_sha256": "4973de046f77b58f343ad29cffc8cf11d0f7e1411af4b003c57cfcaea71d2917",
-      "forced": false,
-      "cleanup": {
-        "job_active_processes": 0,
-        "owned_wrappers_exited": true
+    "scope_counts": {
+      "inputs": {
+        "miniapp": 1
       },
-      "ended": 1788811320.1615436
-    },
-    "supervisor_source": {
-      "local_path": ".runtime/c4/live-a869a691293e-attempt2/supervisor-stop.json",
-      "sha256": "8390596a52fba73371d1f859240c2f26b3544ada6605b9efca99c9093a10942e",
-      "bytes": 410
-    },
-    "root_process_readback": {
-      "listener8765": 0,
-      "matching_contour_processes": 0
-    },
-    "root_process_source": {
-      "local_path": ".runtime/c4/live-a869a691293e-attempt2/root-process-readback.json",
-      "sha256": "5a3200dae3d654a35d801dacfa0bf756299c6e058be3ddd0d686461b5b86424b",
-      "bytes": 63
-    },
-    "root_contour_readback": {
-      "bot_username": "Nobusspacebot",
-      "bot_id": 8613479322,
-      "private_chat_id": 5666869383,
-      "owner_binding_verified": true,
-      "/healthz": {
-        "http_status": 502,
-        "body_is_health_state": false
+      "outputs": {
+        "messages": 2
       },
-      "/readyz": {
-        "http_status": 502,
-        "body_is_health_state": false
-      },
-      "getMe": {
-        "ok": true
-      },
-      "webhook": {
-        "http_status": 200,
-        "present": false,
-        "pending_update_count": 0
-      },
-      "menu": {
-        "http_status": 200,
-        "type": "web_app",
-        "web_app_url": "https://app.nobusspace.com/"
-      }
-    },
-    "root_contour_source": {
-      "local_path": ".runtime/c4/live-preflight-1788811349315371800.json",
-      "sha256": "db439b129b49144e87ef841c3ebc278c2aaa206ccfcd16f9fa230a8121211a47",
-      "bytes": 553
+      "http": [
+        {
+          "method": "GET",
+          "route": "/api/tasks",
+          "status": 200,
+          "count": 7
+        },
+        {
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 200,
+          "count": 14
+        },
+        {
+          "method": "GET",
+          "route": "/api/tasks/{task_id}",
+          "status": 404,
+          "count": 1
+        },
+        {
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/artifacts/{artifact_id}",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/events",
+          "status": 200,
+          "count": 14
+        },
+        {
+          "method": "GET",
+          "route": "/api/tasks/{task_id}/result",
+          "status": 200,
+          "count": 2
+        },
+        {
+          "method": "GET",
+          "route": "/healthz",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "GET",
+          "route": "/readyz",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 200,
+          "count": 8
+        },
+        {
+          "method": "GET",
+          "route": "static_or_unmatched",
+          "status": 304,
+          "count": 1
+        },
+        {
+          "method": "POST",
+          "route": "/api/session",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "POST",
+          "route": "/api/session/recover",
+          "status": 200,
+          "count": 1
+        },
+        {
+          "method": "POST",
+          "route": "/api/session/recover",
+          "status": 401,
+          "count": 1
+        },
+        {
+          "method": "POST",
+          "route": "/api/tasks",
+          "status": 202,
+          "count": 1
+        },
+        {
+          "method": "POST",
+          "route": "/api/tasks",
+          "status": 400,
+          "count": 2
+        }
+      ],
+      "quarantine": []
     },
     "budget_after": {
       "resources": {
         "model": {
-          "reserved_calls": 23,
-          "charged_seconds": 280.35899999993853,
-          "actual_model_turns": 18,
+          "reserved_calls": 71,
+          "charged_seconds": 1011.0459999995073,
+          "actual_model_turns": 56,
           "max_calls": 64,
           "max_seconds": 5400.0,
-          "remaining_calls": 41,
-          "remaining_seconds": 5119.6410000000615
+          "remaining_calls": 8,
+          "remaining_seconds": 4388.954000000493,
+          "counting_basis": "actual_model_turns_plus_active_potential_turns",
+          "active_potential_turns": 0,
+          "max_model_turns": 64
         },
         "asr": {
-          "reserved_calls": 2,
-          "charged_seconds": 14.10999999998603,
+          "reserved_calls": 10,
+          "charged_seconds": 80.82799999974668,
           "actual_model_turns": 0,
           "max_calls": 20,
           "max_seconds": 1200.0,
-          "remaining_calls": 18,
-          "remaining_seconds": 1185.890000000014
+          "remaining_calls": 10,
+          "remaining_seconds": 1119.1720000002533
         }
       },
       "active_reservations": 0
     }
   },
-  "runtime_settings_unchanged": [
-    "productionDB",
-    "Scheduler",
-    "VPS/config",
-    "Cloudflare",
-    "DNS/TLS",
-    "BotFather",
-    "menu/profile",
-    "credentials"
-  ],
-  "limitations": [
-    "No real signed owner session observed",
-    "No actual user result/copy/file receipt",
-    "No mobile/keyboard/lightdark screenshots",
-    "Source-bound HTTPS GET does not prove TelegramWebView behavior"
-  ],
-  "remote_pending_sequence_note": "Entry3, firstpoststop1, attempt2initialready0, final0; first3to1 and subsequent1to0 before attempt2ready are unattributed. No helper queue-consumption claim is inferred.",
-  "final_budget": {
-    "resources": {
-      "model": {
-        "reserved_calls": 23,
-        "charged_seconds": 280.35899999993853,
-        "actual_model_turns": 18,
-        "max_calls": 64,
-        "max_seconds": 5400.0,
-        "remaining_calls": 41,
-        "remaining_seconds": 5119.6410000000615
-      },
-      "asr": {
-        "reserved_calls": 2,
-        "charged_seconds": 14.10999999998603,
-        "actual_model_turns": 0,
-        "max_calls": 20,
-        "max_seconds": 1200.0,
-        "remaining_calls": 18,
-        "remaining_seconds": 1185.890000000014
-      }
+  "root_readback": {
+    "source": {
+      "local_path": ".runtime/c4/live-preflight-1788873788987865100.json",
+      "sha256": "503c5817d1f257afe20801b093572e735652b2894646ddd7507b493b846fb23f",
+      "bytes": 629
     },
-    "active_reservations": 0
+    "bot_identity_matches": true,
+    "webhook": {
+      "http_status": 200,
+      "present": false,
+      "allowed_updates": [
+        "message",
+        "callback_query"
+      ],
+      "pending_update_count": 0
+    },
+    "menu": {
+      "http_status": 200,
+      "type": "web_app",
+      "web_app_url": "https://app.nobusspace.com/"
+    },
+    "health_status": 502,
+    "readiness_status": 502,
+    "original_configuration_restored": true
   },
-  "windows_closed": true,
-  "full_live_user_acceptance": false
+  "retained_voice": "RETAINED-B89-LIVE-SMOKE.json originalb89, explicitly accepted unchanged scope by current L2/L3",
+  "no_tag_release_permanent_deploy": true
 }

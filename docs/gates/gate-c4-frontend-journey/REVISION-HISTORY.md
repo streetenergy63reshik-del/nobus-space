@@ -12,6 +12,30 @@
 
 ## Проверенный a869a69 и временные попытки
 
-Новый код a869a691293e45a1a3e65303be627d684acfa16e / tree9a7cab97fb9947ebdfedeb5baffa57f9627a4c98 получил собственный L1 2132PASS+25subtests,2WindowsSKIP,1historicaldeselect,Node17PASS. Независимые L2/L3 приняли локальную кодовую область и7actual local runs/6replay. Их identities, исходные hashes и ограничения — REVIEW-VERDICTS.json.
+Новый код a869a691293e45a1a3e65303be627d684acfa16e / tree9a7cab97fb9947ebdfedeb5baffa57f9627a4c98 получил собственный L1 2132PASS+25subtests,2WindowsSKIP,1historicaldeselect,Node17PASS. Независимые L2/L3 приняли локальную кодовую область и7actual local runs/6replay. Их исходные receipts сохранены локально: `docs/gates/gate-c4-frontend-journey/reviews/local-l2-a869a69.json` и `docs/gates/gate-c4-frontend-journey/reviews/local-l3-a869a69.md`; опубликованные bytes прежнего checkpoint сохраняются в Git commit e9bf22aee1187c06b6846a6debb865014c205f86. Текущий REVIEW-VERDICTS относится к новой ревизии.
 
-Первая actual temporary attempt завершилась до пользовательского input после трёх polling failures. Lease300s пересекала верхнюю границу из-за разницы часов; исправление только helper240s подтверждено независимой realSQLite пробой. Attempt2 имеет новое окно/marker, сохранённые старые FAIL/STOP/DB и общий прежний budget. Реальный HTTPS route exactbindingPASS; ownerjourney/visual acceptance ещё отсутствуют. Состояние и возврат исходного контура — LIVE-SMOKE.json.
+Первая actual temporary attempt завершилась до пользовательского input после трёх polling failures. Lease300s пересекала верхнюю границу из-за разницы часов; исправление только helper240s подтверждено независимой realSQLite пробой. Attempt2 имеет новое окно/marker, сохранённые старые FAIL/STOP/DB и общий прежний budget. Реальный HTTPS route exactbindingPASS; ownerjourney/visual acceptance ещё отсутствуют. Историческое состояние и возврат исходного контура — `docs/gates/gate-c4-frontend-journey/LIVE-SMOKE.json` на Git commit e9bf22aee1187c06b6846a6debb865014c205f86; текущий LIVE-SMOKE описывает attempt8.
+
+## b89b651: голос принят, полный Gate отклонён
+
+Owner attempt6 подтвердил голос с кнопкой, результат, копирование и TXT523байта.
+Полная приёмка b89b651 затем отклонена: actual browser поймал Core STARTED/PARSING,
+который Mini App показывал как «В очереди». Исходный FAIL и queued screenshot
+сохранены; этот незавершённый Core task не возобновлялся.
+
+## Новый frozen66cff24
+
+SHA66cff24fbc33032550e927f75260220859c66ca8,
+tree0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b. Единственная продуктовая правка —
+PARSING→WORKING в общей проекции. До исправления2testsFAIL; после исправления
+полныйL1:2227PASS+25subtests,2WindowsSKIP,2historicaldeselect. C4-only budget
+приведён к разрешённым64actualmodelturns; прежние rows/time/FAIL сохранены,
+C3budget неизменен. Независимые L2/L3 дали технический GO. Новый exact browser,
+owner smoke и итоговая документация принимаются отдельно.
+
+## 68f87f1 после actual owner initial404
+
+ExactSHA68f87f18da3de7c995f83b9cb08b391d0af5cdfb,tree5ae168bf613b18fc2f14e24973b5167a2b4c7b74. Новое UI-only исправление первой ошибки чтения
+и stale selected marker;20NodePASS. 66cff24 целиком отклонён по owner404,
+но его actual2tasks/working/ACKloss/result и sourcechecks сохраняются с
+исходнымSHA. Сценарии нового кандидата принимаются отдельно.

@@ -1,14 +1,14 @@
 # Реестр проблем и исправлений Nobus Space MVP-1
 
 **Статус:** CANONICAL ACTIVE REGISTER + HISTORY
-**Период:** 17 июля — 7 сентября 2026 года
+**Период:** 17 июля — 8 сентября 2026 года
 **Назначение:** единый журнал root cause, исправлений, регрессий и остаточных рисков
 
 Реестр не содержит токенов, пользовательских payload, transcript, абсолютных
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
 Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C4 evidence](../gates/gate-c4-frontend-journey/EVIDENCE.json).
 
 ## Активные findings после переоткрытия acceptance
@@ -28,9 +28,9 @@
 | C0-F06 | `/status` неполон для product recovery | `_status_text` сообщает online/voice/active/queue, но не даёт связный authoritative task/recovery state | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; tenant-scoped durable queue/Core/outbox и truthful worker readiness PASS |
 | C0-F07 | Hung/inactive live recovery не подтверждён после incident | Scheduler disabled, matching process отсутствует, public health/readiness `502` в C0 preflight | C3 | **BACKEND RECOVERY CLOSED IN C3; LIVE OPEN C5/C6**; restart/reclaim/dead-letter/orphan/outbox проверены локально; incident, production health и supervisor здесь не принимались |
 | C0-F08 | Multipart/task admission idempotency требует end-to-end requalification | Mini App header idempotency и durable task binding существуют, но новый semantic/source-material flow не имеет multipart duplicate matrix | C3 | **CLOSED IN ACCEPTED C3 / NOT DEPLOYED**; multipart same/change/new key, partial body, restart/duplicate и INERT material negatives PASS |
-| C0-F09 | Mini App session expiry не имеет доказанного complete recovery journey | in-memory TTL и expired-session rejection есть в `miniapp.py`; owner-visible resume/re-auth E2E после expiry не доказан | C4 | **LOCAL FIX VERIFIED; LIVE E2E PENDING**; Core recovery/journal и повторный readback проверены; нужен настоящий expiry→re-auth→same task/result без duplicate |
-| C0-F10 | `ready`/`verified`/success labels могут читаться как готовность продукта без authoritative evidence | UI/backend имеют `ready`, `result_ready`, `has_verified_answer`; published docs ошибочно сохраняли current `MVP-1 READY` после incident | C4 | **LOCAL FIX VERIFIED; UI E2E PENDING**; общий каталог различает accepted/running/result/effect receipt/product readiness; нужен фактический UI readback |
-| C0-F11 | Telegram/Mini App полный recovery journey после нового admission не доказан | prior pre-incident E2E evidence не покрывает ADR 0023 и reopened acceptance | C4 | **LOCAL JOURNEYS VERIFIED; LIVE E2E PENDING**; 7 actual local scenarios и 6 replay прошли, настоящий Telegram/Mini App обязателен |
+| C0-F09 | Mini App session expiry не имеет доказанного complete recovery journey | in-memory TTL и expired-session rejection есть в `miniapp.py`; owner-visible resume/re-auth E2E после expiry не доказан | C4 | **C4 FIX VERIFIED**; current68 Core recovery/readback, browser expiry/reload и owner attempt8 PASS; source/proof identities в C4 пакете |
+| C0-F10 | `ready`/`verified`/success labels могут читаться как готовность продукта без authoritative evidence | UI/backend имеют `ready`, `result_ready`, `has_verified_answer`; published docs ошибочно сохраняли current `MVP-1 READY` после incident | C4 | **C4 FIX VERIFIED**; actual browser нашёл PARSING→queued; теперь STARTED/PARSING отображается «В работе», terminal evidence не менялся |
+| C0-F11 | Telegram/Mini App полный recovery journey после нового admission не доказан | prior pre-incident E2E evidence не покрывает ADR 0023 и reopened acceptance | C4 | **C4 FIX VERIFIED**; b89 voice owner PASS сохранён; exact68 owner text/result/copy/file446байт PASS, shutdown/readback PASS |
 | C0-F12 | Ingress budgets и HSTS требуют active-release evidence | CSP/body/idempotency checks видны в `src/transport/miniapp.py`; exact active ingress headers/rate/time budgets не прочитаны из working deployment, public endpoint `502` | C5 | **CONFIRMED EVIDENCE GAP**; external negative/budget/header matrix на exact active release PASS |
 | C0-F13 | Backup/restore и rollback должны быть повторно привязаны к exact release | scripts/tests и historical drill существуют; current runtime revision/config не доказаны и runtime inactive | C5 | **REQUALIFY**; exact release backup→restore→health/data reconciliation и rollback drill PASS |
 | C0-F14 | Temp/audio/artifact cleanup требует сквозного доказательства | voice temp cleanup и artifact retention механизмы существуют отдельно; новый durable voice/material path и active host cleanup не квалифицированы вместе | C5 | **REQUALIFY**; cancellation/crash/restart/expiry leaves zero unauthorized residuals |
@@ -70,7 +70,23 @@ C2 — ACCEPTED / PASS / PUBLISHED. B01–B04 закрыты по собстве
 
 Первый C4 ad02795 отклонён; его FAIL/REJECT сохранены в
 [истории ревизий](../gates/gate-c4-frontend-journey/REVISION-HISTORY.md).
-Новая кодовая приёмка относится к a869a69 и не подменяет отсутствующий live smoke.
+Это историческая локальная приёмка a869a69. Последующие owner smoke и rework
+привязаны к собственным SHA в SMOKE-REWORK и REVIEW-VERDICTS.
+
+## Последующие исправления C4
+
+| Finding | Причина и итог | Доказательство |
+|---|---|---|
+| C4-LIVE-ACK | Receipt отправлялся после долгого разбора; теперь сообщение о получении отправляется до semantic admission |90c867c targeted; owner attempt4|
+| C4-LIVE-REAUTH | Empty chunked recovery request отвергался; пустое тело принимается при строгой framing/body проверке |90c867c negative tests; owner Mini App|
+| C4-VOICE-UX | Подтверждение ответом заменено двумя inline buttons; одна progress card удаляется после Core/outbox ACK |b89b651 independent reviews; owner attempt6|
+| C4-VOICE-CLEANUP | Отмена голоса при сбое Telegram оставляла progress; cleanup сверяет finished-voice tombstone, owner и отсутствие иных jobs |a984b4b REJECT сохранён; b89b651 negatives PASS|
+| C4-INITIAL-READ | Ошибка первой карточки оставляла loader и недоступное действие возврата |68f87f1 Node20, L2/L3, actual browser404 и owner8 PASS; cache versions обновлены|
+| C4-RUNNING | Core STARTED/PARSING выглядел как очередь; исправлена только общая projection |66cff24 red2→green; full2227+25; L2/L3 scoped GO|
+
+Все обязательные проверки C4, включая новый exact browser/owner smoke, завершены.
+Независимая приёмка пакета выполнена; остаются обычная публикация и её readback.
+Старые неудачные попытки не удаляются.
 
 ## Historical сводка до incident
 

@@ -1,0 +1,55 @@
+{
+  "schema": "c4-tests-2",
+  "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+  "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+  "root_frozen_L1": {
+    "passed": 2227,
+    "subtests_passed": 25,
+    "windows_symlink_skip": 2,
+    "historical_deselect": 2,
+    "seconds": 203.62,
+    "source": {
+      "local_path": ".runtime/c4/full-66cff24.xml",
+      "sha256": "79fa680651625ef2705966b92b67465b15d284e2b7f44bc5b561d6ab784567cc",
+      "bytes": 348248
+    },
+    "log": {
+      "local_path": ".runtime/c4/full-66cff24.log",
+      "sha256": "c311d5bdcf6aa8c6c178254bcc06f92e0057e3b2f7499c1ee579dbbed58074f8",
+      "bytes": 3451
+    }
+  },
+  "junit": [
+    {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "2",
+      "tests": "2254",
+      "time": "203.532",
+      "timestamp": "2026-09-08T15:08:33.946160+03:00"
+    }
+  ],
+  "full_command": "DEBUG=false PYTHONIOENCODING=utf-8 python -m pytest tests/ -q -ra --tb=short --ignore=tests/gate0 --ignore=tests/test_gate_c0_governance.py --deselect=tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022 --deselect=tests/test_pre_gate1_architecture_integration.py::test_gate0_catalog_required_sources_remain_byte_identical -p no:cacheprovider --basetemp=<unique C4 temp> --junitxml=<receipt>",
+  "deselections": [
+    {
+      "name": "test_active_projections_and_authority_point_to_adr0022",
+      "classification": "HISTORICAL_BASELINE",
+      "reason": "Historical projection assertion predates accepted C1-C3 and C4; not a current acceptance check."
+    },
+    {
+      "name": "test_gate0_catalog_required_sources_remain_byte_identical",
+      "classification": "STALE_CONTEXT",
+      "reason": "Historical C0 catalog pins active docs05/10 before their reviewed C4 documentation update; the earlier failed run is retained. This does not waive product tests or reaccept C0."
+    }
+  ],
+  "historical_receipts_remain_in_git_and_local_runtime": true,
+  "C0_C3_reaccepted": false,
+  "node_scope": "17 PASS on identical frontend/test bytes retained from b89b651",
+  "retained_previous": "RETAINED-B89-TEST-RECEIPTS.json",
+  "retained_node": {
+    "passed": 17,
+    "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+    "scope": "Frontend and Node test bytes unchanged in66cff24; original execution attribution retained."
+  }
+}

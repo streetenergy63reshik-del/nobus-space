@@ -3,8 +3,7 @@
 Nobus Space — Telegram Bot и обязательный тонкий Mini App над одним существующим
 локальным Windows Core/Codex runtime.
 
-**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 REWORK / LIVE RETEST PENDING /
-NOT ACCEPTED / NOT PUBLISHED. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
+**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / NOT PUBLISHED. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
 Постоянное развёртывание в C4 не выполняется.
 
 [Текущий статус](docs/handoffs/CURRENT-STATUS.md) содержит точные ревизии,
@@ -15,8 +14,8 @@ NOT ACCEPTED / NOT PUBLISHED. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 
 Опубликованная база C3: `b9283b3419928042c80278b5088b526edebab6e7`,
 tree `77062335b1dbccb3694721d357e484c856ac89c7`.
-Предыдущий локальный код C4 проверен на `a869a691293e45a1a3e65303be627d684acfa16e`,
-tree `9a7cab97fb9947ebdfedeb5baffa57f9627a4c98`.
+Код C4 проверен на `68f87f18da3de7c995f83b9cb08b391d0af5cdfb`,
+tree `5ae168bf613b18fc2f14e24973b5167a2b4c7b74`.
 Исторический READY и прежний live не доказывают приёмку этого кандидата.
 
 Semantic path реализован и проверен в изолированном ON-кандидате C4. В штатном runner флаг _GATE_C1_SEMANTIC_ADMISSION_ENABLED остаётся False; постоянная активация не выполнена.
@@ -40,10 +39,11 @@ bearer; после срока нужна новая Telegram-сессия. Mini 
 owner-bound список, детали, события, результат и авторизованные bytes файла.
 Имя скачивания `nobus-result.txt` — представление; C3 identity/digest/part receipts сохранены.
 
-Полный C4 L1: 2132 PASS, 25 subtests PASS, 2 Windows symlink SKIP и 1 historical
-deselect; Node17 PASS. Семь actual local сценариев и шесть отдельных replay проверены
-независимыми L2/L3. Настоящий Telegram WebView, mobile/light/dark/keyboard и live
-result/file остаются обязательными условиями Gate, не заменёнными этими тестами.
+Полный C4 L1: 2227 PASS и 25 subtests PASS, 2 Windows symlink SKIP,
+2 явно объяснённых historical deselect; frontend Node20 PASS. Настоящий владелец
+подтвердил голос кнопкой, получил результат и TXT в обоих интерфейсах. Отдельный
+локальный браузер проверил 320/390/768, светлую/тёмную темы, клавиатуру, копирование,
+скачивание, reload и reconnect. Точные доказательства и границы — в C4 HANDOFF.
 
 ## Архитектура
 
