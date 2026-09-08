@@ -201,6 +201,87 @@ async def test_edit_message_text_keeps_exact_progress_identity() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("buttons", "keyboard"),
+    [
+        ((), []),
+        (
+            ((" Подтверждаю ", " confirm:123 "), ("Записать ещё раз", "retry:123")),
+            [[
+                {"text": "Подтверждаю", "callback_data": "confirm:123"},
+                {"text": "Записать ещё раз", "callback_data": "retry:123"},
+            ]],
+        ),
+        (
+            (("x" * 64, "я" * 32),) * 8,
+            [[{"text": "x" * 64, "callback_data": "я" * 32}] * 8],
+        ),
+    ],
+)
+async def test_edit_message_text_updates_or_clears_buttons(
+    buttons: tuple[tuple[str, str], ...], keyboard: list[list[dict[str, str]]]
+) -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response({"message_id": 101, "chat": {"id": 42}})
+
+    api = api_for(handler)
+    try:
+        await api.edit_message_text(42, 101, " Проверьте текст ", buttons=buttons)
+    finally:
+        await api.aclose()
+
+    assert len(calls) == 1
+    assert calls[0].url.path.endswith("/editMessageText")
+    assert json.loads(calls[0].content) == {
+        "chat_id": 42,
+        "message_id": 101,
+        "text": "Проверьте текст",
+        "reply_markup": {"inline_keyboard": keyboard},
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ("send", "edit"))
+@pytest.mark.parametrize(
+    "buttons",
+    [
+        [],
+        (("label", "token"),) * 9,
+        (["label", "token"],),
+        (("label",),),
+        (("label", "token", "extra"),),
+        ((1, "token"),),
+        (("label", 1),),
+        ((" ", "token"),),
+        (("label", " "),),
+        (("x" * 65, "token"),),
+        (("label", "x" * 65),),
+        (("label", "я" * 33),),
+        (("label", "bad\x00token"),),
+    ],
+)
+async def test_message_buttons_reject_malformed_values_before_transport(
+    operation: str, buttons: Any
+) -> None:
+    calls: list[httpx.Request] = []
+    api = api_for(lambda request: (calls.append(request), response({}))[1])
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            if operation == "send":
+                await api.send_message(42, "Проверьте текст", buttons=buttons)
+            else:
+                await api.edit_message_text(42, 101, "Проверьте текст", buttons=buttons)
+    finally:
+        await api.aclose()
+
+    assert caught.value.code == "telegram_configuration_invalid"
+    assert calls == []
+
+
+@pytest.mark.asyncio
 async def test_send_document_uses_bounded_multipart_and_validates_binding() -> None:
     calls: list[httpx.Request] = []
 

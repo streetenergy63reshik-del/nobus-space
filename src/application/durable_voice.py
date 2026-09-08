@@ -7,15 +7,17 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
+import json
 from typing import Any
 from uuid import UUID
 
 from src.application.durable_runtime import PreparedTask
 from src.application.durable_telegram_state import DurableJob, SQLiteTelegramState
 from src.application.product_status import ProductReason, product_reason_state
+from src.application.telegram_actions import TelegramAction
 from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
-from src.transport.telegram import IngressStatus, TextMessage, TrustedIngressResult, VoiceMessage
+from src.transport.telegram import CallbackQuery, IngressStatus, TextMessage, TrustedIngressResult, VoiceMessage
 from src.voice import VoicePreview
 
 VOICE_BYTES = 10 * 1024 * 1024
@@ -135,6 +137,57 @@ class DurableVoiceIntake:
             self.control._wake()
         return True
 
+    async def resolve_callback(
+        self, callback: CallbackQuery, envelope: TrustedIngressEnvelope,
+        action: TelegramAction, capability_token: str,
+    ) -> VoiceMessage | None:
+        """Apply an actor-bound button to the exact still-current voice preview."""
+        TrustedIngressResult(status=IngressStatus.ACCEPTED, update_id=callback.update_id,
+                             payload=callback, envelope=envelope)
+        if action not in {TelegramAction.CONFIRM_DURABLE_VOICE,
+                          TelegramAction.REPLACE_DURABLE_VOICE}:
+            return None
+        try:
+            binding = json.loads(capability_token)
+            if (type(binding) is not dict
+                or set(binding) != {'voice', 'generation', 'preview'}
+                or type(binding['voice']) is not str
+                or type(binding['generation']) is not int):
+                return None
+            job = self.state.read_voice(tenant_id=callback.tenant_id,
+                                        task_id=UUID(binding['voice']))
+        except (ValueError, TypeError, KeyError):
+            return None
+        if job is None or not job.payload or self.state.voice_remaining(job) <= 0:
+            return None
+        original, _ = validate_job(job)
+        if (any(getattr(original, key) != getattr(callback, key) for key in (
+                'tenant_id', 'actor_identity', 'actor_role', 'user_id', 'chat_id',
+                'message_thread_id', 'auth_context_ref', 'binding_purpose'))
+            or job.payload.get('stage') != 'waiting'
+            or job.payload.get('preview_message_id') != callback.message_id
+            or datetime.fromisoformat(job.payload['confirmation_expires_at']) <= self.state._now()
+            or job.payload.get('generation', 0) != binding['generation']
+            or canonical_json_digest(job.payload.get('preview')) != binding['preview']):
+            return None
+        if not self.control._enable_semantic_admission:
+            return None
+        if action is TelegramAction.CONFIRM_DURABLE_VOICE:
+            preview = VoicePreview.model_validate(job.payload['preview'])
+            if not 0 < len(preview.transcript.strip()) <= VOICE_TEXT or '\x00' in preview.transcript:
+                return None
+            updates = dict(stage='confirmed', accepted_text=preview.transcript,
+                           confirmation_revision=envelope.envelope_revision, audio=None)
+        else:
+            updates = dict(stage='cancelled', replacement=True, audio=None, preview=None)
+        if not self.state.confirm_voice(job, reply_update_id=callback.update_id,
+                                        payload={**job.payload, **updates}):
+            return None
+        if action is TelegramAction.CONFIRM_DURABLE_VOICE:
+            await self._status(original, 'Текст подтверждён. Готовлю задачу.')
+        self.control._wake()
+        return original
+
     async def run(self, durable: DurableJob) -> None:
         execution = VoiceExecution(self.control, durable)
         marker = _ACTIVE.set(execution)
@@ -189,14 +242,28 @@ class DurableVoiceIntake:
             if stage == 'transcribed':
                 preview = VoicePreview.model_validate(execution.job.payload['preview'])
                 text = ('Проверьте распознанный текст:\n\n' + preview.transcript +
-                    '\n\nСрок подтверждения — один час с получения записи. ' +
-                    product_reason_state(ProductReason.VOICE_CONFIRMATION).reason_label)
+                    '\n\nНажмите «Подтверждаю», чтобы запустить задачу, '
+                    'или «Записать заново». Кнопки действуют до 15 минут.')
+                capability = json.dumps(dict(voice=str(execution.job.task_id),
+                    generation=execution.job.payload.get('generation', 0),
+                    preview=canonical_json_digest(execution.job.payload['preview'])))
+                ttl_seconds = max(1, min(900, int(self.state.voice_remaining(execution.job))))
+                confirmation_expires_at = (self.state._now() + timedelta(seconds=ttl_seconds)).isoformat()
+                buttons = self.control._action_buttons(message, (
+                    (TelegramAction.CONFIRM_DURABLE_VOICE, capability, 'Подтверждаю'),
+                    (TelegramAction.REPLACE_DURABLE_VOICE, capability, 'Записать заново'),
+                ), ttl_seconds=ttl_seconds)
                 next_stage = 'waiting'
             else:
                 text = product_reason_state(ProductReason.VOICE_INTERRUPTED).reason_label
+                buttons = ()
+                confirmation_expires_at = None
                 next_stage = 'interrupted'
-            await self.control._api.send_message(message.chat_id, text, message_thread_id=message.message_thread_id)
-            execution.save(stage=next_stage, status='waiting')
+            message_id = await self.control._voice_feedback(message, text, buttons=buttons)
+            if type(message_id) is not int or message_id <= 0:
+                raise ValueError('voice preview delivery is unknown')
+            execution.save(stage=next_stage, status='waiting', preview_message_id=message_id,
+                           confirmation_expires_at=confirmation_expires_at)
             return
         if stage == 'confirmed':
             execution.require_live()
@@ -212,7 +279,8 @@ class DurableVoiceIntake:
             return
         if stage == 'cancelled':
             self._finish(execution)
-            await self._status(message, product_reason_state(ProductReason.INPUT_CANCELLED).reason_label)
+            if not execution.job.payload.get('replacement'):
+                await self._status(message, product_reason_state(ProductReason.INPUT_CANCELLED).reason_label)
             return
         raise ValueError('voice stage is invalid')
 
@@ -222,7 +290,7 @@ class DurableVoiceIntake:
 
     async def _status(self, message: VoiceMessage, text: str) -> None:
         try:
-            await self.control._api.send_message(message.chat_id, text, message_thread_id=message.message_thread_id)
+            await self.control._voice_feedback(message, text, buttons=())
         except Exception:
             pass  # Stage authority is in SQLite, not the Telegram acknowledgement.
 

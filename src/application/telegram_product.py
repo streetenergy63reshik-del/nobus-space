@@ -476,7 +476,8 @@ class ProductTelegramApi(Protocol):
     ) -> None: ...
 
     async def edit_message_text(
-        self, chat_id: int, message_id: int, text: str
+        self, chat_id: int, message_id: int, text: str,
+        *, buttons: tuple[tuple[str, str], ...] | None = None,
     ) -> None: ...
 
 
@@ -1611,6 +1612,19 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 return
         await self._start_text_task(message, envelope, normalized)
 
+    async def _intake_feedback(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+    ) -> None:
+        await self._api.send_message(message.chat_id,
+            "Сообщение получено. Разбираюсь в задаче.",
+            message_thread_id=message.message_thread_id)
+
+    async def _clear_intake_feedback(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+    ) -> None:
+        # The durable product owns the persisted progress reference.
+        return None
+
     async def _start_semantic_instruction(
         self,
         message: TextMessage | VoiceMessage,
@@ -1691,11 +1705,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                         for value in materials
                     ),
                 )
-            await self._api.send_message(
-                message.chat_id,
-                "Сообщение получено. Разбираюсь в задаче.",
-                message_thread_id=message.message_thread_id,
-            )
+            await self._intake_feedback(message, envelope)
             admission = await service.admit(canonical, bindings)
         except asyncio.CancelledError:
             raise
@@ -1705,6 +1715,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Не удалось безопасно понять задачу. Повторите запрос без "
                 "сокращений; никаких действий не выполнялось.",
             )
+            await self._clear_intake_feedback(message, envelope)
             return
         except Exception:
             await self._api.send_message(
@@ -1712,6 +1723,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 "Не удалось безопасно проверить смысл задачи. Попробуйте ещё "
                 "раз; никаких действий не выполнялось.",
             )
+            await self._clear_intake_feedback(message, envelope)
             return
 
         decision = admission.decision
@@ -1740,6 +1752,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     answer_binding=answer_binding,
                 )
             )
+            await self._clear_intake_feedback(message, envelope)
             return
 
         if pending is not None and not clarifications.delete(pending):
@@ -1747,6 +1760,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 message.chat_id,
                 "Уточнение изменилось или истекло. Повторите исходную задачу.",
             )
+            await self._clear_intake_feedback(message, envelope)
             return
         if decision.decision == "EXECUTE":
             if (
@@ -1763,6 +1777,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             )
             return
         await self._api.send_message(message.chat_id, product_semantic_state(decision).reason_label)
+        await self._clear_intake_feedback(message, envelope)
 
     async def _analyze_owner_file(
         self,
@@ -1959,7 +1974,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         if (
             not self._enable_extended_routes
             and claimed.action
-            not in {TelegramAction.CONFIRM_VOICE, TelegramAction.CANCEL_VOICE}
+            not in {TelegramAction.CONFIRM_VOICE, TelegramAction.CANCEL_VOICE,
+                    TelegramAction.CONFIRM_DURABLE_VOICE, TelegramAction.REPLACE_DURABLE_VOICE}
         ):
             await _optional_callback_call(
                 self._api.answer_callback_query(callback.query_id),
@@ -1968,8 +1984,20 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             await self._api.send_message(callback.chat_id, _MVP1_UNAVAILABLE_TEXT)
             return
 
+        durable_voice_action = claimed.action in {
+            TelegramAction.CONFIRM_DURABLE_VOICE, TelegramAction.REPLACE_DURABLE_VOICE,
+        }
+        resolved_voice: VoiceMessage | None = None
+
         async def execute_claimed_action() -> None:
-            if claimed.action in {
+            nonlocal resolved_voice
+            if durable_voice_action:
+                intake = getattr(self, "_durable_voice", None)
+                if intake is None:
+                    return
+                resolved_voice = await intake.resolve_callback(
+                    callback, envelope, claimed.action, claimed.capability_token)
+            elif claimed.action in {
                 TelegramAction.CONFIRM_VOICE,
                 TelegramAction.CANCEL_VOICE,
             }:
@@ -2033,6 +2061,17 @@ class ProductTelegramControlPlane(TelegramControlPlane):
             raise
         if not self._action_store.commit(callback):
             raise RuntimeError("Telegram action commit failed")
+        if durable_voice_action:
+            await _optional_callback_call(self._api.answer_callback_query(
+                callback.query_id, text=("Кнопка уже неактивна." if resolved_voice is None else
+                    "Отправьте новое голосовое сообщение." if claimed.action is TelegramAction.REPLACE_DURABLE_VOICE
+                    else "Подтверждено.")), _CALLBACK_ACK_TIMEOUT_SECONDS)
+            if resolved_voice is not None and claimed.action is TelegramAction.REPLACE_DURABLE_VOICE:
+                await _optional_callback_call(
+                    self._clear_voice_feedback(resolved_voice), _CALLBACK_CLEANUP_TIMEOUT_SECONDS)
+            if was_cancelled:
+                raise asyncio.CancelledError
+            return
         await asyncio.gather(
             _optional_callback_call(
                 self._api.answer_callback_query(

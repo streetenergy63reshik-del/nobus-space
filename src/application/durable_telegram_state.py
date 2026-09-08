@@ -1285,6 +1285,17 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def list_progress(self) -> tuple[ProgressMessageRef, ...]:
+        """Read saved bot refs, including cleanup left after a restart."""
+        try:
+            with closing(self._connect()) as connection:
+                return tuple(ProgressMessageRef(
+                    row['tenant_id'], UUID(row['task_id']), row['chat_id'],
+                    row['message_id'], datetime.fromisoformat(row['updated_at']),
+                ) for row in connection.execute('SELECT * FROM telegram_progress'))
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DurableTelegramStateError('runtime_store_unavailable') from None
+
     def delete_progress(self, reference: ProgressMessageRef) -> bool:
         if not isinstance(reference, ProgressMessageRef):
             return False

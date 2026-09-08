@@ -1,6 +1,6 @@
 # Nobus Space — текущий статус
 
-**Обновление 8 сентября: C4 REWORK / NOT ACCEPTED / NOT PUBLISHED.** Настоящий владелец получил ответ и TXT, но обнаружил задержку подтверждения и отказ Mini App. [Исправления и доказательства](../gates/gate-c4-frontend-journey/SMOKE-REWORK.md). Ниже сохранены результаты предыдущего локального checkpoint; они не принимают новый код.
+**Обновление 8 сентября: C4 REWORK / NOT ACCEPTED / NOT PUBLISHED.** Повторный настоящий smoke подтвердил текст, TXT и восстановление Mini App. Владелец запросил две кнопки под расшифровкой и очистку промежуточного сообщения; новый кандидат проходит собственные проверки. [Точные факты и границы](../gates/gate-c4-frontend-journey/SMOKE-REWORK.md). Ниже сохранены результаты предыдущего локального checkpoint.
 
 **7 сентября 2026: C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT ACCEPTED / NOT PUBLISHED.**
 C0–C3 приняты и опубликованы. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.

@@ -45,6 +45,8 @@ from src.application.telegram_product import (
 from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import DuplicateIdempotencyKeyError, task_contract_digest
+from src.models.task import TaskStatus
+from src.storage.outbox import OutboxStatus, message_fingerprint, message_id_for
 from src.transport.telegram import (
     CallbackQuery,
     IngressStatus,
@@ -135,6 +137,59 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 if await self._durable_voice.reply(ingress.payload, ingress.envelope):
                     return True
         return await super()._handle_ingress(ingress)
+
+    async def _show_intake_progress(
+        self, message: TextMessage | VoiceMessage | CallbackQuery, task_id: UUID,
+        text: str, *, buttons: tuple[tuple[str, str], ...] | None = None,
+    ) -> int:
+        ref = self._telegram_state.read_progress(tenant_id=message.tenant_id, task_id=task_id)
+        if ref is not None and ref.chat_id != message.chat_id:
+            raise RuntimeError("progress destination mismatch")
+        edit = getattr(self._api, "edit_message_text", None)
+        if ref is not None and callable(edit):
+            options = {} if buttons is None else {"buttons": buttons}
+            await edit(ref.chat_id, ref.message_id, text, **options)
+            return ref.message_id
+        message_id = await self._api.send_message(message.chat_id, text,
+            buttons=buttons or (), message_thread_id=message.message_thread_id)
+        try:
+            self._telegram_state.save_progress(tenant_id=message.tenant_id, task_id=task_id,
+                chat_id=message.chat_id, message_id=message_id)
+        except Exception:
+            with suppress(Exception):
+                await self._api.delete_message(message.chat_id, message_id)
+            raise
+        if ref is not None:
+            # Only transports without editing need a replacement message.
+            with suppress(Exception):
+                await self._api.delete_message(ref.chat_id, ref.message_id)
+        return message_id
+
+    async def _voice_feedback(
+        self, message: VoiceMessage, text: str,
+        *, buttons: tuple[tuple[str, str], ...] | None = None,
+    ) -> int:
+        return await self._show_intake_progress(message, voice_id(message), text, buttons=buttons)
+
+    async def _clear_voice_feedback(self, message: VoiceMessage) -> None:
+        await self._clear_progress_binding(message.tenant_id, voice_id(message))
+
+    async def _intake_feedback(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+    ) -> None:
+        task_id = voice_id(message) if isinstance(message, VoiceMessage) else _miniapp_task_id(
+            envelope.tenant_id, envelope.idempotency_key)
+        await self._show_intake_progress(message, task_id,
+            "Сообщение получено. Разбираюсь в задаче.",
+            buttons=() if isinstance(message, VoiceMessage) else None)
+
+    async def _clear_intake_feedback(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+    ) -> None:
+        task_id = voice_id(message) if isinstance(message, VoiceMessage) else _miniapp_task_id(
+            envelope.tenant_id, envelope.idempotency_key)
+        with suppress(Exception):
+            await self._clear_progress_binding(message.tenant_id, task_id)
 
     async def _start_text_task(
         self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
@@ -777,8 +832,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     self._telegram_state.release(durable, lease_owner=self._lease_owner)
                 with suppress(Exception):
                     message, _ = validate_job(current)
-                    await self._api.send_message(message.chat_id,
-                        'Обработка голосовой записи прервана. ' + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label)
+                    await self._voice_feedback(message,
+                        'Обработка голосовой записи прервана. ' + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label, buttons=())
         finally:
             for task in (execution, heartbeat):
                 if not task.done():
@@ -902,23 +957,10 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             )
         except Exception:
             return False
-        progress_id: int | None = None
-        try:
-            progress_id = await self._api.send_message(
-                message.chat_id, product_reason_state(ProductReason.ACCEPTED).reason_label
-            )
-            self._telegram_state.save_progress(
-                tenant_id=prepared.contract.tenant_id,
-                task_id=prepared.contract.task_id,
-                chat_id=message.chat_id,
-                message_id=progress_id,
-            )
-        except Exception:
-            if progress_id is not None:
-                with suppress(Exception):
-                    await self._api.delete_message(
-                        message.chat_id, progress_id
-                    )
+        with suppress(Exception):
+            await self._show_intake_progress(message, prepared.contract.task_id,
+                product_reason_state(ProductReason.ACCEPTED).reason_label,
+                buttons=() if isinstance(message, VoiceMessage) else None)
         await self.start()
         self._wake()
         return True
@@ -1232,19 +1274,67 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             with suppress(Exception):
                 await edit(ref.chat_id, ref.message_id, text)
 
+    async def deliver_pending(self) -> int:
+        delivered = await super().deliver_pending()
+        # ACK survives a crash before Telegram cleanup. Reconcile saved refs on
+        # delivery cycles; never repeat a draft merely to delete its status.
+        for ref in self._telegram_state.list_progress():
+            with suppress(Exception):
+                await self._settle_task_progress(ref.tenant_id, ref.task_id)
+        return delivered
+
+    async def _settle_task_progress(
+        self, tenant_id: str, task_id: UUID, *, show_pending: bool = False,
+    ) -> None:
+        if tenant_id not in self._task_tenants or tenant_id not in getattr(self._product_runtime, '_destination_refs', {}):
+            return
+        ref = self._telegram_state.read_progress(tenant_id=tenant_id, task_id=task_id)
+        store = getattr(self._product_runtime, '_store', None)
+        if ref is None or store is None:
+            return
+        snapshot = store.read_task(tenant_id, task_id)
+        if snapshot is None:
+            return  # Previews and admission receipts have no Core task yet.
+        projection = snapshot.projection
+        if projection.status is TaskStatus.ANSWERED:
+            message = store.read_verified_answer(tenant_id, task_id,
+                task_revision=snapshot.revision, task_projection_digest=snapshot.snapshot_digest,
+                contract_digest=projection.contract_digest, result_revision=projection.result_revision,
+                result_digest=projection.result_digest)
+        elif projection.status in {TaskStatus.FAILED, TaskStatus.REJECTED, TaskStatus.COMPLETED, TaskStatus.ESCALATE}:
+            destination = self._product_runtime._destination_refs.get(tenant_id)
+            if destination is None:
+                return
+            fingerprint = message_fingerprint(tenant_id=tenant_id, task_id=task_id,
+                task_revision=snapshot.revision, task_projection_digest=snapshot.snapshot_digest,
+                contract_digest=projection.contract_digest, result_revision=projection.result_revision,
+                result_digest=projection.result_digest, destination_ref=destination,
+                task_status=projection.status)
+            message = store.read_outbox_message(tenant_id, message_id_for(fingerprint))
+        else:
+            return
+        if message is not None and message.status is OutboxStatus.ACKED:
+            await self._clear_progress_binding(tenant_id, task_id)
+        elif show_pending:
+            edit = getattr(self._api, 'edit_message_text', None)
+            if callable(edit):
+                await edit(ref.chat_id, ref.message_id,
+                    'Выполнение завершено. Доставка ответа ещё не подтверждена. '
+                    'Проверьте задачу в Mini App; повторно отправлять её не нужно.', buttons=())
+
     async def _clear_progress(
         self, job: _QueuedJob | _QueuedMiniAppDraft
     ) -> None:
         if not isinstance(job, _QueuedDraft):
             return
-        await self._clear_progress_binding(
+        await self._settle_task_progress(
             job.prepared.contract.tenant_id,
-            job.prepared.contract.task_id,
+            job.prepared.contract.task_id, show_pending=True,
         )
 
     async def _clear_durable_progress(self, job: DurableJob) -> None:
         if job.kind == "draft":
-            await self._clear_progress_binding(job.tenant_id, job.task_id)
+            await self._settle_task_progress(job.tenant_id, job.task_id, show_pending=True)
 
     async def _clear_progress_binding(
         self, tenant_id: str, task_id: UUID

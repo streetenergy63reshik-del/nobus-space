@@ -126,10 +126,11 @@ class FrozenVoice(c3.BudgetedVoice):
 
 
 class LocalTransport(old.LocalTransport):
-    async def edit_message_text(self, chat_id, message_id, text):
-        if chat_id != old.USER or not any(row["kind"] == "message" for row in self.rows):
+    async def edit_message_text(self, chat_id, message_id, text, *, buttons=None):
+        if (chat_id != old.USER or not 0 < message_id <= len(self.rows)
+            or self.rows[message_id - 1]["kind"] != "message"):
             raise RuntimeError("foreign_progress_edit")
-        self.append("edit", message_id=message_id, text=text)
+        self.append("edit", message_id=message_id, text=text, **({"buttons": buttons} if buttons is not None else {}))
 
 
 class Clock:
@@ -266,8 +267,16 @@ async def voice_admit(control, state, api, runtime, folder, ledger, scenario):
             raise RuntimeError("voice_preview_not_durable")
         if runtime._store.list_tasks(old.TENANT) or ledger.snapshot()["resources"]["model"] != before:
             raise RuntimeError("task_or_model_before_confirmation")
-        # Accepted C2 confirmation is an exact reply to the original voice.
-        await old.poll_update(api, polling, old.update("да", reply=True))
+        # Exercise the C4 inline button through polling and the real gateway.
+        preview = next(row for row in reversed(api.rows) if row.get("buttons"))
+        if [button[0] for button in preview["buttons"]] != ["Подтверждаю", "Записать заново"]:
+            raise RuntimeError("voice_confirmation_buttons_missing")
+        callback = {"update_id": 102, "callback_query": {
+            "id": "c4-local-voice-confirm", "from": {"id": old.USER},
+            "message": {"message_id": saved.payload["preview_message_id"], "chat": {"id": old.USER}},
+            "data": preview["buttons"][0][1],
+        }}
+        await old.poll_update(api, polling, callback)
     finally:
         control.start = original_start
     return polling
