@@ -799,23 +799,30 @@ class TelegramStatusSender:
 
 def _project_artifact(directory: Path, filename: str, content: bytes) -> None:
     """Create one immutable local projection before external delivery."""
+    import stat
+    from src.application.runtime_maintenance import checked_path
 
-    target = directory / filename
     temporary = directory / f".nobus-{uuid4().hex}.tmp"
+    identity = None
+    target = directory / filename
 
     def matches_existing() -> bool:
-        return (
-            not target.is_symlink()
-            and target.is_file()
-            and target.read_bytes() == content
-        )
+        checked_path(target, root=directory)
+        return target.is_file() and target.read_bytes() == content
 
     try:
+        checked_path(directory)
+        if (not directory.is_dir() or not filename or filename in {".", ".."}
+                or any(character in filename for character in "/\\:")):
+            raise ValueError("artifact projection path invalid")
         if target.exists() or target.is_symlink():
             if matches_existing():
                 return
             raise ValueError("artifact projection conflicts with existing file")
+        checked_path(temporary, root=directory)
         with temporary.open("xb") as stream:
+            metadata = os.fstat(stream.fileno())
+            identity = (metadata.st_dev, metadata.st_ino)
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
@@ -827,10 +834,22 @@ def _project_artifact(directory: Path, filename: str, content: bytes) -> None:
     except (OSError, ValueError):
         raise TelegramBotApiError("telegram_artifact_projection_failed") from None
     finally:
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
+        if identity is not None:
+            try:
+                checked_path(directory)
+                metadata = temporary.lstat()
+                if (not stat.S_ISREG(metadata.st_mode)
+                        or getattr(metadata, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+                        or (metadata.st_dev, metadata.st_ino) != identity
+                        or metadata.st_nlink not in {1, 2}):
+                    raise ValueError("artifact temporary ownership invalid")
+                if metadata.st_nlink == 2:
+                    target_metadata = target.lstat()
+                    if (target_metadata.st_dev, target_metadata.st_ino) != identity:
+                        raise ValueError("artifact temporary ownership invalid")
+                temporary.unlink()
+            except (OSError, ValueError):
+                raise TelegramBotApiError("telegram_artifact_projection_failed") from None
 
 
 def _status_text(

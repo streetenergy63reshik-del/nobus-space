@@ -1,0 +1,61 @@
+{
+  "schema": "c5-manual-1",
+  "name": "Памятка — управление Nobus Space Bot.docx",
+  "version": "C5 2026-09-08",
+  "operation": "edit same authorized DOCX; CAS original hash checked before replacement",
+  "original": {
+    "sha256": "9e113482b48492f0276b988b1e600100c741327de69cda6a3cb84af25005c33b",
+    "bytes": 43623,
+    "mtime_utc": "2026-09-02T14:56:23.2535796Z"
+  },
+  "final": {
+    "bytes": 44544,
+    "sha256": "e54a6662374d7be841fb831bc4bea1e2a358494702caedec67caf56cace2fe43"
+  },
+  "final_mtime_utc": "2026-09-08T16:12:27.470962+00:00",
+  "renderer": "Installed Microsoft Word COM, read-only open, ExportAsFixedFormat PDF; new hidden application closed",
+  "renderer_fallback": "Bundled render_docx.py failed: soffice.exe unavailable. No install or download. Actual Word render used.",
+  "pages": 6,
+  "all_page_visual_qa": "PASS; all six PNGs viewed at 100dpi; no clipping, overlap or spill pages; code lines readable",
+  "text": {
+    "bytes": 18282,
+    "sha256": "379d356afff0be8151dafbddafd55d48398c35791ba4afd02d3664f290d9df86"
+  },
+  "pdf": {
+    "bytes": 286429,
+    "sha256": "f9238b03b93663633ba0889e09418b6cac2fe25f53be1eeb3ba885a1ea7dc065"
+  },
+  "page_pngs": [
+    {
+      "page": 1,
+      "bytes": 162539,
+      "sha256": "646a94581217ae34168b12efded9336be5ee77e9734cad5c454f317770aafb0c"
+    },
+    {
+      "page": 2,
+      "bytes": 168969,
+      "sha256": "5d66d5ca3ac32093327a94f082e9ca7fcaf3b64c6bb1881eda7d403bd009e7b2"
+    },
+    {
+      "page": 3,
+      "bytes": 165317,
+      "sha256": "9454fcd86bec35bfac515aaf51b7514460216cdf0222c6d099d1ccb71e5251a1"
+    },
+    {
+      "page": 4,
+      "bytes": 159549,
+      "sha256": "b90a7b4b8b6488299847897186278e7f439bb716eb7f5e6da9e3007e917525eb"
+    },
+    {
+      "page": 5,
+      "bytes": 175589,
+      "sha256": "9f9d4620e8c6f501da4793c2034dfcd8fa299700c96a114de7957acf23489b8b"
+    },
+    {
+      "page": 6,
+      "bytes": 209607,
+      "sha256": "b90457289225c9851cd07ddfe2471142bce2ba3e97154c39d13a09ab96e1c971"
+    }
+  ],
+  "limitations": "Manual states current stopped status, C6 activation boundary, owner-accepted RPO/RTO targets and unmeasured full product RTO; private paths remain only in owner-local DOCX, not published binary."
+}

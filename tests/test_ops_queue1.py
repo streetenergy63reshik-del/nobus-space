@@ -42,7 +42,7 @@ def test_health_and_verified_non_overwriting_backup(tmp_path: Path) -> None:
     destination = tmp_path / "backup"
     manifest = backup(sources, destination)
     values = json.loads(manifest.read_text(encoding="utf-8"))
-    assert values["schema_version"] == 2
+    assert values["schema_version"] == 3
     assert {item["name"] for item in values["files"]} == {
         source.name for source in sources
     }
@@ -194,8 +194,7 @@ def test_health_reports_dead_letter_as_degraded_with_bounded_stopped_recovery(
     assert installer.count("-DontStopIfGoingOnBatteries") == 2
     assert "-RestartCount 999" not in installer
     assert "Stop-ScheduledTask" not in installer
-    assert installer.count("Start-ScheduledTask") == 1
-    assert "`$task.State -eq 'Ready'" in installer
+    assert "Start-ScheduledTask" not in installer
     assert "run_nobus_space_live.py" in installer
     assert "-Execute $pythonw" in installer
     assert "-WindowStyle Hidden" in installer
@@ -285,3 +284,21 @@ def test_health_recomputes_dpapi_payload_digest(tmp_path: Path) -> None:
         )
         connection.commit()
     assert check(sources)["status"] == "FAIL"
+
+
+
+def test_installer_semantic_composition_is_explicit_and_default_off():
+    installer = (Path(__file__).parents[1] / "ops/windows/Install-NobusSpaceBot.ps1").read_text(encoding="utf-8")
+    assert "[switch]$SemanticAdmission" in installer
+    assert "if ($SemanticAdmission.IsPresent)" in installer
+    assert "[string]$StateRoot = ''" in installer
+    assert "[string]$VoiceModelDirectory = ''" in installer
+    assert "'--semantic-admission'" in installer
+    assert "@('--runtime-root'," in installer
+    assert "@('--voice-model-directory'," in installer
+    assert "-Argument ($runnerArguments -join ' ')" in installer
+    assert "--runtime '$($healthStateDirectory.Replace" in installer
+    assert "$healthStateDirectory = if ($null -ne $stateDirectory)" in installer
+    assert "[System.IO.FileAttributes]::ReparsePoint" in installer
+    assert installer.index("$stateDirectory = Resolve-CompositionDirectory") < installer.index("$PSCmdlet.ShouldProcess")
+    assert "Start-ScheduledTask" not in installer

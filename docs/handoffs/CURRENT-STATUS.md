@@ -1,5 +1,15 @@
 # Nobus Space — текущее состояние
 
+**8 сентября 2026. C5 DRAFT / GATE CANDIDATE; C4 ACCEPTED / PASS / PUBLISHED.**
+MVP1 NOT READY; C6 не запущен; постоянной активации нет.
+
+C5 начат от опубликованного main 1b3cf67405c4523258dd8b400d17d09601f815ff в отдельной ветке/worktree. [C5 handoff](../gates/gate-c5-mvp1-operations-security/HANDOFF.md) и [приёмка](../gates/gate-c5-mvp1-operations-security/ACCEPTANCE.md) содержат нормы, проверки и ограничения. До полного L1/L2/L3 статус DRAFT; публикация требует обычного merge/readback.
+
+Preflight: оба Scheduler tasks Disabled, pollers0, port8765 свободен; local HTTP отсутствует, public readyz403. Live window NOT RUN; semantic defaultFalse. Canonical20dirty paths и другие worktrees сохраняются.
+
+## Сохранённый итог C4 (историческая проекция)
+
+
 **8 сентября 2026. C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED.**
 C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD. Постоянного deploy нет.
 

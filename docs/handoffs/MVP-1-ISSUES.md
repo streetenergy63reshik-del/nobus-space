@@ -8,8 +8,14 @@
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 DRAFT; C6 HOLD; MVP1 NOT READY.
 Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C4 evidence](../gates/gate-c4-frontend-journey/EVIDENCE.json).
+
+## Проверки C5
+
+C0-F07 operational/supervisor, F12 ingress, F13 restore и F14 cleanup проверяются в C5; фактическая активация остаётся C6. Прежние строки сохраняют исторический контекст, включая502. Текущий preflight дал403 при остановленном runtime.
+Доказанные пробелы C5: race ребёнка до Job, stop без graceful cleanup, health restart storm, недостаточные readiness/HTTP budgets, неподвязанные version/target restore и оживление auth/effects. Исправления и исходные FAIL — [пакет C5](../gates/gate-c5-mvp1-operations-security/HANDOFF.md). До verdict DRAFT.
+Inherited binary/license/pip/SQLite риски — [проверка](../gates/gate-c5-mvp1-operations-security/DEPENDENCIES.md); Git source publication не является binary distribution.
 
 ## Активные findings после переоткрытия acceptance
 

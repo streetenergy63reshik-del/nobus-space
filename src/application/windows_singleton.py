@@ -31,6 +31,8 @@ class WindowsNamedMutex:
         create = kernel32.CreateMutexW
         create.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR)
         create.restype = wintypes.HANDLE
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
         handle = create(None, False, self._name)
         if not handle:
             raise RuntimeError("runner mutex unavailable")
@@ -43,4 +45,8 @@ class WindowsNamedMutex:
     def __exit__(self, *values: object) -> None:
         handle, self._handle = self._handle, None
         if handle is not None:
-            ctypes.WinDLL("Kernel32.dll", use_last_error=True).CloseHandle(handle)
+            kernel32 = ctypes.WinDLL("Kernel32.dll", use_last_error=True)
+            kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+            kernel32.CloseHandle.restype = wintypes.BOOL
+            if not kernel32.CloseHandle(handle):
+                raise RuntimeError("runner mutex release failed")

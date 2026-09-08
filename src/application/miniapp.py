@@ -324,6 +324,14 @@ class MiniAppCore:
             raw_init_data, now=now
         )
         try:
+            if self._store.restore_reconciliation_required():
+                raise MiniAppCoreUnavailableError("core_unavailable")
+            cutoff = self._store.miniapp_restore_cutoff()
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if cutoff is not None and auth_date <= cutoff:
+            raise MiniAppAuthenticationError("unauthorized")
+        try:
             claimed = self._store.claim_miniapp_auth_replay(
                 self._tenant_id,
                 replay_digest,

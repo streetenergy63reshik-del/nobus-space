@@ -1,8 +1,10 @@
 # Gate index
 
+Текущий [пакет C5](gate-c5-mvp1-operations-security/HANDOFF.md) уточняет эксплуатацию; публикация source не является активацией.
+
 **Актуально на:** 8 сентября 2026 года.
 **CURRENT:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED.
-C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C4](gate-c4-frontend-journey/HANDOFF.md)
+C5 DRAFT; C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C4](gate-c4-frontend-journey/HANDOFF.md)
 содержит точную ревизию, проверки и условия завершения.
 Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
 и не входит в published tree.
@@ -26,7 +28,7 @@ checkpoints, не отдельные пользовательские чаты.
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
 | C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
 | C4 — завершённый frontend/user journey | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
-| C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
+| C5 — operations/recovery/security | DRAFT / GATE CANDIDATE | [приёмка](gate-c5-mvp1-operations-security/ACCEPTANCE.md), [передача](gate-c5-mvp1-operations-security/HANDOFF.md) |
 | C6 — frozen release и owner acceptance | HOLD до C5 | exact publication/activation/readback/acceptance |
 
 ## Historical status map

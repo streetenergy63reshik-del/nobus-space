@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from email import policy
 from email.parser import BytesParser
@@ -18,6 +19,8 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import ClientDisconnect
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from uvicorn.protocols.http.h11_impl import H11Protocol
 
 from src.application.miniapp import (
     MiniAppAuthenticationError,
@@ -56,6 +59,149 @@ _AUTHORITY_HEADERS = frozenset(
         "x-tenant-id",
     }
 )
+
+
+_SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self' https://telegram.org; "
+        "style-src 'self'; connect-src 'self'; img-src 'self' data:; "
+        "object-src 'none'; base-uri 'none'; "
+        "frame-ancestors https://web.telegram.org https://*.telegram.org"
+    ),
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cache-Control": "no-store",
+}
+
+
+class BoundedH11Protocol(H11Protocol):
+    """Bound pre-ASGI connections and slow headers in the pinned HTTP server."""
+
+    HEADER_SECONDS = 5.0
+    MAX_CONNECTIONS = 16
+
+    def connection_made(self, transport: asyncio.Transport) -> None:
+        super().connection_made(transport)
+        self._header_deadline = self.loop.call_later(self.HEADER_SECONDS, transport.close)
+        if len(self.connections) > self.MAX_CONNECTIONS:
+            transport.close()
+
+    def data_received(self, data: bytes) -> None:
+        super().data_received(data)
+        if self.cycle is not None and not self.cycle.response_complete:
+            self._header_deadline.cancel()
+
+    def on_response_complete(self) -> None:
+        super().on_response_complete()
+        self._header_deadline.cancel()
+        if self.cycle is None or self.cycle.response_complete:
+            self._header_deadline = self.loop.call_later(
+                self.HEADER_SECONDS, self.transport.close
+            )
+
+    def connection_lost(self, exc: Exception | None) -> None:
+        self._header_deadline.cancel()
+        super().connection_lost(exc)
+
+
+class _ResourceBoundary:
+    """One owner: fixed global budgets, no client-IP identity or unbounded queue."""
+
+    MAX_ACTIVE = 8
+    MAX_RESPONSE_BYTES = 1024 * 1024
+    TOTAL_SECONDS = 90.0
+
+    def __init__(self, app: ASGIApp, *, authority: str) -> None:
+        self.app = app
+        self.authority = authority.lower().encode('ascii')
+        self.active = 0
+        self._updated = time.monotonic()
+        self._tokens = 30.0
+        self._auth_tokens = 10.0
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope['type'] != 'http':
+            await self.app(scope, receive, send)
+            return
+        headers = scope.get('headers', [])
+        names = [name.lower() for name, _ in headers]
+        singular = {b'host', b'origin', b'authorization', b'content-length',
+                    b'transfer-encoding', b'content-type', b'idempotency-key', b'cookie'}
+        status, detail = 0, ''
+        if (len(headers) > 64 or sum(len(k) + len(v) + 4 for k, v in headers) > 16384):
+            status, detail = 431, 'invalid_request'
+        elif (len(scope.get('raw_path', b'')) > 512
+              or len(scope.get('query_string', b'')) > 512):
+            status, detail = 400, 'invalid_request'
+        elif names.count(b'authorization') > 1:
+            status, detail = 401, 'unauthorized'
+        elif (any(names.count(name) > 1 for name in singular)
+              or any(any(c in value for c in (b'\r', b'\n', b'\x00')) for _, value in headers)
+              or (b'content-length' in names and b'transfer-encoding' in names)):
+            status, detail = 400, 'invalid_request'
+        elif dict(headers).get(b'host', b'').lower() != self.authority:
+            status, detail = 400, 'invalid_request'
+        elif scope['method'] not in {'GET', 'HEAD', 'POST'}:
+            status, detail = 405, 'method_not_allowed'
+        elif self.active >= self.MAX_ACTIVE:
+            status, detail = 503, 'Nobus Space временно недоступен'
+        if not status:
+            now = time.monotonic()
+            elapsed = max(0.0, now - self._updated)
+            self._updated = now
+            self._tokens = min(30.0, self._tokens + elapsed * 2.0)
+            self._auth_tokens = min(10.0, self._auth_tokens + elapsed * 0.5)
+            auth = scope['path'].startswith('/api/session')
+            if self._tokens < 1 or (auth and self._auth_tokens < 1):
+                status, detail = 429, 'rate_limited'
+            else:
+                self._tokens -= 1
+                if auth:
+                    self._auth_tokens -= 1
+        if status:
+            await self._error(scope, receive, send, status, detail)
+            return
+        self.active += 1
+        messages: list[Message] = []
+        size = 0
+        response_started = False
+
+        async def collect(message: Message) -> None:
+            nonlocal size
+            if message['type'] == 'http.response.body':
+                size += len(message.get('body', b''))
+                if size > self.MAX_RESPONSE_BYTES:
+                    raise ValueError('bounded_response')
+            if message['type'] not in {'http.response.start', 'http.response.body'}:
+                raise ValueError('invalid_response')
+            if len(messages) >= 2048:
+                raise ValueError('bounded_response_frames')
+            messages.append(message)
+
+        try:
+            async with asyncio.timeout(self.TOTAL_SECONDS):
+                await self.app(scope, receive, collect)
+                for message in messages:
+                    if message['type'] == 'http.response.start':
+                        values = dict(message.get('headers', []))
+                        values.update({k.lower().encode(): v.encode() for k, v in _SECURITY_HEADERS.items()})
+                        message = {**message, 'headers': list(values.items())}
+                        response_started = True
+                    await send(message)
+        except Exception:
+            # A total execution timeout is UNKNOWN, never the pre-admission 408.
+            if not response_started:
+                await self._error(scope, receive, send, 503, _UNAVAILABLE)
+        finally:
+            self.active -= 1
+
+    @staticmethod
+    async def _error(scope: Scope, receive: Receive, send: Send, status: int, detail: str) -> None:
+        headers = {**_SECURITY_HEADERS, 'Connection': 'close'}
+        if status == 429:
+            headers['Retry-After'] = '2'
+        await JSONResponse({'detail': detail}, status_code=status, headers=headers)(scope, receive, send)
 
 
 class MiniAppCoreBoundary(Protocol):
@@ -206,8 +352,9 @@ def create_miniapp_app(
     @app.get("/readyz")
     async def ready() -> object:
         try:
-            if readiness is not None:
-                readiness()
+            if readiness is None:
+                raise RuntimeError("readiness not configured")
+            readiness()
         except Exception:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return {"status": "ready"}
@@ -558,6 +705,7 @@ def create_miniapp_app(
 
     static_root = Path(__file__).with_name("miniapp_static")
     app.mount("/", StaticFiles(directory=static_root, html=True), name="miniapp")
+    app.add_middleware(_ResourceBoundary, authority=parsed_origin.netloc)
     return app
 
 

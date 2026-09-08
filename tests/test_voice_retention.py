@@ -149,7 +149,7 @@ async def test_running_deadline_cancels_pending_await_and_has_no_late_result(tmp
     # Actual monotonic timeout, not merely a simulated wall-clock jump.
     with sqlite3.connect(c._telegram_state.path) as db:
         db.execute('UPDATE telegram_jobs SET created_at=? WHERE job_id=?',
-            ((datetime.now(UTC)-timedelta(hours=1)+timedelta(seconds=.15)).isoformat(),str(job.job_id)))
+            ((datetime.now(UTC)-timedelta(hours=1)+timedelta(seconds=.75)).isoformat(),str(job.job_id)))
     cancelled=[];completed=[]
     async def never(audio):
         try:await asyncio.sleep(2);completed.append(True)
@@ -160,7 +160,7 @@ async def test_running_deadline_cancels_pending_await_and_has_no_late_result(tmp
     try:await c._durable_voice.run(job)
     except (TimeoutError,*ERRORS):pass
     elapsed=asyncio.get_running_loop().time()-before
-    assert elapsed<1 and cancelled==[True] and not completed
+    assert elapsed<1.5 and cancelled==[True] and not completed
     assert c._telegram_state.read_voice(tenant_id=job.tenant_id,task_id=job.task_id).payload=={}
     assert not compiler.inputs and rows(c)==[('voice','finished')]
     evidence('actual_deadline',cancelled=True,seconds=round(elapsed,3))
@@ -237,26 +237,36 @@ def test_actual_quiescent_backup_sanitizes_or_refuses_before_decrypt(tmp_path,mo
     else:
         manifest=_backup_quiescent(sources,destination)
         assert manifest.exists()
-        copied=SQLiteTelegramState(destination/'telegram-state.sqlite3')
+        from src.application.runtime_maintenance import unprotect_backup
+        inspected = tmp_path/'inspection'; inspected.mkdir()
+        inspected_path = inspected/'telegram-state.sqlite3'
+        inspected_path.write_bytes(unprotect_backup((destination/'telegram-state.sqlite3.dpapi').read_bytes()))
+        copied=SQLiteTelegramState(inspected_path)
         assert copied.read_voice(tenant_id='owner',task_id=job.task_id).payload=={}
     assert not seen
     evidence('actual_backup',active=active,no_content_decrypt=True)
 
 def legacy_authenticated_snapshot(tmp_path):
-    # Explicitly creates an old-version signed fixture, not a production backup.
+    # Current-format authenticated snapshot created before retention maintenance;
+    # deliberately contains expired synthetic voice to test staged scrubbing.
     from tests.test_ops_queue1 import _runtime_databases
     from scripts.backup_telegram_runtime import _BACKUP_ENTROPY
+    from src.application.runtime_maintenance import application_binding, runtime_target_binding, database_state_digest, protect_backup
     sources=_runtime_databases(tmp_path/'legacy-source');moment=datetime.now(UTC)-timedelta(hours=2)
     state=SQLiteTelegramState(sources[2],clock=lambda:moment)
     job=state.enqueue(kind='voice',tenant_id='owner',task_id=uuid4(),binding_digest=canonical_json_digest({'synthetic':1}),
         payload={'stage':'downloaded','audio':MARKER,'expires_at':(moment+timedelta(hours=1)).isoformat()})
     backup=tmp_path/'legacy-signed-backup';backup.mkdir()
-    manifest={'schema_version':2,'created_at':moment.isoformat(),'quiescent':True,'files':[]}
+    manifest={'schema_version':3,'created_at':moment.isoformat(),'quiescent':True,'files':[],
+              'application':application_binding(),'source_binding':runtime_target_binding(sources[0].parent)}
     for source in sources:
         target=backup/source.name
         with closing(sqlite3.connect(source)) as src,closing(sqlite3.connect(target)) as dst:src.backup(dst)
-        data=target.read_bytes()
-        manifest['files'].append({'name':target.name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+        data=target.read_bytes(); encrypted=protect_backup(data)
+        (backup/(source.name+'.dpapi')).write_bytes(encrypted)
+        manifest['files'].append({'name':target.name,'bytes':len(encrypted),'sha256':hashlib.sha256(encrypted).hexdigest(),
+            'plaintext_bytes':len(data),'plaintext_sha256':hashlib.sha256(data).hexdigest(),'state_digest':database_state_digest(target)})
+        target.unlink()  # Exact newly created plaintext fixture; encrypted original retained.
     digest=canonical_json_digest(manifest)
     (backup/'manifest-auth.bin').write_bytes(protect_current_user(digest.encode('ascii'),entropy=_BACKUP_ENTROPY))
     manifest['authentication']={'file':'manifest-auth.bin','manifest_digest':digest}
@@ -265,9 +275,9 @@ def legacy_authenticated_snapshot(tmp_path):
 
 @pytest.mark.parametrize('tamper',[False,True])
 def test_authenticated_restore_staging_expires_before_content_validation(tmp_path,monkeypatch,tamper):
-    from scripts.restore_telegram_runtime import _restore_quiescent
+    from tests.test_c5_backup_recovery import safe_restore as _restore_quiescent
     manifest,job=legacy_authenticated_snapshot(tmp_path)
-    source=manifest.parent/'telegram-state.sqlite3'
+    source=manifest.parent/'telegram-state.sqlite3.dpapi'
     if tamper:
         with source.open('ab') as output:output.write(b'synthetic-tamper')
     before={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in manifest.parent.iterdir() if p.is_file()}

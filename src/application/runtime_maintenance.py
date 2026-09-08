@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import ctypes
+import base64
 import hashlib
 import json
 import os
 import re
 import shutil
 import sqlite3
-from contextlib import closing
+import stat
+import subprocess
+from contextlib import closing, contextmanager, ExitStack
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
@@ -24,6 +27,10 @@ RUNTIME_DATABASE_NAMES = frozenset(
         "business-notes.sqlite3",
     }
 )
+REQUIRED_RUNTIME_DATABASE_NAMES = RUNTIME_DATABASE_NAMES - {"business-notes.sqlite3"}
+# Local MVP bound: DPAPI JSON adds base64 and uses the existing 80 MiB codec.
+MAX_BACKUP_DATABASE_BYTES = 48 * 1024 * 1024
+BACKUP_SCHEMA_VERSION = 3
 EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
     "business-notes.sqlite3": {
         "index:idx_business_notes_topic":
@@ -48,6 +55,7 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "07571fac9c3caf4d5b709f61817d624d24758c9ffacece6a4c1df606fa7dff2d",
         "table:ingress_claims":
             "b3b537e0a787c8d3baca03a6f1f583892dc90e7a0e30c1b21a8d7ed6ca8d554f",
+        "table:miniapp_restore_fence": "8038aed0628b69b62db2dbfb831790f9e29088f1704814c0426b51fb199b47b4",
         "table:miniapp_auth_replays":
             "457452b833664f228838673ed77b76f2819b42e332fbac61695e30a759ba1c72",
         "table:miniapp_session_recovery":
@@ -84,8 +92,204 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
 }
 
 
+def checked_path(path: Path, *, root: Path | None = None) -> Path:
+    """Reject traversal, links and Windows reparse points before maintenance I/O."""
+    path = Path(path)
+    if ".." in path.parts:
+        raise ValueError("unsafe maintenance path")
+    path = path.absolute()
+    if root is not None and not path.is_relative_to(Path(root).absolute()):
+        raise ValueError("unsafe maintenance path")
+    for component in (*reversed(path.parents), path):
+        try:
+            metadata = component.lstat()
+        except FileNotFoundError:
+            continue
+        if (stat.S_ISLNK(metadata.st_mode)
+                or getattr(metadata, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+                or (stat.S_ISREG(metadata.st_mode) and metadata.st_nlink != 1)):
+            raise ValueError("unsafe maintenance path")
+    return path
+
+
+def runtime_database_paths(root: Path) -> tuple[Path, ...]:
+    root = checked_path(root)
+    names = set(REQUIRED_RUNTIME_DATABASE_NAMES)
+    if (root / "business-notes.sqlite3").exists():
+        names.add("business-notes.sqlite3")
+    return tuple(checked_path(root / name, root=root) for name in sorted(names))
+
+
+def runtime_target_binding(root: Path) -> str:
+    from src.contracts.models import canonical_json_digest
+    return canonical_json_digest({"runtime_root": os.path.normcase(str(checked_path(root)))})
+
+
+def application_binding() -> dict[str, object]:
+    """Bind installed source bytes separately from Git HEAD (which may be WIP)."""
+    root = Path(__file__).resolve().parents[2]
+    digest = hashlib.sha256()
+    paths = list((root / "src").rglob("*.py"))
+    paths += list((root / "scripts").glob("*.py"))
+    paths.append(root / "requirements.txt")
+    for path in sorted(paths):
+        digest.update(path.relative_to(root).as_posix().encode() + b"\x00")
+        # Python sources and requirements are text; Git may check them out CRLF.
+        digest.update(hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).digest())
+    revision = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+        timeout=10, check=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    ).stdout.decode("ascii").strip()
+    if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+        raise RuntimeError("application revision unavailable")
+    from src.contracts.models import canonical_json_digest
+    return {"source_commit": revision, "code_digest": "sha256:" + digest.hexdigest(),
+            "schema_digest": canonical_json_digest(EXPECTED_SCHEMA_DIGESTS),
+            "protection": "current-user-dpapi", "database_limit_bytes": MAX_BACKUP_DATABASE_BYTES}
+
+
+def _read_connection(path: Path) -> sqlite3.Connection:
+    path = checked_path(path)
+    if not path.is_file():
+        raise RuntimeError("runtime database missing")
+    connection = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
+    if not hasattr(connection, "setconfig"):
+        connection.close()
+        raise RuntimeError("SQLite defensive configuration unavailable")
+    connection.setconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE, True)
+    connection.setconfig(sqlite3.SQLITE_DBCONFIG_TRUSTED_SCHEMA, False)
+    return connection
+
+
+def file_evidence(path: Path) -> dict[str, object] | None:
+    path = checked_path(path)
+    if not path.exists():
+        return None
+    if not path.is_file():
+        raise ValueError("maintenance file invalid")
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return {"bytes": path.stat().st_size, "sha256": digest.hexdigest()}
+
+
+def database_state_digest(path: Path) -> str:
+    """Logical state includes WAL commits and every authority/replay row."""
+    digest = hashlib.sha256()
+    with closing(_read_connection(path)) as connection:
+        tables = sorted(row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
+        for name in tables:
+            if not re.fullmatch(r"[a-z_]+", name):
+                raise RuntimeError("runtime table invalid")
+            digest.update(name.encode() + b"\x00")
+            columns = len(connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description)
+            order = ",".join(str(index + 1) for index in range(columns))
+            for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}'):
+                safe = [{"blob_digest": hashlib.sha256(item).hexdigest()} if isinstance(item, bytes)
+                        else item for item in row]
+                digest.update(json.dumps(safe, ensure_ascii=True, separators=(",", ":")).encode() + b"\n")
+    return "sha256:" + digest.hexdigest()
+
+
+@contextmanager
+def lock_runtime_databases(paths: tuple[Path, ...]):
+    """Reserve every writer before reading any snapshot; bounded SQLITE_BUSY."""
+    with ExitStack() as stack:
+        for path in sorted(paths):
+            checked_path(path)
+            connection = stack.enter_context(closing(sqlite3.connect(
+                path.as_uri() + "?mode=rw", uri=True, isolation_level=None, timeout=1)))
+            connection.execute("BEGIN IMMEDIATE")
+        yield
+
+
+def protect_backup(content: bytes) -> bytes:
+    from src.application.durable_telegram_state import DpapiJsonCodec
+    if not 0 < len(content) <= MAX_BACKUP_DATABASE_BYTES:
+        raise RuntimeError("backup database size limit exceeded")
+    return DpapiJsonCodec().encode({"sqlite_backup_v3": base64.b64encode(content).decode("ascii")})
+
+
+def unprotect_backup(content: bytes) -> bytes:
+    from src.application.durable_telegram_state import DpapiJsonCodec
+    if not 0 < len(content) <= 72 * 1024 * 1024:
+        raise RuntimeError("backup encrypted size limit exceeded")
+    value = DpapiJsonCodec().decode(content)
+    if set(value) != {"sqlite_backup_v3"} or not isinstance(value["sqlite_backup_v3"], str):
+        raise RuntimeError("backup encrypted format invalid")
+    result = base64.b64decode(value["sqlite_backup_v3"], validate=True)
+    if not 0 < len(result) <= MAX_BACKUP_DATABASE_BYTES:
+        raise RuntimeError("backup database size limit exceeded")
+    return result
+
+
+def require_free_space(root: Path, required: int) -> None:
+    if shutil.disk_usage(checked_path(root)).free < required + 16 * 1024 * 1024:
+        raise RuntimeError("runtime disk space insufficient")
+
+
+def validate_runtime_set(root: Path) -> None:
+    """Check installed schemas and C4 request→Core bindings without emitting payload."""
+    paths = runtime_database_paths(root)
+    for path in paths:
+        validate_runtime_database(path)
+    store = _read_only_store(Path(root) / "task-runtime.sqlite3")
+    from src.storage.sqlite_store import MiniAppCancelledRequest
+    with closing(_read_connection(Path(root) / "task-runtime.sqlite3")) as connection:
+        connection.row_factory = sqlite3.Row
+        for row in connection.execute("SELECT * FROM miniapp_requests"):
+            record = store._miniapp_request_from_row(row)
+            claim = connection.execute("SELECT task_id FROM ingress_claims WHERE tenant_id=? AND idempotency_key=?",
+                                       (row["tenant_id"], row["idempotency_key"])).fetchone()
+            if isinstance(record, MiniAppCancelledRequest):
+                if claim is not None:
+                    raise RuntimeError("cancelled request has accepted ingress")
+            elif claim is not None:
+                if record.state == "not_accepted" or store.read_ingress_claim(record.envelope) is None:
+                    raise RuntimeError("request ingress binding mismatch")
+    store.miniapp_restore_cutoff()
+    store.restore_reconciliation_required()
+
+
+def assert_runtime_admission_ready(root: Path) -> None:
+    if _read_only_store(Path(root) / "task-runtime.sqlite3").restore_reconciliation_required():
+        raise RuntimeError("restored runtime requires owner reconciliation")
+
+
+def invalidate_restored_authority(root: Path) -> None:
+    """Revoke transient authority and quarantine pending effects; preserve receipts."""
+    from src.application.durable_telegram_state import DpapiJsonCodec
+    from src.contracts.models import canonical_json_digest
+    codec = DpapiJsonCodec()
+    with closing(sqlite3.connect(root / "task-runtime.sqlite3")) as connection:
+        connection.execute("PRAGMA secure_delete=ON")
+        connection.execute("DELETE FROM miniapp_session_recovery")
+        connection.execute("INSERT INTO miniapp_restore_fence VALUES (1, ?, 1) ON CONFLICT(singleton) DO UPDATE SET auth_not_before=excluded.auth_not_before, reconciliation_required=1",
+                           (datetime.now(UTC).isoformat(),))
+        connection.commit()
+    with closing(sqlite3.connect(root / "telegram-state.sqlite3")) as connection:
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA secure_delete=ON")
+        for row in connection.execute("SELECT * FROM telegram_capabilities").fetchall():
+            payload = codec.decode(bytes(row["payload"]))
+            if row["kind"] == "action" and "effect_digest" in payload:
+                # A pending side effect may have happened after the snapshot. It
+                # becomes UNKNOWN; completed/delivered receipts remain intact.
+                if payload.get("state") == "pending":
+                    payload = dict(payload, state="unknown")
+                    connection.execute("UPDATE telegram_capabilities SET payload=?, payload_digest=? WHERE kind=? AND tenant_id=? AND token_digest=?",
+                                       (codec.encode(payload), canonical_json_digest(payload), row["kind"], row["tenant_id"], row["token_digest"]))
+            else:
+                connection.execute("DELETE FROM telegram_capabilities WHERE kind=? AND tenant_id=? AND token_digest=?",
+                                   (row["kind"], row["tenant_id"], row["token_digest"]))
+        connection.execute("DELETE FROM semantic_clarifications")
+        connection.commit()
+
+
 def quick_check(path: Path) -> None:
-    with closing(sqlite3.connect(path)) as connection:
+    with closing(_read_connection(path)) as connection:
         if connection.execute("PRAGMA quick_check").fetchone()[0] != "ok":
             raise RuntimeError("runtime database verification failed")
         if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
@@ -98,8 +302,7 @@ def validate_runtime_database(path: Path, *, content: bool = True) -> None:
     expected = EXPECTED_SCHEMA_DIGESTS.get(path.name)
     if expected is None:
         raise ValueError("unknown runtime database")
-    quick_check(path)
-    with closing(sqlite3.connect(path)) as connection:
+    with closing(_read_connection(path)) as connection:
         connection.row_factory = sqlite3.Row
         actual = {
             f"{row['type']}:{row['name']}": _ddl_digest(str(row["sql"] or ""))
@@ -110,6 +313,7 @@ def validate_runtime_database(path: Path, *, content: bool = True) -> None:
         }
     if actual != expected:
         raise RuntimeError("runtime database schema mismatch")
+    quick_check(path)
     if not content:
         return
     if path.name == "telegram-checkpoint.sqlite3":
@@ -163,7 +367,7 @@ def _validate_checkpoint_rows(path: Path) -> None:
     from src.transport.telegram.bot_api import PollingLease
     from src.transport.telegram.sqlite_checkpoint import _state_digest
 
-    with closing(sqlite3.connect(path)) as connection:
+    with closing(_read_connection(path)) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """SELECT consumer_id,offset,lease_id,lease_owner,lease_expires_at,
@@ -224,7 +428,9 @@ def _validate_task_runtime_rows(path: Path) -> None:
     from src.storage.sqlite_store import MiniAppCancelledRequest, _claim_binding_digest, _is_digest
 
     store = _read_only_store(path)
-    with closing(sqlite3.connect(path)) as connection:
+    store.miniapp_restore_cutoff()
+    store.restore_reconciliation_required()
+    with closing(_read_connection(path)) as connection:
         connection.row_factory = sqlite3.Row
         tasks = connection.execute(
             "SELECT tenant_id,task_id FROM task_snapshots"
@@ -320,7 +526,7 @@ def _validate_telegram_state_rows(path: Path) -> None:
     from src.contracts.models import canonical_json_digest
 
     codec = DpapiJsonCodec()
-    with closing(sqlite3.connect(path)) as connection:
+    with closing(_read_connection(path)) as connection:
         connection.row_factory = sqlite3.Row
         jobs = connection.execute("SELECT * FROM telegram_jobs").fetchall()
         capabilities = connection.execute(
@@ -436,7 +642,7 @@ def _validate_business_notes_rows(path: Path) -> None:
     from src.application.durable_telegram_state import DpapiJsonCodec
 
     codec = DpapiJsonCodec()
-    with closing(sqlite3.connect(path)) as connection:
+    with closing(_read_connection(path)) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """SELECT tenant_id,chat_id,thread_id,message_id,update_id,
@@ -489,7 +695,8 @@ def checkpoint(path: Path) -> None:
     if not path.exists():
         return
     with closing(sqlite3.connect(path)) as connection:
-        connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        if connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0] != 0:
+            raise RuntimeError("runtime checkpoint busy")
         connection.commit()
     validate_runtime_database(path)
 
@@ -540,64 +747,121 @@ def unlink_durable(path: Path) -> None:
     fsync_directory(Path(path).parent)
 
 
+def cleanup_staging(root: Path, staging: Path, identity: tuple[int, int], names: set[str]) -> None:
+    """Delete only enumerated files in the directory created by this operation."""
+    staging = checked_path(staging, root=root)
+    metadata = staging.stat()
+    if staging.parent != checked_path(root) or (metadata.st_dev, metadata.st_ino) != identity:
+        raise RuntimeError("staging ownership mismatch")
+    allowed = {name + suffix for name in names for suffix in ("", "-wal", "-shm", ".previous", ".rollback")}
+    targets = tuple(staging.iterdir())
+    for target in targets:
+        checked_path(target, root=staging)
+        if target.name not in allowed or not target.is_file():
+            raise RuntimeError("staging cleanup scope mismatch")
+    for target in targets:
+        checked_path(target, root=staging)
+        target.unlink()
+    checked_path(staging, root=root).rmdir()
+    fsync_directory(root)
+
+
+def restore_journal_values(runtime: Path, staging: Path, names: set[str]) -> dict[str, object]:
+    metadata = staging.stat()
+    return {
+        "schema_version": 2, "runtime_binding": runtime_target_binding(runtime),
+        "staging": staging.name, "staging_identity": [metadata.st_dev, metadata.st_ino],
+        "files": [{"name": name,
+                   "previous": file_evidence(staging / (name + ".previous")),
+                   "candidate": file_evidence(staging / name),
+                   "sidecars": {suffix: file_evidence(runtime / (name + suffix)) for suffix in ("-wal", "-shm")}}
+                  for name in sorted(names)],
+    }
+
+
 def write_journal(runtime: Path, values: dict[str, object]) -> Path:
+    from src.contracts.models import canonical_json_digest
+    from src.security.dpapi import protect_current_user
+    runtime = checked_path(runtime)
     runtime.mkdir(parents=True, exist_ok=True)
-    journal = runtime / JOURNAL_NAME
-    temporary = runtime / f".{JOURNAL_NAME}.tmp"
-    unlink_durable(temporary)
-    with temporary.open("x", encoding="utf-8", newline="\n") as stream:
-        json.dump(values, stream, ensure_ascii=True, separators=(",", ":"))
-        stream.write("\n")
-        stream.flush()
-        os.fsync(stream.fileno())
-    replace_durable(temporary, journal)
-    fsync_directory(runtime)
+    journal = checked_path(runtime / JOURNAL_NAME, root=runtime)
+    if journal.exists():
+        raise RuntimeError("restore journal already exists")
+    protected = protect_current_user(canonical_json_digest(values).encode("ascii"),
+                                     entropy=b"nobus-space:restore-journal:v2")
+    write_bytes_durable(journal, json.dumps({"payload": values, "authentication": protected.hex()},
+                                          ensure_ascii=True, separators=(",", ":")).encode())
     return journal
 
 
 def recover_interrupted_restore(runtime: Path) -> bool:
-    """Roll back an interrupted multi-database replacement before startup."""
-    runtime = runtime.resolve()
-    journal = runtime / JOURNAL_NAME
-    if not journal.is_file():
+    """Authenticated, identity-bound rollback; refuse any unplanned target change."""
+    from src.contracts.models import canonical_json_digest
+    from src.security.dpapi import unprotect_current_user
+    runtime = checked_path(runtime)
+    journal = checked_path(runtime / JOURNAL_NAME, root=runtime)
+    if not journal.exists():
         return False
     try:
-        values = json.loads(journal.read_text(encoding="utf-8"))
-        if (
-            not isinstance(values, dict)
-            or set(values) != {"schema_version", "staging", "names"}
-            or type(values.get("schema_version")) is not int
-            or values["schema_version"] != 1
-        ):
+        if not journal.is_file() or journal.stat().st_size > 64 * 1024:
             raise ValueError
-        staging = Path(values["staging"]).resolve(strict=True)
-        if (
-            not staging.is_dir()
-            or staging.parent != runtime
-            or not staging.name.startswith("restore-")
-        ):
+        envelope = json.loads(journal.read_text(encoding="utf-8"))
+        if not isinstance(envelope, dict) or set(envelope) != {"payload", "authentication"}:
             raise ValueError
-        names = values["names"]
-        if (
-            not isinstance(names, list)
-            or len(names) != len(RUNTIME_DATABASE_NAMES)
-            or set(names) != RUNTIME_DATABASE_NAMES
-        ):
+        values = envelope["payload"]
+        authenticated = unprotect_current_user(bytes.fromhex(envelope["authentication"]),
+                                               entropy=b"nobus-space:restore-journal:v2").decode("ascii")
+        if authenticated != canonical_json_digest(values):
             raise ValueError
-        for name in reversed(names):
-            target = runtime / name
-            previous = staging / f"{name}.previous"
-            if previous.is_file():
-                rollback = staging / f"{name}.rollback"
-                copy_durable(previous, rollback)
+        if (not isinstance(values, dict)
+                or set(values) != {"schema_version", "runtime_binding", "staging", "staging_identity", "files"}
+                or type(values["schema_version"]) is not int or values["schema_version"] != 2
+                or values["runtime_binding"] != runtime_target_binding(runtime)
+                or not isinstance(values["staging"], str)
+                or re.fullmatch(r"restore-[a-zA-Z0-9_-]+", values["staging"]) is None):
+            raise ValueError
+        staging = checked_path(runtime / values["staging"], root=runtime)
+        metadata = staging.stat()
+        identity = (metadata.st_dev, metadata.st_ino)
+        if not staging.is_dir() or values["staging_identity"] != list(identity):
+            raise ValueError
+        files = values["files"]
+        if not isinstance(files, list) or not 3 <= len(files) <= 4:
+            raise ValueError
+        names = {item["name"] for item in files}
+        if not REQUIRED_RUNTIME_DATABASE_NAMES <= names <= RUNTIME_DATABASE_NAMES or len(names) != len(files):
+            raise ValueError
+        for item in files:
+            if set(item) != {"name", "previous", "candidate", "sidecars"}:
+                raise ValueError
+            name = item["name"]
+            if file_evidence(staging / (name + ".previous")) != item["previous"]:
+                raise ValueError
+            current = file_evidence(runtime / name)
+            if current != item["candidate"] and current != item["previous"]:
+                raise ValueError
+            if set(item["sidecars"]) != {"-wal", "-shm"}:
+                raise ValueError
+            for suffix, expected in item["sidecars"].items():
+                actual = file_evidence(runtime / (name + suffix))
+                if actual is not None and actual != expected:
+                    raise ValueError
+        for item in reversed(files):
+            name = item["name"]
+            target = checked_path(runtime / name, root=runtime)
+            if item["previous"] is not None:
+                rollback = checked_path(staging / (name + ".rollback"), root=staging)
+                copy_durable(staging / (name + ".previous"), rollback)
                 replace_durable(rollback, target)
-            else:
+            elif target.exists():
                 unlink_durable(target)
-            unlink_durable(runtime / f"{name}-wal")
-            unlink_durable(runtime / f"{name}-shm")
+            for suffix in ("-wal", "-shm"):
+                unlink_durable(checked_path(runtime / (name + suffix), root=runtime))
+        for item in files:
+            if file_evidence(runtime / item["name"]) != item["previous"]:
+                raise RuntimeError("rollback verification failed")
         unlink_durable(journal)
-        shutil.rmtree(staging)
-        fsync_directory(runtime)
+        cleanup_staging(runtime, staging, identity, names)
         return True
     except Exception:
         raise RuntimeError("interrupted restore recovery failed") from None

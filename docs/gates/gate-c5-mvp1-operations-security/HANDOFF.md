@@ -1,0 +1,45 @@
+# Gate C5 — эксплуатация, восстановление и безопасность
+
+**DRAFT / GATE CANDIDATE.** 8 сентября 2026. C4 принят и не переоткрыт. Постоянная активация, C6, tag/release не выполняются. MVP1 NOT READY.
+
+## Вход
+
+Опубликованная база main: 1b3cf67405c4523258dd8b400d17d09601f815ff, tree c302123e6f3ae93668e4fca7580b24d424056f94.
+C4 source: 68f87f18da3de7c995f83b9cb08b391d0af5cdfb, tree 5ae168bf613b18fc2f14e24973b5167a2b4c7b74.
+C4 package: 2812390052573fb8846cd942cca7a9e5aed82a31, tree 4f307fb7b6c05c8ad4e39089c287b3733d442737.
+PR17 и PR18 сохранены в lineage; HANDOFF/ACCEPTANCE C4 проверены по Git blobs и не меняются.
+
+Отдельная ветка codex/mvp1-closure-c5-ops-security и worktree mvp1-closure-c5. Canonical с20dirty paths, telegram-live и принятый C4 worktree не используются для изменений. Nobus Memory дала устаревший указатель; точный Git победил. Память не менялась.
+
+## Результат кандидата
+
+| Обязательство | Изменение и проверка | Доказательство |
+|---|---|---|
+| A: управление | Singleton, Job до старта потомков, graceful stop, readiness/ограниченные повторы, explicit semantic ON при default OFF | [Операции](OPERATIONS.md), [receipts](RUNTIME-RECEIPTS.json) |
+| B: ingress | Exact Host/Origin, no trusted proxy, HTTP бюджеты, timeout UNKNOWN, loopback slow/burst/spoof | [Ingress](INGRESS.md) |
+| C: восстановление | Полный inventory, DPAPI/WAL snapshot, code/schema/target binding, restore journal/rollback, admission hold до сверки | [Drill](STORAGE-DRILL.md), [receipts](STORAGE-RECEIPTS.json) |
+| D: очистка | Точное владение/пути, рабочий dry-run, tombstones сохраняются | Storage drill и retained C2/C4 retention |
+| E: безопасность | Изоляция/UNKNOWN не ослаблены, точный native/dependency inventory | [Зависимости](DEPENDENCIES.md), DEPENDENCY-EVIDENCE.json |
+| F: инструкция | Runbook и тот же DOCX; текст и визуальная проверка всех6страниц | MANUAL.json в acceptance package |
+
+Telegram/Mini App сохраняют один Core, compiler, durable state и sealed result/TXT. Голос выполняется только после owner-bound подтверждения. Recovery не продлевает Telegram signature; утраченный ACK сначала сверяется чтением. Provider UNKNOWN и delivery UNKNOWN различаются.
+
+## Нормы и ограничения
+
+Владелец явно принял в этой задаче целевые RPO≤24ч и RTO≤30мин; backup ежедневно и перед изменениями; 7ежедневных и4еженедельных копии. Это политика и критерии C6: расписание не включается, рабочие копии не удаляются. Копии на том же ПК не защищают от потери диска; полный RTO с SDK/ASR ещё не измерен.
+
+Representative disposable drill: backup0,623862с; staged restore/validation0,834647с; interruption rollback0,833848с; возраст снимка при simulated failure0,408410с. Потеря принятых задач и подтверждённых частей доставки0. Числа не являются полным RTO и не доказывают отсутствие post-snapshot effects после утраты БД. Restored admission остаётся закрыт до отдельной сверки.
+
+Предел DPAPI backup48МиБ на БД, предупреждение с36МиБ. При свободном месте менее256МиБ оператор останавливает новый приём. Автоматического масштабирования и независимого оповещения вне ПК нет.
+Inherited native/license/pip/SQLite риски описаны по фактической достижимости в DEPENDENCIES. Git публикует исходники и безопасные evidence, а не wheels/models/FFmpeg/cuDNN; новое binary distribution или установка требует отдельной проверки.
+
+## Фактический runtime
+
+Live window **NOT RUN**: новых model/ASR inference, исходящих bot messages и изменений внешней конфигурации0.
+Preflight: оба Scheduler tasks Disabled, port8765 свободен, pollers0; local HTTP отсутствует, public /readyz403. Это новое чтение, не повторная приёмка historical C4 stopped/502.
+Новые защиты проверены на изолированном кандидате; старый live checkout, TLS/route/config не менялись. Source/merge не означает deploy.
+
+## Следующая отдельная задача C6
+
+Принять опубликованный C5 package; проверить фактические runtime/config/owner binding. Подготовить совместимые данные и reconciliation restored hold; не снимать fencing по одному факту restore. Принять activation profile с explicit semantic ON, pinned CLI/ASR, public HTTPS-ready и одним poller. Применить расписание/retention только по отдельному разрешению, измерить полный RTO, провести необходимые реальные owner journeys и принять постоянную активацию.
+До C6 default semantic=False, MVP1 NOT READY; tag/release не создаются.

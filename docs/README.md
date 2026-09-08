@@ -1,9 +1,11 @@
 # Документация Nobus Space
 
+Текущий [пакет C5](gates/gate-c5-mvp1-operations-security/HANDOFF.md) уточняет эксплуатацию; публикация source не является активацией.
+
 **Статус:** CANONICAL INDEX
 **Актуально на:** 8 сентября 2026 года
 
-**CURRENT:** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / PUBLISHED. Реальный владелец проверил голос с кнопками, результат и файл в Telegram/Mini App. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
+**CURRENT:** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / PUBLISHED. Реальный владелец проверил голос с кнопками, результат и файл в Telegram/Mini App. C5 DRAFT; C6 не запущен; MVP1 NOT READY; MVP2 HOLD.
 
 Thin topology задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):

@@ -1,0 +1,231 @@
+{
+  "gate": "C5",
+  "status": "PASS",
+  "scope": "storage verification only; overall gate acceptance is separate",
+  "completed_at": "2026-09-08T16:26:38.273582+00:00",
+  "application_code_digest": "sha256:60212186c0449fb4032a1234bd1a51c2fd963f9c30d95e982ac8186d90cbc47b",
+  "schema_digest": "sha256:5ff632b379b321745171cc278b1deab119b3b1f76f2abc7eabe1a98583c76208",
+  "manifest_digest": "sha256:c43a5aedbd5b643d1b432676b550a65127358487d56a32918b891f6baca32b1a",
+  "manifest_schema_version": 3,
+  "source_revision": "root assigns frozen candidate; measured bytes bound by application_code_digest",
+  "fixture_manifest_ref": ".runtime/c5/storage-tests-06/test_representative_encrypted_0/backup/manifest.json",
+  "files": [
+    {
+      "name": "task-runtime.sqlite3",
+      "plaintext_bytes": 131072,
+      "encrypted_bytes": 175027
+    },
+    {
+      "name": "telegram-checkpoint.sqlite3",
+      "plaintext_bytes": 12288,
+      "encrypted_bytes": 16643
+    },
+    {
+      "name": "telegram-state.sqlite3",
+      "plaintext_bytes": 53248,
+      "encrypted_bytes": 71251
+    }
+  ],
+  "timings_seconds": {
+    "backup": 0.49773,
+    "staged_restore_and_validation": 0.64362,
+    "snapshot_age_at_simulated_failure": 0.309373,
+    "exception_install_and_rollback": 0.822953,
+    "actual_crash_process": 1.652353,
+    "startup_journal_recovery": 0.065958
+  },
+  "observed_loss": {
+    "accepted_tasks": 0,
+    "confirmed_delivery_parts": 0,
+    "repeated_confirmed_delivery_parts": 0
+  },
+  "actual_process_drill": {
+    "exit_code": 71,
+    "crash_before_replacement": 2,
+    "job_active_processes_after": 0,
+    "job_limit_processes": 8,
+    "job_limit_memory_bytes": 2147483648,
+    "sdk_or_asr_started": false,
+    "full_product_startup_rto_measured": false
+  },
+  "accepted_owner_policy": {
+    "rpo_seconds": 86400,
+    "full_product_rto_target_seconds": 1800,
+    "frequency": "daily and before changes",
+    "daily_generations": 7,
+    "weekly_generations": 4,
+    "automatic_schedule_enabled": false,
+    "live_deletion_performed": false,
+    "same_pc_disk_loss_protected": false,
+    "full_product_rto_measurement": "separately authorized C6"
+  },
+  "limits": {
+    "database_bytes": 50331648,
+    "warning_database_plus_wal_bytes": 37748736,
+    "codec_json_bytes": 83886080,
+    "free_space": "sum(snapshot bytes)*3 + 16MiB",
+    "operator_disk_warning_bytes": 268435456
+  },
+  "targeted_verification": {
+    "aggregate_run": {
+      "ref": ".runtime/c5/storage-tests-06",
+      "passed": 212,
+      "failed": 1,
+      "seconds": 33.55,
+      "failure": "inherited 0.15s voice timing fixture expired before await under host load"
+    },
+    "resolved_regressions": {
+      "ref": ".runtime/c5/storage-focused-final",
+      "passed": 2,
+      "failed": 0,
+      "seconds": 2.44,
+      "change": "test-only deadline0.75s, real cancellation/scrub/no-late-result retained"
+    },
+    "full_L1": "root authoritative gate evidence"
+  },
+  "wip_history": [
+    {
+      "ref": ".runtime/c5/storage-tests-01",
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "ref": ".runtime/c5/storage-tests-02",
+      "passed": 92,
+      "failed": 18,
+      "cause": "same-second same-size source edit retained stale pyc DDL digest; source timestamp invalidated without deletion"
+    },
+    {
+      "ref": ".runtime/c5/storage-tests-03",
+      "passed": 110,
+      "failed": 0
+    },
+    {
+      "ref": ".runtime/c5/storage-tests-04",
+      "passed": 165,
+      "failed": 1,
+      "cause": "test Job resource bound prevented reaching intended crash; production Job policy unchanged"
+    },
+    {
+      "ref": ".runtime/c5/storage-crash-debug4",
+      "passed": 1,
+      "failed": 0,
+      "cause": "bounded8process/2GiB fixture reached intended crash"
+    },
+    {
+      "ref": ".runtime/c5/storage-tests-05",
+      "passed": 212,
+      "failed": 1,
+      "cause": "new test referenced nonexistent fixture property; fixed to existing store._path"
+    }
+  ],
+  "retention_inventory": {
+    "mode": "exact_disposable_roots_dry_run",
+    "live_roots_inspected": false,
+    "deleted": 0,
+    "roots": {
+      "voice": {
+        "root_binding": "sha256:c9cf353703a3a8ee78895dc961f30920d79d9cb685d76137ef63511ec0bf377e",
+        "exists": false,
+        "entries": 0,
+        "bytes": 0,
+        "blocked_links": 0,
+        "ownership": "unresolved_no_deletion",
+        "deleted": 0
+      },
+      "temp": {
+        "root_binding": "sha256:a5bc1b41330ffcad1bd208cacbea1a33539747889a5cbc4f0bb7a49550923610",
+        "exists": false,
+        "entries": 0,
+        "bytes": 0,
+        "blocked_links": 0,
+        "ownership": "unresolved_no_deletion",
+        "deleted": 0
+      },
+      "downloads": {
+        "root_binding": "sha256:ff0bec7ee76343c0f5779d16438e25a97c630aee44df51ed73e0707b8779758e",
+        "exists": false,
+        "entries": 0,
+        "bytes": 0,
+        "blocked_links": 0,
+        "ownership": "unresolved_no_deletion",
+        "deleted": 0
+      },
+      "logs": {
+        "root_binding": "sha256:13c94d8c0f6d4556ae6ead52c646d7157b211cab93f8122440c3ffe92b18b313",
+        "exists": false,
+        "entries": 0,
+        "bytes": 0,
+        "blocked_links": 0,
+        "ownership": "unresolved_no_deletion",
+        "deleted": 0
+      },
+      "staging": {
+        "root_binding": "sha256:618c34c4975b75a0a5dcc6f115c28b0ff53f23daf1af2b1562bfc9ab99d8ff85",
+        "exists": true,
+        "entries": 5,
+        "bytes": 265087,
+        "blocked_links": 0,
+        "ownership": "unresolved_no_deletion",
+        "deleted": 0
+      }
+    }
+  },
+  "cleanup_proof": {
+    "positive": "new staging dev/inode plus exact filenames; plaintext removed before accepted manifest",
+    "negative": [
+      "traversal",
+      "unowned entry",
+      "actual hardlink to outside fixture",
+      "injected cleanup failure",
+      "artifact temporary cleanup failure"
+    ],
+    "outside_fixture_preserved": true,
+    "recursive_delete_used": false
+  },
+  "residuals": [
+    "small synthetic fixtures, no arbitrary-size backup promise",
+    "same-user DPAPI does not resist compromise of same Windows user",
+    "SQLite3.53.1 remains installed; defensive controls narrow reachability but do not constitute generic safe SQLite upload",
+    "restore hold has no automatic clear; external effects after old snapshot need owner reconciliation",
+    "full product startup RTO unmeasured; no live data/provider/ASR/external delivery in storage drills"
+  ],
+  "storage_owning_sources_at_handoff": [
+    {
+      "path": "src/application/runtime_maintenance.py",
+      "sha256": "cca05491e4a43e245efd25bd83dbcefec5a1cff0a07f5a2540cf85f48c3655b8",
+      "modified_at": "2026-09-08T16:17:58.758873+00:00"
+    },
+    {
+      "path": "scripts/backup_telegram_runtime.py",
+      "sha256": "716217780623c74621d6c117840a2285b2000759762fc008c13d62caa9ae0ff2",
+      "modified_at": "2026-09-08T15:41:31.206885+00:00"
+    },
+    {
+      "path": "scripts/restore_telegram_runtime.py",
+      "sha256": "f5199995fd46a2ec75234aae43df33d21181efaf86f8560015a0078d52a7ce13",
+      "modified_at": "2026-09-08T16:17:58.757872+00:00"
+    },
+    {
+      "path": "scripts/check_telegram_health.py",
+      "sha256": "fa18f0a2bb97f1a1e6be9cee9938760df04e27c79bd77fb2a011b15cee87b2fb",
+      "modified_at": "2026-09-08T16:05:28.991080+00:00"
+    },
+    {
+      "path": "src/storage/sqlite_store.py",
+      "sha256": "7b8cdafd48eff6c02714e34393884a0cbc3a1aa269ea5f2f2344f10e6638f5ac",
+      "modified_at": "2026-09-08T16:19:40.181802+00:00"
+    },
+    {
+      "path": "src/application/miniapp.py",
+      "sha256": "666d03fd254d6a47fd143ac61ac9a16d06390648913722402107b84e6260b926",
+      "modified_at": "2026-09-08T15:57:57.101112+00:00"
+    },
+    {
+      "path": "src/transport/telegram/bot_api.py",
+      "sha256": "e426f659764cf68703d540dcdd098623fb6d4cbe76dd3e36cb2c605cf491ee5e",
+      "modified_at": "2026-09-08T16:17:58.756879+00:00"
+    }
+  ],
+  "provenance_note": "Run06 binding retained verbatim. Runtime-agent source changes after run06 change whole-application digest; final frozen-source L1/L2 will be recorded by root. Storage production source unchanged since run06; only inherited timing fixture and docs changed."
+}

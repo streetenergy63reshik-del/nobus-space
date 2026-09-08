@@ -587,14 +587,10 @@ def test_startup_recovers_power_loss_during_multi_database_restore(
         _database(staging / f"{name}.previous", f"before-restore:{name}")
         (runtime / f"{name}-wal").write_bytes(b"orphan")
         (runtime / f"{name}-shm").write_bytes(b"orphan")
-    write_journal(
-        runtime,
-        {
-            "schema_version": 1,
-            "staging": str(staging),
-            "names": names,
-        },
-    )
+    from src.application.runtime_maintenance import copy_durable, restore_journal_values
+    for name in names:
+        copy_durable(runtime / name, staging / name)
+    write_journal(runtime, restore_journal_values(runtime, staging, set(names)))
 
     assert recover_interrupted_restore(runtime)
     for name in names:
@@ -619,14 +615,10 @@ def test_restore_recovery_is_idempotent_after_second_crash(
     for name in names:
         _database(runtime / name, "partially-installed")
         _database(staging / f"{name}.previous", f"before-restore:{name}")
-    write_journal(
-        runtime,
-        {
-            "schema_version": 1,
-            "staging": str(staging),
-            "names": names,
-        },
-    )
+    from src.application.runtime_maintenance import copy_durable, restore_journal_values
+    for name in names:
+        copy_durable(runtime / name, staging / name)
+    write_journal(runtime, restore_journal_values(runtime, staging, set(names)))
     original_replace = runtime_maintenance.replace_durable
     replacements = 0
 
