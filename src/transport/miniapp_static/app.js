@@ -106,21 +106,27 @@ async function api(path) {
 }
 function showError(error, retry = refresh) {
   stopPolling();
+  let message, label, action = retry;
   if (error?.status === 401) {
     bearer = null;
-    notice("Сессия завершена. Закройте Mini App и откройте его снова из Telegram. Задачи сохранены.",
-      "Закрыть Mini App", () => window.Telegram?.WebApp?.close());
+    message = "Сессия завершена. Закройте Mini App и откройте его снова из Telegram. Задачи сохранены.";
+    label = "Закрыть Mini App"; action = () => window.Telegram?.WebApp?.close();
   } else if (error?.status === 404) {
-    notice("Не удалось прочитать эту задачу. Обновите список задач.", "Обновить список", loadTasksSafely);
+    message = "Эта задача недоступна. Вернитесь к списку задач.";
+    label = "К списку задач";
+    action = () => { if (detailSheet.open) detailSheet.close(); return loadTasksSafely(); };
   } else {
-    notice(navigator.onLine === false ? "Нет соединения. На экране — последние полученные данные." :
-      "Не удалось обновить данные. На экране — последнее полученное состояние.", "Повторить чтение", retry);
+    message = navigator.onLine === false ? "Нет соединения. На экране — последние полученные данные." :
+      "Не удалось обновить данные. На экране — последнее полученное состояние.";
+    label = "Повторить чтение";
   }
+  notice(message, label, action);
   if (detailSheet.open) {
+    if (lastRender === null) detail.replaceChildren();
     $("detail-error").hidden = false;
-    $("detail-error").replaceChildren(element("p", "", state.firstChild.textContent), button("Обновить", retry));
+    $("detail-error").replaceChildren(element("p", "", message), button(label, action));
   }
-  if (composer.open) composerMessage(state.firstChild.textContent);
+  if (composer.open) composerMessage(message);
   updateComposer();
 }
 function updateComposer() {
@@ -165,7 +171,7 @@ function selectTask(taskId) {
   stopPolling(); selectedTaskId = taskId; saveMarker("selected", taskId); selectionGeneration++;
   lastTaskRevision = 0; lastRender = null; pollReads = 0;
   detail.replaceChildren(element("p", "detail-loading", "Загружаем задачу…"));
-  $("detail-title").textContent = "Задача"; $("detail-error").hidden = true;
+  $("detail-title").textContent = "Задача"; $("detail-reference").textContent = ""; $("detail-error").hidden = true;
   if (!detailSheet.open) detailSheet.showModal();
   readTask(taskId, selectionGeneration);
 }

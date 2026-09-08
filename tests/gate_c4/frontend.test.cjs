@@ -230,3 +230,37 @@ test("cancel ACK loss keeps marker and resolves through authoritative lookup",as
   const next=harness(handler,storage);await flush();assert.equal(next.run("pendingRequest"),null);
   assert.equal(next.calls.filter(x=>x.options.method==="POST"&&x.url!=="/api/session/recover").length,0);
 });
+
+test("404 restored selection returns to list without forgetting unknown request or POST",async()=>{
+  const storage=new Map([["nobus.selected",A]]);
+  const h=harness(url=>url==="/api/tasks/"+A?json({},404):undefined,storage);
+  await flush();
+  const unknown="dddddddd-dddd-4ddd-dddd-dddddddddddd";
+  h.run('pendingRequest="'+unknown+'";saveMarker("pending",pendingRequest);updateComposer()');
+  const retry=h.$("detail-error").children.find(x=>x.tagName==="button");
+  if(h.$("detail-sheet").open&&retry){await retry.click();await flush();}
+  assert.equal(h.$("detail-sheet").open,false,"404 action must expose list, not re-read the missing selected task");
+  assert.equal(h.run("selectedTaskId"),null);assert.equal(storage.has("nobus.selected"),false);
+  assert.equal(h.run("pendingRequest"),unknown);assert.equal(storage.get("nobus.pending"),unknown);
+  assert.equal(h.calls.filter(x=>x.url==="/api/tasks"&&x.options.method==="POST").length,0);
+});
+test("initial503 has finite error content; existing list and later loaded detail survive transient failures",async()=>{
+  let fail=true;const storage=new Map([["nobus.selected",A]]);
+  const h=harness(url=>fail&&url==="/api/tasks/"+A?json({},503):undefined,storage);
+  await flush();
+  assert.doesNotMatch(h.$("detail").textContent,/Загружаем|Загрузка/,"failed initial read must stop showing an active loading placeholder");
+  assert.equal(h.$("detail-error").hidden,false);assert.equal(h.$("tasks").children.length,2);
+  assert.equal(h.run("selectedTaskId"),A);assert.equal(h.run("bearer"),token);
+  fail=false;await h.run("refresh()");const rendered=h.$("detail").textContent;assert.match(h.$("detail-title").textContent,/Первая/);
+  fail=true;await h.run("refresh()");assert.equal(h.$("detail").textContent,rendered);
+  assert.equal(h.calls.filter(x=>x.url==="/api/tasks"&&x.options.method==="POST").length,0);
+});
+
+test("static asset versions match bytes so cached previous code is not reused",()=>{
+  const folder=path.join(__dirname,"../../src/transport/miniapp_static");
+  const html=fs.readFileSync(path.join(folder,"index.html"),"utf8");
+  for(const name of ["app.js","styles.css"]){
+    const digest=crypto.createHash("sha256").update(fs.readFileSync(path.join(folder,name),"utf8").replace(/\r\n/g,"\n")).digest("hex").slice(0,12);
+    assert.ok(html.includes('"/'+name+'?v='+digest+'"'));
+  }
+});
