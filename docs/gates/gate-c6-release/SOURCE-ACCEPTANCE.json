@@ -1,0 +1,90 @@
+{
+  "schema": "c6-source-acceptance-1",
+  "recorded_at": "2026-09-08T22:51:02.822832+00:00",
+  "source_status": "PASS",
+  "release_status": "NOT READY / OWNER ACCEPTANCE PENDING",
+  "source": "3a5625898ce4f66ff39c85685e926ea1e0e8afa1",
+  "tree": "f730d670d4a4b782df87b27c429a8d16e633f31a",
+  "application": {
+    "source_commit": "3a5625898ce4f66ff39c85685e926ea1e0e8afa1",
+    "code_digest": "sha256:93710054226fbc6ab49b275f744c03590c8ad73aad283159a872a016033d5715",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "additional_inputs": {
+    "src/transport/miniapp_static/app.js": {
+      "bytes": 25407,
+      "sha256": "ae67977613bc8f930d32957da5c2a64bfbb18ef7fe67c0224bb8b98986d44366"
+    },
+    "src/transport/miniapp_static/index.html": {
+      "bytes": 4420,
+      "sha256": "458e5596d566f88fbcf96a31cd52a2b8913f1a0e3660f38ef70e2c79fb5b8608"
+    },
+    "src/transport/miniapp_static/styles.css": {
+      "bytes": 8639,
+      "sha256": "b0a6bf2b94f90a027c43d37b60282e434e364b9c4e8ab203f8315a3817f103e8"
+    },
+    "ops/windows/Install-NobusSpaceBackup.ps1": {
+      "bytes": 2255,
+      "sha256": "68a3eba2ff2a058dea6f12991a786dcae9913dc5afb8d063cbda4f41824a13a4"
+    },
+    "ops/windows/Install-NobusSpaceBot.ps1": {
+      "bytes": 6703,
+      "sha256": "2910e33daac7aacd85ff9f98c8366e87dbaadc9a7239385c045a51dad316523f"
+    },
+    "ops/windows/Invoke-NobusSpaceTask.ps1": {
+      "bytes": 2433,
+      "sha256": "6ef20084c22cd3019f78e1b5446d84755442c96a15a319da6cd6dbca5b9d9466"
+    },
+    "docs/11-Контекст-продукта.md": {
+      "bytes": 5775,
+      "sha256": "a98311ff7100fe91fdeaf8c096ad58367b71c051794133ed39ea00eba27627a1"
+    }
+  },
+  "manual_sha256": "c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba",
+  "L1": {
+    "passed": 2345,
+    "subtests_passed": 25,
+    "skipped": 2,
+    "historical_deselected": 2,
+    "seconds": 269.09,
+    "log": {
+      "bytes": 3347,
+      "sha256": "a6de283afb53243c0c7538e5251d498a0daa3a9d808a40d4d6cfd72b90151f7c"
+    }
+  },
+  "independent": {
+    "L2": {
+      "status": "SOURCE-SCOPED PASS",
+      "open_findings": 0,
+      "closed_findings": 6,
+      "receipt": {
+        "bytes": 3584,
+        "sha256": "de9c500e154c30347cff6cab233f381e9de2445db8a65fbabeef5ba4a56176f5"
+      }
+    },
+    "L3": {
+      "status": "SOURCE-SCOPED PASS",
+      "open_findings": 0,
+      "receipt": {
+        "bytes": 2634,
+        "sha256": "566a4654e0ba05970eafe61441ff93058e0d55acb96532adf91fcc9076da063a"
+      }
+    }
+  },
+  "retained_frontend": {
+    "passed": 20,
+    "basis": "unchanged exact static bytes; earlier C6 log retained"
+  },
+  "not_accepted": [
+    "cuDNN owner licence decision",
+    "actual full recovery RTO with pinned worker/ASR",
+    "permanent activation plan and owner confirmation",
+    "real owner Telegram/Mini App/download journeys",
+    "at least15minutes observation",
+    "explicit final owner acceptance",
+    "v1.0.2 tag/release"
+  ],
+  "publication_scope": "Source/docs PR and ordinary merge only; no runtime activation or final release"
+}

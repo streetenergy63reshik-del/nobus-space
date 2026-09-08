@@ -1,5 +1,7 @@
 # Gate C6 Подготовка выпуска MVP1
 
+**C6 source PASS:** `3a5625898ce4f66ff39c85685e926ea1e0e8afa1`, tree `f730d670d4a4b782df87b27c429a8d16e633f31a`. L1:2345 passed и25 subtests; независимые L2/L3 SOURCE-SCOPED PASS, открытых замечаний0. Это допускает source publication; runtime, окончательная приёмка и релиз остаются NOT READY. Точные hashes и границы зафиксированы в SOURCE-ACCEPTANCE.json пакета C6.
+
 **9 сентября 2026: CANDIDATE WIP / NOT READY.** C6 выполняется в одной задаче владельца. Source publication, activation, реальные owner journeys, окончательная приёмка и v1.0.2 release пока не выполнены. MVP2 HOLD.
 
 Entry: опубликованная main `14d95b2001a4f49fb96a84e767cf62bbcf5dffdb`, tree `fdcc3537268df303a31faca1bd8499a126e87d09`. C5 source/package, PR19/20, blobs передачи/приёмки и исходный Word hash совпали. Неизменная приёмка C0–C5 сохраняется.
