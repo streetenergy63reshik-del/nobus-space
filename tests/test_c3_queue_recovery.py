@@ -119,6 +119,7 @@ async def test_status_ready_expired_worker_down_and_store_failure(tmp_path, monk
     admit(state, "foreign")
     worker = asyncio.create_task(asyncio.Event().wait())
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = state
     control._execution_workers = (worker,)
     control._execution_concurrency = 1
@@ -175,6 +176,7 @@ async def test_startup_orphan_reconcile_preserves_valid_job_and_second_restart(t
             "contract": second.model_dump(mode="json"), "envelope_revision": second_envelope.envelope_revision},
             "envelope": second_envelope.model_dump(mode="json")})
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._product_runtime, control._telegram_state = core, state
     control._reconcile_tasks()
     failed = core._store.read_task(contract.tenant_id, contract.task_id)

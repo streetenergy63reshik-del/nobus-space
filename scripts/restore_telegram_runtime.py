@@ -134,6 +134,8 @@ def _restore_quiescent(manifest_path: Path, runtime: Path, *, expected_target: s
             validate_runtime_database(staged)
         validate_runtime_set(staging)
         invalidate_restored_authority(staging)
+        from src.application.runtime_reconciliation import bind_restore
+        bind_restore(staging, runtime, values)
         for name in sorted(names):
             checkpoint(staging / name)
             target = runtime / name

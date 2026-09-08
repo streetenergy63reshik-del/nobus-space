@@ -50,6 +50,7 @@ class Api:
 
 def control_for(store, state, clock, sender, api):
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._task_runtime = control._product_runtime = runtime(store, clock)
     control._task_status_sender = sender
     control._task_tenants = ('tenant-a',)

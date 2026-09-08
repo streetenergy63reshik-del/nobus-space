@@ -133,6 +133,7 @@ def _callback_ingress(
 
 def _expiry_control(harness, confirmations):
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._task_confirmations = confirmations
     control._product_runtime = harness.runtime
     control._api = harness.api
@@ -326,6 +327,7 @@ async def test_durable_voice_job_recovers_with_original_envelope(
     assert callback.payload is not None and callback.envelope is not None
 
     admission = object.__new__(DurableProductTelegramControlPlane)
+    admission._admission_readiness = None
     admission._closing = False
     admission._telegram_state = state
     admission._task_confirmations = confirmations
@@ -356,6 +358,7 @@ async def test_durable_voice_job_recovers_with_original_envelope(
 
     runtime = Runtime()
     recovery = object.__new__(DurableProductTelegramControlPlane)
+    recovery._admission_readiness = None
     recovery._product_runtime = runtime
     restored = await recovery._restore(durable)
 
@@ -396,6 +399,7 @@ async def test_progress_card_gets_stages_and_periodic_heartbeat(
             edits.append(text)
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = state
     control._api = Api()
 
@@ -458,6 +462,7 @@ async def test_recovery_error_replaces_progress_card_with_safe_final(
             edits.append(text)
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = state
     control._api = Api()
     durable = DurableJob(
@@ -731,6 +736,7 @@ def test_product_status_surfaces_dead_letter(tmp_path: Path) -> None:
     assert job is not None
     state.fail(job, lease_owner=owner, failure_code="runtime_job_failed")
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = state
     control._voice_service = object()
     control._worker_error = None
@@ -767,6 +773,7 @@ async def test_progress_binding_survives_telegram_delete_failure(
                 raise RuntimeError("temporary Telegram failure")
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = state
     control._api = Api()
 

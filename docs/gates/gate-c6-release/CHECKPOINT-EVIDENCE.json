@@ -1,0 +1,57 @@
+{
+  "schema": "c6-checkpoint-evidence-1",
+  "recorded_at": "2026-09-08T21:46:20.324789+00:00",
+  "canonical_preserved_files": 20,
+  "live_mutated": false,
+  "model_turns": 0,
+  "asr_inferences": 0,
+  "bot_new_messages_documents": 0,
+  "bot_edits_cleanup": 0,
+  "tests": {
+    "c6-checkpoint-tests-01": {
+      "bytes": 803,
+      "sha256": "5bed2ef8498929a1f4c0520eb6849e5b288e8a2f347dc3d66bf923258c56b6bf"
+    },
+    "c6-completion-tests-01": {
+      "bytes": 722,
+      "sha256": "bf9afc4084abe3f776009ae1c07a834f4db70650f67f5ea5134fecd778188826"
+    },
+    "c6-operations-tests-02": {
+      "bytes": 813,
+      "sha256": "d251e03043f3d5a304a479dc5288047e0cadb38afc49b2c69cdf35a238ae1a9b"
+    },
+    "c6-readiness-fixture-tests-01": {
+      "bytes": 722,
+      "sha256": "0d15d8c19cb1c40621cfff4649b5ecb73934cd67b5e68c929bc0d44ff6ec7b9e"
+    },
+    "c6-regression-checkpoint-01": {
+      "bytes": 1148,
+      "sha256": "77997e848068426bba1f193b1365ca50c927dddd33781b205d655c550a6a43ed"
+    },
+    "c6-first-failure-01": {
+      "bytes": 1534,
+      "sha256": "a6829de7228e597a65c7563812201ce4b5c94cbc6632d6382a66800697685cf2"
+    },
+    "c6-regression-checkpoint-02": {
+      "bytes": 85690,
+      "sha256": "75171fb33ca73572f8ce9910cb75c0f52e298be0ac29c672a9c93577089e0bc6"
+    },
+    "c6-source-proof-tests-01": {
+      "bytes": 1548,
+      "sha256": "5a2ba3f2e010bc2e2137ceaa558810453bc8d6acbbb22dd0944b0c682fde255d"
+    },
+    "c6-frontend-checkpoint-01": {
+      "bytes": 1788,
+      "sha256": "366a95a6ed637dc97cfc801c66eb4bffb58934e508eb8aa54b5565f9cc282908"
+    }
+  },
+  "migration_rehearsal": {
+    "bytes": 5428,
+    "sha256": "84d8f75386f311159cc9ada79673cded2b0eee3245c6212d565d87ab227ca0d8"
+  },
+  "environment": {
+    "bytes": 1628,
+    "sha256": "383134e12f50770238bc600c8c552dc90be7d1e74532f74bcede29398c4acd49"
+  },
+  "native_licence": "OWNER DECISION PENDING"
+}

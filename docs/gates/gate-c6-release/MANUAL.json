@@ -1,0 +1,61 @@
+{
+  "schema": "c6-manual-1",
+  "status": "DRAFT CONTENT / VISUAL QA PASS",
+  "name": "Памятка — управление Nobus Space Bot.docx",
+  "before": {
+    "sha256": "36fe554b9b7b0f327fecc7c22fecb5cc5241528267880ffdb4f5dad92433e2fc",
+    "bytes": 44591
+  },
+  "current": {
+    "bytes": 44768,
+    "sha256": "35b793820cf938fdafad55fae4289201e396e9b475bd4d8954476b24c3eae7ee"
+  },
+  "pages": 6,
+  "renderer": "Installed Word COM via PowerShell 7.6.5 STA; read-only OpenNoRepairDialog and SaveAs2 PDF; own instance closed",
+  "qa": "All six page PNGs viewed after latest render,110dpi; no clipping/overlap; original style retained; footer C6 checked",
+  "pdf": {
+    "bytes": 287004,
+    "sha256": "24920846c80adc5e3fdc0cef67b6b08b2117131236f6baa66baf86b5c176be63"
+  },
+  "page_pngs": [
+    {
+      "page": 1,
+      "bytes": 170031,
+      "sha256": "98fd074289f4ae80b68ac1e5dda0c2f2a0ce3a114d40cc2a38bb137ca44dcd7a"
+    },
+    {
+      "page": 2,
+      "bytes": 192427,
+      "sha256": "e8d0ffd1e2b02a16ea9ebf8ca5a1e6b2824235727b20be550e19e8bd18043842"
+    },
+    {
+      "page": 3,
+      "bytes": 177285,
+      "sha256": "d20d664877a19651dc69f4cc4d84fdbe3fc2a168babc853200248cd0aa634265"
+    },
+    {
+      "page": 4,
+      "bytes": 196418,
+      "sha256": "d9e4f7f4b5bab3e32cd356843c187bdf4d9c51603e7fdb824cbfc85d93c2e42f"
+    },
+    {
+      "page": 5,
+      "bytes": 219033,
+      "sha256": "2c8d8344a3eadc64215b943d48db5ed4b9d7ceb1faa460022ed17546b6399ae2"
+    },
+    {
+      "page": 6,
+      "bytes": 241704,
+      "sha256": "98974a8db8b61477bdd039e5ecd0ee33affa626844ac452cfc9a85dd4bcd0675"
+    }
+  ],
+  "preserved_failures": [
+    "packaged render_docx.py: LibreOffice soffice.exe unavailable",
+    "nested Windows PowerShell 5 Word ExportAsFixedFormat hung; owned processes stopped",
+    "nested Windows PowerShell 5 SaveAs2 hung on current and original control document; owned processes stopped"
+  ],
+  "resolution": "Same installed Word/helper succeeded in current PowerShell 7 in about6seconds; no install or environment replacement",
+  "owner_acceptance": "PENDING",
+  "activation": "PENDING",
+  "recorded_at": "2026-09-08T21:46:20.323790+00:00"
+}

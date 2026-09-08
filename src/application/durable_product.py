@@ -97,6 +97,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         *values: object,
         telegram_state: SQLiteTelegramState,
         execution_concurrency: int,
+        admission_readiness=None,
         **named: object,
     ) -> None:
         if (
@@ -110,6 +111,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             execution_concurrency=0,
             **named,
         )
+        if admission_readiness is not None and not callable(admission_readiness):
+            raise ValueError("admission readiness must be callable")
+        self._admission_readiness = admission_readiness
         self._telegram_state = telegram_state
         self._execution_concurrency = execution_concurrency
         self._execution_queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
@@ -121,6 +125,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self._cleanup_pending: set[asyncio.Task] = set()
 
     async def _handle_ingress(self, ingress: Any) -> bool:
+        if self._admission_readiness is not None:
+            self._admission_readiness()
         if (self._enable_semantic_admission and ingress.status is IngressStatus.REJECTED
             and ingress.rejection_chat_id is not None):
             await self._api.send_message(ingress.rejection_chat_id,
@@ -244,6 +250,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         )
 
     def assert_healthy(self) -> None:
+        if self._admission_readiness is not None:
+            self._admission_readiness()
         if self._closing or self._closed or len(self._execution_workers) != self._execution_concurrency:
             raise RuntimeError("durable Telegram worker unavailable")
         for worker in self._execution_workers:
@@ -295,6 +303,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         clarification_token: str | None = None,
     ) -> UUID:
         """Admit one Mini App task through the existing Core and durable queue."""
+        if self._admission_readiness is not None:
+            self._admission_readiness()
         if self._closing:
             raise RuntimeError("runtime queue is closing")
         trusted = TrustedIngressEnvelope.model_validate(

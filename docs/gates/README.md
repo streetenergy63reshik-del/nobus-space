@@ -1,5 +1,8 @@
 # Gate index
 
+Текущий [Gate C6](gate-c6-release/HANDOFF.md): CANDIDATE WIP, MVP1 NOT READY; публикация и постоянная активация ещё не выполнены. C0–C5 evidence остаются sealed.
+
+
 Текущий [пакет C5](gate-c5-mvp1-operations-security/HANDOFF.md) уточняет эксплуатацию; публикация source не является активацией.
 
 **Актуально на:** 8 сентября 2026 года.

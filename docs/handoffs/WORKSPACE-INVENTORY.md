@@ -2,17 +2,21 @@
 
 **C5, 8 сентября 2026:** отдельный Code/worktrees/mvp1-closure-c5, ветка codex/mvp1-closure-c5-ops-security, база 1b3cf67405c4523258dd8b400d17d09601f815ff. 20 незавершённых файлов canonical, telegram-live и принятый C4 worktree сохраняются. Проверенный C5 source9efad0f2 принят; публикация подтверждена PR19. Это не deploy. Recovery refs и копии не удаляются.
 
-**Актуально на:** 8 сентября 2026 года
+**Актуально на:** 9 сентября 2026 года
 **Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLISHED; C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5 ACCEPTED / PASS / PUBLISHED; C6 CANDIDATE WIP; MVP1 NOT READY.
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. Protected
 GitHub `main` и release tags — канон принятой опубликованной истории после
 readback. Nobus Memory, handoff и чаты — указатели/claims, а не замена exact
 Git revision.
 
-## Текущий C4 worktree
+## Текущий C6 worktree
+
+`Code/worktrees/mvp1-closure-c6`, ветка `codex/mvp1-closure-c6-release`, база published main `14d95b2001a4f49fb96a84e767cf62bbcf5dffdb`. Только C6 implementation/tests/docs. Private migration/recovery copies находятся в ignored `.runtime/private`; реальные данные не попадают в Git. Canonical20dirty, telegram-live v1.0.1 и все прежние worktrees/refs сохранены. Единственная внешняя локальная правка — разрешённая Word-памятка на прежнем пути, пока DRAFT.
+
+## Сохранённый C4 worktree
 
 C4 выполняется только в `.runtime/worktrees/mvp1-closure-c4-frontend-journey`,
 ветка `codex/mvp1-closure-c4-frontend-journey`, от принятой базы C3

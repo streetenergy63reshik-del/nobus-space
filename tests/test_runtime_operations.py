@@ -59,6 +59,7 @@ async def test_lost_lease_cancels_long_operation() -> None:
                 raise
 
     control = object.__new__(DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._cleanup_pending = set()
     control._product_runtime = Runtime()
 

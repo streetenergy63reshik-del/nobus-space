@@ -20,6 +20,7 @@ async def _nothing(*args, **kwargs):
 
 def _control(tmp_path):
     control = object.__new__(product.DurableProductTelegramControlPlane)
+    control._admission_readiness = None
     control._telegram_state = _store(tmp_path)
     control._product_runtime = SimpleNamespace(_worker=SimpleNamespace(generation_available=True))
     control._product_effects = None

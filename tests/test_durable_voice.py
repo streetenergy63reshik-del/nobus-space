@@ -36,6 +36,7 @@ def harness(tmp_path):
                  semantic_admission=SemanticAdmissionService(compiler),
                  semantic_clarifications=InMemorySemanticClarificationStore(), extended_routes=False)
     h.control.__class__ = DurableProductTelegramControlPlane
+    h.control._admission_readiness = None
     c = h.control
     c._telegram_state = _store(tmp_path)
     c._lease_owner = uuid4()
