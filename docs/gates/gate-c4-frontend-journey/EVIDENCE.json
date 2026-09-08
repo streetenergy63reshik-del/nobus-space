@@ -1,6 +1,6 @@
 {
   "schema": "c4-evidence-4",
-  "verdict": "ACCEPTED_PASS_NOT_PUBLISHED",
+  "verdict": "ACCEPTED_PASS_PUBLISHED",
   "base": {
     "sha": "b9283b3419928042c80278b5088b526edebab6e7",
     "tree": "77062335b1dbccb3694721d357e484c856ac89c7"
@@ -87,9 +87,9 @@
     "C3_budget_unchanged": true,
     "startup_no_turn_counted_in_time": true
   },
-  "independent_reviews": "REVIEW-VERDICTS.json: source, retention and final package accepted; minor/status delta readback required before push",
+  "independent_reviews": "REVIEW-VERDICTS.json plus PUBLICATION-READBACK.json: source, retention, final package, status/minor and LF provenance accepted before ordinary push",
   "publication": {
-    "status": "NOT_PUBLISHED",
+    "status": "PUBLISHED",
     "readback": "PUBLICATION-READBACK.json",
     "missing_CI_is_not_PASS": true
   },

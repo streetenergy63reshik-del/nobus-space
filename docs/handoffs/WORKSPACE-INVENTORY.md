@@ -3,7 +3,7 @@
 **Актуально на:** 8 сентября 2026 года
 **Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. Protected
 GitHub `main` и release tags — канон принятой опубликованной истории после

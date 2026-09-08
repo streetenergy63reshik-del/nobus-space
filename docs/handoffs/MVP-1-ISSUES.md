@@ -8,7 +8,7 @@
 секретных путей или необезличенных данных. Источники — Git history, gate-handoff,
 регрессионные тесты и owner smoke.
 
-Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
 Точные ревизии и проверки — [CURRENT-STATUS](CURRENT-STATUS.md) и [C4 evidence](../gates/gate-c4-frontend-journey/EVIDENCE.json).
 
 ## Активные findings после переоткрытия acceptance
@@ -85,7 +85,7 @@ C2 — ACCEPTED / PASS / PUBLISHED. B01–B04 закрыты по собстве
 | C4-RUNNING | Core STARTED/PARSING выглядел как очередь; исправлена только общая projection |66cff24 red2→green; full2227+25; L2/L3 scoped GO|
 
 Все обязательные проверки C4, включая новый exact browser/owner smoke, завершены.
-Независимая приёмка пакета выполнена; остаются обычная публикация и её readback.
+Независимая приёмка и обычная публикация PR17 завершены; опубликованные bytes сверены.
 Старые неудачные попытки не удаляются.
 
 ## Historical сводка до incident

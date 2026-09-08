@@ -422,5 +422,5 @@
       }
     }
   },
-  "status_delta": "Only final acceptance labels, review receipts and three documented minor factual corrections follow reviewed92bd package. Exact code and live bytes remain68. Narrow independent readback is recorded by root before publication."
+  "status_delta": "Final acceptance labels/three minor factual corrections passed independent narrow readback; subsequent CRLF->LF metadata binding passed L3 byte readback. PUBLICATION-READBACK.json preserves both sets of exact receipts. Code/live source remains68."
 }

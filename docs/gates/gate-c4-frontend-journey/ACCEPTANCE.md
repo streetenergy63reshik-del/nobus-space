@@ -1,6 +1,6 @@
 # Gate C4 — приёмка
 
-**ACCEPTED / PASS / NOT PUBLISHED.** Итоговая приёмка,
+**ACCEPTED / PASS / PUBLISHED.** Итоговая приёмка,
 8 сентября2026. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
 
 Код `68f87f18da3de7c995f83b9cb08b391d0af5cdfb`, tree `5ae168bf613b18fc2f14e24973b5167a2b4c7b74`, от принятой опубликованной базы C3

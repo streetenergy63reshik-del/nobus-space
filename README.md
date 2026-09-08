@@ -3,7 +3,7 @@
 Nobus Space — Telegram Bot и обязательный тонкий Mini App над одним существующим
 локальным Windows Core/Codex runtime.
 
-**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / NOT PUBLISHED. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
+**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
 Постоянное развёртывание в C4 не выполняется.
 
 [Текущий статус](docs/handoffs/CURRENT-STATUS.md) содержит точные ревизии,

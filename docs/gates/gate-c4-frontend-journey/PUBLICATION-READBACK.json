@@ -1,17 +1,152 @@
 {
-  "schema": "c4-publication-2",
-  "status": "ACCEPTED_NOT_PUBLISHED",
+  "schema": "c4-publication-4",
+  "status": "ACCEPTED_PASS_PUBLISHED",
   "repository": "streetenergy63reshik-del/nobus-space",
-  "branch": "codex/mvp1-closure-c4-frontend-journey",
-  "verified_main_sha": "b9283b3419928042c80278b5088b526edebab6e7",
-  "verified_main_tree": "77062335b1dbccb3694721d357e484c856ac89c7",
-  "protected": true,
-  "branch_reported_required_status_contexts": [],
-  "repository_rulesets": [],
-  "detailed_branch_protection_read": "403 Resource not accessible by integration; ordinary PR/merge must enforce server policy",
-  "workflow_files_present_in_candidate": false,
-  "no_checks_is_not_ci_pass": true,
-  "pull_request": null,
-  "merge": null,
-  "tag_release_permanent_deploy": false
+  "accepted_source_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "accepted_source_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "accepted_package_commit": "2812390052573fb8846cd942cca7a9e5aed82a31",
+  "accepted_package_tree": "4f307fb7b6c05c8ad4e39089c287b3733d442737",
+  "pull_request": {
+    "number": 17,
+    "url": "https://github.com/streetenergy63reshik-del/nobus-space/pull/17",
+    "head_sha": "2812390052573fb8846cd942cca7a9e5aed82a31",
+    "base_sha": "b9283b3419928042c80278b5088b526edebab6e7",
+    "merged": true,
+    "merge_sha": "ded561b8b3c32bcd807d7c5ed0cf37b05ec4650d",
+    "method": "merge"
+  },
+  "first_published_main": {
+    "sha": "ded561b8b3c32bcd807d7c5ed0cf37b05ec4650d",
+    "tree": "4f307fb7b6c05c8ad4e39089c287b3733d442737",
+    "protected": true,
+    "tree_matches_accepted_package": true
+  },
+  "github_premerge": {
+    "mergeable": true,
+    "mergeable_state": "clean",
+    "requested_reviewers": [],
+    "requested_teams": [],
+    "review_submissions": [],
+    "statuses": [],
+    "check_runs": [],
+    "combined_status": "pending with total_count0; absent CI, not CI PASS",
+    "branch_required_status_contexts": [],
+    "repository_rulesets": [],
+    "protection_detail_read": "403 integration lacks administration read; no bypass; ordinary server merge succeeded"
+  },
+  "readback": {
+    "source": {
+      "local_path": ".runtime/c4/publication-bytes-origin-main.json",
+      "sha256": "314a4024c8e65b9f8150e6a2439183d2f84ceade6dca2f06de2583e42e31e2ca",
+      "bytes": 346
+    },
+    "receipt": {
+      "status": "PASS",
+      "ref": "origin/main",
+      "checks": 169,
+      "failures": [],
+      "code_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "manifest_sha256": "51302e0dcada40ea1bcb4a4a778546dd9c3e66318e28bb88388c1c46630ffbeb",
+      "sha": "ded561b8b3c32bcd807d7c5ed0cf37b05ec4650d",
+      "tree": "4f307fb7b6c05c8ad4e39089c287b3733d442737"
+    }
+  },
+  "normalization": {
+    "source": {
+      "local_path": ".runtime/c4/publication-eol-normalization.json",
+      "sha256": "b4e3efdc5fea2303d9d3ea3226f9bc4fc379309de90e7eb241d234331fc2cf8c",
+      "bytes": 759
+    },
+    "receipt": {
+      "classification": "VERIFIER_DEFECT_DOCUMENT_EOL_HASH_BINDING",
+      "status": "PASS_ROOT_BYTE_PROOF",
+      "before_manifest": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053",
+      "canonical_manifest_sha256": "51302e0dcada40ea1bcb4a4a778546dd9c3e66318e28bb88388c1c46630ffbeb",
+      "content_checks": 130,
+      "text_content_unchanged": true,
+      "binary_unchanged": true,
+      "only_metadata_recomputed": [
+        "DOCS-MANIFEST.json",
+        "MANIFEST.json"
+      ],
+      "source_code_changed": false,
+      "initial_failed_binary_assertion": "Verifier applied EOL normalization to PNG signature in comparison only; PNG file bytes were never modified. Corrected scope: text normalized, binary exact.",
+      "original_failed_check": "publication-bytes-index-CRLF-FAIL.json"
+    }
+  },
+  "final_status_reviews": {
+    "L2": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/l2-receipt-closure/STATUS-READBACK.json",
+        "sha256": "19ef61170080b11c4d4bfe2e0eba3c8e0dbb3eb59e0f4dd2286f09580f00a9b9",
+        "bytes": 725
+      },
+      "receipt": {
+        "status": "PASS",
+        "reviewer": "/root/l2_receipt_closure",
+        "accepted_manifest_sha256": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053",
+        "before_manifest_sha256": "92bd2166c9fc75a3c502c5599fc0d45903a4ce3eb0d0a209d74443e5016f144d",
+        "code_unchanged": true,
+        "findings": [],
+        "actual_checks_summary": {
+          "changed_paths_and_before_after_hashes": 22,
+          "manifest_hashed_entries": 131,
+          "manifest_self_and_inventory_files": 132,
+          "new_source_refs_hash_and_size": 5,
+          "embedded_reviews_equal_originals": 2,
+          "docs_manifest_rows_hash_size_and_metadata": 18,
+          "three_minor_corrections": "closed",
+          "status_scope": "ACCEPTED/PASS/NOT PUBLISHED; no readiness/deploy claim",
+          "unlisted_changes": 0,
+          "code_manifest": "unchanged",
+          "original_1015_checks": "not rerun"
+        }
+      }
+    },
+    "L3": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/final68-package-l3/STATUS-READBACK.json",
+        "sha256": "49b29b87fc7adbb76dc3e363131a8a3e550177548c3a5d62ed238ad6ded4b588",
+        "bytes": 677
+      },
+      "receipt": {
+        "status": "PASS",
+        "accepted_manifest_sha256": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053",
+        "reviewed_manifest_sha256": "92bd2166c9fc75a3c502c5599fc0d45903a4ce3eb0d0a209d74443e5016f144d",
+        "source_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+        "code_unchanged": true,
+        "declared_changed_files": 22,
+        "delta_hashes_and_manifest_pass": true,
+        "minor_findings_closed": true,
+        "embedded_review_receipts_match_originals": true,
+        "original_L2_1015_PASS_attribution_preserved": true,
+        "publication_status": "ACCEPTED_PASS_NOT_PUBLISHED",
+        "scope": "Only declared status/minor/provenance delta; no code/tests/browser/model/ASR/live rerun."
+      }
+    },
+    "EOL_L3": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/final68-package-l3/EOL-READBACK.json",
+        "sha256": "2f34d0c49499577cfb05197e2974f4b884fc2431b11127d59b2e348726e4fbde",
+        "bytes": 686
+      },
+      "receipt": {
+        "status": "PASS",
+        "canonical_manifest_sha256": "51302e0dcada40ea1bcb4a4a778546dd9c3e66318e28bb88388c1c46630ffbeb",
+        "previous_manifest_sha256": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053",
+        "nonmetadata_content_checks": 130,
+        "text_CRLF_to_LF_only": 49,
+        "binary_exact": 81,
+        "metadata_changes": "Only hashes/byte counts plus canonical-encoding/source-manifest note",
+        "stage_matches_git_index_files": 132,
+        "source_code_unchanged": true,
+        "source_proof": "Existing publication-bytes-index.json169PASS retained; no source/tests reread",
+        "scope": "EOL/provenance only; original FAIL preserved; no product/browser/model/ASR/live run"
+      }
+    }
+  },
+  "status_only_followup": "Exactly one authorized ordinary follow-up from this published main; source/test bytes remain unchanged. Final main SHA/tree read after merge belongs in external/local receipt and final user message, not in its own commit.",
+  "tag_release_permanent_deploy": false,
+  "MVP1_READY": false,
+  "C5_C6_started": false
 }
