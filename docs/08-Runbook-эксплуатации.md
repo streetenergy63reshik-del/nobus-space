@@ -1,6 +1,6 @@
 # 08. Runbook эксплуатации Nobus Space
 
-**8 сентября 2026.** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD, MVP1 NOT READY. Наличие настроенного route или старого Scheduled Task не доказывает активную revision. Exact состояние и receipts: [CURRENT](handoffs/CURRENT-STATUS.md), [C4 handoff](gates/gate-c4-frontend-journey/HANDOFF.md).
+**8 сентября 2026.** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / PUBLISHED; C5–C6 HOLD, MVP1 NOT READY. Наличие настроенного route или старого Scheduled Task не доказывает активную revision. Exact состояние и receipts: [CURRENT](handoffs/CURRENT-STATUS.md), [C4 handoff](gates/gate-c4-frontend-journey/HANDOFF.md).
 
 Semantic path реализован и проверен в изолированном ON-кандидате C4. В штатном runner флаг _GATE_C1_SEMANTIC_ADMISSION_ENABLED остаётся False; постоянная активация не выполнена.
 

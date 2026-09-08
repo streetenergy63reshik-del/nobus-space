@@ -1,6 +1,6 @@
 # Nobus Space — текущее состояние
 
-**8 сентября 2026. C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / NOT PUBLISHED.**
+**8 сентября 2026. C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED.**
 C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD. Постоянного deploy нет.
 
 Проверенный код C4: `68f87f18da3de7c995f83b9cb08b391d0af5cdfb`,
@@ -19,7 +19,7 @@ Frontend68f87f1 прошёл20Node checks, полный L1 —2227PASS+25subtest
 b89 voice/model scopes сохраняются с исходными SHA. Owner66 подтвердил новую
 текстовую задачу и результат; найден initial404 UI defect, теперь исправлен.
 Exact owner окно attempt8 успешно завершено: результат, копирование и TXT446байт
-сверены в Mini App и Telegram. Итоговая независимая проверка пакета принята; публикация выполняется обычным PR.
+сверены в Mini App и Telegram. Итоговая независимая проверка пакета принята; публикация подтверждена обычным merge PR17.
 
 Attempt8 остановлен: Job0, wrappers closed, HTTPS502, прежние bot/menu/webhook.
 Штатный semantic flag остаётся defaultFalse. Завершение C4 не означает
@@ -33,3 +33,8 @@ Attempt8 остановлен: Job0, wrappers closed, HTTPS502, прежние b
 
 Canonical checkout и его20 dirty paths сохранены. C5/C6 запускает владелец
 отдельными Gate-задачами после принятой публикации C4; эта задача их не начинает.
+
+Первая принятая публикация C4: [PR17](https://github.com/streetenergy63reshik-del/nobus-space/pull/17),
+main `ded561b8b3c32bcd807d7c5ed0cf37b05ec4650d`, tree `4f307fb7b6c05c8ad4e39089c287b3733d442737`.
+Разрешённый status-only follow-up меняет только факт публикации и доказательства readback;
+окончательная identity проверяется после его merge. C5 готов к отдельному запуску владельцем.

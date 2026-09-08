@@ -1,6 +1,6 @@
 # Единая передача Gate C4 → C5
 
-**8 сентября 2026. C4 ACCEPTED / PASS / NOT PUBLISHED.**
+**8 сентября 2026. C4 ACCEPTED / PASS / PUBLISHED.**
 Этот документ объединяет код, проверки и публикацию C4. C5–C6 не запущены;
 MVP1 NOT READY; MVP2 HOLD. Постоянного production deploy нет.
 
@@ -43,6 +43,7 @@ Repository: `streetenergy63reshik-del/nobus-space`.
 | Роль | SHA | Tree |
 |---|---|---|
 | Принятая опубликованная C3 база | b9283b3419928042c80278b5088b526edebab6e7 | 77062335b1dbccb3694721d357e484c856ac89c7 |
+| Первая принятая публикация C4, PR17 | ded561b8b3c32bcd807d7c5ed0cf37b05ec4650d | 4f307fb7b6c05c8ad4e39089c287b3733d442737 |
 | Итоговый код C4 | 68f87f18da3de7c995f83b9cb08b391d0af5cdfb | 5ae168bf613b18fc2f14e24973b5167a2b4c7b74 |
 
 [CODE-MANIFEST](CODE-MANIFEST.json) связывает все product/test bytes относительно C3.
@@ -142,7 +143,10 @@ C0–C3 sealed packages и защищённые документы сохран�
 
 ## Передача C5
 
-C5 запускается отдельной задачей владельца после публикации принятого C4.
+C4 принят и опубликован. C5 готов к отдельному запуску по поручению владельца.
+Первая принятая публикация — PR17; этот status-only follow-up не меняет код.
+Окончательные main SHA/tree после последнего merge записываются во внешний
+publication receipt и итоговый ответ, без самоссылочного commit в этом файле.
 Его точная база — опубликованная main из PUBLICATION-READBACK, а не dirty
 canonical checkout и не старый live. C5 должен завершить эксплуатационные
 health/ingress/security, backup/restore, очистку, rollback и существующую единую

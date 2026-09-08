@@ -2,15 +2,15 @@
   "schema": "c4-docs-4",
   "code_candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
   "source_code_unchanged_by_docs": true,
-  "status": "ACCEPTED_PENDING_ORDINARY_PUBLICATION",
+  "status": "ACCEPTED_PUBLISHED",
   "project_context_model_tests": null,
   "docs11_note": "Current product context is updated independently. Local/live model fixtures used project_context=None, so old model executions do not prove new docs11 prompt bytes. Semantic default remains False.",
   "files": [
     {
       "path": "docs/01-Единый-документ-проекта.md",
       "source_before_sha256": "11f82c1b0a8142f077fb31c621601555f9ee17ff82f5229ea752fca29f9b43af",
-      "staged_sha256": "fff6ed8018c34c5b3713d67e029b0f09a49de18dc569d18189683b2452506b3a",
-      "bytes": 11502,
+      "staged_sha256": "6d6d230cf2ffd5d49ca4917af1b404d6df63a626ec45072cdf3c9de88ffd6b59",
+      "bytes": 11498,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
@@ -23,15 +23,15 @@
     {
       "path": "docs/03-Архитектурный-обзор.md",
       "source_before_sha256": "245ea523064aabeb115b9e996fdd46ba9b75662276afd368b006803e8c5cf812",
-      "staged_sha256": "d01bde9cee51bd98a2e4f30d6ddda267e1ee05f7f910386cd62d7f2aa3e64e38",
-      "bytes": 18176,
+      "staged_sha256": "616c3b1d1e7b317be1e930b7777135f7aa390599df124ce25595923198fe5cae",
+      "bytes": 18172,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "docs/04-Журнал-ADR.md",
       "source_before_sha256": "7f728b7c8f211004da64d1b08fa17fef00883b0c648a329ddffe5cc5212b63a7",
-      "staged_sha256": "0b5ae955dec4645a31b9b9306f772e5946e1edd64afb58965e75b1fd4586e302",
-      "bytes": 10576,
+      "staged_sha256": "0f1ad290122ad5c428a03bd42cfa3d8452ccb365b5044379bd6bc85f16faf6de",
+      "bytes": 10564,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
@@ -44,8 +44,8 @@
     {
       "path": "docs/08-Runbook-эксплуатации.md",
       "source_before_sha256": "79337358ebf14cc22eca33912cc6cc5f06f52087954fe53ba08995b4b8e45f88",
-      "staged_sha256": "7d23019a37184c9471d87453ebc1433bacf03a719222af6c45e67650ca2a4369",
-      "bytes": 51753,
+      "staged_sha256": "c68df80b243eb9408e41d5ce6ef0cf20ac57633400fe98164dffa67ccb4b5530",
+      "bytes": 51749,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
@@ -65,15 +65,15 @@
     {
       "path": "docs/11-Контекст-продукта.md",
       "source_before_sha256": "1d5398f0a33146a36ea959ce1a2cf92cce103b69a5abd080a46806d13deb527f",
-      "staged_sha256": "69eacb87fe600ecda1a3abc6c7ab2c3b6caf5496c3cec9709d339e46b32b69bf",
-      "bytes": 5546,
+      "staged_sha256": "88175044cd1a37f62b04acf34ac1b38fddeda3be543a59de24832da3bf89e03b",
+      "bytes": 5542,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
       "source_before_sha256": "2aafce62a9c2be1ab130d10f7bc16b86e32f64970c7b86f29f0cd3b2c0f266ca",
-      "staged_sha256": "4afc5e97770736a733d5c1634cf5f9c23251e69dee2158d8281b002a841bb1be",
-      "bytes": 5910,
+      "staged_sha256": "c6b92e526078ef5f0b0c6a9e886f61201b127971c3212e4689e12ee0036a2ff8",
+      "bytes": 5906,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
@@ -93,43 +93,43 @@
     {
       "path": "docs/gates/README.md",
       "source_before_sha256": "5a03c648a3388f445a8adf5db21f4b32aa92b55579615b8cadbd393f6a0c34c4",
-      "staged_sha256": "bdf77aa1fbb5468f294371ad7eafec8f7d7653066d34d3b49255455442ee924d",
-      "bytes": 6978,
+      "staged_sha256": "7b13ee3715a8346ed8db2e452d940e6202f7554e6f15f571cfd0297efe92736d",
+      "bytes": 6970,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "docs/handoffs/CURRENT-STATUS.md",
       "source_before_sha256": "f0c3ec6e8874600679717f45a0c6a178e030f9cb2fc66928af1108cd0c0124eb",
-      "staged_sha256": "f65c43a84148d4d2e64fd4374357766d8c1c90961d918bfa30d06ac01ea963c3",
-      "bytes": 3027,
+      "staged_sha256": "e1c55709cdaf0b14c9ec4159a079bf66d5ae6de829abacc5ad4867d03541cb9b",
+      "bytes": 3562,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "docs/handoffs/MVP-1-ISSUES.md",
       "source_before_sha256": "96c91e309ec443d38dd218749af91150866d53961040a78b3a629ba4ae829bcb",
-      "staged_sha256": "56a98d8fd7ab46ac037a97d475ee022ea9261626c5f5969cb41c110f6f62601b",
-      "bytes": 39435,
+      "staged_sha256": "cb5dd63cbdea5d02d7280ab747dc735e79290b06fbbb66256c1ddb3105965cb8",
+      "bytes": 39442,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
       "source_before_sha256": "91ad01bc7ed18f61e04ccab0de990065eebfa748a47b7c3f0b33390f6d0694d5",
-      "staged_sha256": "152f8428edade0b4470bedd39c2b5b322d0215b1c6ec10236793522764beab4d",
-      "bytes": 8327,
+      "staged_sha256": "16bec39142c180f44c2a76a98ff9f41cc15bca83de653d234905252ca369fbfb",
+      "bytes": 8323,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "docs/README.md",
       "source_before_sha256": "058b816cd7684bf9c669b6dd1a32d3d7b503ac3d317fc2e7820902e97408bb84",
-      "staged_sha256": "b499a00304a7d666555a29e3aeed81ac783edb953286b085024a2795fd9a050c",
-      "bytes": 9292,
+      "staged_sha256": "21da01ace5e660cfe137ff4833053e61d658737ad7260ac81dce23511f803e73",
+      "bytes": 9288,
       "change_scope": "active factual projection; no new runtime authority"
     },
     {
       "path": "README.md",
       "source_before_sha256": "bbe645a399aaa1bfe8d1c15f1ed1dacb0c04c66b7f25edc42c4c94b7d1141f12",
-      "staged_sha256": "c620754fd3c1471eff6b79feaaef14926fac0b98eb8f19fa8247b83be9d83f23",
-      "bytes": 9588,
+      "staged_sha256": "9ae64901747934b7d21aa04fea0534b06bef950725369680b31f49583c327898",
+      "bytes": 9584,
       "change_scope": "active factual projection; no new runtime authority"
     }
   ]

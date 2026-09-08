@@ -1,7 +1,7 @@
 # 14. Решения владельца и завершение MVP1
 
 **Актуально на:** 8 сентября 2026 года.
-**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / PUBLISHED.
 C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 
 Точные факты и следующий шаг находятся в [CURRENT-STATUS](handoffs/CURRENT-STATUS.md)

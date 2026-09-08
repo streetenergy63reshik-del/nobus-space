@@ -1,13 +1,13 @@
 {
   "schema": "c4-package-4",
   "code_candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
-  "status": "ACCEPTED_PENDING_ORDINARY_PUBLICATION",
+  "status": "ACCEPTED_PUBLISHED_STATUS_ONLY_FOLLOWUP",
   "self_excluded": true,
   "files": [
     {
       "path": "docs/01-Единый-документ-проекта.md",
-      "sha256": "fff6ed8018c34c5b3713d67e029b0f09a49de18dc569d18189683b2452506b3a",
-      "bytes": 11502
+      "sha256": "6d6d230cf2ffd5d49ca4917af1b404d6df63a626ec45072cdf3c9de88ffd6b59",
+      "bytes": 11498
     },
     {
       "path": "docs/02-Глоссарий.md",
@@ -16,13 +16,13 @@
     },
     {
       "path": "docs/03-Архитектурный-обзор.md",
-      "sha256": "d01bde9cee51bd98a2e4f30d6ddda267e1ee05f7f910386cd62d7f2aa3e64e38",
-      "bytes": 18176
+      "sha256": "616c3b1d1e7b317be1e930b7777135f7aa390599df124ce25595923198fe5cae",
+      "bytes": 18172
     },
     {
       "path": "docs/04-Журнал-ADR.md",
-      "sha256": "0b5ae955dec4645a31b9b9306f772e5946e1edd64afb58965e75b1fd4586e302",
-      "bytes": 10576
+      "sha256": "0f1ad290122ad5c428a03bd42cfa3d8452ccb365b5044379bd6bc85f16faf6de",
+      "bytes": 10564
     },
     {
       "path": "docs/05-Спецификации-контрактов.md",
@@ -31,8 +31,8 @@
     },
     {
       "path": "docs/08-Runbook-эксплуатации.md",
-      "sha256": "7d23019a37184c9471d87453ebc1433bacf03a719222af6c45e67650ca2a4369",
-      "bytes": 51753
+      "sha256": "c68df80b243eb9408e41d5ce6ef0cf20ac57633400fe98164dffa67ccb4b5530",
+      "bytes": 51749
     },
     {
       "path": "docs/09-Стандарты-отчётов.md",
@@ -46,13 +46,13 @@
     },
     {
       "path": "docs/11-Контекст-продукта.md",
-      "sha256": "69eacb87fe600ecda1a3abc6c7ab2c3b6caf5496c3cec9709d339e46b32b69bf",
-      "bytes": 5546
+      "sha256": "88175044cd1a37f62b04acf34ac1b38fddeda3be543a59de24832da3bf89e03b",
+      "bytes": 5542
     },
     {
       "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
-      "sha256": "4afc5e97770736a733d5c1634cf5f9c23251e69dee2158d8281b002a841bb1be",
-      "bytes": 5910
+      "sha256": "c6b92e526078ef5f0b0c6a9e886f61201b127971c3212e4689e12ee0036a2ff8",
+      "bytes": 5906
     },
     {
       "path": "docs/adr/0025-miniapp-session-and-request-recovery.md",
@@ -66,8 +66,8 @@
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/ACCEPTANCE.md",
-      "sha256": "59e685b6aef3a1f07cfe30b4d86640d1d02f61618646bc9fee417a1d5ce31464",
-      "bytes": 2292
+      "sha256": "af2866b55fee68bea410707c4f91b95c644e106ecfbebcebcb4a425a3c429859",
+      "bytes": 2288
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/BROWSER-DOWNLOADS.json",
@@ -81,8 +81,8 @@
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/DOCS-MANIFEST.json",
-      "sha256": "defe90291ce5ef7a48a6141a88b711e8865ced99b260dafcc4abdd3fae1e7d76",
-      "bytes": 6891
+      "sha256": "450170c53df572d519956ad5a426c4355e0a06133d105d9baa0e484da2d04de5",
+      "bytes": 6872
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/ENTRY-VERIFICATION.json",
@@ -91,13 +91,13 @@
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/EVIDENCE.json",
-      "sha256": "9a0438f3e94d1392a06d7708a2c96b1922b390684deb26ed4b05ebdaf2f67b60",
-      "bytes": 3922
+      "sha256": "390cb6f7acc8d1e15359be3984827a70171a72e70582556796f9d9a5480c0aee",
+      "bytes": 3945
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/HANDOFF.md",
-      "sha256": "1ed1417d28ae3a8ecfcce6c99d88acc7652d06c23926ef360d0b7b782a62775a",
-      "bytes": 13377
+      "sha256": "19a1d398afa61cdf158dc916b1d8ca81a4cdd5340415b912a6a82e01521a3f35",
+      "bytes": 13890
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/JOURNEYS-15.json",
@@ -136,8 +136,8 @@
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/PUBLICATION-READBACK.json",
-      "sha256": "2bf798714fd707e9b41d228b59fefc26aa06ec67ed5129fc64f5de1e3032fa66",
-      "bytes": 713
+      "sha256": "c7514903da8a43f69e2fb1a7fc7617f5e33f4f52ba2def9afdf8df2b9521762c",
+      "bytes": 6690
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-BROWSER-DOWNLOADS.json",
@@ -191,8 +191,8 @@
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/REVIEW-VERDICTS.json",
-      "sha256": "7f116b15be1351cb5634fc94c181b51c0a38b29896780ca2b84453c1411c53d3",
-      "bytes": 24351
+      "sha256": "1f4631ee3214429909305bc268e2bbeddca51967f8bc566a4711853353b23591",
+      "bytes": 24372
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/REVISION-HISTORY.md",
@@ -626,40 +626,41 @@
     },
     {
       "path": "docs/gates/gate-c4-frontend-journey/WORKING-CONTRACT.md",
-      "sha256": "304f2294a0079f1b680fa2ce80da7caba91312c9be0d96f3cfc221ffb70ed99d",
-      "bytes": 4037
+      "sha256": "330c9e476519b2daeeddb330f3f3bcb9ec3b0781344160b3deef4ce1eb89b789",
+      "bytes": 4033
     },
     {
       "path": "docs/gates/README.md",
-      "sha256": "bdf77aa1fbb5468f294371ad7eafec8f7d7653066d34d3b49255455442ee924d",
-      "bytes": 6978
+      "sha256": "7b13ee3715a8346ed8db2e452d940e6202f7554e6f15f571cfd0297efe92736d",
+      "bytes": 6970
     },
     {
       "path": "docs/handoffs/CURRENT-STATUS.md",
-      "sha256": "f65c43a84148d4d2e64fd4374357766d8c1c90961d918bfa30d06ac01ea963c3",
-      "bytes": 3027
+      "sha256": "e1c55709cdaf0b14c9ec4159a079bf66d5ae6de829abacc5ad4867d03541cb9b",
+      "bytes": 3562
     },
     {
       "path": "docs/handoffs/MVP-1-ISSUES.md",
-      "sha256": "56a98d8fd7ab46ac037a97d475ee022ea9261626c5f5969cb41c110f6f62601b",
-      "bytes": 39435
+      "sha256": "cb5dd63cbdea5d02d7280ab747dc735e79290b06fbbb66256c1ddb3105965cb8",
+      "bytes": 39442
     },
     {
       "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
-      "sha256": "152f8428edade0b4470bedd39c2b5b322d0215b1c6ec10236793522764beab4d",
-      "bytes": 8327
+      "sha256": "16bec39142c180f44c2a76a98ff9f41cc15bca83de653d234905252ca369fbfb",
+      "bytes": 8323
     },
     {
       "path": "docs/README.md",
-      "sha256": "b499a00304a7d666555a29e3aeed81ac783edb953286b085024a2795fd9a050c",
-      "bytes": 9292
+      "sha256": "21da01ace5e660cfe137ff4833053e61d658737ad7260ac81dce23511f803e73",
+      "bytes": 9288
     },
     {
       "path": "README.md",
-      "sha256": "c620754fd3c1471eff6b79feaaef14926fac0b98eb8f19fa8247b83be9d83f23",
-      "bytes": 9588
+      "sha256": "9ae64901747934b7d21aa04fea0534b06bef950725369680b31f49583c327898",
+      "bytes": 9584
     }
   ],
   "text_encoding": "UTF-8 LF; publication hashes bind canonical Git blobs",
-  "reviewed_pre_normalization_manifest": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053"
+  "reviewed_pre_normalization_manifest": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053",
+  "first_published_manifest": "51302e0dcada40ea1bcb4a4a778546dd9c3e66318e28bb88388c1c46630ffbeb"
 }
