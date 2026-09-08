@@ -1691,6 +1691,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                         for value in materials
                     ),
                 )
+            await self._api.send_message(
+                message.chat_id,
+                "Сообщение получено. Разбираюсь в задаче.",
+                message_thread_id=message.message_thread_id,
+            )
             admission = await service.admit(canonical, bindings)
         except asyncio.CancelledError:
             raise

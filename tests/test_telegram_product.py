@@ -1688,8 +1688,8 @@ async def test_semantic_authority_smuggling_and_heterogeneous_task_never_admit(
     assert harness.runtime.drafted == []
     assert harness.runtime.applied == []
     assert harness.api.documents == []
-    assert "отклонён политикой безопасности" in harness.api.sent[0][1]
-    assert "недоступна" in harness.api.sent[1][1]
+    assert any("отклонён политикой безопасности" in value[1] for value in harness.api.sent)
+    assert "недоступна" in harness.api.sent[-1][1]
 
 
 @pytest.mark.asyncio

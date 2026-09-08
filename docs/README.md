@@ -3,7 +3,7 @@
 **Статус:** CANONICAL INDEX
 **Актуально на:** 7 сентября 2026 года
 
-**CURRENT:** C0–C3 приняты и опубликованы. C4 — локально проверенный кандидат; настоящий Telegram/Mini App и визуальная приёмка ещё не завершены, публикация ожидает полного PASS. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
+**CURRENT:** C0–C3 приняты и опубликованы. C4 — исправление дефектов настоящего ручного smoke 8 сентября: ответ и TXT получены, Mini App отказал при восстановлении сессии. Публикация ожидает полного PASS нового кандидата. C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD.
 
 Thin topology задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):

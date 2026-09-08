@@ -1,5 +1,7 @@
 # Единая передача Gate C4 → C5
 
+**Обновление 8 сентября: C4 REWORK / NOT ACCEPTED / NOT PUBLISHED.** Настоящий владелец получил ответ и TXT, но обнаружил задержку подтверждения и отказ Mini App. [Исправления и доказательства](SMOKE-REWORK.md). Ниже сохранены результаты предыдущего локального checkpoint; они не принимают новый код.
+
 **C4 LOCAL VERIFIED / LIVE E2E PENDING / NOT ACCEPTED / NOT PUBLISHED.**
 Передача сохраняет весь результат C4, но не разрешает старт C5.
 C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD. Актуально на 7 сентября 2026 года.

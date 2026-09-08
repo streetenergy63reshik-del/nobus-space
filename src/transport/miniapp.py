@@ -595,7 +595,15 @@ async def _body_is_empty(request: Request, *, timeout_seconds: float) -> bool:
                 return False
         except ValueError:
             return False
-    if "transfer-encoding" in request.headers:
+    transfer_encoding = request.headers.getlist("transfer-encoding")
+    # ASGI exposes decoded body chunks. A proxy may frame even an empty
+    # request as chunked; verify its bytes below instead of rejecting framing.
+    # Ambiguous framing and unsupported encodings still fail closed.
+    if transfer_encoding and (
+        len(transfer_encoding) != 1
+        or transfer_encoding[0].strip().lower() != "chunked"
+        or content_length is not None
+    ):
         return False
     try:
         await _read_bounded_body(
