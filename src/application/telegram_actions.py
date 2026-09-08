@@ -14,6 +14,8 @@ from src.transport.telegram import CallbackQuery
 class TelegramAction(str, Enum):
     CONFIRM_VOICE = "confirm_voice"
     CANCEL_VOICE = "cancel_voice"
+    CONFIRM_DURABLE_VOICE = "confirm_durable_voice"
+    REPLACE_DURABLE_VOICE = "replace_durable_voice"
     APPLY_PATCH = "apply_patch"
     REJECT_PATCH = "reject_patch"
     APPLY_ARTIFACT = "apply_artifact"

@@ -274,22 +274,10 @@ class TelegramBotApi:
         buttons: tuple[tuple[str, str], ...] = (),
         message_thread_id: int | None = None,
     ) -> int:
-        valid_buttons = (
-            type(buttons) is tuple
-            and len(buttons) <= 8
-            and all(
-                type(button) is tuple
-                and len(button) == 2
-                and _bounded_text(button[0], 64)
-                and _bounded_text(button[1], 64)
-                and len(button[1].encode("utf-8")) <= 64
-                for button in buttons
-            )
-        )
         if (
             type(chat_id) is not int
             or not _bounded_text(text, 4096)
-            or not valid_buttons
+            or not _valid_buttons(buttons)
             or (
                 message_thread_id is not None
                 and (
@@ -330,22 +318,33 @@ class TelegramBotApi:
         return result["message_id"]
 
     async def edit_message_text(
-        self, chat_id: int, message_id: int, text: str
+        self,
+        chat_id: int,
+        message_id: int,
+        text: str,
+        *,
+        buttons: tuple[tuple[str, str], ...] | None = None,
     ) -> None:
         if (
             type(chat_id) is not int
             or not _non_negative_int(message_id)
             or not _bounded_text(text, 4096)
+            or (buttons is not None and not _valid_buttons(buttons))
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
-        result = await self._call(
-            "editMessageText",
-            {
-                "chat_id": chat_id,
-                "message_id": message_id,
-                "text": text.strip(),
-            },
-        )
+        payload: dict[str, Any] = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "text": text.strip(),
+        }
+        if buttons is not None:
+            payload["reply_markup"] = {
+                "inline_keyboard": [[
+                    {"text": label.strip(), "callback_data": token.strip()}
+                    for label, token in buttons
+                ]] if buttons else []
+            }
+        result = await self._call("editMessageText", payload)
         if type(result) is not dict or result.get("message_id") != message_id:
             raise TelegramBotApiError("telegram_protocol_error")
         chat = result.get("chat")
@@ -767,7 +766,7 @@ class TelegramStatusSender:
         text = _status_text(validated, technical_details=self._technical_details)
         parts = [("text", chunk.encode("utf-8"), None) for chunk in _status_message_chunks(text)]
         if artifact is not None:
-            parts.append(("document", artifact.content_bytes(), artifact.filename))
+            parts.append(("document", artifact.content_bytes(), "nobus-result.txt"))
         return tuple(parts)
 
     def delivery_manifest(self, message: OutboxMessage) -> tuple[DeliveryPart, ...]:
@@ -862,12 +861,12 @@ def _status_text(
     if message.task_status is TaskStatus.FAILED:
         return (
             f"{product_state.label}\n"
-            "⚠️ Не удалось выполнить задачу. Попробуйте ещё раз."
+            + product_state.reason_label
         )
     if message.task_status is TaskStatus.ESCALATE:
         return (
             f"{product_state.label}\n"
-            "⚠️ Задача остановлена безопасно и требует проверки в Codex."
+            + product_state.reason_label
         )
     return f"{product_state.label}\nСтатус задачи обновлён."
 
@@ -890,6 +889,21 @@ def _bounded_int(value: object, maximum: int) -> bool:
 
 def _bounded_number(value: object, maximum: float) -> bool:
     return type(value) in {int, float} and math.isfinite(value) and 0 < value <= maximum
+
+
+def _valid_buttons(buttons: object) -> bool:
+    return (
+        type(buttons) is tuple
+        and len(buttons) <= 8
+        and all(
+            type(button) is tuple
+            and len(button) == 2
+            and _bounded_text(button[0], 64)
+            and _bounded_text(button[1], 64)
+            and len(button[1].encode("utf-8")) <= 64
+            for button in buttons
+        )
+    )
 
 
 def _bounded_text(value: object, limit: int) -> bool:

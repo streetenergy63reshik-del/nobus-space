@@ -1,0 +1,1961 @@
+{
+  "schema": "c4-local-journeys-2",
+  "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+  "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+  "accepted_local_phases": [
+    {
+      "scenario": "clarification",
+      "phase": "run",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/clarification/phase-1788867335406248500-run.json",
+        "sha256": "7006888de1f15e8671255c8ab36fabb0ea60ab6ba3909b40a3d286fbf36cacc0",
+        "bytes": 41227
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "263fab92-69f8-4c50-acc3-94f63591e52d",
+        "result_revision": 1,
+        "result_digest": "sha256:59ff0b83ee57cce1bac9274b72e0980eae10e762078e3d70c1cf623cdc08784d",
+        "artifact_id": "10fb4519-5bc7-576d-a659-cb83a904e5c0",
+        "artifact_digest": "sha256:b281be3829beae62429e2ec9f33482d5f4b208868c2408d6e4686d5736a60337",
+        "artifact_size": 467,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:9b2e872d85e6331674ca9990bbaacb63ea4dde8aea599e4250ea6ebc997bf2dd",
+        "confirmed_parts": 2,
+        "progress": [
+          "queued",
+          "ready"
+        ]
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 50,
+            "charged_seconds": 710.2189999993425,
+            "actual_model_turns": 39,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 14,
+            "remaining_seconds": 4689.7810000006575
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 53,
+            "charged_seconds": 743.561999999336,
+            "actual_model_turns": 42,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 11,
+            "remaining_seconds": 4656.438000000664
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "clarification",
+      "phase": "replay",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/clarification/phase-1788867341119639600-replay.json",
+        "sha256": "281ec73ffbf1e91b3201c203ccbbfed8e226bd63dc4f180122660f28207f1f69",
+        "bytes": 36134
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "263fab92-69f8-4c50-acc3-94f63591e52d",
+        "result_revision": 1,
+        "result_digest": "sha256:59ff0b83ee57cce1bac9274b72e0980eae10e762078e3d70c1cf623cdc08784d",
+        "artifact_id": "10fb4519-5bc7-576d-a659-cb83a904e5c0",
+        "artifact_digest": "sha256:b281be3829beae62429e2ec9f33482d5f4b208868c2408d6e4686d5736a60337",
+        "artifact_size": 467,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:9b2e872d85e6331674ca9990bbaacb63ea4dde8aea599e4250ea6ebc997bf2dd",
+        "confirmed_parts": 2,
+        "progress": []
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 53,
+            "charged_seconds": 743.561999999336,
+            "actual_model_turns": 42,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 11,
+            "remaining_seconds": 4656.438000000664
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 53,
+            "charged_seconds": 743.561999999336,
+            "actual_model_turns": 42,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 11,
+            "remaining_seconds": 4656.438000000664
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "direct_text",
+      "phase": "run",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/direct_text/phase-1788866808440699900-run.json",
+        "sha256": "9728de5c329622eca313bcd54f54e3a83973b6b21a1b23822feeb432ce12dd85",
+        "bytes": 40928
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "3a48ad5a-4f17-4da2-92c6-3a961dbaaf64",
+        "result_revision": 1,
+        "result_digest": "sha256:a6a126c8034895dd6100841ac6f18a21382e9ee29b418bc9f87cd60cc2e63dc3",
+        "artifact_id": "8088ae19-c2d8-56ec-ba80-33a261d3acc2",
+        "artifact_digest": "sha256:d15b16e16fee79524b87629375f7b72e536d23b3a818128879d3ec076e6868f4",
+        "artifact_size": 463,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:85d94c542274333baa46264ea1144c5d1f4e985697cf432bb96d14d72a1043c3",
+        "confirmed_parts": 2,
+        "progress": [
+          "queued",
+          "ready"
+        ]
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 40,
+            "charged_seconds": 524.1089999995893,
+            "actual_model_turns": 30,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 24,
+            "remaining_seconds": 4875.891000000411
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 42,
+            "charged_seconds": 569.8599999995204,
+            "actual_model_turns": 32,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 22,
+            "remaining_seconds": 4830.14000000048
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "direct_text",
+      "phase": "replay",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/direct_text/phase-1788866813265663600-replay.json",
+        "sha256": "d0c75e99df167ba989d94c240db4c52274c01f1c228e518d12ad4b6e323f192b",
+        "bytes": 36130
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "3a48ad5a-4f17-4da2-92c6-3a961dbaaf64",
+        "result_revision": 1,
+        "result_digest": "sha256:a6a126c8034895dd6100841ac6f18a21382e9ee29b418bc9f87cd60cc2e63dc3",
+        "artifact_id": "8088ae19-c2d8-56ec-ba80-33a261d3acc2",
+        "artifact_digest": "sha256:d15b16e16fee79524b87629375f7b72e536d23b3a818128879d3ec076e6868f4",
+        "artifact_size": 463,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:85d94c542274333baa46264ea1144c5d1f4e985697cf432bb96d14d72a1043c3",
+        "confirmed_parts": 2,
+        "progress": []
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 42,
+            "charged_seconds": 569.8599999995204,
+            "actual_model_turns": 32,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 22,
+            "remaining_seconds": 4830.14000000048
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 42,
+            "charged_seconds": 569.8599999995204,
+            "actual_model_turns": 32,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 22,
+            "remaining_seconds": 4830.14000000048
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "direct_voice",
+      "phase": "run",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/direct_voice/phase-1788864489253991100-run.json",
+        "sha256": "c7b335c483975805e7f967c168e32d709c38d8f0ba9d9b93d1ebeb15e5ddc6b0",
+        "bytes": 45005
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+        "result_revision": 1,
+        "result_digest": "sha256:c577ad4fc19e4f8a58c9c4195c2e0a8bfe34d98df47929b2c008a4e16f3dd200",
+        "artifact_id": "c20c725b-0671-5f08-ac5a-7f30fe6ac340",
+        "artifact_digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+        "artifact_size": 460,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:efad191be2a4eb370513b702755b7c12130dedf7cf7ffb7b541e55ca2c31e838",
+        "confirmed_parts": 2,
+        "progress": [
+          "queued",
+          "ready"
+        ]
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 34,
+            "charged_seconds": 458.46799999964423,
+            "actual_model_turns": 26,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 30,
+            "remaining_seconds": 4941.532000000356
+          },
+          "asr": {
+            "reserved_calls": 5,
+            "charged_seconds": 36.39099999994505,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 15,
+            "remaining_seconds": 1163.609000000055
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 37,
+            "charged_seconds": 477.9369999995688,
+            "actual_model_turns": 28,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 27,
+            "remaining_seconds": 4922.063000000431
+          },
+          "asr": {
+            "reserved_calls": 6,
+            "charged_seconds": 43.124999999883585,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 14,
+            "remaining_seconds": 1156.8750000001164
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "direct_voice",
+      "phase": "replay",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/direct_voice/phase-1788864526806389700-replay.json",
+        "sha256": "fa02aa31f318c86343222219424a900ceb3cd03ba743ac9e83ea9c07e0140913",
+        "bytes": 36096
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+        "result_revision": 1,
+        "result_digest": "sha256:c577ad4fc19e4f8a58c9c4195c2e0a8bfe34d98df47929b2c008a4e16f3dd200",
+        "artifact_id": "c20c725b-0671-5f08-ac5a-7f30fe6ac340",
+        "artifact_digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+        "artifact_size": 460,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:efad191be2a4eb370513b702755b7c12130dedf7cf7ffb7b541e55ca2c31e838",
+        "confirmed_parts": 2,
+        "progress": []
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 37,
+            "charged_seconds": 477.9369999995688,
+            "actual_model_turns": 28,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 27,
+            "remaining_seconds": 4922.063000000431
+          },
+          "asr": {
+            "reserved_calls": 6,
+            "charged_seconds": 43.124999999883585,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 14,
+            "remaining_seconds": 1156.8750000001164
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 37,
+            "charged_seconds": 477.9369999995688,
+            "actual_model_turns": 28,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 27,
+            "remaining_seconds": 4922.063000000431
+          },
+          "asr": {
+            "reserved_calls": 6,
+            "charged_seconds": 43.124999999883585,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 14,
+            "remaining_seconds": 1156.8750000001164
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "telegram_text",
+      "phase": "run",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/telegram_text/phase-1788866864891586300-run.json",
+        "sha256": "2fb037f7654be2ab07c0e9e801a3fa544f62795ee1e299f67da228eb862ae728",
+        "bytes": 40643
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "6d6a35be-1129-4ed8-8558-7a1a23b13cda",
+        "result_revision": 1,
+        "result_digest": "sha256:f32b8499047121e2353bfad3c70b06117ff48f29451815cb1237cf9a20444b88",
+        "artifact_id": "c5860116-c748-52b4-a1d9-5f453686b8e1",
+        "artifact_digest": "sha256:5da7dd7326b1cb88586fb8fd55213d31512acc6cc57e8061cfb7657048ca55d9",
+        "artifact_size": 499,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:8a2630e84f3ccc4274b58f1a6ac5a6ec27b5dd8547ae354a9d0f88c9f382070a",
+        "confirmed_parts": 2,
+        "progress": [
+          "queued",
+          "ready"
+        ]
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 42,
+            "charged_seconds": 569.8599999995204,
+            "actual_model_turns": 32,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 22,
+            "remaining_seconds": 4830.14000000048
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 44,
+            "charged_seconds": 615.7659999994794,
+            "actual_model_turns": 34,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 4784.234000000521
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "telegram_text",
+      "phase": "replay",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/telegram_text/phase-1788866869702782300-replay.json",
+        "sha256": "b753711af6b80d6291655e2c18a00da3ddc101b1382f9ca1e1fbc1439cbc8252",
+        "bytes": 35984
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "6d6a35be-1129-4ed8-8558-7a1a23b13cda",
+        "result_revision": 1,
+        "result_digest": "sha256:f32b8499047121e2353bfad3c70b06117ff48f29451815cb1237cf9a20444b88",
+        "artifact_id": "c5860116-c748-52b4-a1d9-5f453686b8e1",
+        "artifact_digest": "sha256:5da7dd7326b1cb88586fb8fd55213d31512acc6cc57e8061cfb7657048ca55d9",
+        "artifact_size": 499,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:8a2630e84f3ccc4274b58f1a6ac5a6ec27b5dd8547ae354a9d0f88c9f382070a",
+        "confirmed_parts": 2,
+        "progress": []
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 44,
+            "charged_seconds": 615.7659999994794,
+            "actual_model_turns": 34,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 4784.234000000521
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 44,
+            "charged_seconds": 615.7659999994794,
+            "actual_model_turns": 34,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 4784.234000000521
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "transform_text",
+      "phase": "run",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/transform_text/phase-1788866925315541800-run.json",
+        "sha256": "a5048755a4402d6ab3bd938a4b3022ff4aa8a28d93921a5611fa3611d99fd12b",
+        "bytes": 43186
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "421c8672-c9e0-45ba-ab9d-b74115d827a5",
+        "result_revision": 1,
+        "result_digest": "sha256:307710d6bd9cabb795d2a72ee4e6bc4baddcfdc046146738b49dae4e6a0444de",
+        "artifact_id": "8354ced3-000b-56b9-8a53-dc6e2db08347",
+        "artifact_digest": "sha256:272892d007f2789602bde3e031f2acd36f4e05f08499d56043e1fc7eeb693e04",
+        "artifact_size": 3029,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:3d1ecebb31322c13f15ddbb63b0e683df0eb1fe2d0b967f29221230636407c44",
+        "confirmed_parts": 2,
+        "progress": [
+          "queued",
+          "ready"
+        ]
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 44,
+            "charged_seconds": 615.7659999994794,
+            "actual_model_turns": 34,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 20,
+            "remaining_seconds": 4784.234000000521
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 47,
+            "charged_seconds": 664.8279999995138,
+            "actual_model_turns": 37,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 17,
+            "remaining_seconds": 4735.172000000486
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "transform_text",
+      "phase": "replay",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/transform_text/phase-1788866930331001600-replay.json",
+        "sha256": "7d948f6a2938378ceca7d66f2fc13bf13046b9637edd326da6e25f5e4c85632e",
+        "bytes": 36139
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "421c8672-c9e0-45ba-ab9d-b74115d827a5",
+        "result_revision": 1,
+        "result_digest": "sha256:307710d6bd9cabb795d2a72ee4e6bc4baddcfdc046146738b49dae4e6a0444de",
+        "artifact_id": "8354ced3-000b-56b9-8a53-dc6e2db08347",
+        "artifact_digest": "sha256:272892d007f2789602bde3e031f2acd36f4e05f08499d56043e1fc7eeb693e04",
+        "artifact_size": 3029,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:3d1ecebb31322c13f15ddbb63b0e683df0eb1fe2d0b967f29221230636407c44",
+        "confirmed_parts": 2,
+        "progress": []
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 47,
+            "charged_seconds": 664.8279999995138,
+            "actual_model_turns": 37,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 17,
+            "remaining_seconds": 4735.172000000486
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 47,
+            "charged_seconds": 664.8279999995138,
+            "actual_model_turns": 37,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 17,
+            "remaining_seconds": 4735.172000000486
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "unavailable",
+      "phase": "run",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/unavailable/phase-1788867359289608600-run.json",
+        "sha256": "f9dd8b44c16ef0088c0e2380697e2deee454c3d82cc92ee4aca96ea077c74ee1",
+        "bytes": 31365
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "unavailable": true
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 53,
+            "charged_seconds": 743.561999999336,
+            "actual_model_turns": 42,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 11,
+            "remaining_seconds": 4656.438000000664
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 54,
+            "charged_seconds": 755.9829999994254,
+            "actual_model_turns": 43,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 4644.017000000575
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "transform_voice",
+      "phase": "resume_confirmed",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788868231602775800-resume.json",
+        "sha256": "9858b1652fc28430e0cdfec66a260d307fa3a47576e4c982059febccca3d9777",
+        "bytes": 62027
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+        "result_revision": 1,
+        "result_digest": "sha256:4da9bb699a90eadb53f97a5767b3968048a5097dfa9b3bab01b8d9dc2150c4e4",
+        "artifact_id": "00e3686c-39fb-5613-b626-2aa74ecee7a8",
+        "artifact_digest": "sha256:408ff8c6dc92169fefc6f4c3f9a2baf5df311437e64a1194fc1422478ffdc09a",
+        "artifact_size": 4507,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:af23b3bc71d0b24d10c73b492f461f901de7cce0ee833f1189321dd8b02c71a4",
+        "confirmed_parts": 2,
+        "progress": [
+          "queued",
+          "ready"
+        ]
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 56,
+            "charged_seconds": 801.3269999994664,
+            "actual_model_turns": 44,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 8,
+            "remaining_seconds": 4598.673000000534
+          },
+          "asr": {
+            "reserved_calls": 10,
+            "charged_seconds": 80.82799999974668,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 1119.1720000002533
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 60,
+            "charged_seconds": 859.3269999994664,
+            "actual_model_turns": 47,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 4,
+            "remaining_seconds": 4540.673000000534
+          },
+          "asr": {
+            "reserved_calls": 10,
+            "charged_seconds": 80.82799999974668,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 1119.1720000002533
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "transform_voice",
+      "phase": "replay",
+      "status": "LOCAL_HTTP_CORE_COMPLETED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788868349970653400-replay.json",
+        "sha256": "fa43f95b25ba626a9f46e8764e8e25367e6418bfb0ea8e939e3cabe469de0150",
+        "bytes": 36098
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {
+        "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+        "result_revision": 1,
+        "result_digest": "sha256:4da9bb699a90eadb53f97a5767b3968048a5097dfa9b3bab01b8d9dc2150c4e4",
+        "artifact_id": "00e3686c-39fb-5613-b626-2aa74ecee7a8",
+        "artifact_digest": "sha256:408ff8c6dc92169fefc6f4c3f9a2baf5df311437e64a1194fc1422478ffdc09a",
+        "artifact_size": 4507,
+        "artifact_opened_utf8": true,
+        "delivery_manifest_digest": "sha256:af23b3bc71d0b24d10c73b492f461f901de7cce0ee833f1189321dd8b02c71a4",
+        "confirmed_parts": 2,
+        "progress": []
+      },
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 60,
+            "charged_seconds": 859.3269999994664,
+            "actual_model_turns": 47,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 4,
+            "remaining_seconds": 4540.673000000534
+          },
+          "asr": {
+            "reserved_calls": 10,
+            "charged_seconds": 80.82799999974668,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 1119.1720000002533
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 60,
+            "charged_seconds": 859.3269999994664,
+            "actual_model_turns": 47,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 4,
+            "remaining_seconds": 4540.673000000534
+          },
+          "asr": {
+            "reserved_calls": 10,
+            "charged_seconds": 80.82799999974668,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 1119.1720000002533
+          }
+        },
+        "active_reservations": 0
+      }
+    }
+  ],
+  "retained_failed_attempts": [
+    {
+      "scenario": "transform_voice",
+      "phase": "run",
+      "status": "FAILED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651/transform_voice/phase-1788867066009079500-run.json",
+        "sha256": "e50599af7f833ced5e2d3a0e08d03448200473a4676205e9744c252ab7dc4a63",
+        "bytes": 30642
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {},
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 47,
+            "charged_seconds": 664.8279999995138,
+            "actual_model_turns": 37,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 17,
+            "remaining_seconds": 4735.172000000486
+          },
+          "asr": {
+            "reserved_calls": 7,
+            "charged_seconds": 49.53099999984261,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 13,
+            "remaining_seconds": 1150.4690000001574
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 50,
+            "charged_seconds": 710.2189999993425,
+            "actual_model_turns": 39,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 14,
+            "remaining_seconds": 4689.7810000006575
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "transform_voice",
+      "phase": "run",
+      "status": "FAILED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788867377853792300-run.json",
+        "sha256": "9b98bc03933fe4129531832d28edb76f6e4f739224e87a1aa6a7676be85dae68",
+        "bytes": 30640
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {},
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 54,
+            "charged_seconds": 755.9829999994254,
+            "actual_model_turns": 43,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 4644.017000000575
+          },
+          "asr": {
+            "reserved_calls": 8,
+            "charged_seconds": 58.96899999980815,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 12,
+            "remaining_seconds": 1141.0310000001919
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 54,
+            "charged_seconds": 755.9829999994254,
+            "actual_model_turns": 43,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 4644.017000000575
+          },
+          "asr": {
+            "reserved_calls": 9,
+            "charged_seconds": 71.04699999978766,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 11,
+            "remaining_seconds": 1128.9530000002123
+          }
+        },
+        "active_reservations": 0
+      }
+    },
+    {
+      "scenario": "transform_voice",
+      "phase": "run",
+      "status": "FAILED",
+      "source": {
+        "local_path": ".runtime/c4/product-b89b651-transform-repeat2/transform_voice/phase-1788867638464232800-run.json",
+        "sha256": "d5de2e07f9115f51fe74cb40b5e3675ff045ac65c7fef51c362a309cf319d2f1",
+        "bytes": 30641
+      },
+      "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "transports": {
+        "http": "actual_loopback_tcp",
+        "telegram": "synthetic",
+        "initData": "synthetic"
+      },
+      "project_context": null,
+      "result": {},
+      "cleanup": [
+        {
+          "component": "control",
+          "closed": true
+        },
+        {
+          "component": "runtime",
+          "closed": true
+        }
+      ],
+      "budget_before": {
+        "resources": {
+          "model": {
+            "reserved_calls": 54,
+            "charged_seconds": 755.9829999994254,
+            "actual_model_turns": 43,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 4644.017000000575
+          },
+          "asr": {
+            "reserved_calls": 9,
+            "charged_seconds": 71.04699999978766,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 11,
+            "remaining_seconds": 1128.9530000002123
+          }
+        },
+        "active_reservations": 0
+      },
+      "budget_after": {
+        "resources": {
+          "model": {
+            "reserved_calls": 56,
+            "charged_seconds": 801.3269999994664,
+            "actual_model_turns": 44,
+            "max_calls": 64,
+            "max_seconds": 5400.0,
+            "remaining_calls": 8,
+            "remaining_seconds": 4598.673000000534
+          },
+          "asr": {
+            "reserved_calls": 10,
+            "charged_seconds": 80.82799999974668,
+            "actual_model_turns": 0,
+            "max_calls": 20,
+            "max_seconds": 1200.0,
+            "remaining_calls": 10,
+            "remaining_seconds": 1119.1720000002533
+          }
+        },
+        "active_reservations": 0
+      }
+    }
+  ],
+  "note": "Actual provider/ASR, local synthetic Telegram transport and signed initData. Real owner smoke is separately bound in LIVE-SMOKE. Failed provider attempts remain failed; resumptions are separate phase receipts.",
+  "current_candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+  "current_candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+  "initial_execution_attribution": "b89b651 only; unchanged input/Core/worker/ASR evidence retained explicitly, never relabelled as66cff24 execution",
+  "new_read_replay": {
+    "local_path": ".runtime/c4/retained-replay-66cff24/REPLAY.json",
+    "sha256": "17fc086d1725f78ba8aa6640776cfdfb0e2afafe2cd22ca1ccf1ebf48f358c8c",
+    "bytes": 31851
+  },
+  "new_read_replay_summary": "6 exact sealed task/result/artifact reads through66cff24 Core/HTTP/session recovery; no runtime/provider/ASR replay",
+  "new_read_replay_proofs": [
+    {
+      "source": {
+        "local_path": ".runtime/c4/retained-replay-66cff24/clarification/read-replay.json",
+        "sha256": "132eff03b91c29496961f71cc71175036d46fb50de4ec601a2cf509d7bd27f68",
+        "bytes": 3024
+      },
+      "receipt": {
+        "scenario": "clarification",
+        "status": "NEW_CANDIDATE_READ_REPLAY_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "original_candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "original_replay_source": ".runtime/c4/product-b89b651/clarification/phase-1788867341119639600-replay.json",
+        "original_replay_sha256": "281ec73ffbf1e91b3201c203ccbbfed8e226bd63dc4f180122660f28207f1f69",
+        "result": {
+          "task_id": "263fab92-69f8-4c50-acc3-94f63591e52d",
+          "result_revision": 1,
+          "result_digest": "sha256:59ff0b83ee57cce1bac9274b72e0980eae10e762078e3d70c1cf623cdc08784d",
+          "artifact_id": "10fb4519-5bc7-576d-a659-cb83a904e5c0",
+          "artifact_digest": "sha256:b281be3829beae62429e2ec9f33482d5f4b208868c2408d6e4686d5736a60337",
+          "artifact_size": 467,
+          "artifact_opened_utf8": true,
+          "delivery_manifest_digest": "sha256:9b2e872d85e6331674ca9990bbaacb63ea4dde8aea599e4250ea6ebc997bf2dd",
+          "confirmed_parts": 2,
+          "telegram_transport": "synthetic",
+          "http_transport": "actual_loopback_tcp",
+          "progress": [],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/app.js",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/styles.css",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/requests/c4-clarification-answer-0001",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/263fab92-69f8-4c50-acc3-94f63591e52d",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/263fab92-69f8-4c50-acc3-94f63591e52d/result?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/263fab92-69f8-4c50-acc3-94f63591e52d/artifacts/10fb4519-5bc7-576d-a659-cb83a904e5c0?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/263fab92-69f8-4c50-acc3-94f63591e52d/events",
+              "status": 200,
+              "expected": 200
+            }
+          ]
+        },
+        "scope": "Fresh exact-current MiniAppCore/HTTP/session/recovery/result/file on a SQLite backup; original admission/provider/ASR still b89, not relabelled.",
+        "provider_calls": 0,
+        "ASR_calls": 0
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/retained-replay-66cff24/direct_text/read-replay.json",
+        "sha256": "b087eb67581d2898f00c0c645ff9de00a83fd41a37f96f21fec4947f4d08d509",
+        "bytes": 3018
+      },
+      "receipt": {
+        "scenario": "direct_text",
+        "status": "NEW_CANDIDATE_READ_REPLAY_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "original_candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "original_replay_source": ".runtime/c4/product-b89b651/direct_text/phase-1788866813265663600-replay.json",
+        "original_replay_sha256": "d0c75e99df167ba989d94c240db4c52274c01f1c228e518d12ad4b6e323f192b",
+        "result": {
+          "task_id": "3a48ad5a-4f17-4da2-92c6-3a961dbaaf64",
+          "result_revision": 1,
+          "result_digest": "sha256:a6a126c8034895dd6100841ac6f18a21382e9ee29b418bc9f87cd60cc2e63dc3",
+          "artifact_id": "8088ae19-c2d8-56ec-ba80-33a261d3acc2",
+          "artifact_digest": "sha256:d15b16e16fee79524b87629375f7b72e536d23b3a818128879d3ec076e6868f4",
+          "artifact_size": 463,
+          "artifact_opened_utf8": true,
+          "delivery_manifest_digest": "sha256:85d94c542274333baa46264ea1144c5d1f4e985697cf432bb96d14d72a1043c3",
+          "confirmed_parts": 2,
+          "telegram_transport": "synthetic",
+          "http_transport": "actual_loopback_tcp",
+          "progress": [],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/app.js",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/styles.css",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/requests/c4-direct_text-intent-0001",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/3a48ad5a-4f17-4da2-92c6-3a961dbaaf64",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/3a48ad5a-4f17-4da2-92c6-3a961dbaaf64/result?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/3a48ad5a-4f17-4da2-92c6-3a961dbaaf64/artifacts/8088ae19-c2d8-56ec-ba80-33a261d3acc2?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/3a48ad5a-4f17-4da2-92c6-3a961dbaaf64/events",
+              "status": 200,
+              "expected": 200
+            }
+          ]
+        },
+        "scope": "Fresh exact-current MiniAppCore/HTTP/session/recovery/result/file on a SQLite backup; original admission/provider/ASR still b89, not relabelled.",
+        "provider_calls": 0,
+        "ASR_calls": 0
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/retained-replay-66cff24/direct_voice/read-replay.json",
+        "sha256": "7460f7143e3e92ab17151d381bc1d6ff5ad96dc937a96afe25b77eb21619ba9d",
+        "bytes": 2865
+      },
+      "receipt": {
+        "scenario": "direct_voice",
+        "status": "NEW_CANDIDATE_READ_REPLAY_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "original_candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "original_replay_source": ".runtime/c4/product-b89b651/direct_voice/phase-1788864526806389700-replay.json",
+        "original_replay_sha256": "fa02aa31f318c86343222219424a900ceb3cd03ba743ac9e83ea9c07e0140913",
+        "result": {
+          "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+          "result_revision": 1,
+          "result_digest": "sha256:c577ad4fc19e4f8a58c9c4195c2e0a8bfe34d98df47929b2c008a4e16f3dd200",
+          "artifact_id": "c20c725b-0671-5f08-ac5a-7f30fe6ac340",
+          "artifact_digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494",
+          "artifact_size": 460,
+          "artifact_opened_utf8": true,
+          "delivery_manifest_digest": "sha256:efad191be2a4eb370513b702755b7c12130dedf7cf7ffb7b541e55ca2c31e838",
+          "confirmed_parts": 2,
+          "telegram_transport": "synthetic",
+          "http_transport": "actual_loopback_tcp",
+          "progress": [],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/app.js",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/styles.css",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events",
+              "status": 200,
+              "expected": 200
+            }
+          ]
+        },
+        "scope": "Fresh exact-current MiniAppCore/HTTP/session/recovery/result/file on a SQLite backup; original admission/provider/ASR still b89, not relabelled.",
+        "provider_calls": 0,
+        "ASR_calls": 0
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/retained-replay-66cff24/telegram_text/read-replay.json",
+        "sha256": "42bb2dadfac42fd5949d21f9067a91dc88138b585fa5ad0257ac3ae8f8ac5ef1",
+        "bytes": 2867
+      },
+      "receipt": {
+        "scenario": "telegram_text",
+        "status": "NEW_CANDIDATE_READ_REPLAY_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "original_candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "original_replay_source": ".runtime/c4/product-b89b651/telegram_text/phase-1788866869702782300-replay.json",
+        "original_replay_sha256": "b753711af6b80d6291655e2c18a00da3ddc101b1382f9ca1e1fbc1439cbc8252",
+        "result": {
+          "task_id": "6d6a35be-1129-4ed8-8558-7a1a23b13cda",
+          "result_revision": 1,
+          "result_digest": "sha256:f32b8499047121e2353bfad3c70b06117ff48f29451815cb1237cf9a20444b88",
+          "artifact_id": "c5860116-c748-52b4-a1d9-5f453686b8e1",
+          "artifact_digest": "sha256:5da7dd7326b1cb88586fb8fd55213d31512acc6cc57e8061cfb7657048ca55d9",
+          "artifact_size": 499,
+          "artifact_opened_utf8": true,
+          "delivery_manifest_digest": "sha256:8a2630e84f3ccc4274b58f1a6ac5a6ec27b5dd8547ae354a9d0f88c9f382070a",
+          "confirmed_parts": 2,
+          "telegram_transport": "synthetic",
+          "http_transport": "actual_loopback_tcp",
+          "progress": [],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/app.js",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/styles.css",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/6d6a35be-1129-4ed8-8558-7a1a23b13cda",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/6d6a35be-1129-4ed8-8558-7a1a23b13cda/result?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/6d6a35be-1129-4ed8-8558-7a1a23b13cda/artifacts/c5860116-c748-52b4-a1d9-5f453686b8e1?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/6d6a35be-1129-4ed8-8558-7a1a23b13cda/events",
+              "status": 200,
+              "expected": 200
+            }
+          ]
+        },
+        "scope": "Fresh exact-current MiniAppCore/HTTP/session/recovery/result/file on a SQLite backup; original admission/provider/ASR still b89, not relabelled.",
+        "provider_calls": 0,
+        "ASR_calls": 0
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/retained-replay-66cff24/transform_text/read-replay.json",
+        "sha256": "a8d5b7900eaedf917440bcef2d1ad700bdc80b0ebc89df71d655b45fa63bd134",
+        "bytes": 3028
+      },
+      "receipt": {
+        "scenario": "transform_text",
+        "status": "NEW_CANDIDATE_READ_REPLAY_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "original_candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "original_replay_source": ".runtime/c4/product-b89b651/transform_text/phase-1788866930331001600-replay.json",
+        "original_replay_sha256": "7d948f6a2938378ceca7d66f2fc13bf13046b9637edd326da6e25f5e4c85632e",
+        "result": {
+          "task_id": "421c8672-c9e0-45ba-ab9d-b74115d827a5",
+          "result_revision": 1,
+          "result_digest": "sha256:307710d6bd9cabb795d2a72ee4e6bc4baddcfdc046146738b49dae4e6a0444de",
+          "artifact_id": "8354ced3-000b-56b9-8a53-dc6e2db08347",
+          "artifact_digest": "sha256:272892d007f2789602bde3e031f2acd36f4e05f08499d56043e1fc7eeb693e04",
+          "artifact_size": 3029,
+          "artifact_opened_utf8": true,
+          "delivery_manifest_digest": "sha256:3d1ecebb31322c13f15ddbb63b0e683df0eb1fe2d0b967f29221230636407c44",
+          "confirmed_parts": 2,
+          "telegram_transport": "synthetic",
+          "http_transport": "actual_loopback_tcp",
+          "progress": [],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/app.js",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/styles.css",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/requests/c4-transform_text-intent-0001",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/421c8672-c9e0-45ba-ab9d-b74115d827a5",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/421c8672-c9e0-45ba-ab9d-b74115d827a5/result?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/421c8672-c9e0-45ba-ab9d-b74115d827a5/artifacts/8354ced3-000b-56b9-8a53-dc6e2db08347?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/421c8672-c9e0-45ba-ab9d-b74115d827a5/events",
+              "status": 200,
+              "expected": 200
+            }
+          ]
+        },
+        "scope": "Fresh exact-current MiniAppCore/HTTP/session/recovery/result/file on a SQLite backup; original admission/provider/ASR still b89, not relabelled.",
+        "provider_calls": 0,
+        "ASR_calls": 0
+      }
+    },
+    {
+      "source": {
+        "local_path": ".runtime/c4/retained-replay-66cff24/transform_voice/read-replay.json",
+        "sha256": "2b39b0a314a59ff9d5fb71bbb4ee99966fbfd7a57d9643baa6a16274c2a769fe",
+        "bytes": 2890
+      },
+      "receipt": {
+        "scenario": "transform_voice",
+        "status": "NEW_CANDIDATE_READ_REPLAY_PASS",
+        "candidate_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+        "candidate_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+        "original_candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+        "original_replay_source": ".runtime/c4/product-b89b651-transform-repeat1/transform_voice/phase-1788868349970653400-replay.json",
+        "original_replay_sha256": "fa43f95b25ba626a9f46e8764e8e25367e6418bfb0ea8e939e3cabe469de0150",
+        "result": {
+          "task_id": "b3363a4c-1364-456e-84b9-1a8e8b53f879",
+          "result_revision": 1,
+          "result_digest": "sha256:4da9bb699a90eadb53f97a5767b3968048a5097dfa9b3bab01b8d9dc2150c4e4",
+          "artifact_id": "00e3686c-39fb-5613-b626-2aa74ecee7a8",
+          "artifact_digest": "sha256:408ff8c6dc92169fefc6f4c3f9a2baf5df311437e64a1194fc1422478ffdc09a",
+          "artifact_size": 4507,
+          "artifact_opened_utf8": true,
+          "delivery_manifest_digest": "sha256:af23b3bc71d0b24d10c73b492f461f901de7cce0ee833f1189321dd8b02c71a4",
+          "confirmed_parts": 2,
+          "telegram_transport": "synthetic",
+          "http_transport": "actual_loopback_tcp",
+          "progress": [],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/app.js",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/styles.css",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/00e3686c-39fb-5613-b626-2aa74ecee7a8?revision=1",
+              "status": 200,
+              "expected": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events",
+              "status": 200,
+              "expected": 200
+            }
+          ]
+        },
+        "scope": "Fresh exact-current MiniAppCore/HTTP/session/recovery/result/file on a SQLite backup; original admission/provider/ASR still b89, not relabelled.",
+        "provider_calls": 0,
+        "ASR_calls": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "schema": "c4-live-smoke-2",
+  "status": "REAL_OWNER_BOUNDED_SMOKE_PASS_WINDOW_STOPPED_READBACK_COMPLETE",
+  "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+  "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+  "attempt": 6,
+  "bot": "@Nobusspacebot",
+  "origin": "https://app.nobusspace.com",
+  "owner_scope": "verified single owner private chat; exact identity retained in plan/source proof",
+  "temporary_route": "existing relay to loopback127.0.0.1:8765; no permanent deployment",
+  "helper_manifest_sha256": "ef6a873c5330f8ee5860f22ee4dc54b0f17b9cb07d12ca12bd46eb483c13a34a",
+  "plan": {
+    "local_path": ".runtime/c4/live-b89b651b43f1-attempt6/plan.json",
+    "sha256": "f59d65600bf59cea0d09fa3eb8d159e77f81c83b7fb338c96ba40a095420fdad",
+    "bytes": 4164
+  },
+  "owner_evidence": {
+    "local_path": ".runtime/c4/live-b89b651b43f1-attempt6/owner-evidence/voice-buttons-result-readback.json",
+    "sha256": "111786d80a63c17c41f9daea121cf3cd7079be599837eebf9edd94fe64c0bbcb",
+    "bytes": 3966
+  },
+  "owner_confirmation": "всё корректно отработало",
+  "result": {
+    "task_id": "a6c1f108-4820-43f7-b130-fbd62fb860a6",
+    "revision": 1,
+    "artifact_id": "a102fcc7-0fac-539f-b7d4-3ab6a528c668",
+    "content_digest": "sha256:069eca0c5dbb084c9e906e20dabcc5e0f6b6843aa1f87aac5db54bc44f9b985d",
+    "size": 523,
+    "telegram_send_document_digest_matches": true,
+    "utf8_answer_matches": true,
+    "outbox_acked_all_parts": true,
+    "miniapp_download_200": true,
+    "copy_supported_by_owner_report_and_pasted_text": true
+  },
+  "downloaded_files": [
+    {
+      "file_name": "nobus-result (3).txt",
+      "folder_kind": "owner_Downloads",
+      "bytes": 523,
+      "sha256": "069eca0c5dbb084c9e906e20dabcc5e0f6b6843aa1f87aac5db54bc44f9b985d",
+      "utf8_opened": true
+    }
+  ],
+  "core_counts": {
+    "task_snapshots": 1,
+    "outbox_messages": 1,
+    "outbox_delivery_parts": 2,
+    "outbox_receipts": 1
+  },
+  "telegram_counts": {
+    "telegram_jobs": 1,
+    "telegram_progress": 0
+  },
+  "voice_statuses": [
+    [
+      "voice",
+      "finished",
+      1
+    ]
+  ],
+  "stop": {
+    "status": "STOPPED_REQUIRES_ROOT_READBACK",
+    "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+    "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+    "review_sha256": "ef6a873c5330f8ee5860f22ee4dc54b0f17b9cb07d12ca12bd46eb483c13a34a",
+    "forced": false,
+    "cleanup": {
+      "job_active_processes": 0,
+      "owned_wrappers_exited": true
+    },
+    "ended": 1788866427.4322295
+  },
+  "post_stop_readback": {
+    "bot_username": "Nobusspacebot",
+    "bot_id": 8613479322,
+    "owner_binding_verified": true,
+    "/healthz": {
+      "http_status": 502,
+      "body_is_health_state": false
+    },
+    "/readyz": {
+      "http_status": 502,
+      "body_is_health_state": false
+    },
+    "getMe": {
+      "ok": true
+    },
+    "webhook": {
+      "http_status": 200,
+      "present": false,
+      "allowed_updates": [
+        "message",
+        "callback_query"
+      ],
+      "pending_update_count": 0
+    },
+    "menu": {
+      "http_status": 200,
+      "type": "web_app",
+      "web_app_url": "https://app.nobusspace.com/"
+    }
+  },
+  "stop_source": {
+    "local_path": ".runtime/c4/live-b89b651b43f1-attempt6/supervisor-stop.json",
+    "sha256": "fc2dee1d1c52abb3b9a4db58a830fa60d5f6172db34b9aae165c2f87acc7d718",
+    "bytes": 410
+  },
+  "readback_source": {
+    "local_path": ".runtime/c4/live-preflight-1788866599772744700.json",
+    "sha256": "503c5817d1f257afe20801b093572e735652b2894646ddd7507b493b846fb23f",
+    "bytes": 629
+  },
+  "https_source": {
+    "local_path": ".runtime/c4/live-b89b651b43f1-attempt6/https-uncached-readback-1788864665816362300.json",
+    "sha256": "423a76bf9ce83f8cc889677195bed361e41d07b98901a210b49462829529c6b8",
+    "bytes": 1775
+  },
+  "owner_screenshot_sha256": "cb9a4e9882563ca1d9a0ada6fe2cf3d3f2e49c562b1b46af3e4b4bfec126dba2",
+  "screenshot_not_published_reason": "unrelated private history/sidebar; user evidence retained locally only",
+  "scope_note": "C4.8 separately requires all local candidate journeys and a bounded real Telegram/owner smoke; actual owner voice input and result/file via both surfaces verified. Other local journeys are not labelled live."
+}

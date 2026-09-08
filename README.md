@@ -1,153 +1,70 @@
-# Nobus Space MVP-1
+# Nobus Space MVP1
 
-Nobus Space развивается как owner-bound Telegram-оркестратор с обязательным
-тонким Telegram Mini App поверх существующего локального Windows Core/Codex
-runtime.
+Nobus Space — Telegram Bot и обязательный тонкий Mini App над одним существующим
+локальным Windows Core/Codex runtime.
 
-**CURRENT — 2 сентября 2026:** `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED /
-ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`;
-`MVP-2 HOLD`.
+**8 сентября 2026:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / NOT PUBLISHED. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
+Постоянное развёртывание в C4 не выполняется.
 
-Активные архитектурные решения: [ADR 0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
-сохраняет thin topology, а forward [ADR 0023](docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
-задаёт принятый target semantic admission.
+[Текущий статус](docs/handoffs/CURRENT-STATUS.md) содержит точные ревизии,
+проверки и следующий шаг. [Документация](docs/README.md) —
+архитектуру, API, пользовательские состояния и эксплуатационные границы.
+[Пакет C4](docs/gates/gate-c4-frontend-journey/HANDOFF.md) связывает результат,
+доказательства и условия передачи C5.
 
-## Publication binding — readback C0, 2 сентября 2026 года
+Опубликованная база C3: `b9283b3419928042c80278b5088b526edebab6e7`,
+tree `77062335b1dbccb3694721d357e484c856ac89c7`.
+Код C4 проверен на `68f87f18da3de7c995f83b9cb08b391d0af5cdfb`,
+tree `5ae168bf613b18fc2f14e24973b5167a2b4c7b74`.
+Исторический READY и прежний live не доказывают приёмку этого кандидата.
 
-- репозиторий `streetenergy63reshik-del/nobus-space` публичный;
-- принятый опубликованный канон — exact revision, достижимая из защищённой
-  GitHub `main` после live readback; этот файл не дублирует подвижный SHA;
-- содержащая этот файл revision вне защищённой `main` является
-  `GATE_CANDIDATE`; после разрешённого merge и проверки достижимости та же
-  revision становится частью `ACCEPTED_PUBLISHED_BASELINE`;
-- exact protected `main` и peeled annotated tag `v1.0.1` прочитаны как
-  `f5a9119cc0aa1bcce735a3c608f9751747002694`; tag object —
-  `1322e922968d938194f689851c204ac551e6822b`;
-- архитектура опубликована через PR
-  [#1](https://github.com/streetenergy63reshik-del/nobus-space/pull/1),
-  Mini App auth/list/detail/create и Gate 0 integrity repair — через PR
-  [#2](https://github.com/streetenergy63reshik-del/nobus-space/pull/2),
-  publication readback — через PR
-  [#3](https://github.com/streetenergy63reshik-del/nobus-space/pull/3),
-  полная продуктовая граница MVP-1 — через PR
-  [#4](https://github.com/streetenergy63reshik-del/nobus-space/pull/4),
-  финальный owner-product и изоляция внутренних уведомлений — через PR
-  [#6](https://github.com/streetenergy63reshik-del/nobus-space/pull/6);
-- GitHub branch API подтверждает `protected=true`; endpoint details вернул
-  `401`, а Checks API и status contexts пусты, поэтому точная protection/checks
-  policy не считается доказанной;
-- clean `telegram-live` checkout совпадает с release, однако Scheduled Task
-  отключена, matching процесс отсутствует, public health/readiness возвращают
-  `502`; deployment identity остаётся `UNVERIFIED`;
-- Gate 0 принят как исторический sealed snapshot @
-  `f5086b2a71a9ae22be3c858ff69453287f6925da`; его 20 digest-bound sources
-  не изменяются;
-- отдельный historical Gate 1 implementation остаётся `HOLD / NOT_ACCEPTED`;
-  его нельзя вливать целиком или считать текущей архитектурой;
-- Telegram Mini App и Telegram-оркестратор обязательны в MVP-1 и используют
-  один Core, одну queue/state model и одну effect authority;
-- полный распределённый Gate 2A — **FROZEN / NOT CURRENT**.
+Semantic path реализован и проверен в изолированном ON-кандидате C4. В штатном runner флаг _GATE_C1_SEMANTIC_ADMISSION_ENABLED остаётся False; постоянная активация не выполнена.
 
-Git-репозиторий — источник истины для code/tests/ADR/CURRENT/docs. Nobus Memory
-хранит только pointer, короткий status, decisions и freshness и не
-переопределяет exact Git revision.
+## Пользовательский путь
 
-Точный фактический статус:
-[CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Иерархия источников и
-навигация: [docs/README.md](docs/README.md).
+Владелец задаёт текстовую задачу или подтверждает распознанное голосовое сообщение.
+Если смысла недостаточно, Core задаёт уточнение; неподдерживаемая возможность
+получает явный отказ без задачи и эффекта. Telegram и Mini App показывают
+состояние одной задачи, прогресс, результат и связанный файл.
 
-## Продуктовый статус — 2 сентября 2026 года
+C4 реализует восстановление сессии, уточнения и неизвестного исхода запроса после
+reload/reconnect. Потеря ответа POST не запускает задачу повторно: интерфейс читает
+durable request journal. Если запрос точно не принят, Core может закрыть его
+отменой и запретить поздний приём того же ключа. Bearer живёт только в памяти;
+localStorage хранит только непривилегированные opaque указатели.
 
-**MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED.**
-**DEPLOYMENT REVISION UNVERIFIED. MVP-2 HOLD.**
+Core проверяет свежую Telegram-подпись и exact owner/bot/tenant. Одноразовый
+HttpOnly recovery credential сохраняет исходный срок подписи и вращает поколение
+bearer; после срока нужна новая Telegram-сессия. Mini App получает только
+owner-bound список, детали, события, результат и авторизованные bytes файла.
+Имя скачивания `nobus-result.txt` — представление; C3 identity/digest/part receipts сохранены.
 
-До incident был опубликован и принят release. Следующие пункты — historical
-pre-incident evidence, а не текущий verdict:
+Полный C4 L1: 2227 PASS и 25 subtests PASS, 2 Windows symlink SKIP,
+2 явно объяснённых historical deselect; frontend Node20 PASS. Настоящий владелец
+подтвердил голос кнопкой, получил результат и TXT в обоих интерфейсах. Отдельный
+локальный браузер проверил 320/390/768, светлую/тёмную темы, клавиатуру, копирование,
+скачивание, reload и reconnect. Точные доказательства и границы — в C4 HANDOFF.
 
-1. содержит согласованные backend и frontend;
-2. проходит полный local/integration journey;
-3. опубликован в protected GitHub `main` и прочитан обратно;
-4. активирован за HTTPS и открывается из Telegram exact owner;
-5. возвращает одну task identity, status, verified result и реальный artifact;
-6. проходит negative/restart/recovery, bounded owner smoke и release rollback.
-
-Release ранее наблюдался за `https://app.nobusspace.com`, а exact-owner Telegram menu
-ссылается на этот Mini App. Core, SQLite и Codex остаются на owner Windows PC;
-VPS держит только Cloudflare Tunnel и restricted reverse relay. Public
-health/readiness, fail-closed `502` при остановке Core, owner-bound
-create/status/result/artifact, Telegram byte parity, restart/recovery и
-rollback прошли. Владелец открыл Mini App из Telegram, создал и просмотрел
-задачу и подтвердил итоговый интерфейс после исправлений списка, карточки,
-названия и формы «Новая». Более поздняя owner-проверка переоткрыла acceptance:
-transform supplied material был ложно распознан как запрос недоступных
-операций и отклонён одинаково для text и успешного voice transcript.
-
-Внутренний Codex worker продукта отделён от глобального notifier основной
-Codex Desktop задачи: он не отправляет служебные уведомления в `Codex work`, а
-marker-like блоки удаляются или отклоняются до durable state, verifier,
-артефакта, Mini App и Telegram delivery. Глобальное правило уведомлений
-primary/root задач Codex Desktop не изменено. Exact code checkpoint
-`14c80131b2a702d75f92abb4fe22d49ea6aa975c` был опубликован через PR #6;
-финальный annotated tag `v1.0.1` указывает на `f5a9119...`. Эти проверки не
-доказывают новый semantic target или текущую active deployment revision.
-Редакционная продуктовая roadmap и её HTML-представление остаются на owner
-publication hold и не входят в этот docs-only release.
-
-## Обязательный MVP-путь
+## Архитектура
 
 ```text
-Telegram Mini App -> owner authentication / Telegram initData
-  -> existing Nobus Core -> local Codex/runtime
-  -> authoritative state -> Telegram/Mini App status/result/artifact
+Telegram Bot / Telegram Mini App
+  -> один Core: authentication, semantic admission, policy, queue, recovery
+  -> локальный Codex worker / подтверждаемый локальный ASR
+  -> authoritative task/result/outbox
+  -> состояние, результат и один файл в Telegram и Mini App
 ```
 
-Первый новый deployment unit — один `Mini App Web Boundary`: static UI,
-bounded pass-through Telegram `initData` и тонкий API adapter к Core за
-публичным HTTPS ingress. У него нет собственной БД, queue, policy/effect
-authority, bot secret или Agent Registry.
+[ADR0022](docs/adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
+задаёт thin topology; full distributed Gate2A остаётся FROZEN / NOT CURRENT.
+[ADR0023](docs/adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
+реализован в C1–C3: модель описывает намерение без authority, решение принимает Core.
+[ADR0025](docs/adr/0025-miniapp-session-and-request-recovery.md) и
+[ADR0026](docs/adr/0026-channel-neutral-product-projection.md) описывают C4.
+Нового Core, очереди, ASR или frontend framework нет.
 
-## Опубликованный thin Mini App Git slice — 28 августа 2026 года
-
-В protected `main` опубликованы owner-authenticated read-only projection и
-самостоятельный task-create slice:
-
-- `MiniAppCore` проверяет Telegram signature для exact bot, exact owner,
-  `auth_date`, TTL/future skew и durable replay digest;
-- opaque session живёт кратко и хранится в Core только по SHA-256 bearer;
-- `SQLiteStore.list_tasks` читает bounded stable tenant-scoped projection из
-  существующего `task-runtime.sqlite3`;
-- `POST /api/session`, `GET /api/tasks` и `GET /api/tasks/{task_id}` не
-  принимают client-selected authority и возвращают только allowlisted поля;
-- `POST /api/tasks` принимает только bounded JSON instruction и один
-  `Idempotency-Key`; Core сам выводит owner/tenant/actor и связывает request с
-  exact bot/owner/tenant authentication context и content digest;
-- admission переиспользует `prepare_instruction` существующего runtime и
-  `telegram_jobs` существующего `SQLiteTelegramState`; encrypted job
-  фиксируется до Core task, а restart допускает тот же exact prepared contract
-  из job, поэтому enqueue failure не создаёт task/outbox и crash не оставляет
-  невосстановимую PENDING task;
-- server-derived task id детерминирован по tenant и request id, а exact
-  verified-owner/request envelope стабилен между короткими сессиями;
-  поэтому повтор после restart использует одну job и возвращает ту же
-  task, а rebinding другого текста или authority fail closed; exhausted dead-letter тоже блокирует
-  Core admission и не оставляет orphan PENDING task;
-- static HTML/CSS/ES module UI хранит bearer и pending request id только в
-  памяти, открывает create/detail в отдельных нижних панелях, показывает
-  bounded owner-visible название, короткий task id, status и время, не делает
-  blind retry и показывает
-  `Nobus Space временно недоступен` при отказе Core;
-- owner-visible короткое название и bounded instruction хранятся в той же task
-  snapshot только как единый DPAPI-protected payload, повторно связанный с
-  tenant/task/contract и digest; список получает только название, а instruction
-  возвращается exact owner только в task detail; открытый текст не появляется в
-  SQLite, а legacy rows получают безопасный
-  fallback `Задача #<short-id>`;
-- `src/main.py` не используется новым boundary и остаётся старым
-  демонстрационным API.
-
-Исходный Git slice был развёрнут в составе опубликованного MVP-1 вместе с
-status/result/artifact, product composition и public HTTPS. Текущая active
-revision не доказана; release-привязка и readback ведутся в `CURRENT-STATUS`.
+Git хранит code/tests/ADR/current docs и принятую историю. Nobus Memory — указатель,
+не замена exact Git revision. Пакеты C0–C3 и исторические sealed sources сохранены.
 
 ## Локальный product composition
 
@@ -194,7 +111,7 @@ Telegram `sendDocument` и Mini App download получают одинаковы
 SQLite/outbox остаётся единственным authoritative state; совпадающий retry не
 создаёт копию, а конфликтующее содержимое под тем же именем fail closed.
 
-Для принятого owner journey отдельный ApprovalRequest не требуется: create,
+Для реализованного owner journey отдельный ApprovalRequest не требуется: create,
 status, result и download являются Core admission/read-only delivery. Уже
 существующие заготовки approval/effect для будущих срезов не входят в активную
 MVP-1 composition.
@@ -207,12 +124,12 @@ MVP-1 composition.
 git diff --check
 ```
 
-Полный frozen G6 evidence и независимый focused code recheck находятся в
-[CURRENT-STATUS](docs/handoffs/CURRENT-STATUS.md). Исторические Gate 0 verifier
-не используются как release gate текущего ADR 0022 candidate.
+Полный C4 code freeze, исходные FAIL, независимые проверки и оставшиеся
+условия приёмки собраны в [C4 HANDOFF](docs/gates/gate-c4-frontend-journey/HANDOFF.md).
+Исторические Gate 0 verifier не являются повторной приёмкой текущего C4.
 
-Наличие локального commit само по себе не разрешает push, merge, deploy,
-recovery, удаление или запись в Nobus Memory: каждое внешнее действие требует
-отдельной точной авторизации владельца.
+Публикация C4 разрешена владельцем после полного PASS, включая настоящий
+Telegram/Mini App smoke. Действующие main protection/checks обязательны.
+Постоянный deploy/tag/release и запуск C5/C6 не входят в текущую задачу.
 
 Локальные правила разработки: [AGENTS.md](AGENTS.md).

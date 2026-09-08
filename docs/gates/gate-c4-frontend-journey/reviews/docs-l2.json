@@ -1,0 +1,29 @@
+{
+  "schema": "c4-l2-staged-doc-verdict-1",
+  "reviewer": "/root/resume_l2",
+  "verdict": "ACCEPTED_IN_DOCUMENTATION_SCOPE",
+  "code_sha": "a869a691293e45a1a3e65303be627d684acfa16e",
+  "code_tree": "9a7cab97fb9947ebdfedeb5baffa57f9627a4c98",
+  "docs_manifest_sha256": "1f966cf37ba06f7d48a654c107e78a9d6595daf0d33e06f5dcf0f9a874826f52",
+  "file_count": 16,
+  "passed": 234,
+  "failed": 0,
+  "local_links": 153,
+  "findings_closed": [
+    "L2-DOC-01",
+    "L2-DOC-02",
+    "L2-DOC-03"
+  ],
+  "true_contract_changes_detected": false,
+  "full_model_asr_rerun_required_for_narrative_fixes": false,
+  "full_c4_accepted": false,
+  "gate_package_reviewed": false,
+  "actual_browser_or_owner_telegram_verified_by_this_review": false,
+  "files": {
+    "DOCS-FINAL-AUDIT.json": "a5c66e9ed37f0b3ca3c42a7025cef08635d4d2e6f70e74bb427c77a063b1105c",
+    "DOCS-FINAL-REVIEW.md": "e1904b5fbf62481f0bf86d31347d1b568c8600139c68d52b0a9e2c91a7e6c3ee",
+    "audit_staged_docs.py": "f4d39b157eb57f1763b48f7602f4b9e4de34af5c62c06ac63f40b1e0867fbfd8",
+    "DOCS-FINAL-AUDIT-first.json": "95cd2af85de629e9a545928a92e883ed0324d53c56087709a2346b43686b5d1a",
+    "VERIFIER-INCIDENTS.json": "a3fbb5fd892073fb83c3600a1cd22071dc27f1e674604db1a594fa7d8fd7021b"
+  }
+}

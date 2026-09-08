@@ -1,16 +1,36 @@
 # Nobus Space — workspace inventory
 
-**Актуально на:** 3 сентября 2026 года
+**Актуально на:** 8 сентября 2026 года
 **Назначение:** роли checkout/worktree и границы сохранности, а не active roadmap
 
-Текущий verdict: `MVP-1 PUBLISHED / LIVE RUNTIME OBSERVED / ACCEPTANCE REOPENED / PATCH REQUIRED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+Текущий статус: C0–C3 ACCEPTED / PUBLISHED; C4 ACCEPTED / PASS / NOT PUBLISHED; C5–C6 HOLD; MVP1 NOT READY.
 
 Git-репозиторий — source of truth для code/tests/ADR/CURRENT/docs. Protected
 GitHub `main` и release tags — канон принятой опубликованной истории после
 readback. Nobus Memory, handoff и чаты — указатели/claims, а не замена exact
 Git revision.
 
-## Worktree manifest C0
+## Текущий C4 worktree
+
+C4 выполняется только в `.runtime/worktrees/mvp1-closure-c4-frontend-journey`,
+ветка `codex/mvp1-closure-c4-frontend-journey`, от принятой базы C3
+`b9283b3419928042c80278b5088b526edebab6e7` /
+`77062335b1dbccb3694721d357e484c856ac89c7`.
+Проверенный code checkpoint: `68f87f18da3de7c995f83b9cb08b391d0af5cdfb` /
+`5ae168bf613b18fc2f14e24973b5167a2b4c7b74`.
+Позднейшие docs/evidence-only изменения имеют отдельный manifest.
+
+Canonical checkout остаётся чужим dirty WIP @ f18a664; его 20 dirty paths
+сохранены. C2/C3/live и другие worktrees не изменяются. Изолированные disposable
+состояния, бюджет и временные smoke receipts находятся только в C4 `.runtime`;
+production DB не используется. Временные процессы контролируются по exact
+PID/start time и Windows Job, без остановки процессов по общему имени.
+Текущая передача — [C4 HANDOFF](../gates/gate-c4-frontend-journey/HANDOFF.md).
+
+## Исторический worktree manifest C0
+
+Далее сохранён снимок C0 от 3 сентября. Его SHA, dirty manifests, editorial
+hashes и тогдашние статусы описывают только тот момент, а не состояние нынешней main.
 
 | Worktree / branch | Зафиксированный HEAD/base | Роль и граница |
 |---|---|---|

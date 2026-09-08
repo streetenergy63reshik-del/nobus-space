@@ -1,0 +1,304 @@
+{
+  "schema": "c4-frozen-code-manifest-3",
+  "base_sha": "b9283b3419928042c80278b5088b526edebab6e7",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "files": [
+    {
+      "path": "src/application/durable_product.py",
+      "git_blob_sha256": "2faa73dd9dfd061c297cddbd90c852b7b5e2322bb4b15b871cdbd5e9e30e2443",
+      "git_blob_bytes": 63984,
+      "worktree_sha256": "abe358df168635424f464f7d5a4e9e65e03e9eb30f1aace43b22a064fabe08a4",
+      "worktree_bytes": 65388,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/durable_telegram_state.py",
+      "git_blob_sha256": "a6431569043b59a22b128150b65855ccd6eaef4ce8678bf99d2e9f7597ab80e9",
+      "git_blob_bytes": 75097,
+      "worktree_sha256": "6cc34da561fd82c198b7bd23eb0cc3fd5dd8493a6573413fd9f8b5780b0cf146",
+      "worktree_bytes": 76735,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/durable_voice.py",
+      "git_blob_sha256": "76111e45cb9f8e779794371f546a673ff64ac4022baf709cd6ae616c7131bfd4",
+      "git_blob_bytes": 18144,
+      "worktree_sha256": "32f4b65a729db60f5c30fd47ed39812a6c73f45245d3739f0f9000326ce88872",
+      "worktree_bytes": 18460,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/miniapp.py",
+      "git_blob_sha256": "61b83dda740318cf43280dc1fdfd6a2b65d4e4b4b5411529dffdd0faa7aa7284",
+      "git_blob_bytes": 44403,
+      "worktree_sha256": "c4a6cf8ff8c54d9ea2ad52428ad148deda551e834c0a9dd101451051e27c4fa5",
+      "worktree_bytes": 45186,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/product_status.py",
+      "git_blob_sha256": "f106cd247106ee99af31532e5cfc3e2030763799e2684bada3475f523d293308",
+      "git_blob_bytes": 11729,
+      "worktree_sha256": "ac42e271a2e412220374c31b4a6bfded0aa27f0e7754e09f62c2d1d4a8f0f6c0",
+      "worktree_bytes": 11959,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/runtime_maintenance.py",
+      "git_blob_sha256": "ac6640588f8f89b1f7456b74b0181ff1038d414c7521bf87f18cf4c91b057405",
+      "git_blob_bytes": 24737,
+      "worktree_sha256": "614ffa67b5f6b4ece682213038f499019695c38c8e53d517087f466d4769954e",
+      "worktree_bytes": 25310,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/telegram_actions.py",
+      "git_blob_sha256": "47aa6906e0eb31dcb5e63b4ae90d4ee5bb94f4acb7e1edc4ee2a6dedc240b268",
+      "git_blob_bytes": 5786,
+      "worktree_sha256": "30ffba56c92a4e4580bfd4cd6519cfe052c7e07314b30cb63dcaa5c6b51efdb2",
+      "worktree_bytes": 5955,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/application/telegram_product.py",
+      "git_blob_sha256": "fca958222eb887c5a488868e68f6b7646bf30efa003e92a2659b02b5709f94aa",
+      "git_blob_bytes": 108221,
+      "worktree_sha256": "27eb7f3dab6dfe5026ed6632bd73bbbb420131ca6ba350b134b0a09fe8cc3df9",
+      "worktree_bytes": 110808,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/storage/sqlite_store.py",
+      "git_blob_sha256": "a51bacc7bce7f416f614fc6559b2e2598839f81bc5c14e1f0f3ddf141d9f4ba9",
+      "git_blob_bytes": 133006,
+      "worktree_sha256": "ead632acc83ac6076d1bf294d693e12b18d159a9737f2cd21897787463b294b4",
+      "worktree_bytes": 135562,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/transport/miniapp.py",
+      "git_blob_sha256": "d3991a2c7bbcfd9245681187ff4b5e20803252a8bb88e64fc92f9d9adaf02ffc",
+      "git_blob_bytes": 29309,
+      "worktree_sha256": "a88737f826f3395d6e690ac482bced7b016b6b53031e6b8d4937d9c06244e7c2",
+      "worktree_bytes": 29946,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/transport/miniapp_static/app.js",
+      "git_blob_sha256": "93bacdff7536312ad8da836236ded81a6af6b0e1e155d6e91f3c8483bf8badc6",
+      "git_blob_bytes": 24972,
+      "worktree_sha256": "93bacdff7536312ad8da836236ded81a6af6b0e1e155d6e91f3c8483bf8badc6",
+      "worktree_bytes": 24972,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/transport/miniapp_static/index.html",
+      "git_blob_sha256": "e73b08f5ea5e93ef5fce55916b7122a6685fdd8f72e26d55cc4195d06186c184",
+      "git_blob_bytes": 4333,
+      "worktree_sha256": "e73b08f5ea5e93ef5fce55916b7122a6685fdd8f72e26d55cc4195d06186c184",
+      "worktree_bytes": 4333,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/transport/miniapp_static/styles.css",
+      "git_blob_sha256": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2",
+      "git_blob_bytes": 8526,
+      "worktree_sha256": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2",
+      "worktree_bytes": 8526,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "src/transport/telegram/bot_api.py",
+      "git_blob_sha256": "917678f0e2bbdb28df4ae93a746da8899c62d922b94e626d0134b9a43c269c2f",
+      "git_blob_bytes": 37404,
+      "worktree_sha256": "917589cbfb7123f6b89eb02f9535e4d04be53ef6bbbff55bc05fea2da9284ae8",
+      "worktree_bytes": 38354,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/gate_c4/budget.py",
+      "git_blob_sha256": "abd3b2fa86359a120c14262ce3de120c6fbd9c97af7304d8d46e8893ac0ed059",
+      "git_blob_bytes": 4662,
+      "worktree_sha256": "c15cfbdbbfddf6eac05e1bf48549ff36f51cab94c36e186d3b223f812ca675e6",
+      "worktree_bytes": 4743,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/gate_c4/frontend.test.cjs",
+      "git_blob_sha256": "f21b86ad1f52d7db75c0e7e338195b8f6fefb44a3ee5dc0d14850f72ccdb7b62",
+      "git_blob_bytes": 17445,
+      "worktree_sha256": "f21b86ad1f52d7db75c0e7e338195b8f6fefb44a3ee5dc0d14850f72ccdb7b62",
+      "worktree_bytes": 17445,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/gate_c4/product_smoke.py",
+      "git_blob_sha256": "e0248421c1061c5a5d68f66f0fc63541942df639e0c8136cd3311f53b445ed2c",
+      "git_blob_bytes": 28637,
+      "worktree_sha256": "7e03e50be675e1a874b3451e480638d46a5dda27976c83fa9ac72b651b17c928",
+      "worktree_bytes": 29159,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/gate_c4/server.py",
+      "git_blob_sha256": "c59926f2e4a6dac20e86754ca9a00fe3f9bdc4b39c760aba8443eb9d288d76bf",
+      "git_blob_bytes": 1460,
+      "worktree_sha256": "c59926f2e4a6dac20e86754ca9a00fe3f9bdc4b39c760aba8443eb9d288d76bf",
+      "worktree_bytes": 1460,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/gate_c4/test_smoke_guards.py",
+      "git_blob_sha256": "b44150dc8a1912822e0177363979ce501505e8f961dee8ba9ec9862ea40c8f61",
+      "git_blob_bytes": 12610,
+      "worktree_sha256": "1dc3e5b68b9dd9c08c661a6dc1ac4776d2af8d74b65e65d4dd4b3496e2470892",
+      "worktree_bytes": 12834,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/gate_c4/test_turn_accounting.py",
+      "git_blob_sha256": "51ae5fd89360728378a153deb80e0ad4595f9554c85420c3a44c85f810ca8166",
+      "git_blob_bytes": 5344,
+      "worktree_sha256": "aa9ad41cb1415eac580f90caa68ece7230da3d602e8898d45b3b2e91955eef3e",
+      "worktree_bytes": 5345,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_miniapp_empty_requests.py",
+      "git_blob_sha256": "dffd451153cb37ea7dffd3a31cf8091b63c6daf8460987b68069000b24ab2946",
+      "git_blob_bytes": 3817,
+      "worktree_sha256": "dffd451153cb37ea7dffd3a31cf8091b63c6daf8460987b68069000b24ab2946",
+      "worktree_bytes": 3817,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_miniapp_recovery.py",
+      "git_blob_sha256": "5e1f85047c44541430796b3d95ceab533b833043ccb261b74025d3546c807496",
+      "git_blob_bytes": 26609,
+      "worktree_sha256": "5e1f85047c44541430796b3d95ceab533b833043ccb261b74025d3546c807496",
+      "worktree_bytes": 26609,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_product_journey.py",
+      "git_blob_sha256": "c39e44922650ab7bac4de9ef058c5506a718c1ad0a0910c6bdfab5293e1977fb",
+      "git_blob_bytes": 7106,
+      "worktree_sha256": "c39e44922650ab7bac4de9ef058c5506a718c1ad0a0910c6bdfab5293e1977fb",
+      "worktree_bytes": 7106,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_progress_cleanup.py",
+      "git_blob_sha256": "1f268190637c2e614582e4d899f27661ad1bbbe007ea8182660afc0f8de438ec",
+      "git_blob_bytes": 3349,
+      "worktree_sha256": "d3224fdb03d30a898f2104cc8e3bf79764ef5cc9a3daedced86fe875bef357c1",
+      "worktree_bytes": 3420,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_progress_delivery.py",
+      "git_blob_sha256": "249048292e92b47acacd9e30af6812198954ef3c2e463aafbe40c22fff8a58d9",
+      "git_blob_bytes": 9749,
+      "worktree_sha256": "249048292e92b47acacd9e30af6812198954ef3c2e463aafbe40c22fff8a58d9",
+      "worktree_bytes": 9749,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_running_projection.py",
+      "git_blob_sha256": "0dbd8eac8384c4cfaeeac1e5a253f7f69b30f1e5a2de811acef5f01a4501070a",
+      "git_blob_bytes": 6994,
+      "worktree_sha256": "9432f487bd679d2362b25224e825a7611a3f3e87d7fa9f34b4c90bcccd930192",
+      "worktree_bytes": 7098,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_telegram_intake_feedback.py",
+      "git_blob_sha256": "e80c15edf7f43eba7dc86b4285de2d8cffd3235700b4049b8b396f8b94cd66ce",
+      "git_blob_bytes": 3658,
+      "worktree_sha256": "e80c15edf7f43eba7dc86b4285de2d8cffd3235700b4049b8b396f8b94cd66ce",
+      "worktree_bytes": 3658,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_voice_buttons.py",
+      "git_blob_sha256": "d8cbd2c326dd215655d107cddd3fca8d885c658bbf74a44e3bbfc87c9f65174e",
+      "git_blob_bytes": 10728,
+      "worktree_sha256": "d8cbd2c326dd215655d107cddd3fca8d885c658bbf74a44e3bbfc87c9f65174e",
+      "worktree_bytes": 10728,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_c4_voice_cleanup_recovery.py",
+      "git_blob_sha256": "ab4f42ac12c6976da127a9fddb7c79777cf2346e132bcc6773e23f58e1b3f10c",
+      "git_blob_bytes": 4606,
+      "worktree_sha256": "f29fe696711058a4fde1ada857133d1e15f31428087505d4037ee87f0bb132d9",
+      "worktree_bytes": 4717,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_miniapp.py",
+      "git_blob_sha256": "b85b2d26226d3b3fb3c0050c94a49002111e0891761648a27534bb8ce3b4801e",
+      "git_blob_bytes": 42774,
+      "worktree_sha256": "0cde9656c32ff7ff00bfb90a907a2bb5505aa3d136b527110fb3c898c2c7071d",
+      "worktree_bytes": 43928,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_miniapp_artifact.py",
+      "git_blob_sha256": "f0a058fda4a9e80665c7c77163496016275b104f1ba5e3b3003e3c16d3fc95e9",
+      "git_blob_bytes": 10665,
+      "worktree_sha256": "9dc7349511666d0b4e1e3cf2ce34d7427aa4110c1156f37f6be4e6bd1053c2d8",
+      "worktree_bytes": 10947,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_miniapp_result.py",
+      "git_blob_sha256": "bf80e434bf501a13d92f2447c4a736bce4bb2c061586baeb005c12dff26c8e12",
+      "git_blob_bytes": 15429,
+      "worktree_sha256": "894c5977a5c7428d1927d8a0acfa1333ebe0e265fa1798794537151e8c7a04cf",
+      "worktree_bytes": 15866,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_queue12_crash_regressions.py",
+      "git_blob_sha256": "39c561cb34b384ca294f56b6043c1daea627de4cf8191545791670cdbe7dcb77",
+      "git_blob_bytes": 24840,
+      "worktree_sha256": "dd4cf082f5c065b2d88131b895ae0096363a78cef7ff4b7bda5e779354d1b764",
+      "worktree_bytes": 25621,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_semantic_admission.py",
+      "git_blob_sha256": "8bc2b3ed9cfe2aa9aa534d7d5edfe63028862f8fced914155124914182551ff0",
+      "git_blob_bytes": 85443,
+      "worktree_sha256": "8435de6c06a3c93148e1415887fed470c7ef9c27e221c43807c3e795f04309cc",
+      "worktree_bytes": 87520,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_sqlite_store.py",
+      "git_blob_sha256": "af1ebc52ec28b0f2cdadc2d5756d64c60237ef560e639579ccff82e14f561e42",
+      "git_blob_bytes": 40849,
+      "worktree_sha256": "5e9b6b76b4742ffd64fc105fdf8a0ac8db98e0e9aab8287a1585abed41aa23b3",
+      "worktree_bytes": 41972,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_telegram_bot_api.py",
+      "git_blob_sha256": "0ca75ea8d8354612f52faf56e9d436f193e4fd7fa5613522c360d78262a3377c",
+      "git_blob_bytes": 37301,
+      "worktree_sha256": "3edcfafc547b05323954f882f68e2fd787576813ef9a3af9816ea457d326c948",
+      "worktree_bytes": 38387,
+      "normalized_lf_equals_git_blob": true
+    },
+    {
+      "path": "tests/test_telegram_product.py",
+      "git_blob_sha256": "ca911f8f8cff021f6dcb85db6d45b29af1812fb4071547cf28c915298576cfd8",
+      "git_blob_bytes": 98629,
+      "worktree_sha256": "ee6fcd9f89023e35701f03a8ce3104a21f86ebf2d85e88fa531ef3e00309352e",
+      "worktree_bytes": 101425,
+      "normalized_lf_equals_git_blob": true
+    }
+  ]
+}

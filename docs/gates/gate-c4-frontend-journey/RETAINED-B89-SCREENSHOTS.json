@@ -1,0 +1,145 @@
+{
+  "schema": "c4-screenshots-2",
+  "candidate_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+  "candidate_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+  "status": "LOCAL_BROWSER_AUTOMATION_PASS_AND_OWNER_WEBVIEW_SMOKE_PASS",
+  "local_browser": {
+    "local_path": ".runtime/c4/visual-b89b651/verification.json",
+    "sha256": "b1f77560e026ade4c8081e377815a0fee0cb2de794e512cc8d9ea26e95f1f5b3",
+    "bytes": 4340
+  },
+  "browser_report": {
+    "local_path": ".runtime/c4/visual-b89b651/browser-report.json",
+    "sha256": "87229571fa89d09664c0c4a6a9a915704312326a5dc2d2e726946f65a07a8c82",
+    "bytes": 39005
+  },
+  "root_visual_sample": [
+    "320-light-result.png",
+    "320-dark-composer-keyboard.png",
+    "390-dark-detail-top.png",
+    "768-light-list.png"
+  ],
+  "owner_image": "Only SHA256/reference retained; full image contains unrelated private history and is not published.",
+  "screenshots": [
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-composer-keyboard.png",
+      "sha256": "f4efe7dfd9b469626acbbd7beec43b64cc70372c709b14edfbca63f983ccf062",
+      "bytes": 35978
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-detail-top.png",
+      "sha256": "bf3ea4e41237c3ee005dea6895582e6822752907b908b77527e61daa06996373",
+      "bytes": 26714
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-list.png",
+      "sha256": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+      "bytes": 12647
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-result.png",
+      "sha256": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+      "bytes": 27346
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-composer-keyboard.png",
+      "sha256": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+      "bytes": 27760
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-detail-top.png",
+      "sha256": "2ca2c82642262e2e3bff7768e17cf9d2d667ca0d9894002803ba48f8d98c631d",
+      "bytes": 39547
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-list.png",
+      "sha256": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+      "bytes": 12560
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-result.png",
+      "sha256": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+      "bytes": 27101
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-composer-keyboard.png",
+      "sha256": "b385708aad968870ff03c9059d5840bed53c70eafc586b68eb9cdebf02e2cda8",
+      "bytes": 37467
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-detail-top.png",
+      "sha256": "36b4d9b543db507b3fa5a8ff78a0d25d79342aaf10ae8c35a305a67cabf2a633",
+      "bytes": 53499
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-list.png",
+      "sha256": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+      "bytes": 13430
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-result.png",
+      "sha256": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+      "bytes": 33142
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-composer-keyboard.png",
+      "sha256": "6c1217182416a5c5c690e1e183cf1b991a74cb8b4b7484ab1d863f8c4449bf01",
+      "bytes": 37274
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-detail-top.png",
+      "sha256": "cbb0feee4a9e11c90858616b7e8005ae3f21cf1ba49fcdcf2e430d6c57b6c392",
+      "bytes": 53857
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-list.png",
+      "sha256": "9a93c61b5bb67332ee5caa2fc61b97ed945c3cc73f4ba989d666c8b7baf8e6ad",
+      "bytes": 13404
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-result.png",
+      "sha256": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+      "bytes": 32946
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-composer-keyboard.png",
+      "sha256": "073824678b4449e89ff801be732c079d89b1a6deced11d1089c5fad6b1138fc0",
+      "bytes": 42092
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-detail-top.png",
+      "sha256": "dfc40c741ad0727f604804c204be9fda56df3d3f38b198e5ffb7985b0e41e1d2",
+      "bytes": 74877
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-list.png",
+      "sha256": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+      "bytes": 16256
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-result.png",
+      "sha256": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+      "bytes": 48271
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-composer-keyboard.png",
+      "sha256": "6247812486602f7d56cb1b52832072594cd0c769efeedf78ee79b950ec7ce06c",
+      "bytes": 42084
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-detail-top.png",
+      "sha256": "f4131a38f4a1c019a9513c81c6ddd7b518c050678cffcd9ff46f40df3d9f1ba0",
+      "bytes": 76299
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-list.png",
+      "sha256": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+      "bytes": 16100
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-result.png",
+      "sha256": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+      "bytes": 47983
+    }
+  ]
+}

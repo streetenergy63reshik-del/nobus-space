@@ -1,0 +1,426 @@
+{
+  "schema": "c4-reviews-4",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "status": "ACCEPTED_SOURCE_RETENTION_AND_FINAL_PACKAGE",
+  "source_reviews": {
+    "L2": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/selection-l2-68f87f1/REVIEW.json",
+        "sha256": "24a3f2aa3b8f64c6e8bf5537b2d8ae1fc34d9c4b2bc4b42bcdebd250ce396145",
+        "bytes": 2760
+      },
+      "receipt": {
+        "status": "SCOPED_GO_CANDIDATE_DELTA",
+        "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+        "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+        "reviewer": "/root/manual_smoke_review",
+        "source_before_after_exact_clean": true,
+        "independent_negative_checks": {
+          "passed": 4,
+          "milliseconds": 205.669,
+          "cases": [
+            "Old initial404 RED -> GREEN, list usable, selected removed, pending intent retained, POST0",
+            "Old initial503 RED -> GREEN, no infinite loader, list/selection/bearer and later rendered detail retained",
+            "Late404 from old selected task cannot close/replace new selection",
+            "401 detail uses reachable close-app action without more HTTP calls"
+          ]
+        },
+        "source_review": [
+          "Shared error action/label is reused in page and modal; 404 closes via existing selected-only close handler and then reads list. No pending marker cancellation or new mutation.",
+          "Initial error replaces only loading state when lastRender is null; already rendered task data remains. New selection clears previous reference text. Existing current-generation checks fence stale errors.",
+          "Canonical LF content hashes only version static URLs; no new dependency/Core/auth/queue/provider paths."
+        ],
+        "own_execution_separately_attributed": {
+          "new_browser_matrix": true,
+          "checks_passed": 68,
+          "screenshots": 26,
+          "real_http404": true,
+          "provider_calls": 0,
+          "ASR_calls": 0,
+          "external_calls": 0,
+          "original_completed_store_and_proofs_unchanged": true,
+          "disposable_core_tasks_unchanged": true
+        },
+        "retained_evidence_decision": "RETAINED-66-EVIDENCE.json",
+        "evidence": {
+          ".runtime\\c4\\reviews\\selection-l2-68f87f1\\regression.test.cjs": "c09b91789c384a39c3ce50f5276a6ccb376a44efc1cd11fb8dc340e27e5123c5",
+          ".runtime\\c4\\reviews\\selection-l2-68f87f1\\observed404.json": "285251dafc22009a092e94f3e67c41c75b1670809a917e4cbdd4f4f93b2dd08a",
+          ".runtime\\c4\\reviews\\selection-l2-68f87f1\\observed503.json": "1aa73dfc308d111e76de1f440e7c047214c4930832f268c350d243bef8b1bbb3",
+          ".runtime\\c4\\visual-68f87f1\\verification.json": "efb4d517c323cbb047a8b13cecba5eac3e9a00870e4f1a14c80108ff1385d6df",
+          ".runtime\\c4\\visual-68f87f1\\browser-report.json": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+          ".runtime\\c4\\visual-68f87f1\\VISUAL-REVIEW.json": "6380f0e3109387818f25693cde26820c1ca3791c5c1d9322d4cff372b015662c",
+          ".runtime\\c4\\reviews\\selection-l2-68f87f1\\RETAINED-66-EVIDENCE.json": "d70360a84bcdf74b622a218ff2b88cff6d9c3b1211fb96a6d58b3ddaad632449"
+        },
+        "full_gate_pass": false,
+        "pending": "Exact candidate owner smoke and final package acceptance belong to root."
+      }
+    },
+    "L3": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/selection-l3-68f87f1/REVIEW.json",
+        "sha256": "65574fdc5d3977786166782e53b0b2430b1872f4a652327d8dd958bb635a692e",
+        "bytes": 6015
+      },
+      "receipt": {
+        "reviewer": "/root/final_c4_l3",
+        "level": "independent adversarial L3",
+        "status": "SCOPED_TECHNICAL_GO_SOURCE_RETENTION_ATTEMPT8_HELPER",
+        "full_gate_pass": false,
+        "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+        "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+        "delta_base": "66cff24fbc33032550e927f75260220859c66ca8",
+        "changed_files": [
+          "docs/gates/gate-c4-frontend-journey/SMOKE-REWORK.md",
+          "src/transport/miniapp_static/app.js",
+          "src/transport/miniapp_static/index.html",
+          "tests/gate_c4/frontend.test.cjs"
+        ],
+        "tracked_before_after_equal": true,
+        "source_checks": {
+          "independent_Node_cases": 9,
+          "passed": 9,
+          "failed": 0,
+          "scope": [
+            "both404 recovery actions with asynchronous close clear only selection/generation, retain pending/clarification/bearer, POST/cancel=0",
+            "initial401/offline/503 end loading and retain safety; already rendered result survives later error",
+            "newselected503 cannot inherit old acceptedtimestamp",
+            "delayed404/503/success from old selection cannot repaint currentdetail",
+            "asset URLs match canonicalLF/CRLF SHA prefixes"
+          ],
+          "harness": "Existing Node vm/DOM doubles; L3 own cases and asynchronous close event via host setImmediate. Not actualbrowser/live.",
+          "verifier_history": "First own404 cases referred to a host challenge constant from VM. Corrected only L3fixture; firsttest/log retained. Product unchanged."
+        },
+        "findings": [],
+        "retention": {
+          "status": "ACCEPT_UNCHANGED_SCOPES_WITH_ORIGINAL_SHA",
+          "authority": "C4 controlling prompt633-639",
+          "accepted_66cff24": [
+            "actual Core/provider working-to-ready",
+            "actual202loss/readback without duplicate admission",
+            "two sequential actual tasks/stale response fences",
+            "sealed results/browser copy/download/digests",
+            "existing outbox remaining-part completion2ACK/4parts without task/provider retry",
+            "six read-only retained results through Core/HTTP/recovery and completedtask UI geometry"
+          ],
+          "accepted_b89b651": [
+            "direct/transform text and confirmed voice",
+            "clarification/unavailable without effects",
+            "six completed replay scopes",
+            "owner voicebuttons/result/file attempt6"
+          ],
+          "reason": "Only frontend error display and cache versionURLs changed; Core/worker/model/ASR/storage/recovery/result/copy/download and successful journey code are unchanged. New independent negative cases verify pending/session retention. Earlier sourceSHA and failed histories must remain explicit.",
+          "excluded": [
+            "66cff24 missingtask404/initialloader bug cannot be retained asPASS",
+            "ownerattempt7 result observed but no MiniAppartifactGET/download; no fullartifactPASS",
+            "retained local/synthetic and olderowner evidence cannot replace exact68 ownerattempt8",
+            "newerrorUI/cache must pass actualnewbrowser check",
+            "old overall browser/delivery-verifierFAIL remain retained"
+          ]
+        },
+        "attempt8_helper": {
+          "status": "TECHNICAL_GO_EXACT_MANIFEST",
+          "manifest_sha256": "d505e651ff7dac98c8d178ae67e9333052a43a20ab854da76e700a3efec8d62a",
+          "files": {
+            "live-candidate.py": "aaa4694b4c637c09b11b47e5e9aebf1091bcdda410525dfa03933128dfb1f856",
+            "start-temporary-smoke.ps1": "c85e64cac1a81e37301245be4f1aa4dc0b7cadfa0421e3aa99bb722636982be4",
+            "live-supervisor.py": "fe3db5cfb90f1b592753a84544bd9b8ea32e0fa3a0694c458eb924741a8df827"
+          },
+          "archive": "live-helper-history/attempt7-2a330439",
+          "delta": "Only candidateSHA/tree/attempt8 pins and owner instructions for stale selection and actual MiniApp download/File received. Bot/owner/HTTPS/runtime/budget/security and stop scope unchanged.",
+          "launcher_verify_only": "EXACT_OFFLINE_BINDING_PASS",
+          "live_started_by_reviewer": false
+        },
+        "read_only_budget_summary": [
+          [
+            "asr",
+            10,
+            0,
+            80.82799999974668
+          ],
+          [
+            "model",
+            68,
+            54,
+            959.8899999994319
+          ]
+        ],
+        "execution": {
+          "model": 0,
+          "ASR": 0,
+          "external_API": 0,
+          "product_edits": 0,
+          "ledger_mutations": 0
+        },
+        "proofs": {
+          ".runtime/c4/reviews/final-package-l3-66cff24/RETENTION-ACCEPTANCE.json": "7d710530b914709fea6510d455aa4d48400403601396a7f08380314f29efbcf1",
+          ".runtime/c4/reviews/final-package-l3-66cff24/DELIVERY-POST-READBACK.json": "4ef47b55573897c59c4e43caf9265243d739b4b966c2ff1d3614024abccbb6b2",
+          ".runtime/c4/visual-66cff24/two-task-product/browser-report.json": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+          ".runtime/c4/visual-66cff24/two-task-product/phase.json": "6c7bf6c7f524909fa77bdafae0955a53d1ff1de7cea75f6f2be5775e071df3f3",
+          ".runtime/c4/visual-66cff24/delivery-only/RECEIPT.json": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895",
+          ".runtime/c4/visual-66cff24/delivery-only/FAILED-VERIFIER.json": "cb9a0b0f53fa71803c88007f880262de7c09e46d5cf28678445e3973b3fc539c",
+          ".runtime/c4/visual-66cff24/verification.json": "8ff77a421fac25204f00f0d37249df354b9a2b580e804077767e03cc0b3784ee"
+        },
+        "artifacts": {
+          "adversarial-first.test.cjs": "e4ae26b34f5a9e1dcb071320ed404a1dea3324550974025a58e69d5e46feaf30",
+          "adversarial.test.cjs": "1640fb698cb6c7737cebebe92bf67a369fe8c4d8fc33ea14b7c9d20233db8a02",
+          "before.json": "3ada25fff597de0539860a6688276c241761d400e1ceed922b9dd8f888176b5f",
+          "helper-verify.log": "5b50f8746fbe4de242a40f588a1113e47f8721f1d8f856fa6e0e1ab369886b6d",
+          "node-first.log": "9eec5182c951bee274a50adf4286cca0f2a45c7ddb5eec049d24df0ba2d657c1",
+          "node.log": "415731a6acfcde0b498205feafdd26be9905ee98add43f64b949c7d49b38a3d3"
+        },
+        "remaining": [
+          "Root full frozenL1",
+          "L2 actualnewbrowser error/cache recovery",
+          "exact68 ownerattempt8 result/file/copy and stop/readback",
+          "final docs/evidence/preservation and permitted publication"
+        ]
+      }
+    }
+  },
+  "retention": {
+    "source": {
+      "local_path": ".runtime/c4/reviews/selection-l2-68f87f1/RETAINED-66-EVIDENCE.json",
+      "sha256": "d70360a84bcdf74b622a218ff2b88cff6d9c3b1211fb96a6d58b3ddaad632449",
+      "bytes": 1777
+    },
+    "receipt": {
+      "decision": "ACCEPT_RETAINED_SCOPE_WITH_ORIGINAL_REVISION",
+      "producer_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+      "producer_tree": "0fe46f7f123d5b6052789ae0bf1f02c3a8463c1b",
+      "current_consumer_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "basis": "Only source delta is selected-detail error presentation/action and cache URL in index. Core/provider, task admission, idempotency, execution/state projection, result/artifact and delivery code bytes are unchanged. The original66 actual two-task evidence supports those unchanged behaviors; it is not renamed to an exact68 execution. New error UI is independently executed against real HTTP/Core in the new matrix.",
+      "scenarios": [
+        "lost actual202 and same-request reload without second POST",
+        "queued to working and running reload/offline/reconnect",
+        "two sequential provider tasks with distinct identities",
+        "verified result/TXT exact bytes and late-result selection fencing",
+        "delivery two finalACKs/fourparts with original verifier defect preserved"
+      ],
+      "original_overall_helper_status": "FAILED",
+      "original_failure_scope": "Inherited synthetic single-filename document projection, subsequently closed by one delivery-only continuation and separate read-only receipt. No product/provider rerun.",
+      "evidence": {
+        ".runtime\\c4\\visual-66cff24\\two-task-product\\phase.json": "6c7bf6c7f524909fa77bdafae0955a53d1ff1de7cea75f6f2be5775e071df3f3",
+        ".runtime\\c4\\visual-66cff24\\two-task-product\\browser-report.json": "9767800ec7fb74a90516320f1b44a7d7725ee2fff367e2d970b6a1a5acfb1f0b",
+        ".runtime\\c4\\visual-66cff24\\delivery-only\\RECEIPT.json": "ad43412174ce028dd04f98c23fc26f2ad3955ac6bd1702bd8c4422850840c895"
+      },
+      "paid_repeats_on68": 0
+    }
+  },
+  "prior_reviews": [
+    "RETAINED-66-REVIEW-VERDICTS.json",
+    "RETAINED-B89-REVIEW-VERDICTS.json"
+  ],
+  "final_package_reviews": {
+    "L2": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/l2-receipt-closure/REVIEW.json",
+        "sha256": "e42c83acaab0c2aeb7c08a040d57d0983f1cda80b39795a5a27d8209e552a2d0",
+        "bytes": 1655
+      },
+      "receipt": {
+        "schema": "c4-l2-receipt-closure-1",
+        "reviewer": "/root/l2_receipt_closure",
+        "verdict": "ACCEPT_WITH_THREE_MINOR_DOCUMENTATION_CORRECTIONS",
+        "critical_findings": 0,
+        "major_findings": 0,
+        "your_role": "Independent receipt/provenance acceptance of original L2; no tests rerun or original execution claimed.",
+        "reviewed_package_manifest_sha256": "92bd2166c9fc75a3c502c5599fc0d45903a4ce3eb0d0a209d74443e5016f144d",
+        "source_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+        "source_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+        "original_reviewer": {
+          "reviewer": "/root/manual_smoke_review",
+          "checks": ".runtime/c4/reviews/final68-package-l2/CHECKS.json",
+          "checks_sha256": "07516afee7619f5e60096318a5d31d587d5419a729565f81453918fedcd7b937",
+          "check_py_sha256": "70ac801359d0b159bd75ff8c25646ed41b189f8fa2e206d9b85384d059f240d0",
+          "status": "PASS",
+          "count": 1015,
+          "passed": 1015
+        },
+        "receipt_basis": "Manifest hash matches original CHECKS binding. Exact68 LIVE-SMOKE records owner PASS, matching downloaded 446-byte TXT digest, forced=false, job_active_processes=0. Scope applies to frozen bytes only; publication delta needs bounded readback.",
+        "minor_findings": [
+          {
+            "file": "README.md",
+            "line": 43,
+            "correction": "Current frontend Node17 PASS must read Node20 PASS."
+          },
+          {
+            "file": "docs/gates/gate-c4-frontend-journey/REVISION-HISTORY.md",
+            "line": 15,
+            "correction": "Replace two .runtime historical receipt paths with docs/gates/gate-c4-frontend-journey/reviews/local-l2-a869a69.json and local-l3-a869a69.md; preserve e9bf historical attribution."
+          },
+          {
+            "file": "docs/handoffs/MVP-1-ISSUES.md",
+            "line": 87,
+            "correction": "Remove stale claim that new exact browser/owner smoke is pending; exact68 proofs are complete."
+          }
+        ]
+      }
+    },
+    "L3": {
+      "source": {
+        "local_path": ".runtime/c4/reviews/final68-package-l3/REVIEW.json",
+        "sha256": "662eb1eaa578729cdb15167d8bb3ff5fdb0c1763d221cee0c6806e00b4813dc1",
+        "bytes": 8223
+      },
+      "receipt": {
+        "schema": "c4-final68-package-l3-1",
+        "checked_at_utc": "2026-09-08T13:33:42.036172+00:00",
+        "reviewer": "/root/final_c4_l3",
+        "verdict": "ACCEPT_WITH_TWO_MINOR_DOCUMENTATION_CORRECTIONS",
+        "critical_findings": 0,
+        "major_findings": 0,
+        "source_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+        "source_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+        "reviewed_package_manifest_sha256": "92bd2166c9fc75a3c502c5599fc0d45903a4ce3eb0d0a209d74443e5016f144d",
+        "scope": "Independent bounded final documentary/provenance/privacy and owner smoke readback review of frozen effective stage overlay; no source/docs/helper/Git/ledger change, no code tests/browser/model/ASR/live/API writes. Own receipts only.",
+        "checks": {
+          "manifest_sha256": "92bd2166c9fc75a3c502c5599fc0d45903a4ce3eb0d0a209d74443e5016f144d",
+          "manifest_records": 131,
+          "manifest_failures": [],
+          "unexpected_files": [],
+          "missing_files": [],
+          "code_records": 37,
+          "code_failures": [],
+          "active_docs": 18,
+          "active_docs_failures": [],
+          "local_source_refs": 112,
+          "local_source_failures": [],
+          "journey_hashed_refs": 39,
+          "journey_hash_failures": [],
+          "negative_named_tests": 280,
+          "negative_test_failures": [],
+          "secret_pattern_candidates": [],
+          "xml_counts": {
+            "testcases": 2229,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 2
+          }
+        },
+        "functional_docs_receipt": {
+          "local_path": ".runtime/c4/final68-documentation.xml",
+          "sha256": "11a260f41ceeed91e4f9c8ce5c012928b770e5c6069565051bef133dcfef634e",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "own_execution": false,
+          "root_existing_receipt_read": true
+        },
+        "preflight_closures": [
+          {
+            "id": "D68-01",
+            "status": "CLOSED",
+            "basis": "JOURNEYS-15 explicitly maps all15 outcomes, source attribution, evidence and conditional approval N/A. All39 hashed evidence refs independently match."
+          },
+          {
+            "id": "D68-02",
+            "status": "CLOSED",
+            "basis": "NEGATIVE-RESULTS binds280 named PASS cases to exact68 XML and references current20Node/currentL2L3, actual browser and owner separately; matrix now current404."
+          },
+          {
+            "id": "D68-03",
+            "status": "SUBSTANTIVELY_CLOSED_MINOR_PATH_CORRECTION_REMAINS",
+            "basis": "Historical e9bf commit contains exact a869 L2/L3 and old LIVE-SMOKE; stable revision pointer is correct. Two literal local paths need correction below."
+          },
+          {
+            "id": "D68-04",
+            "status": "CLOSED",
+            "basis": "UX accessibility paragraph distinguishes visual readability/contrast, geometry/keyboard, static reduced-motion/44px/aria-live, labels/roles/safe-area, text status and explicitly absent hardware screen-reader test."
+          }
+        ],
+        "minor_findings": [
+          {
+            "id": "F68-M1",
+            "priority": "P3",
+            "file": "README.md",
+            "line": 43,
+            "finding": "Current full-L1 paragraph says frontend Node17 PASS; exact68 has20. Historical17 remains valid only at original attribution.",
+            "required_change": "Replace current README17 with20 and refresh docs/package hashes in planned status-only step."
+          },
+          {
+            "id": "F68-M2",
+            "priority": "P3",
+            "file": "docs/gates/gate-c4-frontend-journey/REVISION-HISTORY.md",
+            "line": 15,
+            "finding": "Two .runtime/c4/reviews/local-l2-a869a69.json and local-l3-a869a69.md literal paths do not exist. Their tracked reviews/... equivalents and explicit e9bf Git binding exist.",
+            "required_change": "Point to docs/gates/gate-c4-frontend-journey/reviews/local-l2-a869a69.json and reviews/local-l3-a869a69.md, preferably relative clickable links; preserve exact historical Git attribution."
+          }
+        ],
+        "owner_smoke_acceptance": {
+          "status": "PASS_EXACT68_ATTEMPT8_SCOPED",
+          "candidate_source_and_instance": "HTTPS uncached7routes matched exactSHA/tree/instance and LF-normalized assets before owner actions; frozen helper d505 reviewed previously.",
+          "authentic_not_synthetic": "Real owner Telegram session200, task list/read404 recovery to list, subsequent sessionrecover200 and owner POST202. Separate local-browser synthetic profile proofs remain explicitly local.",
+          "task_result_delivery": "One admitted MiniApp input/task, one acceptedPOST202, result revision1, both immutable outbox parts ACKed, one Telegram answer/document; noduplicate. Two earlier400 were fixture exact-period refusals beforeCore/model and remain disclosed.",
+          "artifact": {
+            "bytes": 446,
+            "sha256": "a6be0f714c7a7f72ce7b1f7bf33e03b29d76c5d0de190c490716e051c1a325ab",
+            "miniapp_artifact_get": 200,
+            "telegram_digest_matches": true,
+            "physical_owner_Downloads_read_independently": true,
+            "utf8_opened_independently": true,
+            "copy_scope": "Owner confirms successful requested test; no fabricated clipboard instrumentation in real owner WebView."
+          },
+          "stop": "Normal STOP forced=false; JobActiveProcesses0 and wrappers exited; allhttp/control/runtime/telegram_api closed; post-readback original bot/menu/webhook, pending0, original502route restored. This is not permanentdeployment.",
+          "owner_receipt_sha256": "f8e6d98fd288a17eeee36c5f08cc53cde85e7fe85a1783cb0ee7f551a791455d",
+          "privacy": "Full owner screenshot remains excluded; only safe name/hash retained; publication bytes contain no credential/actual initData/JWT/private-key pattern candidates."
+        },
+        "explicit_retention_acceptance": {
+          "basis": "C4 controlling prompt633-639 and prior independent source-delta receipts; originalSHA/proof hashes retained, nofalse rebinding.",
+          "b89_sha": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+          "b89_accepted": [
+            "actual direct/transformtext and confirmedvoice",
+            "clarification and unavailable no-task boundary",
+            "six restart/replay scopes with result/artifact/model-ASR invariance",
+            "real owner attempt6 voice buttons/result/copy/TXT523 at originalSHA"
+          ],
+          "66_sha": "66cff24fbc33032550e927f75260220859c66ca8",
+          "66_accepted": [
+            "actual2provider tasks/4turns, actualworking projection",
+            "actual202response-loss readback and no duplicatePOST",
+            "reload/reconnect whileworking and stale-first-result exclusion",
+            "distinct sealed results/copy/download artifacts and six retained readreplays",
+            "exactexisting-outbox remaining-part delivery:2ACK/4partACK, zero replay/newmodelASR, failedverifier preserved"
+          ],
+          "excluded": [
+            "b89 whole-Gate acceptance and wrong queued running projection",
+            "66 whole-Gate acceptance and initial404 infinite loader",
+            "owner66 artifact download, because noartifactGET/physicalfile for thatwindow",
+            "old synthetic transport delivery treated as live Telegram",
+            "docs11 new prose treated as oldmodel project_context"
+          ],
+          "current68_new_proofs": "FullL1/Node20, currenterrorUI independentL2L3, actualbrowser68checks26safePNGs, exactowner8 ownsmoke+artifact+stop/readback complete."
+        },
+        "budget": {
+          "actual_model_turns": 56,
+          "model_reservations": 71,
+          "model_active_seconds": 1011.0459999995073,
+          "model_limits": [
+            64,
+            5400
+          ],
+          "ASR_runs": 10,
+          "ASR_native_wall_seconds": 80.82799999974668,
+          "ASR_limits": [
+            20,
+            1200
+          ],
+          "active_reservations": 0,
+          "ledger_reset": false,
+          "C3_accounting_unchanged": true
+        },
+        "publication_boundary": {
+          "package_status_truthful": "FINAL PACKAGE REVIEW PENDING / NOT PUBLISHED in reviewed bytes is correct at freeze.",
+          "authorization_scope": "Technical/source/product/live/retention and substantive package GO; parent may make only declared tiny status/receipt update plus two minor corrections and refresh documentary manifests, followed by narrowly bound diff/hash readback. No code/browser/provider/ASR repeat is needed for that prose step.",
+          "publication_complete": false,
+          "normal_PR_merge_only_after_required_final_acceptance": true,
+          "missing_CI_not_PASS": true,
+          "permanent_deploy_tag_release": false,
+          "C5_C6_MVP2_started": false,
+          "MVP1_READY": false
+        }
+      }
+    }
+  },
+  "status_delta": "Only final acceptance labels, review receipts and three documented minor factual corrections follow reviewed92bd package. Exact code and live bytes remain68. Narrow independent readback is recorded by root before publication."
+}

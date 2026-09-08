@@ -1,0 +1,47 @@
+{
+  "status": "REAL_OWNER_SMOKE_REJECT_REWORK",
+  "candidate_sha": "e9bf22aee1187c06b6846a6debb865014c205f86",
+  "candidate_tree": "35684f40e5f99ed83d436fe1068bcdf891f96bf2",
+  "owner_observations": {
+    "text_task_completed": true,
+    "txt_received_and_opened": true,
+    "intake_silence_approx_seconds": 20,
+    "miniapp_opened_in_telegram": true,
+    "miniapp_recovery_failed": true
+  },
+  "screenshots": [
+    {
+      "path": "screenshots/attempt3-miniapp-error.png",
+      "sha256": "1d24ab932fbfc378c74c938a7e015ca0e9593342a77d4e6c79b91181a852cbff",
+      "scope": "Real owner Telegram WebView: recovery fails before login.",
+      "candidate_sha": "e9bf22aee1187c06b6846a6debb865014c205f86"
+    },
+    {
+      "path": "screenshots/attempt3-result-file.png",
+      "sha256": "06bae8c996dd16e9602a381ba363e6f916833dea4ccefb00a7726b2980706f7e",
+      "scope": "Owner opened delivered synthetic TXT result.",
+      "candidate_sha": "e9bf22aee1187c06b6846a6debb865014c205f86"
+    }
+  ],
+  "evidence": [
+    {
+      "local_path": ".runtime/c4/live-e9bf22aee118-attempt3/empty-recovery-probe-1788856722650144200.json",
+      "sha256": "15746e12738c67569312895e22d5c7935f18303e34c2a9959a8d27de27ee516e"
+    },
+    {
+      "local_path": ".runtime/c4/live-e9bf22aee118-attempt3/https-readback-1788856317091626200.json",
+      "sha256": "2f44e0c53948f80699f277d83e7e9695a418a075138cebf527a678e5969e9726"
+    },
+    {
+      "local_path": ".runtime/c4/live-e9bf22aee118-attempt3/https-uncached-readback-1788856367323737000.json",
+      "sha256": "fe62baabe5c49d7eca7bc42bab9bc641a4fc283df64389852ce779c4226cb5c4"
+    },
+    {
+      "local_path": ".runtime/c4/live-e9bf22aee118-attempt3/runtime-stop-1788856774001383000.json",
+      "sha256": "5830d441ecd3677dcc4e92119b206a8aa185b9d6a2e266d7bd2a9fa1fb961e95"
+    }
+  ],
+  "cleanup": "graceful; JobActiveProcesses=0, wrappers exited, no listener8765; public health/ready502, menu unchanged, webhook absent, pending0",
+  "unchanged_evidence": "Previous local a869a69 reviews and runs retain original revisions; they are not acceptance of reworked code.",
+  "full_gate_pass": false
+}

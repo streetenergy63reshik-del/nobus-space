@@ -1,0 +1,1875 @@
+{
+  "schema": "c4-screenshots-4",
+  "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+  "status": "LOCAL_BROWSER_PASS",
+  "viewport_theme_cases": 6,
+  "checks_passed": 68,
+  "screenshots": [
+    {
+      "path": "screenshots/68f87f1/320-dark-composer-keyboard.png",
+      "sha256": "fe5eccca76fb9ddebee9dbbb5adb3b8fe0b5969ec41a956ea98684e95e7b5e57",
+      "bytes": 36004,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-dark-composer-keyboard.png",
+        "sha256": "fe5eccca76fb9ddebee9dbbb5adb3b8fe0b5969ec41a956ea98684e95e7b5e57",
+        "bytes": 36004
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-dark-detail-top.png",
+      "sha256": "bf3ea4e41237c3ee005dea6895582e6822752907b908b77527e61daa06996373",
+      "bytes": 26714,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-dark-detail-top.png",
+        "sha256": "bf3ea4e41237c3ee005dea6895582e6822752907b908b77527e61daa06996373",
+        "bytes": 26714
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-dark-list.png",
+      "sha256": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+      "bytes": 12647,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-dark-list.png",
+        "sha256": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+        "bytes": 12647
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-dark-result.png",
+      "sha256": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+      "bytes": 27346,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-dark-result.png",
+        "sha256": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+        "bytes": 27346
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-light-composer-keyboard.png",
+      "sha256": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+      "bytes": 27760,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-light-composer-keyboard.png",
+        "sha256": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+        "bytes": 27760
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-light-detail-top.png",
+      "sha256": "4b610d6356b3c7864021d078b52c5e27d23cd26e5ee9024d46a168830d88d970",
+      "bytes": 26602,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-light-detail-top.png",
+        "sha256": "4b610d6356b3c7864021d078b52c5e27d23cd26e5ee9024d46a168830d88d970",
+        "bytes": 26602
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-light-list.png",
+      "sha256": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+      "bytes": 12560,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-light-list.png",
+        "sha256": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+        "bytes": 12560
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/320-light-result.png",
+      "sha256": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+      "bytes": 27101,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/320-light-result.png",
+        "sha256": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+        "bytes": 27101
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-dark-composer-keyboard.png",
+      "sha256": "2982fb16a2f1c9879d949bda831c1e5a6e4ac6f5801d589937ed96f0d3d2b187",
+      "bytes": 37514,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-dark-composer-keyboard.png",
+        "sha256": "2982fb16a2f1c9879d949bda831c1e5a6e4ac6f5801d589937ed96f0d3d2b187",
+        "bytes": 37514
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-dark-detail-top.png",
+      "sha256": "d58e7d673d700e4a6165f26bdfbef5111b61b1e8949b3985b9593162fffdc6d8",
+      "bytes": 34830,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-dark-detail-top.png",
+        "sha256": "d58e7d673d700e4a6165f26bdfbef5111b61b1e8949b3985b9593162fffdc6d8",
+        "bytes": 34830
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-dark-list.png",
+      "sha256": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+      "bytes": 13430,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-dark-list.png",
+        "sha256": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+        "bytes": 13430
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-dark-result.png",
+      "sha256": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+      "bytes": 33142,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-dark-result.png",
+        "sha256": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+        "bytes": 33142
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-light-composer-keyboard.png",
+      "sha256": "406dbb5163bea9bb56af04dcebfd60f11d81f34b5cab60a709df12c25fcc071b",
+      "bytes": 37328,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-light-composer-keyboard.png",
+        "sha256": "406dbb5163bea9bb56af04dcebfd60f11d81f34b5cab60a709df12c25fcc071b",
+        "bytes": 37328
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-light-detail-top.png",
+      "sha256": "3b25e245c41281fabcfedea49386c4671f5ec2109dff79ec3e191e88cea349a6",
+      "bytes": 54367,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-light-detail-top.png",
+        "sha256": "3b25e245c41281fabcfedea49386c4671f5ec2109dff79ec3e191e88cea349a6",
+        "bytes": 54367
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-light-initial404-error.png",
+      "sha256": "5dc2e581ed508fe517db3236ed4f3815affe0b4104ead58ef0e3421d57930c82",
+      "bytes": 26690,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-light-initial404-error.png",
+        "sha256": "5dc2e581ed508fe517db3236ed4f3815affe0b4104ead58ef0e3421d57930c82",
+        "bytes": 26690
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-light-initial404-recovered-new-task.png",
+      "sha256": "1b8dbf9da2db8985b18f26da78647f09385470b8e0d680d1c4656afb1633dca3",
+      "bytes": 37559,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-light-initial404-recovered-new-task.png",
+        "sha256": "1b8dbf9da2db8985b18f26da78647f09385470b8e0d680d1c4656afb1633dca3",
+        "bytes": 37559
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-light-list.png",
+      "sha256": "dc2902a701e06034cc3a4b9522392ac1e8d26e58f743857e2196cbbeff57d5f1",
+      "bytes": 14556,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-light-list.png",
+        "sha256": "dc2902a701e06034cc3a4b9522392ac1e8d26e58f743857e2196cbbeff57d5f1",
+        "bytes": 14556
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/390-light-result.png",
+      "sha256": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+      "bytes": 32946,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/390-light-result.png",
+        "sha256": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+        "bytes": 32946
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-dark-composer-keyboard.png",
+      "sha256": "ad4f4c6991ea2c04fd6d3a5b12257b0aeb1c616e89d4bcad18227255ecfab463",
+      "bytes": 42000,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-dark-composer-keyboard.png",
+        "sha256": "ad4f4c6991ea2c04fd6d3a5b12257b0aeb1c616e89d4bcad18227255ecfab463",
+        "bytes": 42000
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-dark-detail-top.png",
+      "sha256": "dfc40c741ad0727f604804c204be9fda56df3d3f38b198e5ffb7985b0e41e1d2",
+      "bytes": 74877,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-dark-detail-top.png",
+        "sha256": "dfc40c741ad0727f604804c204be9fda56df3d3f38b198e5ffb7985b0e41e1d2",
+        "bytes": 74877
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-dark-list.png",
+      "sha256": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+      "bytes": 16256,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-dark-list.png",
+        "sha256": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+        "bytes": 16256
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-dark-result.png",
+      "sha256": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+      "bytes": 48271,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-dark-result.png",
+        "sha256": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+        "bytes": 48271
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-light-composer-keyboard.png",
+      "sha256": "4089c0796505a77b5c3cbcac93f31e2c2b12e9abf29a45aacc1ed2549b09eff8",
+      "bytes": 41885,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-light-composer-keyboard.png",
+        "sha256": "4089c0796505a77b5c3cbcac93f31e2c2b12e9abf29a45aacc1ed2549b09eff8",
+        "bytes": 41885
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-light-detail-top.png",
+      "sha256": "a60b304593c423dbc3080164c24a3c55affeaa12154817a63d448aa55467c701",
+      "bytes": 49810,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-light-detail-top.png",
+        "sha256": "a60b304593c423dbc3080164c24a3c55affeaa12154817a63d448aa55467c701",
+        "bytes": 49810
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-light-list.png",
+      "sha256": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+      "bytes": 16100,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-light-list.png",
+        "sha256": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+        "bytes": 16100
+      }
+    },
+    {
+      "path": "screenshots/68f87f1/768-light-result.png",
+      "sha256": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+      "bytes": 47983,
+      "source": {
+        "local_path": ".runtime/c4/visual-68f87f1/768-light-result.png",
+        "sha256": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+        "bytes": 47983
+      }
+    }
+  ],
+  "browser_report": {
+    "source": {
+      "local_path": ".runtime/c4/visual-68f87f1/browser-report.json",
+      "sha256": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+      "bytes": 39707
+    },
+    "receipt": {
+      "browser": "152.0.4191.66",
+      "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+      "local_only": true,
+      "cases": [
+        {
+          "width": 320,
+          "height": 740,
+          "theme": "light",
+          "checks": [
+            {
+              "name": "list_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                }
+              ]
+            },
+            {
+              "name": "composer_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "#composer-sheet",
+                  "scrollWidth": 318,
+                  "clientWidth": 318
+                }
+              ]
+            },
+            {
+              "name": "keyboard_composer_focus_order_visible_ring_trap_escape_return",
+              "pass": true
+            },
+            {
+              "name": "detail_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 318,
+                  "clientWidth": 318
+                }
+              ]
+            },
+            {
+              "name": "keyboard_copy_real_clipboard_answer_with_windows_newline_normalization",
+              "pass": true,
+              "utf8_bytes": 462
+            },
+            {
+              "name": "keyboard_download_real_core_bytes_match_result_and_receipt",
+              "pass": true,
+              "bytes": 460,
+              "digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494"
+            },
+            {
+              "name": "result_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 318,
+                  "clientWidth": 318
+                }
+              ]
+            },
+            {
+              "name": "reload_restores_selected_task_via_real_recovery_cookie",
+              "pass": true
+            },
+            {
+              "name": "expired_bearer_rotates_through_real_core",
+              "pass": true,
+              "http": [
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 401
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/session/recover",
+                  "status": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 200
+                }
+              ]
+            },
+            {
+              "name": "offline_last_data_and_online_read_recovery",
+              "pass": true
+            },
+            {
+              "name": "no_task_submission_no_page_errors",
+              "pass": true
+            }
+          ],
+          "screenshots": [
+            "320-light-list.png",
+            "320-light-composer-keyboard.png",
+            "320-light-detail-top.png",
+            "320-light-result.png"
+          ],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            }
+          ]
+        },
+        {
+          "width": 320,
+          "height": 740,
+          "theme": "dark",
+          "checks": [
+            {
+              "name": "list_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                }
+              ]
+            },
+            {
+              "name": "composer_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "#composer-sheet",
+                  "scrollWidth": 318,
+                  "clientWidth": 318
+                }
+              ]
+            },
+            {
+              "name": "keyboard_composer_focus_order_visible_ring_trap_escape_return",
+              "pass": true
+            },
+            {
+              "name": "detail_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 318,
+                  "clientWidth": 318
+                }
+              ]
+            },
+            {
+              "name": "keyboard_copy_real_clipboard_answer_with_windows_newline_normalization",
+              "pass": true,
+              "utf8_bytes": 462
+            },
+            {
+              "name": "keyboard_download_real_core_bytes_match_result_and_receipt",
+              "pass": true,
+              "bytes": 460,
+              "digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494"
+            },
+            {
+              "name": "result_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 320,
+                  "clientWidth": 320
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 318,
+                  "clientWidth": 318
+                }
+              ]
+            },
+            {
+              "name": "reload_restores_selected_task_via_real_recovery_cookie",
+              "pass": true
+            },
+            {
+              "name": "expired_bearer_rotates_through_real_core",
+              "pass": true,
+              "http": [
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 401
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/session/recover",
+                  "status": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 200
+                }
+              ]
+            },
+            {
+              "name": "offline_last_data_and_online_read_recovery",
+              "pass": true
+            },
+            {
+              "name": "no_task_submission_no_page_errors",
+              "pass": true
+            }
+          ],
+          "screenshots": [
+            "320-dark-list.png",
+            "320-dark-composer-keyboard.png",
+            "320-dark-detail-top.png",
+            "320-dark-result.png"
+          ],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "theme": "light",
+          "checks": [
+            {
+              "name": "real_core_initial404_finishes_loading_and_has_reachable_recovery",
+              "pass": true,
+              "missing_task_id": "ffffffff-ffff-4fff-8fff-ffffffffffff"
+            },
+            {
+              "name": "one_click_404_return_to_usable_list_and_new_task_without_post_or_repeated_missing_read",
+              "pass": true
+            },
+            {
+              "name": "list_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                }
+              ]
+            },
+            {
+              "name": "composer_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "#composer-sheet",
+                  "scrollWidth": 388,
+                  "clientWidth": 388
+                }
+              ]
+            },
+            {
+              "name": "keyboard_composer_focus_order_visible_ring_trap_escape_return",
+              "pass": true
+            },
+            {
+              "name": "detail_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 388,
+                  "clientWidth": 388
+                }
+              ]
+            },
+            {
+              "name": "keyboard_copy_real_clipboard_answer_with_windows_newline_normalization",
+              "pass": true,
+              "utf8_bytes": 462
+            },
+            {
+              "name": "keyboard_download_real_core_bytes_match_result_and_receipt",
+              "pass": true,
+              "bytes": 460,
+              "digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494"
+            },
+            {
+              "name": "result_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 388,
+                  "clientWidth": 388
+                }
+              ]
+            },
+            {
+              "name": "reload_restores_selected_task_via_real_recovery_cookie",
+              "pass": true
+            },
+            {
+              "name": "expired_bearer_rotates_through_real_core",
+              "pass": true,
+              "http": [
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 401
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/session/recover",
+                  "status": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 200
+                }
+              ]
+            },
+            {
+              "name": "offline_last_data_and_online_read_recovery",
+              "pass": true
+            },
+            {
+              "name": "no_task_submission_no_page_errors",
+              "pass": true
+            }
+          ],
+          "screenshots": [
+            "390-light-initial404-error.png",
+            "390-light-initial404-recovered-new-task.png",
+            "390-light-list.png",
+            "390-light-composer-keyboard.png",
+            "390-light-detail-top.png",
+            "390-light-result.png"
+          ],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/ffffffff-ffff-4fff-8fff-ffffffffffff",
+              "status": 404
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "theme": "dark",
+          "checks": [
+            {
+              "name": "list_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                }
+              ]
+            },
+            {
+              "name": "composer_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "#composer-sheet",
+                  "scrollWidth": 388,
+                  "clientWidth": 388
+                }
+              ]
+            },
+            {
+              "name": "keyboard_composer_focus_order_visible_ring_trap_escape_return",
+              "pass": true
+            },
+            {
+              "name": "detail_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 388,
+                  "clientWidth": 388
+                }
+              ]
+            },
+            {
+              "name": "keyboard_copy_real_clipboard_answer_with_windows_newline_normalization",
+              "pass": true,
+              "utf8_bytes": 462
+            },
+            {
+              "name": "keyboard_download_real_core_bytes_match_result_and_receipt",
+              "pass": true,
+              "bytes": 460,
+              "digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494"
+            },
+            {
+              "name": "result_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 390,
+                  "clientWidth": 390
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 388,
+                  "clientWidth": 388
+                }
+              ]
+            },
+            {
+              "name": "reload_restores_selected_task_via_real_recovery_cookie",
+              "pass": true
+            },
+            {
+              "name": "expired_bearer_rotates_through_real_core",
+              "pass": true,
+              "http": [
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 401
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/session/recover",
+                  "status": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 200
+                }
+              ]
+            },
+            {
+              "name": "offline_last_data_and_online_read_recovery",
+              "pass": true
+            },
+            {
+              "name": "no_task_submission_no_page_errors",
+              "pass": true
+            }
+          ],
+          "screenshots": [
+            "390-dark-list.png",
+            "390-dark-composer-keyboard.png",
+            "390-dark-detail-top.png",
+            "390-dark-result.png"
+          ],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            }
+          ]
+        },
+        {
+          "width": 768,
+          "height": 1024,
+          "theme": "light",
+          "checks": [
+            {
+              "name": "list_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                }
+              ]
+            },
+            {
+              "name": "composer_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "#composer-sheet",
+                  "scrollWidth": 766,
+                  "clientWidth": 766
+                }
+              ]
+            },
+            {
+              "name": "keyboard_composer_focus_order_visible_ring_trap_escape_return",
+              "pass": true
+            },
+            {
+              "name": "detail_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 766,
+                  "clientWidth": 766
+                }
+              ]
+            },
+            {
+              "name": "keyboard_copy_real_clipboard_answer_with_windows_newline_normalization",
+              "pass": true,
+              "utf8_bytes": 462
+            },
+            {
+              "name": "keyboard_download_real_core_bytes_match_result_and_receipt",
+              "pass": true,
+              "bytes": 460,
+              "digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494"
+            },
+            {
+              "name": "result_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 766,
+                  "clientWidth": 766
+                }
+              ]
+            },
+            {
+              "name": "reload_restores_selected_task_via_real_recovery_cookie",
+              "pass": true
+            },
+            {
+              "name": "expired_bearer_rotates_through_real_core",
+              "pass": true,
+              "http": [
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 401
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/session/recover",
+                  "status": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 200
+                }
+              ]
+            },
+            {
+              "name": "offline_last_data_and_online_read_recovery",
+              "pass": true
+            },
+            {
+              "name": "no_task_submission_no_page_errors",
+              "pass": true
+            }
+          ],
+          "screenshots": [
+            "768-light-list.png",
+            "768-light-composer-keyboard.png",
+            "768-light-detail-top.png",
+            "768-light-result.png"
+          ],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            }
+          ]
+        },
+        {
+          "width": 768,
+          "height": 1024,
+          "theme": "dark",
+          "checks": [
+            {
+              "name": "list_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                }
+              ]
+            },
+            {
+              "name": "composer_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "#composer-sheet",
+                  "scrollWidth": 766,
+                  "clientWidth": 766
+                }
+              ]
+            },
+            {
+              "name": "keyboard_composer_focus_order_visible_ring_trap_escape_return",
+              "pass": true
+            },
+            {
+              "name": "detail_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 766,
+                  "clientWidth": 766
+                }
+              ]
+            },
+            {
+              "name": "keyboard_copy_real_clipboard_answer_with_windows_newline_normalization",
+              "pass": true,
+              "utf8_bytes": 462
+            },
+            {
+              "name": "keyboard_download_real_core_bytes_match_result_and_receipt",
+              "pass": true,
+              "bytes": 460,
+              "digest": "sha256:90519629a8ff8ecea416461c822930e5e7e0be45b865372024993f43c8f03494"
+            },
+            {
+              "name": "result_no_horizontal_overflow",
+              "pass": true,
+              "geometry": [
+                {
+                  "selector": "html",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "body",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": ".app-shell",
+                  "scrollWidth": 768,
+                  "clientWidth": 768
+                },
+                {
+                  "selector": "#detail-sheet",
+                  "scrollWidth": 766,
+                  "clientWidth": 766
+                }
+              ]
+            },
+            {
+              "name": "reload_restores_selected_task_via_real_recovery_cookie",
+              "pass": true
+            },
+            {
+              "name": "expired_bearer_rotates_through_real_core",
+              "pass": true,
+              "http": [
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 401
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/session/recover",
+                  "status": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/api/tasks?limit=20",
+                  "status": 200
+                }
+              ]
+            },
+            {
+              "name": "offline_last_data_and_online_read_recovery",
+              "pass": true
+            },
+            {
+              "name": "no_task_submission_no_page_errors",
+              "pass": true
+            }
+          ],
+          "screenshots": [
+            "768-dark-list.png",
+            "768-dark-composer-keyboard.png",
+            "768-dark-detail-top.png",
+            "768-dark-result.png"
+          ],
+          "http": [
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/artifacts/c20c725b-0671-5f08-ac5a-7f30fe6ac340?revision=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/events?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks/b3363a4c-1364-456e-84b9-1a8e8b53f879/result?revision=1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/session/recover",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/tasks?limit=20",
+              "status": 200
+            }
+          ]
+        }
+      ],
+      "blocked_external": [
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js",
+        "https://telegram.org/js/telegram-web-app.js"
+      ],
+      "failures": [],
+      "status": "PASS"
+    }
+  },
+  "verification": {
+    "source": {
+      "local_path": ".runtime/c4/visual-68f87f1/verification.json",
+      "sha256": "efb4d517c323cbb047a8b13cecba5eac3e9a00870e4f1a14c80108ff1385d6df",
+      "bytes": 4280
+    },
+    "receipt": {
+      "status": "LOCAL_BROWSER_AUTOMATION_PASS",
+      "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+      "tracked_bytes_unchanged": true,
+      "source_task_db_unchanged": true,
+      "source_json_proofs_unchanged": true,
+      "disposable_core_tasks_unchanged": true,
+      "retained_b89_actual_voice_replay_readback": true,
+      "retained_data_producer_revision": "b89b651b43f17d6c46d39c5b23161cc276f08f11",
+      "retained_data_producer_tree": "32c70ea29a6010f907cf9a3e5dbff3644aa75615",
+      "browser_profile": "disposable Playwright context, no user profile/CDP",
+      "core": "real MiniAppCore/create_miniapp_app, copied completed synthetic task store",
+      "source_database_sha256": "e381c5da8e1c4f1f81fa089ba904d7a37803f3541f10348316930d86396cca29",
+      "current_static_hashes": {
+        "app.js": "93bacdff7536312ad8da836236ded81a6af6b0e1e155d6e91f3c8483bf8badc6",
+        "index.html": "e73b08f5ea5e93ef5fce55916b7122a6685fdd8f72e26d55cc4195d06186c184",
+        "styles.css": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2"
+      },
+      "provider_calls": 0,
+      "native_asr_calls": 0,
+      "external_api_calls": 0,
+      "artifacts": {
+        "320-dark-composer-keyboard.png": "fe5eccca76fb9ddebee9dbbb5adb3b8fe0b5969ec41a956ea98684e95e7b5e57",
+        "320-dark-detail-top.png": "bf3ea4e41237c3ee005dea6895582e6822752907b908b77527e61daa06996373",
+        "320-dark-list.png": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+        "320-dark-result.png": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+        "320-light-composer-keyboard.png": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+        "320-light-detail-top.png": "4b610d6356b3c7864021d078b52c5e27d23cd26e5ee9024d46a168830d88d970",
+        "320-light-list.png": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+        "320-light-result.png": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+        "390-dark-composer-keyboard.png": "2982fb16a2f1c9879d949bda831c1e5a6e4ac6f5801d589937ed96f0d3d2b187",
+        "390-dark-detail-top.png": "d58e7d673d700e4a6165f26bdfbef5111b61b1e8949b3985b9593162fffdc6d8",
+        "390-dark-list.png": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+        "390-dark-result.png": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+        "390-light-composer-keyboard.png": "406dbb5163bea9bb56af04dcebfd60f11d81f34b5cab60a709df12c25fcc071b",
+        "390-light-detail-top.png": "3b25e245c41281fabcfedea49386c4671f5ec2109dff79ec3e191e88cea349a6",
+        "390-light-initial404-error.png": "5dc2e581ed508fe517db3236ed4f3815affe0b4104ead58ef0e3421d57930c82",
+        "390-light-initial404-recovered-new-task.png": "1b8dbf9da2db8985b18f26da78647f09385470b8e0d680d1c4656afb1633dca3",
+        "390-light-list.png": "dc2902a701e06034cc3a4b9522392ac1e8d26e58f743857e2196cbbeff57d5f1",
+        "390-light-result.png": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+        "768-dark-composer-keyboard.png": "ad4f4c6991ea2c04fd6d3a5b12257b0aeb1c616e89d4bcad18227255ecfab463",
+        "768-dark-detail-top.png": "dfc40c741ad0727f604804c204be9fda56df3d3f38b198e5ffb7985b0e41e1d2",
+        "768-dark-list.png": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+        "768-dark-result.png": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+        "768-light-composer-keyboard.png": "4089c0796505a77b5c3cbcac93f31e2c2b12e9abf29a45aacc1ed2549b09eff8",
+        "768-light-detail-top.png": "a60b304593c423dbc3080164c24a3c55affeaa12154817a63d448aa55467c701",
+        "768-light-list.png": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+        "768-light-result.png": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+        "browser-report.json": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+        "browser.log": "03719262d8f7d647e6477c80b9ec15257625a6f45dfca29ef37baa7aee31bf5d",
+        "runtime.json": "7db0b0fab5d8d9a425c9c93519485da0d9269039828a890c3ae9060f2264277e",
+        "serve_visual.py": "c377a94137e1c4582f59c10e062229fd9335bdab008ec3c116b766d6cfe7a940",
+        "visual.cjs": "5190d341d8248b8207d5a66e116f4c790f6ac75a5a323513642e8f413cae41bf"
+      }
+    }
+  },
+  "visual_review": {
+    "source": {
+      "local_path": ".runtime/c4/visual-68f87f1/VISUAL-REVIEW.json",
+      "sha256": "6380f0e3109387818f25693cde26820c1ca3791c5c1d9322d4cff372b015662c",
+      "bytes": 1729
+    },
+    "receipt": {
+      "status": "SCOPED_LOCAL_VISUAL_PASS",
+      "candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+      "candidate_tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74",
+      "verification_sha256": "efb4d517c323cbb047a8b13cecba5eac3e9a00870e4f1a14c80108ff1385d6df",
+      "browser_report_sha256": "82c14cfed8eedaeea8b3d921d82cc164938a5795e27518c799bb581afb7f22f5",
+      "checks_passed": 68,
+      "screenshots": 26,
+      "viewed": {
+        "390-light-initial404-error.png": "5dc2e581ed508fe517db3236ed4f3815affe0b4104ead58ef0e3421d57930c82",
+        "390-light-initial404-recovered-new-task.png": "1b8dbf9da2db8985b18f26da78647f09385470b8e0d680d1c4656afb1633dca3",
+        "320-dark-composer-keyboard.png": "fe5eccca76fb9ddebee9dbbb5adb3b8fe0b5969ec41a956ea98684e95e7b5e57",
+        "768-light-result.png": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011"
+      },
+      "observations": [
+        "Настоящий404 показан в доступном модальном окне без незавершённой загрузки; кнопка «К списку задач» видна целиком.",
+        "После одного возврата форма новой задачи доступна и поле ввода получает видимый фокус; taskPOST не выполнялся.",
+        "На320px тёмная форма и рамка фокуса помещаются по ширине.",
+        "На768px результат, копирование и TXT читаемы, элементы не пересекаются."
+      ],
+      "scope": "New68 frontend/HTTP/Core in disposable local browser. Historical sealed synthetic data producer stays b89. Zero provider/ASR/external calls; not owner live proof."
+    }
+  },
+  "root_viewed": [
+    "390-light-initial404-error.png",
+    "390-light-initial404-recovered-new-task.png"
+  ],
+  "scope": "Real MiniAppCore/copied sealed synthetic store; synthetic session; provider/ASR0; no user browser profile. This is local browser evidence, not real Telegram auth.",
+  "retained": [
+    "RETAINED-66-SCREENSHOTS.json",
+    "RETAINED-B89-SCREENSHOTS.json"
+  ]
+}

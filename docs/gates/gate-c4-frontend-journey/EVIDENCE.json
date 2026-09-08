@@ -1,0 +1,118 @@
+{
+  "schema": "c4-evidence-4",
+  "verdict": "ACCEPTED_PASS_NOT_PUBLISHED",
+  "base": {
+    "sha": "b9283b3419928042c80278b5088b526edebab6e7",
+    "tree": "77062335b1dbccb3694721d357e484c856ac89c7"
+  },
+  "code_candidate": {
+    "sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+    "tree": "5ae168bf613b18fc2f14e24973b5167a2b4c7b74"
+  },
+  "frozen_L1": {
+    "passed": 2227,
+    "subtests_passed": 25,
+    "windows_symlink_skip": 2,
+    "historical_deselect": 2,
+    "seconds": 187.03,
+    "source": {
+      "local_path": ".runtime/c4/full-68f87f1.xml",
+      "sha256": "a486f20da60e3b6bc12ea855833a88acf3b67d23557a04f269dc30cb1334118f",
+      "bytes": 348248
+    },
+    "log": {
+      "local_path": ".runtime/c4/full-68f87f1.log",
+      "sha256": "8e1672e8d8016432eb9ed3a7bfa4a6cd7bc28ac19517366eef1c3e3db3a9f0df",
+      "bytes": 3451
+    }
+  },
+  "node_current": {
+    "passed": 20,
+    "source": {
+      "local_path": ".runtime/c4/initial-error-node-green-final.log",
+      "sha256": "414a7faa9c5557ab437175d8c845f09223c00e84080cd7fccf5d8d0b14c9f8aa",
+      "bytes": 1787
+    }
+  },
+  "current_browser": {
+    "checks": 68,
+    "screenshots": 26,
+    "viewport_theme_cases": 6,
+    "provider_calls": 0,
+    "ASR_calls": 0,
+    "evidence": "SCREENSHOTS.json"
+  },
+  "retained_scopes": [
+    "LOCAL-JOURNEYS.json originalb89 actual provider/ASR and six replay; six66 readback",
+    "RETAINED-66-TWO-TASKS.json actual2tasks4turns; separate delivery receipt; original harnessFAIL retained",
+    "RETAINED-B89-LIVE-SMOKE.json ownervoice/buttons/copy/TXT523"
+  ],
+  "journeys": "JOURNEYS-15.json:14applicablePASS,1conditionalapprovalN/A",
+  "negative_matrix": "NEGATIVE-RESULTS.json",
+  "real_owner_smoke": "LIVE-SMOKE.json exact68 attempt8 PASS plus shutdown/readback",
+  "budget": {
+    "limits": {
+      "actual_model_turns": 64,
+      "model_active_seconds": 5400,
+      "ASR_runs": 20,
+      "ASR_native_wall_seconds": 1200
+    },
+    "final": {
+      "resources": {
+        "model": {
+          "reserved_calls": 71,
+          "charged_seconds": 1011.0459999995073,
+          "actual_model_turns": 56,
+          "max_calls": 64,
+          "max_seconds": 5400.0,
+          "remaining_calls": 8,
+          "remaining_seconds": 4388.954000000493,
+          "counting_basis": "actual_model_turns_plus_active_potential_turns",
+          "active_potential_turns": 0,
+          "max_model_turns": 64
+        },
+        "asr": {
+          "reserved_calls": 10,
+          "charged_seconds": 80.82799999974668,
+          "actual_model_turns": 0,
+          "max_calls": 20,
+          "max_seconds": 1200.0,
+          "remaining_calls": 10,
+          "remaining_seconds": 1119.1720000002533
+        }
+      },
+      "active_reservations": 0
+    },
+    "no_reset": true,
+    "C3_budget_unchanged": true,
+    "startup_no_turn_counted_in_time": true
+  },
+  "independent_reviews": "REVIEW-VERDICTS.json: source, retention and final package accepted; minor/status delta readback required before push",
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "readback": "PUBLICATION-READBACK.json",
+    "missing_CI_is_not_PASS": true
+  },
+  "MVP1_READY": false,
+  "C5_started": false,
+  "C6_started": false,
+  "tag_release_permanent_deploy": false,
+  "root_final_verification": {
+    "stage": {
+      "local_path": ".runtime/c4/final68-stage-check.json",
+      "sha256": "b72efa7b43fba36ab72938311b33358bcfba00f2076cbf4a2048e09ac04db976",
+      "bytes": 508
+    },
+    "documentation_4_pass": {
+      "local_path": ".runtime/c4/final68-documentation.xml",
+      "sha256": "11a260f41ceeed91e4f9c8ce5c012928b770e5c6069565051bef133dcfef634e",
+      "bytes": 916
+    },
+    "secret_scan": {
+      "local_path": ".runtime/c4/final68-secret-scan.json",
+      "sha256": "1aaa2a858537d79f2669f0a3ab3d8ec79b45c716d4aed00f1fbfc38bdf954a8b",
+      "bytes": 164
+    },
+    "preservation": "PRESERVATION.json 31PASS;20dirtycanonical unchanged"
+  }
+}

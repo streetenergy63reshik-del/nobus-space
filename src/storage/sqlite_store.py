@@ -9,7 +9,7 @@ import time
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
@@ -86,8 +86,50 @@ class OutboxCorruptionError(StoreCorruptionError):
 
 _TASK_DISPLAY_ENTROPY = b"nobus-space:task-display:v1"
 _SEALED_ANSWER_ENTROPY = b"nobus-space:sealed-answer:v1"
+_MINIAPP_REQUEST_ENTROPY = b"nobus-space:miniapp-request:v1"
 _MAX_TASK_DISPLAY_TEXT = 120
 _MAX_TASK_DISPLAY_INSTRUCTION = 2_000
+
+
+class MiniAppRequestRecord(BaseModel):
+    """Core request reconciliation metadata; never the raw instruction."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    envelope: TrustedIngressEnvelope
+    state: Literal["pending", "clarification", "not_accepted"] = "pending"
+    question: str | None = Field(default=None, min_length=1, max_length=512)
+    clarification_token: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9_-]{32,128}$", repr=False
+    )
+    expires_at: datetime | None = None
+    detail: Literal["clarification_invalid", "capability_unavailable", "request_refused", "condition_not_met", "approval_required"] | None = None
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> "MiniAppRequestRecord":
+        if self.state == "clarification":
+            if self.question is None or self.clarification_token is None or self.detail is not None:
+                raise ValueError("invalid clarification outcome")
+            if self.expires_at is None or self.expires_at.tzinfo is None:
+                raise ValueError("invalid clarification expiry")
+        elif self.question is not None or self.clarification_token is not None:
+            raise ValueError("invalid request outcome")
+        elif self.expires_at is not None:
+            raise ValueError("invalid request expiry")
+        if (self.state == "not_accepted") != (self.detail is not None):
+            raise ValueError("invalid request rejection")
+        return self
+
+
+class MiniAppCancelledRequest(BaseModel):
+    """Durable reservation against a delayed create; no invented task input."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    state: Literal["cancelled"] = "cancelled"
+    tenant_id: str = Field(min_length=1, max_length=128)
+    auth_context_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    idempotency_key: str = Field(pattern=r"^[A-Za-z0-9._~-]{16,128}$")
 
 
 class DurableTaskProjection(BaseModel):
@@ -484,6 +526,23 @@ class SQLiteStore:
                     auth_expires_at TEXT NOT NULL,
                     claimed_at TEXT NOT NULL,
                     PRIMARY KEY (tenant_id, replay_digest)
+                );
+
+                CREATE TABLE IF NOT EXISTS miniapp_session_recovery (
+                    tenant_id TEXT NOT NULL,
+                    auth_context_ref TEXT NOT NULL,
+                    credential_digest TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    PRIMARY KEY (tenant_id, auth_context_ref)
+                );
+
+                CREATE TABLE IF NOT EXISTS miniapp_requests (
+                    tenant_id TEXT NOT NULL,
+                    idempotency_key TEXT NOT NULL,
+                    auth_context_ref TEXT NOT NULL,
+                    payload BLOB NOT NULL,
+                    payload_digest TEXT NOT NULL,
+                    PRIMARY KEY (tenant_id, idempotency_key)
                 );
 
                 CREATE TABLE IF NOT EXISTS outbox_messages (
@@ -1272,6 +1331,205 @@ class SQLiteStore:
                 return cursor.rowcount == 1
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
+
+    def task_display_number(self, tenant_id: str, task_id: UUID) -> int:
+        """Owner-scoped insertion order; no UUID or other tenant count is exposed."""
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT COUNT(*) FROM task_snapshots WHERE tenant_id=? AND rowid <=
+                       (SELECT rowid FROM task_snapshots WHERE tenant_id=? AND task_id=?)""",
+                    (tenant_id, tenant_id, str(task_id)),
+                ).fetchone()
+                if row is None or row[0] < 1:
+                    raise ValueError("task is absent")
+                return row[0]
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable store is invalid") from None
+
+    def replace_miniapp_recovery(
+        self, tenant_id: str, auth_context_ref: str, credential_digest: str,
+        *, now: datetime, expires_at: datetime | None = None,
+        previous_digest: str | None = None,
+        expected_deadline: datetime | None = None,
+    ) -> datetime | None:
+        """Fresh authentication replaces a generation; recovery uses exact CAS."""
+        tenant = _required_text(tenant_id, "tenant_id")
+        if not all(_is_digest(value) for value in (auth_context_ref, credential_digest)):
+            raise ValueError("invalid recovery binding")
+        if now.tzinfo is None or (expires_at is None) == (previous_digest is None):
+            raise ValueError("invalid recovery rotation")
+        if previous_digest is not None and not _is_digest(previous_digest):
+            raise ValueError("invalid recovery credential")
+        try:
+            with self._transaction() as connection:
+                if expires_at is not None:
+                    if expires_at.tzinfo is None or not now < expires_at <= now + timedelta(minutes=17):
+                        raise ValueError("invalid recovery deadline")
+                    connection.execute(
+                        """INSERT INTO miniapp_session_recovery
+                           (tenant_id,auth_context_ref,credential_digest,expires_at)
+                           VALUES (?,?,?,?) ON CONFLICT (tenant_id,auth_context_ref)
+                           DO UPDATE SET credential_digest=excluded.credential_digest,
+                           expires_at=excluded.expires_at""",
+                        (tenant, auth_context_ref, credential_digest, expires_at.astimezone(UTC).isoformat()),
+                    )
+                    return expires_at.astimezone(UTC)
+                row = connection.execute(
+                    """SELECT credential_digest,expires_at FROM miniapp_session_recovery
+                       WHERE tenant_id=? AND auth_context_ref=?""", (tenant, auth_context_ref),
+                ).fetchone()
+                if row is None or row["credential_digest"] != previous_digest:
+                    return None
+                deadline = datetime.fromisoformat(row["expires_at"])
+                if deadline.tzinfo is None:
+                    raise ValueError("invalid recovery deadline")
+                if deadline != expected_deadline:
+                    raise ValueError("recovery deadline binding mismatch")
+                if deadline <= now:
+                    return None
+                connection.execute(
+                    """UPDATE miniapp_session_recovery SET credential_digest=?
+                       WHERE tenant_id=? AND auth_context_ref=? AND credential_digest=?""",
+                    (credential_digest, tenant, auth_context_ref, previous_digest),
+                )
+                return deadline
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable recovery is invalid") from None
+
+    def miniapp_recovery_current(
+        self, tenant_id: str, auth_context_ref: str, credential_digest: str,
+        *, now: datetime,
+    ) -> bool:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT credential_digest,expires_at FROM miniapp_session_recovery
+                       WHERE tenant_id=? AND auth_context_ref=?""", (tenant_id, auth_context_ref),
+                ).fetchone()
+                if row is None:
+                    return False
+                deadline = datetime.fromisoformat(row["expires_at"])
+                if not _is_digest(row["credential_digest"]) or deadline.tzinfo is None:
+                    raise ValueError("invalid recovery row")
+                return row["credential_digest"] == credential_digest and deadline > now
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable recovery is invalid") from None
+
+    @staticmethod
+    def _miniapp_request_from_row(row: sqlite3.Row) -> MiniAppRequestRecord | MiniAppCancelledRequest:
+        try:
+            payload = bytes(row["payload"])
+            if "sha256:" + hashlib.sha256(payload).hexdigest() != row["payload_digest"]:
+                raise ValueError("invalid request digest")
+            value = json.loads(unprotect_current_user(payload, entropy=_MINIAPP_REQUEST_ENTROPY))
+            if not isinstance(value, dict):
+                raise ValueError("invalid request record")
+            record = (MiniAppCancelledRequest.model_validate(value) if value.get("state") == "cancelled"
+                      else MiniAppRequestRecord.model_validate(value))
+            binding = record if isinstance(record, MiniAppCancelledRequest) else record.envelope
+            if (binding.tenant_id != row["tenant_id"]
+                    or binding.idempotency_key != row["idempotency_key"]
+                    or binding.auth_context_ref != row["auth_context_ref"]):
+                raise ValueError("invalid request binding")
+            return record
+        except (DpapiError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
+
+    def read_miniapp_request(
+        self, tenant_id: str, auth_context_ref: str, idempotency_key: str,
+    ) -> MiniAppRequestRecord | MiniAppCancelledRequest | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT * FROM miniapp_requests
+                       WHERE tenant_id=? AND auth_context_ref=? AND idempotency_key=?""",
+                    (tenant_id, auth_context_ref, idempotency_key),
+                ).fetchone()
+                return None if row is None else self._miniapp_request_from_row(row)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
+
+    def write_miniapp_request(
+        self, record: MiniAppRequestRecord, *, claim: bool = False,
+    ) -> tuple[bool, MiniAppRequestRecord | MiniAppCancelledRequest]:
+        """Claim once before admission; finishing only replaces pending metadata."""
+        record = MiniAppRequestRecord.model_validate(record.model_dump())
+        envelope = record.envelope
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    """SELECT * FROM miniapp_requests
+                       WHERE tenant_id=? AND idempotency_key=?""",
+                    (envelope.tenant_id, envelope.idempotency_key),
+                ).fetchone()
+                if row is not None:
+                    existing = self._miniapp_request_from_row(row)
+                    if isinstance(existing, MiniAppCancelledRequest):
+                        if existing.auth_context_ref != envelope.auth_context_ref:
+                            raise IngressClaimConflictError("trusted request conflict")
+                        return False, existing
+                    if _stable_ingress_fingerprint(existing.envelope) != _stable_ingress_fingerprint(envelope):
+                        raise IngressClaimConflictError("trusted request conflict")
+                    expiring_clarification = (existing.state == "clarification"
+                        and record.state == "not_accepted" and record.detail == "clarification_invalid")
+                    if claim or (existing.state != "pending" and not expiring_clarification):
+                        return False, existing
+                    record = record.model_copy(update={"envelope": existing.envelope})
+                elif not claim:
+                    raise ValueError("request not claimed")
+                payload = protect_current_user(
+                    record.model_dump_json().encode("utf-8"), entropy=_MINIAPP_REQUEST_ENTROPY
+                )
+                connection.execute(
+                    """INSERT INTO miniapp_requests
+                       (tenant_id,idempotency_key,auth_context_ref,payload,payload_digest)
+                       VALUES (?,?,?,?,?) ON CONFLICT (tenant_id,idempotency_key)
+                       DO UPDATE SET payload=excluded.payload,payload_digest=excluded.payload_digest""",
+                    (envelope.tenant_id, envelope.idempotency_key, envelope.auth_context_ref,
+                     payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
+                )
+                return True, record
+        except IngressClaimConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, DpapiError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
+
+    def cancel_absent_miniapp_request(
+        self, cancellation: MiniAppCancelledRequest,
+    ) -> MiniAppRequestRecord | MiniAppCancelledRequest | None:
+        """Atomically reserve an absent key; existing requests are never cancelled."""
+        cancellation = MiniAppCancelledRequest.model_validate(cancellation.model_dump())
+        tenant, context, key = cancellation.tenant_id, cancellation.auth_context_ref, cancellation.idempotency_key
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM miniapp_requests WHERE tenant_id=? AND idempotency_key=?", (tenant, key)
+                ).fetchone()
+                if row is not None:
+                    record = self._miniapp_request_from_row(row)
+                    binding = record if isinstance(record, MiniAppCancelledRequest) else record.envelope
+                    if binding.auth_context_ref != context:
+                        raise IngressClaimConflictError("trusted request conflict")
+                    return record
+                if connection.execute(
+                    "SELECT 1 FROM ingress_claims WHERE tenant_id=? AND idempotency_key=?", (tenant, key)
+                ).fetchone() is not None:
+                    return None
+                payload = protect_current_user(
+                    cancellation.model_dump_json().encode("utf-8"), entropy=_MINIAPP_REQUEST_ENTROPY
+                )
+                connection.execute(
+                    """INSERT INTO miniapp_requests
+                       (tenant_id,idempotency_key,auth_context_ref,payload,payload_digest)
+                       VALUES (?,?,?,?,?)""",
+                    (tenant, key, context, payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
+                )
+                return cancellation
+        except IngressClaimConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, DpapiError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
 
     def _append_event_row(
         self,

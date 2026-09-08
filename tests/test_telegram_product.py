@@ -1688,8 +1688,8 @@ async def test_semantic_authority_smuggling_and_heterogeneous_task_never_admit(
     assert harness.runtime.drafted == []
     assert harness.runtime.applied == []
     assert harness.api.documents == []
-    assert "отклонён политикой безопасности" in harness.api.sent[0][1]
-    assert "недоступна" in harness.api.sent[1][1]
+    assert any("отклонён политикой безопасности" in value[1] for value in harness.api.sent)
+    assert "недоступна" in harness.api.sent[-1][1]
 
 
 @pytest.mark.asyncio
@@ -1712,7 +1712,10 @@ async def test_semantic_clarification_is_bound_before_task_contract(
 
     await harness.control.handle(text_update("Подготовь материал.", 1))
     assert harness.runtime.drafted == []
-    assert harness.api.sent[-1][1] == "Какой именно материал использовать?"
+    assert harness.api.sent[-1][1] == (
+        "Какой именно материал использовать?\n\n"
+        "Ответьте на это сообщение, чтобы продолжить исходную задачу."
+    )
     question_message_id = len(harness.api.sent)
 
     await harness.control.handle(text_update("Ответь отдельно.", 2))

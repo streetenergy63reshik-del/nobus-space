@@ -1,16 +1,9 @@
 # Документация Nobus Space
 
-<!-- C3_CURRENT_START -->
-C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
-Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.
-<!-- C3_CURRENT_END -->
-
-
 **Статус:** CANONICAL INDEX
-**Актуально на:** 6 сентября 2026 года
+**Актуально на:** 8 сентября 2026 года
 
-**CURRENT:** `C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED`; `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`;
-`DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`.
+**CURRENT:** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / NOT PUBLISHED. Реальный владелец проверил голос с кнопками, результат и файл в Telegram/Mini App. C5–C6 не запущены; MVP1 NOT READY; MVP2 HOLD.
 
 Thin topology задаёт
 [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
@@ -19,20 +12,17 @@ Thin topology задаёт
 Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**. Forward semantic
 contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md).
 
-Единственная подвижная реализационная проекция —
-[CURRENT-STATUS](handoffs/CURRENT-STATUS.md): там ведутся exact branch/revision,
-checks, blockers и следующий Gate. Published `v1.0.1` и pre-incident runtime
-evidence сохранены, acceptance всего MVP1 переоткрыта. C1 принят и опубликован
-через [PR #11](https://github.com/streetenergy63reshik-del/nobus-space/pull/11),
-но остаётся default-off / NOT DEPLOYED; C2 принят по собственным L1/L2/L3 и опубликован через PR #13,
-см. [C2 acceptance](gates/gate-c2-voice-parity/ACCEPTANCE.md). Historical READY claim
-superseded на protected `main` C0-публикацией
-[PR #9](https://github.com/streetenergy63reshik-del/nobus-space/pull/9) @
-`70085f8bdf20d139edf042bffa2a1169daf6791c`; deployment revision не доказана,
-MVP-2 находится на HOLD.
+Точные ревизии, проверки и оставшиеся условия ведутся в
+[CURRENT-STATUS](handoffs/CURRENT-STATUS.md) и [единой передаче C4](gates/gate-c4-frontend-journey/HANDOFF.md).
+Опубликованная база C3: `b9283b3419928042c80278b5088b526edebab6e7`, tree
+`77062335b1dbccb3694721d357e484c856ac89c7`.
+C1 реализует общий semantic compiler и Core decision; C2 — подтверждаемое голосовое
+задание с квалифицированным ASR; C3 — устойчивое выполнение и доставку результата.
+Исторический READY до инцидента не является приёмкой текущего MVP1.
+Постоянное развёртывание в C4 не выполняется.
 
-Редакционная продуктовая roadmap и HTML-визуализация остаются вне published
-C0/C1 tree в статусе `LOCAL EDITORIAL WIP / PUBLICATION HOLD`.
+Редакционная продуктовая roadmap и HTML-визуализация остаются вне принятого
+published tree в статусе `LOCAL EDITORIAL WIP / PUBLICATION HOLD`.
 
 ## Иерархия источников
 
@@ -63,8 +53,10 @@ pointer, короткий status, decisions и freshness.
    topology.
 4. [Журнал ADR](04-Журнал-ADR.md) и
    [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
-   и [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md)
-   — topology, semantic contract и supersession.
+   и [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md),
+   [ADR 0025](adr/0025-miniapp-session-and-request-recovery.md) и
+   [ADR 0026](adr/0026-channel-neutral-product-projection.md) — topology, semantic admission,
+   восстановление сессии/запроса и общая продуктовая проекция.
 5. [CURRENT-STATUS](handoffs/CURRENT-STATUS.md) — branch/revision, WIP,
    blockers, checks и следующий slice.
 6. [Runbook](08-Runbook-эксплуатации.md) — действующий Telegram runtime и
@@ -75,15 +67,17 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — принятый C1, локальный C2 и исторические sealed Gate.
+10. [Gate index](gates/README.md) — опубликованные C0–C3, текущий C4 и исторические sealed Gate.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
     [передача C1 → C2](gates/gate-c1-semantic-task-compiler/HANDOFF.md) — принятый
     опубликованный C1, доказательства и условия старта C2.
-13. [Текущий C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
-    [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — локальный
-    checkpoint, результаты ASR, оставшийся B02 и условия собственной приёмки C2.
+13. [Принятый C2 handoff](gates/gate-c2-voice-parity/HANDOFF.md) и
+    [индекс доказательств](gates/gate-c2-voice-parity/EVIDENCE.json) — опубликованный
+    voice parity, принятый ASR и закрытая B02; исторические FAIL сохранены.
+14. [C3 handoff](gates/gate-c3-core-stability/HANDOFF.md) — принятые recovery/result/artifact contracts.
+15. [C4](gates/gate-c4-frontend-journey/ACCEPTANCE.md) — frontend/user journey, проверки и граница передачи C5.
 
 ## Сохранённые контракты
 

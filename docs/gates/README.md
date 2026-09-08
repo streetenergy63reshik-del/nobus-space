@@ -1,15 +1,9 @@
 # Gate index
 
-<!-- C3_CURRENT_START -->
-C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED. Проверенный код `b1ed94c6ddfefe957a50f4d133537f74482910cc`; полный L1 и независимые L2/L3 прошли. Пакет — `docs/gates/gate-c3-core-stability/`. C0–C2 приняты и опубликованы, их приёмка не переоткрывалась. C4 не начат; весь MVP1 ещё не READY.
-Опубликовано обычным merge [PR #15](https://github.com/streetenergy63reshik-del/nobus-space/pull/15): `331f3566f03ae9ae5ede8cdc6b411f4102cc2e95`, tree `baedf0da25ab6e6599829684961b9f3c7dcf7570`. Код совпадает с принятым кандидатом; C4 READY TO START / NOT STARTED. Итоговый main после служебного PR фиксируется в локальном publication receipt и ответе задачи.
-<!-- C3_CURRENT_END -->
-
-
-**Статус:** ACCEPTED C1 / ACCEPTED C2 / ACCEPTED C3 + HISTORICAL SEALED BASELINE
-**CURRENT:** `C3 ACCEPTED / PASS / PUBLISHED / NOT DEPLOYED`; `C1 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `C2 ACCEPTED / PUBLISHED / NOT DEPLOYED`; `DEPLOYMENT REVISION UNVERIFIED`; `MVP-2 HOLD`
-**Active roadmap:** [C3 acceptance](gate-c3-core-stability/ACCEPTANCE.md)
-и [передача C4](gate-c3-core-stability/HANDOFF.md).
+**Актуально на:** 8 сентября 2026 года.
+**CURRENT:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / NOT PUBLISHED.
+C5–C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C4](gate-c4-frontend-journey/HANDOFF.md)
+содержит точную ревизию, проверки и условия завершения.
 Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
 и не входит в published tree.
 
@@ -31,7 +25,7 @@ checkpoints, не отдельные пользовательские чаты.
 | C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED / NOT DEPLOYED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
 | C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
-| C4 — завершённый frontend/user journey | READY TO START / NOT STARTED | [C3 handoff](gate-c3-core-stability/HANDOFF.md), Telegram/Mini App E2E |
+| C4 — завершённый frontend/user journey | ACCEPTED / PASS / NOT PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
 | C5 — operations/recovery/security | HOLD до C4 | health/ingress/backup/cleanup/rollback |
 | C6 — frozen release и owner acceptance | HOLD до C5 | exact publication/activation/readback/acceptance |
 
@@ -96,4 +90,4 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Acceptance всего MVP1 переоткрыта; текущий Gate — C3; дальнейшая последовательность — C4–C6.
+границах. Acceptance всего MVP1 переоткрыта; текущий Gate — C4; далее C5 и C6.

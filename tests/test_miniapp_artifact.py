@@ -280,5 +280,7 @@ def test_frontend_downloads_artifact_with_memory_only_bearer() -> None:
     assert "URL.createObjectURL" in source
     assert "URL.revokeObjectURL" in source
     assert "Authorization" in source
-    assert "localStorage" not in source
+    assert 'saveMarker("bearer"' not in source
+    assert 'saveMarker("initData"' not in source
+    assert '"sha256:" + digest !== artifact.content_digest' in source
     assert "innerHTML" not in source

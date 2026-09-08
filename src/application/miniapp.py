@@ -19,7 +19,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from src.application.task_confirmation import MAX_TASK_INSTRUCTION_LENGTH
-from src.application.product_status import ProductTaskStatus, product_task_state
+from src.application.product_status import (
+    ProductAction, ProductAdmissionStopped, ProductReason, ProductTaskStatus,
+    product_event_label, product_reason_state, product_task_state,
+)
 from src.application.semantic_admission import (
     SemanticClarificationRejected,
     SemanticClarificationRequired,
@@ -44,6 +47,8 @@ from src.storage import (
     StoredTaskSnapshot,
     artifact_for_message,
 )
+from src.storage.sqlite_store import MiniAppCancelledRequest, MiniAppRequestRecord
+from src.storage.outbox import OutboxStatus
 
 
 _IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._~-]{16,128}")
@@ -69,6 +74,16 @@ class MiniAppTaskConflictError(ValueError):
 
 class MiniAppTaskRequestError(ValueError):
     """A task mutation request is syntactically invalid."""
+
+
+class MiniAppRequestCancelled(ValueError):
+    """An absent request key was durably cancelled before admission."""
+
+
+class MiniAppRequestNotAccepted(RuntimeError):
+    def __init__(self, detail: str) -> None:
+        self.state = product_reason_state(ProductReason(detail))
+        super().__init__(self.state.reason.value)
 
 
 class MiniAppTaskMaterial(BaseModel):
@@ -100,6 +115,20 @@ class MiniAppSessionGrant(BaseModel):
 
     access_token: str = Field(min_length=32, max_length=128)
     expires_in: StrictInt = Field(ge=1, le=900)
+    recovery_token: str | None = Field(default=None, exclude=True, repr=False)
+    recovery_expires_in: int = Field(default=0, exclude=True, repr=False)
+
+
+class MiniAppRequestState(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    request_id: str
+    state: Literal["pending", "accepted", "clarification", "not_accepted"]
+    task_id: UUID | None = None
+    status: ProductTaskStatus | None = None
+    question: str | None = None
+    clarification_token: str | None = Field(default=None, repr=False)
+    detail: Literal["clarification_invalid", "capability_unavailable", "request_refused", "condition_not_met", "approval_required", "request_cancelled"] | None = None
 
 
 class MiniAppTaskSummary(BaseModel):
@@ -110,6 +139,9 @@ class MiniAppTaskSummary(BaseModel):
     description_available: bool
     status: ProductTaskStatus
     status_label: str = Field(min_length=1, max_length=64)
+    reason: ProductReason
+    reason_label: str
+    action: ProductAction
     terminal: bool
     source: str
     risk: str
@@ -130,6 +162,8 @@ class MiniAppTaskDetail(MiniAppTaskSummary):
     has_result: bool
     has_verified_answer: bool
     has_artifact: bool = False
+    delivery_pending: bool = False
+    delivery_label: str | None = None
 
 
 class MiniAppTaskCreation(BaseModel):
@@ -173,6 +207,7 @@ class MiniAppTaskEvent(BaseModel):
         "failed",
         "stopped",
     ]
+    label: str
     emitted_at: datetime
 
 
@@ -189,6 +224,8 @@ _SAFE_EVENT_KIND = {
 
 
 class MiniAppTaskAdmission(Protocol):
+    def miniapp_clarification_current(self, envelope: TrustedIngressEnvelope, token: str) -> bool: ...
+
     async def submit_miniapp_task(
         self,
         instruction: str,
@@ -207,6 +244,8 @@ class _Session:
     owner_user_id: int
     tenant_id: str
     auth_context_ref: str
+    recovery_digest: str
+    issued_at: datetime
     expires_at: datetime
 
 
@@ -271,6 +310,9 @@ class MiniAppCore:
         self._session_ttl = session_ttl
         self._future_skew = future_skew
         self._max_init_data_bytes = max_init_data_bytes
+        self._auth_context_ref = canonical_json_digest(
+            {"bot_ref": self._bot_ref, "owner_user_id": owner_user_id, "tenant_id": tenant}
+        )
         self._sessions: dict[str, _Session] = {}
         self._lock = threading.Lock()
         # ponytail: one owner, so one mutation lock is enough until measured concurrency needs more.
@@ -293,28 +335,76 @@ class MiniAppCore:
         if not claimed:
             raise MiniAppAuthenticationError("unauthorized")
         with self._lock:
-            self._expire(now)
-            token = secrets.token_urlsafe(32)
-            token_digest = self._token_digest(token)
-            while token_digest in self._sessions:
-                token = secrets.token_urlsafe(32)
-                token_digest = self._token_digest(token)
-            expires_at = now + self._session_ttl
-            self._sessions[token_digest] = _Session(
-                owner_user_id=owner_user_id,
-                tenant_id=self._tenant_id,
-                auth_context_ref=canonical_json_digest(
-                    {
-                        "bot_ref": self._bot_ref,
-                        "owner_user_id": owner_user_id,
-                        "tenant_id": self._tenant_id,
-                    }
-                ),
-                expires_at=expires_at,
-            )
+            recovery = self._recovery_token(auth_date + self._init_data_ttl)
+            try:
+                deadline = self._store.replace_miniapp_recovery(
+                    self._tenant_id, self._auth_context_ref,
+                    "sha256:" + self._token_digest(recovery), now=now,
+                    expires_at=auth_date + self._init_data_ttl,
+                )
+            except StoreCorruptionError:
+                raise MiniAppCoreUnavailableError("core_unavailable") from None
+            assert deadline is not None
+            return self._grant(recovery, deadline=deadline, now=now)
+
+    def recover_session(self, recovery_token: str) -> MiniAppSessionGrant:
+        now = self._now()
+        deadline = self._verify_recovery_token(recovery_token, now=now)
+        with self._lock:
+            recovery = self._recovery_token(deadline)
+            try:
+                stored_deadline = self._store.replace_miniapp_recovery(
+                    self._tenant_id, self._auth_context_ref,
+                    "sha256:" + self._token_digest(recovery), now=now,
+                    previous_digest="sha256:" + self._token_digest(recovery_token),
+                    expected_deadline=deadline,
+                )
+            except StoreCorruptionError:
+                raise MiniAppCoreUnavailableError("core_unavailable") from None
+            if stored_deadline is None:
+                raise MiniAppAuthenticationError("unauthorized")
+            if stored_deadline != deadline:
+                raise MiniAppCoreUnavailableError("core_unavailable")
+            return self._grant(recovery, deadline=deadline, now=now)
+
+    def _recovery_token(self, deadline: datetime) -> str:
+        stamp = (deadline - datetime(1970, 1, 1, tzinfo=UTC)) // timedelta(microseconds=1)
+        value = f"{secrets.token_urlsafe(32)}.{stamp}"
+        signature = hmac.new(self._bot_token,
+            f"miniapp-recovery:v1:{self._auth_context_ref}:{value}".encode(), hashlib.sha256).hexdigest()
+        return f"{value}.{signature}"
+
+    def _verify_recovery_token(self, token: str, *, now: datetime) -> datetime:
+        if not isinstance(token, str) or re.fullmatch(r"[A-Za-z0-9_-]{43}\.[0-9]{15,17}\.[0-9a-f]{64}", token) is None:
+            raise MiniAppAuthenticationError("unauthorized")
+        value, signature = token.rsplit(".", 1)
+        expected = hmac.new(self._bot_token,
+            f"miniapp-recovery:v1:{self._auth_context_ref}:{value}".encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            raise MiniAppAuthenticationError("unauthorized")
+        try:
+            deadline = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(microseconds=int(value.split(".")[1]))
+        except (ValueError, OSError, OverflowError):
+            raise MiniAppAuthenticationError("unauthorized") from None
+        if deadline <= now:
+            raise MiniAppAuthenticationError("unauthorized")
+        return deadline
+
+    def _grant(self, recovery: str, *, deadline: datetime, now: datetime) -> MiniAppSessionGrant:
+        now = self._now()
+        if deadline <= now:
+            raise MiniAppAuthenticationError("unauthorized")
+        token = secrets.token_urlsafe(32)
+        expires_at = min(now + self._session_ttl, deadline)
+        self._sessions = {self._token_digest(token): _Session(
+            owner_user_id=self._owner_user_id, tenant_id=self._tenant_id,
+            auth_context_ref=self._auth_context_ref,
+            recovery_digest="sha256:" + self._token_digest(recovery),
+            issued_at=now, expires_at=expires_at,
+        )}
         return MiniAppSessionGrant(
-            access_token=token,
-            expires_in=int(self._session_ttl.total_seconds()),
+            access_token=token, expires_in=max(1, int((expires_at - now).total_seconds())),
+            recovery_token=recovery, recovery_expires_in=max(1, int((deadline - now).total_seconds())),
         )
 
     def list_tasks(
@@ -341,6 +431,8 @@ class MiniAppCore:
         state = product_task_state(projection.status)
         has_verified_answer = False
         artifact: OutboxArtifact | None = None
+        delivery_pending = False
+        delivery_label = None
         if projection.status is TaskStatus.ANSWERED:
             message = self._verified_answer(snapshot)
             has_verified_answer = message is not None
@@ -348,6 +440,13 @@ class MiniAppCore:
                 raise MiniAppCoreUnavailableError("core_unavailable")
             assert message is not None
             artifact = artifact_for_message(message)
+            delivery_pending = message.status in {OutboxStatus.PENDING, OutboxStatus.LEASED}
+            if delivery_pending:
+                delivery_label = product_reason_state(ProductReason.DELIVERY_PENDING).reason_label
+            elif message.status is OutboxStatus.FAILED:
+                delivery_label = "Доставку в Telegram не удалось подтвердить. Результат доступен здесь."
+            else:
+                delivery_label = "Доставка в Telegram подтверждена."
         return MiniAppTaskDetail(
             **self._summary(snapshot).model_dump(),
             instruction=snapshot.display_instruction,
@@ -369,6 +468,8 @@ class MiniAppCore:
             ),
             has_verified_answer=has_verified_answer,
             has_artifact=artifact is not None,
+            delivery_pending=delivery_pending,
+            delivery_label=delivery_label,
         )
 
     def task_result(
@@ -472,6 +573,7 @@ class MiniAppCore:
         return tuple(
             MiniAppTaskEvent(
                 kind=_SAFE_EVENT_KIND[event.event_type],
+                label=product_event_label(_SAFE_EVENT_KIND[event.event_type]),
                 emitted_at=event.emitted_at,
             )
             for event in events
@@ -554,6 +656,16 @@ class MiniAppCore:
             material=material,
             clarification_token=clarification_token,
         )
+        try:
+            claimed, record = self._store.write_miniapp_request(
+                MiniAppRequestRecord(envelope=envelope), claim=True
+            )
+        except IngressClaimConflictError:
+            raise MiniAppTaskConflictError("request_conflict") from None
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if isinstance(record, MiniAppCancelledRequest):
+            raise MiniAppRequestCancelled("request_cancelled")
         existing = self._existing_creation(
             envelope,
             admission,
@@ -562,6 +674,19 @@ class MiniAppCore:
         )
         if existing is not None:
             return existing
+        if not claimed:
+            if record.state == "clarification":
+                if not self._clarification_current(record):
+                    self._finish_request(record, state="not_accepted", detail="clarification_invalid")
+                    raise SemanticClarificationRejected("clarification_invalid")
+                assert record.question is not None and record.clarification_token is not None
+                raise SemanticClarificationRequired(record.question, record.clarification_token)
+            if record.detail == "clarification_invalid":
+                raise SemanticClarificationRejected("clarification_invalid")
+            if record.state == "not_accepted":
+                raise MiniAppRequestNotAccepted(record.detail)
+            # Unknown admission must be reconciled, never run the compiler/queue again.
+            raise MiniAppCoreUnavailableError("core_unavailable")
         try:
             if clarification_token is None:
                 task_id = await admission.submit_miniapp_task(instruction, envelope)
@@ -571,8 +696,17 @@ class MiniAppCore:
                     envelope,
                     clarification_token=clarification_token,
                 )
-        except (SemanticClarificationRequired, SemanticClarificationRejected):
+        except SemanticClarificationRequired as error:
+            self._finish_request(record, state="clarification", question=error.question,
+                                 clarification_token=error.token,
+                                 expires_at=self._now() + timedelta(minutes=30))
             raise
+        except SemanticClarificationRejected:
+            self._finish_request(record, state="not_accepted", detail="clarification_invalid")
+            raise
+        except ProductAdmissionStopped as error:
+            self._finish_request(record, state="not_accepted", detail=error.state.reason.value)
+            raise MiniAppRequestNotAccepted(error.state.reason.value) from None
         except (DuplicateIdempotencyKeyError, IngressClaimConflictError):
             existing = self._existing_creation(
                 envelope,
@@ -603,6 +737,76 @@ class MiniAppCore:
             snapshot, display_title, instruction=instruction
         )
         return self._creation(snapshot, admission)
+
+    def _finish_request(self, record: MiniAppRequestRecord, **outcome: object) -> None:
+        try:
+            self._store.write_miniapp_request(
+                MiniAppRequestRecord(envelope=record.envelope, **outcome)
+            )
+        except (StoreCorruptionError, ValueError):
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+
+    def _clarification_current(self, record: MiniAppRequestRecord) -> bool:
+        if record.expires_at is None or record.expires_at <= self._now():
+            return False
+        check = getattr(self._task_admission, "miniapp_clarification_current", None)
+        if not callable(check):
+            raise MiniAppCoreUnavailableError("core_unavailable")
+        try:
+            return check(record.envelope, record.clarification_token)
+        except Exception:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+
+    def request_state(self, bearer: str, idempotency_key: str) -> MiniAppRequestState:
+        session = self._session(bearer)
+        if not isinstance(idempotency_key, str) or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None:
+            raise MiniAppTaskNotFoundError("task_not_found")
+        try:
+            record = self._store.read_miniapp_request(
+                session.tenant_id, session.auth_context_ref, idempotency_key
+            )
+            if record is None:
+                raise MiniAppTaskNotFoundError("task_not_found")
+            if isinstance(record, MiniAppCancelledRequest):
+                return MiniAppRequestState(request_id=idempotency_key, state="not_accepted",
+                                           detail="request_cancelled")
+            snapshot = self._store.read_ingress_claim(record.envelope)
+            if snapshot is not None:
+                if self._task_admission is None:
+                    raise MiniAppCoreUnavailableError("core_unavailable")
+                creation = self._creation(snapshot, self._task_admission)
+                return MiniAppRequestState(request_id=idempotency_key, state="accepted",
+                                           task_id=creation.task_id, status=creation.status)
+        except (StoreCorruptionError, IngressClaimConflictError):
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if record.state == "clarification" and not self._clarification_current(record):
+            self._finish_request(record, state="not_accepted", detail="clarification_invalid")
+            return MiniAppRequestState(request_id=idempotency_key, state="not_accepted",
+                                       detail="clarification_invalid")
+        return MiniAppRequestState(
+            request_id=idempotency_key, state=record.state,
+            question=record.question, clarification_token=record.clarification_token,
+            detail=record.detail,
+        )
+
+    async def cancel_absent_request(self, bearer: str, idempotency_key: str) -> MiniAppRequestState:
+        if not isinstance(idempotency_key, str) or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None:
+            raise MiniAppTaskRequestError("invalid_request")
+        async with self._mutation_lock:
+            session = self._session(bearer)
+            try:
+                record = self._store.cancel_absent_miniapp_request(MiniAppCancelledRequest(
+                    tenant_id=session.tenant_id, auth_context_ref=session.auth_context_ref,
+                    idempotency_key=idempotency_key,
+                ))
+            except IngressClaimConflictError:
+                raise MiniAppTaskNotFoundError("task_not_found") from None
+            except StoreCorruptionError:
+                raise MiniAppCoreUnavailableError("core_unavailable") from None
+            if record is None:
+                # A legacy ingress claim without a journal is not proof of rejection.
+                return MiniAppRequestState(request_id=idempotency_key, state="pending")
+            return self.request_state(bearer, idempotency_key)
 
     def _existing_creation(
         self,
@@ -706,7 +910,7 @@ class MiniAppCore:
             "actor_identity": "telegram:owner",
             "external_message_id": f"miniapp:task.create:{idempotency_key}",
             "idempotency_key": idempotency_key,
-            "received_at": session.expires_at - self._session_ttl,
+            "received_at": session.issued_at,
             "kind": IngressKind.TEXT,
             "content_ref": content_ref,
             "auth_context_ref": session.auth_context_ref,
@@ -786,8 +990,8 @@ class MiniAppCore:
             or any(character.isspace() for character in bearer)
         ):
             raise MiniAppAuthenticationError("unauthorized")
-        now = self._now()
         with self._lock:
+            now = self._now()
             self._expire(now)
             session = self._sessions.get(self._token_digest(bearer))
             if (
@@ -796,6 +1000,14 @@ class MiniAppCore:
                 or session.tenant_id != self._tenant_id
                 or session.expires_at <= now
             ):
+                raise MiniAppAuthenticationError("unauthorized")
+            try:
+                current = self._store.miniapp_recovery_current(
+                    session.tenant_id, session.auth_context_ref, session.recovery_digest, now=now
+                )
+            except StoreCorruptionError:
+                raise MiniAppCoreUnavailableError("core_unavailable") from None
+            if not current or session.expires_at <= self._now():
                 raise MiniAppAuthenticationError("unauthorized")
             return session
 
@@ -835,23 +1047,28 @@ class MiniAppCore:
     def _artifact_summary(artifact: OutboxArtifact) -> MiniAppTaskArtifact:
         return MiniAppTaskArtifact(
             artifact_id=artifact.artifact_id,
-            filename=artifact.filename,
+            filename="nobus-result.txt",
             media_type=artifact.media_type,
             size=artifact.size,
             content_digest=artifact.content_digest,
         )
 
-    @staticmethod
-    def _summary(snapshot: StoredTaskSnapshot) -> MiniAppTaskSummary:
+    def _summary(self, snapshot: StoredTaskSnapshot) -> MiniAppTaskSummary:
         projection = snapshot.projection
         state = product_task_state(projection.status)
-        short_id = str(projection.task_id).split("-", 1)[0].upper()
+        try:
+            number = self._store.task_display_number(projection.tenant_id, projection.task_id)
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
         return MiniAppTaskSummary(
             task_id=projection.task_id,
-            description=snapshot.display_text or f"Задача #{short_id}",
+            description=snapshot.display_text or f"Задача №{number}",
             description_available=snapshot.display_text is not None,
             status=state.status,
             status_label=state.label,
+            reason=state.reason,
+            reason_label=state.reason_label,
+            action=state.action,
             terminal=state.terminal,
             source=projection.source.value,
             risk=projection.risk.value,

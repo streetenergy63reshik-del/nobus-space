@@ -1285,6 +1285,32 @@ class SQLiteTelegramState:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DurableTelegramStateError("runtime_store_unavailable") from None
 
+    def list_progress(self) -> tuple[ProgressMessageRef, ...]:
+        """Read saved bot refs, including cleanup left after a restart."""
+        try:
+            with closing(self._connect()) as connection:
+                return tuple(ProgressMessageRef(
+                    row['tenant_id'], UUID(row['task_id']), row['chat_id'],
+                    row['message_id'], datetime.fromisoformat(row['updated_at']),
+                ) for row in connection.execute('SELECT * FROM telegram_progress'))
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DurableTelegramStateError('runtime_store_unavailable') from None
+
+    @contextmanager
+    def finished_voice_cleanup(self, *, tenant_id: str, task_id: UUID) -> Iterator[bool]:
+        """Keep queue authority while the caller rechecks the separate Core DB."""
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM telegram_jobs WHERE tenant_id=? AND task_id=? AND kind='voice'",
+                (tenant_id, str(task_id)),
+            ).fetchone()
+            other = connection.execute(
+                "SELECT 1 FROM telegram_jobs WHERE tenant_id=? AND task_id=? AND kind!='voice' LIMIT 1",
+                (tenant_id, str(task_id)),
+            ).fetchone()
+            yield (row is not None and row['status'] == 'finished'
+                   and not self._job_from_row(row).payload and other is None)
+
     def delete_progress(self, reference: ProgressMessageRef) -> bool:
         if not isinstance(reference, ProgressMessageRef):
             return False

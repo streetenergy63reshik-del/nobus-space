@@ -50,6 +50,10 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "b3b537e0a787c8d3baca03a6f1f583892dc90e7a0e30c1b21a8d7ed6ca8d554f",
         "table:miniapp_auth_replays":
             "457452b833664f228838673ed77b76f2819b42e332fbac61695e30a759ba1c72",
+        "table:miniapp_session_recovery":
+            "340b4e0ca0c53c69c9b60bbabafa575ca9f52ea1b0ca1ae19b2c23a3f0f2fc89",
+        "table:miniapp_requests":
+            "35c345972544e90e012e107f9a1395f32a5b851499b7ffa59e192b8f0c798d9e",
         "table:outbox_messages":
             "39174bc3721c2f0b4315be0efb3b224d9935a555c29d6e52cb1488bc5f0fb40d",
         "table:outbox_receipts":
@@ -217,7 +221,7 @@ def _read_only_store(path: Path):
 
 
 def _validate_task_runtime_rows(path: Path) -> None:
-    from src.storage.sqlite_store import _claim_binding_digest, _is_digest
+    from src.storage.sqlite_store import MiniAppCancelledRequest, _claim_binding_digest, _is_digest
 
     store = _read_only_store(path)
     with closing(sqlite3.connect(path)) as connection:
@@ -240,6 +244,8 @@ def _validate_task_runtime_rows(path: Path) -> None:
             """SELECT tenant_id,replay_digest,auth_expires_at,claimed_at
                FROM miniapp_auth_replays"""
         ).fetchall()
+        recoveries = connection.execute("SELECT * FROM miniapp_session_recovery").fetchall()
+        requests = connection.execute("SELECT * FROM miniapp_requests").fetchall()
     for row in tasks:
         if store.read_task(row["tenant_id"], UUID(row["task_id"])) is None:
             raise RuntimeError("task snapshot is missing")
@@ -289,6 +295,24 @@ def _validate_task_runtime_rows(path: Path) -> None:
             or not 0 < (expires - claimed).total_seconds() <= 1_020
         ):
             raise RuntimeError("miniapp auth replay binding mismatch")
+    for row in recoveries:
+        if (not isinstance(row["tenant_id"], str) or not row["tenant_id"].strip()
+                or len(row["tenant_id"]) > 128
+                or row["tenant_id"] != row["tenant_id"].strip()
+                or not _is_digest(row["auth_context_ref"])
+                or not _is_digest(row["credential_digest"])
+                or _aware(row["expires_at"]).utcoffset() != timedelta(0)):
+            raise RuntimeError("miniapp recovery binding mismatch")
+    for row in requests:
+        record = store._miniapp_request_from_row(row)
+        if isinstance(record, MiniAppCancelledRequest):
+            continue  # The closed tombstone schema and exact row binding were validated above.
+        if (re.fullmatch(r"[A-Za-z0-9._~-]{16,128}", row["idempotency_key"]) is None
+                or record.envelope.source.value != "api"
+                or record.envelope.kind.value != "text"
+                or record.envelope.actor_identity != "telegram:owner"
+                or record.envelope.external_message_id != "miniapp:task.create:" + row["idempotency_key"]):
+            raise RuntimeError("miniapp request binding mismatch")
 
 
 def _validate_telegram_state_rows(path: Path) -> None:

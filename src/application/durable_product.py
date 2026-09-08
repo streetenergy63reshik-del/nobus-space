@@ -21,6 +21,9 @@ from src.application.durable_telegram_state import (
     execution_lease,
 )
 from src.application.patch_confirmation import PatchProposal
+from src.application.product_status import (
+    ProductAdmissionStopped, ProductReason, product_progress_state, product_reason_state,
+)
 from src.application.semantic_admission import (
     PendingClarification,
     SemanticClarificationRejected,
@@ -42,6 +45,8 @@ from src.application.telegram_product import (
 from src.contracts import TaskContract, TrustedIngressEnvelope
 from src.contracts.models import canonical_json_digest
 from src.core.policy import DuplicateIdempotencyKeyError, task_contract_digest
+from src.models.task import TaskStatus
+from src.storage.outbox import OutboxStatus, message_fingerprint, message_id_for
 from src.transport.telegram import (
     CallbackQuery,
     IngressStatus,
@@ -133,6 +138,59 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     return True
         return await super()._handle_ingress(ingress)
 
+    async def _show_intake_progress(
+        self, message: TextMessage | VoiceMessage | CallbackQuery, task_id: UUID,
+        text: str, *, buttons: tuple[tuple[str, str], ...] | None = None,
+    ) -> int:
+        ref = self._telegram_state.read_progress(tenant_id=message.tenant_id, task_id=task_id)
+        if ref is not None and ref.chat_id != message.chat_id:
+            raise RuntimeError("progress destination mismatch")
+        edit = getattr(self._api, "edit_message_text", None)
+        if ref is not None and callable(edit):
+            options = {} if buttons is None else {"buttons": buttons}
+            await edit(ref.chat_id, ref.message_id, text, **options)
+            return ref.message_id
+        message_id = await self._api.send_message(message.chat_id, text,
+            buttons=buttons or (), message_thread_id=message.message_thread_id)
+        try:
+            self._telegram_state.save_progress(tenant_id=message.tenant_id, task_id=task_id,
+                chat_id=message.chat_id, message_id=message_id)
+        except Exception:
+            with suppress(Exception):
+                await self._api.delete_message(message.chat_id, message_id)
+            raise
+        if ref is not None:
+            # Only transports without editing need a replacement message.
+            with suppress(Exception):
+                await self._api.delete_message(ref.chat_id, ref.message_id)
+        return message_id
+
+    async def _voice_feedback(
+        self, message: VoiceMessage, text: str,
+        *, buttons: tuple[tuple[str, str], ...] | None = None,
+    ) -> int:
+        return await self._show_intake_progress(message, voice_id(message), text, buttons=buttons)
+
+    async def _clear_voice_feedback(self, message: VoiceMessage) -> None:
+        await self._clear_progress_binding(message.tenant_id, voice_id(message))
+
+    async def _intake_feedback(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+    ) -> None:
+        task_id = voice_id(message) if isinstance(message, VoiceMessage) else _miniapp_task_id(
+            envelope.tenant_id, envelope.idempotency_key)
+        await self._show_intake_progress(message, task_id,
+            "Сообщение получено. Разбираюсь в задаче.",
+            buttons=() if isinstance(message, VoiceMessage) else None)
+
+    async def _clear_intake_feedback(
+        self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
+    ) -> None:
+        task_id = voice_id(message) if isinstance(message, VoiceMessage) else _miniapp_task_id(
+            envelope.tenant_id, envelope.idempotency_key)
+        with suppress(Exception):
+            await self._clear_progress_binding(message.tenant_id, task_id)
+
     async def _start_text_task(
         self, message: TextMessage | VoiceMessage, envelope: TrustedIngressEnvelope,
         instruction: str, *, supplied_context: Any = None, semantic_no_effect: bool = False,
@@ -165,7 +223,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             await self.deliver_pending()
         except Exception:
             await self._api.send_message(message.chat_id,
-                "Не удалось принять задачу. Попробуйте ещё раз.")
+                "Не удалось подтвердить приём задачи. " + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label)
 
     async def start(self) -> None:
         if self._execution_workers or self._closing or self._closed:
@@ -340,17 +398,16 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     semantic_clarification_question(admission),
                     token,
                 )
-            if (
-                admission.decision.decision != "EXECUTE"
-                or not admission.decision.task_contract_allowed
-                or admission.decision.selected_capability
-                not in {"task.answer.general", "content.transform"}
-            ):
-                raise RuntimeError("semantic admission did not allow a task")
             if pending is not None and not clarifications.delete(pending):
                 raise SemanticClarificationRejected(
                     "semantic clarification binding changed"
                 )
+            if admission.decision.decision != "EXECUTE":
+                raise ProductAdmissionStopped(admission.decision)
+            if (not admission.decision.task_contract_allowed
+                or admission.decision.selected_capability
+                not in {"task.answer.general", "content.transform"}):
+                raise RuntimeError("semantic admission did not allow a task")
             instruction = _SEMANTIC_NO_EFFECT_PROFILE + canonical.owner_text
         prepared = await self._product_runtime.build_instruction(
             instruction, trusted
@@ -390,6 +447,31 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         await self.start()
         self._wake()
         return prepared.contract.task_id
+
+    def miniapp_clarification_current(
+        self, envelope: TrustedIngressEnvelope, token: str,
+    ) -> bool:
+        """Read the existing C1 binding without consuming it or interpreting input."""
+        trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump(mode="json"))
+        clarifications = getattr(self, "_semantic_clarifications", None)
+        if (not getattr(self, "_enable_semantic_admission", False) or clarifications is None
+            or not isinstance(token, str) or _CLARIFICATION_TOKEN.fullmatch(token) is None):
+            return False
+        _, bindings = telegram_semantic_input(
+            "Проверка срока уточнения", trusted, modality="miniapp_text",
+            chat_id=int(trusted.auth_context_ref[7:22], 16) or 1, message_thread_id=None,
+        )
+        return clarifications.read(
+            owner_binding=bindings.owner_binding,
+            tenant_binding=bindings.tenant_binding,
+            conversation_binding=bindings.conversation_binding,
+            answer_binding=canonical_json_digest({"clarification_token": token, "source": "miniapp"}),
+            # A read has no reply envelope. The separate digest avoids claiming
+            # the original intake is a new answer; mutation still validates its own envelope.
+            reply_envelope_revision=canonical_json_digest({
+                "operation": "clarification-current-read", "envelope": trusted.envelope_revision,
+            }),
+        ) is not None
 
     def miniapp_task_submitted(
         self, tenant_id: str, task_id: UUID, contract_digest: str
@@ -535,7 +617,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 if marker:
                     self._execution_queue.task_done()
                 continue
-            await self._set_progress(job, "⏳ Выполняю задачу…")
+            await self._set_progress(job, product_reason_state(ProductReason.WORKING).reason_label)
             self._active_jobs += 1
             try:
                 await self._execute_with_lease(durable, job)
@@ -750,8 +832,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     self._telegram_state.release(durable, lease_owner=self._lease_owner)
                 with suppress(Exception):
                     message, _ = validate_job(current)
-                    await self._api.send_message(message.chat_id,
-                        'Обработка голосовой записи прервана. Если ответ не появится, отправьте задачу текстом.')
+                    await self._voice_feedback(message,
+                        'Обработка голосовой записи прервана. ' + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label, buttons=())
         finally:
             for task in (execution, heartbeat):
                 if not task.done():
@@ -808,8 +890,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     @staticmethod
     def _progress_text(stage: str, elapsed: float) -> str:
-        minutes = max(1, int(max(0.0, elapsed) // 60))
-        return f"⏳ {stage}…\n\nВ работе: {minutes} мин."
+        minutes = int(max(0.0, elapsed) // 60)
+        duration = f"{minutes} мин." if minutes else "меньше минуты"
+        return f"{product_progress_state(stage).reason_label}\n\nВ работе: {duration}"
 
     async def _submit_draft(
         self,
@@ -874,23 +957,10 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             )
         except Exception:
             return False
-        progress_id: int | None = None
-        try:
-            progress_id = await self._api.send_message(
-                message.chat_id, "⏳ Задача в очереди…"
-            )
-            self._telegram_state.save_progress(
-                tenant_id=prepared.contract.tenant_id,
-                task_id=prepared.contract.task_id,
-                chat_id=message.chat_id,
-                message_id=progress_id,
-            )
-        except Exception:
-            if progress_id is not None:
-                with suppress(Exception):
-                    await self._api.delete_message(
-                        message.chat_id, progress_id
-                    )
+        with suppress(Exception):
+            await self._show_intake_progress(message, prepared.contract.task_id,
+                product_reason_state(ProductReason.ACCEPTED).reason_label,
+                buttons=() if isinstance(message, VoiceMessage) else None)
         await self.start()
         self._wake()
         return True
@@ -1178,7 +1248,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         )
         if ref is None:
             return
-        text = "⚠️ Задачу не удалось восстановить. Отправьте её повторно."
+        text = product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label
         edit = getattr(self._api, "edit_message_text", None)
         try:
             if callable(edit):
@@ -1204,19 +1274,75 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             with suppress(Exception):
                 await edit(ref.chat_id, ref.message_id, text)
 
+    async def deliver_pending(self) -> int:
+        delivered = await super().deliver_pending()
+        # ACK survives a crash before Telegram cleanup. Reconcile saved refs on
+        # delivery cycles; never repeat a draft merely to delete its status.
+        for ref in self._telegram_state.list_progress():
+            with suppress(Exception):
+                await self._settle_task_progress(ref.tenant_id, ref.task_id)
+        return delivered
+
+    async def _settle_task_progress(
+        self, tenant_id: str, task_id: UUID, *, show_pending: bool = False,
+    ) -> None:
+        if tenant_id not in self._task_tenants or tenant_id not in getattr(self._product_runtime, '_destination_refs', {}):
+            return
+        ref = self._telegram_state.read_progress(tenant_id=tenant_id, task_id=task_id)
+        store = getattr(self._product_runtime, '_store', None)
+        if ref is None or store is None:
+            return
+        snapshot = store.read_task(tenant_id, task_id)
+        if snapshot is None:
+            # Finished voice previews may have no Core task (replacement/expiry).
+            # Do not mistake the interval before deferred admission for cleanup.
+            with self._telegram_state.finished_voice_cleanup(tenant_id=tenant_id, task_id=task_id) as finished:
+                if not finished:
+                    return
+                snapshot = store.read_task(tenant_id, task_id)
+            if snapshot is None:
+                await self._clear_progress_binding(tenant_id, task_id)
+                return
+        projection = snapshot.projection
+        if projection.status is TaskStatus.ANSWERED:
+            message = store.read_verified_answer(tenant_id, task_id,
+                task_revision=snapshot.revision, task_projection_digest=snapshot.snapshot_digest,
+                contract_digest=projection.contract_digest, result_revision=projection.result_revision,
+                result_digest=projection.result_digest)
+        elif projection.status in {TaskStatus.FAILED, TaskStatus.REJECTED, TaskStatus.COMPLETED, TaskStatus.ESCALATE}:
+            destination = self._product_runtime._destination_refs.get(tenant_id)
+            if destination is None:
+                return
+            fingerprint = message_fingerprint(tenant_id=tenant_id, task_id=task_id,
+                task_revision=snapshot.revision, task_projection_digest=snapshot.snapshot_digest,
+                contract_digest=projection.contract_digest, result_revision=projection.result_revision,
+                result_digest=projection.result_digest, destination_ref=destination,
+                task_status=projection.status)
+            message = store.read_outbox_message(tenant_id, message_id_for(fingerprint))
+        else:
+            return
+        if message is not None and message.status is OutboxStatus.ACKED:
+            await self._clear_progress_binding(tenant_id, task_id)
+        elif show_pending:
+            edit = getattr(self._api, 'edit_message_text', None)
+            if callable(edit):
+                await edit(ref.chat_id, ref.message_id,
+                    'Выполнение завершено. Доставка ответа ещё не подтверждена. '
+                    'Проверьте задачу в Mini App; повторно отправлять её не нужно.', buttons=())
+
     async def _clear_progress(
         self, job: _QueuedJob | _QueuedMiniAppDraft
     ) -> None:
         if not isinstance(job, _QueuedDraft):
             return
-        await self._clear_progress_binding(
+        await self._settle_task_progress(
             job.prepared.contract.tenant_id,
-            job.prepared.contract.task_id,
+            job.prepared.contract.task_id, show_pending=True,
         )
 
     async def _clear_durable_progress(self, job: DurableJob) -> None:
         if job.kind == "draft":
-            await self._clear_progress_binding(job.tenant_id, job.task_id)
+            await self._settle_task_progress(job.tenant_id, job.task_id, show_pending=True)
 
     async def _clear_progress_binding(
         self, tenant_id: str, task_id: UUID

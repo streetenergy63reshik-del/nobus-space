@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark light">
     <title>Nobus Space</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css?v=fd7f08a131ca">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/app.js?v=93bacdff7536"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -21,18 +21,20 @@
         </button>
       </header>
 
-      <p id="state" class="state" role="status">Nobus Space временно недоступен</p>
+      <div id="state" class="state"><p>Открываем журнал задач…</p></div>
+      <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
       <section id="task-panel" class="task-panel" hidden>
         <div class="section-heading">
           <h2>Последние задачи</h2>
-          <span id="task-count" class="task-count" aria-live="polite"></span>
+          <span id="task-count" class="task-count"></span>
+          <button id="refresh-tasks" class="secondary-button" type="button">Обновить</button>
         </div>
         <ol id="tasks" class="task-list" aria-label="Список задач"></ol>
         <div id="empty" class="empty-state" hidden>
           <span class="empty-mark" aria-hidden="true">N</span>
           <h2>Здесь появятся ваши задачи</h2>
-          <p>Нажмите «Новая», опишите результат — Nobus передаст задачу в локальный Core и Codex.</p>
+          <p>Нажмите «Новая» и опишите нужный результат. Голосовую задачу отправьте в чат Telegram и нажмите «Подтверждаю» под расшифровкой.</p>
         </div>
       </section>
     </main>
@@ -47,6 +49,7 @@
           </div>
           <button id="close-composer" class="icon-button" type="button" aria-label="Закрыть">×</button>
         </header>
+        <p id="clarification-question" class="clarification-question" hidden></p>
         <label class="field-label" for="display-title">
           Короткое название
           <input id="display-title" maxlength="120" required placeholder="Например: Отчёт за неделю">
@@ -56,9 +59,12 @@
           <textarea id="instruction" maxlength="2000" rows="6" required placeholder="Опишите задачу и ожидаемый результат…"></textarea>
         </label>
         <div class="composer-meta">
-          <span>Задача будет выполнена локальным Codex</span>
+          <span>Перед началом проверим запрос</span>
           <span id="character-count">0 / 2000</span>
         </div>
+        <p id="composer-error" class="state" tabindex="-1" hidden></p>
+        <button id="pending-read" class="secondary-button" type="button" hidden>Проверить приём</button>
+        <button id="pending-cancel" class="secondary-button" type="button" hidden>Отменить отправку</button>
         <button id="submit-task" class="primary-button" type="submit">Создать задачу</button>
       </form>
     </dialog>
@@ -73,7 +79,8 @@
           </div>
           <button id="close-detail" class="icon-button" type="button" aria-label="Закрыть">×</button>
         </header>
-        <section id="detail" aria-live="polite"></section>
+        <div id="detail-error" class="state" hidden></div>
+        <section id="detail"></section>
       </article>
     </dialog>
   </body>

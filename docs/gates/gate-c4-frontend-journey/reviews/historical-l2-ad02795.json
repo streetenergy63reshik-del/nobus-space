@@ -1,0 +1,172 @@
+{
+  "schema": "nobus-c4-l2-review-1",
+  "reviewer": "/root/c4_l2_review",
+  "independent_author": true,
+  "candidate": {
+    "sha": "ad02795c5457deb3909517efd1992cacb5ac9a73",
+    "tree": "229d7a4be82da7391ee339825fffb3538d34481d"
+  },
+  "base": {
+    "sha": "b9283b3419928042c80278b5088b526edebab6e7",
+    "tree": "77062335b1dbccb3694721d357e484c856ac89c7",
+    "ancestor": true,
+    "handoff_blob": "31d20bd53947531a38755aa81a99a77ab40b68d9",
+    "acceptance_blob": "a231fb83c045d1b6dc4113de236fbd920ee3b832"
+  },
+  "verdict": "LOCAL_CANDIDATE_REJECTED",
+  "total_gate": "NOT_ACCEPTED_BROWSER_LIVE_AND_REWORK_PENDING",
+  "profile": "software-development",
+  "risk": "high",
+  "lifecycle": "GATE_CANDIDATE",
+  "findings": [
+    {
+      "id": "L2-C4-01",
+      "severity": "P1",
+      "class": "PRODUCT_OR_SECURITY_RISK",
+      "owner": "session/request recovery UX+Core contract",
+      "title": "Unknown never-admitted POST leaves all new intents permanently locked",
+      "refs": [
+        "src/transport/miniapp_static/app.js:127",
+        "src/transport/miniapp_static/app.js:291",
+        "src/transport/miniapp_static/app.js:312",
+        "src/transport/miniapp_static/app.js:327",
+        "src/application/miniapp.py:762"
+      ],
+      "evidence": [
+        "frontend-independent.log",
+        "http-independent-final.log",
+        "independent_frontend.test.cjs:28",
+        "test_independent_http.py:51"
+      ]
+    },
+    {
+      "id": "L2-C4-02",
+      "severity": "P2",
+      "class": "IMPLEMENTATION_DEFECT",
+      "owner": "frontend detail read recovery",
+      "title": "Successful unchanged task read does not clear obsolete detail error",
+      "refs": [
+        "src/transport/miniapp_static/app.js:120",
+        "src/transport/miniapp_static/app.js:214",
+        "src/transport/miniapp_static/app.js:234"
+      ],
+      "evidence": [
+        "frontend-independent.log",
+        "independent_frontend.test.cjs:17"
+      ]
+    }
+  ],
+  "tests": {
+    "focused": {
+      "pass": 44,
+      "fail": 0,
+      "receipt": "focused.json",
+      "junit": "focused.xml"
+    },
+    "independent_js": {
+      "pass": 4,
+      "fail": 2,
+      "receipt": "frontend-independent.json"
+    },
+    "independent_http_initial": {
+      "pass": 3,
+      "fail": 1,
+      "classification": "VERIFIER_DEFECT",
+      "receipt": "http-independent.json",
+      "preserved": true
+    },
+    "independent_http_final": {
+      "pass": 4,
+      "fail": 0,
+      "receipt": "http-independent-final.json",
+      "junit": "http-final.xml"
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "b9283b3419928042c80278b5088b526edebab6e7",
+        "HEAD"
+      ]
+    }
+  },
+  "sources_unchanged": true,
+  "source_hash_count": 125,
+  "clean_before_after": true,
+  "changed_files": [
+    "\"docs/04-\\320\\226\\321\\203\\321\\200\\320\\275\\320\\260\\320\\273-ADR.md\"",
+    "docs/README.md",
+    "docs/adr/0025-miniapp-session-and-request-recovery.md",
+    "docs/adr/0026-channel-neutral-product-projection.md",
+    "docs/gates/README.md",
+    "docs/gates/gate-c4-frontend-journey/ACCEPTANCE.md",
+    "docs/gates/gate-c4-frontend-journey/EVIDENCE.json",
+    "docs/gates/gate-c4-frontend-journey/HANDOFF.md",
+    "docs/gates/gate-c4-frontend-journey/NEGATIVE-MATRIX.md",
+    "docs/gates/gate-c4-frontend-journey/UX-MATRIX.md",
+    "docs/gates/gate-c4-frontend-journey/WORKING-CONTRACT.md",
+    "docs/handoffs/CURRENT-STATUS.md",
+    "docs/handoffs/MVP-1-ISSUES.md",
+    "src/application/durable_product.py",
+    "src/application/durable_voice.py",
+    "src/application/miniapp.py",
+    "src/application/product_status.py",
+    "src/application/runtime_maintenance.py",
+    "src/application/telegram_product.py",
+    "src/storage/sqlite_store.py",
+    "src/transport/miniapp.py",
+    "src/transport/miniapp_static/app.js",
+    "src/transport/miniapp_static/index.html",
+    "src/transport/miniapp_static/styles.css",
+    "src/transport/telegram/bot_api.py",
+    "tests/gate_c4/budget.py",
+    "tests/gate_c4/frontend.test.cjs",
+    "tests/gate_c4/product_smoke.py",
+    "tests/gate_c4/server.py",
+    "tests/gate_c4/test_smoke_guards.py",
+    "tests/test_c4_miniapp_recovery.py",
+    "tests/test_c4_product_journey.py",
+    "tests/test_miniapp.py",
+    "tests/test_miniapp_artifact.py",
+    "tests/test_miniapp_result.py",
+    "tests/test_telegram_product.py"
+  ],
+  "source_manifests": [
+    "before.json",
+    "after.json"
+  ],
+  "limits": {
+    "actual_browser": false,
+    "mobile_keyboard_light_dark": "NOT_VERIFIED",
+    "live_telegram_miniapp": false,
+    "own_model_turns": 0,
+    "own_asr_runs": 0,
+    "external_calls": 0,
+    "tracked_writes": 0,
+    "git_mutations": 0,
+    "root_model_L1_L3_not_claimed": true
+  },
+  "known_verifier_limit": "Independent JS uses existing unit DOM adapter; loopback HTTP uses real Core/SQLite but seeded answer/verifier fixtures, no model or native browser.",
+  "receipt_sha256": {
+    "after.json": "2c50e22d6cfd1ff27ee4ab40c9cacd67a22b818ae3b591a7bc461accb46cf056",
+    "before.json": "f42d024734c4cda46d44318e8f54dd0076834fd83de2d8705a9735fdfbbacd36",
+    "finalize.py": "1b4fa08e5a918366e168b7982ea6ebd155f7abc6efd2e2234131aadce759a10b",
+    "focused.json": "9ecf0fe92f492fba713776da793d4e6ce760911e722ef347997be0f9c4614713",
+    "focused.log": "3e7b2ead0964e0679634f4aad8f64f966f78048b4169c446f0c7f41b2cdfddb0",
+    "focused.xml": "51b5b6b82cd7973aecb60398cb54444d28f76e5c86c8801e1beaeef892ca09ff",
+    "frontend-independent.json": "ab051a6aa126ba63cf2b75ae34ba0e5bd1b12431eb4ff6d81572042d0ad9fa54",
+    "frontend-independent.log": "fb464af39b061dc81ca8fb1cc8556ebf017cd97f930b4a2e8b793462bc13acd2",
+    "http-final.xml": "3a0343fe4790b62052374ba68ee3afa7568b14922301719b5cd1956a982884ee",
+    "http-independent-final.json": "10b7b096ff7d74006b0c5ed173fe210cb2c92bc1de432d205cf7f8fb36b70fab",
+    "http-independent-final.log": "47935149c2dbbf93043e659970c09de49d081159460d6de2763f1a2aa6616019",
+    "http-independent.json": "98ed16b2c5ad786ebf3a5e5d9dee392a9ea8f19c7068080524145c5d43826aed",
+    "http-independent.log": "14ffa1f0cb93d860bfaac7221d378aeaf799df2484f2ace0e29e851e0a9fb690",
+    "http.xml": "ba583c40dd8b3774020fc904a0346c38d195a6adfe22acba97acb7ae21e0f2eb",
+    "independent_frontend.test.cjs": "567c295479a856e20a53c97c5079f37a27605774dd2083658a41e15f0d752536",
+    "REVIEW.md": "3a46ad3884edea6b0fe17ab859c2ef9c4e434c595bbf64b53b7f597534a0198d",
+    "review_driver.py": "0141e5059472717c14a517fd97ad04d348d0cf21c015ca14b81e6fc01ccab9f0",
+    "test_independent_http.py": "0367e0cc2e8e36e69ba545d8cfa27868697ed543bf6a4a2ce44738cb75646d7d"
+  }
+}

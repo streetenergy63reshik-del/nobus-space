@@ -1,0 +1,665 @@
+{
+  "schema": "c4-package-4",
+  "code_candidate_sha": "68f87f18da3de7c995f83b9cb08b391d0af5cdfb",
+  "status": "ACCEPTED_PENDING_ORDINARY_PUBLICATION",
+  "self_excluded": true,
+  "files": [
+    {
+      "path": "docs/01-Единый-документ-проекта.md",
+      "sha256": "fff6ed8018c34c5b3713d67e029b0f09a49de18dc569d18189683b2452506b3a",
+      "bytes": 11502
+    },
+    {
+      "path": "docs/02-Глоссарий.md",
+      "sha256": "8eaa5ac544c54b98092f8731afb8c8423bce07bf954050e9d7dbf81bbf113f4d",
+      "bytes": 21444
+    },
+    {
+      "path": "docs/03-Архитектурный-обзор.md",
+      "sha256": "d01bde9cee51bd98a2e4f30d6ddda267e1ee05f7f910386cd62d7f2aa3e64e38",
+      "bytes": 18176
+    },
+    {
+      "path": "docs/04-Журнал-ADR.md",
+      "sha256": "0b5ae955dec4645a31b9b9306f772e5946e1edd64afb58965e75b1fd4586e302",
+      "bytes": 10576
+    },
+    {
+      "path": "docs/05-Спецификации-контрактов.md",
+      "sha256": "decbf8575119d17c41f98b75139acf37e7c87f9120b15b5415ecb79083db2cfd",
+      "bytes": 29463
+    },
+    {
+      "path": "docs/08-Runbook-эксплуатации.md",
+      "sha256": "7d23019a37184c9471d87453ebc1433bacf03a719222af6c45e67650ca2a4369",
+      "bytes": 51753
+    },
+    {
+      "path": "docs/09-Стандарты-отчётов.md",
+      "sha256": "8b0d5d4441259a882fb3d79f62ebf46dcccc65cb601d76d3402cce20e6a3d8b6",
+      "bytes": 14767
+    },
+    {
+      "path": "docs/10-Политика-памяти.md",
+      "sha256": "3f0e5dab5b99e79186fd623de958f2e599addf7fdb652cf6dd63c524a2227f75",
+      "bytes": 16894
+    },
+    {
+      "path": "docs/11-Контекст-продукта.md",
+      "sha256": "69eacb87fe600ecda1a3abc6c7ab2c3b6caf5496c3cec9709d339e46b32b69bf",
+      "bytes": 5546
+    },
+    {
+      "path": "docs/14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md",
+      "sha256": "4afc5e97770736a733d5c1634cf5f9c23251e69dee2158d8281b002a841bb1be",
+      "bytes": 5910
+    },
+    {
+      "path": "docs/adr/0025-miniapp-session-and-request-recovery.md",
+      "sha256": "64be98ca51c382239ef8891845cc7f0245a4c16e64d801ced882da5a752d0ae4",
+      "bytes": 9586
+    },
+    {
+      "path": "docs/adr/0026-channel-neutral-product-projection.md",
+      "sha256": "b83309c29baa877a0139af630178e50111c74f935a4189c44a15c7683975bcde",
+      "bytes": 7217
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/ACCEPTANCE.md",
+      "sha256": "59e685b6aef3a1f07cfe30b4d86640d1d02f61618646bc9fee417a1d5ce31464",
+      "bytes": 2292
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/BROWSER-DOWNLOADS.json",
+      "sha256": "8b05aff70335b83d311584df22571341fae96b4522314702864f4976533c811d",
+      "bytes": 1504
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/CODE-MANIFEST.json",
+      "sha256": "48b1334071de3ddc88d5002721e34d58a96ef93b9c898f094c16c5a4774fc287",
+      "bytes": 13377
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/DOCS-MANIFEST.json",
+      "sha256": "defe90291ce5ef7a48a6141a88b711e8865ced99b260dafcc4abdd3fae1e7d76",
+      "bytes": 6891
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/ENTRY-VERIFICATION.json",
+      "sha256": "1fa49d8f8d19b812d19f3287fff5cf70ed57027ae38796959841e035cd44658a",
+      "bytes": 2575
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/EVIDENCE.json",
+      "sha256": "9a0438f3e94d1392a06d7708a2c96b1922b390684deb26ed4b05ebdaf2f67b60",
+      "bytes": 3922
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/HANDOFF.md",
+      "sha256": "1ed1417d28ae3a8ecfcce6c99d88acc7652d06c23926ef360d0b7b782a62775a",
+      "bytes": 13377
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/JOURNEYS-15.json",
+      "sha256": "a86251525bb392d407fe992cfca69891ada2a643e4220ffebff9af8fcbd7b36c",
+      "bytes": 33226
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/LIVE-ATTEMPT3.json",
+      "sha256": "fe34afd45f2d6c20b4e91bf69cb2b6b46f98ccc36eabd9cf04f94c3b8d3fa175",
+      "bytes": 2127
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/LIVE-SMOKE.json",
+      "sha256": "35fc77ca0a567bace822353abcfe99496d1cedab4d358107decae8c4ea0533c2",
+      "bytes": 21889
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/LOCAL-JOURNEYS.json",
+      "sha256": "bbe1b06071cd52e53820295c388c79c59e3e84a0b807f0ae38fdbfafd46bac01",
+      "bytes": 67000
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/NEGATIVE-MATRIX.md",
+      "sha256": "a3da07aa9465c3a188af06db6ace6e0f80c13b4d7c8df501f53ff89951cb7ee6",
+      "bytes": 5769
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/NEGATIVE-RESULTS.json",
+      "sha256": "bb8e7e2aba00715ff85b5127d40758bc6ec5c97f8bcc8e228dc5647e62ee3b71",
+      "bytes": 36569
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/PRESERVATION.json",
+      "sha256": "07cf2850dff1c4715c5c45fd081f174db33e899f98b54ca262efbc930827e9d1",
+      "bytes": 3695
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/PUBLICATION-READBACK.json",
+      "sha256": "2bf798714fd707e9b41d228b59fefc26aa06ec67ed5129fc64f5de1e3032fa66",
+      "bytes": 713
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-BROWSER-DOWNLOADS.json",
+      "sha256": "a41049ed395e7dfeeb8683ef4e1211eed2d4aa7c4525cb3f21201e417587bc95",
+      "bytes": 1476
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-OWNER-SMOKE.json",
+      "sha256": "f4a55b70c1738dbd70cc6bf087359a1d921c82d538111fb6ddc9af1876952ea1",
+      "bytes": 10230
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-REVIEW-VERDICTS.json",
+      "sha256": "2d6507064da502e6f1e8210a17bf5084402d09aed0e678a0ab2a0eda502c21d9",
+      "bytes": 10380
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-SCREENSHOTS.json",
+      "sha256": "5c20dd8dbd96231b330ff2093857b3f3c165cf4488911c8b5041ab91a1760793",
+      "bytes": 52387
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-TEST-RECEIPTS.json",
+      "sha256": "1c20cf7f9fdde4a6d9d4bd6609c35ac8cc933c83db29c77e881c0481782bb61f",
+      "bytes": 2398
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-66-TWO-TASKS.json",
+      "sha256": "d20146d9bf8676b214011168df4a616dcdc2cae480639799cd8cdb01abb4e6e1",
+      "bytes": 13041
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-B89-LIVE-SMOKE.json",
+      "sha256": "1ae858fc9e9520a425b297aaf8b062a498a55c5454a9d8fdde47813a4ed56c7b",
+      "bytes": 4287
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-B89-REVIEW-VERDICTS.json",
+      "sha256": "7eb8c4a748d5838d83024a697e5fb2fb182dcdfc5f1b550f8b2418dde5f9ac9f",
+      "bytes": 13737
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-B89-SCREENSHOTS.json",
+      "sha256": "0b4538f9fa780282cb607e3160bd98a672a6b02860cacbb555d47e49a35eb5b6",
+      "bytes": 5882
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/RETAINED-B89-TEST-RECEIPTS.json",
+      "sha256": "0f013845d119e608d5bb1206d88668398fec07586e85ccdce176ebdfcfe36c6c",
+      "bytes": 2097
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/REVIEW-VERDICTS.json",
+      "sha256": "7f116b15be1351cb5634fc94c181b51c0a38b29896780ca2b84453c1411c53d3",
+      "bytes": 24351
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/REVISION-HISTORY.md",
+      "sha256": "4f74d8a8f843e1512439cabf57f763728eb896e8e924babd567a53cfa70fad2f",
+      "bytes": 6487
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-composer-keyboard.png",
+      "sha256": "f4efe7dfd9b469626acbbd7beec43b64cc70372c709b14edfbca63f983ccf062",
+      "bytes": 35978
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-detail-top.png",
+      "sha256": "bf3ea4e41237c3ee005dea6895582e6822752907b908b77527e61daa06996373",
+      "bytes": 26714
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-list.png",
+      "sha256": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+      "bytes": 12647
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-dark-result.png",
+      "sha256": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+      "bytes": 27346
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-composer-keyboard.png",
+      "sha256": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+      "bytes": 27760
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-detail-top.png",
+      "sha256": "2ca2c82642262e2e3bff7768e17cf9d2d667ca0d9894002803ba48f8d98c631d",
+      "bytes": 39547
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-list.png",
+      "sha256": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+      "bytes": 12560
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/320-light-result.png",
+      "sha256": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+      "bytes": 27101
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-composer-keyboard.png",
+      "sha256": "b385708aad968870ff03c9059d5840bed53c70eafc586b68eb9cdebf02e2cda8",
+      "bytes": 37467
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-detail-top.png",
+      "sha256": "36b4d9b543db507b3fa5a8ff78a0d25d79342aaf10ae8c35a305a67cabf2a633",
+      "bytes": 53499
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-list.png",
+      "sha256": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+      "bytes": 13430
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-dark-result.png",
+      "sha256": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+      "bytes": 33142
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-composer-keyboard.png",
+      "sha256": "6c1217182416a5c5c690e1e183cf1b991a74cb8b4b7484ab1d863f8c4449bf01",
+      "bytes": 37274
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-detail-top.png",
+      "sha256": "cbb0feee4a9e11c90858616b7e8005ae3f21cf1ba49fcdcf2e430d6c57b6c392",
+      "bytes": 53857
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-list.png",
+      "sha256": "9a93c61b5bb67332ee5caa2fc61b97ed945c3cc73f4ba989d666c8b7baf8e6ad",
+      "bytes": 13404
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/390-light-result.png",
+      "sha256": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+      "bytes": 32946
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-dark-composer-keyboard.png",
+      "sha256": "5185e1812e5e9eff2cff11e7d14189fcba6cb92bac3f322a02f5cea46753ef36",
+      "bytes": 36086
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-dark-detail-top.png",
+      "sha256": "c0decfc84a502e479bcd16801063dcd962c2907201e806eb77058f9d44b44db7",
+      "bytes": 39667
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-dark-list.png",
+      "sha256": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+      "bytes": 12647
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-dark-result.png",
+      "sha256": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+      "bytes": 27346
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-light-composer-keyboard.png",
+      "sha256": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+      "bytes": 27760
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-light-detail-top.png",
+      "sha256": "4b610d6356b3c7864021d078b52c5e27d23cd26e5ee9024d46a168830d88d970",
+      "bytes": 26602
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-light-list.png",
+      "sha256": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+      "bytes": 12560
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/320-light-result.png",
+      "sha256": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+      "bytes": 27101
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-dark-composer-keyboard.png",
+      "sha256": "4a0fafad2294a5b118717466b382ec9d646c0b313bf36724024a790ec8423267",
+      "bytes": 37498
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-dark-detail-top.png",
+      "sha256": "d58e7d673d700e4a6165f26bdfbef5111b61b1e8949b3985b9593162fffdc6d8",
+      "bytes": 34830
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-dark-list.png",
+      "sha256": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+      "bytes": 13430
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-dark-result.png",
+      "sha256": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+      "bytes": 33142
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-light-composer-keyboard.png",
+      "sha256": "b8e0b32286d102540b1ea9704ef2c3100bd061d54b968eab7e80483827ffc021",
+      "bytes": 37346
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-light-detail-top.png",
+      "sha256": "48f2d6929ac6cc76f0083e3dd2086000bc74a82c4dda0f5787dee50b4da2f3a2",
+      "bytes": 53560
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-light-list.png",
+      "sha256": "9a93c61b5bb67332ee5caa2fc61b97ed945c3cc73f4ba989d666c8b7baf8e6ad",
+      "bytes": 13404
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/390-light-result.png",
+      "sha256": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+      "bytes": 32946
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-dark-composer-keyboard.png",
+      "sha256": "7f5f69e8f1fe6475f054788d05e74180a2a1d824b9cfc9e91a1d358a35f1e2e5",
+      "bytes": 42113
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-dark-detail-top.png",
+      "sha256": "9fd2be49d9131e7db60ca7659ad6772729a0d6020bb6656cfbe41d324583f9c9",
+      "bytes": 76126
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-dark-list.png",
+      "sha256": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+      "bytes": 16256
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-dark-result.png",
+      "sha256": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+      "bytes": 48271
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-light-composer-keyboard.png",
+      "sha256": "a0ec46c21c1cb894c70204fc36d7f2ef0d3c9a3f0971cf7a460892143c4a6bec",
+      "bytes": 42198
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-light-detail-top.png",
+      "sha256": "a60b304593c423dbc3080164c24a3c55affeaa12154817a63d448aa55467c701",
+      "bytes": 49810
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-light-list.png",
+      "sha256": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+      "bytes": 16100
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/matrix/768-light-result.png",
+      "sha256": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+      "bytes": 47983
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/first-post-outcome-unknown.png",
+      "sha256": "5ffc67f4db035958641c65a0aa495dccb288d7b97b877a5f6d76b336d7a7ae0a",
+      "bytes": 29329
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/first-queued-after-ack-loss-reload.png",
+      "sha256": "39efd863892e49f498416894699b2c6f000a20c21a4c77414fdfca29377777d7",
+      "bytes": 23966
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/first-ready.png",
+      "sha256": "7024a63d9b39a93589a54363edf0479e1c86fe8c02224e3e6dbf308febdbe29e",
+      "bytes": 32563
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/first-working-after-reload-reconnect.png",
+      "sha256": "400b19b16cc8c5b3b38bbd8c0a89eba085ad029fcda579059dcca24351e4f1e9",
+      "bytes": 30965
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/first-working.png",
+      "sha256": "ae9d4931f0cbfbf7d1b03b7cd45f55752ae23d9234e39d5b8197127d839ff684",
+      "bytes": 30999
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/second-detail-after-late-first-response.png",
+      "sha256": "814c5d2adff26c77535bae965d03d40f81c67d02e816fd80b43baa04816f2759",
+      "bytes": 32128
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/66cff24/two-task/two-sequential-tasks-list.png",
+      "sha256": "a419512d493ea0d1d45c90b609cfe80562ae050524ddd28074f6f2e0e7a85463",
+      "bytes": 16204
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-dark-composer-keyboard.png",
+      "sha256": "fe5eccca76fb9ddebee9dbbb5adb3b8fe0b5969ec41a956ea98684e95e7b5e57",
+      "bytes": 36004
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-dark-detail-top.png",
+      "sha256": "bf3ea4e41237c3ee005dea6895582e6822752907b908b77527e61daa06996373",
+      "bytes": 26714
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-dark-list.png",
+      "sha256": "7c08977ae00dbc5325567a2d76e2d31c2e1471d3d391dd808bd19e169e6d3d16",
+      "bytes": 12647
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-dark-result.png",
+      "sha256": "1ca6c8ae2998b43c364672d75672d0c1d426f59cd96b7973a492f251be34ccc8",
+      "bytes": 27346
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-light-composer-keyboard.png",
+      "sha256": "ee62fa7214e4363bd0bb38c2257be68f05d814bb2bc98915c1e19e14597cc375",
+      "bytes": 27760
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-light-detail-top.png",
+      "sha256": "4b610d6356b3c7864021d078b52c5e27d23cd26e5ee9024d46a168830d88d970",
+      "bytes": 26602
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-light-list.png",
+      "sha256": "79e585d6e424899881c51eb2d1a84bd57dd97622e66d62ca2b3b19d5edf156e4",
+      "bytes": 12560
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/320-light-result.png",
+      "sha256": "b8d798af576f6fc4ab8f737ca37ef6a842c5eb3f656084f7968d2a5d27d71607",
+      "bytes": 27101
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-dark-composer-keyboard.png",
+      "sha256": "2982fb16a2f1c9879d949bda831c1e5a6e4ac6f5801d589937ed96f0d3d2b187",
+      "bytes": 37514
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-dark-detail-top.png",
+      "sha256": "d58e7d673d700e4a6165f26bdfbef5111b61b1e8949b3985b9593162fffdc6d8",
+      "bytes": 34830
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-dark-list.png",
+      "sha256": "73b9610ec93ee0464079715cb1910f09b48e7bdb0d956eaeb859d659683d814a",
+      "bytes": 13430
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-dark-result.png",
+      "sha256": "3f0af13adf8dccb039d94ba7ab62d7138ed417f65a972cc99853520de3d26286",
+      "bytes": 33142
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-light-composer-keyboard.png",
+      "sha256": "406dbb5163bea9bb56af04dcebfd60f11d81f34b5cab60a709df12c25fcc071b",
+      "bytes": 37328
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-light-detail-top.png",
+      "sha256": "3b25e245c41281fabcfedea49386c4671f5ec2109dff79ec3e191e88cea349a6",
+      "bytes": 54367
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-light-initial404-error.png",
+      "sha256": "5dc2e581ed508fe517db3236ed4f3815affe0b4104ead58ef0e3421d57930c82",
+      "bytes": 26690
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-light-initial404-recovered-new-task.png",
+      "sha256": "1b8dbf9da2db8985b18f26da78647f09385470b8e0d680d1c4656afb1633dca3",
+      "bytes": 37559
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-light-list.png",
+      "sha256": "dc2902a701e06034cc3a4b9522392ac1e8d26e58f743857e2196cbbeff57d5f1",
+      "bytes": 14556
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/390-light-result.png",
+      "sha256": "131a4c512cf72fbb92f6033eb0924c3217d1b3e4c38d50fc6110a7ddc5bd8ee6",
+      "bytes": 32946
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-dark-composer-keyboard.png",
+      "sha256": "ad4f4c6991ea2c04fd6d3a5b12257b0aeb1c616e89d4bcad18227255ecfab463",
+      "bytes": 42000
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-dark-detail-top.png",
+      "sha256": "dfc40c741ad0727f604804c204be9fda56df3d3f38b198e5ffb7985b0e41e1d2",
+      "bytes": 74877
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-dark-list.png",
+      "sha256": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+      "bytes": 16256
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-dark-result.png",
+      "sha256": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+      "bytes": 48271
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-light-composer-keyboard.png",
+      "sha256": "4089c0796505a77b5c3cbcac93f31e2c2b12e9abf29a45aacc1ed2549b09eff8",
+      "bytes": 41885
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-light-detail-top.png",
+      "sha256": "a60b304593c423dbc3080164c24a3c55affeaa12154817a63d448aa55467c701",
+      "bytes": 49810
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-light-list.png",
+      "sha256": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+      "bytes": 16100
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/68f87f1/768-light-result.png",
+      "sha256": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+      "bytes": 47983
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-composer-keyboard.png",
+      "sha256": "073824678b4449e89ff801be732c079d89b1a6deced11d1089c5fad6b1138fc0",
+      "bytes": 42092
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-detail-top.png",
+      "sha256": "dfc40c741ad0727f604804c204be9fda56df3d3f38b198e5ffb7985b0e41e1d2",
+      "bytes": 74877
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-list.png",
+      "sha256": "0df8137447ed4a3ea8777666240ef0ebd7a67e68203c70a5d0206ab2d018bed9",
+      "bytes": 16256
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-dark-result.png",
+      "sha256": "e2f5e6ad69d1634e9888ec7672ac45030d13b39d2b992f90cabea3a3623aeaa2",
+      "bytes": 48271
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-composer-keyboard.png",
+      "sha256": "6247812486602f7d56cb1b52832072594cd0c769efeedf78ee79b950ec7ce06c",
+      "bytes": 42084
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-detail-top.png",
+      "sha256": "f4131a38f4a1c019a9513c81c6ddd7b518c050678cffcd9ff46f40df3d9f1ba0",
+      "bytes": 76299
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-list.png",
+      "sha256": "aafd0bd4f2b6746fd47ddc0c5a749704af386d24ed5643dd04f4373804d9f2a6",
+      "bytes": 16100
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/screenshots/768-light-result.png",
+      "sha256": "1d1b006d9c62df034ab4e56a2234093604caee12d933aef51ab06b9af44ad011",
+      "bytes": 47983
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/SCREENSHOTS.json",
+      "sha256": "3576fdbd26543ac504b5d401975cf9fea4d140592dc1401c12d8c5880c7f28bc",
+      "bytes": 63500
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/SMOKE-REWORK.md",
+      "sha256": "f29313567d8ec2adb2a9f764bb0375b222311cdccef1ca78ca6475eb29b837ad",
+      "bytes": 15063
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/TEST-RECEIPTS.json",
+      "sha256": "9ce4e797689acec5e78644c1845793959c827fe91581fac2f1b560756c673001",
+      "bytes": 2383
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/UX-MATRIX.md",
+      "sha256": "8e9dc4289bf1d8ea3e4976636b24cb5acf6e69b937ec238f96da70d50d0e3514",
+      "bytes": 9818
+    },
+    {
+      "path": "docs/gates/gate-c4-frontend-journey/WORKING-CONTRACT.md",
+      "sha256": "304f2294a0079f1b680fa2ce80da7caba91312c9be0d96f3cfc221ffb70ed99d",
+      "bytes": 4037
+    },
+    {
+      "path": "docs/gates/README.md",
+      "sha256": "bdf77aa1fbb5468f294371ad7eafec8f7d7653066d34d3b49255455442ee924d",
+      "bytes": 6978
+    },
+    {
+      "path": "docs/handoffs/CURRENT-STATUS.md",
+      "sha256": "f65c43a84148d4d2e64fd4374357766d8c1c90961d918bfa30d06ac01ea963c3",
+      "bytes": 3027
+    },
+    {
+      "path": "docs/handoffs/MVP-1-ISSUES.md",
+      "sha256": "56a98d8fd7ab46ac037a97d475ee022ea9261626c5f5969cb41c110f6f62601b",
+      "bytes": 39435
+    },
+    {
+      "path": "docs/handoffs/WORKSPACE-INVENTORY.md",
+      "sha256": "152f8428edade0b4470bedd39c2b5b322d0215b1c6ec10236793522764beab4d",
+      "bytes": 8327
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "b499a00304a7d666555a29e3aeed81ac783edb953286b085024a2795fd9a050c",
+      "bytes": 9292
+    },
+    {
+      "path": "README.md",
+      "sha256": "c620754fd3c1471eff6b79feaaef14926fac0b98eb8f19fa8247b83be9d83f23",
+      "bytes": 9588
+    }
+  ],
+  "text_encoding": "UTF-8 LF; publication hashes bind canonical Git blobs",
+  "reviewed_pre_normalization_manifest": "51d4eb769dc98ba6de1684138dec12919def00e934349ccf824f23a964661053"
+}
