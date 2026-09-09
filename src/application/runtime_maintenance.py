@@ -138,7 +138,7 @@ def application_binding() -> dict[str, object]:
         # Python sources and requirements are text; Git may check them out CRLF.
         digest.update(hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).digest())
     revision = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+        ["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, stdin=subprocess.DEVNULL,
         timeout=10, check=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     ).stdout.decode("ascii").strip()
     if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
