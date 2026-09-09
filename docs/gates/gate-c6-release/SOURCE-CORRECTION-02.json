@@ -1,0 +1,60 @@
+{
+  "schema": "c6-source-correction-2",
+  "at": "2026-09-09T05:51:29.162227+00:00",
+  "source_commit": "bba7d21530bd467339d1982b46051e578408f66d",
+  "source_tree": "4da0de08fcf7563a42095ed07f1370f7038892c8",
+  "base_commit": "0b6425fed9aa82417cba299352d058d55811109c",
+  "change": "Provide DEVNULL stdin for local Git application identity lookup while Core shutdown thread waits on its separate pipe.",
+  "files": {
+    "src/application/runtime_maintenance.py": {
+      "git_blob_sha256": "e27ef437832adb002a7853e67aa3faa61300ec5057a1b04b78de418aed4df080"
+    },
+    "tests/test_runtime_binding_windows_stdin.py": {
+      "git_blob_sha256": "efc11ceaea8387acc189e5bdbf76f6b48d4cc7f6526d0f1918e92ad0c1a1809c"
+    }
+  },
+  "regression": {
+    "before": "1 FAILED: real application_binding blocked behind active shutdown reader for 5 seconds",
+    "after": "108 PASS in 56.46s: Windows stdin integration, runtime operations, managed backups, voice retention; 19 PASS in 20.15s: backup recovery",
+    "related_total": 127,
+    "full_historical_suite_repeated": false
+  },
+  "independent_reviews": {
+    "L2": {
+      "path": "reviews/c6-git-stdin-L2.json",
+      "sha256": "cd55bc041195f2c59a961b173b08424b64fe0f185e444b2567115c37ec81f1b1",
+      "verdict": "PASS_SCOPED"
+    },
+    "L3": {
+      "path": "reviews/c6-git-stdin-L3.json",
+      "sha256": "283a4d7dc60675584b0eff48dcd62fcf58b2c966a8dba12ab7bdd344596e2ad1",
+      "verdict": "SCOPED SOURCE CORRECTION PASS"
+    }
+  },
+  "actual_probe": {
+    "git_without_reader_seconds": 0.078,
+    "git_inherited_reader": "blocked until parent released stdin at 6.062s; TimeoutExpired",
+    "git_devnull_reader_seconds": 0.101,
+    "devnull_git_exit": 0,
+    "devnull_probe_process_graceful_exit_claimed": false
+  },
+  "failed_drill_readback": {
+    "all_restored_rows_unchanged": true,
+    "production_state_unchanged": true,
+    "checkpoint_unchanged": true,
+    "all_three_tasks_disabled": true,
+    "both_mutexes_free": true,
+    "port_closed": true,
+    "canonical_20_WIP_preserved": true
+  },
+  "boundaries": {
+    "source_scope_only": true,
+    "live_revision": "0b6425fed9aa82417cba299352d058d55811109c",
+    "full_RTO": "FAIL_STARTUP",
+    "production_started": false,
+    "actual_owner_journeys": "PENDING",
+    "final_acceptance": false,
+    "new_deployment_requires_exact_delta_confirmation": true,
+    "prior_failed_evidence_preserved": true
+  }
+}
