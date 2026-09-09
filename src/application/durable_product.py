@@ -47,6 +47,7 @@ from src.contracts.models import canonical_json_digest
 from src.core.policy import DuplicateIdempotencyKeyError, task_contract_digest
 from src.models.task import TaskStatus
 from src.storage.outbox import OutboxStatus, message_fingerprint, message_id_for
+from src.storage.sqlite_store import MiniAppAdmissionClosedError, MiniAppCancelledRequest, MiniAppRequestRecord
 from src.transport.telegram import (
     CallbackQuery,
     IngressStatus,
@@ -386,6 +387,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                         for value in materials
                     ),
                 )
+            self._miniapp_admission_phase(trusted, "semantic")
             admission = await service.admit(canonical, bindings)
             if admission.decision.decision == "CLARIFY":
                 token = secrets.token_urlsafe(32)
@@ -419,6 +421,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 not in {"task.answer.general", "content.transform"}):
                 raise RuntimeError("semantic admission did not allow a task")
             instruction = _SEMANTIC_NO_EFFECT_PROFILE + canonical.owner_text
+        self._miniapp_admission_phase(trusted, "admission")
         prepared = await self._product_runtime.build_instruction(
             instruction, trusted
         )
@@ -457,6 +460,20 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         await self.start()
         self._wake()
         return prepared.contract.task_id
+
+    def _miniapp_admission_phase(self, envelope: TrustedIngressEnvelope, phase: str) -> None:
+        store = getattr(self._product_runtime, "_store", None)
+        if store is None:
+            return
+        record = store.read_miniapp_request(envelope.tenant_id, envelope.auth_context_ref, envelope.idempotency_key)
+        if record is None:
+            return  # Existing trusted callers may have no Mini App journal.
+        if isinstance(record, MiniAppCancelledRequest):
+            raise MiniAppAdmissionClosedError("request_closed")
+        _, current = store.write_miniapp_request(
+            MiniAppRequestRecord.model_validate(record.model_dump() | {"phase": phase}))
+        if isinstance(current, MiniAppCancelledRequest) or current.state != "pending":
+            raise MiniAppAdmissionClosedError("request_closed")
 
     def miniapp_clarification_current(
         self, envelope: TrustedIngressEnvelope, token: str,
@@ -1052,7 +1069,15 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             job = self._miniapp_draft_binding(durable)
             admit = getattr(self._product_runtime, "admit_prepared", None)
             if callable(admit):
-                await admit(job.prepared, job.envelope)
+                try:
+                    await admit(job.prepared, job.envelope)
+                except MiniAppAdmissionClosedError:
+                    record, accepted = self._product_runtime._store.reconcile_miniapp_request(
+                        job.envelope.tenant_id, job.envelope.auth_context_ref, job.envelope.idempotency_key)
+                    if accepted is None and (isinstance(record, MiniAppCancelledRequest)
+                            or isinstance(record, MiniAppRequestRecord) and record.state == "not_accepted"):
+                        return None  # Normal queue acknowledgement; no task, execution or status delivery.
+                    raise
             recover = getattr(self._product_runtime, "recover_prepared", None)
             if callable(recover) and not await recover(
                 job.prepared, job.envelope
@@ -1379,10 +1404,14 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             runtime = getattr(self, "_product_runtime", None)
             store = getattr(runtime, "_store", None)
             delivery = {"pending": 0, "leased": 0, "unknown": 0, "failed": 0}
+            intake = {"pending": 0, "overdue": 0, "clarification": 0, "not_accepted": 0}
             if callable(getattr(store, "delivery_counts", None)):
                 for tenant in runtime._destination_refs:
                     if tenant_id is not None and tenant != tenant_id:
                         continue
+                    if callable(getattr(store, "miniapp_intake_summary", None)):
+                        for name, count in store.miniapp_intake_summary(tenant).items():
+                            intake[name] += count
                     counts = store.delivery_counts(tenant)
                     attention.update(store.attention_task_ids(tenant))
                     for name in delivery:
@@ -1396,18 +1425,34 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             and len(workers) == getattr(self, "_execution_concurrency", 0) and bool(workers)
             and all(not item.done() for item in workers)
             and generation_ready and self._worker_error is None)
+        semantic = getattr(self, "_semantic_admission", None)
+        semantic_enabled = getattr(self, "_enable_semantic_admission", False) and semantic is not None
+        semantic_status = getattr(semantic, "last_status", "not_checked")
+        semantic_label = {
+            "not_checked": "включён; ещё не проверен в этом запуске",
+            "ready": "работает", "unavailable": "временно недоступен; попробуйте позже",
+            "interrupted": "последний приём прерван; проверьте исходную заявку",
+        }.get(semantic_status, "состояние неизвестно") if semantic_enabled else "не включён"
+        intake_ready = running and semantic_enabled and semantic_status == "ready" and not intake["pending"]
+        admission_label = "доступен" if intake_ready else "требует проверки"
+        if not running or not semantic_enabled or semantic_status == "unavailable":
+            admission_label = "временно недоступен"
         active = snapshot["active"] if running else 0
         recovering = snapshot["recovering"] + (snapshot["active"] if not running else 0)
         return (
             "Nobus Space\n"
-            f"Приём задач: {'доступен' if running else 'временно недоступен'}\n"
-            f"Голос: {voice}\n"
+            "Core: доступен\n"
+            f"Приём задач: {admission_label}\n"
+            f"Смысловой приём: {semantic_label}\n"
+            f"Mini App — приём не завершён: {intake['pending']}\n"
+            + ("Откройте Mini App и проверьте приём или отмените отправку.\n" if intake['pending'] else "")
+            + f"Голос: {voice}\n"
             f"Исполнитель: {'готов' if running else 'недоступен'}\n"
             f"В работе: {active}\n"
             f"В очереди: {snapshot['pending']}\n"
             f"Ожидают подтверждения: {snapshot['waiting']}\n"
             f"Восстанавливаются: {recovering}\n"
-            f"Требуют внимания: {len(attention)}\n"
+            f"Требуют внимания (история задач): {len(attention)}\n"
             f"Доставка не удалась: {delivery['failed']}\n"
             f"Ожидают доставки: {delivery['pending'] + delivery['leased']}\n"
             f"Доставка требует сверки: {delivery['unknown']}"

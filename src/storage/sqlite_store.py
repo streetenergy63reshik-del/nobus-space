@@ -56,6 +56,10 @@ class IngressClaimConflictError(ValueError):
     """An idempotency key or ingress id was reused for different content."""
 
 
+class MiniAppAdmissionClosedError(IngressClaimConflictError):
+    """The journal durably fences this request before a new task claim."""
+
+
 class SnapshotConflictError(ValueError):
     """A task snapshot compare-and-swap precondition failed."""
 
@@ -91,6 +95,23 @@ _MAX_TASK_DISPLAY_TEXT = 120
 _MAX_TASK_DISPLAY_INSTRUCTION = 2_000
 
 
+MINIAPP_ADMISSION_SECONDS = 90
+MiniAppRequestDetail = Literal[
+    "clarification_invalid", "capability_unavailable", "request_refused",
+    "condition_not_met", "approval_required", "request_cancelled",
+    "request_expired", "request_interrupted", "semantic_unavailable",
+]
+MiniAppRequestPhase = Literal["legacy", "intake", "semantic", "admission", "reconciliation", "closed"]
+MiniAppFailureCode = Literal[
+    "SEMANTIC_COMPILER_TIMEOUT", "SEMANTIC_COMPILER_UNAVAILABLE",
+    "SEMANTIC_PROPOSAL_INVALID", "SEMANTIC_CONTEXT_INVALID",
+    "SEMANTIC_PROVENANCE_TIMEOUT", "SEMANTIC_PROVENANCE_UNAVAILABLE",
+    "SEMANTIC_PROVENANCE_INVALID", "SEMANTIC_FAILED", "ADMISSION_UNKNOWN",
+    "TRANSPORT_CANCELLED", "OWNER_CANCELLED", "ADMISSION_DEADLINE",
+    "LEGACY_PENDING_RECONCILED",
+]
+
+
 class MiniAppRequestRecord(BaseModel):
     """Core request reconciliation metadata; never the raw instruction."""
 
@@ -103,10 +124,26 @@ class MiniAppRequestRecord(BaseModel):
         default=None, pattern=r"^[A-Za-z0-9_-]{32,128}$", repr=False
     )
     expires_at: datetime | None = None
-    detail: Literal["clarification_invalid", "capability_unavailable", "request_refused", "condition_not_met", "approval_required"] | None = None
+    detail: MiniAppRequestDetail | None = None
+    # Optional fields decode old protected rows without rewriting their envelope.
+    received_at: datetime | None = None
+    updated_at: datetime | None = None
+    admission_deadline: datetime | None = None
+    phase: MiniAppRequestPhase = "legacy"
+    failure_code: MiniAppFailureCode | None = None
+    failure_phase: MiniAppRequestPhase | None = None
 
     @model_validator(mode="after")
     def validate_outcome(self) -> "MiniAppRequestRecord":
+        for value in (self.received_at, self.updated_at, self.admission_deadline):
+            if value is not None and value.tzinfo is None:
+                raise ValueError("invalid request time")
+        if self.received_at is not None and (
+            self.updated_at is None or self.admission_deadline is None
+            or self.updated_at < self.received_at
+            or self.admission_deadline != self.received_at + timedelta(seconds=MINIAPP_ADMISSION_SECONDS)
+        ):
+            raise ValueError("invalid request timeline")
         if self.state == "clarification":
             if self.question is None or self.clarification_token is None or self.detail is not None:
                 raise ValueError("invalid clarification outcome")
@@ -791,45 +828,50 @@ class SQLiteStore:
         validated = TrustedIngressEnvelope.model_validate(
             envelope.model_dump(mode="json")
         )
-        fingerprint = _stable_ingress_fingerprint(validated)
         try:
             with closing(self._connect()) as connection:
-                row = connection.execute(
-                    """SELECT ingress_fingerprint, task_id, claim_binding_digest
-                       FROM ingress_claims
-                       WHERE tenant_id = ? AND idempotency_key = ?""",
-                    (validated.tenant_id, validated.idempotency_key),
-                ).fetchone()
-                if row is None:
-                    return None
-                if (
-                    not _is_digest(row["ingress_fingerprint"])
-                    or row["ingress_fingerprint"] != fingerprint
-                ):
-                    raise IngressClaimConflictError(
-                        "trusted ingress claim conflict"
-                    )
-                stored = self._select_task(
-                    connection,
-                    validated.tenant_id,
-                    UUID(row["task_id"]),
-                )
-                if stored is None:
-                    raise ValueError("ingress claim has no task snapshot")
-                expected_binding = _claim_binding_digest(
-                    fingerprint,
-                    tenant_id=validated.tenant_id,
-                    idempotency_key=validated.idempotency_key,
-                    task_id=stored.projection.task_id,
-                    contract_digest=stored.projection.contract_digest,
-                )
-                if row["claim_binding_digest"] != expected_binding:
-                    raise ValueError("ingress claim binding mismatch")
-                return stored
+                return self._read_ingress_claim(connection, validated)
         except IngressClaimConflictError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable store is invalid") from None
+
+    def _read_ingress_claim(
+        self, connection: sqlite3.Connection, validated: TrustedIngressEnvelope,
+    ) -> StoredTaskSnapshot | None:
+        fingerprint = _stable_ingress_fingerprint(validated)
+        row = connection.execute(
+            """SELECT ingress_fingerprint, task_id, claim_binding_digest
+               FROM ingress_claims
+               WHERE tenant_id = ? AND idempotency_key = ?""",
+            (validated.tenant_id, validated.idempotency_key),
+        ).fetchone()
+        if row is None:
+            return None
+        if (
+            not _is_digest(row["ingress_fingerprint"])
+            or row["ingress_fingerprint"] != fingerprint
+        ):
+            raise IngressClaimConflictError(
+                "trusted ingress claim conflict"
+            )
+        stored = self._select_task(
+            connection,
+            validated.tenant_id,
+            UUID(row["task_id"]),
+        )
+        if stored is None:
+            raise ValueError("ingress claim has no task snapshot")
+        expected_binding = _claim_binding_digest(
+            fingerprint,
+            tenant_id=validated.tenant_id,
+            idempotency_key=validated.idempotency_key,
+            task_id=stored.projection.task_id,
+            contract_digest=stored.projection.contract_digest,
+        )
+        if row["claim_binding_digest"] != expected_binding:
+            raise ValueError("ingress claim binding mismatch")
+        return stored
 
     def claim_ingress_with_task(
         self,
@@ -882,6 +924,22 @@ class SQLiteStore:
                     if row["claim_binding_digest"] != expected_binding:
                         raise ValueError("ingress claim binding mismatch")
                     return False, stored
+
+                request_row = connection.execute(
+                    "SELECT * FROM miniapp_requests WHERE tenant_id=? AND idempotency_key=?",
+                    (validated_envelope.tenant_id, validated_envelope.idempotency_key),
+                ).fetchone()
+                if request_row is not None:
+                    request = self._miniapp_request_from_row(request_row)
+                    if isinstance(request, MiniAppCancelledRequest):
+                        if request.auth_context_ref != validated_envelope.auth_context_ref:
+                            raise IngressClaimConflictError("trusted request conflict")
+                        raise MiniAppAdmissionClosedError("request_closed")
+                    if _stable_ingress_fingerprint(request.envelope) != fingerprint:
+                        raise IngressClaimConflictError("trusted request conflict")
+                    if (request.state != "pending" or request.admission_deadline is None
+                            or request.admission_deadline <= datetime.now(UTC)):
+                        raise MiniAppAdmissionClosedError("request_closed")
 
                 contract_digest = task_contract_digest(validated_contract)
                 expected_payload = {
@@ -1493,17 +1551,77 @@ class SQLiteStore:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable request is invalid") from None
 
+    def _put_miniapp_request(
+        self, connection: sqlite3.Connection, record: MiniAppRequestRecord | MiniAppCancelledRequest,
+    ) -> None:
+        binding = record if isinstance(record, MiniAppCancelledRequest) else record.envelope
+        payload = protect_current_user(
+            record.model_dump_json().encode("utf-8"), entropy=_MINIAPP_REQUEST_ENTROPY
+        )
+        connection.execute(
+            """INSERT INTO miniapp_requests
+               (tenant_id,idempotency_key,auth_context_ref,payload,payload_digest)
+               VALUES (?,?,?,?,?) ON CONFLICT (tenant_id,idempotency_key)
+               DO UPDATE SET payload=excluded.payload,payload_digest=excluded.payload_digest""",
+            (binding.tenant_id, binding.idempotency_key, binding.auth_context_ref,
+             payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
+        )
+
+    def _reconcile_miniapp_record(
+        self, connection: sqlite3.Connection, record: MiniAppRequestRecord | MiniAppCancelledRequest,
+        *, now: datetime, detail: MiniAppRequestDetail | None = None,
+        failure_code: MiniAppFailureCode | None = None,
+    ) -> tuple[MiniAppRequestRecord | MiniAppCancelledRequest, StoredTaskSnapshot | None]:
+        if isinstance(record, MiniAppCancelledRequest):
+            return record, None
+        accepted = self._read_ingress_claim(connection, record.envelope)
+        if accepted is not None:
+            return record, accepted
+        if record.state == "pending" and (
+            detail is not None or record.admission_deadline is None or record.admission_deadline <= now
+        ):
+            record = MiniAppRequestRecord.model_validate(record.model_dump() | {
+                "state": "not_accepted", "detail": detail or "request_expired",
+                "updated_at": now, "phase": "closed",
+                "failure_phase": record.failure_phase or record.phase,
+                "failure_code": record.failure_code or failure_code or (
+                    "LEGACY_PENDING_RECONCILED" if record.received_at is None else "ADMISSION_DEADLINE"
+                ),
+            })
+            self._put_miniapp_request(connection, record)
+        return record, None
+
+    def reconcile_miniapp_request(
+        self, tenant_id: str, auth_context_ref: str, idempotency_key: str, *,
+        detail: MiniAppRequestDetail | None = None, failure_code: MiniAppFailureCode | None = None,
+    ) -> tuple[MiniAppRequestRecord | MiniAppCancelledRequest | None, StoredTaskSnapshot | None]:
+        """Resolve once under the very write lock used by durable ingress admission."""
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM miniapp_requests WHERE tenant_id=? AND auth_context_ref=? AND idempotency_key=?",
+                    (tenant_id, auth_context_ref, idempotency_key),
+                ).fetchone()
+                if row is None:
+                    return None, None
+                return self._reconcile_miniapp_record(connection, self._miniapp_request_from_row(row),
+                    now=datetime.now(UTC), detail=detail, failure_code=failure_code)
+        except IngressClaimConflictError:
+            raise
+        except (OSError, sqlite3.DatabaseError, DpapiError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
+
     def write_miniapp_request(
         self, record: MiniAppRequestRecord, *, claim: bool = False,
     ) -> tuple[bool, MiniAppRequestRecord | MiniAppCancelledRequest]:
-        """Claim once before admission; finishing only replaces pending metadata."""
+        """Claim once; accepted claims and terminal fences always win a late outcome."""
         record = MiniAppRequestRecord.model_validate(record.model_dump())
         envelope = record.envelope
         try:
             with self._transaction() as connection:
+                now = datetime.now(UTC)
                 row = connection.execute(
-                    """SELECT * FROM miniapp_requests
-                       WHERE tenant_id=? AND idempotency_key=?""",
+                    "SELECT * FROM miniapp_requests WHERE tenant_id=? AND idempotency_key=?",
                     (envelope.tenant_id, envelope.idempotency_key),
                 ).fetchone()
                 if row is not None:
@@ -1514,24 +1632,25 @@ class SQLiteStore:
                         return False, existing
                     if _stable_ingress_fingerprint(existing.envelope) != _stable_ingress_fingerprint(envelope):
                         raise IngressClaimConflictError("trusted request conflict")
+                    existing, accepted = self._reconcile_miniapp_record(connection, existing, now=now)
                     expiring_clarification = (existing.state == "clarification"
                         and record.state == "not_accepted" and record.detail == "clarification_invalid")
-                    if claim or (existing.state != "pending" and not expiring_clarification):
+                    if claim or accepted is not None or (existing.state != "pending" and not expiring_clarification):
                         return False, existing
-                    record = record.model_copy(update={"envelope": existing.envelope})
+                    record = MiniAppRequestRecord.model_validate(record.model_dump() | {
+                        "envelope": existing.envelope, "received_at": existing.received_at,
+                        "admission_deadline": existing.admission_deadline, "updated_at": now,
+                        "failure_phase": existing.failure_phase or (
+                            existing.phase if record.failure_code else None),
+                    })
                 elif not claim:
                     raise ValueError("request not claimed")
-                payload = protect_current_user(
-                    record.model_dump_json().encode("utf-8"), entropy=_MINIAPP_REQUEST_ENTROPY
-                )
-                connection.execute(
-                    """INSERT INTO miniapp_requests
-                       (tenant_id,idempotency_key,auth_context_ref,payload,payload_digest)
-                       VALUES (?,?,?,?,?) ON CONFLICT (tenant_id,idempotency_key)
-                       DO UPDATE SET payload=excluded.payload,payload_digest=excluded.payload_digest""",
-                    (envelope.tenant_id, envelope.idempotency_key, envelope.auth_context_ref,
-                     payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
-                )
+                else:
+                    record = MiniAppRequestRecord.model_validate(record.model_dump() | {
+                        "received_at": now, "updated_at": now, "phase": "intake",
+                        "admission_deadline": now + timedelta(seconds=MINIAPP_ADMISSION_SECONDS),
+                    })
+                self._put_miniapp_request(connection, record)
                 return True, record
         except IngressClaimConflictError:
             raise
@@ -1541,7 +1660,7 @@ class SQLiteStore:
     def cancel_absent_miniapp_request(
         self, cancellation: MiniAppCancelledRequest,
     ) -> MiniAppRequestRecord | MiniAppCancelledRequest | None:
-        """Atomically reserve an absent key; existing requests are never cancelled."""
+        """Fence an absent or pending key; preserve every accepted claim and its journal."""
         cancellation = MiniAppCancelledRequest.model_validate(cancellation.model_dump())
         tenant, context, key = cancellation.tenant_id, cancellation.auth_context_ref, cancellation.idempotency_key
         try:
@@ -1554,24 +1673,38 @@ class SQLiteStore:
                     binding = record if isinstance(record, MiniAppCancelledRequest) else record.envelope
                     if binding.auth_context_ref != context:
                         raise IngressClaimConflictError("trusted request conflict")
-                    return record
+                    return self._reconcile_miniapp_record(connection, record, now=datetime.now(UTC),
+                        detail="request_cancelled", failure_code="OWNER_CANCELLED")[0]
                 if connection.execute(
                     "SELECT 1 FROM ingress_claims WHERE tenant_id=? AND idempotency_key=?", (tenant, key)
                 ).fetchone() is not None:
                     return None
-                payload = protect_current_user(
-                    cancellation.model_dump_json().encode("utf-8"), entropy=_MINIAPP_REQUEST_ENTROPY
-                )
-                connection.execute(
-                    """INSERT INTO miniapp_requests
-                       (tenant_id,idempotency_key,auth_context_ref,payload,payload_digest)
-                       VALUES (?,?,?,?,?)""",
-                    (tenant, key, context, payload, "sha256:" + hashlib.sha256(payload).hexdigest()),
-                )
+                self._put_miniapp_request(connection, cancellation)
                 return cancellation
         except IngressClaimConflictError:
             raise
         except (OSError, sqlite3.DatabaseError, DpapiError, ValueError, TypeError):
+            raise StoreCorruptionError("durable request is invalid") from None
+
+    def miniapp_intake_summary(self, tenant_id: str) -> dict[str, int]:
+        """Read-only current intake counts, separate from historical task failures."""
+        counts = {"pending": 0, "overdue": 0, "clarification": 0, "not_accepted": 0}
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute("SELECT * FROM miniapp_requests WHERE tenant_id=?", (tenant_id,)).fetchall()
+                for row in rows:
+                    record = self._miniapp_request_from_row(row)
+                    if isinstance(record, MiniAppCancelledRequest):
+                        continue
+                    if self._read_ingress_claim(connection, record.envelope) is not None:
+                        continue
+                    counts[record.state] += 1
+                    if record.state == "pending" and (
+                        record.admission_deadline is None or record.admission_deadline <= datetime.now(UTC)
+                    ):
+                        counts["overdue"] += 1
+            return counts
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise StoreCorruptionError("durable request is invalid") from None
 
     def _append_event_row(

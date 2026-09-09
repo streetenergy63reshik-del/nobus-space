@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-09-09T11:50:01.439042+00:00",
+  "verdict": "SOURCE_PASS",
+  "source_sha": "1bc68d7a57a291382772c7270b552cc6ae12cb14",
+  "source_tree": "5724a35445bccd97c36fdeec69bf8c6b4f7328ab",
+  "application": {
+    "source_commit": "1bc68d7a57a291382772c7270b552cc6ae12cb14",
+    "code_digest": "sha256:8fbe77c29d9540feb499b8508bda166edfe9b0f18f7454c3a5f7b44ffe191a7d",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "static_normalized_lf_sha256": {
+    "app.js": "ba5b3af4b7019af4ded346ffca2339c9a72f545474def3b7930da299277ed3aa",
+    "index.html": "cadbe9407b6525729b80a330e15f479f97500fadf72ad3b328793ce8eea199dd",
+    "styles.css": "fd7f08a131ca3f4605477bae91e0ef0aed79b6ab0bd4d3b0b2e503996f0b43d2"
+  },
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "l1": {
+    "python_passed": 589,
+    "frontend_passed": 24,
+    "diff_check": "PASS",
+    "offline": true
+  },
+  "l2": {
+    "verdict": "PASS",
+    "backend_assertions": 15,
+    "frontend_assertions": 10,
+    "methods": [
+      "Independent connection close and reopen, late claim, accepted identity, new request and deadline",
+      "Interleaved 503/pending and timer exhaustion, lost cancellation ACK, new key and late accepted recovery"
+    ]
+  },
+  "l3": {
+    "verdict": "PASS",
+    "independent_cases": 7,
+    "methods": [
+      "Five late admission outcomes after accepted claim",
+      "Two closed drafts recovered with fresh store queue runtime objects",
+      "Adversarial read of race replay auth tenant diagnosis and forward-only restore boundaries"
+    ]
+  },
+  "legacy": {
+    "verdict": "PASS",
+    "protected_content_free_journal_records": 2,
+    "existing_refusal_and_envelopes_preserved": true,
+    "live_unchanged": true
+  },
+  "evidence_sha256": {
+    "l1": "a50d3005b1d4dc8f39626680d9acf129fb424a69859aafab4724b1769382ecc5",
+    "l2_backend": "1904eb6a8dbae2b679c41d526025c72bd761db0a3e8faf1c7b15cee0932746e8",
+    "l2_frontend": "0009f145181fbaef436776a23d4d27b030a7730ca2cdb78837c66fab2e9caac0",
+    "l3": "7c1378030c72104a026cbefafefc3e0baf472c24eee6b27174d8ad724693c459",
+    "legacy": "6e29d241cf022dee2f18722f2b2ed31af551407de64fa7ece134f96aff359c91"
+  },
+  "blocking_source_findings": [],
+  "independent_final_cycles": 1,
+  "model_calls": 0,
+  "asr_calls": 0,
+  "real_startup_calls": 0,
+  "sql_ddl_unchanged": true,
+  "old_reader_for_new_json_forbidden": true,
+  "runtime_switched": false,
+  "owner_acceptance": false,
+  "release_published": false
+}

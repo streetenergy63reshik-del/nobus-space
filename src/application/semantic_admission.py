@@ -1804,8 +1804,28 @@ class SemanticAdmissionService:
         self._binding_issuer = binding_issuer or TrustedOperationBindingIssuer()
         self._timeout = timeout_seconds
         self._core = SemanticDecisionCore(self.contract)
+        self.last_status = "not_checked"
+        self.last_changed_at: datetime | None = None
 
     async def admit(
+        self, canonical: CanonicalSemanticInput, bindings: AdmissionBindings
+    ) -> SemanticAdmission:
+        try:
+            result = await self._admit(canonical, bindings)
+        except asyncio.CancelledError:
+            self.last_status = "interrupted"
+            self.last_changed_at = datetime.now(UTC)
+            raise
+        except Exception:
+            # Health is only a projection; no restart or retry is requested here.
+            self.last_status = "unavailable"
+            self.last_changed_at = datetime.now(UTC)
+            raise
+        self.last_status = "ready"
+        self.last_changed_at = datetime.now(UTC)
+        return result
+
+    async def _admit(
         self, canonical: CanonicalSemanticInput, bindings: AdmissionBindings
     ) -> SemanticAdmission:
         deadline = asyncio.get_running_loop().time() + self._timeout

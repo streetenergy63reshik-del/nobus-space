@@ -37,6 +37,9 @@ class ProductReason(str, Enum):
     VOICE_CONFIRMATION = "voice_confirmation"
     VOICE_INTERRUPTED = "voice_interrupted"
     INPUT_CANCELLED = "input_cancelled"
+    REQUEST_EXPIRED = "request_expired"
+    REQUEST_INTERRUPTED = "request_interrupted"
+    SEMANTIC_UNAVAILABLE = "semantic_unavailable"
 
 
 class ProductAction(str, Enum):
@@ -127,6 +130,9 @@ for reason, status, label, text, action, terminal in (
     (ProductReason.VOICE_RECOGNIZING, ProductTaskStatus.WORKING, "Распознаю запись", "Распознаю запись на русском языке. Задача ещё не запущена.", ProductAction.WAIT, False),
     (ProductReason.VOICE_CONFIRMATION, ProductTaskStatus.WAITING, "Проверьте запись", "Ответьте на исходное голосовое сообщение: «да», «нет» или исправленным текстом. До подтверждения задача не запускается.", ProductAction.CONFIRM, False),
     (ProductReason.VOICE_INTERRUPTED, ProductTaskStatus.ATTENTION, "Распознавание прервано", "Ответьте на исходное голосовое сообщение «повторить» или исправленным текстом. Задача ещё не запущена.", ProductAction.ANSWER, False),
+    (ProductReason.REQUEST_EXPIRED, ProductTaskStatus.FAILED, "Отправка завершена", "Срок приёма истёк. Этот запрос не создаст задачу; можно отправить новый.", ProductAction.NEW_REQUEST, True),
+    (ProductReason.REQUEST_INTERRUPTED, ProductTaskStatus.FAILED, "Отправка прервана", "Приём прерван. Этот запрос не создаст задачу; можно отправить новый.", ProductAction.NEW_REQUEST, True),
+    (ProductReason.SEMANTIC_UNAVAILABLE, ProductTaskStatus.FAILED, "Приём недоступен", "Не удалось разобрать запрос. Задача не создана; попробуйте позже с новым запросом.", ProductAction.NEW_REQUEST, True),
     (ProductReason.INPUT_CANCELLED, ProductTaskStatus.FAILED, "Ввод отменён", "Голосовая запись отменена; задача не запускалась.", ProductAction.NONE, True),
 ):
     _REASONS[reason] = ProductTaskState(status=status, label=label, terminal=terminal,

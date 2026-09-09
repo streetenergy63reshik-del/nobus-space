@@ -21,7 +21,7 @@ from src.application.semantic_admission import (
     SemanticAdmissionService, SemanticClarificationRejected, SemanticClarificationRequired,
 )
 from src.storage import SQLiteStore
-from src.storage.sqlite_store import MiniAppCancelledRequest, MiniAppRequestRecord
+from src.storage.sqlite_store import MiniAppAdmissionClosedError, MiniAppCancelledRequest, MiniAppRequestRecord
 from src.transport.miniapp import create_miniapp_app
 from tests.test_miniapp import (
     BOT_TOKEN, OTHER_BOT_TOKEN, OWNER_ID, ORIGIN, Clock, _miniapp_admission,
@@ -375,7 +375,7 @@ def test_cancel_absent_request_survives_reload_and_fences_any_delayed_create(tmp
 
 
 @pytest.mark.parametrize("admitted", [False, True])
-def test_cancel_never_changes_existing_pending_or_accepted_request(tmp_path, monkeypatch, admitted):
+def test_cancel_fences_existing_pending_and_never_changes_accepted_request(tmp_path, monkeypatch, admitted):
     store, queue, admission = _miniapp_admission(tmp_path)
     service = service_for(store, admission, Clock())
     grant = service.authenticate(signed_init_data())
@@ -390,9 +390,20 @@ def test_cancel_never_changes_existing_pending_or_accepted_request(tmp_path, mon
     before = service.request_state(grant.access_token, KEY)
     with sqlite3.connect(store._path) as connection:
         payload = connection.execute("SELECT payload FROM miniapp_requests").fetchone()[0]
-    assert asyncio.run(service.cancel_absent_request(grant.access_token, KEY)) == before
-    with sqlite3.connect(store._path) as connection:
-        assert connection.execute("SELECT payload FROM miniapp_requests").fetchone()[0] == payload
+    after = asyncio.run(service.cancel_absent_request(grant.access_token, KEY))
+    if admitted:
+        assert after == before
+        with sqlite3.connect(store._path) as connection:
+            assert connection.execute("SELECT payload FROM miniapp_requests").fetchone()[0] == payload
+    else:
+        assert before.state == "pending" and after.state == "not_accepted"
+        assert after.detail == "request_cancelled"
+        record = store.read_miniapp_request(TENANT_ID, service._auth_context_ref, KEY)
+        prepared = asyncio.run(admission._product_runtime.build_instruction("Один запрос.", record.envelope))
+        # The changed expectation is backed by the shared durable claim boundary, not by absence of a task.
+        with pytest.raises(MiniAppAdmissionClosedError):
+            asyncio.run(admission._product_runtime.admit_prepared(prepared, record.envelope))
+        assert store.read_ingress_claim(record.envelope) is None
     assert queue.queue_counts() == (0, int(admitted))
 
 

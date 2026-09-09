@@ -135,8 +135,8 @@ async def test_status_ready_expired_worker_down_and_store_failure(tmp_path, monk
         poison = admit(state)
         with sqlite3.connect(state.path) as db:
             db.execute("UPDATE telegram_jobs SET status='failed',failure_code='synthetic_failure' WHERE job_id=?", (str(poison.job_id),))
-        assert "Требуют внимания: 1" in control._status_text(tenant_id="owner")
-        assert "Требуют внимания: 0" in control._status_text(tenant_id="foreign")
+        assert "Требуют внимания (история задач): 1" in control._status_text(tenant_id="owner")
+        assert "Требуют внимания (история задач): 0" in control._status_text(tenant_id="foreign")
         now[0] += timedelta(seconds=6)
         text = control._status_text()
         assert "В работе: 0" in text and "Восстанавливаются: 1" in text

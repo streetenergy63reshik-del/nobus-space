@@ -6,6 +6,7 @@ const displayTitle = $("display-title"), submit = $("submit-task");
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
 let bearer = null, sessionPromise = null, freshAuthAttempted = false;
 let selectedTaskId = marker("selected"), pendingRequest = marker("pending") || marker("clarification");
+let pendingTimer = null, pendingChecks = 0;
 let clarification = null, submitting = false, selectionGeneration = 0, listGeneration = 0;
 let pollTimer = null, pollReads = 0, lastTaskRevision = 0, lastRender = null;
 
@@ -281,7 +282,10 @@ async function downloadArtifact(taskId, result, artifact, generation, control, f
     control.disabled = false;
   }
 }
-function clearPending() { pendingRequest = null; saveMarker("pending", null); updateComposer(); }
+function clearPending() {
+  clearTimeout(pendingTimer); pendingTimer = null; pendingChecks = 0;
+  pendingRequest = null; saveMarker("pending", null); updateComposer();
+}
 function showClarification(question, token, requestId) {
   if (typeof question !== "string" || !/^[A-Za-z0-9_-]{32,128}$/.test(token)) throw new ApiError(503);
   if (!saveMarker("clarification", requestId)) throw new ApiError(503);
@@ -306,7 +310,11 @@ function unknownRequest(message) {
   composerMessage(message);
   notice(message, "Проверить приём", reconcilePending);
   state.append(button("Отменить отправку", cancelPending));
-  state.append(element("p", "", "Отмена возможна, только если запрос ещё не принят."));
+  state.append(element("p", "", "Если задача уже принята, откроется её исходная карточка. Иначе отмена закроет отправку."));
+  clearTimeout(pendingTimer);
+  if (pendingRequest && bearer && pendingChecks < 30) {
+    pendingTimer = setTimeout(() => { pendingChecks += 1; reconcilePending(); }, 3000);
+  }
 }
 async function handleRequestOutcome(result, requestId) {
   if (pendingRequest !== requestId || result.request_id !== requestId) throw new ApiError(503);
@@ -316,6 +324,9 @@ async function handleRequestOutcome(result, requestId) {
     clearPending(); resetClarification();
     const message = result.detail === "capability_unavailable" ? "Эта функция пока недоступна. Задача не создана." :
       result.detail === "request_cancelled" ? "Отправка отменена. Этот запрос не создаст задачу." :
+      result.detail === "request_expired" ? "Срок приёма истёк. Этот запрос не создаст задачу. Можно отправить новый." :
+      result.detail === "request_interrupted" ? "Отправка прервана. Этот запрос не создаст задачу. Можно отправить новый." :
+      result.detail === "semantic_unavailable" ? "Не удалось разобрать запрос. Задача не создана. Попробуйте позже с новым запросом." :
       result.detail === "clarification_invalid" ? "Уточнение истекло или уже использовано. Задача не создана. Укажите новый запрос и название." :
       "Запрос не принят. Проверьте формулировку.";
     composerMessage(message); notice(message); return true;
@@ -345,7 +356,9 @@ async function reconcilePending() {
     const result = await api("/api/requests/" + encodeURIComponent(requestId));
     if (pendingRequest !== requestId) return;
     if (await handleRequestOutcome(result, requestId)) return;
-    unknownRequest("Приём ещё не подтверждён. Повторная задача не отправляется.");
+    unknownRequest(pendingChecks < 30 ?
+      "Приём ещё проверяется. Проверка продолжится автоматически; отправку можно отменить." :
+      "Приём пока не подтверждён. Проверьте состояние вручную или отмените отправку.");
   } catch (error) {
     if (pendingRequest !== requestId) return;
     if (error?.status === 401) showError(error, reconcilePending);

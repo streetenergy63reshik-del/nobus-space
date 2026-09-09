@@ -264,3 +264,62 @@ test("static asset versions match bytes so cached previous code is not reused",(
     assert.ok(html.includes('"/'+name+'?v='+digest+'"'));
   }
 });
+
+
+test("bounded pending polling observes late accepted ACK without a second POST", async()=>{
+  let key, accepted=false, posts=0;
+  const h=harness((url,options)=>{
+    if(url==="/api/tasks"&&options.method==="POST") { posts++; key=options.headers["Idempotency-Key"]; throw new TypeError("deadline"); }
+    if(url.startsWith("/api/requests/")) return json(accepted?
+      {request_id:key,state:"accepted",task_id:A,status:"queued"}:{request_id:key,state:"pending"});
+  });
+  await flush();h.$("instruction").value="Синтетический запрос";h.$("display-title").value="Один запрос";
+  await h.run("createTask({preventDefault(){}})");await flush();
+  assert.equal(h.$("new-task").disabled,true);
+  accepted=true;
+  const timer=h.timers.get(h.run("pendingTimer"));assert.equal(timer.ms,3000);
+  timer.fn();await flush();
+  assert.equal(posts,1);assert.equal(h.run("selectedTaskId"),A);
+  assert.equal(h.storage.has("nobus.pending"),false);assert.equal(h.run("pendingTimer"),null);
+});
+
+test("a confirmed deadline releases the composer for a new request key", async()=>{
+  const key="dddddddd-dddd-4ddd-dddd-dddddddddddd";
+  let expired=false, createdKey;
+  const h=harness((url,options)=>{
+    if(url.startsWith("/api/requests/"))return json({request_id:key,state:expired?"not_accepted":"pending",detail:expired?"request_expired":null});
+    if(url==="/api/tasks"&&options.method==="POST") { createdKey=options.headers["Idempotency-Key"]; return json({task_id:B,status:"queued"},202); }
+  },new Map([["nobus.pending",key]]));
+  await flush();assert.equal(h.$("new-task").disabled,true);
+  expired=true;h.timers.get(h.run("pendingTimer")).fn();await flush();
+  assert.equal(h.$("new-task").disabled,false);assert.match(h.$("state").textContent,/не создаст задачу/);
+  h.$("instruction").value="Следующий запрос";h.$("display-title").value="Второй";
+  await h.run("createTask({preventDefault(){}})");await flush();
+  assert.notEqual(createdKey,key);assert.equal(h.run("selectedTaskId"),B);
+});
+
+test("lost cancellation ACK is reconciled by GET and never repeated automatically", async()=>{
+  const key="dddddddd-dddd-4ddd-dddd-dddddddddddd";
+  let cancelled=false, cancelPosts=0;
+  const h=harness((url,options)=>{
+    if(url.endsWith("/cancel")){cancelPosts++;cancelled=true;throw new TypeError("lost ACK");}
+    if(url.startsWith("/api/requests/"))return json({request_id:key,state:cancelled?"not_accepted":"pending",detail:cancelled?"request_cancelled":null});
+  },new Map([["nobus.pending",key]]));
+  await flush();await h.run("cancelPending()");await flush();
+  assert.equal(h.storage.get("nobus.pending"),key);
+  h.timers.get(h.run("pendingTimer")).fn();await flush();
+  assert.equal(cancelPosts,1);assert.equal(h.storage.has("nobus.pending"),false);
+  assert.match(h.$("state").textContent,/Отправка отменена/);
+});
+
+test("pending polling is finite and preserves manual reconciliation", async()=>{
+  const key="dddddddd-dddd-4ddd-dddd-dddddddddddd";
+  const h=harness(url=>url.startsWith("/api/requests/")?json({request_id:key,state:"pending"}):undefined,
+    new Map([["nobus.pending",key]]));
+  await flush();
+  for(let i=0;i<30;i++){const timer=h.timers.get(h.run("pendingTimer"));assert.ok(timer);timer.fn();await flush();}
+  assert.equal(h.run("pendingChecks"),30);
+  assert.equal([...h.timers.values()].filter(t=>t.ms===3000).length,0);
+  assert.equal(h.storage.get("nobus.pending"),key);assert.match(h.$("state").textContent,/Проверить приём/);
+  assert.equal(h.calls.filter(c=>c.options.method==="POST"&&c.url!=="/api/session/recover").length,0);
+});

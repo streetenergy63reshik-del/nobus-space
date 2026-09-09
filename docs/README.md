@@ -128,3 +128,5 @@ product effect.
 - Сохранять CURRENT/TARGET и program/runtime authority раздельно.
 - Не записывать credentials, tokens, cookies, raw payload, audio, local secret
   paths или данные другого tenant.
+
+Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). Кандидат ещё не активирован.

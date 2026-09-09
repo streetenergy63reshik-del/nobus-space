@@ -12,7 +12,7 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal, Protocol
+from typing import Literal, Protocol, get_args
 from urllib.parse import parse_qsl
 from uuid import UUID
 
@@ -24,6 +24,7 @@ from src.application.product_status import (
     product_event_label, product_reason_state, product_task_state,
 )
 from src.application.semantic_admission import (
+    SemanticAdmissionError,
     SemanticClarificationRejected,
     SemanticClarificationRequired,
 )
@@ -47,7 +48,10 @@ from src.storage import (
     StoredTaskSnapshot,
     artifact_for_message,
 )
-from src.storage.sqlite_store import MiniAppCancelledRequest, MiniAppRequestRecord
+from src.storage.sqlite_store import (
+    MiniAppAdmissionClosedError, MiniAppCancelledRequest, MiniAppRequestRecord,
+    MiniAppRequestDetail, MiniAppFailureCode, MiniAppRequestPhase,
+)
 from src.storage.outbox import OutboxStatus
 
 
@@ -128,7 +132,16 @@ class MiniAppRequestState(BaseModel):
     status: ProductTaskStatus | None = None
     question: str | None = None
     clarification_token: str | None = Field(default=None, repr=False)
-    detail: Literal["clarification_invalid", "capability_unavailable", "request_refused", "condition_not_met", "approval_required", "request_cancelled"] | None = None
+    detail: MiniAppRequestDetail | None = None
+    request_ref: str | None = None
+    received_at: datetime | None = None
+    updated_at: datetime | None = None
+    deadline_at: datetime | None = None
+    phase: MiniAppRequestPhase | None = None
+    failure_code: MiniAppFailureCode | None = None
+    failure_phase: MiniAppRequestPhase | None = None
+    elapsed_seconds: float | None = None
+    legacy_timing: bool = False
 
 
 class MiniAppTaskSummary(BaseModel):
@@ -316,7 +329,6 @@ class MiniAppCore:
         self._sessions: dict[str, _Session] = {}
         self._lock = threading.Lock()
         # ponytail: one owner, so one mutation lock is enough until measured concurrency needs more.
-        self._mutation_lock = asyncio.Lock()
 
     def authenticate(self, raw_init_data: str) -> MiniAppSessionGrant:
         now = self._now()
@@ -632,16 +644,12 @@ class MiniAppCore:
             )
         ):
             raise MiniAppTaskRequestError("invalid_request")
-        async with self._mutation_lock:
-            session = self._session(bearer)
-            return await self._create_task(
-                session,
-                instruction=normalized,
-                idempotency_key=idempotency_key,
-                display_title=normalized_title,
-                clarification_token=clarification_token,
-                material=material,
-            )
+        session = self._session(bearer)
+        return await self._create_task(
+            session, instruction=normalized, idempotency_key=idempotency_key,
+            display_title=normalized_title, clarification_token=clarification_token,
+            material=material,
+        )
 
     async def _create_task(
         self,
@@ -674,83 +682,78 @@ class MiniAppCore:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
         if isinstance(record, MiniAppCancelledRequest):
             raise MiniAppRequestCancelled("request_cancelled")
-        existing = self._existing_creation(
-            envelope,
-            admission,
-            display_title=display_title,
-            instruction=instruction,
-        )
+        # Content/auth identity was checked by the store; repeats use the first envelope bytes.
+        envelope = record.envelope
+        existing = self._existing_creation(envelope, admission,
+            display_title=display_title, instruction=instruction)
         if existing is not None:
             return existing
         if not claimed:
-            if record.state == "clarification":
-                if not self._clarification_current(record):
-                    self._finish_request(record, state="not_accepted", detail="clarification_invalid")
-                    raise SemanticClarificationRejected("clarification_invalid")
-                assert record.question is not None and record.clarification_token is not None
-                raise SemanticClarificationRequired(record.question, record.clarification_token)
-            if record.detail == "clarification_invalid":
-                raise SemanticClarificationRejected("clarification_invalid")
-            if record.state == "not_accepted":
-                raise MiniAppRequestNotAccepted(record.detail)
-            # Unknown admission must be reconciled, never run the compiler/queue again.
-            raise MiniAppCoreUnavailableError("core_unavailable")
+            self._raise_request_outcome(record)
+        outcome = None
         try:
             if clarification_token is None:
                 task_id = await admission.submit_miniapp_task(instruction, envelope)
             else:
                 task_id = await admission.submit_miniapp_task(
-                    instruction,
-                    envelope,
-                    clarification_token=clarification_token,
-                )
+                    instruction, envelope, clarification_token=clarification_token)
         except SemanticClarificationRequired as error:
-            self._finish_request(record, state="clarification", question=error.question,
-                                 clarification_token=error.token,
-                                 expires_at=self._now() + timedelta(minutes=30))
-            raise
+            outcome = dict(state="clarification", question=error.question,
+                clarification_token=error.token, expires_at=self._now() + timedelta(minutes=30),
+                phase="semantic")
         except SemanticClarificationRejected:
-            self._finish_request(record, state="not_accepted", detail="clarification_invalid")
-            raise
+            outcome = dict(state="not_accepted", detail="clarification_invalid", phase="semantic")
         except ProductAdmissionStopped as error:
-            self._finish_request(record, state="not_accepted", detail=error.state.reason.value)
-            raise MiniAppRequestNotAccepted(error.state.reason.value) from None
-        except (DuplicateIdempotencyKeyError, IngressClaimConflictError):
-            existing = self._existing_creation(
-                envelope,
-                admission,
-                display_title=display_title,
-                instruction=instruction,
-            )
-            if existing is not None:
-                return existing
-            raise MiniAppTaskConflictError("request_conflict") from None
+            outcome = dict(state="not_accepted", detail=error.state.reason.value, phase="semantic")
+        except SemanticAdmissionError as error:
+            # These errors are before admission; still reconcile against a concurrent accepted claim.
+            code = error.code if error.code in get_args(MiniAppFailureCode) else "SEMANTIC_FAILED"
+            outcome = dict(state="not_accepted", detail="semantic_unavailable", phase="semantic", failure_code=code)
+        except asyncio.CancelledError:
+            self._store.reconcile_miniapp_request(envelope.tenant_id, envelope.auth_context_ref,
+                envelope.idempotency_key, detail="request_interrupted", failure_code="TRANSPORT_CANCELLED")
+            raise
+        except (MiniAppAdmissionClosedError, DuplicateIdempotencyKeyError, IngressClaimConflictError):
+            outcome = dict(state="pending", phase="reconciliation", failure_code="ADMISSION_UNKNOWN")
         except Exception:
-            existing = self._existing_creation(
-                envelope,
-                admission,
-                display_title=display_title,
-                instruction=instruction,
-            )
+            # An arbitrary exception does not prove refusal. Retain UNKNOWN until atomic reconciliation.
+            outcome = dict(state="pending", phase="reconciliation", failure_code="ADMISSION_UNKNOWN")
+        if outcome is not None:
+            record = self._finish_request(record, **outcome)
+            existing = self._existing_creation(envelope, admission,
+                display_title=display_title, instruction=instruction)
             if existing is not None:
                 return existing
-            raise MiniAppCoreUnavailableError("core_unavailable") from None
+            self._raise_request_outcome(record)
         try:
             snapshot = self._store.read_task(session.tenant_id, task_id)
         except StoreCorruptionError:
             raise MiniAppCoreUnavailableError("core_unavailable") from None
         if snapshot is None or snapshot.projection.tenant_id != session.tenant_id:
             raise MiniAppCoreUnavailableError("core_unavailable")
-        snapshot = self._bind_display_title(
-            snapshot, display_title, instruction=instruction
-        )
+        snapshot = self._bind_display_title(snapshot, display_title, instruction=instruction)
         return self._creation(snapshot, admission)
 
-    def _finish_request(self, record: MiniAppRequestRecord, **outcome: object) -> None:
+    def _raise_request_outcome(self, record: MiniAppRequestRecord | MiniAppCancelledRequest) -> None:
+        if isinstance(record, MiniAppCancelledRequest) or record.detail == "request_cancelled":
+            raise MiniAppRequestCancelled("request_cancelled")
+        if record.state == "clarification":
+            if not self._clarification_current(record):
+                self._finish_request(record, state="not_accepted", detail="clarification_invalid",
+                    question=None, clarification_token=None, expires_at=None)
+                raise SemanticClarificationRejected("clarification_invalid")
+            raise SemanticClarificationRequired(record.question, record.clarification_token)
+        if record.detail == "clarification_invalid":
+            raise SemanticClarificationRejected("clarification_invalid")
+        if record.state == "not_accepted":
+            raise MiniAppRequestNotAccepted(record.detail)
+        raise MiniAppCoreUnavailableError("core_unavailable")
+
+    def _finish_request(self, record: MiniAppRequestRecord, **outcome: object) -> MiniAppRequestRecord | MiniAppCancelledRequest:
         try:
-            self._store.write_miniapp_request(
-                MiniAppRequestRecord(envelope=record.envelope, **outcome)
-            )
+            return self._store.write_miniapp_request(
+                MiniAppRequestRecord.model_validate(record.model_dump() | outcome)
+            )[1]
         except (StoreCorruptionError, ValueError):
             raise MiniAppCoreUnavailableError("core_unavailable") from None
 
@@ -770,7 +773,7 @@ class MiniAppCore:
         if not isinstance(idempotency_key, str) or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None:
             raise MiniAppTaskNotFoundError("task_not_found")
         try:
-            record = self._store.read_miniapp_request(
+            record, snapshot = self._store.reconcile_miniapp_request(
                 session.tenant_id, session.auth_context_ref, idempotency_key
             )
             if record is None:
@@ -778,7 +781,6 @@ class MiniAppCore:
             if isinstance(record, MiniAppCancelledRequest):
                 return MiniAppRequestState(request_id=idempotency_key, state="not_accepted",
                                            detail="request_cancelled")
-            snapshot = self._store.read_ingress_claim(record.envelope)
             if snapshot is not None:
                 if self._task_admission is None:
                     raise MiniAppCoreUnavailableError("core_unavailable")
@@ -788,33 +790,40 @@ class MiniAppCore:
         except (StoreCorruptionError, IngressClaimConflictError):
             raise MiniAppCoreUnavailableError("core_unavailable") from None
         if record.state == "clarification" and not self._clarification_current(record):
-            self._finish_request(record, state="not_accepted", detail="clarification_invalid")
+            self._finish_request(record, state="not_accepted", detail="clarification_invalid",
+                question=None, clarification_token=None, expires_at=None)
             return MiniAppRequestState(request_id=idempotency_key, state="not_accepted",
                                        detail="clarification_invalid")
         return MiniAppRequestState(
             request_id=idempotency_key, state=record.state,
             question=record.question, clarification_token=record.clarification_token,
             detail=record.detail,
+            request_ref=hashlib.sha256(idempotency_key.encode()).hexdigest()[:16],
+            received_at=record.received_at, updated_at=record.updated_at,
+            deadline_at=record.admission_deadline, phase=record.phase,
+            failure_code=record.failure_code, failure_phase=record.failure_phase,
+            elapsed_seconds=(round((record.updated_at - record.received_at).total_seconds(), 3)
+                if record.received_at is not None and record.updated_at is not None else None),
+            legacy_timing=record.received_at is None,
         )
 
     async def cancel_absent_request(self, bearer: str, idempotency_key: str) -> MiniAppRequestState:
         if not isinstance(idempotency_key, str) or _IDEMPOTENCY_KEY.fullmatch(idempotency_key) is None:
             raise MiniAppTaskRequestError("invalid_request")
-        async with self._mutation_lock:
-            session = self._session(bearer)
-            try:
-                record = self._store.cancel_absent_miniapp_request(MiniAppCancelledRequest(
-                    tenant_id=session.tenant_id, auth_context_ref=session.auth_context_ref,
-                    idempotency_key=idempotency_key,
-                ))
-            except IngressClaimConflictError:
-                raise MiniAppTaskNotFoundError("task_not_found") from None
-            except StoreCorruptionError:
-                raise MiniAppCoreUnavailableError("core_unavailable") from None
-            if record is None:
-                # A legacy ingress claim without a journal is not proof of rejection.
-                return MiniAppRequestState(request_id=idempotency_key, state="pending")
-            return self.request_state(bearer, idempotency_key)
+        session = self._session(bearer)
+        try:
+            record = self._store.cancel_absent_miniapp_request(MiniAppCancelledRequest(
+                tenant_id=session.tenant_id, auth_context_ref=session.auth_context_ref,
+                idempotency_key=idempotency_key,
+            ))
+        except IngressClaimConflictError:
+            raise MiniAppTaskNotFoundError("task_not_found") from None
+        except StoreCorruptionError:
+            raise MiniAppCoreUnavailableError("core_unavailable") from None
+        if record is None:
+            # A legacy ingress claim without a journal is not proof of rejection.
+            return MiniAppRequestState(request_id=idempotency_key, state="pending")
+        return self.request_state(bearer, idempotency_key)
 
     def _existing_creation(
         self,
@@ -918,7 +927,7 @@ class MiniAppCore:
             "actor_identity": "telegram:owner",
             "external_message_id": f"miniapp:task.create:{idempotency_key}",
             "idempotency_key": idempotency_key,
-            "received_at": session.issued_at,
+            "received_at": self._now(),
             "kind": IngressKind.TEXT,
             "content_ref": content_ref,
             "auth_context_ref": session.auth_context_ref,
