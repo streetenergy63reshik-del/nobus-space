@@ -1,0 +1,24 @@
+{
+  "schema": "c6-independent-l3-affected-review-1",
+  "base_commit": "7ea915790c382473378078065f0d7d3630fb56e6",
+  "candidate_kind": "Frozen source correction; reviewed file bytes unchanged",
+  "files": {
+    "scripts/run_nobus_space_live.py": "34f1247621f206482d771886de460610e3b408b8f89f312109236537c5956ed8",
+    "tests/test_live_supervisor_windows_ssh.py": "e3116ee92281e8587fc9b6bcaaeec526e4380a34fc0916db210b922b934474cf"
+  },
+  "verdict": "SCOPED_SOURCE_PASS",
+  "actionable_blockers": [],
+  "scope": "Read-only adversarial assessment of one PROGRAMDATA allowlist addition and the dedicated actual-Windows ssh -V regression; no historical source/gate requalification",
+  "findings": {
+    "environment_boundary": "The explicit allowlist is retained and gains only PROGRAMDATA, a Windows shared-data directory locator. No whole-environment inheritance, secret discovery, wildcard or additional remote input is introduced.",
+    "job_and_gating": "Assignment to the owned Job still precedes gate signal; the gated helper still waits before launching the requested executable. The change does not alter process ownership, mutexes, child arguments or cleanup paths.",
+    "ssh_boundary": "Production explicit ssh path, -F NUL, identity and known_hosts bindings, strict host verification, reverse target, timeouts and no-password mode remain unchanged.",
+    "regression_test": "The new Windows-only test exercises spawn_owned with installed Windows OpenSSH -V, checks zero exit, rejects a synthetic private environment variable, and checks the owned Job is empty after termination. It does not connect to a network or assert relay/product readiness.",
+    "false_pass": "Production exact local/public readiness checks and failure/cleanup handling are unchanged. Successful ssh -V must not be presented as successful relay, native startup, full RTO or owner acceptance."
+  },
+  "verification_by_this_reviewer": "Static diff/readback and exact SHA256 only. No test, executable, network, native model/ASR, Telegram, Global mutex or live action was run.",
+  "release_boundary": "Live remains subject to separate publication of revised product bytes and owner-approved exact activation delta. This receipt does not authorize switching or claim runtime READY.",
+  "source_commit": "b8e8ac41a401aa839710d7b11a72f76f02d97607",
+  "source_tree": "b715c699891d970bd1a0bb8a65d7d5fa85d54312",
+  "primary_test_reference": "Parent reports 107 PASS in 67.50 seconds; .runtime/activation-execution/SSH-REGRESSION-AFTER.log. This L3 reviewer did not rerun that suite."
+}
