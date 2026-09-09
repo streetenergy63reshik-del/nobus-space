@@ -1,0 +1,86 @@
+{
+  "at": "2026-09-09T15:44:46.118899+00:00",
+  "status": "MVP1_NOT_READY",
+  "source_sha": "4d631dce25500e6bd3bfca0d31d769a858176e7f",
+  "source_review": "NATIVE-PROMPT-REVIEW-11.json",
+  "publication": "This document revision; publish with the reviewed source",
+  "live_sha": "c89a9867810c86e8a25e0447ad4146d8e4a2bea1",
+  "runtime": "CONTROLLED_STOP_ADMISSION_HOLD",
+  "stopped_at": "2026-09-09T15:18:00Z",
+  "reason": "Synthetic prompt request refused before claim; full/direct model operation mismatch",
+  "scheduler": "All three disabled; logon and retries disabled",
+  "tasks_preserved": 82,
+  "confirmed_deliveries_preserved": 80,
+  "source_checks": {
+    "count": 71,
+    "seconds": 21.82,
+    "files": [
+      "tests/test_codex_sdk.py",
+      "tests/test_c6_prompt_correction.py",
+      "tests/test_c6_prompt_reply_boundary.py"
+    ]
+  },
+  "current_state_evidence": {
+    "bytes": 14620,
+    "sha256": "1999d6e6811820b81c887da6cb67ae87004e1d8e9de2c4b6e0e7fa7fd6acd8a4"
+  },
+  "native_before": {
+    "bytes": 2827,
+    "sha256": "4a294c67ca3152fe08ac38e7796dca87603af1e66dfe4c9efa38d3befebe3081"
+  },
+  "native_after": {
+    "bytes": 3038,
+    "sha256": "90a37c7200306c475bff66f92e33623c1b3243f17a0ab366c0a618d33b25f589"
+  },
+  "manual": {
+    "status": "VISUAL_PASS_6_PAGES",
+    "after_sha256": "32723142380283513a87001ac1a7a8935710414d04d96b920aaf70a4a56196e9",
+    "same_manual_path": true,
+    "page_count": 6
+  },
+  "criteria": [
+    {
+      "id": "C6-01",
+      "status": "PASS",
+      "fact": "82 прежние задачи и 80 доставок сохранены; четыре БД целы. Архивы уникальных рабочих файлов сохранены."
+    },
+    {
+      "id": "C6-02",
+      "status": "PARTIAL",
+      "fact": "C6-ACT-09: штатный запуск c89a986 прошёл за 57,453 с. После отказа проверочной задачи процесс контролируемо остановлен; исправленная версия ещё не включена."
+    },
+    {
+      "id": "C6-03",
+      "status": "PARTIAL",
+      "fact": "Полное восстановление 274,891 с на e3fbaf9 сохранено. На c89a986 проверены новые связанные копии и запуск; новый исходник требует проверки затронутого маршрута."
+    },
+    {
+      "id": "C6-04",
+      "status": "PARTIAL",
+      "fact": "Последний полный цикл Планировщика прошёл за 126,86 с на e3fbaf9. Новые копии c89a986 проверены до запуска. Ежедневное расписание отключено."
+    },
+    {
+      "id": "C6-05",
+      "status": "PARTIAL",
+      "fact": "Прежний штатный перезапуск сохранён как доказательство своей версии. Перезапуск с исправлением 4d631dce ещё не выполнен."
+    },
+    {
+      "id": "C6-06",
+      "status": "PARTIAL",
+      "fact": "Подтверждены 3 из 6 реальных сценариев. Текстовый промпт, голосовой промпт и вторая задача Mini App остаются. Синтетический отказ не создал задачу и не засчитан как сценарий владельца."
+    },
+    {
+      "id": "C6-07",
+      "status": "PENDING",
+      "fact": "Итоговой приёмки нет. Постоянная фаза, её копия и следующий автоматический запуск не подтверждены."
+    },
+    {
+      "id": "C6-08",
+      "status": "PARTIAL",
+      "fact": "Текущие документы и та же Word-памятка обновлены; шесть страниц визуально проверены. Тег и release v1.0.2 отсутствуют."
+    }
+  ],
+  "owner_final_acceptance": false,
+  "remaining_real_owner_journeys": 3,
+  "release_created": false
+}

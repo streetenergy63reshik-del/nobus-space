@@ -1,6 +1,6 @@
 # Документация Nobus Space
 
-**Актуально на:** 9 сентября 2026 года. C0–C5 приняты и опубликованы. Квалификационный экземпляр C6 сейчас остановлен; исправление зависшего приёма включено, исправление промптов проверено и опубликовано, но ожидает включения. Итоговая приёмка, постоянный режим и v1.0.2 не завершены.
+**9 сентября 2026:** C6-ACT-09 успешно запустил c89a986. После отказа проверочной задачи промпта процесс штатно остановлен, данные сохранены. Исправление 4d631dce проверено и ожидает включения. Итоговая приёмка, постоянный режим и v1.0.2 не завершены. [Текущий статус](handoffs/CURRENT-STATUS.md).
 
 Начните с [текущего статуса](handoffs/CURRENT-STATUS.md), [пакета C6](gates/gate-c6-release/HANDOFF.md) и [эксплуатационной инструкции](08-Runbook-эксплуатации.md). Точная история проверки кода — [PROMPT-RECHECK-10](gates/gate-c6-release/PROMPT-RECHECK-10.md).
 
@@ -109,4 +109,4 @@ product effect.
 - Не записывать credentials, tokens, cookies, raw payload, audio, local secret
   paths или данные другого tenant.
 
-Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). Исправление приёма включено на e3fbaf9; исправление промптов опубликовано через PR №28 и ещё не включено.
+Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). В LIVE включены PR №28–29, c89a986; процесс сейчас остановлен. Последующее исправление 4d631dce описано в [проверке](gates/gate-c6-release/NATIVE-PROMPT-REVIEW-11.md).
