@@ -713,3 +713,28 @@ def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch
             if timer is not None:timer.cancel();timer.join(1)
     probe._thread.join(2)
     assert not probe._thread.is_alive()
+
+
+@pytest.mark.parametrize("public", [False, True])
+def test_readiness_identifies_its_own_client(monkeypatch, probe_server, public):
+    seen = []
+    def reply(handler, stop):
+        agent = handler.headers.get("User-Agent")
+        seen.append((agent, handler.headers.get("Host")))
+        accepted = agent == "NobusSpace-Health/1.0"
+        body = b'{"status":"ready"}' if accepted else b"client identity required"
+        handler.send_response(200 if accepted else 403)
+        handler.send_header("Content-Length", str(len(body)))
+        handler.end_headers()
+        handler.wfile.write(body)
+    with probe_server(reply) as (origin, _):
+        monkeypatch.setattr(supervisor, "_READINESS_PROBE", supervisor._ReadinessProbe())
+        if public:
+            monkeypatch.setattr(supervisor, "PUBLIC_ORIGIN", origin)
+            assert supervisor.public_ready() is True
+        else:
+            assert supervisor._ready_request(origin + "/readyz", seconds=2,
+                headers={"Host": "app.nobusspace.com"}) is True
+        assert seen[0][0] == "NobusSpace-Health/1.0"
+        if not public:
+            assert seen[0][1] == "app.nobusspace.com"

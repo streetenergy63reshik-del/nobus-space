@@ -1,0 +1,121 @@
+{
+  "schema": "c6-acceptance-freeze-1",
+  "at": "2026-09-09T08:50:39.256795+00:00",
+  "owner_instruction": "Freeze current criteria/digest; batch confirmed blockers in WIP; one final L2/L3 cycle; no repeat for unchanged digest; outside-contract recommendations go to follow-up.",
+  "candidate": {
+    "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+    "source_tree": "405c1f10e86d8a4e7faf7684c2d3432c5a53be2d",
+    "application": {
+      "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+      "code_digest": "sha256:9bedab26845d319ddb7d8ea7c00af1f65f8d62f57a6fc669d902d71c7567df35",
+      "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+      "protection": "current-user-dpapi",
+      "database_limit_bytes": 50331648
+    },
+    "changed_files_raw_sha256": {
+      "scripts/run_nobus_space_live.py": "ed46e58bd95aa6e419d8d2df07074161e373e8736cb8d5bec803a9c42c78c38d",
+      "tests/test_c5_runtime_operations.py": "03b5df2dceaa65ba09cb66b299ac684eafe274df8bccad2a4827ca3d2bb292fe"
+    }
+  },
+  "criteria": [
+    {
+      "id": "C6-01",
+      "criterion": "Сохранить перенесённые данные, прежние задачи, доставки и историю; canonical WIP не менять.",
+      "state": "PASS_AFTER_STOP",
+      "evidence": "D5 post-failure readback: all non-checkpoint rows exact; only released polling lease metadata changed, offset unchanged."
+    },
+    {
+      "id": "C6-02",
+      "criterion": "Один рабочий Core/poller/Job, semantic ON, квалифицированные worker/ASR и точная локальная и публичная readiness штатного supervisor.",
+      "state": "PENDING_ACTUAL_ACTIVATION"
+    },
+    {
+      "id": "C6-03",
+      "criterion": "Полное восстановление за ≤30мин: STOP, authenticated restore/reconciliation, native startup, readiness, private result/TXT и безопасная остановка с allowlist сверкой.",
+      "state": "PENDING_CORRECTED_CANDIDATE",
+      "note": "D5 functional98.797s retained; not accepted as full RTO after discovering that supervisor readiness CLI was not checked."
+    },
+    {
+      "id": "C6-04",
+      "criterion": "Управляемая копия моложе24ч;7daily/4weekly; реальный цикл Планировщика, verified decrypt/integrity, LastTaskResult0, restart/readiness и следующий запуск03:30.",
+      "state": "PENDING_SCHEDULER_RUN",
+      "note": "Prechange backups are verified; scheduled cycle has not run."
+    },
+    {
+      "id": "C6-05",
+      "criterion": "Ограниченный штатный stop/start с сохранением accepted task/delivery watermark и без повторного исполнения или доставки.",
+      "state": "PENDING"
+    },
+    {
+      "id": "C6-06",
+      "criterion": "Фактические owner text/voice/Mini App/download сценарии и ≥15мин наблюдения; synthetic evidence отдельно.",
+      "state": "PENDING_OWNER_JOURNEYS"
+    },
+    {
+      "id": "C6-07",
+      "criterion": "Явная итоговая приёмка владельца; затем ранее принятая постоянная Scheduler фаза с проверкой PID/Job/readiness и обязательной последующей backup.",
+      "state": "PENDING_OWNER_ACCEPTANCE"
+    },
+    {
+      "id": "C6-08",
+      "criterion": "Обновить ту же Word-памятку с visual QA; после приёмки опубликовать v1.0.2/release и итоговый статус, оставить принятый runtime работающим.",
+      "state": "PENDING",
+      "note": "C0-C5 acceptance preserved; MVP2 remains outside scope."
+    }
+  ],
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "authority": {
+    "original_launch_sha256": "5f9fbb6501d0663f273af5e186b8bfe93d9244e0c31debe4253dca41cd2ade7e",
+    "working_contract_git_sha256": "900f58fc795b0597d72a063acc83556fcbc4793a5d784ff501eb59803a28ec7e",
+    "activation_plan": "C6-ACT-01 plus accepted D2-D5 operational corrections",
+    "new_acceptance_requirements_added": false
+  },
+  "verification": {
+    "L1": {
+      "red_tests": 2,
+      "targeted_pass": 66,
+      "seconds": 50.0,
+      "full_suite_repeated": false
+    },
+    "final_L2_L3_cycles_allowed": 1,
+    "final_L2_L3_cycles_completed": 1,
+    "reviews": {
+      "L2": {
+        "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+        "verdict": "PASS_SCOPED",
+        "tests": 18,
+        "seconds": 10.33,
+        "checks": [
+          "Actual localhost HTTP identity and Host composition",
+          "No redirect to foreign origin",
+          "Exact200/body, total deadline, stop, read-only CLI and path checks"
+        ],
+        "files": {
+          "scripts/run_nobus_space_live.py": "ed46e58bd95aa6e419d8d2df07074161e373e8736cb8d5bec803a9c42c78c38d",
+          "tests/test_c5_runtime_operations.py": "03b5df2dceaa65ba09cb66b299ac684eafe274df8bccad2a4827ca3d2bb292fe"
+        },
+        "live_execution": false
+      },
+      "L3": {
+        "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+        "verdict": "PASS_SCOPED",
+        "checks": [
+          "Only honest fixed health User-Agent added",
+          "TLS verification, proxy disabling, redirect refusal, exact status/body and deadlines unchanged",
+          "Single daemon probe slot, stop_event and supervisor cleanup unchanged"
+        ],
+        "files": {
+          "scripts/run_nobus_space_live.py": "ed46e58bd95aa6e419d8d2df07074161e373e8736cb8d5bec803a9c42c78c38d",
+          "tests/test_c5_runtime_operations.py": "03b5df2dceaa65ba09cb66b299ac684eafe274df8bccad2a4827ca3d2bb292fe"
+        },
+        "live_execution": false
+      }
+    },
+    "repeat_same_digest_forbidden": true
+  },
+  "confirmed_blockers_package": "One WIP package: readiness HTTP403 caused by default Python-urllib identity; own NobusSpace-Health/1.0 identity plus2 real HTTP regression cases.",
+  "out_of_contract_findings": [],
+  "follow_up_file": "FOLLOW-UP.md",
+  "release_ready": false,
+  "owner_acceptance": false
+}
