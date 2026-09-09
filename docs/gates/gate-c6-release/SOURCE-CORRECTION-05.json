@@ -1,0 +1,60 @@
+{
+  "schema": "c6-source-correction-5",
+  "at": "2026-09-09T08:50:39.256795+00:00",
+  "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+  "application": {
+    "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+    "code_digest": "sha256:9bedab26845d319ddb7d8ea7c00af1f65f8d62f57a6fc669d902d71c7567df35",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "files": {
+    "scripts/run_nobus_space_live.py": "ed46e58bd95aa6e419d8d2df07074161e373e8736cb8d5bec803a9c42c78c38d",
+    "tests/test_c5_runtime_operations.py": "03b5df2dceaa65ba09cb66b299ac684eafe274df8bccad2a4827ca3d2bb292fe"
+  },
+  "failure": "Default Python-urllib public readiness receives403 despite exact local/public httpx200; bounded supervisor then stops.",
+  "correction": "Explicit honest NobusSpace-Health/1.0 User-Agent; all response/host/TLS/redirect/deadline checks retained.",
+  "L1": {
+    "red_tests": 2,
+    "targeted_pass": 66,
+    "seconds": 50.0,
+    "full_suite_repeated": false
+  },
+  "final_reviews": {
+    "L2": {
+      "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+      "verdict": "PASS_SCOPED",
+      "tests": 18,
+      "seconds": 10.33,
+      "checks": [
+        "Actual localhost HTTP identity and Host composition",
+        "No redirect to foreign origin",
+        "Exact200/body, total deadline, stop, read-only CLI and path checks"
+      ],
+      "files": {
+        "scripts/run_nobus_space_live.py": "ed46e58bd95aa6e419d8d2df07074161e373e8736cb8d5bec803a9c42c78c38d",
+        "tests/test_c5_runtime_operations.py": "03b5df2dceaa65ba09cb66b299ac684eafe274df8bccad2a4827ca3d2bb292fe"
+      },
+      "live_execution": false
+    },
+    "L3": {
+      "source_commit": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+      "verdict": "PASS_SCOPED",
+      "checks": [
+        "Only honest fixed health User-Agent added",
+        "TLS verification, proxy disabling, redirect refusal, exact status/body and deadlines unchanged",
+        "Single daemon probe slot, stop_event and supervisor cleanup unchanged"
+      ],
+      "files": {
+        "scripts/run_nobus_space_live.py": "ed46e58bd95aa6e419d8d2df07074161e373e8736cb8d5bec803a9c42c78c38d",
+        "tests/test_c5_runtime_operations.py": "03b5df2dceaa65ba09cb66b299ac684eafe274df8bccad2a4827ca3d2bb292fe"
+      },
+      "live_execution": false
+    }
+  },
+  "criteria_freeze": "ACCEPTANCE-FREEZE-01.json",
+  "production_state": "STOP_SAFE; admission hold; no live readiness claim for corrected source",
+  "full_RTO_accepted": false,
+  "owner_acceptance": false
+}
