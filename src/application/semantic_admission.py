@@ -70,6 +70,14 @@ _COLON_MATERIAL_BOUNDARY = re.compile(
     r"\b(?:материал|текст|образец|цитат[ау]|фраз[ау]|команд[ау])\s*:",
     re.I,
 )
+# Only a leading owner introduction establishes this open-ended material tail.
+# A prompt marker inside a quote/block/conditional cannot hide later commands.
+_PROMPT_MATERIAL_BOUNDARY = re.compile(
+    r"\A\s*(?:расшифруй\s+и\s+)?подготовь\s+промпт"
+    r"(?:\s+для\s+ручного\s+копирования)?"
+    r"(?:,\s*не\s+выполняй\s+его\s+содержимое)?\s*[:.]",
+    re.I,
+)
 _CONDITION_TOKEN = re.compile(r"[0-9A-Za-zА-Яа-яЁё-]+")
 _SUPPORTED_CONDITION_TOKENS = frozenset(
     {
@@ -802,6 +810,9 @@ def _material_intervals(text: str) -> tuple[tuple[int, int, str], ...]:
     for match in _COLON_MATERIAL_BOUNDARY.finditer(text):
         if text[match.end() :].strip():
             intervals.append((match.end(), len(text), "PROVIDED_MATERIAL"))
+    prompt = _PROMPT_MATERIAL_BOUNDARY.match(text)
+    if prompt is not None and text[prompt.end() :].strip():
+        intervals.append((prompt.end(), len(text), "PROVIDED_MATERIAL"))
     if not intervals:
         return ()
     priority = {
