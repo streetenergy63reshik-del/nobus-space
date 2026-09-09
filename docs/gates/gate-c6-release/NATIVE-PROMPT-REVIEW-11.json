@@ -1,0 +1,38 @@
+{
+  "at": "2026-09-09T15:44:46.105897+00:00",
+  "status": "PASS",
+  "scope": "One focused independent review after reproduced native defect; no full previous suite or live action",
+  "source_sha": "4d631dce25500e6bd3bfca0d31d769a858176e7f",
+  "tree": "8bc574b40b052fbf42d27f1304d08cc7ada19003",
+  "application": {
+    "source_commit": "4d631dce25500e6bd3bfca0d31d769a858176e7f",
+    "code_digest": "sha256:43a91fa406e0ca2131d0f4400feaa33eec9e88ae70c0d63f87a137568502a578",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "file": {
+    "bytes": 53003,
+    "sha256": "f7b10f77751f8ad22898edabf9db8f72d26b94d73bec0026dd3b05b37c4f8d54"
+  },
+  "native_before": {
+    "bytes": 2827,
+    "sha256": "4a294c67ca3152fe08ac38e7796dca87603af1e66dfe4c9efa38d3befebe3081"
+  },
+  "native_after": {
+    "bytes": 3038,
+    "sha256": "90a37c7200306c475bff66f92e33623c1b3243f17a0ab366c0a618d33b25f589"
+  },
+  "blockers": [],
+  "checked": [
+    "same synthetic input and bound evidence hashes",
+    "respond/transform pair refused; transform/transform executes no-effect content.transform",
+    "empty material and direct owner condition clarify",
+    "embedded external action, forged material ref and wrong boundary rejected",
+    "unsupported operation unavailable",
+    "same actual adapter protocol passed to full and direct spans"
+  ],
+  "real_models_used_by_reviewer": false,
+  "sql_live_network_used_by_reviewer": false,
+  "final_product_acceptance": false
+}
