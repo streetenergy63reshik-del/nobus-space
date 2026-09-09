@@ -416,6 +416,7 @@ class AdmissionBindings:
         "UNASSESSED", "NONE", "SUPPORTED", "UNSUPPORTED"
     ] = "UNASSESSED"
     context_ref: str | None = None
+    owner_message_break: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -832,7 +833,22 @@ def _material_intervals(text: str) -> tuple[tuple[int, int, str], ...]:
     return tuple((int(start), int(end), str(origin)) for start, end, origin in merged)
 
 
-def _all_text_intervals(text: str) -> tuple[tuple[int, int, str], ...]:
+def _all_text_intervals(
+    text: str, *, owner_message_break: int | None = None
+) -> tuple[tuple[int, int, str], ...]:
+    if owner_message_break is not None:
+        if type(owner_message_break) is not int or not 0 < owner_message_break < len(text):
+            raise ValueError("owner message boundary is invalid")
+        # The server supplies the original message length. User text and model
+        # output cannot create or move this boundary between two owner messages.
+        left = list(_all_text_intervals(text[:owner_message_break]))
+        right = [
+            (start + owner_message_break, end + owner_message_break, origin)
+            for start, end, origin in _all_text_intervals(text[owner_message_break:])
+        ]
+        if left and right and left[-1][2] == right[0][2] == "DIRECT_OWNER_COMMAND":
+            left[-1] = (left[-1][0], right.pop(0)[1], "DIRECT_OWNER_COMMAND")
+        return tuple(left + right)
     material = _material_intervals(text)
     values: list[tuple[int, int, str]] = []
     cursor = 0
@@ -853,17 +869,21 @@ def _has_word_content(text: str) -> bool:
     return re.search(r"[0-9A-Za-zА-Яа-яЁё]", text) is not None
 
 
-def _direct_owner_text(text: str) -> str:
+def _direct_owner_text(text: str, *, owner_message_break: int | None = None) -> str:
     return " ".join(
         text[start:end]
-        for start, end, origin in _all_text_intervals(text)
+        for start, end, origin in _all_text_intervals(
+            text, owner_message_break=owner_message_break
+        )
         if origin == "DIRECT_OWNER_COMMAND"
     )
 
 
-def _conditional_structure(text: str) -> Literal["NONE", "SUPPORTED", "UNSUPPORTED"]:
+def _conditional_structure(
+    text: str, *, owner_message_break: int | None = None
+) -> Literal["NONE", "SUPPORTED", "UNSUPPORTED"]:
     """Validate only the closed v1 predicate surface and only to fail closed."""
-    direct = _direct_owner_text(text)
+    direct = _direct_owner_text(text, owner_message_break=owner_message_break)
     markers = tuple(re.finditer(r"\bесли\b", direct, re.I))
     if not markers:
         return "NONE"
@@ -885,9 +905,9 @@ def _conditional_structure(text: str) -> Literal["NONE", "SUPPORTED", "UNSUPPORT
     return "SUPPORTED"
 
 
-def _conditional_tail_text(text: str) -> str:
+def _conditional_tail_text(text: str, *, owner_message_break: int | None = None) -> str:
     """Return the command tail after the one server-recognized v1 predicate."""
-    direct = _direct_owner_text(text)
+    direct = _direct_owner_text(text, owner_message_break=owner_message_break)
     marker = re.search(r"\bесли\b", direct, re.I)
     if marker is None:
         raise ValueError("conditional tail is unavailable")
@@ -909,9 +929,10 @@ def _mint_text_span_bindings(
     owner_binding: str,
     tenant_binding: str,
     conversation_binding: str,
+    owner_message_break: int | None = None,
 ) -> tuple[TrustedTextSpanBinding, ...]:
     values: list[TrustedTextSpanBinding] = []
-    intervals = _all_text_intervals(text)
+    intervals = _all_text_intervals(text, owner_message_break=owner_message_break)
     if len(intervals) > _MAX_TEXT_SPANS:
         raise ValueError("semantic input has too many structural spans")
     for start, end, origin in intervals:
@@ -956,6 +977,7 @@ def telegram_semantic_input(
     chat_id: int,
     message_thread_id: int | None,
     locale: str = "ru-RU",
+    owner_message_break: int | None = None,
 ) -> tuple[CanonicalSemanticInput, AdmissionBindings]:
     """Mint opaque intake/material refs and keep authority outside model input."""
     trusted = TrustedIngressEnvelope.model_validate(envelope.model_dump(mode="json"))
@@ -1040,8 +1062,12 @@ def telegram_semantic_input(
             owner_binding=owner_binding,
             tenant_binding=tenant_binding,
             conversation_binding=conversation,
+            owner_message_break=owner_message_break,
         ),
-        conditional_structure=_conditional_structure(normalized),
+        conditional_structure=_conditional_structure(
+            normalized, owner_message_break=owner_message_break
+        ),
+        owner_message_break=owner_message_break,
     )
     return canonical, bindings
 
@@ -1396,6 +1422,7 @@ class TrustedOperationBindingIssuer:
             owner_binding=bindings.owner_binding,
             tenant_binding=bindings.tenant_binding,
             conversation_binding=bindings.conversation_binding,
+            owner_message_break=bindings.owner_message_break,
         )
         if not spans or spans != expected:
             raise ValueError("trusted text span ledger binding is invalid")
@@ -1888,7 +1915,8 @@ class SemanticAdmissionService:
                     conditional_tail_input = canonical.model_copy(
                         update={
                             "owner_text": _conditional_tail_text(
-                                canonical.owner_text
+                                canonical.owner_text,
+                                owner_message_break=bindings.owner_message_break,
                             )
                         }
                     )

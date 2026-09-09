@@ -1680,6 +1680,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     modality=modality,
                     chat_id=message.chat_id,
                     message_thread_id=message.message_thread_id,
+                    owner_message_break=len(pending.canonical_input.owner_text),
                 )
                 materials = tuple(
                     dict.fromkeys(
