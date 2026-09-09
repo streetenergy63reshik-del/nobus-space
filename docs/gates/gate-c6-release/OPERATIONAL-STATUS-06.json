@@ -1,0 +1,143 @@
+{
+  "at": "2026-09-09T09:43:27.919613+00:00",
+  "status": "QUALIFICATION_RUNNING_OWNER_ACCEPTANCE_PENDING",
+  "publication": {
+    "pr": 26,
+    "sha": "7ceab0eca570b7810add2fbe600285a7fa3eee91",
+    "tree": "ae184cb8b3534c4d98e2cdf64265c6d02956381a",
+    "source_sha": "8f659d66f9d41b7dc2928b89f6d07423f4302f19",
+    "package_sha": "7c3f4711395daf209ac4202b4c8893f404f8d925",
+    "application": {
+      "source_commit": "7ceab0eca570b7810add2fbe600285a7fa3eee91",
+      "code_digest": "sha256:9bedab26845d319ddb7d8ea7c00af1f65f8d62f57a6fc669d902d71c7567df35",
+      "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+      "protection": "current-user-dpapi",
+      "database_limit_bytes": 50331648
+    }
+  },
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "source_changed_since_final_review": false,
+  "source_tests_or_L2_L3_repeated": false,
+  "acceptance_requirements_added": false,
+  "full_RTO_seconds": 107.92200000002049,
+  "stock_supervisor_readiness_verified": true,
+  "single_core_poller_job": true,
+  "production_start_seconds": 84.21799999999348,
+  "scheduled_backup": {
+    "status": "PASS",
+    "last_result": 0,
+    "manifest_digest": "sha256:26ffb5f45824c9c9a5b31d4f9a8e201a45fc4af23650b30e5253f23b79ff29f9",
+    "all_members_decrypted_verified": true,
+    "next_run_when_enabled": "2026-09-10T00:30:00.0000000Z",
+    "currently_disabled_until_acceptance": true
+  },
+  "controlled_restart": {
+    "status": "PASS",
+    "same_actual_backup_cycle": true,
+    "watermarks_and_offset_unchanged": true
+  },
+  "operator_readback_failure": {
+    "preserved": true,
+    "reason": "Windows PowerShell5 misread UTF8 helper; switched only operator invocation to existing PowerShell7. Product source unchanged. STOP preserved all data.",
+    "post_stop_state_preserved": true
+  },
+  "observation": {
+    "status": "PASS",
+    "seconds": 918.030999999959
+  },
+  "manual": {
+    "at": "2026-09-09T09:28:49.517308+00:00",
+    "phase": "QUALIFICATION_RUNNING_OWNER_ACCEPTANCE_PENDING",
+    "before_sha256": "c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba",
+    "after_sha256": "7a3db38c24e8fee665d8a765ca7c9ea6f6cdb2223766adc0a3170a338a9e9397",
+    "changed_paragraphs": [
+      1,
+      4,
+      5,
+      41,
+      44,
+      47,
+      55,
+      56,
+      60,
+      80
+    ],
+    "visual_QA": {
+      "status": "PASS",
+      "pages": 6,
+      "renderer": "Microsoft Word read-only export",
+      "all_pages_visually_inspected": true,
+      "no_clipping_or_overlap": true,
+      "pdf_sha256": "1be46def3b2fb7e2236a31b7947f00a0da8b863fe58cd1890c700bf60eab5549"
+    }
+  },
+  "budget": {
+    "limits": {
+      "model_turns": 64,
+      "model_seconds": 5400,
+      "asr_inferences": 12,
+      "asr_seconds": 1200,
+      "new_bot_messages_documents": 60,
+      "progress_edits_cleanup": 240,
+      "incoming_updates": 120,
+      "task_creates": 20,
+      "request_retries": 8,
+      "runtime_start_attempts_including_scheduler_retries": 15,
+      "controlled_restarts_including_backup": 4
+    },
+    "used": {
+      "model_turns": 56,
+      "model_seconds": 3164,
+      "asr_inferences": 10,
+      "asr_seconds": 1200,
+      "new_bot_messages_documents": 12,
+      "progress_edits_cleanup": 64,
+      "incoming_updates": 0,
+      "task_creates": 2,
+      "request_retries": 0,
+      "runtime_start_attempts_including_scheduler_retries": 14,
+      "controlled_restarts_including_backup": 1
+    },
+    "asr_time_delta_240_seconds": "PENDING_OWNER_REPLY"
+  },
+  "owner_journeys": "PENDING",
+  "owner_acceptance": false,
+  "release_v1_0_2_published": false,
+  "evidence": [
+    {
+      "file": "DRILL-COMPLETE.json",
+      "bytes": 3372,
+      "sha256": "28e79fe28bd3b9e6272be15f77760bc8de2c9bb10c014d0aa085330a716a8c24"
+    },
+    {
+      "file": "PRODUCTION-FAIL-READBACK.json",
+      "bytes": 1651,
+      "sha256": "2da4cd471817607d4724c12a15beeeb9d2369f24587e1a43302dd4b8a55a2b3b"
+    },
+    {
+      "file": "OPERATOR-CORRECTION.json",
+      "bytes": 1112,
+      "sha256": "75c00fc5a5a683dd477598e3d6d42a2448b4b306d5dc71f991a2f0746f11d70a"
+    },
+    {
+      "file": "PRODUCTION-START-PASS.json",
+      "bytes": 940,
+      "sha256": "af0ec7aa92e9836a8a159c304061baccaaf0ed548ff60e471290768d9a23f8f3"
+    },
+    {
+      "file": "QUALIFICATION-BACKUP-PASS.json",
+      "bytes": 1423,
+      "sha256": "0cc52b9f975797c16582f3a4140076a16078a7bda895fa81ca17e59f8096645d"
+    },
+    {
+      "file": "CONTROLLED-RESTART-PASS.json",
+      "bytes": 961,
+      "sha256": "480bc32c07720cb9703f602fb03fbb6b69e05651f1419b8cffa7a35c289dc62b"
+    },
+    {
+      "file": "OWNER-OBSERVATION-PASS.json",
+      "bytes": 3037,
+      "sha256": "c83e061b15f5776eaa9604f50f7eabb7c269d4ee8d31ac7faf6cd6cc3a607560"
+    }
+  ]
+}

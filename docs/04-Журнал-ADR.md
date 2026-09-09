@@ -85,3 +85,8 @@ Historical READY remains only pre-incident evidence. Active roadmap is C0–C6;
 своему риску. Обычные локальные docs/code/tests/commit не требуют formal
 quality-L4. Product/runtime `ApprovalRequest/ApprovalDecision` и внешние
 авторизации остаются отдельными правилами.
+
+
+## Forward supersession by ADR 0027
+
+[ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) принят для исправления подтверждённого зависания C6. Он заменяет только отсутствие срока согласования `pending` и запрет его отмены из ADR 0025. Общая SQLite-транзакция сериализует закрытие заявки и claim; уже принятая задача имеет приоритет. Остальные C0–C5 контракты и ровно восемь критериев C6 сохраняются.
