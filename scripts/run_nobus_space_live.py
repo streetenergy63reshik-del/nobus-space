@@ -240,7 +240,7 @@ _READINESS_PROBE = _ReadinessProbe()
 
 def _ready_request(url, *, seconds, headers=None, stop_event=None):
     def read():
-        request = urllib.request.Request(url, headers=headers or {})
+        request = urllib.request.Request(url, headers={"User-Agent": "NobusSpace-Health/1.0", **(headers or {})})
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         with opener.open(request, timeout=seconds) as response:
             return response.status == 200 and response.read(256) == b'{"status":"ready"}'
