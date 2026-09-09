@@ -1,0 +1,164 @@
+{
+  "recorded_at": "2026-09-09T14:45:37.188754+00:00",
+  "status": "PUBLISHED_PROMPT_FIX_RUNTIME_STOPPED_FINAL_ACCEPTANCE_PENDING",
+  "source_publication": {
+    "at": "2026-09-09T14:02:13.622974+00:00",
+    "status": "MERGED_READBACK_PASS",
+    "pr": 28,
+    "url": "https://github.com/streetenergy63reshik-del/nobus-space/pull/28",
+    "sha": "56a1092a0699e176d97bc59064bf2e4c895773ff",
+    "tree": "1a63dc92e012ffb9439a74897586646b84039dc3",
+    "source_sha": "2e647396e27741c12767ba66e282ec4a001d70a4",
+    "package_sha": "8bf2f3128ecc1487167780e7b3db2d7f735b7721",
+    "application": {
+      "source_commit": "56a1092a0699e176d97bc59064bf2e4c895773ff",
+      "code_digest": "sha256:9f892f01d80b46f2570b3afb6fb66e5c8f185013183c2bde625068c5dc9bcfab",
+      "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+      "protection": "current-user-dpapi",
+      "database_limit_bytes": 50331648
+    },
+    "ordinary_merge": true,
+    "unchanged_tree": true
+  },
+  "runtime": {
+    "checkout_sha": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "running": false,
+    "failure_at": "2026-09-09T14:29:40Z",
+    "cause": "Not established from bounded supervisor events",
+    "stock_ready_exit": 1,
+    "public_http": 502,
+    "data_integrity": "PASS",
+    "table_counts": {
+      "business-notes.sqlite3": {
+        "business_notes": 15
+      },
+      "task-runtime.sqlite3": {
+        "task_snapshots": 82,
+        "ingress_claims": 82,
+        "audit_events": 160,
+        "outbox_messages": 80,
+        "outbox_receipts": 80,
+        "miniapp_auth_replays": 1,
+        "runtime_reconciliations": 0,
+        "miniapp_restore_fence": 1,
+        "miniapp_session_recovery": 1,
+        "miniapp_requests": 3,
+        "sealed_answers": 3,
+        "outbox_delivery_parts": 6
+      },
+      "telegram-checkpoint.sqlite3": {
+        "telegram_polling_checkpoints": 1
+      },
+      "telegram-state.sqlite3": {
+        "telegram_capabilities": 2,
+        "telegram_progress": 0,
+        "telegram_jobs": 2,
+        "semantic_clarifications": 1
+      }
+    },
+    "backup_age_seconds": 6076.023,
+    "tasks": {
+      "NobusSpaceBot": {
+        "state": "Ready",
+        "enabled": true,
+        "last_result": 1,
+        "restart_count": 0,
+        "logon_enabled": false
+      },
+      "NobusSpaceBot-Health": {
+        "state": "Ready",
+        "enabled": true,
+        "last_result": 1,
+        "restart_count": 0,
+        "logon_enabled": false
+      },
+      "NobusSpaceBot-Backup": {
+        "state": "Disabled",
+        "enabled": false,
+        "last_result": 0,
+        "restart_count": 0,
+        "logon_enabled": false
+      }
+    },
+    "post_cleanup_receipt": {
+      "bytes": 14320,
+      "sha256": "cc975ddb34c6840ad1f6871bf39f2fbd1074379ef8cf469e4238b560389a8e1b"
+    }
+  },
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "criteria": [
+    {
+      "id": "C6-01",
+      "criterion": "Сохранить перенесённые данные, прежние задачи, доставки и историю; canonical WIP не менять.",
+      "state": "PASS",
+      "fact": "Four databases pass integrity; all table counts, 82 tasks and 80 receipts preserved. New cleanup authorization permits canonical WIP archival: all20 exact bytes retained in private ZIP/stash/bundle."
+    },
+    {
+      "id": "C6-02",
+      "criterion": "Один рабочий Core/poller/Job, semantic ON, квалифицированные worker/ASR и точная локальная и публичная readiness штатного supervisor.",
+      "state": "FAIL_CURRENT",
+      "fact": "Prior qualification passed on e3fbaf9. Current Core/supervisor absent after runtime_failed at14:29:40UTC;stock readiness1,local refused,public502. Cause unresolved."
+    },
+    {
+      "id": "C6-03",
+      "criterion": "Полное восстановление за ≤30мин: STOP, authenticated restore/reconciliation, native startup, readiness, private result/TXT и безопасная остановка с allowlist сверкой.",
+      "state": "PASS_PREVIOUS_REVISION",
+      "fact": "Full isolated recovery274.891s remains valid on e3fbaf9. Prompt/docs update has not been activated; old result is not relabelled as a new runtime check."
+    },
+    {
+      "id": "C6-04",
+      "criterion": "Управляемая копия моложе24ч;7daily/4weekly; реальный цикл Планировщика, verified decrypt/integrity, LastTaskResult0, restart/readiness и следующий запуск03:30.",
+      "state": "PARTIAL",
+      "fact": "Previous real Scheduler backup126.86s and all4decrypt/integrity PASS; latest copy under24h. Daily schedule disabled;new target-bound copy still pending."
+    },
+    {
+      "id": "C6-05",
+      "criterion": "Ограниченный штатный stop/start с сохранением accepted task/delivery watermark и без повторного исполнения или доставки.",
+      "state": "PASS_PREVIOUS_REVISION",
+      "fact": "Previous controlled restart preserved accepted-task/delivery watermarks and offset. No new restart or duplicate request performed."
+    },
+    {
+      "id": "C6-06",
+      "criterion": "Фактические owner text/voice/Mini App/download сценарии и ≥15мин наблюдения; synthetic evidence отдельно.",
+      "state": "INCOMPLETE",
+      "fact": "3 of6 actual result journeys verified. Text prompt,voice prompt,second sequential MiniApp missing. Source defect fixed and published;native UI tools unavailable. Historical903.859s observation does not prove current availability."
+    },
+    {
+      "id": "C6-07",
+      "criterion": "Явная итоговая приёмка владельца; затем ранее принятая постоянная Scheduler фаза с проверкой PID/Job/readiness и обязательной последующей backup.",
+      "state": "PENDING",
+      "fact": "Final product acceptance absent; permanent Scheduler phase and postaccept backup pending."
+    },
+    {
+      "id": "C6-08",
+      "criterion": "Обновить ту же Word-памятку с visual QA; после приёмки опубликовать v1.0.2/release и итоговый статус, оставить принятый runtime работающим.",
+      "state": "PARTIAL",
+      "fact": "Same Word manual updated with current runtime stop; all6pages visually verified. Source PR28 merged;v1.0.2/release absent."
+    }
+  ],
+  "owner_final_acceptance": false,
+  "permanent_phase": false,
+  "v1_0_2_created": false,
+  "cleanup": {
+    "bytes": 2331,
+    "sha256": "70a59658ac2bc07acf4534fb178564764cb7c6da592553fe482ea419e64d4944"
+  },
+  "activation_block": {
+    "action": "C6-ACT-08 cutover to56a1092a,stop+four production DB copies+LIVE switch",
+    "automatic_approval": "REJECTED_BEFORE_EXECUTION",
+    "reason": "Review required exact new plan/SHA confirmation despite owner advance general authorization.",
+    "retry": "No retry. C6-ACT-09 must bind the accepted documentation revision, changed product-context bytes and stopped runtime.",
+    "additional_budget_approved": false
+  },
+  "ui_tools": "Native and browser entry points both failed trusted RPC package validation; no UI action executed.",
+  "global_settings_changed": false,
+  "real_model_ASR_calls_this_documentation_cleanup_phase": 0,
+  "prior_evidence": "OPERATIONAL-STATUS-09.json retains earlier review failure, owner partial acceptance, RTO,backup,restart,observation and budget.",
+  "manual": {
+    "status": "VISUAL_PASS_6_PAGES",
+    "after_sha256": "e0198aaf4e301a4d7a640061598c8704f4367cf769c6d5ac2103d1baa0ad00d5",
+    "same_manual_path": true,
+    "runtime": "STOPPED",
+    "page_count": 6
+  }
+}

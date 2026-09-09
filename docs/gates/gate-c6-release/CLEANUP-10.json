@@ -1,0 +1,57 @@
+{
+  "recorded_at": "2026-09-09T14:45:37.188754+00:00",
+  "status": "COMPLETED_WITH_RECOVERABLE_ARCHIVES",
+  "removed_archived_checkouts": 8,
+  "retained_original_checkouts": 9,
+  "active_roots": [
+    "canonical repository",
+    "C2 ASR dependency",
+    "C6 development",
+    "LIVE runtime checkout"
+  ],
+  "canonical_main_aligned_to": "56a1092a0699e176d97bc59064bf2e4c895773ff",
+  "original_20_WIP_files": "Byte-verified ZIP, binary patches, stash and bundle retained; not published.",
+  "old_local_main": "Preserved as codex/archive-main-before-mvp1-20260909; no reset --hard.",
+  "history": "21 original HEAD refs and verified Git bundle retained; no refs deleted.",
+  "archive_limit": "Nine test fixture directories could not be fully read. Whole original NTFS trees moved, original file IDs/HEAD/status retained; no full hash claim for unreadable bytes.",
+  "excluded": [
+    "production state and backups",
+    "current ASR and Python dependencies",
+    "credentials and integrations",
+    "Telegram project artifacts and downloads",
+    "mixed client TaskArtifacts"
+  ],
+  "evidence": {
+    "CLEANUP-INDEPENDENT-INVENTORY-10.json": {
+      "bytes": 27980703,
+      "sha256": "c0ea01bcdb04d88a2a25e666c6b011ff59b399af611364954d7262b72cf7edb0"
+    },
+    "CLEANUP-REMOVAL-10.json": {
+      "bytes": 5229,
+      "sha256": "5ae3a1ab33e173c101970243b1cde0eae4e91e5af6a157a319c810c756791446"
+    },
+    "CLEANUP-RETAINED-MOVE-10.json": {
+      "bytes": 9359,
+      "sha256": "d8264fd98a9489dd55934e0ed3880748c6b12353d3879916ef6cccf175aa8e5c"
+    },
+    "BASE-CONSOLIDATION-10.json": {
+      "bytes": 1181,
+      "sha256": "5c738b4dd92e4008ae353ff12172f2d03809425edb618a75c063953b6d75da42"
+    }
+  },
+  "post_cleanup": {
+    "at": "2026-09-09T14:40:48.177905+00:00",
+    "all_four_databases": "integrity PASS",
+    "task_count": 82,
+    "all_table_counts_preserved": true,
+    "runtime": "STOPPED",
+    "supervisor_failed_at": "2026-09-09T14:29:40Z",
+    "cause": "Not established. Supervisor records only runtime_failed; no direct causal attribution to cleanup.",
+    "receipt": {
+      "bytes": 14320,
+      "sha256": "cc975ddb34c6840ad1f6871bf39f2fbd1074379ef8cf469e4238b560389a8e1b"
+    }
+  },
+  "private_archives_published": false,
+  "global_settings_changed": false
+}
