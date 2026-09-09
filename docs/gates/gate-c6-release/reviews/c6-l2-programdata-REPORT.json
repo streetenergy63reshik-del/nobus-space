@@ -1,0 +1,46 @@
+{
+  "schema": "c6-scoped-independent-review-v1",
+  "reviewer": "L2",
+  "at_utc": "2026-09-09T04:18:10.9318995Z",
+  "base_commit": "b8e8ac41a401aa839710d7b11a72f76f02d97607",
+  "revision_binding": "frozen source commit b8e8ac41a401aa839710d7b11a72f76f02d97607 and tree b715c699891d970bd1a0bb8a65d7d5fa85d54312; unchanged independently-tested file hashes",
+  "files": [
+    {
+      "path": "scripts/run_nobus_space_live.py",
+      "sha256": "34f1247621f206482d771886de460610e3b408b8f89f312109236537c5956ed8"
+    },
+    {
+      "path": "tests/test_live_supervisor_windows_ssh.py",
+      "sha256": "e3116ee92281e8587fc9b6bcaaeec526e4380a34fc0916db210b922b934474cf"
+    }
+  ],
+  "scope": "Only PROGRAMDATA supervisor environment allowlist entry and actual offline owned OpenSSH -V regression",
+  "verdict": "SCOPED PASS",
+  "findings": [],
+  "static_review": [
+    "Only PROGRAMDATA added to explicit environment allowlist; arbitrary environment and synthetic private sentinel remain excluded",
+    "Absolute Windows system SSH executable and argv list unchanged; no shell expansion added",
+    "Job assignment gate, ownership, cleanup and runtime authority unchanged"
+  ],
+  "independent_validation": {
+    "command": "canonical .venv python -B -m pytest tests/test_live_supervisor_windows_ssh.py -q -p no:cacheprovider --basetemp .runtime/reviews/c6-l2-programdata-pytest",
+    "exit_code": 0,
+    "tests_passed": 1,
+    "pytest_seconds": 0.3,
+    "owned_ssh_exit": 0,
+    "job_empty_assertion": "PASS",
+    "private_synthetic_environment_exclusion": "PASS"
+  },
+  "historical_negative": {
+    "path": ".runtime/activation-execution/SSH-REGRESSION-BEFORE.log",
+    "observed_result": "1 failed; owned SSH exit 255",
+    "independently_rerun": false
+  },
+  "limits": [
+    "No network connection, Telegram polling, model/ASR calls or Scheduler changes",
+    "Does not prove relay connection, full recovery, READY or owner acceptance",
+    "Prior source verdict not reused for changed bytes"
+  ],
+  "source_commit": "b8e8ac41a401aa839710d7b11a72f76f02d97607",
+  "source_tree": "b715c699891d970bd1a0bb8a65d7d5fa85d54312"
+}

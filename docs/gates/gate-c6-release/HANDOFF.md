@@ -1,39 +1,30 @@
-# Gate C6 Подготовка выпуска MVP1
+# Gate C6: выпуск MVP1
 
-**C6 source PASS:** `3a5625898ce4f66ff39c85685e926ea1e0e8afa1`, tree `f730d670d4a4b782df87b27c429a8d16e633f31a`. L1:2345 passed и25 subtests; независимые L2/L3 SOURCE-SCOPED PASS, открытых замечаний0. Это допускает source publication; runtime, окончательная приёмка и релиз остаются NOT READY. Точные hashes и границы зафиксированы в SOURCE-ACCEPTANCE.json пакета C6.
+**9 сентября 2026: SCOPED SOURCE CORRECTION PASS / ACTIVATION REWORK / NOT READY.** Исправление `b8e8ac41a401aa839710d7b11a72f76f02d97607`, tree `b715c699891d970bd1a0bb8a65d7d5fa85d54312`, прошло107 затронутых проверок и независимые L2/L3. [SOURCE-CORRECTION-01.json](SOURCE-CORRECTION-01.json) связывает точные bytes, отрицательный regression и границы verdict.
 
-**9 сентября 2026: CANDIDATE WIP / NOT READY.** C6 выполняется в одной задаче владельца. Source publication, activation, реальные owner journeys, окончательная приёмка и v1.0.2 release пока не выполнены. MVP2 HOLD.
+## Действующий результат
 
-Entry: опубликованная main `14d95b2001a4f49fb96a84e767cf62bbcf5dffdb`, tree `fdcc3537268df303a31faca1bd8499a126e87d09`. C5 source/package, PR19/20, blobs передачи/приёмки и исходный Word hash совпали. Неизменная приёмка C0–C5 сохраняется.
+Исходный C6 source `3a5625898ce4f66ff39c85685e926ea1e0e8afa1` проверен2345PASS+25subtests, frontend20 и L2/L3; [SOURCE-ACCEPTANCE.json](SOURCE-ACCEPTANCE.json) сохраняет эту принятую историю. Package989417f опубликован обычным [PR21](https://github.com/streetenergy63reshik-del/nobus-space/pull/21), merge `7ea915790c382473378078065f0d7d3630fb56e6`. Это source publication, не финальный релиз продукта.
 
-Рабочая зона — `codex/mvp1-closure-c6-release`, отдельный `Code/worktrees/mvp1-closure-c6`. Canonical WIP содержит 20 сохранённых paths; held docs15/16 не импортируются. Live v1.0.1, соседние worktrees, refs, credentials, Bot/menu/webhook и внешняя инфраструктура не менялись.
+Владелец подтвердил точный C6-ACT-01 и локальное использование cuDNN9.10.2. Миграция сохранила79 задач,77 подтверждённых доставок и весь прежний inventory. Старые данные и зашифрованный snapshot сохранены; первая управляемая prechange копия мигрированного state прошла расшифрование/integrity. Live checkout сейчас7ea9157; main/health/backup установлены, все три задания Disabled.
 
-## Проверяемый результат
+## Обнаруженный отказ и исправление
 
-- Совместимая миграция всего inventory, зашифрованные исходные bytes, новый auth cutoff и точное восстановление старого формата в новый каталог.
-- Owner-confirmed reopening после restore только при доказанном отсутствии post-snapshot delta; atomic hold/audit и replay protection.
-- Quiescent daily backup, authenticated latest, 7daily/4weekly retention через обратимый карантин, bounded Scheduler cycle и явный повтор после ошибки.
-- Запрет нового admission при старой/непроверяемой копии и нехватке места; профиль передаёт backup root/ownership явно.
+Первый настоящий startup отдельного recovery drill завершился до readiness. Существующий Windows OpenSSH9.5p2 требует `PROGRAMDATA`: inherited environment даёт `ssh -V` exit0, принятый restricted environment —255 без вывода; добавление только этой переменной даёт0. Исправление сохраняет явный allowlist, точные SSH destination/flags, Job gating, cleanup и readiness.
 
-Подробности и команды — [OPERATIONS](OPERATIONS.md). Границы результата — [рабочий контракт](WORKING-CONTRACT.md).
+Новый Windows integration test сначала воспроизвёл exit255, затем прошёл на изменённых bytes. Затронутый набор дал107PASS за67,50с; L2 независимо воспроизвёл actual offline owned SSH exit0/empty Job и исключение synthetic private env. L3 проверил границы и отсутствие ложного runtime PASS. Успешный `ssh -V` не является доказательством подключения relay, полного RTO или работающего продукта.
 
-## Фактические проверки WIP
+Failed drill сохранён. После STOP все строки восстановленной копии и production state, включая checkpoint, неизменны; порт/mutex свободны. Потраченный startup и консервативный model/ASR reserve не сброшены. Два ожидавших owner update из business_notes по отдельному разрешению архивированы DPAPI и подтверждены без исполнения/групповых ответов.
 
-Целевые наборы: 84 PASS после первого checkpoint; затем 82 PASS обновлённых backup/recovery/operations; 63 PASS затронутых Mini App/queue после исправления fixtures. Это пересекающиеся наборы, их не складывают. Frontend — 20 PASS, bytes интерфейса не изменены.
+## Что требуется до READY
 
-Продукционный migration CLI на защищённой копии фактического live сохранил все 79 задач и прежние receipts/legacy. Из оригинального encrypted snapshot восстановлены точные bytes; исходный v1.0.1 storage прочитал 79 задач. Live source unchanged. 10,047 секунды не являются полным RTO.
+1. Опубликовать проверенное исправление обычным PR/merge; получить подтверждение только точного изменившегося deployment/config/drill target. Исходный activation plan и его receipts не переписывать.
+2. Выполнить полный отдельный recovery RTO≤30мин с pinned worker/ASR и private owner result/TXT, сверкой после STOP; затем один production runtime, настоящий scheduled backup и controlled restart.
+3. Пройти реальные owner text/voice/Mini App/download сценарии и ≥15мин наблюдения. Получить явную итоговую приёмку exact product release; до неё READY запрещён.
+4. Перевести согласованные Scheduler определения в постоянную фазу, опубликовать v1.0.2 и необходимые final status-only docs, оставить продукт работающим.
 
-Первый широкий regression остановлен после массовых FAIL; отдельно воспроизведён 503 в `test_c3_multipart_input`. Причина — fixtures создавали control plane через `object.__new__`, минуя новый optional callback конструктора. Обновлены 22 тестовых объекта; проверка production не ослаблена. Исходные FAIL сохранены. Повтор дал2227PASS/101FAIL: оставались fixtures с `__class__` и alias-конструктором и ожидаемый список SQLite tables без новой таблицы. Они исправлены; scoped source/recovery набор дал135PASS/1 fixtureFAIL, последний shared lifecycle fixture исправлен. Ни один failed тест не исключён. Полный прогон 9245768 дал 2330 PASS, 25 subtests, 2 skipped и 2 исторических deselected за 263,70 с. Независимые L2/L3 выявили два P1 и один P2 в backup cycle; исправления описаны в [REWORK](REWORK.md). После исправлений целевые наборы дали 36 PASS и затем 58 PASS; это пересекающиеся проверки. Позднейшие integration проверки и точные ревизии приведены в REWORK.md; последняя поправка относится только к ошибке освобождения polling lease, scoped132PASS. Итоговая freeze требует L1 и независимого affected readback.
+[OPERATIONS](OPERATIONS.md) описывает миграцию/reconciliation/backup, [WORKING-CONTRACT](WORKING-CONTRACT.md) — границы. Политика: RPO≤24ч,7daily/4weekly, локальный DPAPI; защита от потери диска/Windows account не обещается. Hold не снимается ручным SQL, live DB restore не разрешён.
 
-Historical исключения сохранены из C5: `tests/gate0`, `test_gate_c0_governance.py` и два sealed/held-document assertion в `test_pre_gate1_architecture_integration.py`. Они не проверяют новые C6 возможности и не служат обходом нового FAIL.
+Единая Word-памятка на прежнем пути пока DRAFT: SHA256 `c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba`,44787B,6 страниц после render/visual QA; [MANUAL.json](MANUAL.json). Её команды и статус будут сверены с окончательным deployment до приёмки.
 
-## Открытые обязательные условия
-
-1. Полный релевантный regression, compile/PowerShell/security/manifest/links и независимые L2/L3 по замороженному кандидату.
-2. Решение владельца по локальному использованию cuDNN 9.10.2 EULA. NVIDIA RTX3050Ti на ПК подтверждена, но соглашение за владельца не принимается; реальные ASR пробы не запускаются до ответа.
-3. Полный recovery RTO с настоящими pinned worker/ASR и результатом; точные runtime/native conditions. Exact Intel OpenMP redist найден с byte-identical DLL и лицензией/notices; cuDNN решение всё ещё ожидается, см. [NATIVE-CONDITIONS](NATIVE-CONDITIONS.md).
-4. Word обновлён на том же пути; все6 страниц последней редакции прошли visual QA. Hash `c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba`,44787B. Зависание экспорта локализовано во вложенном Windows PowerShell5; тот же helper через PowerShell7.6.5 STA успешно отрисовал документ. [MANUAL.json](MANUAL.json) сохраняет исходные FAIL и итоговые hashes. Содержимое остаётся DRAFT до активации и owner acceptance.
-5. После candidate PASS — разрешённые push/PR/normal merge/readback, один точный activation plan и подтверждение владельца. Затем действующий backup task, постоянный runtime, public ingress/readiness и controlled restart.
-6. Реальные owner text/voice/Mini App/download journeys, ≥15 минут наблюдения и явная итоговая owner acceptance. Только после неё tag/release v1.0.2 и final status-only docs/readback.
-
-Последний live preflight: main/health Disabled, poller0, порт8765 свободен, прямой публичный `/readyz`502. Source merge сам по себе не изменит это состояние. Финальный READY пока запрещён.
+Неизменная C0–C5 приёмка сохраняется. [REWORK](REWORK.md) и прежние commits сохраняют историю исходных findings; новый failed startup не скрыт. Canonical20 WIP, held docs15/16 и history сохранены. Все работы остаются в одной задаче C6; MVP2 HOLD.

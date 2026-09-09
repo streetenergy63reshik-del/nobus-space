@@ -130,7 +130,7 @@ def spawn_owned(api, job: int, command: list[str], *, stdout=subprocess.DEVNULL)
             stderr=subprocess.DEVNULL, creationflags=CREATE_NO_WINDOW,
             env={key: value for key, value in os.environ.items() if key.upper() in
                  {"SYSTEMROOT", "WINDIR", "PATH", "TEMP", "TMP", "USERPROFILE",
-                  "LOCALAPPDATA", "APPDATA", "USERNAME", "USERDOMAIN", "COMSPEC"}},
+                  "PROGRAMDATA", "LOCALAPPDATA", "APPDATA", "USERNAME", "USERDOMAIN", "COMSPEC"}},
         )
         api.assign(job, process.pid)
         api.signal(gate)

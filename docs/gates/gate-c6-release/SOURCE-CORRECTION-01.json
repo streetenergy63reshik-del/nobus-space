@@ -1,0 +1,49 @@
+{
+  "schema": "c6-source-correction-1",
+  "at": "2026-09-09T04:22:29.170123+00:00",
+  "source_commit": "b8e8ac41a401aa839710d7b11a72f76f02d97607",
+  "source_tree": "b715c699891d970bd1a0bb8a65d7d5fa85d54312",
+  "base_commit": "7ea915790c382473378078065f0d7d3630fb56e6",
+  "files": {
+    "scripts/run_nobus_space_live.py": "34f1247621f206482d771886de460610e3b408b8f89f312109236537c5956ed8",
+    "tests/test_live_supervisor_windows_ssh.py": "e3116ee92281e8587fc9b6bcaaeec526e4380a34fc0916db210b922b934474cf"
+  },
+  "change": "Preserve PROGRAMDATA in the existing restricted supervisor child environment.",
+  "failure": "Actual accepted-profile relay launch stopped before product readiness; owned Windows ssh -V returned255 without PROGRAMDATA.",
+  "negative_regression": {
+    "passed": 0,
+    "failed": 1,
+    "ssh_exit": 255
+  },
+  "affected_regression": {
+    "passed": 107,
+    "failed": 0,
+    "seconds": 67.5,
+    "files": [
+      "test_live_supervisor_windows_ssh.py",
+      "test_live_supervisor.py",
+      "test_c5_runtime_operations.py",
+      "test_c5_backup_recovery.py",
+      "test_c6_managed_backups.py",
+      "test_ops_queue1.py",
+      "test_windows_job.py"
+    ]
+  },
+  "reviews": {
+    "L2": {
+      "path": "reviews/c6-l2-programdata-REPORT.json",
+      "sha256": "9a6c264d591d027cb6baea7814f02259416bef7e9a15664b44e8fb19b934bd95",
+      "verdict": "SCOPED PASS"
+    },
+    "L3": {
+      "path": "reviews/c6-l3-programdata-env-review.json",
+      "sha256": "853c662a3c64dc12e923561274ac6cbf4b78cea383577a568d1608cc110b3949",
+      "verdict": "SCOPED_SOURCE_PASS"
+    }
+  },
+  "verdict": "SCOPED_SOURCE_PASS",
+  "open_source_findings": 0,
+  "scope_limit": "One environment locator addition and regression test. Prior2345PASS+25subtests and frontend20 remain historical unchanged-area evidence, not a new whole-suite run.",
+  "runtime_verdict": "NOT_READY; failed full recovery attempt retained; revised publication and exact activation delta required.",
+  "owner_final_acceptance": false
+}
