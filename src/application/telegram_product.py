@@ -1680,6 +1680,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                     modality=modality,
                     chat_id=message.chat_id,
                     message_thread_id=message.message_thread_id,
+                    owner_message_break=len(pending.canonical_input.owner_text),
                 )
                 materials = tuple(
                     dict.fromkeys(
@@ -1728,6 +1729,20 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
         decision = admission.decision
         if decision.decision == "CLARIFY":
+            if pending is not None:
+                closed = clarifications.delete(pending)
+                await self._api.send_message(
+                    message.chat_id,
+                    (
+                        "После уточнения задача остаётся неоднозначной. "
+                        "Я не принял её к выполнению. Отправьте новую задачу "
+                        "одним сообщением, указав нужный результат и материал."
+                        if closed
+                        else "Уточнение изменилось или истекло. Повторите исходную задачу."
+                    ),
+                )
+                await self._clear_intake_feedback(message, envelope)
+                return
             ttl = getattr(clarifications, "ttl", timedelta(minutes=10))
             if not isinstance(ttl, timedelta):
                 raise RuntimeError("semantic clarification TTL is invalid")

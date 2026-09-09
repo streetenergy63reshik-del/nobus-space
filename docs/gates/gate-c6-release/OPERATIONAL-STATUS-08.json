@@ -1,0 +1,137 @@
+{
+  "recorded_at": "2026-09-09T12:36:06.784692+00:00",
+  "status": "ACTIVE_QUALIFICATION_OWNER_JOURNEYS_PENDING",
+  "source_sha": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+  "source_tree": "6e5e9f9685a176fa32f326662a7e2d802773fe5f",
+  "source_review_candidate": "1bc68d7a57a291382772c7270b552cc6ae12cb14",
+  "application": {
+    "source_commit": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "code_digest": "sha256:8fbe77c29d9540feb499b8508bda166edfe9b0f18f7454c3a5f7b44ffe191a7d",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "activation_manifest_sha256": "577c42b919f24cf37b79359d991876aaaa24d177b615b4a8346f922a300bdcdc",
+  "activation_and_budget_explicitly_approved": true,
+  "release_owner_acceptance": false,
+  "release_tag_created": false,
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "criteria": {
+    "C6-01": {
+      "criterion": "Сохранить перенесённые данные, прежние задачи, доставки и историю; canonical WIP не менять.",
+      "status": "PASS_TO_CURRENT_WATERMARK",
+      "fact": "All four production DBs unchanged by cutover and isolated drill;79 original tasks,77 receipts,15 business records retained. Owner watermark remains subject to final check."
+    },
+    "C6-02": {
+      "criterion": "Один рабочий Core/poller/Job, semantic ON, квалифицированные worker/ASR и точная локальная и публичная readiness штатного supervisor.",
+      "status": "PASS_QUALIFICATION",
+      "fact": "One Core22916/supervisor27172,Job bound,polling lease1,semantic ON,real worker/ASR startup,stock exact local/public readiness0."
+    },
+    "C6-03": {
+      "criterion": "Полное восстановление за ≤30мин: STOP, authenticated restore/reconciliation, native startup, readiness, private result/TXT и безопасная остановка с allowlist сверкой.",
+      "status": "PASS",
+      "fact": "Full controlled RTO274.891s includes original timer before stop, authenticated restore/reconciliation, native start, real no-effect result/TXT and final graceful stop/allowlist check."
+    },
+    "C6-04": {
+      "criterion": "Управляемая копия моложе24ч;7daily/4weekly; реальный цикл Планировщика, verified decrypt/integrity, LastTaskResult0, restart/readiness и следующий запуск03:30.",
+      "status": "PENDING_REAL_SCHEDULER_CYCLES",
+      "fact": "Fresh old-code and new-code backups decrypted/integrity checked; managed new generation verified. Qualification/postaccept Scheduler cycles and enabled daily schedule remain pending."
+    },
+    "C6-05": {
+      "criterion": "Ограниченный штатный stop/start с сохранением accepted task/delivery watermark и без повторного исполнения или доставки.",
+      "status": "PENDING_OWNER_WATERMARK_RESTART",
+      "fact": "Offline restart/admission regressions passed; actual backup restart after new owner accepted tasks is next."
+    },
+    "C6-06": {
+      "criterion": "Фактические owner text/voice/Mini App/download сценарии и ≥15мин наблюдения; synthetic evidence отдельно.",
+      "status": "PENDING_ACTUAL_OWNER_JOURNEYS",
+      "fact": "Actual owner request is pending; 0 new owner tasks in the latest read-only snapshot. Synthetic restored task is separate. New >=900s observation pending."
+    },
+    "C6-07": {
+      "criterion": "Явная итоговая приёмка владельца; затем ранее принятая постоянная Scheduler фаза с проверкой PID/Job/readiness и обязательной последующей backup.",
+      "status": "PENDING_EXPLICIT_FINAL_ACCEPTANCE",
+      "fact": "C6-ACT-07 and entire aggregate quota approved; this is activation authorization, not final product acceptance. Permanent phase remains unapplied."
+    },
+    "C6-08": {
+      "criterion": "Обновить ту же Word-памятку с visual QA; после приёмки опубликовать v1.0.2/release и итоговый статус, оставить принятый runtime работающим.",
+      "status": "PARTIAL_MANUAL_VISUAL_PASS",
+      "fact": "Same Word manual updated to running qualification,all6pages inspected; v1.0.2/tag/release and final status PR pending owner acceptance."
+    }
+  },
+  "runtime": {
+    "at": "2026-09-09T12:29:26.458805+00:00",
+    "status": "PASS",
+    "source": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "seconds": 58.63999999999942,
+    "processes": {
+      "processes": [
+        {
+          "pid": 27172,
+          "parent": 25912,
+          "role": "supervisor",
+          "state_match": true,
+          "semantic": true,
+          "created": "2026-09-09T12:28:27.1752000Z"
+        },
+        {
+          "pid": 22916,
+          "parent": 27720,
+          "role": "core",
+          "state_match": true,
+          "semantic": true,
+          "created": "2026-09-09T12:28:29.8146500Z"
+        }
+      ],
+      "listener_pids": [
+        22916
+      ],
+      "core_in_job": true,
+      "active_polling_leases": 1,
+      "checkpoint_offset": 375633432
+    },
+    "stock_ready_exit": 0,
+    "semantic_on": true,
+    "worker_ASR_probe_completed": true,
+    "phase": "qualification",
+    "owner_acceptance": false
+  },
+  "recovery": {
+    "status": "PASS",
+    "full_RTO_seconds": 274.89100000000053,
+    "cleanup_proven": true,
+    "synthetic_result_TXT": true,
+    "actual_owner_UI": false,
+    "original_source_unchanged": true,
+    "prewrite_operator_failure": "First restore argument prefix invalid; refused before writes/start. Narrow corrected continuation, same approval/targets/quota/original timer. Original failure receipt preserved."
+  },
+  "manual": {
+    "same_path": true,
+    "sha256": "4ff5f8dc9806cb0cabc78bdf0b9cb5fe73672889d38b5ad8ddf47a317ee69fae",
+    "pages": 6,
+    "visual": "PASS"
+  },
+  "owner_snapshot_at": "2026-09-09T12:32:04.866367+00:00",
+  "owner_task_count": 0,
+  "historical_outage": {
+    "first_health_failure_utc": "2026-09-09T10:47:17.9039112Z",
+    "exit_code": 1073807364,
+    "cause": "UNRESOLVED",
+    "separate_from_controlled_RTO": true
+  },
+  "historical_D6": {
+    "RTO_seconds": 107.922,
+    "backup_cycle_seconds": 257.125,
+    "observation_seconds": 918.031
+  },
+  "receipt_sha256": {
+    "OWNER-ACTIVATION-APPROVAL.json": "76bf4aaff9293d21c5da549d6e7db0c4a0a3f4854351d43d43f9a9ae4e0090f2",
+    "PRECHANGE-BACKUP-PASS.json": "a1ca443e7d48475327ecc70ca4f4a9ffd1690805c086734071f719566479202a",
+    "CUTOVER-PASS.json": "f44f4c342c67cf421fb48923152cc9f40c5d3a82148d001fb45d3a8a9270b9a9",
+    "NEW-CODE-BACKUP-PASS.json": "270b0f4674cc84f37c4231df5c0cd9cdcf591d09b547562fdfd10d862b3c73c0",
+    "DRILL-PREWRITE-FAILURE.json": "b28eae8c59e947cbe5a20603c20042a4dad2e62fad0874c13fbde565955f46d8",
+    "DRILL-COMPLETE.json": "ecf94bb87b92c8f1cf2bcb61c22680830d622aa3f2b1245824da54ea1d9beb90",
+    "DRILL-DELTA.json": "3c77c5b0429b449e6d0e6039b2db2f80f10c5822452ec1b4b7540cf4f719b81e",
+    "PRODUCTION-START-PASS.json": "72769963677a52e5b9d52b273bb5bc93d3806562c58d9ad161ef36a667b99585",
+    "OWNER-WATCHDOG-INTENT.json": "966d0f634a167b94c566dc3ae2e413e77b3ea7ce2e82c71610ed7f8a0c7322de"
+  }
+}

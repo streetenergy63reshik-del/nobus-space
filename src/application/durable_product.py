@@ -362,6 +362,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     modality="miniapp_text",
                     chat_id=conversation_id,
                     message_thread_id=None,
+                    owner_message_break=len(pending.canonical_input.owner_text),
                 )
                 materials = tuple(
                     dict.fromkeys(
@@ -390,6 +391,14 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             self._miniapp_admission_phase(trusted, "semantic")
             admission = await service.admit(canonical, bindings)
             if admission.decision.decision == "CLARIFY":
+                if pending is not None:
+                    if not clarifications.delete(pending):
+                        raise SemanticClarificationRejected(
+                            "semantic clarification binding changed"
+                        )
+                    raise SemanticClarificationRejected(
+                        "semantic clarification remained ambiguous"
+                    )
                 token = secrets.token_urlsafe(32)
                 answer_binding = canonical_json_digest(
                     {"clarification_token": token, "source": "miniapp"}

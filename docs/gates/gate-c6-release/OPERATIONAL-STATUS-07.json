@@ -1,0 +1,96 @@
+{
+  "recorded_at": "2026-09-09T12:21:09.149078+00:00",
+  "status": "SOURCE_PUBLISHED_ACTIVATION_APPROVAL_PENDING",
+  "publication": {
+    "at": "2026-09-09T11:52:40.784234+00:00",
+    "status": "MERGED_READBACK_PASS",
+    "pr": 27,
+    "url": "https://github.com/streetenergy63reshik-del/nobus-space/pull/27",
+    "sha": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "tree": "6e5e9f9685a176fa32f326662a7e2d802773fe5f",
+    "source_sha": "1bc68d7a57a291382772c7270b552cc6ae12cb14",
+    "package_sha": "1d59c99f30703e48e90da05b83dbdd97df770a02",
+    "application": {
+      "source_commit": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+      "code_digest": "sha256:8fbe77c29d9540feb499b8508bda166edfe9b0f18f7454c3a5f7b44ffe191a7d",
+      "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+      "protection": "current-user-dpapi",
+      "database_limit_bytes": 50331648
+    },
+    "ordinary_merge": true,
+    "product_and_docs_tree_unchanged_from_package": true,
+    "live_switched": false,
+    "owner_accepted": false,
+    "release_tagged": false
+  },
+  "installed_live_sha": "7ceab0eca570b7810add2fbe600285a7fa3eee91",
+  "runtime": "STOPPED",
+  "first_health_failure_utc": "2026-09-09T10:47:17.9039112Z",
+  "exit_code": 1073807364,
+  "stop_cause": "UNRESOLVED; no orderly stop event, TaskScheduler operational events unavailable",
+  "baseline_at": "2026-09-09T11:53:33.250069+00:00",
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "criteria": {
+    "C6-01": {
+      "status": "PRESERVED_BEFORE_SWITCH",
+      "fact": "79 tasks, 77 delivery receipts, 15 business records, both owner intake requests and BASE WIP20 retained; post-switch comparison pending"
+    },
+    "C6-02": {
+      "status": "NOT_MET_RUNTIME_STOPPED",
+      "fact": "Old installed revision stopped; new code is published but not active. New native startup and real admission pending"
+    },
+    "C6-03": {
+      "status": "PENDING_NEW_DRILL",
+      "fact": "Historical D6 full RTO 107.922s retained; corrected intake candidate requires the new bounded isolated drill"
+    },
+    "C6-04": {
+      "status": "PENDING_SCHEDULE_AND_NEW_COPY",
+      "fact": "Existing backup valid and younger than 24h at baseline; daily task disabled. New qualification and postaccept cycles not run"
+    },
+    "C6-05": {
+      "status": "OFFLINE_PASS_LIVE_PENDING",
+      "fact": "Admission/cancel/restart regressions pass; actual restart on new code and owner task/delivery watermark pending"
+    },
+    "C6-06": {
+      "status": "PENDING_OWNER_SCENARIOS",
+      "fact": "Six real owner task slots and >=900s new observation prepared; not performed. Historical 918.031s observation kept separately"
+    },
+    "C6-07": {
+      "status": "PENDING_EXPLICIT_OWNER_ACCEPTANCE",
+      "fact": "No final owner acceptance; permanent phase not applied"
+    },
+    "C6-08": {
+      "status": "MANUAL_VISUAL_PASS_RELEASE_PENDING",
+      "fact": "Same manual updated and all six pages verified; new runtime acceptance, v1.0.2 tag/release and final status PR pending"
+    }
+  },
+  "activation_plan": {
+    "id": "C6-ACT-07",
+    "manifest_sha256": "577c42b919f24cf37b79359d991876aaaa24d177b615b4a8346f922a300bdcdc",
+    "human_plan_sha256": "a9ab9c3ad65a309c74a5d4f4ff8341836acf3ca8d2804ed45b6f288565608aac",
+    "explicit_confirmation": "REQUESTED_NOT_RECEIVED"
+  },
+  "manual": {
+    "same_path": true,
+    "sha256": "7d4d1c967ce1e76fa3d061cc6e8e8eab723b4a2d2eb6ca3163ceaa082d267d2e",
+    "pages": 6,
+    "visual": "PASS"
+  },
+  "budget": "Original ledger unchanged; aggregate proposal not approved",
+  "new_real_model_ASR_startups": 0,
+  "release_owner_acceptance": false,
+  "release_tag_created": false,
+  "historical_D6": {
+    "RTO_seconds": 107.922,
+    "backup_cycle_seconds": 257.125,
+    "observation_seconds": 918.031
+  },
+  "local_evidence_sha256": {
+    "SOURCE-PUBLICATION-07.json": "26616847e83c8aff956002e84ed856ae6403a17270835c50231e2b9cfa609cb8",
+    "SWITCH-BASELINE-07.json": "67fb31912823717a8fe2a23920ff446fb42d4f92f8c9dcb8f5b5b1054c3f192f",
+    "STOPPED-RUNTIME-DIAGNOSTICS-07.json": "80bd953082e9a5b888635bab5e3d2d05e5723874b748c2e440f35ebc73ef55d7",
+    "PLAN-SEALED-07.json": "a17ed83937c07934bc8ff293ce80110e796e23529edbd2653fcdfbaed16542a6",
+    "PLAN-XML-VALIDATION-07.json": "89043c11db2f09cc9b8e2e9fa4f9172db834f5ea28cd1619ab1c5ee2bc05bc02",
+    "MANUAL-PLAN-07.json": "950b28f5bb5dec299d39aee0c7de50e9bf501a872c6b3195ebf028942dd4fe99"
+  }
+}

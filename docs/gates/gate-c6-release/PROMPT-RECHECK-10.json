@@ -1,0 +1,35 @@
+{
+  "at": "2026-09-09T13:54:48.039795+00:00",
+  "verdict": "PASS",
+  "source_sha": "2e647396e27741c12767ba66e282ec4a001d70a4",
+  "reviewed_head": "c5e3834d7032d9d8d08c7e70a387e01928f1b5d4",
+  "code_digest": "sha256:9f892f01d80b46f2570b3afb6fb66e5c8f185013183c2bde625068c5dc9bcfab",
+  "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+  "authorization": "Owner 2026-09-09 13:46:56 UTC explicitly approved one focused independent verification and subsequent publication, project documentation update and removal of obsolete duplicate project copies.",
+  "reviewer": "Independent c6_final_l3",
+  "review_received_at": "2026-09-09T13:51:05Z",
+  "resolved_finding": "C6-PROMPT-08-B1",
+  "checks": [
+    "Actual Telegram pending conditional reply: UNSUPPORTED -> CLARIFY, 0 task starts; replay does not call compiler.",
+    "Simple valid clarification: EXECUTE, one start.",
+    "Direct conditions and negations remain direct in 18 channel/unterminated-quote/forged-delimiter combinations.",
+    "Two forged message boundaries with previous spans rejected; model-provided boundary field rejected.",
+    "Embedded publication remains inert without task admission.",
+    "Mini App second CLARIFY closes pending token; token replay does not call compiler."
+  ],
+  "l1_passed": 631,
+  "l1_receipt_sha256": "fdfc0889b2094ec31cdc0958795b43eff21b333b6e539c546d6875c0b1367a26",
+  "source_file_sha256": {
+    "src/application/durable_product.py": "3c0b7aba7fe9c853ec47ec933adf292df34e8c66b527c53a3eaa1475afb24287",
+    "tests/test_c6_prompt_reply_boundary.py": "e9a854759f7dcf716af8093b3c1a8acee50c2e7884ff27181059fc3950051bd1",
+    "src/application/semantic_admission.py": "b439982e80ec5a330c4526851d870d236a96ca401c6be2c51358017457c935b3",
+    "src/application/telegram_product.py": "2424ec67f3c5deb3989f2d5d8d464b74fb278e5002bd113c2793f988c14ed344",
+    "tests/test_c6_prompt_correction.py": "cc76b043438c2bb965e216a4c763269e5837d20cf6c5fa6279d53a7dfb416303"
+  },
+  "full_old_cycle_repeated": false,
+  "real_model_asr_network_live_changes_during_review": false,
+  "unresolved_source_blockers": [],
+  "prior_failed_review_preserved": "PROMPT-REVIEW-08.md",
+  "release_acceptance": false,
+  "live_switched": false
+}
