@@ -459,7 +459,6 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     monkeypatch.setattr(runner, "NobusMemory", lambda path: object())
     monkeypatch.setattr(runner, "validate_runtime_set", lambda path: None)
     monkeypatch.setattr(runner, "assert_runtime_admission_ready", lambda path: None)
-    monkeypatch.setattr(runner, "_CODEX_TEMP", tmp_path / "codex-temp")
     binding_path = tmp_path / "telegram-bindings.local.json"
     binding_path.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(runner, "_BINDING_PATH", binding_path)
