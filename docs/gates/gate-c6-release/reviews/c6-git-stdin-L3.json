@@ -1,0 +1,60 @@
+{
+  "reviewer": "L3 independent adversarial review",
+  "at": "2026-09-09T05:26:38.512731+00:00",
+  "profile": "software-development",
+  "risk": "high",
+  "lifecycle": "GATE_CANDIDATE bounded source correction02",
+  "source": "bba7d21530bd467339d1982b46051e578408f66d",
+  "base": "0b6425fed9aa82417cba299352d058d55811109c",
+  "source_tree": "4da0de08fcf7563a42095ed07f1370f7038892c8",
+  "verdict": "SCOPED SOURCE CORRECTION PASS",
+  "findings": [],
+  "scope": "Only application_binding Git stdin DEVNULL and the real Windows active-reader regression; no activation or full C6 acceptance.",
+  "files": {
+    "src/application/runtime_maintenance.py": {
+      "workspace_sha256": "e27ef437832adb002a7853e67aa3faa61300ec5057a1b04b78de418aed4df080",
+      "git_blob_bytes_sha256": "e27ef437832adb002a7853e67aa3faa61300ec5057a1b04b78de418aed4df080"
+    },
+    "tests/test_runtime_binding_windows_stdin.py": {
+      "workspace_sha256": "efc11ceaea8387acc189e5bdbf76f6b48d4cc7f6526d0f1918e92ad0c1a1809c",
+      "git_blob_bytes_sha256": "efc11ceaea8387acc189e5bdbf76f6b48d4cc7f6526d0f1918e92ad0c1a1809c"
+    }
+  },
+  "application_binding": {
+    "source_commit": "bba7d21530bd467339d1982b46051e578408f66d",
+    "code_digest": "sha256:9b1da93cd8e9e3cbad5225366f31285b4dcadb3834e7069703f853a4b30b1649",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb"
+  },
+  "evidence_sha256": {
+    ".runtime/activation-execution-02/GIT-STDIN-DIAGNOSTIC.json": "69e09e210eea9dcde1d6a5b3e73f2fc44dacd36e5f7eb584c38ca67c07629187",
+    ".runtime/activation-execution-02/CORE-PREFLIGHT-DIAGNOSTIC.json": "5ba1bab7c3a16b898e72c94d0426e310ee60c82931c011fbe3475086a5e64be3",
+    ".runtime/activation-execution-02/DRILL-FAIL-READBACK.json": "dba3702818a31af3c5f27dfb66a5531fb0cad14e395d8f96e209958f4afe210f",
+    ".runtime/activation-execution-02/DRILL-CLEANUP.json": "63160c57b1893c1c0f11efde44d30fba627d9f5dba2813ded09c3ae3275b1064",
+    ".runtime/activation-execution-02/DRILL-FAIL.json": "ce464f98ac272b7188583e037d99762cd38eefef16bc25fc8bed1766b2d1f174"
+  },
+  "checks_run": [
+    "Exact two-file diff and clean frozen HEAD verified; git diff --check passed.",
+    "Workspace source/test bytes equal frozen Git blob bytes after CRLF normalization; raw and Git-byte SHA256 recorded.",
+    "Traced supervisor owned PIPE -> Core shutdown reader -> _run admission_readiness -> managed_backups.assert_recent -> latest_manifest -> restore._verified_manifest -> application_binding synchronous Git.",
+    "Independent in-memory fault injection: TimeoutExpired, CalledProcessError and FileNotFoundError propagate; no identity returned on Git failure. DEVNULL, timeout=10 and check=True asserted.",
+    "Five malformed Git revisions (short, long, nonhex, uppercase and non-ASCII) rejected.",
+    "Real local Git HEAD and independently recomputed application source-byte digest match frozen candidate on Windows Python 3.12.14.",
+    "Static adversarial review of test: active reader, withheld shutdown input, marker deadline before cleanup, real Git lookup, exact source_commit check, deterministic parent cleanup via communicate/kill/wait.",
+    "Reviewed unchanged restore authenticity/shape/code-digest/schema/protection/target/manifest checks and failure-before-install ordering; no weakening found.",
+    "Reviewed relevant subsequent native controls: CLI version probe uses DEVNULL; worker/limits/Windows Job spawns use dedicated PIPE; no same inherited Core stdin control found in these paths.",
+    "Reviewed diagnostic stage ordering and STOP_SAFE readback; Git success does not convert activation attempt or recovery timer to PASS."
+  ],
+  "supporting_evidence_not_rerun": {
+    "executor_L1_report": "Pre-fix regression RED about 5.49 seconds; post-fix related 108 + 19 = 127 PASS, supplied by parent and not independently rerun by L3.",
+    "native_diagnostic": "No-reader and reader-DEVNULL Git both returned 0 with expected HEAD; reader-inherited timed out until stdin release. reader-DEVNULL diagnostic host returncode 4294967295 is cleanup termination, not a clean host exit proof.",
+    "existing_readback": "STOP_SAFE 2026-09-09T05:18:29.185375+00:00 reports unchanged production/restored rows/checkpoint, all Scheduler tasks disabled, mutexes free, port closed; not live-repeated by L3."
+  },
+  "limits": [
+    "No Core, model, ASR, network, Scheduler or application data operation executed by this review. Only local Git/read-only source operations and in-memory fault injection were run.",
+    "The Windows integration regression itself was inspected, not independently executed by L3. It skips other operating systems; its 0.2 second reader-start delay and 5 second marker deadline can be sensitive to extreme machine load.",
+    "Correction removes this observed stdin inheritance failure; it does not promise all Windows process creation or Git work is bounded by the subprocess communication timeout.",
+    "No full RTO success, readiness, native model/voice probes, user delivery, scheduled backup, restart or permanent activation is established. Historical full_RTO_verdict remains FAIL_STARTUP.",
+    "Updated application code_digest requires exact new activation/backup evidence binding; earlier activation plans and snapshots are not blanket approval for changed source bytes.",
+    "Parent may add publication documents separately; this verdict binds only the frozen source revision and listed files, not later document bytes."
+  ]
+}

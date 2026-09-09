@@ -1,30 +1,30 @@
 # Gate C6: выпуск MVP1
 
-**9 сентября 2026: SCOPED SOURCE CORRECTION PASS / ACTIVATION REWORK / NOT READY.** Исправление `b8e8ac41a401aa839710d7b11a72f76f02d97607`, tree `b715c699891d970bd1a0bb8a65d7d5fa85d54312`, прошло107 затронутых проверок и независимые L2/L3. [SOURCE-CORRECTION-01.json](SOURCE-CORRECTION-01.json) связывает точные bytes, отрицательный regression и границы verdict.
+**9 сентября 2026: SCOPED SOURCE CORRECTION PASS / ACTIVATION REWORK / NOT READY.** Источник `bba7d21530bd467339d1982b46051e578408f66d`, tree `4da0de08fcf7563a42095ed07f1370f7038892c8`. [SOURCE-CORRECTION-02.json](SOURCE-CORRECTION-02.json) связывает новую регрессию,127 затронутых PASS и независимые L2/L3. Готовность работающего продукта ещё не подтверждена.
 
-## Действующий результат
+## Опубликованное и установленное
 
-Исходный C6 source `3a5625898ce4f66ff39c85685e926ea1e0e8afa1` проверен2345PASS+25subtests, frontend20 и L2/L3; [SOURCE-ACCEPTANCE.json](SOURCE-ACCEPTANCE.json) сохраняет эту принятую историю. Package989417f опубликован обычным [PR21](https://github.com/streetenergy63reshik-del/nobus-space/pull/21), merge `7ea915790c382473378078065f0d7d3630fb56e6`. Это source publication, не финальный релиз продукта.
+Первоначальный C6 source `3a5625898ce4f66ff39c85685e926ea1e0e8afa1` прошёл2345PASS+25subtests, frontend20 и L2/L3; [SOURCE-ACCEPTANCE.json](SOURCE-ACCEPTANCE.json) сохраняет точные границы этой проверки. Он опубликован обычным PR21, merge `7ea915790c382473378078065f0d7d3630fb56e6`.
 
-Владелец подтвердил точный C6-ACT-01 и локальное использование cuDNN9.10.2. Миграция сохранила79 задач,77 подтверждённых доставок и весь прежний inventory. Старые данные и зашифрованный snapshot сохранены; первая управляемая prechange копия мигрированного state прошла расшифрование/integrity. Live checkout сейчас7ea9157; main/health/backup установлены, все три задания Disabled.
+Первое исправление запуска `b8e8ac41a401aa839710d7b11a72f76f02d97607` сохранило PROGRAMDATA в ограниченном окружении Windows OpenSSH:107 затронутых PASS и L2/L3, [SOURCE-CORRECTION-01.json](SOURCE-CORRECTION-01.json). Обычный [PR22](https://github.com/streetenergy63reshik-del/nobus-space/pull/22) принят с merge `0b6425fed9aa82417cba299352d058d55811109c`. После точного подтверждения C6-ACT-01-D2 LIVE и application-bound конфигурации переключены на эту revision. Все три задания Disabled.
 
-## Обнаруженный отказ и исправление
+Совместимая миграция сохранила79 задач,77 подтверждённых доставок и прежний inventory. Старые базы и зашифрованные snapshots сохранены. Первая управляемая копия и новая prechange-копия под0b6425 прошли расшифрование/integrity. Production не запускался. Локальное использование cuDNN9.10.2 принято владельцем. По отдельному разрешению два групповых update архивированы DPAPI и подтверждены без исполнения, заметок или ответов.
 
-Первый настоящий startup отдельного recovery drill завершился до readiness. Существующий Windows OpenSSH9.5p2 требует `PROGRAMDATA`: inherited environment даёт `ssh -V` exit0, принятый restricted environment —255 без вывода; добавление только этой переменной даёт0. Исправление сохраняет явный allowlist, точные SSH destination/flags, Job gating, cleanup и readiness.
+## Вторая причина остановки
 
-Новый Windows integration test сначала воспроизвёл exit255, затем прошёл на изменённых bytes. Затронутый набор дал107PASS за67,50с; L2 независимо воспроизвёл actual offline owned SSH exit0/empty Job и исключение synthetic private env. L3 проверил границы и отсутствие ложного runtime PASS. Успешный `ssh -V` не является доказательством подключения relay, полного RTO или работающего продукта.
+Отдельный recovery-c6-02 восстановлен и сверён, но Core не достиг readiness. Синхронный запрос Git revision наследовал stdin, из которого daemon-поток ожидал команду остановки. Изолированный реальный Git без читателя завершился за0,078с; с активным читателем завис до команды родителя и дал TimeoutExpired; с DEVNULL завершился за0,101с. Это проверка Git, а не успешный запуск продукта.
 
-Failed drill сохранён. После STOP все строки восстановленной копии и production state, включая checkpoint, неизменны; порт/mutex свободны. Потраченный startup и консервативный model/ASR reserve не сброшены. Два ожидавших owner update из business_notes по отдельному разрешению архивированы DPAPI и подтверждены без исполнения/групповых ответов.
+В общем application_binding добавлен только stdin=DEVNULL. Windows regression вызывает настоящий application_binding при ожидающем потоке stdin и проверяет revision; до исправления он падал, после прошёл. Runtime operations, managed backups, voice retention и Windows regression дали108PASS за56,46с; backup recovery —19PASS за20,15с. Эти127 проверок относятся к новой дельте; полная историческая проверка не приписывается новым bytes.
 
-## Что требуется до READY
+После неудачной попытки все строки восстановленного и production state, включая checkpoint, неизменны; порт8765 и оба mutex свободны. Три задания Disabled, canonical20 WIP сохранены. Неудачный graceful cleanup и последующая доказанная остановка сохранены как отдельные факты; полный RTO имеет FAIL_STARTUP. Бюджет попыток и консервативный model/ASR reserve не сброшены.
 
-1. Опубликовать проверенное исправление обычным PR/merge; получить подтверждение только точного изменившегося deployment/config/drill target. Исходный activation plan и его receipts не переписывать.
-2. Выполнить полный отдельный recovery RTO≤30мин с pinned worker/ASR и private owner result/TXT, сверкой после STOP; затем один production runtime, настоящий scheduled backup и controlled restart.
-3. Пройти реальные owner text/voice/Mini App/download сценарии и ≥15мин наблюдения. Получить явную итоговую приёмку exact product release; до неё READY запрещён.
-4. Перевести согласованные Scheduler определения в постоянную фазу, опубликовать v1.0.2 и необходимые final status-only docs, оставить продукт работающим.
+## До завершения C6
 
-[OPERATIONS](OPERATIONS.md) описывает миграцию/reconciliation/backup, [WORKING-CONTRACT](WORKING-CONTRACT.md) — границы. Политика: RPO≤24ч,7daily/4weekly, локальный DPAPI; защита от потери диска/Windows account не обещается. Hold не снимается ручным SQL, live DB restore не разрешён.
+1. Опубликовать проверенную дельту обычным PR/merge и получить подтверждение только нового deployment/config/restore target. Принятые планы и failed roots сохраняются.
+2. Измерить полный отдельный RTO≤30мин с pinned worker/ASR, реальным результатом/TXT и сверкой после STOP; затем проверить production runtime, настоящий scheduled backup и controlled restart.
+3. Пройти реальные owner text/voice/Mini App/download сценарии, ≥15мин наблюдения и получить явную итоговую приёмку exact release.
+4. Применить согласованную постоянную Scheduler фазу, опубликовать v1.0.2 и итоговые документы; оставить принятый продукт работающим.
 
-Единая Word-памятка на прежнем пути пока DRAFT: SHA256 `c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba`,44787B,6 страниц после render/visual QA; [MANUAL.json](MANUAL.json). Её команды и статус будут сверены с окончательным deployment до приёмки.
+[OPERATIONS](OPERATIONS.md) и [WORKING-CONTRACT](WORKING-CONTRACT.md) сохраняют RPO≤24ч,7daily/4weekly, локальный DPAPI, bounded effects и fail-closed rollback. Восстановление поверх live DB и ручное снятие hold не разрешены. Защита от потери диска/Windows account не обещается.
 
-Неизменная C0–C5 приёмка сохраняется. [REWORK](REWORK.md) и прежние commits сохраняют историю исходных findings; новый failed startup не скрыт. Canonical20 WIP, held docs15/16 и history сохранены. Все работы остаются в одной задаче C6; MVP2 HOLD.
+Единая Word-памятка остаётся DRAFT на прежнем пути, SHA256 `c52602089c6ca751101d4408f6f42de09a27e8b374b2d1d087da2901d8f3eeba`,44787байт,6 страниц после визуальной проверки; [MANUAL.json](MANUAL.json). Команды и статус будут сверены с окончательным deployment. C0–C5 сохраняют прежнюю приёмку; canonical20 WIP, held docs15/16 и history сохранены. MVP2 HOLD.

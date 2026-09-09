@@ -1,0 +1,68 @@
+{
+  "source_commit": "bba7d21530bd467339d1982b46051e578408f66d",
+  "base_commit": "0b6425fed9aa82417cba299352d058d55811109c",
+  "reviewer": "independent-c6-git-l2",
+  "verdict": "PASS_SCOPED",
+  "method": "Exact-source review; canonical venv pytest on Windows; independent actual Git stdin probe; injected negative Git outcomes.",
+  "checks": [
+    {
+      "name": "source_identity",
+      "result": "PASS",
+      "details": "Exact frozen HEAD and clean tracked tree verified before and after execution; two-file delta against base; diff --check passed."
+    },
+    {
+      "name": "windows_regression",
+      "result": "PASS",
+      "count": 1,
+      "duration_seconds": 1.09,
+      "details": "Actual application_binding completed with active stdin reader; exact revision matched; child exited zero."
+    },
+    {
+      "name": "independent_inherited_stdin",
+      "result": "PASS",
+      "details": "No output before stdin release at 2 seconds; TimeoutExpired after release; child exited zero in 2.015 seconds without forced termination."
+    },
+    {
+      "name": "independent_devnull",
+      "result": "PASS",
+      "details": "Exact frozen revision returned before stdin release at 2 seconds; child exited zero in 2.000 seconds without forced termination."
+    },
+    {
+      "name": "negative_git_outcomes",
+      "result": "PASS",
+      "details": "CalledProcessError128 and TimeoutExpired propagate; invalid revision raises RuntimeError. stdin=DEVNULL, check=True and timeout=10 asserted."
+    },
+    {
+      "name": "historical_diagnostic_interpretation",
+      "result": "PASS",
+      "details": "Historical DEVNULL probe establishes Git success, not graceful process completion: returncode4294967295. Independent L2 supplies separate graceful cleanup evidence."
+    }
+  ],
+  "files": {
+    "src/application/runtime_maintenance.py": {
+      "sha256_worktree_bytes": "e27ef437832adb002a7853e67aa3faa61300ec5057a1b04b78de418aed4df080"
+    },
+    "tests/test_runtime_binding_windows_stdin.py": {
+      "sha256_worktree_bytes": "efc11ceaea8387acc189e5bdbf76f6b48d4cc7f6526d0f1918e92ad0c1a1809c"
+    },
+    ".runtime/activation-execution-02/GIT-STDIN-DIAGNOSTIC.json": {
+      "sha256_worktree_bytes": "69e09e210eea9dcde1d6a5b3e73f2fc44dacd36e5f7eb584c38ca67c07629187"
+    }
+  },
+  "limitations": [
+    "Initial pytest sandbox attempt failed during tmp_path setup with WinError5 before test logic; identical test passed under approved elevated execution.",
+    "Executor127-pass claim was not independently rerun.",
+    "No Core, model, ASR, network, credentials, Scheduler or application data accessed or changed.",
+    "Scoped correction verdict does not establish live activation, recovery RTO, scheduled backup, restart, user journeys or MVP1 acceptance.",
+    "Live old revision and Disabled state were supplied context, not independently queried.",
+    "Regression uses a short scheduling delay before application_binding.",
+    "Receipt creation was initially rejected twice by automatic approval review; no file was created then and no workaround was attempted. Exact direct owner approval was subsequently received for this file and inclusion in the publication package; this create-only save was executed under that approval."
+  ],
+  "findings": [],
+  "authorization": {
+    "kind": "exact_direct_owner_approval",
+    "response": "Да, разрешаю",
+    "question": "Разрешаете сохранить отчёт c6-git-stdin-L2.json и включить его в пакет публикации?",
+    "scope": "Create-only save of the prepared sanitized L2 report to the explicitly approved C6 review path; no repeat tests or other changes."
+  }
+}
