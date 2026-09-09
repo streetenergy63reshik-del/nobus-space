@@ -1474,3 +1474,33 @@ async def test_sdk_rejects_unsupported_mixed_permission_profile(
 
     with pytest.raises(CodexCliError, match="not allowed"):
         await adapter.execute(contract)
+
+
+@pytest.mark.asyncio
+async def test_startup_probe_ignores_saved_unresumable_session(tmp_path: Path) -> None:
+    owner, workspace, home, temp = _paths(tmp_path)
+    class Client(_Client):
+        async def thread_list(self, **kwargs):
+            raise AssertionError("Readiness must not depend on stored session history")
+        async def thread_resume(self, *args, **kwargs):
+            raise AssertionError("Readiness must not resume an old probe")
+    client = Client()
+    adapter = CodexSdkAdapter(workspace_root=workspace, owner_root=owner,
+        codex_home=home, temp_root=temp, client_factory=lambda _: client)
+    contract = _contract(workspace, source="system_job").model_copy(update={
+        "tenant_id": "system", "quality_profile": "gate5a4-worker-readiness@1"})
+    try:
+        await adapter.execute(contract)
+        await adapter.execute(contract.model_copy(update={"task_id": uuid4()}))
+        assert len(client.started) == 2
+        assert not client.resumed
+        for value in client.start_values:
+            assert value["ephemeral"] is True
+            assert value["approval_mode"].value == "deny_all"
+            assert value["sandbox"].value == "read-only"
+            assert value["config"]["web_search"] == "disabled"
+            assert value["config"]["mcp_servers"] == {}
+            assert not any(value["config"]["features"].values())
+        assert all(thread.name is None for thread in client.started)
+    finally:
+        await adapter.close()

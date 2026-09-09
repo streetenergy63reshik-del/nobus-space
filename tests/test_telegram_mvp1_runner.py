@@ -113,13 +113,13 @@ def test_selector_skips_cli_that_cannot_start(
     assert runner._required_codex_executable(tmp_path) == working.resolve()
 
 
-def test_production_selector_prefers_pinned_bundled_codex(
+def test_production_selector_uses_qualified_native_profile(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     bundled = tmp_path / "bundled" / "codex.exe"
     bundled.parent.mkdir()
     bundled.touch()
-    monkeypatch.setattr(runner, "bundled_codex_path", lambda: bundled)
+    monkeypatch.setattr(runner, "qualified_codex_executable", lambda _: bundled)
     monkeypatch.setattr(runner.shutil, "which", lambda name: None)
     calls: list[Path] = []
 
@@ -127,7 +127,7 @@ def test_production_selector_prefers_pinned_bundled_codex(
         calls.append(Path(argv[0]))
         return SimpleNamespace(
             returncode=0,
-            stdout=b"codex-cli 0.144.4\n",
+            stdout=b"codex-cli 0.153.4\n",
             stderr=b"",
         )
 
@@ -585,7 +585,7 @@ def test_validated_worktree_accepts_only_an_isolated_release_checkout(
 def test_production_cli_rejects_wrong_version_without_ambient_fallback(tmp_path, monkeypatch, output):
     pinned = tmp_path / "codex.exe"
     pinned.touch()
-    monkeypatch.setattr(runner, "bundled_codex_path", lambda: pinned)
+    monkeypatch.setattr(runner, "qualified_codex_executable", lambda _: pinned)
     monkeypatch.setattr(runner.shutil, "which", lambda _: pytest.fail("production attempted unpinned discovery"))
     monkeypatch.setattr(runner.subprocess, "run", lambda *a, **k: SimpleNamespace(
         returncode=0, stdout=output, stderr=b""))
@@ -593,8 +593,8 @@ def test_production_cli_rejects_wrong_version_without_ambient_fallback(tmp_path,
         runner._required_codex_executable()
 
 
-def test_production_cli_rejects_missing_bundle_without_ambient_fallback(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, "bundled_codex_path", lambda: tmp_path / "missing.exe")
+def test_production_cli_rejects_missing_profile_without_ambient_fallback(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
     monkeypatch.setattr(runner.shutil, "which", lambda _: pytest.fail("production attempted unpinned discovery"))
-    with pytest.raises(RuntimeError, match="working Codex CLI is unavailable"):
+    with pytest.raises(RuntimeError, match="qualified Codex runtime is unavailable"):
         runner._required_codex_executable()

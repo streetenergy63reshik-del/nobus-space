@@ -80,8 +80,14 @@ def fake_cycle(tmp_path,monkeypatch):
     monkeypatch.setattr(cycle,'_task',task)
     monkeypatch.setattr(cycle,'_runner',runner)
     monkeypatch.setattr(cycle,'_port_closed',lambda:True)
+    from tests.test_codex_runtime_profile import native_fixture
+    fixture_root, _, _ = native_fixture(tmp_path, monkeypatch)
+    for name in ('ops/windows/Invoke-NobusSpaceTask.ps1','docs/11-Контекст-продукта.md'):
+        target=fixture_root/name;target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_bytes((cycle.ROOT/name).read_bytes())
+    monkeypatch.setattr(cycle,'ROOT',fixture_root)
     inputs={name:m.file_evidence(cycle.ROOT/name) for name in (
-        'ops/windows/Invoke-NobusSpaceTask.ps1','docs/11-Контекст-продукта.md')}
+        'ops/windows/Invoke-NobusSpaceTask.ps1','docs/11-Контекст-продукта.md','codex-runtime.local.json')}
     config={'schema':'c6-backup-cycle-1','application':m.application_binding(),'runtime':str(runtime),
         'backup_root':str(root),'ownership':ownership,'inputs':inputs,
         'tasks':{role:{'name':name,'signature':states[name]['signature']} for role,name in

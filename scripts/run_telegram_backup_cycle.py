@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0,str(ROOT))
 from src.application import managed_backups as managed
 from src.application import runtime_maintenance as m
+from src.application.codex_runtime import PROFILE_NAME, qualified_codex_executable
 from src.application.durable_telegram_state import DpapiJsonCodec
 from src.application.windows_singleton import WindowsNamedMutex
 from src.contracts.models import canonical_json_digest
@@ -67,8 +68,9 @@ def load_config(path,expected):
         if Path(relative).is_absolute() or m.file_evidence(m.checked_path(ROOT/relative,root=ROOT))!=evidence:
             raise ValueError('runtime input changed')
     helper='ops/windows/Invoke-NobusSpaceTask.ps1'
-    if helper not in value['inputs'] or 'docs/11-Контекст-продукта.md' not in value['inputs']:
+    if helper not in value['inputs'] or 'docs/11-Контекст-продукта.md' not in value['inputs'] or PROFILE_NAME not in value['inputs']:
         raise ValueError('required input binding missing')
+    qualified_codex_executable(ROOT)
     for item in value['tasks'].values():
         if set(item)!={'name','signature'} or not re.fullmatch('NobusSpace[A-Za-z0-9-]{1,64}',item['name']):
             raise ValueError('task binding invalid')
