@@ -2,7 +2,7 @@
 
 **Статус документа:** CANONICAL
 
-**CURRENT:** C0–C5 приняты и опубликованы. C6-ACT-09 успешно запустил c89a986; после отказа проверочной задачи runtime штатно остановлен. Исправление 4d631dce проверено на реальной модели и независимо, включение и итоговая приёмка ожидаются. MVP1 NOT READY; MVP2 HOLD.
+**CURRENT:** C0–C6 приняты в пределах показанных критериев; MVP1 82003c03 работает в постоянном режиме, аннотированный v1.0.2 опубликован. GitHub release опубликован; итоговый статус оформлен отдельным docs-only пакетом. MVP2 HOLD.
 Точная кодовая ревизия и проверки — [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
 Наличие старого адаптера в коде не означает доступность возможности в текущей
@@ -35,10 +35,10 @@ semantic composition. Реализованные исторические ADR001
 | [0020](adr/0020-early-miniapp-and-specialist-workers.md) | Telegram Mini App is required; historical Server/Development Control Gate 2A topology is scoped by ADR 0022 | ACCEPTED; scoped by 0022 | THIN MVP ACTIVE / FULL 2A FROZEN |
 | [0021](adr/0021-post-gate0-agent-roles-and-downstream-integration.md) | Historical post-seal role/verification overlay; active process and roadmap are scoped by ADR 0022 | ACCEPTED; scoped by 0022 | HISTORICAL / PARTIAL |
 | [0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md) | Forward-only rebaseline: thin Telegram Mini App + existing local Core; full Gate 2A frozen | ACCEPTED; semantic/process scope by 0023 | TOPOLOGY CURRENT; OLD CLOSURE PROCESS HISTORICAL |
-| [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md) | Modality-neutral semantic admission: tool-less SemanticProposal, Core Capability Registry/policy decision, C0–C6 closure | ACCEPTED | CURRENT; C0–C5 PUBLISHED / ACCEPTED |
-| [0024](adr/0024-core-durable-recovery-and-part-delivery.md) | Durable admission/recovery, lease fencing, sealed answer и part receipts | ACCEPTED IN C3 | CURRENT; QUALIFICATION STOPPED |
-| [0025](adr/0025-miniapp-session-and-request-recovery.md) | Core-owned session rotation и восстановление запроса Mini App без повторного admission | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; NOT DEPLOYED |
-| [0026](adr/0026-channel-neutral-product-projection.md) | Общие состояния, причины, действия и безопасное представление результата в Telegram и Mini App | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; NOT DEPLOYED |
+| [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md) | Modality-neutral semantic admission: tool-less SemanticProposal, Core Capability Registry/policy decision, C0–C6 closure | ACCEPTED | CURRENT; MVP1 OWNER ACCEPTED |
+| [0024](adr/0024-core-durable-recovery-and-part-delivery.md) | Durable admission/recovery, lease fencing, sealed answer и part receipts | ACCEPTED IN C3 | CURRENT; PERMANENT ACTIVE |
+| [0025](adr/0025-miniapp-session-and-request-recovery.md) | Core-owned session rotation и восстановление запроса Mini App без повторного admission | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; ACTIVE IN MVP1 |
+| [0026](adr/0026-channel-neutral-product-projection.md) | Общие состояния, причины, действия и безопасное представление результата в Telegram и Mini App | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; ACTIVE IN MVP1 |
 
 ## Правила статусов ADR
 

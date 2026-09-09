@@ -1,0 +1,157 @@
+{
+  "at": "2026-09-09T18:39:18.733621+00:00",
+  "status": "MVP1_READY_ACCEPTED_PUBLISHED_ACTIVE",
+  "product_sha": "82003c03d8a36015703472b472640ab4021fb416",
+  "product_tree": "78d47a3be446d33a2ace24144b75d7221f73009e",
+  "application": {
+    "source_commit": "82003c03d8a36015703472b472640ab4021fb416",
+    "code_digest": "sha256:43a91fa406e0ca2131d0f4400feaa33eec9e88ae70c0d63f87a137568502a578",
+    "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+    "protection": "current-user-dpapi",
+    "database_limit_bytes": 50331648
+  },
+  "published_source_pr": 30,
+  "published_source_merge": "9a34b60ac883d00631a9b1138905671728c62426",
+  "tag": {
+    "name": "v1.0.2",
+    "object": "59952c44118606c26e34e20a39ed88ef5c686620",
+    "product_sha": "82003c03d8a36015703472b472640ab4021fb416",
+    "annotated": true,
+    "remote_verified": true
+  },
+  "release_page_created": true,
+  "release_url": "https://github.com/streetenergy63reshik-del/nobus-space/releases/tag/v1.0.2",
+  "status_document_revision": "Separate status-only Git commit; never a new LIVE or tag target",
+  "runtime": {
+    "state": "PERMANENT_ACTIVE",
+    "semantic_admission": true,
+    "unique_core_job_supervisor_poller": true,
+    "readiness_local_public_stock": true,
+    "accepted_tasks": 86,
+    "pre_activation_task_rows_preserved": 82,
+    "owner_new_tasks": 3,
+    "synthetic_new_tasks": 1,
+    "unresolved_delivery": 0
+  },
+  "backup": {
+    "enabled": true,
+    "last_completed_at": "2026-09-09T18:20:02.934871+00:00",
+    "seconds": 127.01600000000326,
+    "last_result": 0,
+    "next_run_utc": "2026-09-10T00:30:00.0000000Z",
+    "next_run_moscow": "2026-09-10T03:30:00+03:00",
+    "daily_moscow": "03:30",
+    "daily_retention": 7,
+    "weekly_retention": 4,
+    "four_members_verified": true,
+    "watermark_preserved": true
+  },
+  "owner_acceptance": {
+    "explicit": true,
+    "at": "2026-09-09T18:17:09.123620+00:00",
+    "source": "82003c03d8a36015703472b472640ab4021fb416",
+    "private_receipt": {
+      "bytes": 1790,
+      "sha256": "b43ab164dccb8850698f1f4b987e7b0cf237b14cc1c7272efc60c37bd45672b2"
+    }
+  },
+  "manual": {
+    "status": "VISUAL_PASS_6_PAGES",
+    "after_sha256": "76f90b1d7a3748066747b51db923b7daa467cc25eaf1491ce8bc87688df5eddc",
+    "same_manual_path": true,
+    "page_count": 6
+  },
+  "evidence_bindings": {
+    "OWNER-JOURNEYS-PASS.json": {
+      "bytes": 5504,
+      "sha256": "b0363597db0074f4e895808ff70221c2cc54290f0b231f6f5d9879170742c268"
+    },
+    "OWNER-OBSERVATION-PASS.json": {
+      "bytes": 1032,
+      "sha256": "1d0214c7d8f75b8b54b824e0f989b1f409ff8c29060b0ef0347e0e5683e30131"
+    },
+    "OWNER-FINAL-ACCEPTANCE.json": {
+      "bytes": 1790,
+      "sha256": "b43ab164dccb8850698f1f4b987e7b0cf237b14cc1c7272efc60c37bd45672b2"
+    },
+    "QUALIFICATION-BACKUP-PASS.json": {
+      "bytes": 1470,
+      "sha256": "42206bb026872eeb8f4512d7f8fd8633208fff11938338d0819809b13dd0fbdd"
+    },
+    "PERMANENT-BACKUP-PASS.json": {
+      "bytes": 1481,
+      "sha256": "7a1c31f607a6e4625abb3aeeabb3304b43fdc1a1134e01bf00c4e08b077ee46c"
+    },
+    "CONTROLLED-RESTART-PASS.json": {
+      "bytes": 884,
+      "sha256": "dd7ebef772f13c87bc64c2e314fa73cdf5656abfb4d7325ed326355f10952a9c"
+    },
+    "RELEASE-TAG-14-PASS.json": {
+      "bytes": 338,
+      "sha256": "21b7acd2b7a855de0f4d46fcb3cb4b3f71f92a3c80a2d1d0ede4832cf0eb0953"
+    },
+    "RELEASE-PAGE-14-PASS.json": {
+      "bytes": 637,
+      "sha256": "3e2bab61eea7ce216584067c69340677b59c34fbc73ddc808abb90c171156eac"
+    }
+  },
+  "source_review": "NATIVE-PROMPT-REVIEW-11.json",
+  "historical_source_evidence_retained": true,
+  "criteria": [
+    {
+      "id": "C6-01",
+      "status": "PASS",
+      "fact": "82 задачи до C6-ACT-10 и связанные доставки сохранены. После одного синтетического и трёх реальных сценариев — 86 задач; четыре БД целы, постприёмочная сверка строк не изменилась."
+    },
+    {
+      "id": "C6-02",
+      "status": "PASS",
+      "fact": "На 82003c03 работают один Core в Job, один supervisor и один poller lease; semantic ON, worker/ASR и точные local/public/stock readiness проверены. Реальный приём и результат работают."
+    },
+    {
+      "id": "C6-03",
+      "status": "PASS",
+      "fact": "Полный изолированный цикл восстановления на e3fbaf9 занял 274,891 с. Его доказательство сохранено со своей версией; затронутый native-путь новой 82003c03 и новые связанные копии четырёх БД проверены отдельно. Схема не менялась, production restore не выполнялся."
+    },
+    {
+      "id": "C6-04",
+      "status": "PASS",
+      "fact": "Daily 03:30 МСК включён, политика 7 daily / 4 weekly. Реальный цикл после приёмки: 127,016 с, decrypt/integrity четырёх БД, LastTaskResult 0; следующий запуск 10 сентября 03:30 МСК."
+    },
+    {
+      "id": "C6-05",
+      "status": "PASS",
+      "fact": "Квалификационный и постприёмочный backup/restart сохранили задачи, доставки и offset. После последнего цикла вернулся единственный новый runtime; дубли и незавершённая доставка отсутствуют."
+    },
+    {
+      "id": "C6-06",
+      "status": "PASS",
+      "fact": "Три прежних реальных сценария сохранены с их доказательствами; три оставшихся выполнены на 82003c03 через настоящий UI. Голос прошёл preview, одно подтверждение и одно уточнение. TXT получен Mini App, открытие файла подтверждено владельцем. 905,125 с наблюдения: 28 успешных локальных и публичных проб."
+    },
+    {
+      "id": "C6-07",
+      "status": "PASS",
+      "fact": "Владелец явно принял точную версию и ограничения, подтвердил C6-PERMANENT-14. Постоянный logon trigger, не более десяти повторов через минуту и обязательный последующий backup включены и проверены."
+    },
+    {
+      "id": "C6-08",
+      "status": "PASS",
+      "fact": "Та же Word-памятка обновлена и визуально проверена на шести страницах. Аннотированный v1.0.2 и GitHub release опубликованы на 82003c03. Итоговый статус выпускается отдельным docs-only пакетом; принятый runtime оставлен работающим."
+    }
+  ],
+  "limitations": [
+    "Local PC and owner Windows session required; no independent whole-PC outage alert",
+    "Speech recognition can require one clarification reply",
+    "Mini App session expiry requires reopening",
+    "One earlier public 502 correlated with origin EOF; recovered without restart; 15 minutes is not an SLA",
+    "Clipboard operation reported success in UI, but tool clipboard byte readback was unavailable"
+  ],
+  "follow_up": [
+    "Observe the next automatic 03:30 run through normal operations without replaying this one-shot operator",
+    "Investigate repeated public-origin EOF only if it recurs; no network/topology change in this release",
+    "Off-PC backup and independent outage alert are future scope requiring a separate decision"
+  ],
+  "privacy": "Only sanitized metadata and hashes; no owner payload, audio, database content, authentication or local account paths",
+  "publication_boundary": "The published verdict is effective for this status-only package on protected main; unmerged copies remain WIP.",
+  "acceptance_criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5"
+}

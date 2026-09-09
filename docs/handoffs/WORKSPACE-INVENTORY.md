@@ -6,7 +6,7 @@
 |---|---|
 | nobus-orchestrator-dev | Основной чистый checkout main; Python-окружение и закрытые служебные архивы сохраняются. |
 | worktrees/mvp1-closure-c6 | Рабочая ветка завершения и документации C6. |
-| worktrees/telegram-live | Штатный runtime checkout e3fbaf9; сейчас процесс остановлен. Состояние и резервные копии сохраняются отдельно. |
+| worktrees/telegram-live | Штатный runtime checkout принятой 82003c03; постоянный процесс работает. Состояние и резервные копии сохраняются отдельно. |
 | nobus-orchestrator-dev/.runtime/worktrees/mvp1-closure-c2-voice-parity | Сохранён из-за ASR-модели, указанной в действующем профиле. Удалять его как промежуточную копию нельзя. |
 
 Восемь устаревших рабочих копий удалены после проверки полных архивов: c1-publication-status, c0-publication, c0-publication-readback, c0-truth-contract, release-docs, closure-c5, docs-product-readiness и docs-status-g7-ready.

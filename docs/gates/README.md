@@ -1,6 +1,6 @@
 # Gate index
 
-**9 сентября 2026:** C6-ACT-09 успешно запустил c89a986. После отказа проверочной задачи промпта процесс штатно остановлен, данные сохранены. Исправление 4d631dce проверено и ожидает включения. Итоговая приёмка, постоянный режим и v1.0.2 не завершены. [Текущий статус](../handoffs/CURRENT-STATUS.md).
+**9 сентября 2026:** MVP1 82003c03 принят владельцем, постоянный режим и ежедневная копия 03:30 МСК работают. Аннотированный v1.0.2 опубликован; GitHub release опубликован. [Текущий статус](../handoffs/CURRENT-STATUS.md).
 
 Gate 0–8 package сохраняется как исследовательский и digest-bound historical
 baseline. Он не является active Definition of Done MVP-1. Полный
@@ -17,12 +17,12 @@ checkpoints, не отдельные пользовательские чаты.
 | Gate | Статус | Package / boundary |
 |---|---|---|
 | C0 — единая истина и контракт | `PUBLISHED / ACCEPTED` @ `70085f8...`, tree `3a31914a...` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
-| C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED; QUALIFICATION ACTIVE` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
+| C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
 | C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
 | C4 — завершённый frontend/user journey | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
 | C5 — operations/recovery/security | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c5-mvp1-operations-security/ACCEPTANCE.md), [передача](gate-c5-mvp1-operations-security/HANDOFF.md) |
-| C6 — frozen release и owner acceptance | QUALIFICATION STOPPED / ACCEPTANCE PENDING | [текущий пакет](gate-c6-release/HANDOFF.md), опубликованное исправление и точный план включения |
+| C6 — release и owner acceptance | READY / ACCEPTED / PUBLISHED / ACTIVE | [текущий пакет](gate-c6-release/HANDOFF.md), [восемь критериев](gate-c6-release/OPERATIONAL-STATUS-14.md) |
 
 ## Historical status map
 
@@ -85,4 +85,4 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Acceptance всего MVP1 переоткрыта; C5 принят, текущий Gate — C6; итоговая активация и приёмка не завершены.
+границах. Итоговая приёмка MVP1 версии 82003c03 получена; C6 перешёл в постоянную эксплуатацию. Точное состояние публикации находится в CURRENT-STATUS.
