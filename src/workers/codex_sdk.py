@@ -103,6 +103,7 @@ class CodexSdkAdapter:
         owner_root: str | Path,
         codex_home: str | Path,
         temp_root: str | Path,
+        codex_executable: str | Path | None = None,
         max_timeout_seconds: int = 14_400,
         client_factory: Callable[[CodexConfig], AsyncCodex] = AsyncCodex,
     ) -> None:
@@ -111,11 +112,13 @@ class CodexSdkAdapter:
             owner = Path(owner_root).resolve(strict=True)
             home = Path(codex_home).resolve(strict=True)
             temp = Path(temp_root).resolve(strict=True)
+            executable = Path(codex_executable).resolve(strict=True) if codex_executable is not None else None
             valid = (
                 workspace.is_dir()
                 and owner.is_dir()
                 and home.is_dir()
                 and temp.is_dir()
+                and (executable is None or executable.is_file())
                 and type(max_timeout_seconds) is int
                 and 1 <= max_timeout_seconds <= 14_400
                 and callable(client_factory)
@@ -131,6 +134,7 @@ class CodexSdkAdapter:
         self._max_timeout_seconds = max_timeout_seconds
         self._client_factory = client_factory
         self._config = CodexConfig(
+            codex_bin=str(executable) if executable is not None else None,
             cwd=str(owner),
             env={
                 "CODEX_HOME": str(home),
@@ -187,9 +191,11 @@ class CodexSdkAdapter:
         cwd = self._working_directory(contract)
         prompt = self._prompt(contract, await self._owner_projection(contract))
         session = self._session_name(contract, cwd)
-        semantic_no_effect = (
-            contract.quality_profile == "gate-c1-semantic-no-effect@1"
-        )
+        # A readiness probe has no conversation to resume. Keeping it tool-free
+        # and ephemeral also avoids depending on obsolete stored probe history.
+        semantic_no_effect = contract.quality_profile in {
+            "gate-c1-semantic-no-effect@1", "gate5a4-worker-readiness@1"
+        }
         async with self._thread_locks.setdefault(session, asyncio.Lock()):
             client = await self._client_instance()
             try:

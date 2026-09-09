@@ -2630,16 +2630,21 @@ def build_gate5a4_runtime(
         owner_root=owner_root or root,
         codex_home=codex_home,
         temp_root=temp_root,
+        codex_executable=codex_executable,
         max_timeout_seconds=GATE5A4_TIMEOUT_SECONDS,
     )
+    fallback_executable = bundled_codex_path().resolve(strict=True)
+    selected_directory = Path(codex_executable).resolve(strict=True).parent
+    fallback_paths = tuple(
+        entry for entry in path_entries if Path(entry).resolve(strict=True) != selected_directory
+    ) + (fallback_executable.parent,)
     worker_env = build_worker_env(
         codex_home=codex_home,
         system_root=system_root,
         temp_root=temp_root,
         workspace_root=root,
-        path_entries=path_entries,
+        path_entries=fallback_paths,
     )
-    fallback_executable = bundled_codex_path().resolve(strict=True)
     launcher = WindowsJobLauncher(
         workspace_root=root,
         target_executable=fallback_executable,

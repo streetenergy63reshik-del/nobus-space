@@ -15,16 +15,18 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
+
 from urllib.parse import urlsplit
 
 import httpx
 import uvicorn
-from codex_cli_bin import bundled_codex_path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from src.application.codex_runtime import CODEX_VERSION, qualified_codex_executable  # noqa: E402
 
 from scripts.run_telegram_control import (  # noqa: E402
     _BINDING_PATH,
@@ -668,9 +670,9 @@ def _extension_version(executable: Path) -> tuple[int, ...]:
     return tuple(int(value) for value in re.findall(r"\d+", match.group(1))) if match else ()
 
 def _required_codex_executable(home: Path | None = None) -> Path:
-    """Production requires the pinned CLI; discovery is explicit developer-only."""
+    """Production requires the qualified native profile; discovery is developer-only."""
     candidates: list[Path] = (
-        [bundled_codex_path()]
+        [qualified_codex_executable(ROOT)]
         if home is None
         else []
     )
@@ -718,7 +720,7 @@ def _required_codex_executable(home: Path | None = None) -> Path:
             if (
                 result.returncode == 0
                 and isinstance(result.stdout, bytes)
-                and (result.stdout.strip() == b"codex-cli 0.144.4" if home is None
+                and (result.stdout.strip() == ("codex-cli " + CODEX_VERSION).encode("ascii") if home is None
                      else b"codex-cli" in result.stdout.lower())
                 and len(result.stdout) <= 4096
                 and len(result.stderr) <= 4096
