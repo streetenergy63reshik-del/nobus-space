@@ -1,6 +1,6 @@
 # Документация Nobus Space
 
-**9 сентября 2026:** C6-ACT-09 успешно запустил c89a986. После отказа проверочной задачи промпта процесс штатно остановлен, данные сохранены. Исправление 4d631dce проверено и ожидает включения. Итоговая приёмка, постоянный режим и v1.0.2 не завершены. [Текущий статус](handoffs/CURRENT-STATUS.md).
+**9 сентября 2026:** MVP1 82003c03 принят владельцем, постоянный режим и ежедневная копия 03:30 МСК работают. Аннотированный v1.0.2 опубликован; GitHub release опубликован. [Текущий статус](handoffs/CURRENT-STATUS.md).
 
 Начните с [текущего статуса](handoffs/CURRENT-STATUS.md), [пакета C6](gates/gate-c6-release/HANDOFF.md) и [эксплуатационной инструкции](08-Runbook-эксплуатации.md). Точная история проверки кода — [PROMPT-RECHECK-10](gates/gate-c6-release/PROMPT-RECHECK-10.md).
 
@@ -44,7 +44,7 @@ pointer, короткий status, decisions и freshness.
 6. [Runbook](08-Runbook-эксплуатации.md) — действующий Telegram runtime и
    действующие процедуры C6 и граница постоянного режима.
 7. [Контекст продукта](11-Контекст-продукта.md) — безопасная coarse-проекция
-   без подвижных SHA.
+   на принятом product SHA; его историческая оперативная строка не заменяет CURRENT-STATUS.
 8. [Workspace inventory](handoffs/WORKSPACE-INVENTORY.md) — роли repo,
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
@@ -109,4 +109,4 @@ product effect.
 - Не записывать credentials, tokens, cookies, raw payload, audio, local secret
   paths или данные другого tenant.
 
-Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). В LIVE включены PR №28–29, c89a986; процесс сейчас остановлен. Последующее исправление 4d631dce описано в [проверке](gates/gate-c6-release/NATIVE-PROMPT-REVIEW-11.md).
+Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). В LIVE работает принятая 82003c03 из PR №30; [проверка исходника](gates/gate-c6-release/NATIVE-PROMPT-REVIEW-11.md) сохранена с её привязками.
