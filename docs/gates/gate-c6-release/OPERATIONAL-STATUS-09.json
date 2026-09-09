@@ -1,0 +1,623 @@
+{
+  "recorded_at": "2026-09-09T13:37:18.729778+00:00",
+  "status": "ACTIVE_QUALIFICATION_ACCEPTANCE_PAUSED_NEW_PROMPT_FIX_DRAFT",
+  "live_sha": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+  "local_unpublished_candidate": {
+    "recorded_at": "2026-09-09T13:31:45.842678+00:00",
+    "status": "DRAFT_L1_PASS_INDEPENDENT_REEVALUATION_PENDING",
+    "source_sha": "2e647396e27741c12767ba66e282ec4a001d70a4",
+    "tree": "985430d21fc6d6a7ee5ff4f241411740e455a344",
+    "application": {
+      "source_commit": "2e647396e27741c12767ba66e282ec4a001d70a4",
+      "code_digest": "sha256:9f892f01d80b46f2570b3afb6fb66e5c8f185013183c2bde625068c5dc9bcfab",
+      "schema_digest": "sha256:e5e371d440c752ca70c258b859528696eefe953023c26c1e2fd8d913dac2feeb",
+      "protection": "current-user-dpapi",
+      "database_limit_bytes": 50331648
+    },
+    "files": {
+      "src/application/durable_product.py": "3c0b7aba7fe9c853ec47ec933adf292df34e8c66b527c53a3eaa1475afb24287",
+      "tests/test_c6_prompt_reply_boundary.py": "e9a854759f7dcf716af8093b3c1a8acee50c2e7884ff27181059fc3950051bd1",
+      "src/application/semantic_admission.py": "b439982e80ec5a330c4526851d870d236a96ca401c6be2c51358017457c935b3",
+      "src/application/telegram_product.py": "2424ec67f3c5deb3989f2d5d8d464b74fb278e5002bd113c2793f988c14ed344",
+      "tests/test_c6_prompt_correction.py": "cc76b043438c2bb965e216a4c763269e5837d20cf6c5fa6279d53a7dfb416303"
+    },
+    "prior_review": {
+      "at": "2026-09-09T13:31:45.320916+00:00",
+      "candidate": "2f053fddadf1329962b5908cdf6546d5e102a71a",
+      "tree": "f10ae1f19367c28dc9cf6535a37253bec8da949e",
+      "code_digest": "sha256:7fa66a9d33f8905a4193cce2edc7b2c015a0dee3d2999f58722fd3c84b7a983f",
+      "one_additional_cycle_explicitly_authorized": true,
+      "overall": "FAIL",
+      "L2": {
+        "verdict": "PASS",
+        "independent_assertions": 27,
+        "focus": "text/voice prompt,no_effect route,unresolved clarification,CAS replacement,replay,new task"
+      },
+      "L3": {
+        "verdict": "FAIL",
+        "finding_id": "C6-PROMPT-08-B1",
+        "priority": 1,
+        "finding": "Open-ended prompt material swallowed the direct conditional owner reply when pending text was concatenated.",
+        "actual_telegram_path_reproduced": true,
+        "parent_comparison": "a63694bd structural parser gives UNSUPPORTED/CLARIFY/0 starts;2f053fdd gives NONE/EXECUTE/content.transform/1 start",
+        "external_effect_detected": false,
+        "task_contract_false_acceptance": true
+      },
+      "source_live_SQLiteStore_writes": false,
+      "real_model_ASR": 0,
+      "prior_runtime_verdicts_repeated": false,
+      "new_work": "Local correction and affected L1 only; independent reevaluation not authorized or performed."
+    },
+    "l1_receipt_sha256": "fdfc0889b2094ec31cdc0958795b43eff21b333b6e539c546d6875c0b1367a26",
+    "unpublished": true,
+    "live_sha": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1"
+  },
+  "owner_final_acceptance": false,
+  "criteria_digest": "sha256:c266ff98f9d5959c1ebb272b6b593d71f613704f653941a58593808db325e2e5",
+  "criteria": [
+    {
+      "id": "C6-01",
+      "criterion": "Сохранить перенесённые данные, прежние задачи, доставки и историю; canonical WIP не менять.",
+      "state": "PASS",
+      "fact": "79 old tasks and three new tasks retained across backup/restart; confirmed delivery and offset unchanged; all20 BASE WIP files byte-identical."
+    },
+    {
+      "id": "C6-02",
+      "criterion": "Один рабочий Core/poller/Job, semantic ON, квалифицированные worker/ASR и точная локальная и публичная readiness штатного supervisor.",
+      "state": "PASS_QUALIFICATION",
+      "fact": "One Core28368/supervisor30380,Job/lease1,semantic ON;qualified worker/ASR and stock local/public readiness."
+    },
+    {
+      "id": "C6-03",
+      "criterion": "Полное восстановление за ≤30мин: STOP, authenticated restore/reconciliation, native startup, readiness, private result/TXT и безопасная остановка с allowlist сверкой.",
+      "state": "PASS",
+      "fact": "Full isolated RTO274.891 seconds includes STOP,restore/reconciliation,native startup,real result/TXT and final stop/allowlist."
+    },
+    {
+      "id": "C6-04",
+      "criterion": "Управляемая копия моложе24ч;7daily/4weekly; реальный цикл Планировщика, verified decrypt/integrity, LastTaskResult0, restart/readiness и следующий запуск03:30.",
+      "state": "PARTIAL",
+      "fact": "Real scheduled backup126.86seconds,decrypt/integrity all4,LastResult0,restart verified.7daily/4weekly configured;03:30 schedule disabled until final acceptance;no effective next automatic run."
+    },
+    {
+      "id": "C6-05",
+      "criterion": "Ограниченный штатный stop/start с сохранением accepted task/delivery watermark и без повторного исполнения или доставки.",
+      "state": "PASS",
+      "fact": "Controlled backup restart preserves accepted-task/delivery watermark and offset,without duplicate execution or delivery."
+    },
+    {
+      "id": "C6-06",
+      "criterion": "Фактические owner text/voice/Mini App/download сценарии и ≥15мин наблюдения; synthetic evidence отдельно.",
+      "state": "INCOMPLETE",
+      "fact": "Three of six result journeys verified; prompt repeat-clarification bug reproduced; text prompt,voice prompt,second sequential MiniApp incomplete. Owner paused further testing. Observation903.859s PASS is separate."
+    },
+    {
+      "id": "C6-07",
+      "criterion": "Явная итоговая приёмка владельца; затем ранее принятая постоянная Scheduler фаза с проверкой PID/Job/readiness и обязательной последующей backup.",
+      "state": "PENDING",
+      "fact": "No explicit final release acceptance; permanent phase and postaccept backup not performed."
+    },
+    {
+      "id": "C6-08",
+      "criterion": "Обновить ту же Word-памятку с visual QA; после приёмки опубликовать v1.0.2/release и итоговый статус, оставить принятый runtime работающим.",
+      "state": "PARTIAL",
+      "fact": "Same Word manual updated,all6pages visually verified;v1.0.2/tag/release not created. Runtime remains running qualification."
+    }
+  ],
+  "owner_partial": {
+    "at": "2026-09-09T12:58:17.509100+00:00",
+    "status": "INCOMPLETE",
+    "source": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "actual_owner_reply": "Больше тестировать сейчас не готов",
+    "earlier_owner_report": "Все тесты проведены. Вроде всё работает корректно",
+    "actual_results_verified": 3,
+    "artifact_delivery_parts": 6,
+    "original_pending_safely_closed": true,
+    "real_owner_UI_screenshot_supplied": true,
+    "final_product_acceptance": false,
+    "uncompleted": "Text prompt, voice prompt and second sequential Mini App result; repeat clarification/prompt material-boundary defect reproduced offline",
+    "technical_evidence": {
+      "bytes": 4665,
+      "sha256": "593294de8f38152eb2252149f0ae572b7ed39efafb8635c2b410d944e9367c0b"
+    },
+    "privacy": "No original task text or voice data included"
+  },
+  "backup": {
+    "at": "2026-09-09T13:01:01.201777+00:00",
+    "status": "PASS",
+    "source": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "seconds": 126.86000000000058,
+    "actual_scheduler_run": true,
+    "explicit_start_calls": 1,
+    "last_result": 0,
+    "schedule": {
+      "state": "Ready",
+      "enabled": true,
+      "last_result": 0,
+      "last_run": "2026-09-09T12:58:59.0000000Z",
+      "next_run": "2026-09-10T00:30:00.0000000Z",
+      "start_when_available": true,
+      "triggers": [
+        {
+          "start": "2026-09-09T03:30:00+03:00",
+          "days_interval": 1,
+          "enabled": true
+        }
+      ]
+    },
+    "backup_digest": "sha256:13e0350251481c30eb08dcff7fbfbf1ea4ab4f93082d9faf70205bd542b0cc93",
+    "all_four_members_decrypted_integrity_verified": true,
+    "watermark_preserved": true,
+    "runtime_ready": true,
+    "processes": {
+      "processes": [
+        {
+          "pid": 30380,
+          "parent": 31200,
+          "role": "supervisor",
+          "state_match": true,
+          "semantic": true,
+          "created": "2026-09-09T12:59:47.6313600Z"
+        },
+        {
+          "pid": 28368,
+          "parent": 26448,
+          "role": "core",
+          "state_match": true,
+          "semantic": true,
+          "created": "2026-09-09T12:59:50.2682300Z"
+        }
+      ],
+      "listener_pids": [
+        28368
+      ],
+      "core_in_job": true,
+      "active_polling_leases": 1,
+      "checkpoint_offset": 375633442
+    },
+    "backup_enabled": false,
+    "owner_acceptance": false
+  },
+  "controlled_restart": {
+    "at": "2026-09-09T13:01:01.215796+00:00",
+    "status": "PASS",
+    "source": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "same_cycle": true,
+    "watermarks_and_offset_unchanged": true,
+    "no_duplicate_tasks_effects_receipts_or_delivery": true,
+    "processes": {
+      "processes": [
+        {
+          "pid": 30380,
+          "parent": 31200,
+          "role": "supervisor",
+          "state_match": true,
+          "semantic": true,
+          "created": "2026-09-09T12:59:47.6313600Z"
+        },
+        {
+          "pid": 28368,
+          "parent": 26448,
+          "role": "core",
+          "state_match": true,
+          "semantic": true,
+          "created": "2026-09-09T12:59:50.2682300Z"
+        }
+      ],
+      "listener_pids": [
+        28368
+      ],
+      "core_in_job": true,
+      "active_polling_leases": 1,
+      "checkpoint_offset": 375633442
+    },
+    "stock_check_ready_exit": 0
+  },
+  "observation": {
+    "at": "2026-09-09T13:36:23.015202+00:00",
+    "status": "PASS",
+    "source": "e3fbaf9b813b6a97791b43cc3e7ee7b5bc989cb1",
+    "seconds": 903.8589999999986,
+    "samples": [
+      {
+        "at": "2026-09-09T13:21:23.116584+00:00",
+        "seconds": 3.969,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:21:57.332256+00:00",
+        "seconds": 38.187,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:22:31.747557+00:00",
+        "seconds": 72.594,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:23:06.616108+00:00",
+        "seconds": 107.469,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:23:40.979307+00:00",
+        "seconds": 141.828,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:24:14.848824+00:00",
+        "seconds": 175.703,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:24:49.473201+00:00",
+        "seconds": 210.328,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:25:24.000810+00:00",
+        "seconds": 244.859,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:25:58.602964+00:00",
+        "seconds": 279.453,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:26:33.053829+00:00",
+        "seconds": 313.906,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:27:07.886257+00:00",
+        "seconds": 348.734,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:27:41.946534+00:00",
+        "seconds": 382.797,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:28:15.982267+00:00",
+        "seconds": 416.828,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:28:50.082447+00:00",
+        "seconds": 450.937,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:29:24.554530+00:00",
+        "seconds": 485.406,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:29:58.313039+00:00",
+        "seconds": 519.156,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:30:32.514489+00:00",
+        "seconds": 553.359,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:31:07.080060+00:00",
+        "seconds": 587.937,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:31:41.893048+00:00",
+        "seconds": 622.75,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:32:16.589476+00:00",
+        "seconds": 657.437,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:32:51.366212+00:00",
+        "seconds": 692.219,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:33:25.600027+00:00",
+        "seconds": 726.453,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:33:59.952462+00:00",
+        "seconds": 760.797,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:34:34.650728+00:00",
+        "seconds": 795.5,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:35:08.713146+00:00",
+        "seconds": 829.562,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:35:42.688010+00:00",
+        "seconds": 863.531,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:36:17.012172+00:00",
+        "seconds": 897.859,
+        "stock_ready": true,
+        "same_runtime": true
+      },
+      {
+        "at": "2026-09-09T13:36:23.015202+00:00",
+        "seconds": 903.859,
+        "stock_ready": true,
+        "same_runtime": true
+      }
+    ],
+    "same_core_supervisor_pids": true,
+    "prior_failed_observation_preserved": true,
+    "prior_failure_cause": "UNRESOLVED_TRANSIENT_READINESS_PROBE",
+    "owner_journeys": "INCOMPLETE;actual owner acceptance paused"
+  },
+  "manual": {
+    "at": "2026-09-09T13:10:30.440645+00:00",
+    "status": "VISUAL_PASS",
+    "same_manual_path": true,
+    "before_sha256": "4ff5f8dc9806cb0cabc78bdf0b9cb5fe73672889d38b5ad8ddf47a317ee69fae",
+    "after_sha256": "f0981d02f81b7eddb3b6597942e095c53890a1aaee7ca4cc21b2d648d716058a",
+    "changed_paragraphs": [
+      4,
+      5,
+      20,
+      60,
+      80
+    ],
+    "phase": "PARTIAL_OWNER_ACCEPTANCE_PAUSED_PROMPT_FIX_LOCAL_ONLY",
+    "pages": 6,
+    "all_pages_inspected": true,
+    "page_sha256": {
+      "1": "7f4ebba323a9d0225a0c53bc4a5f25ca4d5b95f1584e676a2ba2c67ecaf32c4e",
+      "2": "4879da8bce0ff0eb253a8044b5bb7ff906ec0a66b0e631e85beef431244d56bb",
+      "3": "2390f03b711354731e5f014b34ee987b1cf585f19e5cdfd6a075c03f125db1f8",
+      "4": "92f8933c2f3b76374a0dcbaf00e1ae64d536cc6880d1acf85b4693fa61cfce09",
+      "5": "9ddfe93c8672508e0b56f07ae1bc4952a5e04e44bc4387805899824768d95406",
+      "6": "4ebac0597f63c8db0330de08f73c962b82d59149aa310a5c1606243d2cde3b33"
+    }
+  },
+  "base_foreign_wip": {
+    "count": 20,
+    "all_sha256_unchanged": true
+  },
+  "receipt_sha256": {
+    "DRILL-COMPLETE.json": "ecf94bb87b92c8f1cf2bcb61c22680830d622aa3f2b1245824da54ea1d9beb90",
+    "OWNER-JOURNEYS-PARTIAL.json": "deb9524656ddd277c3e3a64432506083cccb44125836e26f6a38eaa998a0ed65",
+    "QUALIFICATION-BACKUP-PASS.json": "d0557df0cf4cf722003c2d3657a2e074f2f712d5f911d3b43a7175426625280d",
+    "CONTROLLED-RESTART-PASS.json": "6886a656622ddfecf4a9142662c102608ed47a2d5c8359e03a7968ce851357ce",
+    "OBSERVATION-RECHECK-08-PASS.json": "fac7477dab9ebc8b26766a46a5414a3fe61e831c9edf3f35d7c508760c5418d7"
+  },
+  "prior_prompt_review": "2f053fdd:L2 PASS27 assertions,L3 FAIL C6-PROMPT-08-B1;both collected before correction;FAIL retained.",
+  "pending_decision": "New candidate2e647396:L1 PASS631;new independent reevaluation requires separate owner decision and has not been started or requested again.",
+  "first_observation_failed": {
+    "at": "2026-09-09T13:17:54.264554+00:00",
+    "error_type": "AssertionError",
+    "samples": [
+      {
+        "at": "2026-09-09T13:03:28.994648+00:00",
+        "seconds": 8.297,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:04:07.856969+00:00",
+        "seconds": 47.156,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:04:46.730621+00:00",
+        "seconds": 86.031,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:05:26.654211+00:00",
+        "seconds": 125.953,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:06:06.113709+00:00",
+        "seconds": 165.422,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:06:44.442791+00:00",
+        "seconds": 203.75,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:07:24.971509+00:00",
+        "seconds": 244.281,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:08:04.413927+00:00",
+        "seconds": 283.718,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:08:44.514940+00:00",
+        "seconds": 323.812,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:09:23.496123+00:00",
+        "seconds": 362.797,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:10:01.867996+00:00",
+        "seconds": 401.172,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:10:43.304449+00:00",
+        "seconds": 442.609,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:11:21.911573+00:00",
+        "seconds": 481.218,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:12:00.478403+00:00",
+        "seconds": 519.781,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:12:40.077036+00:00",
+        "seconds": 559.375,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:13:18.774668+00:00",
+        "seconds": 598.078,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:13:57.706925+00:00",
+        "seconds": 637.015,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:14:38.191455+00:00",
+        "seconds": 677.5,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:15:20.342982+00:00",
+        "seconds": 719.64,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:16:03.448712+00:00",
+        "seconds": 762.75,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:16:43.094445+00:00",
+        "seconds": 802.39,
+        "ready": true,
+        "single_core_poller": true
+      },
+      {
+        "at": "2026-09-09T13:17:22.992772+00:00",
+        "seconds": 842.297,
+        "ready": true,
+        "single_core_poller": true
+      }
+    ],
+    "runtime_actions": "Observation only; no automatic restart"
+  },
+  "next_live_target": "Not authorized by C6-ACT-07. Must publish reviewed source and prepare exact changed activation plan plus aggregate additional budget before requesting authorization.",
+  "release_v1_0_2": "NOT_CREATED_FINAL_ACCEPTANCE_REQUIRED",
+  "limitations": [
+    "PC off means unavailable",
+    "No independent whole-PC outage notification",
+    "Historical uncontrolled stop cause unresolved",
+    "Cannot run old reader against new protected journal metadata"
+  ],
+  "budget_snapshot": {
+    "limits": {
+      "model_turns": 181,
+      "model_seconds": 11039,
+      "asr_inferences": 28,
+      "asr_seconds": 3360,
+      "new_bot_messages_documents": 68,
+      "progress_edits_cleanup": 320,
+      "incoming_updates": 120,
+      "task_creates": 20,
+      "request_retries": 8,
+      "runtime_start_attempts_including_scheduler_retries": 28,
+      "controlled_restarts_including_backup": 14
+    },
+    "used_reservations": {
+      "model_turns": 148,
+      "model_seconds": 9644,
+      "asr_inferences": 17,
+      "asr_seconds": 2040,
+      "new_bot_messages_documents": 62,
+      "progress_edits_cleanup": 288,
+      "incoming_updates": 80,
+      "task_creates": 9,
+      "request_retries": 4,
+      "runtime_start_attempts_including_scheduler_retries": 17,
+      "controlled_restarts_including_backup": 3
+    },
+    "remaining": {
+      "model_turns": 33,
+      "model_seconds": 1395,
+      "asr_inferences": 11,
+      "asr_seconds": 1320,
+      "new_bot_messages_documents": 6,
+      "progress_edits_cleanup": 32,
+      "incoming_updates": 40,
+      "task_creates": 11,
+      "request_retries": 4,
+      "runtime_start_attempts_including_scheduler_retries": 11,
+      "controlled_restarts_including_backup": 11
+    },
+    "meaning": "Conservative reservations;not measured actual consumption;no reset/reclaim."
+  }
+}
