@@ -115,7 +115,6 @@ def _runtime_layout(root: Path) -> tuple[Path, Path, Path]:
 
 _OWNER_READ_ROOT, _ORCHESTRATOR_ROOT, _WORKTREE = _runtime_layout(ROOT)
 _RUNTIME_ROOT = ROOT / ".runtime"
-_CODEX_TEMP = _WORKTREE / ".runtime" / "codex-tmp"
 _VOICE_MODEL_ROOT = _RUNTIME_ROOT / "voice-models"
 _VOICE_MODEL_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
 _VOICE_MODEL_FILES = {
@@ -422,7 +421,6 @@ async def _run(
     checkpoint_path = runtime_root / _CHECKPOINT_PATH.name
     task_runtime_path = runtime_root / _TASK_RUNTIME_PATH.name
     telegram_state_path = runtime_root / _TELEGRAM_STATE_PATH.name
-    codex_temp = runtime_root / "codex-tmp" if isolated else _CODEX_TEMP
     voice_temp = runtime_root / "voice-temp"
     artifacts = runtime_root / "artifacts" if isolated else _TELEGRAM_PROJECTS_ROOT
     poll_health = {"last_success": 0.0}
@@ -443,6 +441,10 @@ async def _run(
     git = _required_executable("git")
     python = Path(sys.executable).resolve(strict=True)
     worktree = _validated_worktree()
+    codex_temp = worktree / ".runtime" / "codex-tmp"
+    if isolated:
+        codex_temp /= hashlib.sha256(os.path.normcase(str(runtime_root)).encode("utf-8")).hexdigest()
+    codex_temp = checked_path(codex_temp, root=worktree)
     codex_temp.mkdir(parents=True, exist_ok=True)
     system_root = Path(os.environ["SYSTEMROOT"]).resolve(strict=True)
     nobus_memory = NobusMemory(_NOBUS_MEMORY_ROOT)

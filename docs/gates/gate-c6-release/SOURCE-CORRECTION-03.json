@@ -1,0 +1,69 @@
+{
+  "schema": "c6-source-correction-3",
+  "at": "2026-09-09T06:35:06.296590+00:00",
+  "source_commit": "1bb1d85b9f9d6c7f8c5ed1edbf5e69680a021921",
+  "source_tree": "5fa988d224199ffb92a1c041d4d9e16c86755ee8",
+  "base_commit": "4c6d400898a47c63a993171f57d8be4265b3eec8",
+  "previous_product_source": "faed33d9e886b17e1fc247307ae08c75913cd4be",
+  "git_blob_sha256": {
+    "scripts/run_telegram_mvp1.py": "af7838ad1371fe1ef5b14cf607ca92081db5865177ccfec1b02d780706ead36f",
+    "tests/test_c5_runtime_operations.py": "92992191542b8fe28a4502f1859a3776a7547fa1ae89b7e7482362858fd12d46",
+    "tests/test_telegram_mvp1_runner.py": "dc886ff17ec1cfc04464431f3d429d5363e910e0780100a44f54240f0c57c3e6"
+  },
+  "failure": "An external state root placed codex-tmp outside the validated worktree; real build_worker_env rejected it before worker_probe.",
+  "correction": "Choose checked worktree/.runtime/codex-tmp with a SHA256-normalized-runtime-path suffix for isolated states. Keep existing worker environment containment and pre-mkdir reparse checks.",
+  "L1": {
+    "red": "4 composition cases failed with real build_worker_env before correction.",
+    "affected": "176 PASS in70.77s: C5 operations, Codex CLI/SDK, managed backups.",
+    "runner": "25 PASS in3.65s after removing one obsolete private-constant test override.",
+    "total": 201,
+    "full_suite_repeated": false
+  },
+  "L2": {
+    "reviewer": "independent-c6-git-l2",
+    "source_commit": "1bb1d85b9f9d6c7f8c5ed1edbf5e69680a021921",
+    "verdict": "PASS_SCOPED",
+    "delivery": "same-task independent reviewer messages",
+    "checks": [
+      "5 independent targeted tests PASS2.18s: four external-state composition and forbidden outside-workspace temp.",
+      "Exact source AST: distinct state roots, stable identity, Windows case normalization, legacy path, guard before mkdir and simulated reparse rejection.",
+      "Final HEAD/tree/cleanliness and test-only successor diff verified; original product bytes unchanged."
+    ],
+    "limits": [
+      "201 L1 total not independently rerun.",
+      "Synthetic checks; no Core/model/ASR/production operation."
+    ]
+  },
+  "L3": {
+    "reviewer": "independent-c6-git-l3",
+    "source_commit": "1bb1d85b9f9d6c7f8c5ed1edbf5e69680a021921",
+    "verdict": "SCOPED_SOURCE_CORRECTION_PASS",
+    "delivery": "same-task independent reviewer messages",
+    "checks": [
+      "Existing containment guard retained, runtime states separated, checked_path before mkdir, legacy path preserved.",
+      "Original HOLD_TEST_REGRESSION on faed33d closed: obsolete _CODEX_TEMP monkeypatch removed; final source/test hashes verified."
+    ],
+    "limits": [
+      "No full C6 or native activation claim.",
+      "No new temp deletion policy introduced; existing files preserved."
+    ]
+  },
+  "historical_failure": {
+    "attempt": "recovery-c6-03",
+    "detection_to_failure_seconds": 38.187,
+    "full_RTO": "FAIL_STARTUP",
+    "supervisor_exit": 1,
+    "cleanup_proven": true,
+    "forced_own_process_stop": false,
+    "all_rows_production_and_restored_unchanged": true,
+    "checkpoint_unchanged": true,
+    "all_tasks_disabled": true,
+    "canonical_WIP20_preserved": true,
+    "diagnostic_boundary": "core_runtime/build_gate5a4_runtime/build_worker_env; before worker/ASR",
+    "diagnostic_graceful_success_claimed": false
+  },
+  "authorization": "Owner directly authorized all necessary actions to complete MVP1 and full L4 in the same task. This is not fabricated owner journey acceptance.",
+  "live_commit": "4c6d400898a47c63a993171f57d8be4265b3eec8",
+  "production_started": false,
+  "owner_acceptance": false
+}

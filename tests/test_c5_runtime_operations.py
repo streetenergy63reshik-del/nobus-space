@@ -298,6 +298,8 @@ def test_c5_stop_signal_is_bound_to_exact_runtime_name():
 @pytest.mark.parametrize("enabled,fail_store,restore_hold", [(False, False, False), (True, False, False), (True, True, False), (True, False, True)])
 async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, monkeypatch, enabled, fail_store, restore_hold):
     events, stores, controls, semantic = [], {}, [], []
+    worktree = tmp_path / "worktree"
+    worktree.mkdir()
     from src.transport.telegram.bot_api import TelegramBotApi as RealApi
     class Api(RealApi):
         def __init__(self):
@@ -326,6 +328,10 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
             pass
     runtime, state = Runtime(), object()
     def build_runtime(**values):
+        from src.workers.codex_cli import build_worker_env
+        build_worker_env(codex_home=tmp_path, system_root=tmp_path,
+                         temp_root=values["temp_root"], workspace_root=values["worktree"],
+                         path_entries=(tmp_path,))
         stores["core"] = values["sqlite_path"]
         stores["compute_temp"] = values["temp_root"]
         return runtime
@@ -353,7 +359,7 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
         username="@Nobusspacebot", secret=SimpleNamespace(get_secret_value=lambda: "synthetic-only")))
     monkeypatch.setattr(runner, "_required_codex_executable", lambda: Path(sys.executable))
     monkeypatch.setattr(runner, "_required_executable", lambda _: Path(sys.executable))
-    monkeypatch.setattr(runner, "_validated_worktree", lambda: tmp_path)
+    monkeypatch.setattr(runner, "_validated_worktree", lambda: worktree)
     monkeypatch.setattr(runner, "_load_project_context", lambda: "synthetic context")
     monkeypatch.setattr(runner, "NobusMemory", lambda _: object())
     monkeypatch.setattr(runner, "TelegramBotApi", lambda **_: Api())
@@ -401,7 +407,9 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
     assert controls[0]["enable_semantic_admission"] is enabled
     assert controls[0]["semantic_admission"] is (semantic[0] if enabled else None)
     assert len(semantic) == int(enabled)
-    assert all(path.parent == tmp_path for path in stores.values())
+    assert all(path.parent == tmp_path for name, path in stores.items() if name != "compute_temp")
+    assert stores["compute_temp"].is_relative_to(worktree)
+    assert stores["compute_temp"] != worktree / ".runtime" / "codex-tmp"
     assert events.index("synthetic_store_validation") < events.index("synthetic_worker_probe")
     assert events[-4:] == ["control_closed", "runtime_closed", "voice_closed", "api_closed"]
 
