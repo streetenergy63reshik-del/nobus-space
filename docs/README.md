@@ -1,30 +1,10 @@
 # Документация Nobus Space
 
-Текущий [пакет C6](gates/gate-c6-release/HANDOFF.md) связывает подготовку релиза, миграцию и эксплуатацию. C6 пока DRAFT; публикация source не является активацией.
+**Актуально на:** 9 сентября 2026 года. C0–C5 приняты и опубликованы. Квалификационный экземпляр C6 сейчас остановлен; исправление зависшего приёма включено, исправление промптов проверено и опубликовано, но ожидает включения. Итоговая приёмка, постоянный режим и v1.0.2 не завершены.
 
-**Статус:** CANONICAL INDEX
-**Актуально на:** 9 сентября 2026 года
+Начните с [текущего статуса](handoffs/CURRENT-STATUS.md), [пакета C6](gates/gate-c6-release/HANDOFF.md) и [эксплуатационной инструкции](08-Runbook-эксплуатации.md). Точная история проверки кода — [PROMPT-RECHECK-10](gates/gate-c6-release/PROMPT-RECHECK-10.md).
 
-**CURRENT:** C0–C3 приняты и опубликованы. C4 ACCEPTED / PASS / PUBLISHED. Реальный владелец проверил голос с кнопками, результат и файл в Telegram/Mini App. C5 ACCEPTED / PASS / PUBLISHED; C6 CANDIDATE WIP; activation и owner acceptance PENDING; MVP1 NOT READY; MVP2 HOLD.
-
-Thin topology задаёт
-[ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md):
-тонкий Telegram Mini App и Telegram-оркестратор обязательны в MVP-1, используют
-существующий локальный Core и не создают второй queue/state/effect contour.
-Полный распределённый Gate 2A — **FROZEN / NOT CURRENT**. Forward semantic
-contract задаёт [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md).
-
-Точные ревизии, проверки и оставшиеся условия ведутся в
-[CURRENT-STATUS](handoffs/CURRENT-STATUS.md) и [единой передаче C4](gates/gate-c4-frontend-journey/HANDOFF.md).
-Опубликованная база C3: `b9283b3419928042c80278b5088b526edebab6e7`, tree
-`77062335b1dbccb3694721d357e484c856ac89c7`.
-C1 реализует общий semantic compiler и Core decision; C2 — подтверждаемое голосовое
-задание с квалифицированным ASR; C3 — устойчивое выполнение и доставку результата.
-Исторический READY до инцидента не является приёмкой текущего MVP1.
-Постоянное развёртывание в C4 не выполняется.
-
-Редакционная продуктовая roadmap и HTML-визуализация остаются вне принятого
-published tree в статусе `LOCAL EDITORIAL WIP / PUBLICATION HOLD`.
+Тонкие Telegram и Mini App используют один локальный Core по ADR 0022/0023. Полный распределённый Gate 2A остаётся FROZEN / NOT CURRENT; MVP2 HOLD. Редакционные документы 15/16 сохраняются как неопубликованный WIP и не подменяют принятый продукт.
 
 ## Иерархия источников
 
@@ -57,19 +37,19 @@ pointer, короткий status, decisions и freshness.
    [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md)
    и [ADR 0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md),
    [ADR 0025](adr/0025-miniapp-session-and-request-recovery.md) и
-   [ADR 0026](adr/0026-channel-neutral-product-projection.md) — topology, semantic admission,
+   [ADR 0026](adr/0026-channel-neutral-product-projection.md) и [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) — topology, semantic admission,
    восстановление сессии/запроса и общая продуктовая проекция.
 5. [CURRENT-STATUS](handoffs/CURRENT-STATUS.md) — branch/revision, WIP,
    blockers, checks и следующий slice.
 6. [Runbook](08-Runbook-эксплуатации.md) — действующий Telegram runtime и
-   отдельная activation-граница Mini App.
+   действующие процедуры C6 и граница постоянного режима.
 7. [Контекст продукта](11-Контекст-продукта.md) — безопасная coarse-проекция
    без подвижных SHA.
 8. [Workspace inventory](handoffs/WORKSPACE-INVENTORY.md) — роли repo,
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
-   только реальные будущие решения/авторизации.
-10. [Gate index](gates/README.md) — опубликованные C0–C3, текущий C4 и исторические sealed Gate.
+   оставшиеся пользовательские сценарии, точное переключение и итоговая приёмка.
+10. [Gate index](gates/README.md) — принятые C0–C5, текущий C6 и исторические Gate.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
@@ -129,4 +109,4 @@ product effect.
 - Не записывать credentials, tokens, cookies, raw payload, audio, local secret
   paths или данные другого tenant.
 
-Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). Кандидат ещё не активирован.
+Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). Исправление приёма включено на e3fbaf9; исправление промптов опубликовано через PR №28 и ещё не включено.

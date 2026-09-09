@@ -1,16 +1,6 @@
 # Gate index
 
-Текущий [Gate C6](gate-c6-release/HANDOFF.md): CANDIDATE WIP, MVP1 NOT READY; публикация и постоянная активация ещё не выполнены. C0–C5 evidence остаются sealed.
-
-
-Текущий [пакет C5](gate-c5-mvp1-operations-security/HANDOFF.md) уточняет эксплуатацию; публикация source не является активацией.
-
-**Актуально на:** 8 сентября 2026 года.
-**CURRENT:** C0–C3 ACCEPTED / PUBLISHED. C4 ACCEPTED / PASS / PUBLISHED.
-C5 ACCEPTED / PASS / PUBLISHED; C6 HOLD; MVP1 NOT READY; MVP2 HOLD. [Единая передача C5](gate-c5-mvp1-operations-security/HANDOFF.md)
-содержит точную ревизию, проверки и условия завершения.
-Редакционная product roadmap остаётся `LOCAL EDITORIAL WIP / PUBLICATION HOLD`
-и не входит в published tree.
+**9 сентября 2026:** C0–C5 приняты и опубликованы. Квалификационный процесс [C6](gate-c6-release/HANDOFF.md) остановлен; приём Mini App исправлен, исправление промптов опубликовано и ожидает включения. Итоговая приёмка MVP1, постоянный режим и v1.0.2 остаются незавершёнными. Редакционная roadmap — неопубликованный WIP.
 
 Gate 0–8 package сохраняется как исследовательский и digest-bound historical
 baseline. Он не является active Definition of Done MVP-1. Полный
@@ -27,12 +17,12 @@ checkpoints, не отдельные пользовательские чаты.
 | Gate | Статус | Package / boundary |
 |---|---|---|
 | C0 — единая истина и контракт | `PUBLISHED / ACCEPTED` @ `70085f8...`, tree `3a31914a...` | [handoff](gate-c0-mvp1-truth-contract/HANDOFF.md), [schema](gate-c0-mvp1-truth-contract/semantic-contract.schema.json), [registry](gate-c0-mvp1-truth-contract/capability-registry.v1.json), [corpus](gate-c0-mvp1-truth-contract/semantic-gold-corpus.v1.json) |
-| C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED / NOT DEPLOYED` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
+| C1 — универсальное семантическое понимание | `ACCEPTED / PUBLISHED; QUALIFICATION ACTIVE` | [acceptance](gate-c1-semantic-task-compiler/ACCEPTANCE.md), [evidence](gate-c1-semantic-task-compiler/EVIDENCE.json), [handoff](gate-c1-semantic-task-compiler/HANDOFF.md) |
 | C2 — voice parity и ASR qualification | ACCEPTED / PUBLISHED | [acceptance](gate-c2-voice-parity/ACCEPTANCE.md), [evidence](gate-c2-voice-parity/EVIDENCE.json); B01–B04 CLOSED / PASS |
 | C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
 | C4 — завершённый frontend/user journey | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
 | C5 — operations/recovery/security | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c5-mvp1-operations-security/ACCEPTANCE.md), [передача](gate-c5-mvp1-operations-security/HANDOFF.md) |
-| C6 — frozen release и owner acceptance | HOLD: отдельное поручение владельца | exact publication/activation/readback/acceptance |
+| C6 — frozen release и owner acceptance | QUALIFICATION STOPPED / ACCEPTANCE PENDING | [текущий пакет](gate-c6-release/HANDOFF.md), опубликованное исправление и точный план включения |
 
 ## Historical status map
 
@@ -41,7 +31,7 @@ checkpoints, не отдельные пользовательские чаты.
 | Gate 0 | `ACCEPTED`, sealed `22/22` | historical acceptance @ `f5086b2a71a9ae22be3c858ff69453287f6925da`; bytes/evidence immutable |
 | PRE-G1 / ADR 0021 | historical accepted overlay | сохранён byte-identical; active role/Gate sequence superseded ADR 0022 |
 | Gate 1 design | sealed historical TARGET | architecture file не доказывает implementation |
-| Gate 1 implementation WIP | `HOLD / NOT_ACCEPTED` | dirty 86-path worktree @ `db0a24e...`; preserve/reuse only by future exact diff |
+| Gate 1 implementation WIP | `HOLD / NOT_ACCEPTED` | 86-path WIP @ `db0a24e...`; уникальные данные сохраняются при консолидации, повторное использование только по точному diff |
 | Gate 2 | historical/deferred | не prerequisite ближайшего Telegram Mini App slice |
 | Full Gate 2A | **FROZEN / NOT CURRENT** | security ideas reused narrowly; server Core/Agent Registry/Development Control topology не активна |
 | Gate 3–8 | historical/deferred | backlog до прямой потребности коммерческого vertical slice |
@@ -95,4 +85,4 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Acceptance всего MVP1 переоткрыта; текущий Gate — C5; итоговая активация и приёмка остаются в отдельном C6.
+границах. Acceptance всего MVP1 переоткрыта; C5 принят, текущий Gate — C6; итоговая активация и приёмка не завершены.
