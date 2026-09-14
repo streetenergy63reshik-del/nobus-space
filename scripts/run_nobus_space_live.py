@@ -468,7 +468,7 @@ def _latch_matches_control_failure(latch, event, predecessor=None,
     )
 
 
-def _validate_recovery_inventory(root: Path) -> None:
+def _validate_recovery_inventory(root: Path, *, allow_compact=False) -> None:
     allowed = {
         RUNTIME_EVENT_LOG_NAME,
         RUNTIME_EVENT_LOG_NAME + ".previous",
@@ -476,6 +476,8 @@ def _validate_recovery_inventory(root: Path) -> None:
         "runner-supervisor.log.previous",
         RECOVERY_LATCH_NAME,
     }
+    if allow_compact:
+        allowed.add(RUNTIME_EVENT_LOG_NAME + ".compact")
     children = tuple(root.iterdir())
     if len(children) > len(allowed):
         raise OSError
@@ -1065,11 +1067,12 @@ def _validate_runtime_continuation(rows, digests, *, activation_binding):
         raise ValueError("runtime history activation binding is invalid")
 
 
-def _runtime_history(*, root: Path, activation_binding: str | None = None):
+def _runtime_history(*, root: Path, activation_binding: str | None = None,
+                     allow_compact=False):
     try:
         identity = _plain_root(root, create=False) if root.exists() else None
         if identity is not None:
-            _validate_recovery_inventory(root)
+            _validate_recovery_inventory(root, allow_compact=allow_compact)
         current = root / RUNTIME_EVENT_LOG_NAME
         previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
         # Without an authenticated recovery latch, an incomplete two-segment
@@ -1106,6 +1109,52 @@ def _same_checkpoint_semantics(first, second) -> bool:
     return left == right
 
 
+def _bounded_staging_bytes(path: Path, *, root: Path, limit: int) -> bytes:
+    identity = _plain_root(root, create=False)
+    if (_path_is_reparse(path) or not path.is_file() or not _single_link_file(path)):
+        raise OSError
+    with path.open("rb") as stream:
+        before = os.fstat(stream.fileno())
+        if before.st_nlink != 1 or not 0 <= before.st_size <= limit:
+            raise OSError
+        content = stream.read(limit + 1)
+        after = os.fstat(stream.fileno())
+    current = path.stat(follow_symlinks=False)
+    fields = lambda item: (item.st_dev, item.st_ino, item.st_size, item.st_mtime_ns)
+    if (len(content) != before.st_size or fields(before) != fields(after)
+            or fields(before) != fields(current) or _path_is_reparse(path)
+            or identity != _plain_root(root, create=False)):
+        raise OSError
+    return content
+
+
+def _validate_latched_compact(root: Path, rows, digests, latch):
+    if not rows or digests[-1] != latch["previous_event_digest"]:
+        raise OSError
+    content = _bounded_staging_bytes(
+        root / (RUNTIME_EVENT_LOG_NAME + ".compact"), root=root,
+        limit=min(RUNTIME_EVENT_LOG_BYTES, 2 * RUNTIME_EVENT_LINE_BYTES),
+    )
+    lines = content.splitlines(keepends=True)
+    if len(lines) > 2 or any(len(line) > RUNTIME_EVENT_LINE_BYTES for line in lines):
+        raise OSError
+    for index, line in enumerate(lines):
+        if not line.endswith(b"\n"):
+            if index != len(lines) - 1:
+                raise OSError
+            continue  # Never history: interrupted bytes remain latched until ack.
+        record = _decode_runtime_event(line)
+        if index == 0:
+            if record != rows[0]:
+                raise OSError
+        elif (record["event"] != "history_checkpoint"
+                or record["anchor_of_digest"] != digests[-1]
+                or record["previous_event_digest"] != "sha256:" + hashlib.sha256(lines[0]).hexdigest()
+                or not _same_checkpoint_semantics(record, rows[-1])):
+            raise OSError
+    return content
+
+
 def _latched_runtime_history(*, root: Path, latch,
                              activation_binding: str | None = None):
     """Recognize only exact authenticated interruption states of rotation."""
@@ -1120,6 +1169,13 @@ def _latched_runtime_history(*, root: Path, latch,
         if (latch is None or latch["activation_binding"] != activation_binding):
             raise OSError
         identity = _plain_root(root, create=False)
+        compact = root / (RUNTIME_EVENT_LOG_NAME + ".compact")
+        if compact.exists():
+            rows, digests = _runtime_history(
+                root=root, activation_binding=activation_binding, allow_compact=True
+            )
+            _validate_latched_compact(root, rows, digests, latch)
+            return rows, digests, "compact_pending"
         _validate_recovery_inventory(root)
         previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
         current = root / RUNTIME_EVENT_LOG_NAME
@@ -1145,6 +1201,12 @@ def _latched_runtime_history(*, root: Path, latch,
             if not prior_is_anchor:
                 raise OSError
             return previous_rows, previous_digests, "previous_only"
+        if current.stat().st_size <= RUNTIME_EVENT_LINE_BYTES:
+            fragment = _bounded_staging_bytes(
+                current, root=root, limit=RUNTIME_EVENT_LINE_BYTES
+            )
+            if b"\n" not in fragment and prior_is_anchor:
+                return previous_rows, previous_digests, "incomplete_current"
         current_rows, current_digests = _read_runtime_segment(
             current, root=root, identity=identity
         )
@@ -1299,7 +1361,7 @@ def _materialize_latched_control_failure(*, root: Path, latch,
                                          activation_binding: str,
                                          rotation_kind: str):
     """Finish only an exact latched rotation as a durable safe STOP."""
-    if rotation_kind not in {"previous_only", "stale_current"}:
+    if rotation_kind not in {"previous_only", "stale_current", "incomplete_current"}:
         raise RuntimeError("runtime evidence repair precondition failed")
     temporary = root.parent / (
         "." + RUNTIME_EVENT_LOG_NAME + "." + uuid4().hex + ".repair"
@@ -1358,7 +1420,7 @@ def _materialize_latched_control_failure(*, root: Path, latch,
                 or identity != _plain_root(root, create=False)):
             raise OSError
         current = root / RUNTIME_EVENT_LOG_NAME
-        if rotation_kind == "stale_current":
+        if rotation_kind in {"stale_current", "incomplete_current"}:
             if (_path_is_reparse(current) or not current.is_file()
                     or not _single_link_file(current)):
                 raise OSError
@@ -1516,7 +1578,7 @@ def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
         if latch["activation_binding"] != activation_binding:
             return {"state": "blocked", "reason": "runtime_history_invalid",
                     "series_id": None, "next_attempt": None, "last_digest": None}
-        if rotation_kind in {"previous_only", "stale_current"}:
+        if rotation_kind in {"previous_only", "stale_current", "incomplete_current", "compact_pending"}:
             return {
                 "state": "blocked", "reason": "runtime_event_write_failed",
                 "series_id": latch["series_id"], "next_attempt": None,
@@ -1677,7 +1739,21 @@ def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT,
                 or state["state"] != "blocked"):
             raise RuntimeError("recovery reset precondition failed")
         repaired_from_latch = False
-        if rotation_kind in {"previous_only", "stale_current"}:
+        if rotation_kind == "compact_pending":
+            if expected_digest != latch_digest or state["last_digest"] != latch_digest:
+                raise RuntimeError("recovery reset precondition failed")
+            content = _validate_latched_compact(root, rows, digests, latch)
+            check_rows, check_digests, check_kind = _latched_runtime_history(
+                root=root, latch=latch, activation_binding=activation_binding
+            )
+            if (check_kind != rotation_kind or check_digests != digests
+                    or _validate_latched_compact(root, check_rows, check_digests, latch) != content):
+                raise RuntimeError("recovery reset precondition failed")
+            (root / (RUNTIME_EVENT_LOG_NAME + ".compact")).unlink()
+            rows, digests = _runtime_history(root=root, activation_binding=activation_binding)
+            event, digest = rows[-1], digests[-1]
+            rotation_kind = None
+        if rotation_kind in {"previous_only", "stale_current", "incomplete_current"}:
             if expected_digest != latch_digest or state["last_digest"] != latch_digest:
                 raise RuntimeError("recovery reset precondition failed")
             event, digest = _materialize_latched_control_failure(
@@ -1926,8 +2002,13 @@ def wait_job_empty(job: int) -> bool:
     return False
 
 
-def stop_process(process, *, graceful: bool = False) -> bool:
-    if process is None or process.poll() is not None:
+def stop_process(process, *, graceful: bool = False, on_preexisting_exit=None) -> bool:
+    if process is None:
+        return True
+    code = process.poll()
+    if code is not None:
+        if on_preexisting_exit is not None:
+            on_preexisting_exit(code)
         return True
     if graceful:
         try:
@@ -3444,11 +3525,16 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         # remain the causal outcome, not be relabelled as readiness/planned stop.
         relay_before_cleanup = relay.poll() if relay is not None else None
         core_before_cleanup = core.poll() if core is not None else None
+        pre_signal_core_exits = []
         cleanup_ok = True
         try:
-            cleanup_ok = stop_process(core, graceful=True)
+            cleanup_ok = stop_process(
+                core, graceful=True, on_preexisting_exit=pre_signal_core_exits.append
+            )
         except Exception:
             cleanup_ok = False
+        if pre_signal_core_exits:
+            core_before_cleanup = pre_signal_core_exits[-1]
         relay_before_terminate = relay.poll() if relay is not None else None
         if relay_before_cleanup is None:
             relay_before_cleanup = relay_before_terminate

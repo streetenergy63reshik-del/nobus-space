@@ -227,7 +227,7 @@ def test_m1_relay_exit_during_graceful_core_stop_overrides_planned_stop(
     core = _Process()
     core.stdout = io.BytesIO(b'{"status":"STOPPED"}\n')
 
-    def stop_core(process, *, graceful=False):
+    def stop_core(process, *, graceful=False, on_preexisting_exit=None):
         assert process is core and graceful is True
         core.code = 0
         core.returncode = 0
@@ -273,23 +273,28 @@ def test_m1_relay_exit_during_graceful_core_stop_overrides_planned_stop(
     assert events[-1]["relay_exit_code"] == 255
 
 
+@pytest.mark.parametrize("exit_poll", [1, 2])
+@pytest.mark.parametrize("exit_code", [0, 7])
 def test_m1_core_exit_at_cleanup_boundary_overrides_readiness_retry(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, exit_poll, exit_code
 ):
     events = []
-    core = _Process()
-    core.stdout = io.BytesIO(b'{"status":"STOPPED"}\n')
-
-    class Relay(_Process):
+    class Core(_Process):
         def __init__(self):
             super().__init__()
             self.polls = 0
 
         def poll(self):
             self.polls += 1
-            if self.polls == 2:
-                core.code = 0
+            if self.polls >= exit_poll:
+                self.code = exit_code
             return self.code
+
+    core = Core()
+    core.stdout = io.BytesIO(
+        b'{"status":"STOPPED"}\n' if exit_code == 0 else
+        b'{"status":"FAIL","code":"telegram_checkpoint_failed"}\n'
+    )
 
     class Api:
         @staticmethod
@@ -313,7 +318,7 @@ def test_m1_core_exit_at_cleanup_boundary_overrides_readiness_retry(
         def is_set():
             return False
 
-    children = iter((Relay(), core))
+    children = iter((_Process(), core))
     monkeypatch.setattr(supervisor, "_job_api", Api)
     monkeypatch.setattr(
         supervisor, "spawn_owned", lambda *_args, **_kwargs: next(children)
@@ -350,7 +355,7 @@ def test_m1_core_exit_at_cleanup_boundary_overrides_readiness_retry(
         "status": 1, "recovery_disposition": "stop_non_retryable"
     }
     assert events[-1]["error_class"] == "core_exit"
-    assert events[-1]["core_exit_code"] == 0
+    assert events[-1]["core_exit_code"] == exit_code
 
 
 def test_m1_local_and_public_readiness_have_independent_bounded_slots():
@@ -719,6 +724,52 @@ def _seed_split_history(monkeypatch, root):
     assert (root / (supervisor.RUNTIME_EVENT_LOG_NAME + ".previous")).is_file()
 
 
+@pytest.mark.parametrize("compacted", [False, True])
+@pytest.mark.parametrize("fragment", [
+    b"", b'{"activation_binding":', b"{}\n",
+    b"x" * (supervisor.RUNTIME_EVENT_LINE_BYTES + 1),
+])
+def test_m1_interrupted_new_current_requires_exact_latch_for_ack(
+    monkeypatch, tmp_path, compacted, fragment
+):
+    if compacted:
+        _seed_split_history(monkeypatch, tmp_path)
+    else:
+        supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    monkeypatch.setattr(supervisor, "StopEvent", _CleanStop)
+    _force_next_history_rotation(monkeypatch, tmp_path)
+    original_open = Path.open
+    interrupted = False
+
+    def interrupted_open(path, mode="r", *args, **kwargs):
+        nonlocal interrupted
+        if path == tmp_path / supervisor.RUNTIME_EVENT_LOG_NAME and mode == "ab":
+            assert not path.exists()
+            with original_open(path, "ab") as stream:
+                stream.write(fragment)
+            interrupted = True
+            raise OSError("synthetic append crash")
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", interrupted_open)
+    with pytest.raises(supervisor._CliFailure, match="runtime_event_write_failed"):
+        supervisor._recover(
+            SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+            run_attempt=lambda *a, **kw: pytest.fail("Core must not start"),
+        )
+    monkeypatch.setattr(Path, "open", original_open)
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", _PRODUCTION_RUNTIME_EVENT_LOG_BYTES)
+    assert interrupted
+    with monkeypatch.context() as no_latch:
+        no_latch.setattr(supervisor, "_read_recovery_latch", lambda root: (None, None))
+        assert supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)["reason"] == "runtime_history_invalid"
+    if b"\n" in fragment or len(fragment) > supervisor.RUNTIME_EVENT_LINE_BYTES:
+        state = supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)
+        assert state["reason"] == "runtime_history_invalid" and state["last_digest"] is None
+    else:
+        _assert_latched_rotation_can_be_acknowledged(tmp_path)
+
+
 def test_m1_compaction_interruption_is_latch_reconcilable(
     monkeypatch, tmp_path
 ):
@@ -745,6 +796,49 @@ def test_m1_compaction_interruption_is_latch_reconcilable(
     assert interrupted is True
     monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", production_limit)
     _assert_latched_rotation_can_be_acknowledged(tmp_path)
+
+
+@pytest.mark.parametrize("fragment", ["empty", "partial", "bootstrap", "complete", "invalid", "oversize"])
+def test_m1_compact_staging_crash_requires_exact_latch_for_ack(monkeypatch, tmp_path, fragment):
+    _seed_split_history(monkeypatch, tmp_path)
+    _force_next_history_rotation(monkeypatch, tmp_path)
+    original_replace = supervisor.os.replace
+    compact = tmp_path / (supervisor.RUNTIME_EVENT_LOG_NAME + ".compact")
+
+    def interrupt_replace(source, destination):
+        if Path(source) == compact:
+            content = compact.read_bytes()
+            if fragment == "empty":
+                compact.write_bytes(b"")
+            elif fragment == "partial":
+                compact.write_bytes(content[:23])
+            elif fragment == "bootstrap":
+                compact.write_bytes(content.splitlines(keepends=True)[0])
+            elif fragment == "invalid":
+                compact.write_bytes(b"{}\n")
+            elif fragment == "oversize":
+                compact.write_bytes(b"x" * (2 * supervisor.RUNTIME_EVENT_LINE_BYTES + 1))
+            raise OSError("synthetic compaction replace crash")
+        return original_replace(source, destination)
+
+    monkeypatch.setattr(supervisor.os, "replace", interrupt_replace)
+    with pytest.raises(supervisor._CliFailure, match="runtime_event_write_failed"):
+        supervisor._recover(
+            SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+            run_attempt=lambda *a, **kw: pytest.fail("Core must not start"),
+        )
+    monkeypatch.setattr(supervisor.os, "replace", original_replace)
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", _PRODUCTION_RUNTIME_EVENT_LOG_BYTES)
+    with monkeypatch.context() as no_latch:
+        no_latch.setattr(supervisor, "_read_recovery_latch", lambda root: (None, None))
+        assert supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)["reason"] == "runtime_history_invalid"
+    if fragment in {"invalid", "oversize"}:
+        state = supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)
+        assert state["reason"] == "runtime_history_invalid" and state["last_digest"] is None
+        assert compact.exists()
+    else:
+        _assert_latched_rotation_can_be_acknowledged(tmp_path)
+        assert not compact.exists()
 
 
 def test_m1_compacted_control_starting_survives_latch_clear_failure(
