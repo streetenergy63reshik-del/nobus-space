@@ -45,12 +45,40 @@ $cleanupEventsAbsent = $false
 $cleanupDefinitionsAbsent = $false
 $cleanupDeadlineSeconds = 30
 $evidenceRootCreated = $false
+$unsupportedRuntimeErrorClass = 'fixture_runtime_unsupported'
+$operatorExecutable = $null
+$operatorExecutableBytes = $null
+$operatorExecutableSha256 = $null
+$operatorEdition = [string]$PSVersionTable.PSEdition
+$operatorVersion = [string]$PSVersionTable.PSVersion
 
 function Get-Sha256Text([string] $Value) {
-    $hash = [System.Security.Cryptography.SHA256]::HashData(
-        [System.Text.Encoding]::UTF8.GetBytes($Value)
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hash = $hasher.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Value))
+        return 'sha256:' + ([BitConverter]::ToString($hash).Replace('-', '').ToLowerInvariant())
+    }
+    finally {
+        $hasher.Dispose()
+    }
+}
+
+function Get-Sha256File([string] $Path) {
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::Open(
+        $Path,
+        [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read,
+        [System.IO.FileShare]::Read
     )
-    return 'sha256:' + [Convert]::ToHexString($hash).ToLowerInvariant()
+    try {
+        $hash = $hasher.ComputeHash($stream)
+        return [BitConverter]::ToString($hash).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $stream.Dispose()
+        $hasher.Dispose()
+    }
 }
 
 function Get-FixtureObjectSuffix([string] $ReceiptPath) {
@@ -271,7 +299,7 @@ function Get-ControllerHistorySummary(
             [ordered]@{
                 name = $_.Name
                 bytes = [long] $_.Length
-                sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                sha256 = Get-Sha256File $_.FullName
             }
         })
         structured_rows = $rows.Count
@@ -290,17 +318,6 @@ function Get-ControllerHistorySummary(
 }
 
 try {
-    foreach ($required in @($pythonw, $probe, $controller)) {
-        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
-            throw 'Fixture input is unavailable.'
-        }
-    }
-    $controllerSha256 = (Get-FileHash -LiteralPath $controller -Algorithm SHA256).Hash.ToLowerInvariant()
-    foreach ($name in $taskNames) {
-        if (Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue) {
-            throw 'Fixture task name is already occupied.'
-        }
-    }
     if (Test-Path -LiteralPath $evidenceRoot) {
         throw 'Fixture evidence directory already exists.'
     }
@@ -308,9 +325,40 @@ try {
         return
     }
 
-    $stage = 'register'
+    $stage = 'preflight'
     New-Item -ItemType Directory -Path $evidenceRoot | Out-Null
     $evidenceRootCreated = $true
+    $stage = 'runtime'
+    $operatorExecutable = [string](Get-Process -Id $PID -ErrorAction Stop).Path
+    $expectedOperator = Join-Path $PSHOME 'pwsh.exe'
+    if (Test-Path -LiteralPath $operatorExecutable -PathType Leaf) {
+        $operatorExecutableBytes = [long](Get-Item -LiteralPath $operatorExecutable).Length
+        $operatorExecutableSha256 = Get-Sha256File $operatorExecutable
+    }
+    if (
+        $PSVersionTable.PSEdition -cne 'Core' -or
+        $PSVersionTable.PSVersion -lt [version]'7.4.0' -or
+        -not (Test-Path -LiteralPath $expectedOperator -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $operatorExecutable -PathType Leaf) -or
+        [IO.Path]::GetFullPath($operatorExecutable) -ine [IO.Path]::GetFullPath($expectedOperator)
+    ) {
+        throw 'Unsupported fixture PowerShell runtime.'
+    }
+
+    $stage = 'preflight'
+    foreach ($required in @($pythonw, $probe, $controller)) {
+        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+            throw 'Fixture input is unavailable.'
+        }
+    }
+    $controllerSha256 = Get-Sha256File $controller
+    foreach ($name in $taskNames) {
+        if (Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue) {
+            throw 'Fixture task name is already occupied.'
+        }
+    }
+
+    $stage = 'register'
     $settings = New-ScheduledTaskSettingsSet `
         -StartWhenAvailable `
         -AllowStartIfOnBatteries `
@@ -457,6 +505,7 @@ try {
 catch {
     $errorClass = switch ($stage) {
         'preflight' { 'fixture_preflight_failed' }
+        'runtime' { $unsupportedRuntimeErrorClass }
         'register' { 'fixture_registration_failed' }
         'observe' { 'fixture_observation_failed' }
         'confirm_budget_stop' { 'fixture_confirmation_failed' }
@@ -561,9 +610,20 @@ finally {
             action = [ordered]@{
                 executable = [IO.Path]::GetFileName($pythonw)
                 executable_bytes = [long](Get-Item -LiteralPath $pythonw).Length
-                executable_sha256 = (Get-FileHash -LiteralPath $pythonw -Algorithm SHA256).Hash.ToLowerInvariant()
-                probe_sha256 = (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash.ToLowerInvariant()
+                executable_sha256 = Get-Sha256File $pythonw
+                probe_sha256 = if (Test-Path -LiteralPath $probe -PathType Leaf) {
+                    Get-Sha256File $probe
+                } else { $null }
                 controller_sha256 = $controllerSha256
+            }
+            operator = [ordered]@{
+                edition = $operatorEdition
+                operator_version = $operatorVersion
+                executable = if ([string]::IsNullOrEmpty($operatorExecutable)) {
+                    $null
+                } else { [IO.Path]::GetFileName($operatorExecutable) }
+                executable_bytes = $operatorExecutableBytes
+                operator_executable_sha256 = $operatorExecutableSha256
             }
             config = [ordered]@{
                 scheduler_restart_count = 0

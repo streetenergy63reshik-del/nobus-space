@@ -1,8 +1,12 @@
 """Regressions found by the independent M1-S1 review of the first freeze."""
 from __future__ import annotations
 
+import io
 import json
+import os
 from pathlib import Path
+import re
+import subprocess
 import threading
 from types import SimpleNamespace
 
@@ -13,6 +17,7 @@ from tests.gate_m1_s1 import audit_dependencies_osv as dependency_audit
 
 
 _BINDING = "sha256:" + "b" * 64
+_PRODUCTION_RUNTIME_EVENT_LOG_BYTES = supervisor.RUNTIME_EVENT_LOG_BYTES
 
 
 class _Process:
@@ -189,6 +194,163 @@ def test_m1_relay_exit_during_pre_core_stop_settle_is_not_planned(
     assert events[-1]["error_class"] == "relay_exit"
     assert events[-1]["relay_exit_code"] == 23
     assert events[-1]["stage"] == "relay_start"
+
+
+def test_m1_relay_exit_during_graceful_core_stop_overrides_planned_stop(
+    monkeypatch, tmp_path
+):
+    events = []
+
+    class Api:
+        @staticmethod
+        def create_job():
+            return 1
+
+        @staticmethod
+        def terminate(_job):
+            return None
+
+        @staticmethod
+        def close(_job):
+            return None
+
+    class Stop:
+        @staticmethod
+        def wait(_seconds):
+            return False
+
+        @staticmethod
+        def is_set():
+            return False
+
+    relay = _Process()
+    core = _Process()
+    core.stdout = io.BytesIO(b'{"status":"STOPPED"}\n')
+
+    def stop_core(process, *, graceful=False):
+        assert process is core and graceful is True
+        core.code = 0
+        core.returncode = 0
+        relay.code = 255
+        return True
+
+    children = iter((relay, core))
+    monkeypatch.setattr(supervisor, "_job_api", Api)
+    monkeypatch.setattr(
+        supervisor, "spawn_owned", lambda *_args, **_kwargs: next(children)
+    )
+    monkeypatch.setattr(
+        supervisor,
+        "supervise",
+        lambda *_args, report, **_kwargs: report({
+            "stage": "steady", "error_class": "planned_stop",
+            "core_exit_code": None, "relay_exit_code": None,
+            "local_ready": None, "public_ready": None,
+            "readiness_failures": 0,
+        }) or 0,
+    )
+    monkeypatch.setattr(supervisor, "stop_process", stop_core)
+    monkeypatch.setattr(supervisor, "wait_job_empty", lambda *_args: True)
+    monkeypatch.setattr(supervisor, "close_owned", lambda *_args: None)
+    monkeypatch.setattr(supervisor, "_operator_event", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        supervisor,
+        "_write_runtime_event",
+        lambda value, **_kwargs: events.append(value) or "sha256:" + "1" * 64,
+    )
+
+    result = supervisor._run_attempt(
+        SimpleNamespace(), stop_event=Stop(), series_id="a" * 32,
+        attempt=1, retry_budget=10, root=tmp_path,
+        activation_binding=_BINDING,
+        relay_command=["synthetic-relay"],
+        core_command_override=["synthetic-core"], required_paths=(tmp_path,),
+        relay_settle_seconds=0.01,
+    )
+
+    assert result == {"status": 1, "recovery_disposition": "retry"}
+    assert events[-1]["error_class"] == "relay_exit"
+    assert events[-1]["relay_exit_code"] == 255
+
+
+def test_m1_core_exit_at_cleanup_boundary_overrides_readiness_retry(
+    monkeypatch, tmp_path
+):
+    events = []
+    core = _Process()
+    core.stdout = io.BytesIO(b'{"status":"STOPPED"}\n')
+
+    class Relay(_Process):
+        def __init__(self):
+            super().__init__()
+            self.polls = 0
+
+        def poll(self):
+            self.polls += 1
+            if self.polls == 2:
+                core.code = 0
+            return self.code
+
+    class Api:
+        @staticmethod
+        def create_job():
+            return 1
+
+        @staticmethod
+        def terminate(_job):
+            return None
+
+        @staticmethod
+        def close(_job):
+            return None
+
+    class Stop:
+        @staticmethod
+        def wait(_seconds):
+            return False
+
+        @staticmethod
+        def is_set():
+            return False
+
+    children = iter((Relay(), core))
+    monkeypatch.setattr(supervisor, "_job_api", Api)
+    monkeypatch.setattr(
+        supervisor, "spawn_owned", lambda *_args, **_kwargs: next(children)
+    )
+    monkeypatch.setattr(
+        supervisor,
+        "supervise",
+        lambda *_args, report, **_kwargs: report({
+            "stage": "steady", "error_class": "public_readiness_failed",
+            "core_exit_code": None, "relay_exit_code": None,
+            "local_ready": True, "public_ready": False,
+            "readiness_failures": 3,
+        }) or 1,
+    )
+    monkeypatch.setattr(supervisor, "wait_job_empty", lambda *_args: True)
+    monkeypatch.setattr(supervisor, "close_owned", lambda *_args: None)
+    monkeypatch.setattr(supervisor, "_operator_event", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        supervisor,
+        "_write_runtime_event",
+        lambda value, **_kwargs: events.append(value) or "sha256:" + "1" * 64,
+    )
+
+    result = supervisor._run_attempt(
+        SimpleNamespace(), stop_event=Stop(), series_id="b" * 32,
+        attempt=1, retry_budget=10, root=tmp_path,
+        activation_binding=_BINDING,
+        relay_command=["synthetic-relay"],
+        core_command_override=["synthetic-core"], required_paths=(tmp_path,),
+        relay_settle_seconds=0.01,
+    )
+
+    assert result == {
+        "status": 1, "recovery_disposition": "stop_non_retryable"
+    }
+    assert events[-1]["error_class"] == "core_exit"
+    assert events[-1]["core_exit_code"] == 0
 
 
 def test_m1_local_and_public_readiness_have_independent_bounded_slots():
@@ -453,6 +615,163 @@ def _write_fake_attempt(root, binding, series_id, attempt, retry_budget, disposi
             "recovery_disposition": disposition}
 
 
+class _CleanStop:
+    def wait(self, _seconds):
+        return False
+
+    def set(self):
+        pass
+
+    def close(self):
+        pass
+
+
+def _complete_recovery(values, *, stop_event, series_id, attempt, retry_budget,
+                       root, activation_binding):
+    return _write_fake_attempt(
+        root, activation_binding, series_id, attempt, retry_budget, "complete"
+    )
+
+
+def _force_next_history_rotation(monkeypatch, root):
+    current = root / supervisor.RUNTIME_EVENT_LOG_NAME
+    previous = root / (supervisor.RUNTIME_EVENT_LOG_NAME + ".previous")
+    failure = supervisor._runtime_record(
+        "a" * 32, "b" * 32, "control_failure",
+        activation_binding=_BINDING, attempt=1, retry_budget=10,
+        recovery_disposition="stop_evidence_failed", stage="recovery_control",
+        error_class="runtime_event_write_failed",
+        supervisor_exit_code=supervisor.EXIT_RUNTIME_EVIDENCE_FAILED,
+        cleanup_outcome="proven",
+    )
+    failure["previous_event_digest"] = "sha256:" + "c" * 64
+    failure_line_size = len(supervisor._encoded_record({
+        "at": "2026-09-14T00:00:00Z", **failure,
+    }))
+    monkeypatch.setattr(
+        supervisor, "RUNTIME_EVENT_LOG_BYTES",
+        max(
+            current.stat().st_size,
+            previous.stat().st_size if previous.exists() else 0,
+            failure_line_size,
+        ) + 1,
+    )
+
+
+def _assert_latched_rotation_can_be_acknowledged(
+    root, *, reason="runtime_event_write_failed"
+):
+    state = supervisor._recovery_state(
+        root=root, activation_binding=_BINDING
+    )
+    assert state["state"] == "blocked"
+    assert state["reason"] == reason
+    assert state["last_digest"].startswith("sha256:")
+    reset = supervisor._acknowledge_recovery_stop(
+        state["last_digest"], root=root, activation_binding=_BINDING
+    )
+    assert reset["status"] == "RESET"
+    assert supervisor._recovery_state(
+        root=root, activation_binding=_BINDING
+    )["state"] == "new"
+
+
+def test_m1_first_rotation_interruption_is_latch_reconcilable(
+    monkeypatch, tmp_path
+):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    monkeypatch.setattr(supervisor, "StopEvent", _CleanStop)
+    production_limit = supervisor.RUNTIME_EVENT_LOG_BYTES
+    _force_next_history_rotation(monkeypatch, tmp_path)
+    original_replace = supervisor.os.replace
+    interrupted = False
+
+    def interrupt_after_first_rotation(source, destination):
+        nonlocal interrupted
+        result = original_replace(source, destination)
+        if (not interrupted and Path(destination).name ==
+                supervisor.RUNTIME_EVENT_LOG_NAME + ".previous"):
+            interrupted = True
+            raise OSError("synthetic first rotation interruption")
+        return result
+
+    monkeypatch.setattr(supervisor.os, "replace", interrupt_after_first_rotation)
+    with pytest.raises(supervisor._CliFailure, match="runtime_event_write_failed"):
+        supervisor._recover(
+            SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+            run_attempt=_complete_recovery,
+        )
+    monkeypatch.setattr(supervisor.os, "replace", original_replace)
+    assert interrupted is True
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", production_limit)
+    _assert_latched_rotation_can_be_acknowledged(tmp_path)
+
+
+def _seed_split_history(monkeypatch, root):
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", 6500)
+    monkeypatch.setattr(supervisor, "StopEvent", _CleanStop)
+    supervisor._initialize_recovery(root=root, activation_binding=_BINDING)
+    for _ in range(2):
+        assert supervisor._recover(
+            SimpleNamespace(), root=root, activation_binding=_BINDING,
+            run_attempt=_complete_recovery,
+        ) == 0
+    assert (root / (supervisor.RUNTIME_EVENT_LOG_NAME + ".previous")).is_file()
+
+
+def test_m1_compaction_interruption_is_latch_reconcilable(
+    monkeypatch, tmp_path
+):
+    _seed_split_history(monkeypatch, tmp_path)
+    production_limit = _PRODUCTION_RUNTIME_EVENT_LOG_BYTES
+    _force_next_history_rotation(monkeypatch, tmp_path)
+    original_unlink = Path.unlink
+    interrupted = False
+
+    def interrupt_before_new_current(path, *args, **kwargs):
+        nonlocal interrupted
+        if (not interrupted and path.name == supervisor.RUNTIME_EVENT_LOG_NAME):
+            interrupted = True
+            raise OSError("synthetic compaction interruption")
+        return original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", interrupt_before_new_current)
+    with pytest.raises(supervisor._CliFailure, match="runtime_event_write_failed"):
+        supervisor._recover(
+            SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+            run_attempt=_complete_recovery,
+        )
+    monkeypatch.setattr(Path, "unlink", original_unlink)
+    assert interrupted is True
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", production_limit)
+    _assert_latched_rotation_can_be_acknowledged(tmp_path)
+
+
+def test_m1_compacted_control_starting_survives_latch_clear_failure(
+    monkeypatch, tmp_path
+):
+    _seed_split_history(monkeypatch, tmp_path)
+    production_limit = _PRODUCTION_RUNTIME_EVENT_LOG_BYTES
+    _force_next_history_rotation(monkeypatch, tmp_path)
+    original_clear = supervisor._clear_recovery_latch
+    monkeypatch.setattr(
+        supervisor, "_clear_recovery_latch",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            OSError("synthetic latch clear interruption")
+        ),
+    )
+    with pytest.raises(supervisor._CliFailure, match="runtime_event_write_failed"):
+        supervisor._recover(
+            SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+            run_attempt=_complete_recovery,
+    )
+    monkeypatch.setattr(supervisor, "_clear_recovery_latch", original_clear)
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", production_limit)
+    _assert_latched_rotation_can_be_acknowledged(
+        tmp_path, reason="previous_control_setup_unknown"
+    )
+
+
 def test_m1_recovery_wait_event_write_failure_is_durable_stop(tmp_path, monkeypatch):
     supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
 
@@ -591,6 +910,72 @@ def test_m1_scheduler_fixture_binds_and_runs_the_product_controller():
     assert "controller_sha256" in probe
     assert "_run_owned_recovery" in probe
     assert "_run_attempt" in probe
+
+
+def test_m1_scheduler_fixture_rejects_an_unsupported_operator_before_registration():
+    fixture = (
+        Path(__file__).parent
+        / "gate_m1_s1"
+        / "Invoke-SchedulerRetryFixture.ps1"
+    ).read_text(encoding="utf-8")
+    runtime_guard = fixture.index("fixture_runtime_unsupported")
+    registration = fixture.index("Register-ScheduledTask")
+    assert runtime_guard < registration
+    assert "$PSVersionTable.PSEdition -cne 'Core'" in fixture
+    assert "[version]'7.4.0'" in fixture
+    assert "operator_executable_sha256" in fixture
+    assert "operator_version" in fixture
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows PowerShell fixture")
+def test_m1_scheduler_fixture_writes_a_typed_ps5_preflight_stop(tmp_path):
+    root = tmp_path / "fixture-root"
+    pythonw = root / ".venv" / "Scripts" / "pythonw.exe"
+    pythonw.parent.mkdir(parents=True)
+    pythonw.write_bytes(b"synthetic pythonw\n")
+    fixture = (
+        Path(__file__).parent
+        / "gate_m1_s1"
+        / "Invoke-SchedulerRetryFixture.ps1"
+    ).resolve()
+    run_id = "2" * 32
+    result = subprocess.run(
+        [
+            "powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive",
+            "-ExecutionPolicy", "Bypass", "-File", str(fixture),
+            "-RunId", run_id, "-RepositoryRoot", str(root),
+            "-Pythonw", str(pythonw),
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    assert result.returncode == 1
+    assert result.stderr == b""
+    output = json.loads(result.stdout.decode("utf-8-sig"))
+    assert output["status"] == "FAIL"
+    assert output["error_class"] == "fixture_runtime_unsupported"
+    assert output["operator"]["edition"] == "Desktop"
+    assert output["operator"]["executable"] == "powershell.exe"
+    assert re.fullmatch(
+        r"[0-9a-f]{64}", output["operator"]["operator_executable_sha256"]
+    )
+    assert output["transient"]["rows"] == []
+    assert output["exhausted"]["rows"] == []
+    assert output["permanent"]["rows"] == []
+    assert output["cleanup"] == {
+        "outcome": "proven", "deadline_seconds": 30, "task_states": {},
+        "process_count": 0, "mutexes_absent": True,
+        "stop_events_absent": True, "definitions_absent": True,
+    }
+    result_path = (
+        root / ".runtime" / "m1-s1" / "scheduler-fixture" / run_id
+        / "result.json"
+    )
+    assert json.loads(result_path.read_text(encoding="utf-8")) == output
 
 
 def test_m1_osv_response_rejects_duplicate_json_keys():

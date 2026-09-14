@@ -420,11 +420,28 @@ def _clear_recovery_latch(*, root: Path, expected_digest: str) -> None:
         raise OSError
 
 
-def _latch_matches_control_starting(latch, event) -> bool:
+def _latch_predecessor_matches(latch, event, predecessor=None,
+                               predecessor_digest=None) -> bool:
+    if event is None:
+        return False
+    if event["previous_event_digest"] == latch["previous_event_digest"]:
+        return True
+    return (
+        predecessor is not None
+        and predecessor["event"] == "history_checkpoint"
+        and predecessor["anchor_of_digest"] == latch["previous_event_digest"]
+        and predecessor_digest == event["previous_event_digest"]
+    )
+
+
+def _latch_matches_control_starting(latch, event, predecessor=None,
+                                    predecessor_digest=None) -> bool:
     return (
         event is not None
         and event["event"] == "control_starting"
-        and event["previous_event_digest"] == latch["previous_event_digest"]
+        and _latch_predecessor_matches(
+            latch, event, predecessor, predecessor_digest
+        )
         and event["activation_binding"] == latch["activation_binding"]
         and event["series_id"] == latch["series_id"]
         and event["run_id"] == latch["run_id"]
@@ -433,11 +450,14 @@ def _latch_matches_control_starting(latch, event) -> bool:
     )
 
 
-def _latch_matches_control_failure(latch, event) -> bool:
+def _latch_matches_control_failure(latch, event, predecessor=None,
+                                   predecessor_digest=None) -> bool:
     return (
         event is not None
         and event["event"] == "control_failure"
-        and event["previous_event_digest"] == latch["previous_event_digest"]
+        and _latch_predecessor_matches(
+            latch, event, predecessor, predecessor_digest
+        )
         and event["activation_binding"] == latch["activation_binding"]
         and event["series_id"] == latch["series_id"]
         and event["run_id"] == latch["run_id"]
@@ -971,6 +991,80 @@ def _decode_runtime_event(line: bytes):
     return value
 
 
+def _read_runtime_segment(path: Path, *, root: Path, identity):
+    if (_path_is_reparse(path) or not path.is_file()
+            or not _single_link_file(path)):
+        raise OSError
+    if not 0 < path.stat().st_size <= RUNTIME_EVENT_LOG_BYTES:
+        raise OSError
+    content = path.read_bytes()
+    if not content.endswith(b"\n") or identity != _plain_root(root, create=False):
+        raise OSError
+    metadata = path.stat(follow_symlinks=False)
+    before = (
+        metadata.st_dev, metadata.st_ino, metadata.st_size,
+        metadata.st_mtime_ns,
+    )
+    if _path_is_reparse(path) or not path.is_file():
+        raise OSError
+    rows = []
+    digests = []
+    for line in content.splitlines(keepends=True):
+        rows.append(_decode_runtime_event(line))
+        digests.append("sha256:" + hashlib.sha256(line).hexdigest())
+    metadata = path.stat(follow_symlinks=False)
+    after = (
+        metadata.st_dev, metadata.st_ino, metadata.st_size,
+        metadata.st_mtime_ns,
+    )
+    if before != after:
+        raise OSError
+    return rows, digests
+
+
+def _validate_runtime_rows(rows, digests, origins, *, previous_name,
+                           activation_binding):
+    if not rows:
+        return
+    if rows[0]["event"] != "bootstrap" or rows[0]["previous_event_digest"] is not None:
+        raise ValueError("runtime history bootstrap is invalid")
+    if any(not _digest(row["activation_binding"]) for row in rows):
+        raise ValueError("runtime history activation binding is invalid")
+    checkpoint_seen = False
+    for index in range(1, len(rows)):
+        if rows[index]["previous_event_digest"] != digests[index - 1]:
+            raise ValueError("runtime history digest chain is invalid")
+        if rows[index]["event"] == "history_checkpoint":
+            previous_rows = origins.count(previous_name)
+            if (checkpoint_seen or index != 1
+                    or origins[index] != previous_name
+                    or previous_rows != 2):
+                raise ValueError("runtime history checkpoint placement is invalid")
+            checkpoint_seen = True
+            continue
+        _validate_transition(rows[index - 1], rows[index], digests[index - 1])
+    if (activation_binding is not None
+            and _effective_event(rows[-1])["activation_binding"] != activation_binding):
+        raise ValueError("runtime history activation binding is invalid")
+
+
+def _validate_runtime_continuation(rows, digests, *, activation_binding):
+    """Validate one authenticated segment whose predecessor was compacted."""
+    if not rows or not _digest(rows[0]["previous_event_digest"]):
+        raise ValueError("runtime history continuation is invalid")
+    if any(row["event"] == "history_checkpoint" for row in rows):
+        raise ValueError("runtime history checkpoint placement is invalid")
+    if any(not _digest(row["activation_binding"]) for row in rows):
+        raise ValueError("runtime history activation binding is invalid")
+    for index in range(1, len(rows)):
+        if rows[index]["previous_event_digest"] != digests[index - 1]:
+            raise ValueError("runtime history digest chain is invalid")
+        _validate_transition(rows[index - 1], rows[index], digests[index - 1])
+    if (activation_binding is not None
+            and _effective_event(rows[-1])["activation_binding"] != activation_binding):
+        raise ValueError("runtime history activation binding is invalid")
+
+
 def _runtime_history(*, root: Path, activation_binding: str | None = None):
     try:
         identity = _plain_root(root, create=False) if root.exists() else None
@@ -978,9 +1072,8 @@ def _runtime_history(*, root: Path, activation_binding: str | None = None):
             _validate_recovery_inventory(root)
         current = root / RUNTIME_EVENT_LOG_NAME
         previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
-        # Once rotation has created a previous segment, a current segment is the
-        # durable continuation marker.  Missing either side must never expose an
-        # older clean terminal as the newest recovery decision.
+        # Without an authenticated recovery latch, an incomplete two-segment
+        # rotation remains an invalid history rather than exposing an older head.
         if previous.exists() and not current.exists():
             raise OSError
         rows = []
@@ -989,59 +1082,85 @@ def _runtime_history(*, root: Path, activation_binding: str | None = None):
         for path in (previous, current):
             if not path.exists():
                 continue
-            if (_path_is_reparse(path) or not path.is_file()
-                    or not _single_link_file(path)):
-                raise OSError
-            if not 0 < path.stat().st_size <= RUNTIME_EVENT_LOG_BYTES:
-                raise OSError
-            content = path.read_bytes()
-            if not content.endswith(b"\n"):
-                raise OSError
-            if identity != _plain_root(root, create=False):
-                raise OSError
-            metadata = path.stat(follow_symlinks=False)
-            before = (
-                metadata.st_dev, metadata.st_ino, metadata.st_size,
-                metadata.st_mtime_ns,
+            segment_rows, segment_digests = _read_runtime_segment(
+                path, root=root, identity=identity
             )
-            if _path_is_reparse(path) or not path.is_file():
-                raise OSError
-            for line in content.splitlines(keepends=True):
-                row = _decode_runtime_event(line)
-                rows.append(row)
-                digests.append("sha256:" + hashlib.sha256(line).hexdigest())
-                origins.append(path.name)
-            metadata = path.stat(follow_symlinks=False)
-            after = (
-                metadata.st_dev, metadata.st_ino, metadata.st_size,
-                metadata.st_mtime_ns,
-            )
-            if before != after:
-                raise OSError
-        if not rows:
-            return [], []
-        if rows[0]["event"] != "bootstrap" or rows[0]["previous_event_digest"] is not None:
-            raise ValueError("runtime history bootstrap is invalid")
-        if any(not _digest(row["activation_binding"]) for row in rows):
-            raise ValueError("runtime history activation binding is invalid")
-        checkpoint_seen = False
-        for index in range(1, len(rows)):
-            if rows[index]["previous_event_digest"] != digests[index - 1]:
-                raise ValueError("runtime history digest chain is invalid")
-            if rows[index]["event"] == "history_checkpoint":
-                previous_rows = origins.count(previous.name)
-                if (checkpoint_seen or index != 1
-                        or origins[index] != previous.name
-                        or previous_rows != 2):
-                    raise ValueError("runtime history checkpoint placement is invalid")
-                checkpoint_seen = True
-                continue
-            _validate_transition(rows[index - 1], rows[index], digests[index - 1])
-        if (activation_binding is not None
-                and _effective_event(rows[-1])["activation_binding"] != activation_binding):
-            raise ValueError("runtime history activation binding is invalid")
+            rows.extend(segment_rows)
+            digests.extend(segment_digests)
+            origins.extend([path.name] * len(segment_rows))
+        _validate_runtime_rows(
+            rows, digests, origins, previous_name=previous.name,
+            activation_binding=activation_binding,
+        )
         return rows, digests
     except OSError:
+        raise RuntimeError("runtime history unavailable") from None
+
+
+def _same_checkpoint_semantics(first, second) -> bool:
+    left = dict(_effective_event(first))
+    right = dict(_effective_event(second))
+    for name in ("at", "previous_event_digest"):
+        left.pop(name, None)
+        right.pop(name, None)
+    return left == right
+
+
+def _latched_runtime_history(*, root: Path, latch,
+                             activation_binding: str | None = None):
+    """Recognize only exact authenticated interruption states of rotation."""
+    try:
+        rows, digests = _runtime_history(
+            root=root, activation_binding=activation_binding
+        )
+        return rows, digests, None
+    except (RuntimeError, ValueError):
+        pass
+    try:
+        if (latch is None or latch["activation_binding"] != activation_binding):
+            raise OSError
+        identity = _plain_root(root, create=False)
+        _validate_recovery_inventory(root)
+        previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
+        current = root / RUNTIME_EVENT_LOG_NAME
+        if not previous.exists():
+            raise OSError
+        previous_rows, previous_digests = _read_runtime_segment(
+            previous, root=root, identity=identity
+        )
+        _validate_runtime_rows(
+            previous_rows, previous_digests,
+            [previous.name] * len(previous_rows), previous_name=previous.name,
+            activation_binding=activation_binding,
+        )
+        prior = previous_rows[-1]
+        prior_is_anchor = (
+            previous_digests[-1] == latch["previous_event_digest"]
+            or (
+                prior["event"] == "history_checkpoint"
+                and prior["anchor_of_digest"] == latch["previous_event_digest"]
+            )
+        )
+        if not current.exists():
+            if not prior_is_anchor:
+                raise OSError
+            return previous_rows, previous_digests, "previous_only"
+        current_rows, current_digests = _read_runtime_segment(
+            current, root=root, identity=identity
+        )
+        _validate_runtime_continuation(
+            current_rows, current_digests,
+            activation_binding=activation_binding,
+        )
+        if not (
+            prior["event"] == "history_checkpoint"
+            and prior["anchor_of_digest"] == latch["previous_event_digest"]
+            and current_digests[-1] == latch["previous_event_digest"]
+            and _same_checkpoint_semantics(prior, current_rows[-1])
+        ):
+            raise OSError
+        return previous_rows, previous_digests, "stale_current"
+    except (IndexError, OSError, RuntimeError, ValueError):
         raise RuntimeError("runtime history unavailable") from None
 
 
@@ -1175,6 +1294,103 @@ def _runtime_record(series_id: str, run_id: str, event: str, *,
     }
 
 
+def _materialize_latched_control_failure(*, root: Path, latch,
+                                         latch_digest: str,
+                                         activation_binding: str,
+                                         rotation_kind: str):
+    """Finish only an exact latched rotation as a durable safe STOP."""
+    if rotation_kind not in {"previous_only", "stale_current"}:
+        raise RuntimeError("runtime evidence repair precondition failed")
+    temporary = root.parent / (
+        "." + RUNTIME_EVENT_LOG_NAME + "." + uuid4().hex + ".repair"
+    )
+    created = False
+    try:
+        identity = _plain_root(root, create=False)
+        rows, digests, observed_kind = _latched_runtime_history(
+            root=root, latch=latch, activation_binding=activation_binding
+        )
+        current_latch, current_latch_digest = _read_recovery_latch(root)
+        if (observed_kind != rotation_kind or not rows
+                or current_latch != latch
+                or current_latch_digest != latch_digest):
+            raise OSError
+        predecessor = rows[-1]
+        predecessor_digest = digests[-1]
+        record = _runtime_record(
+            latch["series_id"], latch["run_id"], "control_failure",
+            activation_binding=latch["activation_binding"],
+            attempt=latch["attempt"], retry_budget=latch["retry_budget"],
+            recovery_disposition="stop_evidence_failed",
+            stage="recovery_control", error_class="runtime_event_write_failed",
+            supervisor_exit_code=EXIT_RUNTIME_EVIDENCE_FAILED,
+            cleanup_outcome="proven",
+        )
+        record["previous_event_digest"] = predecessor_digest
+        _validate_transition(predecessor, record, predecessor_digest)
+        _validate_runtime_event(record)
+        recorded = {
+            "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            **record,
+        }
+        line = _encoded_record(recorded)
+        if len(line) > RUNTIME_EVENT_LOG_BYTES:
+            raise OSError
+
+        with temporary.open("xb") as stream:
+            created = True
+            opened = os.fstat(stream.fileno())
+            if opened.st_nlink != 1:
+                raise OSError
+            stream.write(line)
+            stream.flush()
+            os.fsync(stream.fileno())
+            saved = temporary.stat(follow_symlinks=False)
+            if (opened.st_dev, opened.st_ino) != (saved.st_dev, saved.st_ino):
+                raise OSError
+
+        # Reconcile again immediately before the one mutation.  The public CLI
+        # holds the production supervisor mutex across this operation.
+        check_rows, check_digests, check_kind = _latched_runtime_history(
+            root=root, latch=latch, activation_binding=activation_binding
+        )
+        if (check_kind != rotation_kind or check_digests != digests
+                or identity != _plain_root(root, create=False)):
+            raise OSError
+        current = root / RUNTIME_EVENT_LOG_NAME
+        if rotation_kind == "stale_current":
+            if (_path_is_reparse(current) or not current.is_file()
+                    or not _single_link_file(current)):
+                raise OSError
+            current.unlink()
+        if current.exists() or identity != _plain_root(root, create=False):
+            raise OSError
+        os.replace(temporary, current)
+        created = False
+        final_rows, final_digests = _runtime_history(
+            root=root, activation_binding=activation_binding
+        )
+        event = final_rows[-1]
+        predecessor = final_rows[-2] if len(final_rows) > 1 else None
+        predecessor_digest = final_digests[-2] if len(final_digests) > 1 else None
+        if (final_digests[-1] != "sha256:" + hashlib.sha256(line).hexdigest()
+                or not _latch_matches_control_failure(
+                    latch, event, predecessor, predecessor_digest
+                )):
+            raise OSError
+        return event, final_digests[-1]
+    except (OSError, RuntimeError, ValueError):
+        raise RuntimeError("runtime evidence repair failed") from None
+    finally:
+        if created and temporary.exists():
+            try:
+                if (not _path_is_reparse(temporary) and temporary.is_file()
+                        and _single_link_file(temporary)):
+                    temporary.unlink()
+            except OSError:
+                pass
+
+
 def _recovery_disposition(*, status, terminal, core_outcome, core_outcome_error,
                           cleanup_ok, attempt, retry_budget):
     """Classify only explicitly safe transient failures as retryable."""
@@ -1278,9 +1494,18 @@ def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
     """Resume a proven retry, or fail closed on STOP/UNKNOWN history."""
     try:
         latch, latch_digest = _read_recovery_latch(root)
-        event, digest = _last_runtime_event(
-            root=root, activation_binding=activation_binding
-        )
+        if latch is None:
+            rows, digests = _runtime_history(
+                root=root, activation_binding=activation_binding
+            )
+            rotation_kind = None
+        else:
+            rows, digests, rotation_kind = _latched_runtime_history(
+                root=root, latch=latch,
+                activation_binding=activation_binding,
+            )
+        event = rows[-1] if rows else None
+        digest = digests[-1] if digests else None
     except (OSError, RuntimeError, ValueError):
         return {"state": "blocked", "reason": "runtime_history_invalid",
                 "series_id": None, "next_attempt": None, "last_digest": None}
@@ -1291,6 +1516,14 @@ def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
         if latch["activation_binding"] != activation_binding:
             return {"state": "blocked", "reason": "runtime_history_invalid",
                     "series_id": None, "next_attempt": None, "last_digest": None}
+        if rotation_kind in {"previous_only", "stale_current"}:
+            return {
+                "state": "blocked", "reason": "runtime_event_write_failed",
+                "series_id": latch["series_id"], "next_attempt": None,
+                "last_digest": latch_digest,
+            }
+        predecessor = rows[-2] if len(rows) > 1 else None
+        predecessor_digest = digests[-2] if len(digests) > 1 else None
         if digest == latch["previous_event_digest"]:
             return {
                 "state": "blocked", "reason": "runtime_event_write_failed",
@@ -1298,8 +1531,12 @@ def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
                 "last_digest": latch_digest,
             }
         if not (
-            _latch_matches_control_starting(latch, event)
-            or _latch_matches_control_failure(latch, event)
+            _latch_matches_control_starting(
+                latch, event, predecessor, predecessor_digest
+            )
+            or _latch_matches_control_failure(
+                latch, event, predecessor, predecessor_digest
+            )
         ):
             return {"state": "blocked", "reason": "runtime_history_invalid",
                     "series_id": None, "next_attempt": None, "last_digest": None}
@@ -1419,15 +1656,40 @@ def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT,
     except (OSError, ValueError):
         raise RuntimeError("recovery reset precondition failed") from None
     state = _recovery_state(root=root, activation_binding=activation_binding)
-    event, digest = _last_runtime_event(
-        root=root, activation_binding=activation_binding
-    )
+    try:
+        if latch is None:
+            rows, digests = _runtime_history(
+                root=root, activation_binding=activation_binding
+            )
+            rotation_kind = None
+        else:
+            rows, digests, rotation_kind = _latched_runtime_history(
+                root=root, latch=latch,
+                activation_binding=activation_binding,
+            )
+        event = rows[-1] if rows else None
+        digest = digests[-1] if digests else None
+    except (OSError, RuntimeError, ValueError):
+        raise RuntimeError("recovery reset precondition failed") from None
     acknowledged_latch = None
     if latch is not None:
         if (latch["activation_binding"] != activation_binding
                 or state["state"] != "blocked"):
             raise RuntimeError("recovery reset precondition failed")
-        if digest == latch["previous_event_digest"]:
+        repaired_from_latch = False
+        if rotation_kind in {"previous_only", "stale_current"}:
+            if expected_digest != latch_digest or state["last_digest"] != latch_digest:
+                raise RuntimeError("recovery reset precondition failed")
+            event, digest = _materialize_latched_control_failure(
+                root=root, latch=latch, latch_digest=latch_digest,
+                activation_binding=activation_binding,
+                rotation_kind=rotation_kind,
+            )
+            rows, digests = _runtime_history(
+                root=root, activation_binding=activation_binding
+            )
+            repaired_from_latch = True
+        elif digest == latch["previous_event_digest"]:
             if expected_digest != latch_digest or state["last_digest"] != latch_digest:
                 raise RuntimeError("recovery reset precondition failed")
             digest = _write_runtime_event(_runtime_record(
@@ -1442,13 +1704,24 @@ def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT,
             event, _current = _last_runtime_event(
                 root=root, activation_binding=activation_binding
             )
-            if _current != digest or not _latch_matches_control_failure(latch, event):
+            rows, digests = _runtime_history(
+                root=root, activation_binding=activation_binding
+            )
+            predecessor = rows[-2] if len(rows) > 1 else None
+            predecessor_digest = digests[-2] if len(digests) > 1 else None
+            if (_current != digest or not _latch_matches_control_failure(
+                    latch, event, predecessor, predecessor_digest)):
                 raise RuntimeError("recovery reset precondition failed")
-            acknowledged_latch = latch_digest
-            _clear_recovery_latch(root=root, expected_digest=latch_digest)
-        elif (_latch_matches_control_starting(latch, event)
-              or _latch_matches_control_failure(latch, event)):
-            if expected_digest != digest or state["last_digest"] != digest:
+            repaired_from_latch = True
+        predecessor = rows[-2] if len(rows) > 1 else None
+        predecessor_digest = digests[-2] if len(digests) > 1 else None
+        if (_latch_matches_control_starting(
+                latch, event, predecessor, predecessor_digest)
+                or _latch_matches_control_failure(
+                    latch, event, predecessor, predecessor_digest)):
+            if (not repaired_from_latch
+                    and (expected_digest != digest
+                         or state["last_digest"] != digest)):
                 raise RuntimeError("recovery reset precondition failed")
             acknowledged_latch = latch_digest
             _clear_recovery_latch(root=root, expected_digest=latch_digest)
@@ -2113,10 +2386,20 @@ def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
             )
         else:
             local_start = start.astimezone() if aware_start else None
+            local_reference = reference.astimezone() if reference_is_aware else None
+            next_daily_start = (
+                local_reference.replace(
+                    hour=3, minute=30, second=0, microsecond=0
+                ) if local_reference is not None else None
+            )
+            if (next_daily_start is not None
+                    and next_daily_start < local_reference):
+                next_daily_start += timedelta(days=1)
             valid_trigger = (
-                common_trigger and aware_start
+                common_trigger and aware_start and reference_is_aware
                 and local_start.hour == 3 and local_start.minute == 30
                 and local_start.second == 0 and local_start.microsecond == 0
+                and local_start <= next_daily_start
                 and trigger["type"] == "MSFT_TaskDailyTrigger"
                 and trigger["user"] is None and trigger["days_interval"] == 1
                 and trigger["interval"] is None and trigger["duration"] is None
@@ -3140,12 +3423,19 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
     except Exception:
         status = 1
     finally:
+        # Snapshot both children immediately before the first supervisor-owned
+        # stop.  A child that exited after supervise() made its decision must
+        # remain the causal outcome, not be relabelled as readiness/planned stop.
         relay_before_cleanup = relay.poll() if relay is not None else None
+        core_before_cleanup = core.poll() if core is not None else None
         cleanup_ok = True
         try:
             cleanup_ok = stop_process(core, graceful=True)
         except Exception:
             cleanup_ok = False
+        relay_before_terminate = relay.poll() if relay is not None else None
+        if relay_before_cleanup is None:
+            relay_before_cleanup = relay_before_terminate
         if job is not None:
             try:
                 api.terminate(job)
@@ -3177,22 +3467,35 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
             or core_outcome != {"status": "STOPPED"}
             or core_outcome_error is not None
         )
-        planned_relay_failed = relay_before_cleanup is not None
-        if terminal["error_class"] == "planned_stop" and (
-            planned_core_failed or planned_relay_failed
-        ):
+        prior_child_error = terminal["error_class"] in {
+            "core_exit", "relay_exit", "core_and_relay_exit",
+        }
+        causal_core_exit = (
+            core_before_cleanup is not None
+            or (prior_child_error and terminal.get("core_exit_code") is not None)
+            or (terminal["error_class"] == "planned_stop" and planned_core_failed)
+        )
+        causal_relay_exit = (
+            relay_before_cleanup is not None
+            or (prior_child_error and terminal.get("relay_exit_code") is not None)
+        )
+        # A failed cleanup is already the fail-closed disposition.  Preserve
+        # the primary observation in that case; late child sampling is used to
+        # prevent a successful cleanup from authorising the wrong retry.
+        if cleanup_ok and (causal_core_exit or causal_relay_exit):
             corrected_error = (
-                "core_and_relay_exit" if planned_core_failed and planned_relay_failed
-                else ("core_exit" if planned_core_failed else "relay_exit")
+                "core_and_relay_exit" if causal_core_exit and causal_relay_exit
+                else ("core_exit" if causal_core_exit else "relay_exit")
             )
             terminal.update(
                 stage=("relay_start" if corrected_error == "relay_exit" and core is None
                        else terminal["stage"]),
                 error_class=corrected_error,
-                core_exit_code=core_code if planned_core_failed else None,
+                core_exit_code=core_code if causal_core_exit else None,
                 relay_exit_code=(
-                    relay_before_cleanup if planned_relay_failed else None
+                    relay_before_cleanup if causal_relay_exit else None
                 ),
+                local_ready=None, public_ready=None, readiness_failures=0,
             )
             status = 1
         if not cleanup_ok:

@@ -1,8 +1,10 @@
 """Blocking L2/L3 regressions for the M1-S1 supervisor candidate."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import subprocess
 from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -926,6 +928,41 @@ def test_m1_scheduler_trigger_identity_and_time_are_owner_local_and_active():
         )
 
 
+def test_m1_backup_trigger_rejects_a_first_occurrence_after_the_next_local_0330():
+    reference = datetime(2026, 9, 14, 12, 0, tzinfo=timezone.utc)
+    local_reference = reference.astimezone()
+    backup, action = _scheduler_snapshot("NobusSpaceBot-Backup", role="backup")
+    backup["signature"]["triggers"][0]["start"] = (
+        local_reference.replace(
+            year=2099, hour=3, minute=30, second=0, microsecond=0
+        ).isoformat()
+    )
+
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            backup, role="backup", task_name="NobusSpaceBot-Backup",
+            expected_action=action, now=reference,
+        )
+
+
+def test_m1_backup_trigger_accepts_past_and_nearest_daily_boundaries():
+    reference = datetime.now().astimezone().replace(
+        hour=12, minute=0, second=0, microsecond=0
+    )
+    nearest = (reference + timedelta(days=1)).replace(
+        hour=3, minute=30, second=0, microsecond=0
+    )
+    for start in (nearest - timedelta(days=30), nearest):
+        backup, action = _scheduler_snapshot(
+            "NobusSpaceBot-Backup", role="backup"
+        )
+        backup["signature"]["triggers"][0]["start"] = start.isoformat()
+        assert supervisor._validate_scheduler_task_snapshot(
+            backup, role="backup", task_name="NobusSpaceBot-Backup",
+            expected_action=action, now=reference,
+        )["name"] == "NobusSpaceBot-Backup"
+
+
 def test_m1_backup_restart_authority_is_authenticated_bound_and_fresh(tmp_path):
     from src.application.durable_telegram_state import DpapiJsonCodec
 
@@ -1089,3 +1126,261 @@ def test_m1_backup_installer_replaces_only_an_explicit_stopped_disabled_task():
     assert "Exact backup task replacement requires a stopped disabled task" in installer
     assert installer.index("Settings.Enabled") < installer.index("Register-ScheduledTask")
     assert "-InputObject $task -Force" in installer
+
+
+def test_m1_installers_support_exact_disabled_candidate_staging():
+    root = Path(__file__).parents[1]
+    bot = (root / "ops" / "windows" / "Install-NobusSpaceBot.ps1").read_text(
+        encoding="utf-8"
+    )
+    backup = (
+        root / "ops" / "windows" / "Install-NobusSpaceBackup.ps1"
+    ).read_text(encoding="utf-8-sig")
+
+    for source in (bot, backup):
+        assert "[switch]$StageDisabled" in source
+        assert "Get-Sha256Text" in source
+        assert "Export-ScheduledTask" in source
+        assert "Disable-ScheduledTask" in source
+        assert "candidate staging failed closed" in source
+    assert "[switch]$ReplaceExisting" in bot
+    assert "$ExpectedMainDefinitionDigest" in bot
+    assert "$ExpectedHealthDefinitionDigest" in bot
+    assert "$ExpectedHealthLauncherDigest" in bot
+    assert "$RollbackRoot" in bot
+    assert "[System.IO.File]::Replace" in bot
+    assert "$ExpectedDefinitionDigest" in backup
+    assert bot.index("-Disable") < bot.index("Register-ScheduledTask")
+    assert backup.index("-Disable") < backup.index("Register-ScheduledTask")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows PowerShell installer")
+def test_m1_bot_installer_second_registration_failure_leaves_pair_disabled(
+    tmp_path,
+):
+    root = tmp_path / "repo"
+    rollback = tmp_path / "rollback"
+    for directory in (
+        root / ".venv" / "Scripts",
+        root / "scripts",
+        root / ".runtime",
+        rollback,
+    ):
+        directory.mkdir(parents=True, exist_ok=True)
+    for relative in (
+        ".venv/Scripts/python.exe",
+        ".venv/Scripts/pythonw.exe",
+        "scripts/run_nobus_space_live.py",
+        "scripts/check_telegram_health.py",
+    ):
+        (root / relative).write_bytes(b"synthetic\n")
+    launcher = root / ".runtime" / "check-nobus-space-bot.ps1"
+    launcher.write_bytes(b"# exact old launcher\r\nexit 0\r\n")
+    main_xml = "<Task>exact-main</Task>"
+    health_xml = "<Task>exact-health</Task>"
+
+    def digest(value: bytes) -> str:
+        return "sha256:" + hashlib.sha256(value).hexdigest()
+
+    installer = (
+        Path(__file__).parents[1]
+        / "ops"
+        / "windows"
+        / "Install-NobusSpaceBot.ps1"
+    ).resolve()
+
+    def ps(value: object) -> str:
+        return str(value).replace("'", "''")
+
+    harness = tmp_path / "installer-fail-closed.ps1"
+    harness.write_text(
+        f"""
+$ErrorActionPreference='Stop'
+$OutputEncoding=[Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
+$global:registered=@()
+$global:disabled=@()
+function Get-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath)
+    [pscustomobject]@{{Settings=[pscustomobject]@{{Enabled=$false}};State='Ready'}}
+}}
+function Export-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath)
+    if($TaskName -like '*-Health'){{'{ps(health_xml)}'}}else{{'{ps(main_xml)}'}}
+}}
+function New-ScheduledTaskAction {{
+    [CmdletBinding()] param($Execute,$Argument,$WorkingDirectory)
+    [pscustomobject]@{{Kind='action'}}
+}}
+function New-ScheduledTaskTrigger {{
+    [CmdletBinding()] param([switch]$AtLogOn,[switch]$Once,$At,$User,$RepetitionInterval,$RepetitionDuration)
+    [pscustomobject]@{{Kind='trigger'}}
+}}
+function New-ScheduledTaskSettingsSet {{
+    [CmdletBinding()] param([switch]$Disable,[switch]$StartWhenAvailable,[switch]$AllowStartIfOnBatteries,[switch]$DontStopIfGoingOnBatteries,$ExecutionTimeLimit,$MultipleInstances)
+    [pscustomobject]@{{Enabled=(-not $Disable.IsPresent)}}
+}}
+function New-ScheduledTaskPrincipal {{
+    [CmdletBinding()] param($UserId,$LogonType,$RunLevel)
+    [pscustomobject]@{{Kind='principal'}}
+}}
+function New-ScheduledTask {{
+    [CmdletBinding()] param($Action,$Trigger,$Settings,$Principal,$Description)
+    [pscustomobject]@{{Settings=$Settings}}
+}}
+function Register-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath,$InputObject,[switch]$Force)
+    $global:registered+=,$TaskName
+    if($TaskName -like '*-Health'){{throw 'synthetic second registration failure'}}
+}}
+function Disable-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath)
+    $global:disabled+=,$TaskName
+}}
+try {{
+    & '{ps(installer)}' `
+      -TaskName 'NobusSpaceM1S1Fixture' `
+      -RepositoryRoot '{ps(root)}' `
+      -HealthLauncherRoot '{ps(root)}' `
+      -ReplaceExisting `
+      -StageDisabled `
+      -ExpectedMainDefinitionDigest '{digest(main_xml.encode("utf-8"))}' `
+      -ExpectedHealthDefinitionDigest '{digest(health_xml.encode("utf-8"))}' `
+      -ExpectedHealthLauncherDigest '{digest(launcher.read_bytes())}' `
+      -RollbackRoot '{ps(rollback)}'
+    $outcome='unexpected_success'
+}} catch {{$outcome=$_.Exception.Message}}
+[ordered]@{{outcome=$outcome;registered=@($global:registered);disabled=@($global:disabled)}} | ConvertTo-Json -Compress
+""".strip()
+        + "\n",
+        encoding="utf-8-sig",
+    )
+    result = subprocess.run(
+        [
+            "powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive",
+            "-ExecutionPolicy", "Bypass", "-File", str(harness),
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    output = json.loads(result.stdout.decode("utf-8-sig"))
+    assert output == {
+        "outcome": "candidate staging failed closed: register_health_disabled",
+        "registered": ["NobusSpaceM1S1Fixture", "NobusSpaceM1S1Fixture-Health"],
+        "disabled": ["NobusSpaceM1S1Fixture", "NobusSpaceM1S1Fixture-Health"],
+    }
+    assert launcher.read_bytes() == b"# exact old launcher\r\nexit 0\r\n"
+    assert (rollback / "NobusSpaceM1S1Fixture.xml").read_text(
+        encoding="utf-8"
+    ) == main_xml
+    assert (rollback / "NobusSpaceM1S1Fixture-Health.xml").read_text(
+        encoding="utf-8"
+    ) == health_xml
+    assert not list((root / ".runtime").glob("*.candidate"))
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows PowerShell installer")
+def test_m1_backup_installer_registration_failure_leaves_task_disabled(tmp_path):
+    root = tmp_path / "repo"
+    python = root / ".venv" / "Scripts" / "python.exe"
+    script = root / "scripts" / "run_telegram_backup_cycle.py"
+    config = root / ".runtime" / "backup-cycle.json"
+    for path in (python, script, config):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"synthetic\n")
+    task_xml = "<Task>exact-backup</Task>"
+    expected_definition = "sha256:" + hashlib.sha256(
+        task_xml.encode("utf-8")
+    ).hexdigest()
+    installer = (
+        Path(__file__).parents[1]
+        / "ops"
+        / "windows"
+        / "Install-NobusSpaceBackup.ps1"
+    ).resolve()
+
+    def ps(value: object) -> str:
+        return str(value).replace("'", "''")
+
+    harness = tmp_path / "backup-installer-fail-closed.ps1"
+    harness.write_text(
+        f"""
+$ErrorActionPreference='Stop'
+$OutputEncoding=[Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
+$global:disabled=@()
+function Get-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath)
+    [pscustomobject]@{{Settings=[pscustomobject]@{{Enabled=$false}};State='Ready'}}
+}}
+function Export-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath)
+    '{ps(task_xml)}'
+}}
+function New-ScheduledTaskAction {{
+    [CmdletBinding()] param($Execute,$Argument,$WorkingDirectory)
+    [pscustomobject]@{{Kind='action'}}
+}}
+function New-ScheduledTaskTrigger {{
+    [CmdletBinding()] param([switch]$Daily,$At)
+    [pscustomobject]@{{Kind='trigger'}}
+}}
+function New-ScheduledTaskSettingsSet {{
+    [CmdletBinding()] param([switch]$Disable,[switch]$StartWhenAvailable,[switch]$AllowStartIfOnBatteries,[switch]$DontStopIfGoingOnBatteries,$ExecutionTimeLimit,$MultipleInstances)
+    [pscustomobject]@{{Enabled=(-not $Disable.IsPresent)}}
+}}
+function New-ScheduledTaskPrincipal {{
+    [CmdletBinding()] param($UserId,$LogonType,$RunLevel)
+    [pscustomobject]@{{Kind='principal'}}
+}}
+function New-ScheduledTask {{
+    [CmdletBinding()] param($Action,$Trigger,$Settings,$Principal,$Description)
+    [pscustomobject]@{{Settings=$Settings}}
+}}
+function Register-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath,$InputObject,[switch]$Force)
+    throw 'synthetic backup registration failure'
+}}
+function Disable-ScheduledTask {{
+    [CmdletBinding()] param([string]$TaskName,[string]$TaskPath)
+    $global:disabled+=,$TaskName
+}}
+try {{
+    & '{ps(installer)}' `
+      -TaskName 'NobusSpaceM1S1BackupFixture' `
+      -RepositoryRoot '{ps(root)}' `
+      -Python '{ps(python)}' `
+      -Config '{ps(config)}' `
+      -ConfigDigest 'sha256:{'d' * 64}' `
+      -ReplaceExisting `
+      -StageDisabled `
+      -ExpectedDefinitionDigest '{expected_definition}'
+    $outcome='unexpected_success'
+}} catch {{$outcome=$_.Exception.Message}}
+[ordered]@{{outcome=$outcome;disabled=@($global:disabled)}} | ConvertTo-Json -Compress
+""".strip()
+        + "\n",
+        encoding="utf-8-sig",
+    )
+    result = subprocess.run(
+        [
+            "powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive",
+            "-ExecutionPolicy", "Bypass", "-File", str(harness),
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    assert json.loads(result.stdout.decode("utf-8-sig")) == {
+        "outcome": "candidate staging failed closed: register_backup",
+        "disabled": ["NobusSpaceM1S1BackupFixture"],
+    }
