@@ -1,8 +1,150 @@
 {
-  "schema": "nobus-m1-s1-evidence-1",
+  "schema": "nobus-m1-s1-evidence-2",
   "gate": "M1-S1",
-  "status": "WIP_REPAIR_REAL_FIXTURE_PASS_READY_TO_FREEZE",
-  "production_observed_at": "2026-09-14T05:29:22.3824229Z",
+  "status": "REWORK_BATCH_GREEN_READY_FOR_SINGLE_FREEZE",
+  "production_observed_at": "2026-09-14T09:26:00Z",
+  "current_checkpoint": {
+    "freeze_id": "a8e7a1f0330f4f889263ed2751d3eee8",
+    "implementation_commit": "87dba94ab340f5b335f0779043c948b7ac5671b3",
+    "implementation_tree": "3a5408aa630070f247f5b3069311cd08585b4a0a",
+    "implementation_blobs": {
+      "ops/windows/Install-NobusSpaceBot.ps1": "979a8faa3f44e5d446bd6012587fae9d782b1944",
+      "scripts/run_nobus_space_live.py": "bb6b7247e11f49942fbf4a1c86a56279bb678183",
+      "tests/fixtures/m1_scheduler_exit_probe.py": "b9b81cf992027dbd4dba5b585685ded82435315c",
+      "tests/gate_m1_s1/Invoke-SchedulerRetryFixture.ps1": "46d0617e53f770e985c560d2b628978eab789291",
+      "tests/gate_m1_s1/audit_dependencies_osv.py": "29390b9618da60d135be0a1ac679a5e5328f33ca",
+      "tests/test_m1_s1_runtime_supervisor_rework.py": "4e6491b6ff0e6b57bfe26388fbe079ad771c05e3"
+    },
+    "gate_commit_binding": "external_post_commit_freeze_receipt_required",
+    "frozen": false,
+    "published": false,
+    "deployed": false,
+    "rejected_freeze": {
+      "commit": "73ed1c95ff81f4c087bd7bc7e5d468e09cc8b1a6",
+      "tree": "2ca97f0a4b8a2a0fb6f534e211a636efe065c99c",
+      "receipt_sha256": "sha256:90a20f87c36e8baf83fa166fcbedd1b8560001b361d9752cf664b86b05f2aaf8",
+      "L1": "FAIL",
+      "L2": "REWORK",
+      "L3": "REWORK",
+      "publish_or_deploy": false,
+      "evidence_reused": false
+    },
+    "findings": {
+      "F01": "DIAGNOSED_HISTORICAL_TRIGGER_UNKNOWN",
+      "F02": "REPAIRED_LOCALLY_PROTOCOL_V3_NOT_DEPLOYED",
+      "F03": "REPAIRED_LOCALLY_REAL_SCHEDULER_V2_PENDING",
+      "F04": "ACTIVE_DOCS_INCLUDED_DOCUMENT_11_UNCHANGED",
+      "D01": "LOCAL_INVENTORY_GREEN_FROZEN_NETWORK_QUERY_PENDING"
+    },
+    "recovery_contract": {
+      "history_location": "StateRoot/supervisor-control",
+      "protocol": "nobus-runtime-event-3",
+      "activation_binding": "git_commit_plus_normalized_code_schema_and_state_root",
+      "missing_invalid_incomplete_or_binding_mismatch": "STOP",
+      "explicit_bootstrap_required": true,
+      "linked_hash_and_transition_validation": true,
+      "runtime_event_current_previous_max_bytes_each": 1048576,
+      "runtime_event_max_line_bytes": 2048,
+      "operator_log_current_previous_max_bytes_each": 5242880,
+      "retry_budget": 10,
+      "retry_interval_seconds": 60,
+      "total_attempt_limit": 11,
+      "cleanup_required_before_retry": true,
+      "scheduler_restart_count_target": 0,
+      "raw_streams_or_payload_persisted": false
+    },
+    "verification": [
+      {
+        "kind": "RED",
+        "scope": "reviewer rework regressions before batch fix",
+        "result": "13 failed"
+      },
+      {
+        "kind": "GREEN",
+        "scope": "expanded rework matrix",
+        "result": "24 passed"
+      },
+      {
+        "kind": "GREEN",
+        "scope": "affected C5 runtime plus M1-S1 supervisor",
+        "result": "116 passed in 18.60s"
+      },
+      {
+        "kind": "GREEN_HOST_CONTEXT",
+        "scope": "ops queue and runtime maintenance action/profile",
+        "result": "34 passed in 32.35s"
+      },
+      {
+        "kind": "GREEN",
+        "scope": "Python AST, PowerShell parser, git diff check",
+        "result": "PASS"
+      }
+    ],
+    "frozen_evidence_pending": [
+      "scheduler_fixture_v2",
+      "dependency_network_metadata",
+      "vibe_audit_static_and_manual",
+      "L1",
+      "L2",
+      "L3"
+    ],
+    "production": {
+      "live_commit": "82003c03d8a36015703472b472640ab4021fb416",
+      "live_clean": true,
+      "main_task": "enabled_running_legacy_restart_10_PT1M",
+      "health_last_run_utc": "2026-09-14T09:20:44Z",
+      "health_last_result": 0,
+      "backup_last_result": 0,
+      "logical_supervisor": 1,
+      "gated_helpers": 2,
+      "relay": 1,
+      "core_listener_owners": 1,
+      "listener_8765": 1,
+      "local_ready": true,
+      "public_ready": true,
+      "readiness_context": "owner_host_outside_sandbox",
+      "databases_ok": 4,
+      "tasks": 86,
+      "ingress_claims": 86,
+      "outbox_acked": 84,
+      "ack_receipts": 84,
+      "queue": {},
+      "delivery_unknown": 0,
+      "reconciliation": false,
+      "polling_offset": 375633467,
+      "polling_revision": 43607,
+      "active_polling_lease": true,
+      "backup_generation": "daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c",
+      "backup_manifest_digest": "sha256:575a2f272f7c48810fbb4c44d88215bcba2556dc01fb0c95a396c75ad93ae84e",
+      "backup_authentication_binding_ciphertext": "PASS",
+      "backup_age_seconds": 32082.868
+    },
+    "permissions": {
+      "all_in_scope_M1_S1_actions_authorized": true,
+      "production_transition_performed": false,
+      "qualification_text_tasks": 1,
+      "model_execution_budget": 1,
+      "ASR_execution_budget": 0,
+      "blind_retry": false,
+      "database_rollback": false
+    },
+    "observation": {
+      "criterion_agreed": true,
+      "started": false,
+      "duration_hours": 72,
+      "interval_minutes": 30,
+      "minimum_planned_backups": 2,
+      "automatic_restart_restore_or_reset": false,
+      "gap_over_minutes_restarts_window": 60
+    },
+    "verdict": {
+      "published_release": "v1.0.2_UNCHANGED",
+      "repaired_candidate": "IMPLEMENTATION_GREEN_FREEZE_PENDING",
+      "deployed_runtime": "ACCEPTED_82003c03",
+      "stability_observation": "NOT_STARTED",
+      "M2_G0": "BLOCKED"
+    }
+  },
   "base": {
     "main_commit": "88e58c8866db2384423f2b154df901a2e4af6c48",
     "main_tree": "800e999dc9f24e90808a4784b90bf44d00a72cb1",
@@ -11,7 +153,7 @@
     "tag": "v1.0.2",
     "tag_object": "59952c44118606c26e34e20a39ed88ef5c686620"
   },
-  "candidate": {
+  "archive_rejected_prefreeze_candidate": {
     "branch": "codex/m1-s1-stability",
     "isolated_worktree": true,
     "frozen": false,
@@ -56,7 +198,7 @@
       }
     }
   },
-  "production": {
+  "archive_prior_production_snapshot": {
     "runtime_status": "READY_ACCEPTED_V1_0_2_NOT_STABILITY_PASS",
     "scheduler": {
       "main": {
@@ -182,7 +324,7 @@
       }
     }
   },
-  "findings": {
+  "archive_prior_findings": {
     "F01": {
       "status": "DIAGNOSED_HISTORICAL_TRIGGER_UNKNOWN",
       "reproducible_stop_mechanism": "child_exit_or_startup_deadline_or_three_readiness_failures_then_supervisor_exit_1_and_job_cleanup",
@@ -324,7 +466,7 @@
       "packages_installed_or_updated": false
     }
   },
-  "verification": [
+  "archive_prior_verification": [
     {
       "kind": "RED",
       "scope": "new F02 supervisor protocol tests before implementation",
@@ -406,7 +548,7 @@
       "result": "40 passed and 13 setup PermissionError; rerun once with sandbox-owned basetemp produced 53 passed"
     }
   ],
-  "quality": {
+  "archive_prior_quality": {
     "lifecycle": "WIP_ITERATION",
     "candidate_frozen_once": false,
     "independent_L1": "NOT_RUN",
@@ -414,21 +556,21 @@
     "independent_L3": "NOT_RUN",
     "c0_c6_repeated": false
   },
-  "nobus_memory": {
+  "archive_prior_nobus_memory": {
     "scope": "project:nobus-space",
     "context_read": "PASS",
     "managed_update": "NOT_APPLIED_ARGUMENT_REJECTED",
     "unchanged_retry_performed": false
   },
-  "permissions_consumed": [
+  "archive_prior_permissions_consumed": [
     "one_scheduler_fixture_run_1a45b43f98e84558b3695b7371ad9b7e_with_cleanup_proven",
     "one_OSV_querybatch_with_80_public_package_name_version_pairs",
     "72_hour_observation_criterion_agreed_without_creating_automation",
     "one_scheduler_hosted_candidate_fixture_run_762a5aaeb35546d1be51b0febf576bf5_with_cleanup_proven",
     "all_actions_required_to_complete_m1_s1_without_run_count_limit"
   ],
-  "permissions_pending": [],
-  "observation": {
+  "archive_prior_permissions_pending": [],
+  "archive_prior_observation": {
     "status": "CRITERION_AGREED_NOT_STARTED_AUTOMATION_NOT_CREATED",
     "duration_hours": 72,
     "heartbeat_interval_minutes": 30,
@@ -436,7 +578,7 @@
     "planned_backup_pause_limit_minutes": 10,
     "gap_over_minutes_invalidates_window": 60
   },
-  "verdict": {
+  "archive_prior_verdict": {
     "published_release": "ACCEPTED_PUBLISHED",
     "repaired_candidate": "READY_FOR_FREEZE_LOCAL_GREEN_REAL_SCHEDULER_HOSTED_FIXTURE_PASS",
     "deployed_runtime": "CANDIDATE_NOT_DEPLOYED_ACCEPTED_V1_0_2_CURRENTLY_READY",

@@ -1,14 +1,74 @@
 # M1-S1 — HANDOFF
 
-**Статус 14.09.2026, 09:27 МСК:** дефект F03 воспроизведён, а исправленный механизм подтверждён на реальном Планировщике. Локальный repair прошёл целевые проверки, D01 завершён как `REVIEW_TOOLING`. Кандидат готов к единственному freeze, но ещё не опубликован и не развёрнут. Принятый MVP1 v1.0.2 работает на прежнем коде; это не PASS 72-часового наблюдения.
+**Текущий статус 14.09.2026, 12:28 МСК:** замечания по первой отклонённой ревизии собраны и исправлены одним WIP-пакетом. Implementation checkpoint `87dba94ab340f5b335f0779043c948b7ac5671b3`, tree `3a5408aa630070f247f5b3069311cd08585b4a0a` локально GREEN. Единственный новый Gate freeze, реальный Scheduler fixture v2 и независимые L1/L2/L3 ещё не выполнены. Принятый v1.0.2 остаётся в LIVE; это не PASS 72-часового наблюдения.
 
-## Результат текущего этапа
+## Текущий checkpoint после rework
+
+Freeze `73ed1c95ff81f4c087bd7bc7e5d468e09cc8b1a6` / tree `2ca97f0a4b8a2a0fb6f534e211a636efe065c99c` отклонён: L1 `FAIL`, L2/L3 `REWORK`. Его нельзя публиковать, развёртывать или смешивать с доказательствами нового кандидата. Внешняя квитанция этой ревизии сохраняется с SHA-256 `90a20f87c36e8baf83fa166fcbedd1b8560001b361d9752cf664b86b05f2aaf8`.
+
+Все замечания первой ревизии были собраны до пакетных исправлений. Закрыты: privacy temp path; гонка planned stop/Core exit; общий local/public probe slot; сброс STOP удалением recovery history; неустойчивые control failures; неполный fixture; safe-shaped вместо exact Core allowlist; retry без точного `STOPPED`; отсутствие полной hash/transition chain; raw health redirects; parser/D01 и stale active docs.
+
+Новый стабильный freeze id — `a8e7a1f0330f4f889263ed2751d3eee8`. Самоссылочный commit нельзя включить в собственные bytes, поэтому этот документ хранит exact implementation checkpoint, а commit/tree/source/assets/config/input digests следующего документационного commit будут один раз записаны во внешнюю post-commit квитанцию с этим id. Только эта ревизия получит реальный Scheduler fixture v2 и L1/L2/L3.
+
+### Актуальный production-срез
+
+Read-only срез 14.09.2026, 12:20–12:26 МСК:
+
+- LIVE clean detached на `82003c03d8a36015703472b472640ab4021fb416`; `origin/main` — `88e58c8866db2384423f2b154df901a2e4af6c48`;
+- main enabled/Running с 03:31:05 МСК, LastTaskResult `267009`, legacy `RestartCount=10/PT1M`; Health Ready/0 в 12:20:44 МСК; Backup Ready/0, следующий запуск 15.09 в 03:30 МСК;
+- один logical supervisor (venv host+child), два gated helper, один relay, один Core chain, один listener `127.0.0.1:8765` и один active polling lease;
+- read-only probe вне сетевого sandbox: `local_ready=true`, `public_ready=true`; sandbox-only public FAIL отброшен как ограничение инструментальной сети, а не production факт;
+- четыре БД healthy; 86 tasks/ingress, 168 audit events, 7 sealed answers, 84 ACK messages/receipts, 14/14 delivery parts; queue пустая, active job leases `0`, delivery unknown `0`, reconciliation `false`;
+- offset `375633467` не уменьшился, revision вырос до `43607`; tasks/receipts не изменились;
+- generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c`, manifest `sha256:575a2f272f7c48810fbb4c44d88215bcba2556dc01fb0c95a396c75ad93ae84e`, authentication/binding/ciphertext PASS, возраст `32082.868` с. Restore не запускался.
+
+Эти факты подтверждают доступность принятого runtime на момент среза, но не объясняют остановки и не доказывают recovery или 72 часа.
+
+### F01–F04 / D01
+
+| ID | Текущее состояние |
+|---|---|
+| F01 | Core/relay/simultaneous exit, local/public/both readiness, startup timeout, planned stop и cleanup различаются. Исторический trigger 10–13 сентября остаётся `UNKNOWN` |
+| F02 | Локально repaired: exact Core failure allowlist, один ASCII JSON ≤4096 bytes, no raw persistence; `nobus-runtime-event-3` хранит binding, linked digests, run/stage/error/exit, local/public, attempt/budget и cleanup |
+| F03 | Локально repaired, но real v2 pending: один Scheduler action, budget `10 retries / 60 s / 11 total`, retry только после proven cleanup; missing/invalid/binding mismatch, UNKNOWN, permanent и exhaustion дают STOP |
+| F04 | docs01/CURRENT/runbook входят в пакет; документ 11, C6 receipts и sealed sources не менялись |
+| D01 | Local inventory проверяет actual environment, exact pins и duplicate inputs. Frozen network metadata query ещё не выполнен; install/upgrade не выполнялись |
+
+История recovery находится только в `<StateRoot>/supervisor-control`. Первый запуск требует отдельного `--initialize-recovery` под production mutex. Каждая v3 запись связана с предыдущей; reset требует exact newest digest. Ротация — current+previous по 1 MiB, строка ≤2048 bytes; отсутствие любого сегмента после ротации, лишний/reparse/oversize файл, parser/write/fsync/rotation error блокируют запуск. Fixed operator log также ограничен двумя файлами по 5 MiB. Exit `70/71/72/73` различает create/signal/close/evidence failure. Child exit проверяется раньше planned stop; permanent Core FAIL и invalid/missing outcome побеждают retry.
+
+In-place backup/restore меняет только четыре БД, поэтому control history сохраняется. Если StateRoot реконструирован или control directory утрачен, обычный start даёт STOP; bootstrap новой binding разрешён только после сверки данных/effects. Удаление истории не является reset.
+
+### Текущие проверки
+
+- initial rework RED: `13 failed`;
+- расширенная rework-матрица: `24 passed`;
+- затронутый набор C5 runtime + M1-S1: `116 passed in 18.60s`;
+- зависимые host-context tests: `34 passed in 32.35s` с отдельными mutex/temp roots;
+- Python AST, PowerShell parser и `git diff --check`: PASS; C0–C6 целиком не повторялись.
+
+### Следующая точная проверка
+
+После commit документационного checkpoint внешняя квитанция фиксирует единственную Gate revision. Fixture v2 создаёт ровно два уникальных one-time tasks с canonical `pythonw`, Interactive/Limited, `IgnoreNew`, Scheduler restart count `0`. Transient обязан завершиться на attempt 2 / LastTaskResult 0; permanent — на attempt 3 / budget STOP / LastTaskResult 23 и без четвёртой попытки 75 секунд. Result включает controller/probe digests, hashes v3/operator segments, финальные attempt/budget/disposition/cleanup и proven удаление tasks. Та же frozen revision проходит D01 metadata и scoped static/manual security audit без установки пакетов; затем L1/L2/L3 проверяют этот же commit.
+
+### Production и 72 часа
+
+После PASS reviewers: fresh backup → baseline → штатная остановка exact Job → свободные port/mutex/lease → exact LIVE checkout → Tasks с Scheduler retry `0` → recovery bootstrap → один start → local/public/stock readiness → одна text-задача и TXT → post-baseline. Бюджеты: одна activation; одна text-задача и максимум одно model execution; ASR `0`; UNKNOWN сначала сверяется; БД не откатываются. Ожидаемая пауза до 15 минут, после 20 минут без проверяемого сигнала — STOP и диагностика.
+
+После фактического T0 heartbeat этой же задачи каждые 30 минут только читает Scheduler, v3, readiness, singleton/process/listener/lease, DB counters и backup manifests. Никакого auto reset/restore/restart. PASS требует непрерывные 72 часа включённого ПК/owner session, минимум два planned backup с LastTaskResult 0 и повторной authentication/binding/ciphertext проверкой, один runtime и сохранность данных. Разрыв более 60 минут запускает окно заново. Старый 15-минутный smoke не считается устойчивостью.
+
+Раздельный verdict: published release — `v1.0.2` неизменён; repaired candidate — implementation GREEN, freeze/reviews pending; deployed runtime — прежний `82003c03`; observation — NOT STARTED; M2-G0 — BLOCKED.
+
+## Архив первой отклонённой ревизии
+
+Весь текст ниже — сохранённый pre-freeze record `73ed1c9`. Он нужен для истории RED/diagnosis, но его утверждения о «исправленном реальном fixture» не являются доказательством новой revision.
+
+### Архив: результат pre-freeze этапа
 
 Исторический первичный триггер остановок 10–13 сентября восстановить нельзя: он остаётся `UNKNOWN`. Отдельно воспроизведена причина отсутствия recovery: на этом хосте `RestartCount/PT1M` не перезапустил нормально стартовавший `pythonw` после exit 23. Обе fixture-задачи выполнились ровно один раз и были удалены; исчерпание production-бюджета по-прежнему не заявляется.
 
 Локальный repair сохраняет строгий безопасный JSON Core и отдельные типизированные причины, а ограниченную серию retry выполняет внутри одного Scheduler action после доказанного cleanup. Реальный fixture подтвердил recovery transient-сбоя на второй попытке и постоянный STOP после исчерпания трёх попыток без четвёртого запуска. Затронутые наборы — 49, 134 и 88 PASS. Сетевой D01 выполнен один раз; matches относятся только к установленному `pip 25.0.1`, пакеты не менялись.
 
-## Контракт Gate
+### Архив: контракт Gate
 
 - Восстановить один принятый MVP1 без повторения C6 и без работ MVP2.
 - Сохранить Core authority, четыре канонические БД, receipts, polling offset, idempotency и `UNKNOWN/reconciliation`.
@@ -16,7 +76,7 @@
 - До production предъявить один revision-bound пакет с точными Actions/config/input digests, backup, baseline, бюджетами, паузой и rollback.
 - Разделять published release, repaired candidate, deployed runtime и завершённое 72-часовое наблюдение.
 
-## Точные исходные refs
+### Архив: исходные refs
 
 | Объект | Значение |
 |---|---|
@@ -32,7 +92,7 @@
 
 Контекст Nobus Memory читался только в `project:nobus-space`. Попытка создать managed pointer на этот checkpoint завершилась `ARGUMENT_REJECTED`; запись не произошла, повтор без новой гипотезы не выполнялся. Доступность хранилища из этого не выводится и работа Gate не блокируется.
 
-## F01–F04 и D01
+### Архив: F01–F04 и D01
 
 | ID | Класс | Состояние | Факт и остаток |
 |---|---|---|---|
@@ -42,7 +102,7 @@
 | F04 | FACT | LOCAL FIX INCLUDED / NOT PUBLISHED | Подготовленные docs01/CURRENT/runbook сохранены и актуализированы по новым фактам. Документ 11 и исторические C6 sources не менялись; публикации нет |
 | D01 | FACT | REVIEW_TOOLING | Python 3.12.14, 80 пакетов, 15/15 direct pins, `pip check` PASS. Один OSV query выполнен; matches относятся только к `pip 25.0.1`. Обновления и установки не выполнялись |
 
-## Read-only production evidence
+### Архив: read-only production evidence
 
 Последнее цельное наблюдение: 14.09.2026, 08:28–08:31 МСК.
 
@@ -64,7 +124,7 @@ Baseline после автозапуска:
 
 Текущая доступность принятого runtime — факт, но не закрытие M1-S1: controlled candidate launch, реальный результат/TXT и 72 часа ещё не выполнялись.
 
-## Локальный repaired WIP
+### Архив: локальный repaired WIP
 
 `scripts/run_nobus_space_live.py`:
 
@@ -82,7 +142,7 @@ Gate-only инструменты не входят в production action:
 - `tests/gate_m1_s1/audit_dependencies_osv.py` — без флага выполняет только локальный inventory; сеть возможна только с `--query-osv` на один фиксированный endpoint;
 - `tests/gate_m1_s1/Invoke-SchedulerRetryFixture.ps1` и `tests/fixtures/m1_scheduler_exit_probe.py` — два уникальных synthetic tasks, без production input, stdout/stderr и event logs; candidate-owned controller запускается как один реальный Scheduler action.
 
-## Проверки текущего WIP
+### Архив: проверки pre-freeze WIP
 
 - Исходный RED: 23 ожидаемых отказа новых F02-тестов до реализации.
 - Реальный изолированный Windows Job доказал `gated helper → child exit 23` и передачу одного безопасного JSON.
@@ -96,7 +156,7 @@ Gate-only инструменты не входят в production action:
 
 Это WIP evidence, а не L1/L2/L3. Независимые L1/L2/L3 выполняются только после одного freeze целого кандидата; evidence разных bytes смешивать нельзя.
 
-## Реальный F03 FAIL, сохранённый без повторения
+### Архив: реальный F03 FAIL, сохранённый без повторения
 
 Разрешённый run `1a45b43f98e84558b3695b7371ad9b7e` создал только `NobusSpace-M1S1-Fixture-Transient-1a45b43f` и `NobusSpace-M1S1-Fixture-Permanent-1a45b43f`. Обе задачи стартовали 14.09 в 07:30:49 МСК, записали только attempt 1 / `retryable_failure` / exit 23 и остались Ready с LastTaskResult 23. Ни через две минуты, ни в дополнительном 75-секундном окне повторов не было.
 
@@ -104,13 +164,13 @@ Cleanup — `proven`; в 07:47:05 МСК оба имени повторно по
 
 [Схема Microsoft RestartOnFailure](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskschedulerschema-restartonfailure-settingstype-element) описывает Count/Interval. [Протокольное описание Microsoft](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsch/2ff4aa5a-7bc4-449f-bbb1-27475645867f) связывает повтор с невыполненными условиями запуска или невозможностью запустить action; оно не обещает повтор любого уже стартовавшего процесса после обычного ненулевого exit. Локальный fixture подтверждает фактическое поведение этого хоста.
 
-## D01 advisory metadata
+### Архив: D01 advisory metadata
 
 Один разрешённый POST к `https://api.osv.dev/v1/querybatch` передал только 80 public name/version пар. Inventory digest: `sha256:c4b1be2c5795df1c19722441f157264ce7041558c616e26df98e67037c905be7`. OSV вернул шесть advisory families для `pip 25.0.1`: [GHSA-4xh5-x5gv-qwph](https://github.com/advisories/GHSA-4xh5-x5gv-qwph), [GHSA-6vgw-5pg2-w6jp](https://github.com/advisories/GHSA-6vgw-5pg2-w6jp), [GHSA-58qw-9mgm-455v](https://github.com/advisories/GHSA-58qw-9mgm-455v), [GHSA-jp4c-xjxw-mgf9](https://github.com/advisories/GHSA-jp4c-xjxw-mgf9), [GHSA-wf93-45jw-7689](https://github.com/advisories/GHSA-wf93-45jw-7689) и [GHSA-qwm4-qh6w-59xr](https://github.com/advisories/GHSA-qwm4-qh6w-59xr). Последний исправлен в 26.2.0. Structured result — `REVIEW`; внешний wrapper сообщил exit 1 вместо предусмотренного скриптом exit 2 для matches. Причина этого расхождения остаётся `UNKNOWN`; запрос не повторялся.
 
 Production action не импортирует и не запускает `pip`; в `requirements.txt` его нет. Verifier lock всё ещё содержит `pip==26.1.2`, поэтому до любого нового install/rebuild нужны exact version/hash review и отдельное разрешение. В этом Gate пакеты не менялись.
 
-## Реальный F03 PASS исправленного механизма
+### Архив: непригодный как Gate evidence F03 fixture v1
 
 Разрешённый run завершён; bounded evidence сохранено, оба временных задания удалены и отдельно подтверждены отсутствующими в 09:26:51 МСК.
 
@@ -130,7 +190,7 @@ Production action не импортирует и не запускает `pip`; 
 
 Следующий шаг: один freeze commit/tree/source/assets/config/input digests → обязательные независимые L1/L2/L3 ровно этой ревизии → единый production plan → публикация, deploy, Task definitions, controlled start, одна реальная text-задача и TXT в пределах текущего разрешения. Блокирующие reviewer findings сначала собираются и только затем исправляются одним пакетом.
 
-## 72-часовое наблюдение — критерий согласован, окно не начато
+### Архив: критерий 72-часового наблюдения
 
 Владелец согласовал критерий 14.09. После разрешённой активации heartbeat этой же задачи каждые 30 минут только читает Scheduler, structured events, local/public readiness, singleton/process/lease counts, safe DB health и backup manifests. Автоматика пока не создана.
 
@@ -145,7 +205,7 @@ Production action не импортирует и не запускает `pip`; 
 
 Автоматика создаётся только после отдельного разрешения и точного T0/T72. Старый 15-минутный smoke не используется как доказательство устойчивости.
 
-## Раздельный verdict
+### Архив: прежний раздельный verdict
 
 | Уровень | Verdict |
 |---|---|

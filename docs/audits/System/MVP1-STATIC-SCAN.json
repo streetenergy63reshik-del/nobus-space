@@ -2,7 +2,7 @@
   "source_commit": "88e58c8866db2384423f2b154df901a2e4af6c48",
   "source_tree": "800e999dc9f24e90808a4784b90bf44d00a72cb1",
   "files": 766,
-  "snapshot": "C:\\Users\\CGC1ub\\AppData\\Local\\Temp\\nobus-mvp1-audit-xen5x2zg",
+  "snapshot": "isolated-git-archive-temporary-directory",
   "scanner_sha256": "8354310759608738256467677a6801dbe3a1a4e55b377b54e61c23a1ebb6f20c",
   "exit_code": 2,
   "network_dependency_audit": false,
