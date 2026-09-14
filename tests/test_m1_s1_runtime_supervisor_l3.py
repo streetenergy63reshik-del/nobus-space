@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -286,11 +287,20 @@ def test_m1_activation_binds_every_runtime_input_and_scheduler_signature(
         (voice / name).write_bytes((name + "\n").encode("ascii"))
 
     monkeypatch.setattr(supervisor, "WORKTREE", worktree)
-    monkeypatch.setattr(
-        supervisor,
-        "_scheduler_task_signature",
-        lambda name: {"task": name, "action": "exact"},
-    )
+    monkeypatch.setattr(supervisor, "_scheduler_activation", lambda *_args, **_kwargs: {
+        "tasks": {
+            role: {"name": name, "signature": "sha256:" + key * 64}
+            for role, name, key in (
+                ("main", "NobusSpaceBot", "1"),
+                ("health", "NobusSpaceBot-Health", "2"),
+                ("backup", "NobusSpaceBot-Backup", "3"),
+            )
+        },
+        "backup_config": {
+            "path": ".runtime/backup-cycle.json", "bytes": 1,
+            "sha256": "0" * 64,
+        },
+    })
     values = SimpleNamespace(
         voice_model_directory=voice,
         backup_root=backup,
@@ -300,7 +310,7 @@ def test_m1_activation_binds_every_runtime_input_and_scheduler_signature(
         semantic_admission=True,
     )
     first = supervisor._activation_manifest(values, runtime)
-    assert first["schema"] == "nobus-supervisor-activation-2"
+    assert first["schema"] == "nobus-supervisor-activation-3"
     assert first["semantic_admission"] is True
     assert set(first["runtime_inputs"]) == {
         "docs/11-Контекст-продукта.md",
@@ -350,3 +360,492 @@ def test_m1_installer_can_keep_generated_health_launcher_in_live_checkout():
     assert "[string]$HealthLauncherRoot" in installer
     assert "--health-launcher" in installer
     assert "$healthLauncherOwner" in installer
+
+
+def test_m1_empty_recovery_ack_is_rejected_instead_of_starting_runtime(
+    monkeypatch, tmp_path, capsys
+):
+    from src.application import windows_singleton
+
+    monkeypatch.setattr(supervisor, "LOG_ROOT", tmp_path)
+    monkeypatch.setattr(
+        supervisor.sys,
+        "argv",
+        ["run_nobus_space_live.py", "--acknowledge-recovery-stop="],
+    )
+    monkeypatch.setattr(
+        supervisor,
+        "_runtime_recovery_context",
+        lambda _values: (tmp_path / "control", _BINDING),
+    )
+    monkeypatch.setattr(windows_singleton, "WindowsNamedMutex", lambda *_args: nullcontext())
+    monkeypatch.setattr(
+        supervisor,
+        "_run_owned_recovery",
+        lambda *_args, **_kwargs: pytest.fail("empty reset must not start runtime"),
+    )
+
+    assert supervisor.main() == supervisor.EXIT_RECOVERY_RESET_REJECTED
+    output = json.loads(capsys.readouterr().out)
+    assert output["command"] == "acknowledge_recovery_stop"
+    assert output["error_class"] == "recovery_reset_rejected"
+
+
+def test_m1_stop_close_failure_has_one_exact_safe_result(monkeypatch, tmp_path, capsys):
+    class BrokenClose:
+        def __init__(self, *, request=False):
+            assert request is True
+
+        def set(self):
+            pass
+
+        def close(self):
+            raise RuntimeError("synthetic close failure")
+
+    monkeypatch.setattr(supervisor, "LOG_ROOT", tmp_path)
+    monkeypatch.setattr(supervisor, "StopEvent", BrokenClose)
+    monkeypatch.setattr(supervisor.sys, "argv", ["run_nobus_space_live.py", "--stop"])
+
+    assert supervisor.main() == supervisor.EXIT_STOP_CONTROL_CLOSE_FAILED
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0]) == {
+        "command": "stop",
+        "error_class": "stop_control_close_failed",
+        "exit_code": supervisor.EXIT_STOP_CONTROL_CLOSE_FAILED,
+        "schema": "nobus-supervisor-cli-failure-1",
+        "status": "STOP",
+    }
+
+
+def test_m1_unknown_starting_can_be_reset_only_by_exact_latest_digest(tmp_path):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    series_id = "d" * 32
+    run_id = "e" * 32
+    for event, stage, exit_code in (
+        ("control_starting", "recovery_control", None),
+        ("control_ready", "recovery_control", 0),
+        ("starting", "setup", None),
+    ):
+        starting_digest = supervisor._write_runtime_event(
+            supervisor._runtime_record(
+                series_id,
+                run_id,
+                event,
+                activation_binding=_BINDING,
+                attempt=1,
+                retry_budget=10,
+                recovery_disposition="pending",
+                stage=stage,
+                supervisor_exit_code=exit_code,
+            ),
+            root=tmp_path,
+        )
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["reason"] == "previous_attempt_unknown"
+    result = supervisor._acknowledge_recovery_stop(
+        starting_digest, root=tmp_path, activation_binding=_BINDING
+    )
+    assert result["status"] == "RESET"
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["state"] == "new"
+
+
+def test_m1_activation_rebind_preserves_old_chain_and_requires_exact_head(tmp_path):
+    binding_b = "sha256:" + "b" * 64
+    initialized = supervisor._initialize_recovery(
+        root=tmp_path, activation_binding=_BINDING
+    )
+    with pytest.raises(RuntimeError, match="precondition"):
+        supervisor._rebind_recovery(
+            "sha256:" + "0" * 64,
+            root=tmp_path,
+            activation_binding=binding_b,
+        )
+    result = supervisor._rebind_recovery(
+        initialized["event_digest"],
+        root=tmp_path,
+        activation_binding=binding_b,
+    )
+    assert result["status"] == "REBOUND"
+    rows, _digests = supervisor._runtime_history(
+        root=tmp_path, activation_binding=binding_b
+    )
+    assert [row["activation_binding"] for row in rows] == [_BINDING, binding_b]
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=binding_b
+    )["state"] == "new"
+
+
+@pytest.mark.parametrize(
+    ("disposition", "status"),
+    [("retry", 1), ("stop_non_retryable", 0), ("complete", 1)],
+)
+def test_m1_control_close_matrix_rejects_impossible_outcomes(disposition, status):
+    value = supervisor._runtime_record(
+        "f" * 32,
+        "a" * 32,
+        "control_closed",
+        activation_binding=_BINDING,
+        attempt=1,
+        retry_budget=10,
+        recovery_disposition=disposition,
+        stage="recovery_control",
+        supervisor_exit_code=status,
+        cleanup_outcome="proven",
+    )
+    with pytest.raises(ValueError, match="state is inconsistent"):
+        supervisor._validate_runtime_event(value)
+
+
+def test_m1_fallback_requires_exact_command_error_exit_matrix(monkeypatch, tmp_path):
+    monkeypatch.setattr(supervisor, "LOG_ROOT", tmp_path)
+    with pytest.raises(ValueError):
+        supervisor._write_fallback_failure(
+            "run", "runtime_composition_invalid", supervisor.EXIT_RECOVERY_HISTORY_BLOCKED
+        )
+    assert not (tmp_path / supervisor.FALLBACK_EVENT_LOG_NAME).exists()
+
+
+def test_m1_fallback_write_failure_returns_evidence_exit(monkeypatch, capsys):
+    monkeypatch.setattr(
+        supervisor,
+        "_write_fallback_failure",
+        lambda *_args: (_ for _ in ()).throw(OSError("synthetic fallback failure")),
+    )
+    assert supervisor._emit_cli_failure(
+        "run", "runtime_composition_invalid", supervisor.EXIT_RUNTIME_COMPOSITION_INVALID
+    ) == supervisor.EXIT_RUNTIME_EVIDENCE_FAILED
+    output = json.loads(capsys.readouterr().out)
+    assert output["error_class"] == "fallback_event_write_failed"
+    assert output["exit_code"] == supervisor.EXIT_RUNTIME_EVIDENCE_FAILED
+
+
+def test_m1_invalid_arguments_do_not_inherit_a_partial_command(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(supervisor, "LOG_ROOT", tmp_path)
+    monkeypatch.setattr(
+        supervisor.sys,
+        "argv",
+        ["run_nobus_space_live.py", "--stop", "--unsupported"],
+    )
+    assert supervisor.main() == supervisor.EXIT_RUNTIME_COMPOSITION_INVALID
+    output = json.loads(capsys.readouterr().out)
+    assert output == {
+        "command": "arguments",
+        "error_class": "runtime_arguments_invalid",
+        "exit_code": supervisor.EXIT_RUNTIME_COMPOSITION_INVALID,
+        "schema": "nobus-supervisor-cli-failure-1",
+        "status": "STOP",
+    }
+
+
+def test_m1_unexpected_startup_has_distinct_exit(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(supervisor, "LOG_ROOT", tmp_path)
+    monkeypatch.setattr(supervisor.sys, "argv", ["run_nobus_space_live.py"])
+    monkeypatch.setattr(
+        supervisor,
+        "_runtime_recovery_context",
+        lambda _values: (tmp_path / "control", _BINDING),
+    )
+    monkeypatch.setattr(
+        supervisor,
+        "_run_owned_recovery",
+        lambda _values: (_ for _ in ()).throw(RuntimeError("synthetic startup failure")),
+    )
+    assert supervisor.main() == supervisor.EXIT_SUPERVISOR_STARTUP_FAILED
+    output = json.loads(capsys.readouterr().out)
+    assert output["error_class"] == "supervisor_startup_failed"
+    assert output["exit_code"] == supervisor.EXIT_SUPERVISOR_STARTUP_FAILED
+
+
+def test_m1_control_ready_write_failure_keeps_primary_error(monkeypatch, tmp_path):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    original = supervisor._write_runtime_event
+
+    def fail_ready(value, **options):
+        if value["event"] == "control_ready":
+            raise RuntimeError("synthetic control event failure")
+        return original(value, **options)
+
+    class Stop:
+        def wait(self, _seconds):
+            return False
+
+        def set(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(supervisor, "_write_runtime_event", fail_ready)
+    monkeypatch.setattr(supervisor, "StopEvent", Stop)
+    assert supervisor._recover(
+        SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+        run_attempt=lambda *_args, **_kwargs: pytest.fail("attempt must not start"),
+    ) == supervisor.EXIT_RUNTIME_EVIDENCE_FAILED
+    state = supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)
+    assert state["state"] == "blocked"
+    assert state["reason"] == "runtime_event_write_failed"
+
+
+@pytest.mark.parametrize("failed_event", ["control_closing", "control_closed"])
+def test_m1_control_close_event_write_failure_keeps_primary_error(
+    monkeypatch, tmp_path, failed_event
+):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    original = supervisor._write_runtime_event
+
+    def fail_close_event(value, **options):
+        if value["event"] == failed_event:
+            raise RuntimeError("synthetic control event failure")
+        return original(value, **options)
+
+    class Stop:
+        def wait(self, _seconds):
+            return False
+
+        def set(self):
+            pass
+
+        def close(self):
+            pass
+
+    def attempt(_values, *, stop_event, series_id, attempt, retry_budget,
+                root, activation_binding):
+        run_id = "2" * 32
+        supervisor._write_runtime_event(supervisor._runtime_record(
+            series_id, run_id, "starting", activation_binding=activation_binding,
+            attempt=attempt, retry_budget=retry_budget,
+            recovery_disposition="pending", stage="setup",
+        ), root=root)
+        supervisor._write_runtime_event(supervisor._runtime_record(
+            series_id, run_id, "terminal", activation_binding=activation_binding,
+            attempt=attempt, retry_budget=retry_budget,
+            recovery_disposition="complete", stage="complete",
+            supervisor_exit_code=0, cleanup_outcome="proven",
+        ), root=root)
+        return {"status": 0, "recovery_disposition": "complete"}
+
+    monkeypatch.setattr(supervisor, "_write_runtime_event", fail_close_event)
+    monkeypatch.setattr(supervisor, "StopEvent", Stop)
+    assert supervisor._recover(
+        SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+        run_attempt=attempt,
+    ) == supervisor.EXIT_RUNTIME_EVIDENCE_FAILED
+    state = supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)
+    assert state["state"] == "blocked"
+    assert state["reason"] == "runtime_event_write_failed"
+
+
+def test_m1_next_attempt_start_write_failure_becomes_durable_stop(monkeypatch, tmp_path):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+
+    class Stop:
+        def wait(self, _seconds):
+            return False
+
+        def set(self):
+            pass
+
+        def close(self):
+            pass
+
+    def attempt(_values, *, stop_event, series_id, attempt, retry_budget,
+                root, activation_binding):
+        if attempt == 2:
+            raise supervisor._RecoveryControlFailure("runtime_event_write_failed")
+        run_id = "1" * 32
+        supervisor._write_runtime_event(supervisor._runtime_record(
+            series_id, run_id, "starting", activation_binding=activation_binding,
+            attempt=attempt, retry_budget=retry_budget,
+            recovery_disposition="pending", stage="setup",
+        ), root=root)
+        supervisor._write_runtime_event(supervisor._runtime_record(
+            series_id, run_id, "terminal", activation_binding=activation_binding,
+            attempt=attempt, retry_budget=retry_budget,
+            recovery_disposition="retry", stage="steady",
+            error_class="public_readiness_failed", supervisor_exit_code=1,
+            local_ready=True, public_ready=False, readiness_failures=3,
+            core_outcome={"status": "STOPPED"}, cleanup_outcome="proven",
+        ), root=root)
+        return {"status": 1, "recovery_disposition": "retry"}
+
+    monkeypatch.setattr(supervisor, "StopEvent", Stop)
+    monkeypatch.setattr(supervisor, "RECOVERY_RETRY_INTERVAL_SECONDS", 0.001)
+    assert supervisor._recover(
+        SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+        run_attempt=attempt,
+    ) == supervisor.EXIT_RUNTIME_EVIDENCE_FAILED
+    state = supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)
+    assert state["state"] == "blocked"
+    assert state["reason"] == "runtime_event_write_failed"
+
+
+def _scheduler_snapshot(name, *, role, enabled=True, restart_count=0):
+    trigger = {
+        "type": "MSFT_TaskLogonTrigger", "enabled": True, "start": None,
+        "end": None, "user": "OWNER\\user", "days_interval": None,
+        "interval": None, "duration": None, "stop_at_end": False,
+    }
+    execution_limit = "PT0S"
+    if role == "health":
+        trigger.update(type="MSFT_TaskTimeTrigger", start="2026-09-14T00:00:00+03:00",
+                       user=None, interval="PT1M", duration="P3650D", stop_at_end=True)
+        execution_limit = "PT2M"
+    elif role == "backup":
+        trigger.update(type="MSFT_TaskDailyTrigger", start="2026-09-14T03:30:00+03:00",
+                       user=None, days_interval=1)
+        execution_limit = "PT20M"
+    action = {"execute": "expected.exe", "arguments": "exact", "working_directory": None}
+    return {
+        "name": name, "state": "Ready", "enabled": enabled, "last_result": 0,
+        "current_principal": "S-1-5-21-1-2-3-1001",
+        "signature": {
+            "principal": "S-1-5-21-1-2-3-1001", "logon_type": 3, "run_level": 0,
+            "actions": [action], "triggers": [trigger], "start_when_available": True,
+            "disallow_battery": False, "stop_on_battery": False, "wake_to_run": False,
+            "restart_count": restart_count, "restart_interval": None,
+            "execution_limit": execution_limit, "multiple_instances": 2,
+        },
+    }, action
+
+
+@pytest.mark.parametrize(
+    ("change", "role"),
+    [({"enabled": False}, "main"), ({"restart_count": 10}, "main")],
+)
+def test_m1_scheduler_binding_rejects_disabled_or_retrying_task(change, role):
+    snapshot, action = _scheduler_snapshot("NobusSpaceBot", role=role, **change)
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            snapshot, role=role, task_name="NobusSpaceBot", expected_action=action
+        )
+
+
+def test_m1_scheduler_binding_includes_exact_task_name():
+    snapshot, action = _scheduler_snapshot("NobusSpaceBot", role="main")
+    binding = supervisor._validate_scheduler_task_snapshot(
+        snapshot, role="main", task_name="NobusSpaceBot", expected_action=action
+    )
+    assert binding["name"] == "NobusSpaceBot"
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            dict(snapshot, name="NobusSpaceClone"), role="main",
+            task_name="NobusSpaceBot", expected_action=action,
+        )
+
+
+def test_m1_scheduler_binding_rejects_unsafe_identity_action_trigger_and_settings():
+    snapshot, action = _scheduler_snapshot("NobusSpaceBot", role="main")
+    changes = (
+        lambda value: value["signature"].update(principal="S-1-5-21-9-9-9-1001"),
+        lambda value: value["signature"].update(logon_type=2),
+        lambda value: value["signature"].update(run_level=1),
+        lambda value: value["signature"]["actions"][0].update(arguments="changed"),
+        lambda value: value["signature"].update(start_when_available=False),
+        lambda value: value["signature"].update(disallow_battery=True),
+        lambda value: value["signature"].update(multiple_instances=0),
+        lambda value: value["signature"]["triggers"][0].update(type="MSFT_TaskTimeTrigger"),
+    )
+    for change in changes:
+        candidate = json.loads(json.dumps(snapshot))
+        change(candidate)
+        with pytest.raises(ValueError, match="scheduler task profile"):
+            supervisor._validate_scheduler_task_snapshot(
+                candidate, role="main", task_name="NobusSpaceBot",
+                expected_action=action,
+            )
+
+
+def test_m1_backup_activation_config_is_exactly_bound(monkeypatch, tmp_path):
+    from src.application.runtime_maintenance import file_evidence
+    from src.contracts.models import canonical_json_digest
+
+    runtime = tmp_path / "state"
+    backup = tmp_path / "backups"
+    runtime.mkdir()
+    backup.mkdir()
+    inputs = {}
+    for relative in (
+        "ops/windows/Invoke-NobusSpaceTask.ps1",
+        "docs/11-Контекст-продукта.md",
+        "codex-runtime.local.json",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+        inputs[relative] = file_evidence(path)
+    application = {
+        "source_commit": "1" * 40,
+        "code_digest": "sha256:" + "2" * 64,
+        "schema_digest": "sha256:" + "3" * 64,
+        "protection": "current-user-dpapi",
+        "database_limit_bytes": 1,
+    }
+    snapshots = {
+        "main": {"signature": {"role": "main", "exact": True}},
+        "health": {"signature": {"role": "health", "exact": True}},
+    }
+    value = {
+        "schema": "c6-backup-cycle-1",
+        "application": application,
+        "runtime": str(runtime),
+        "backup_root": str(backup),
+        "ownership": "sha256:" + "4" * 64,
+        "tasks": {
+            role: {
+                "name": "NobusSpaceBot" + ("" if role == "main" else "-Health"),
+                "signature": snapshots[role]["signature"],
+            }
+            for role in ("main", "health")
+        },
+        "inputs": inputs,
+    }
+    config = tmp_path / "backup-cycle.json"
+    config.write_text(
+        json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(supervisor, "WORKTREE", tmp_path)
+    result = supervisor._validate_backup_activation_config(
+        config, canonical_json_digest(value), application=application,
+        runtime=runtime, backup=backup, ownership=value["ownership"],
+        task_name="NobusSpaceBot", snapshots=snapshots,
+    )
+    assert result == {"path": "backup-cycle.json", **file_evidence(config)}
+
+    value["tasks"]["main"]["signature"] = {"role": "main", "exact": False}
+    config.write_text(
+        json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="backup activation configuration"):
+        supervisor._validate_backup_activation_config(
+            config, canonical_json_digest(value), application=application,
+            runtime=runtime, backup=backup, ownership=value["ownership"],
+            task_name="NobusSpaceBot", snapshots=snapshots,
+        )
+
+
+def test_m1_scheduler_inspect_binds_current_windows_principal():
+    helper = (
+        Path(__file__).parents[1] / "ops" / "windows" / "Invoke-NobusSpaceTask.ps1"
+    ).read_text(encoding="utf-8")
+    assert "WindowsIdentity]::GetCurrent().User.Value" in helper
+
+
+def test_m1_fixture_uses_process_handshake_and_proves_cleanup():
+    probe = (Path(__file__).parent / "fixtures" / "m1_scheduler_exit_probe.py").read_text(
+        encoding="utf-8"
+    )
+    fixture = (
+        Path(__file__).parent / "gate_m1_s1" / "Invoke-SchedulerRetryFixture.ps1"
+    ).read_text(encoding="utf-8")
+    assert "time.sleep(0.5)" not in probe
+    assert "children_started=" in probe
+    assert "Stop-ScheduledTask" in fixture
+    assert "Get-CimInstance Win32_Process" in fixture
+    assert "OpenExisting" in fixture
+    assert fixture.index("Stop-ScheduledTask") < fixture.index("Unregister-ScheduledTask")

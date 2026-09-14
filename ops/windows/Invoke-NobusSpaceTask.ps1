@@ -16,9 +16,11 @@ try {
     $task=Get-ScheduledTask -TaskName $TaskName -TaskPath '\'
     $info=$task | Get-ScheduledTaskInfo
     $principal=([System.Security.Principal.NTAccount]::new($task.Principal.UserId)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+    $currentPrincipal=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     [ordered]@{
         name=$task.TaskName; state=$task.State.ToString(); enabled=[bool]$task.Settings.Enabled
         last_result=[int64]$info.LastTaskResult
+        current_principal=$currentPrincipal
         signature=[ordered]@{
             principal=$principal; logon_type=[int]$task.Principal.LogonType; run_level=[int]$task.Principal.RunLevel
             actions=@($task.Actions | ForEach-Object { [ordered]@{execute=$_.Execute; arguments=$_.Arguments; working_directory=$_.WorkingDirectory} })

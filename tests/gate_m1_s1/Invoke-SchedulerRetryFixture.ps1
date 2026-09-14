@@ -19,6 +19,9 @@ $transientTask = "NobusSpace-M1S1-Fixture-Transient-$($RunId.Substring(0, 8))"
 $exhaustedTask = "NobusSpace-M1S1-Fixture-Budget-$($RunId.Substring(0, 8))"
 $permanentTask = "NobusSpace-M1S1-Fixture-Permanent-$($RunId.Substring(0, 8))"
 $taskNames = @($transientTask, $exhaustedTask, $permanentTask)
+$transientReceipt = Join-Path $evidenceRoot 'transient.jsonl'
+$exhaustedReceipt = Join-Path $evidenceRoot 'exhausted.jsonl'
+$permanentReceipt = Join-Path $evidenceRoot 'permanent.jsonl'
 $restartBudget = 2
 $expectedAttempts = $restartBudget + 1
 $registered = [System.Collections.Generic.List[string]]::new()
@@ -35,6 +38,13 @@ $transientController = $null
 $exhaustedController = $null
 $permanentController = $null
 $triggerAt = $null
+$cleanupTaskStates = [ordered]@{}
+$cleanupProcessCount = $null
+$cleanupMutexesAbsent = $false
+$cleanupEventsAbsent = $false
+$cleanupDefinitionsAbsent = $false
+$cleanupDeadlineSeconds = 30
+$evidenceRootCreated = $false
 
 function Get-Sha256Text([string] $Value) {
     $hash = [System.Security.Cryptography.SHA256]::HashData(
@@ -42,6 +52,80 @@ function Get-Sha256Text([string] $Value) {
     )
     return 'sha256:' + [Convert]::ToHexString($hash).ToLowerInvariant()
 }
+
+function Get-FixtureObjectSuffix([string] $ReceiptPath) {
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes(
+            $RunId + [IO.Path]::GetFileName($ReceiptPath)
+        )
+        $digest = $hasher.ComputeHash($bytes)
+        $hex = -join @($digest | ForEach-Object { $_.ToString('x2') })
+        return $hex.Substring(0, 32)
+    }
+    finally {
+        $hasher.Dispose()
+    }
+}
+
+function Test-MutexAbsent([string] $Name) {
+    $handle = $null
+    try {
+        $handle = [Threading.Mutex]::OpenExisting($Name)
+        return $false
+    }
+    catch [Threading.WaitHandleCannotBeOpenedException] {
+        return $true
+    }
+    finally {
+        if ($null -ne $handle) { $handle.Dispose() }
+    }
+}
+
+function Test-EventAbsent([string] $Name) {
+    $handle = $null
+    try {
+        $handle = [Threading.EventWaitHandle]::OpenExisting($Name)
+        return $false
+    }
+    catch [Threading.WaitHandleCannotBeOpenedException] {
+        return $true
+    }
+    finally {
+        if ($null -ne $handle) { $handle.Dispose() }
+    }
+}
+
+function Get-FixtureProcessCount(
+    [string] $ExpectedRunId,
+    [string] $ExpectedProbe
+) {
+    $count = 0
+    foreach ($process in @(Get-CimInstance Win32_Process -ErrorAction Stop)) {
+        if (
+            [string] $process.Name -in @('python.exe','pythonw.exe') -and
+            -not [string]::IsNullOrEmpty([string] $process.CommandLine) -and
+            ([string] $process.CommandLine).Contains($ExpectedRunId) -and
+            ([string] $process.CommandLine).Contains($ExpectedProbe) -and
+            ([string] $process.CommandLine).Contains('--controller')
+        ) {
+            $count += 1
+        }
+    }
+    return $count
+}
+
+$fixtureObjectSuffixes = @(
+    Get-FixtureObjectSuffix $transientReceipt
+    Get-FixtureObjectSuffix $exhaustedReceipt
+    Get-FixtureObjectSuffix $permanentReceipt
+)
+$fixtureMutexNames = @($fixtureObjectSuffixes | ForEach-Object {
+    'Global\NobusSpaceM1S1Fixture-' + $_
+})
+$fixtureEventNames = @($fixtureObjectSuffixes | ForEach-Object {
+    'Local\NobusSpaceM1S1Stop-' + $_
+})
 
 function Read-SafeRows(
     [string] $Path,
@@ -227,9 +311,7 @@ try {
 
     $stage = 'register'
     New-Item -ItemType Directory -Path $evidenceRoot | Out-Null
-    $transientReceipt = Join-Path $evidenceRoot 'transient.jsonl'
-    $exhaustedReceipt = Join-Path $evidenceRoot 'exhausted.jsonl'
-    $permanentReceipt = Join-Path $evidenceRoot 'permanent.jsonl'
+    $evidenceRootCreated = $true
     $settings = New-ScheduledTaskSettingsSet `
         -StartWhenAvailable `
         -AllowStartIfOnBatteries `
@@ -384,24 +466,93 @@ catch {
 }
 finally {
     $stage = 'cleanup'
-    $cleanupOutcome = 'proven'
-    foreach ($name in @($registered)) {
-        try {
-            Unregister-ScheduledTask -TaskName $name -TaskPath '\' -Confirm:$false -ErrorAction Stop
+    $cleanupOutcome = 'not_proven'
+    try {
+        foreach ($name in @($registered)) {
+            $task = Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue
+            if ($null -ne $task -and [string] $task.State -in @('Running','Queued')) {
+                try {
+                    Stop-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction Stop
+                }
+                catch {
+                    $task = Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue
+                    if ($null -ne $task -and [string] $task.State -in @('Running','Queued')) {
+                        throw
+                    }
+                }
+            }
         }
-        catch {
-            $cleanupOutcome = 'failed'
+
+        $cleanupDeadline = (Get-Date).AddSeconds($cleanupDeadlineSeconds)
+        do {
+            $cleanupTaskStates = [ordered]@{}
+            $tasksInactive = $true
+            foreach ($name in @($registered)) {
+                $task = Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue
+                $state = if ($null -eq $task) { 'Absent' } else { [string] $task.State }
+                $cleanupTaskStates[$name] = $state
+                if ($state -in @('Running','Queued')) { $tasksInactive = $false }
+            }
+            $cleanupProcessCount = Get-FixtureProcessCount $RunId $probe
+            $cleanupMutexesAbsent = @(
+                $fixtureMutexNames | Where-Object { Test-MutexAbsent $_ }
+            ).Count -eq $fixtureMutexNames.Count
+            $cleanupEventsAbsent = @(
+                $fixtureEventNames | Where-Object { Test-EventAbsent $_ }
+            ).Count -eq $fixtureEventNames.Count
+            $cleanupSettled = (
+                $tasksInactive -and
+                $cleanupProcessCount -eq 0 -and
+                $cleanupMutexesAbsent -and
+                $cleanupEventsAbsent
+            )
+            if (-not $cleanupSettled) { Start-Sleep -Milliseconds 250 }
+        } while (-not $cleanupSettled -and (Get-Date) -lt $cleanupDeadline)
+
+        if (-not $cleanupSettled) {
+            throw 'Fixture cleanup could not be proven before its deadline.'
         }
+
+        foreach ($name in @($registered)) {
+            if (Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue) {
+                Unregister-ScheduledTask -TaskName $name -TaskPath '\' -Confirm:$false -ErrorAction Stop
+            }
+        }
+        $cleanupDefinitionsAbsent = $true
+        foreach ($name in @($registered)) {
+            if (Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue) {
+                $cleanupDefinitionsAbsent = $false
+            }
+        }
+        if (-not $cleanupDefinitionsAbsent) {
+            throw 'Fixture task definitions remain after cleanup.'
+        }
+        $cleanupOutcome = 'proven'
     }
-    foreach ($name in $taskNames) {
-        if (Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue) {
-            $cleanupOutcome = 'failed'
+    catch {
+        $cleanupOutcome = 'failed'
+        if ($null -eq $cleanupProcessCount) {
+            try { $cleanupProcessCount = Get-FixtureProcessCount $RunId $probe }
+            catch { $cleanupProcessCount = $null }
+        }
+        if ($cleanupTaskStates.Count -eq 0) {
+            foreach ($name in @($registered)) {
+                try {
+                    $task = Get-ScheduledTask -TaskName $name -TaskPath '\' -ErrorAction SilentlyContinue
+                    $cleanupTaskStates[$name] = if ($null -eq $task) {
+                        'Absent'
+                    } else { [string] $task.State }
+                }
+                catch {
+                    $cleanupTaskStates[$name] = 'UNKNOWN'
+                }
+            }
         }
     }
     if ($cleanupOutcome -eq 'failed' -and $null -eq $errorClass) {
         $errorClass = 'fixture_cleanup_failed'
     }
-    if (Test-Path -LiteralPath $evidenceRoot -PathType Container) {
+    if ($evidenceRootCreated -and (Test-Path -LiteralPath $evidenceRoot -PathType Container)) {
         $result = [ordered]@{
             schema = 'nobus-m1-scheduler-fixture-result-3'
             run_id = $RunId
@@ -443,6 +594,15 @@ finally {
             }
             stop_confirmation_seconds = 75
             cleanup_outcome = $cleanupOutcome
+            cleanup = [ordered]@{
+                outcome = $cleanupOutcome
+                deadline_seconds = $cleanupDeadlineSeconds
+                task_states = $cleanupTaskStates
+                process_count = $cleanupProcessCount
+                mutexes_absent = $cleanupMutexesAbsent
+                stop_events_absent = $cleanupEventsAbsent
+                definitions_absent = $cleanupDefinitionsAbsent
+            }
         }
         $resultPath = Join-Path $evidenceRoot 'result.json'
         [IO.File]::WriteAllText(

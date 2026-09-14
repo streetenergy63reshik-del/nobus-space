@@ -1,7 +1,61 @@
 # M1-S1 — HANDOFF
 
 
-**Статус 14.09.2026, 14:02 МСК:** принятый MVP1 v1.0.2 работает на прежнем LIVE `82003c03d8a36015703472b472640ab4021fb416`. Второй frozen candidate `19c9bf3b790f411790191d58c6110817ae887d3f` отклонён совокупным L2/L3 и не будет опубликован или развёрнут. На его exact parent подготовлен один новый WIP-пакет; source freeze, real fixture v3 и независимые L1/L2/L3 ещё не выполнены. Наблюдение 72 часа не начато.
+**Статус 14.09.2026, 17:20 МСК:** принятый и опубликованный MVP1 v1.0.2 неизменён, а его последний проверенный runtime-срез остаётся DOWN после `runtime_failed` в 14:39:09 МСК. Третий frozen candidate `121a4df400a6bed01427e48f9aa66eb2822852db` отклонён совокупным L1/L2/L3 и не будет опубликован или развёрнут. Новый незамороженный WIP-пакет на его parent локально GREEN; владелец точно разрешил три именованные synthetic Scheduler-задачи и их scoped cleanup. Наблюдение 72 часа не начато.
+
+## Текущий checkpoint после review `121a4df…`
+
+### Refs и production read-only
+
+| Объект | Факт |
+|---|---|
+| Published product/tag | `v1.0.2` → `82003c03d8a36015703472b472640ab4021fb416`, не перемещён |
+| Remote main до M1-S1 | `88e58c8866db2384423f2b154df901a2e4af6c48` |
+| LIVE | clean detached `Code/worktrees/telegram-live` на `82003c03…`; сейчас не запущен |
+| StateRoot / BackupRoot | canonical `.runtime/production-c6/migration-01/state` / `.runtime/production-c6/backups` |
+| Новый WIP | branch `codex/m1-s1-stability`, parent `121a4df…`, source freeze отсутствует |
+
+Срез 15:34–15:37 МСК выполнен без production-записи:
+
+- legacy operator history: `starting` `2026-09-14T00:31:06Z`, затем `runtime_failed` `2026-09-14T11:39:09Z`; первичная причина остаётся `UNKNOWN`;
+- main enabled/Ready/LastTaskResult `1`, `RestartCount=10`, `RestartInterval=PT1M`; Health и Backup enabled, Backup Ready/0;
+- exact LIVE supervisor/Core/relay/listener 8765 отсутствуют; local/public `false/false`; active polling/job lease отсутствует;
+- четыре БД PASS; 86 tasks/ingress, 168 audit events, 7 sealed answers, 84 ACK messages/receipts, 14/14 delivery parts, queue `{}`, `delivery_unknown=0`, `reconciliation=false`;
+- polling offset `375633467`, revision `44146`; ни дублей, ни второй очереди не выявлено;
+- exact LIVE v1.0.2 повторно проверил generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c`: manifest `sha256:575a2f272f7c48810fbb4c44d88215bcba2556dc01fb0c95a396c75ad93ae84e`, authentication/binding/ciphertext PASS, возраст `43577.032` с; restore не запускался.
+
+Проверка той же копии WIP-кодом ожидаемо дала `backup_unverified_do_not_restore`, потому что application code digest кандидата отличается от v1.0.2. Это fail-closed совместимость, не повреждение backup. Production-переход поэтому обязан сохранить свежую pre-change v1.0.2 generation и затем создать отдельную candidate-bound generation до допуска/запуска candidate.
+
+### Отклонённый третий freeze и текущий WIP
+
+`121a4df400a6bed01427e48f9aa66eb2822852db`, tree `e35b662538aa5b6470eca4aea8356ef12286163f`, отклонён: L1/L2/L3 — FAIL/REWORK. Freeze receipt `m1-s1-source-freeze-121a4df.json`, SHA-256 `505749417eccdb67fe10ea87868b9d520547754b24c29519942ed93df3bb7663`. Его broad JUnit содержит 206 tests / 18 failures: один реальный race с четвёртым `stop_event.wait`, 16 verifier/environment failures из-за отсутствующего pytest mutex namespace при работающем production singleton и один sandbox-only C5 `git safe.directory`; последний exact test вне sandbox PASS. Эти evidence не переносятся на следующую ревизию.
+
+Собранные L1/L2/L3 замечания исправляются одним WIP-пакетом:
+
+- readiness settle больше не вызывает четвёртый stop wait; после отдельного bounded settle приоритет остаётся у child exit;
+- пустой recovery acknowledgement не запускает runtime; stop create/signal/close и неожиданный startup имеют отдельные безопасные exits;
+- UNKNOWN heads сбрасываются только exact newest authenticated digest; смена проверенного activation binding выполняется отдельным `activation_rebind` с сохранением цепочки;
+- control closing/closed/failure и fallback принимают только согласованные command/error/exit/disposition matrices; ошибка записи evidence остаётся типизированным STOP;
+- activation binding v3 проверяет exact names/actions/principal/triggers/settings main/health/backup, Scheduler restart `0`, candidate-bound backup config и все прежние runtime inputs;
+- permanent fixture ждёт фактический Core exit через process handshake, а не временную задержку.
+
+Локальные результаты WIP, не являющиеся frozen Gate evidence:
+
+- post-review RED: `12 passed, 21 failed`; все 21 отказ соответствовали собранным блокерам;
+- дополнительный CLI matrix RED: `1 failed` (`stop` был ошибочно унаследован частично распознанными arguments), после исправления включён в общий GREEN;
+- supervisor/rework/L3 synthetic вместе с cleanup source contract: `109 passed in 12.68s`;
+- зависимые Windows/backup tests: `85 passed`; C5 subprocess recovery, заблокированный sandbox `safe.directory`, отдельно вне sandbox — `1 passed`;
+- Python AST, PowerShell parser и `git diff --check` — PASS.
+
+### Полученное разрешение и следующий шаг
+
+Владелец текущим ответом `Разрешаю` подтвердил ранее предъявленное точное действие: зарегистрировать, выполнить, при необходимости точечно остановить и удалить только три уникальные задачи `NobusSpace-M1S1-Fixture-Transient-*`, `NobusSpace-M1S1-Fixture-Budget-*`, `NobusSpace-M1S1-Fixture-Permanent-*`, без production inputs/model/ASR/messages. Fail-safe cleanup уже реализован и локально проверен: сначала exact `Stop-ScheduledTask`, затем bounded доказательство non-running state, нуля fixture-процессов и отсутствия уникальных mutex/event; только после этого definitions удаляются. При недоказанном cleanup definitions сохраняются для оператора, широкого kill нет.
+
+Следующий шаг: один новый source freeze → real three-case Scheduler run → D01/security → независимые L1/L2/L3 той же ревизии. Только aggregate PASS открывает единый production-план: fresh v1.0.2 pre-change backup и baseline; exact planned stop/cleanup; publication без нового tag; переключение LIVE; exact task/config binding; recovery rebind; candidate-bound backup cycle, который запускает ровно один runtime; local/public/stock readiness; одна text-задача и TXT; post-baseline. Неизвестный внешний эффект сначала сверяется, БД поверх новых accepted tasks не откатываются.
+
+Раздельный verdict: published release — `v1.0.2` unchanged; repaired candidate — WIP/local GREEN, freeze pending; deployed runtime — accepted `82003c03`, currently DOWN; stability observation — NOT STARTED; M2-G0 — BLOCKED.
+
+Следующие разделы до явно отмеченных архивов сохраняют предыдущие checkpoint-факты и не являются текущим runtime-срезом.
 
 ## Канонические refs и границы
 

@@ -1,8 +1,8 @@
 {
   "schema": "nobus-m1-s1-evidence-3",
   "gate": "M1-S1",
-  "updated_at": "2026-09-14T11:02:00Z",
-  "status": "WIP_GREEN_SOURCE_FREEZE_PENDING",
+  "updated_at": "2026-09-14T14:20:00Z",
+  "status": "WIP_LOCAL_GREEN_FREEZE_PENDING",
   "accepted_product": {
     "tag": "v1.0.2",
     "commit": "82003c03d8a36015703472b472640ab4021fb416",
@@ -40,17 +40,35 @@
       "scheduler_fixture_run_id": "9af4c7e28d6b41d0a735e2f6b8c1934e",
       "evidence_reused_for_next_candidate": false,
       "publish_or_deploy": false
+    },
+    {
+      "commit": "121a4df400a6bed01427e48f9aa66eb2822852db",
+      "tree": "e35b662538aa5b6470eca4aea8356ef12286163f",
+      "verdict": {
+        "L1": "FAIL",
+        "L2": "FAIL",
+        "L3": "FAIL",
+        "aggregate": "FAIL"
+      },
+      "freeze_receipt": "m1-s1-source-freeze-121a4df.json",
+      "freeze_receipt_sha256": "sha256:505749417eccdb67fe10ea87868b9d520547754b24c29519942ed93df3bb7663",
+      "broad_junit_sha256": "sha256:0355977e63c017d686020d5d77eef1e7f1773d894e21577fa571efd0fa4abd80",
+      "broad_tests": 206,
+      "broad_failures": 18,
+      "evidence_reused_for_next_candidate": false,
+      "publish_or_deploy": false
     }
   ],
   "current_wip": {
     "branch": "codex/m1-s1-stability",
     "isolated_worktree": true,
-    "parent_commit": "19c9bf3b790f411790191d58c6110817ae887d3f",
+    "parent_commit": "121a4df400a6bed01427e48f9aa66eb2822852db",
     "source_candidate_commit": null,
     "source_candidate_tree": null,
     "gate_freeze_receipt": "PENDING_POST_COMMIT",
     "changed_zone": [
       "scripts/run_nobus_space_live.py",
+      "ops/windows/Invoke-NobusSpaceTask.ps1",
       "ops/windows/Install-NobusSpaceBot.ps1",
       "tests/fixtures/m1_scheduler_exit_probe.py",
       "tests/gate_m1_s1/Invoke-SchedulerRetryFixture.ps1",
@@ -67,20 +85,20 @@
     "old_backups_or_recovery_refs_changed": false
   },
   "production_snapshot": {
-    "observed_utc": "2026-09-14T10:57:53Z/2026-09-14T10:59:13Z",
+    "observed_utc": "2026-09-14T12:34:00Z/2026-09-14T12:37:20Z",
     "source": "READ_ONLY",
     "scheduler": {
       "main": {
         "enabled": true,
-        "state": "Running",
-        "last_result": 267009,
+        "state": "Ready",
+        "last_result": 1,
         "restart_count": 10,
         "restart_interval": "PT1M"
       },
       "health": {
         "enabled": true,
-        "state": "Ready",
-        "last_result": 0
+        "state": "Running",
+        "last_result": 267009
       },
       "backup": {
         "enabled": true,
@@ -90,18 +108,18 @@
       }
     },
     "topology": {
-      "logical_supervisor": 1,
-      "supervisor_venv_hosts": 2,
-      "gated_helpers": 2,
-      "relay": 1,
-      "core_chain": 1,
-      "listener_8765": 1,
-      "active_polling_lease": 1
+      "logical_supervisor": 0,
+      "supervisor_venv_hosts": 0,
+      "gated_helpers": 0,
+      "relay": 0,
+      "core_chain": 0,
+      "listener_8765": 0,
+      "active_polling_lease": 0
     },
     "readiness": {
-      "local": true,
-      "public": true,
-      "status": "PASS"
+      "local": false,
+      "public": false,
+      "status": "FAIL"
     },
     "state": {
       "databases_healthy": 4,
@@ -118,28 +136,32 @@
       "delivery_unknown": 0,
       "reconciliation": false,
       "polling_offset": 375633467,
-      "polling_revision": 43983
+      "polling_revision": 44146
     },
     "backup": {
       "generation": "daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c",
       "manifest_digest": "sha256:575a2f272f7c48810fbb4c44d88215bcba2556dc01fb0c95a396c75ad93ae84e",
       "authentication_binding_ciphertext": "PASS",
-      "age_seconds_at_check": 37840.017,
+      "age_seconds_at_check": 43577.032,
       "under_24h_at_check": true,
       "restore_run": false,
-      "corrected_manifest_path_after_safe_failed_probe": "snapshot/manifest.json"
+      "corrected_manifest_path_after_safe_failed_probe": "snapshot/manifest.json",
+      "verified_by_exact_application_commit": "82003c03d8a36015703472b472640ab4021fb416",
+      "candidate_application_mismatch_is_fail_closed": true
     }
   },
   "findings": {
     "F01": {
       "class": "FACT_PLUS_UNKNOWN",
       "status": "REPRODUCIBLE_MECHANISMS_DISTINGUISHED",
-      "historical_primary_trigger_2026_09_10_to_13": "UNKNOWN",
+      "historical_primary_trigger_2026_09_10_to_14": "UNKNOWN",
+      "latest_legacy_start_utc": "2026-09-14T00:31:06Z",
+      "latest_legacy_runtime_failed_utc": "2026-09-14T11:39:09Z",
       "child_exit_after_blocking_probe_priority": true
     },
     "F02": {
       "class": "FACT",
-      "status": "REPAIRED_WIP_NOT_DEPLOYED",
+      "status": "REPAIRED_WIP_NOT_FROZEN_OR_DEPLOYED",
       "core_safe_json_max_bytes": 4096,
       "exact_core_failure_allowlist": true,
       "protocol": "nobus-runtime-event-3",
@@ -150,7 +172,7 @@
     },
     "F03": {
       "class": "FACT",
-      "status": "OLD_MECHANISM_FAILED_NEW_THREE_CASE_FIXTURE_PENDING",
+      "status": "OLD_MECHANISM_FAILED_NEW_THREE_CASE_FIXTURE_SOURCE_GREEN_REAL_RUN_PENDING",
       "old_scheduler_normal_exit_retry_observed": false,
       "production_retry_budget_exhausted_claimed": false,
       "candidate_owner": "one_scheduler_action",
@@ -161,7 +183,9 @@
         "transient": "attempt_2_recovery",
         "repeated_transient": "attempt_3_budget_stop",
         "permanent_core_fail": "attempt_1_stop_non_retryable"
-      }
+      },
+      "production_attempt_history_available": false,
+      "production_budget_exhaustion_claimed": false
     },
     "F04": {
       "class": "FACT",
@@ -204,12 +228,14 @@
       75,
       76,
       77,
-      78
+      78,
+      79,
+      80
     ],
     "retry_only_after_proven_cleanup": true,
     "unknown_or_permanent": "STOP"
   },
-  "activation_binding_v2": {
+  "activation_binding_v3": {
     "source_code_schema": true,
     "exact_state_root": true,
     "semantic_admission_flag": true,
@@ -221,7 +247,11 @@
     "backup_root_and_ownership": true,
     "installed_python_and_distributions_and_requirements": true,
     "health_launcher": true,
-    "scheduler_main_health_backup_signatures": true
+    "scheduler_main_health_backup_signatures": true,
+    "scheduler_names_actions_principal_triggers_settings_validated": true,
+    "scheduler_restart_count_zero_required": true,
+    "candidate_bound_backup_config": true,
+    "authenticated_history_rebind_preserves_chain": true
   },
   "verification": [
     {
@@ -243,6 +273,36 @@
       "kind": "GREEN",
       "scope": "permanent product controller",
       "result": "one attempt; stop_non_retryable; exit 29; no raw output"
+    },
+    {
+      "kind": "REJECTED_FREEZE",
+      "scope": "121a4df400a6bed01427e48f9aa66eb2822852db",
+      "result": "L1/L2/L3 FAIL; 206 broad tests with 18 failures; evidence archived and not reusable"
+    },
+    {
+      "kind": "RED",
+      "scope": "post-121a collected reviewer blockers",
+      "result": "12 passed, 21 failed; failures matched the intended blocking cases"
+    },
+    {
+      "kind": "RED",
+      "scope": "invalid arguments must not inherit a partial command",
+      "result": "1 failed: returned fallback_event_write_failed/73 instead of runtime_arguments_invalid/74"
+    },
+    {
+      "kind": "WIP_GREEN",
+      "scope": "post-121a supervisor/rework/L3 synthetic including real Scheduler cleanup source contract",
+      "result": "109 passed in 12.68s"
+    },
+    {
+      "kind": "WIP_GREEN",
+      "scope": "dependent Windows/backup set",
+      "result": "85 passed; one sandbox-only C5 recovery test separately 1 passed outside sandbox"
+    },
+    {
+      "kind": "WIP_GREEN",
+      "scope": "syntax and diff",
+      "result": "Python AST PASS; PowerShell parser PASS; git diff --check PASS"
     }
   ],
   "frozen_verification_pending": [
@@ -256,9 +316,10 @@
     "independent_L3"
   ],
   "permissions": {
-    "all_in_scope_M1_S1_actions_authorized": true,
+    "general_all_necessary_actions_authorization_received": true,
     "run_count_limited": false,
-    "publication_deploy_scheduler_activation_real_text_and_observation_authorized": true,
+    "exact_scheduler_fixture_tool_approval": "GRANTED_2026-09-14_FOR_TRANSIENT_BUDGET_PERMANENT_SCOPED_STOP_AND_CLEANUP",
+    "publication_deploy_scheduler_activation_real_text_and_observation": "PENDING_EXACT_FINAL_CANDIDATE_PLAN",
     "production_transition_performed": false,
     "qualification_text_tasks": 1,
     "model_execution_budget": 1,
@@ -283,11 +344,11 @@
     "managed_update": "NOT_APPLIED_ARGUMENT_REJECTED",
     "unchanged_retry_performed": false
   },
-  "next_step": "commit one source candidate; bind external freeze receipt; run exact fixture v3/D01/security/L1/L2/L3; proceed to production only on aggregate PASS",
+  "next_step": "commit one source candidate; bind external freeze receipt; run the approved fixture v3 plus D01/security/L1/L2/L3; proceed to production only on aggregate PASS and exact final plan",
   "verdict": {
     "published_release": "v1.0.2_UNCHANGED",
-    "repaired_candidate": "WIP_GREEN_FREEZE_PENDING",
-    "deployed_runtime": "ACCEPTED_82003c03_READY_AT_SNAPSHOT",
+    "repaired_candidate": "WIP_LOCAL_GREEN_FREEZE_PENDING",
+    "deployed_runtime": "ACCEPTED_82003c03_CURRENTLY_DOWN",
     "stability_observation": "NOT_STARTED",
     "M2_G0": "BLOCKED"
   }

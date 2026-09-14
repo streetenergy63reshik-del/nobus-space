@@ -137,6 +137,7 @@ def test_m1_supervisor_distinguishes_child_exit(core_code, relay_code, error_cla
 )
 def test_m1_supervisor_records_local_and_public_failures_separately(failed_pair, error_class):
     reports = []
+    settle_calls = []
     replies = iter([(True, True), failed_pair, failed_pair, failed_pair])
     event = _Event()
     status = supervisor.supervise(
@@ -147,9 +148,11 @@ def test_m1_supervisor_records_local_and_public_failures_separately(failed_pair,
         event,
         probe=lambda: next(replies),
         report=reports.append,
+        settle=settle_calls.append,
     )
     assert status == 1
-    assert event.waits == 4  # Three intervals plus the final child-exit settle.
+    assert event.waits == 3
+    assert settle_calls == [supervisor.CHILD_EXIT_SETTLE_SECONDS]
     assert reports[-1] == {
         "stage": "steady",
         "error_class": error_class,

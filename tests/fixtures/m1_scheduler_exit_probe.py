@@ -191,14 +191,18 @@ def _product_controller(values) -> int:
         permanent = values.failure_mode == "permanent"
         recovered = not permanent and values.succeed_on == attempt
         calls = [0]
+        owned_core = [None]
+
+        def children_started(_relay, core):
+            owned_core[0] = core
 
         def probe():
             calls[0] += 1
             if calls[0] == 1:
                 if permanent:
-                    # Mirror a blocking local HTTP probe so gated-child exit can
-                    # propagate to the owned parent before the supervisor poll.
-                    time.sleep(0.5)
+                    if owned_core[0] is None:
+                        raise RuntimeError
+                    owned_core[0].wait(timeout=5)
                 if recovered:
                     def request_stop():
                         time.sleep(0.02)
@@ -219,6 +223,7 @@ def _product_controller(values) -> int:
             probe=probe,
             required_paths=(Path(executable), Path(fixture)),
             relay_settle_seconds=0.01,
+            children_started=children_started,
         )
         last_exit, expected = _record_attempt(
             values, attempt, recovered=recovered
