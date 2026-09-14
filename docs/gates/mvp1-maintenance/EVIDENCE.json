@@ -1,7 +1,7 @@
 {
   "schema": "nobus-m1-s1-evidence-4",
   "gate": "M1-S1",
-  "updated_at": "2026-09-14T18:17:00Z",
+  "updated_at": "2026-09-14T18:46:00Z",
   "status": "WIP_LOCAL_GREEN_FREEZE_PENDING",
   "accepted_product": {
     "tag": "v1.0.2",
@@ -96,12 +96,28 @@
       "junit_binding_receipt_sha256": "sha256:6d0e39a4bdbcc00683c88c2411fdd20177966e36f2c0d3120d57b0e454066133",
       "tests_passed": 218,
       "publish_or_deploy": false
+    },
+    {
+      "commit": "4777a2e59d07c18c2a99f1f3ddf818b81061c60b",
+      "tree": "723aa5cce3f7306e8b3fc1f8f9e3c4b150f79d67",
+      "freeze_receipt": "m1-s1-source-freeze-4777a2e.json",
+      "freeze_receipt_sha256": "sha256:18caa7c1560befd71c32a9f1a6a69cf7cdf789217dd32de9ef75718dd4086aea",
+      "verdict": {
+        "L1": "FAIL_DOCS",
+        "L2": "FAIL_REWORK",
+        "L3": "FAIL_DOCS",
+        "aggregate": "FAIL"
+      },
+      "scheduler_fixture_run_id": "c8042392e9d94e6ea8d36cd80f4e694f",
+      "scheduler_fixture_result_sha256": "sha256:02583d156083a8087843b99e20f8e560a6d7450e2a7fb2d85cd0b144549f00b4",
+      "scheduler_fixture_result": "PASS_2_3_1_PROVEN_CLEANUP",
+      "publish_or_deploy": false
     }
   ],
   "current_wip": {
     "branch": "codex/m1-s1-stability",
     "isolated_worktree": true,
-    "parent_commit": "23e47414932e236824c0d48430addac3cb4e9f88",
+    "parent_commit": "fcf99fc0f3a93881bc681e69f1f6f56f3676e246",
     "source_candidate_commit": null,
     "source_candidate_tree": null,
     "gate_freeze_receipt": "PENDING_POST_COMMIT",
@@ -126,7 +142,8 @@
     "old_backups_or_recovery_refs_changed": false,
     "code_repair_checkpoints": [
       "180ac12e1e83f1f1f4217acdba15eb9214692890",
-      "23e47414932e236824c0d48430addac3cb4e9f88"
+      "23e47414932e236824c0d48430addac3cb4e9f88",
+      "fcf99fc0f3a93881bc681e69f1f6f56f3676e246"
     ],
     "freeze_binding_rule": "Final docs commit/tree bound by one external post-commit receipt; code/test blobs reused when identical."
   },
@@ -287,7 +304,8 @@
       80
     ],
     "retry_only_after_proven_cleanup": true,
-    "unknown_or_permanent": "STOP"
+    "unknown_or_permanent": "STOP",
+    "latched_staging": "Only exact authenticated latch+head allows explicit owner ack of bounded plain single-link incomplete current or compact staging; full compact authenticates bootstrap/checkpoint; generic corruption remains STOP"
   },
   "activation_binding_v3": {
     "source_code_schema": true,
@@ -312,7 +330,9 @@
     "disabled_health_allowed_only_for_fresh_authenticated_candidate_bound_backup_transition": "runtime mode only; all-disabled control-only staging separately allowed",
     "authenticated_history_rebind_preserves_chain": true,
     "all_disabled_staging_control_only": true,
-    "fresh_live_input_readback": "PENDING"
+    "fresh_live_input_readback": "PASS_2026-09-14T18:30:21Z; recheck delta before activation",
+    "voice_inventory_runtime_digest": "sha256:4b9a0e8e885f160af4d553283d1695d04c98eb083ce9dc1493d4cd219d7bc92b",
+    "voice_legacy_digest_provenance": "Same five file bytes; old 3bfe7656 digest is reproduced exactly with sha256: prefixes in member rows"
   },
   "verification": [
     {
@@ -369,6 +389,25 @@
       "kind": "D01_REUSED",
       "scope": "same inventory, requirements, audit tool and environment",
       "result": "80 packages, 15 pins, zero mismatch; no package changes"
+    },
+    {
+      "kind": "RED",
+      "scope": "4777a2e reproduced late pre-signal exit and current/compact interrupted writes",
+      "result": "10 FAIL, 2 existing PASS before repair"
+    },
+    {
+      "kind": "WIP_GREEN",
+      "scope": "fcf99fc supervisor/recovery/C5/ops with negative malformed/oversize/no-latch cases; owner identity and isolated mutex",
+      "result": "210 passed",
+      "junit": "m1-s1-wip-final-02.xml",
+      "sha256": "sha256:f71ff33cb1f2b2329abc11272915f403c5787ee3f8e51b290282f1f84daa5265"
+    },
+    {
+      "kind": "SCOPED_SECURITY",
+      "scope": "fcf99fc; same scanner and prior classification",
+      "result": "42 unchanged findings",
+      "report": "vibe-audit-wip-08.md",
+      "sha256": "sha256:54d33ab1ef098a5d5b31a00f4ccfa793803fb81d950cee857ce8734eeb4192f8"
     }
   ],
   "frozen_verification_pending": [
@@ -411,7 +450,7 @@
   "next_step": "Check docs and freeze final revision once; real three-case Scheduler fixture with proven cleanup; existing L1/L2/L3; fresh LIVE inputs/backup/baseline and authorized publication/activation; real TXT; same-thread 72-hour heartbeat.",
   "verdict": {
     "published_release": "v1.0.2_UNCHANGED",
-    "repaired_candidate": "CODE_23e4741_GREEN_FINAL_FREEZE_REVIEW_PENDING",
+    "repaired_candidate": "CODE_fcf99fc_GREEN_FINAL_FREEZE_REVIEW_PENDING",
     "deployed_runtime": "ACCEPTED_82003c03_CURRENTLY_DOWN",
     "stability_observation": "NOT_STARTED",
     "M2_G0": "BLOCKED"
@@ -453,7 +492,11 @@
       "authenticated latch reconciliation after first rotation, compaction and latch-clear failure",
       "nearest local daily backup boundary",
       "exact stopped disabled staging, rollback bytes, fail-closed partial registration",
-      "control-only all-disabled activation initialization without run authority"
+      "control-only all-disabled activation initialization without run authority",
+      "pre-signal Core exit captured by stop helper",
+      "exact authenticated acknowledgement of interrupted current or compact staging",
+      "admission permit after backup restart_permitted before runtime start",
+      "gate operator exports backup XML/config/launcher bytes durably before mutation"
     ],
     "optional_nonblocking": [
       "extra principal fields",
@@ -461,5 +504,33 @@
       "fixture substage details",
       "independent parser auth"
     ]
+  },
+  "fresh_readbacks": {
+    "inputs": "m1-s1-live-input-readback-20260914-2130.json",
+    "baseline": "m1-s1-runtime-baseline-20260914-2132.json",
+    "tasks": 86,
+    "receipts": 84,
+    "parts": 14,
+    "offset": 375633467,
+    "revision": 44146,
+    "active_lease": false,
+    "backup": "PASS exact v1.0.2 authentication/binding/ciphertext at21:33 MSK; age64966sec; prechange generation still required"
+  },
+  "production_transaction": {
+    "rollback_evidence": "Gate operator CreateNew+flush/fsync+hash+readback XML of all3 tasks and old affected config/launcher bytes before first mutation; backup installer only validates digest",
+    "admission_sequence": [
+      "hold",
+      "quiescence",
+      "candidate_bound_generation",
+      "repeat_binding_and_STOP_proof",
+      "authenticated_restart_permitted",
+      "permit_admission",
+      "enable_start_one_main",
+      "local_public_readiness",
+      "enable_health"
+    ],
+    "failure": "reestablish hold and scoped cleanup",
+    "preservation": "post-baseline includes all accepted records during startup and qualification; no DB rollback",
+    "expected_pause_minutes": 20
   }
 }
