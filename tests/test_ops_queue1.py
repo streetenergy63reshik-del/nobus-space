@@ -6,12 +6,24 @@ import sqlite3
 import subprocess
 from contextlib import closing
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
+from scripts import backup_telegram_runtime as backup_runtime
 from scripts.backup_telegram_runtime import backup
 from scripts.check_telegram_health import check
 from src.application.windows_singleton import RunnerAlreadyActive, WindowsNamedMutex
+
+
+@pytest.fixture(autouse=True)
+def _isolated_backup_mutex(monkeypatch) -> None:
+    name = rf"Global\NobusSpaceBot-Test-{uuid4().hex}"
+    monkeypatch.setattr(
+        backup_runtime,
+        "WindowsNamedMutex",
+        lambda: WindowsNamedMutex(name),
+    )
 
 
 def _runtime_databases(root: Path) -> tuple[Path, ...]:
@@ -82,8 +94,9 @@ def test_health_fails_closed_for_missing_database(tmp_path: Path) -> None:
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows named mutex")
 def test_named_mutex_rejects_second_runner() -> None:
-    first = WindowsNamedMutex()
-    second = WindowsNamedMutex()
+    name = rf"Global\NobusSpaceBot-Test-{uuid4().hex}"
+    first = WindowsNamedMutex(name)
+    second = WindowsNamedMutex(name)
     with first:
         with pytest.raises(RunnerAlreadyActive):
             with second:
@@ -189,10 +202,9 @@ def test_health_reports_dead_letter_as_degraded_with_bounded_stopped_recovery(
         Path(__file__).resolve().parents[1]
         / "ops/windows/Install-NobusSpaceBot.ps1"
     ).read_text(encoding="utf-8")
-    assert "-RestartCount 10" in installer
+    assert "-RestartCount" not in installer
     assert installer.count("-AllowStartIfOnBatteries") == 2
     assert installer.count("-DontStopIfGoingOnBatteries") == 2
-    assert "-RestartCount 999" not in installer
     assert "Stop-ScheduledTask" not in installer
     assert "Start-ScheduledTask" not in installer
     assert "run_nobus_space_live.py" in installer

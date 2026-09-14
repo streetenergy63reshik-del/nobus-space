@@ -1,6 +1,6 @@
 # 08. Эксплуатация Nobus Space
 
-**9 сентября 2026:** MVP1 82003c03 принят владельцем, постоянный режим и ежедневная копия 03:30 МСК работают. Аннотированный v1.0.2 опубликован; GitHub release опубликован. [Текущий статус](handoffs/CURRENT-STATUS.md).
+**14 сентября 2026, 21:46 МСК:** v1.0.2 опубликован; production не менялся, срез 21:32 — DOWN с сохранёнными 86 задачами. Шестой candidate `4777a2e` отклонён; единый ремонт `fcf99fc0f3a93881bc681e69f1f6f56f3676e246` имеет 210 PASS. Итоговый freeze и delta-signoff существующих L1/L2/L3 впереди. [Текущий статус](handoffs/CURRENT-STATUS.md) и [пакет M1-S1](gates/mvp1-maintenance/HANDOFF.md).
 
 Этот документ содержит действующие процедуры. Прежние команды остановленных кандидатов и повторяющиеся июльские инструкции удалены из текущего текста; их история сохранена в Git и соответствующих Gate-пакетах. Подробный механизм защищённого резервирования и восстановления — [C6 OPERATIONS](gates/gate-c6-release/OPERATIONS.md).
 
@@ -8,7 +8,9 @@
 
 Telegram Bot и Mini App используют один Core, одну очередь, четыре SQLite БД и подтверждения доставки. Планировщик запускает supervisor с явными параметрами semantic admission, состояния, модели и backup ownership. Supervisor объединяет Core и reverse SSH в один Windows Job; действует один polling lease. HTTP 200 не доказывает выполнение задачи: отдельно проверяются приём, результат и файл.
 
-Включён постоянный профиль: `NobusSpaceBot` работает, logon trigger владельца включён, не более десяти повторов через минуту; `NobusSpaceBot-Health` и `NobusSpaceBot-Backup` включены. Последний полный backup/restart завершён 9 сентября в 21:20 МСК за 127,016 с, LastTaskResult 0. Следующая автоматическая копия — 10 сентября, 03:30 МСК.
+Настроен профиль принятой ревизии: logon trigger владельца и legacy `RestartCount=10/PT1M` включены; `NobusSpaceBot-Health` и `NobusSpaceBot-Backup` включены. Последний запуск main начался в 03:31:06 МСК и завершился в 14:39:09 МСК; на срезе 14.09, 15:34–15:37 МСК main Ready/1, runtime и lease отсутствуют. Четыре БД healthy, 86 задач и 84 ACK receipts сохранены, queue пустая, delivery_unknown 0, reconciliation false; offset `375633467`, revision `44146`. Generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c` повторно проверена exact LIVE v1.0.2: binding, authentication, freshness и ciphertext PASS, возраст `43577.032` с; следующая плановая копия — 15 сентября, 03:30 МСК. Restore не запускался.
+
+Реальный изолированный fixture показал: после normal action exit 23 Планировщик не выполнил ни одного из настроенных повторов. Поэтому `RestartCount/PT1M` считается существующей конфигурацией, но не работающим recovery-контрактом и не доказательством исчерпанного бюджета. Исторический первичный trigger остановок 10–14 сентября остаётся `UNKNOWN`.
 
 Рабочая копия `Code/worktrees/telegram-live` содержит активный код; состояние и резервирование находятся в приватной `Code/nobus-orchestrator-dev/.runtime/production-c6`. Python берётся из канонического `.venv`. Модель ASR пока находится в сохранённой копии C2; удалять этот каталог нельзя. Полные роли каталогов: [WORKSPACE-INVENTORY](handoffs/WORKSPACE-INVENTORY.md).
 
@@ -36,7 +38,26 @@ Telegram Bot и Mini App используют один Core, одну очере
 
 При подтверждённом STOP переключается чистый LIVE; новая версия проверяет прежние БД и создаёт новую связанную копию. Затем запускается ровно один экземпляр и проверяются Job, lease, local/public/stock readiness и относящийся к изменению сценарий. Ошибка оставляет безопасную остановку и доказательства; прежние одноразовые operators и использованные intent нельзя проигрывать заново.
 
-Постоянная фаза после итоговой приёмки включает logon trigger и предусмотренные ограниченные повторы (не более десяти с интервалом в минуту). Health не создаёт второй runtime. После первого подтверждённого сбоя квалификационных запусков оператор останавливает дальнейшие попытки и разбирает причину; бюджет не сбрасывается.
+В принятом v1.0.2 Health не создаёт второй runtime, а legacy Scheduler retries не считаются recovery. Текущий maintenance WIP переносит ограниченные повторы внутрь одного Scheduler action: максимум 10 retries через 60 секунд, только для exact allowlisted transient outcome и после proven cleanup; permanent, `UNKNOWN`, invalid/missing или противоречащий exit code Core outcome, повреждённая evidence history или exhaustion дают typed STOP. Шесть frozen revisions отклонены. До PASS real three-case Scheduler fixture, L1/L2/L3, publication и activation это TARGET, а не действующее поведение.
+
+Перед первой активацией protocol v3 оператор при остановленном runtime передаёт полный тот же набор параметров, что установлен в main action:
+
+```text
+--initialize-recovery --semantic-admission
+--runtime-root <exact StateRoot>
+--voice-model-directory <exact model directory>
+--backup-root <exact BackupRoot> --backup-ownership <exact digest>
+--health-launcher <exact generated LIVE launcher>
+--scheduler-task-name NobusSpaceBot
+```
+
+Эта команда выполняется под production mutex только после установки и readback точных main/health/backup task signatures. Binding включает канонический SID principal, identity/time триггеров, действия и влияющие settings: demand/hard-terminate, compatibility, priority, idle/network, delay/random delay, unified engine, volatile и maintenance. Main/health имеют Scheduler restart `0`; backup — daily 03:30 по локальному часовому поясу. Для read-only `--inspect-recovery` и digest-bound `--acknowledge-recovery-stop` нужен тот же полный activation input. Отсутствующая, неполная, invalid или другая binding блокирует запуск. Незавершённый `starting/control/wait` остаётся STOP/UNKNOWN; reset допустим только после сверки данных и внешних effects и сам runtime не запускает.
+
+V3 history находится в `<StateRoot>/supervisor-control`. Каждая запись аутентифицирована DPAPI текущего Windows owner, связана digest-chain и проходит строгую transition/terminal matrix; checkpoint допустим только вторым record физического `.previous`. Current+previous ограничены 1 MiB, fixed operator logs — 5 MiB. Отдельный CLI fallback current+previous ограничен 128 KiB и не содержит argv/env/payload/path. Bounded recovery latch ≤2048 bytes отдельно аутентифицирован DPAPI и сохраняет pre-control отказ записи: новая серия блокируется, пока оператор не сверит состояние, не материализует latch в точный `control_failure` и не выполнит digest-bound acknowledgement. Потеря сегмента, latch, reparse, hardlink, oversize/extra/invalid file, parser/write/fsync/control failure не открывают новую серию. Только exact authenticated latch с прежним anchor позволяет owner acknowledge прерванного zero/partial current или фиксированного bounded .compact staging; complete .compact дополнительно проверяется по bootstrap/checkpoint semantics. Inspect ничего не удаляет. Полный invalid artifact, mismatch или отсутствие latch сохраняют STOP. Exit 70–80 отдельно обозначают create/signal/close/evidence/composition/binding/busy/reset/history/startup/rebind STOP. Новый activation binding v3 включает exact main/health/backup task profiles и candidate-bound backup config; смена проверенной конфигурации требует exact authenticated rebind, а не удаления истории. In-place restore четырёх БД сохраняет control directory; реконструированный StateRoot без него остаётся STOP до сверки и нового bootstrap.
+
+До первой production mutation Gate operator сохраняет exact XML main/health/backup, старые config и launcher bytes в приватный rollback-каталог через CreateNew, flush/fsync, SHA-256 и readback. Backup installer лишь сверяет old XML digest; backup XML сохраняет Gate operator. Bot installer дополнительно сохраняет main/health XML и launcher. После admission hold, штатного STOP и доказанного отсутствия exact процессов/Job/lease/listener отключаются только эти три задачи. Installers с `-ReplaceExisting -StageDisabled` проверяют old digests и читают обратно disabled profile; промежуточный отказ оставляет задания отключёнными. Staged backup получает ближайшие будущие 03:30. Initialize/rebind/inspect/acknowledge принимают все три disabled задания с теми же signatures под production mutex; обычный run отклоняет disabled profile. После exact readback и initialize/rebind задания включаются и контролируемо запускается candidate-bound backup cycle: hold до generation, повторной binding/STOP-проверки и authenticated `restart_permitted`, затем `permit_admission → Enable/Start main → local/public readiness → Enable health`. При startup приём уже разрешён; сверка сохранности учитывает все новые accepted tasks/receipts/offset. Ошибка start/readiness возвращает hold и scoped cleanup; внешняя ошибка baseline-сверки требует той же безопасной остановки. Fresh LIVE inputs обязательны. Возврат code/config/task bytes — по решению владельца; БД поверх новых accepted tasks не откатываются.
+
+Activation binding включает document 11 и local configs, Mini App assets, semantic flag, voice inventory, BackupRoot/ownership, installed Python/distributions/requirements, health launcher и фактические signatures main/health/backup. Изменение любого элемента требует нового candidate binding. Windows owner является control authority: DPAPI защищает от другого пользователя и offline-подделки; произвольный код того же owner уже эквивалентен компрометации StateRoot/БД. Core/relay не имеют reset-команды, а недоверенные workers остаются в существующей sandbox/Job-изоляции.
 
 ## Резервирование и восстановление
 
@@ -46,9 +67,15 @@ Telegram Bot и Mini App используют один Core, одну очере
 
 Принятые цели: RPO ≤24 ч, RTO ≤30 мин; копия ежедневно 03:30 МСК и перед изменениями; хранение 7 daily / 4 weekly. Обязательный post-accept backup на 82003c03 завершён: четыре БД проверены, задачи/доставки/offset сохранены, вернулся единственный runtime. Историческое полное восстановление не переименовывается в запуск новой версии; новые связанные копии и изменённый native-путь проверены отдельно.
 
-Managed backup удерживает admission, останавливает точные main/health, создаёт и проверяет поколение, затем разрешает один запуск. Retention перемещает только доказанно принадлежащие циклу устаревшие поколения в карантин; произвольного удаления нет. Предел управляемого корня — 64 поколения и 2 ГиБ. Неизвестные, изменённые или linked файлы требуют оператора.
+Managed backup удерживает admission, останавливает точные main/health, создаёт и проверяет поколение, затем разрешает один запуск. Во время этой узкой транзакции health может оставаться disabled только при свежей аутентифицированной candidate-bound journal-фазе `restart_permitted` или `starting`; это исключение не разрешает обычный запуск с disabled health. Retention перемещает только доказанно принадлежащие циклу устаревшие поколения в карантин; произвольного удаления нет. Предел управляемого корня — 64 поколения и 2 ГиБ. Неизвестные, изменённые или linked файлы требуют оператора.
 
 Restore всегда требует точных manifest, target binding и согласования записей/эффектов после снимка. Восстановление сначала проверяется в отдельном каталоге. Существующие новые accepted tasks и receipts нельзя заменить старой копией. После restore прежние сессии и подтверждения не возрождаются; admission остаётся закрыт до аутентифицированной сверки. Автоматического live restore или отката данных нет.
+
+## Наблюдение M1-S1
+
+После успешной активации T0 фиксируется по exact deployed commit и authenticated control history. Heartbeat этой же задачи каждые 30 минут выполняет только read-only проверки Scheduler, history/fallback, local/public readiness, exact supervisor/Core/relay/listener/lease, DB counters и backup manifests. Он не запускает, не перезапускает, не сбрасывает и не восстанавливает runtime автоматически.
+
+PASS требует непрерывных 72 часов включённого ПК и owner session, минимум двух daily backup с LastTaskResult 0 и повторной authentication/binding/ciphertext проверкой, одного runtime, сохранности tasks/receipts/offset и отсутствия необъяснённых terminal events. Промежуток без проверяемого наблюдения более 60 минут начинает окно заново. Старый 15-минутный smoke не засчитывается.
 
 ## Очистка и ограничения
 

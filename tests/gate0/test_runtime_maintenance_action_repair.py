@@ -58,8 +58,8 @@ function New-SyntheticTask {
     StartWhenAvailable=$true
     DisallowStartIfOnBatteries=$false
     StopIfGoingOnBatteries=$false
-    RestartCount=10
-    RestartInterval='PT1M'
+    RestartCount=0
+    RestartInterval=$null
     ExecutionTimeLimit='PT0S'
   }
   return [pscustomobject]@{

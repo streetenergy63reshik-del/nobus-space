@@ -442,7 +442,7 @@ def test_c5_setup_failure_closes_acquired_handles_and_cannot_pass(monkeypatch, f
             seen.append("job_close_attempted")
             if failure == "close":
                 raise RuntimeError("synthetic cleanup failure")
-    def log(code):
+    def log(code, **_ignored):
         if code == "starting" and failure == "log":
             raise RuntimeError("synthetic log failure")
         seen.append(code)
@@ -456,12 +456,14 @@ def test_c5_setup_failure_closes_acquired_handles_and_cannot_pass(monkeypatch, f
     monkeypatch.setattr(supervisor, "StopEvent", Event)
     monkeypatch.setattr(supervisor, "_job_api", Api)
     monkeypatch.setattr(supervisor, "_operator_event", log)
+    monkeypatch.setattr(supervisor, "_write_runtime_event", lambda *_, **__: None)
     monkeypatch.setattr(supervisor, "spawn_owned", spawn)
     monkeypatch.setattr(supervisor, "supervise", lambda *a, **k: 0)
     monkeypatch.setattr(supervisor, "stop_process", lambda *a, **k: failure != "stop")
     monkeypatch.setattr(supervisor, "close_owned", lambda *a: seen.append("process_closed"))
     monkeypatch.setattr(supervisor, "wait_job_empty", lambda job: failure != "empty")
-    assert supervisor._main(supervisor._arguments([])) == 1
+    expected_exit = supervisor.EXIT_STOP_CONTROL_CREATE_FAILED if failure == "event" else 1
+    assert supervisor._main(supervisor._arguments([])) == expected_exit
     if "event_acquired" in seen:
         assert "event_closed" in seen
     if "job_acquired" in seen:
@@ -593,7 +595,8 @@ def test_c5_installer_health_delegates_exact_bounded_probe_and_has_total_task_li
     installer = (Path(__file__).parents[1] / "ops/windows/Install-NobusSpaceBot.ps1").read_text(encoding="utf-8")
     body = installer.split('$healthBody = @"', 1)[1].split('"@', 1)[0]
     assert "Invoke-WebRequest" not in body
-    assert "--check-ready *>> `$log" in body
+    assert "--check-ready 1>`$null 2>`$null" in body
+    assert "*>>" not in body and "health.log" not in body
     assert "if (`$LASTEXITCODE -ne 0)" in body
     assert "Start-ScheduledTask" not in body
     assert "-ExecutionTimeLimit (New-TimeSpan -Minutes 2)" in installer
@@ -606,7 +609,10 @@ def test_c5_readiness_cli_safe_json_and_never_starts_runtime(monkeypatch,capsys,
     monkeypatch.setattr(supervisor,"public_ready",lambda:outcomes[1])
     monkeypatch.setattr(supervisor,"_main",lambda *_:pytest.fail("read-only probe started runtime"))
     assert supervisor.main()==expected
-    assert json.loads(capsys.readouterr().out)=={"status":"PASS" if expected==0 else "FAIL"}
+    assert json.loads(capsys.readouterr().out)=={
+        "status":"PASS" if expected==0 else "FAIL",
+        "local_ready": outcomes[0], "public_ready": outcomes[1],
+    }
 
 
 def test_c5_probe_deadline_dns_stall_has_one_inflight_and_discards_late_pass():
@@ -674,10 +680,13 @@ def test_c5_real_redirect_never_reaches_other_origin(monkeypatch,probe_server):
         def redirect(handler,stop):
             handler.send_response(302);handler.send_header("Location",foreign_url+'/foreign');handler.send_header("Content-Length","0");handler.end_headers()
         with probe_server(redirect) as (origin,_):
-            monkeypatch.setattr(supervisor,"_READINESS_PROBE",supervisor._ReadinessProbe())
+            monkeypatch.setattr(supervisor,"_PUBLIC_READINESS_PROBE",supervisor._ReadinessProbe())
             monkeypatch.setattr(supervisor,"PUBLIC_ORIGIN",origin)
             assert supervisor.public_ready() is False
-            assert supervisor._ready_request(origin+'/readyz',seconds=2,headers={"Host":"app.nobusspace.com"}) is False
+            assert supervisor._ready_request(
+                origin+'/readyz', seconds=2, probe=supervisor._ReadinessProbe(),
+                headers={"Host":"app.nobusspace.com"},
+            ) is False
     assert foreign_hits==[]
 
 
@@ -693,7 +702,7 @@ def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch
             except OSError:return
         try:handler.wfile.write(b'0\r\n\r\n');handler.wfile.flush()
         except OSError:pass
-    probe=supervisor._ReadinessProbe();monkeypatch.setattr(supervisor,"_READINESS_PROBE",probe)
+    probe=supervisor._ReadinessProbe();monkeypatch.setattr(supervisor,"_PUBLIC_READINESS_PROBE",probe)
     with probe_server(slow) as (origin,server_stop):
         monkeypatch.setattr(supervisor,"PUBLIC_ORIGIN",origin)
         stopped=threading.Event();timer=None;start=time.monotonic()
@@ -728,13 +737,15 @@ def test_readiness_identifies_its_own_client(monkeypatch, probe_server, public):
         handler.end_headers()
         handler.wfile.write(body)
     with probe_server(reply) as (origin, _):
-        monkeypatch.setattr(supervisor, "_READINESS_PROBE", supervisor._ReadinessProbe())
         if public:
+            monkeypatch.setattr(supervisor, "_PUBLIC_READINESS_PROBE", supervisor._ReadinessProbe())
             monkeypatch.setattr(supervisor, "PUBLIC_ORIGIN", origin)
             assert supervisor.public_ready() is True
         else:
-            assert supervisor._ready_request(origin + "/readyz", seconds=2,
-                headers={"Host": "app.nobusspace.com"}) is True
+            assert supervisor._ready_request(
+                origin + "/readyz", seconds=2, probe=supervisor._ReadinessProbe(),
+                headers={"Host": "app.nobusspace.com"},
+            ) is True
         assert seen[0][0] == "NobusSpace-Health/1.0"
         if not public:
             assert seen[0][1] == "app.nobusspace.com"
