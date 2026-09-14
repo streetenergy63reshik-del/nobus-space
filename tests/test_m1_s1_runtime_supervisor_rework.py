@@ -105,6 +105,92 @@ def test_m1_child_exit_wins_a_simultaneous_planned_stop():
     assert reports[-1]["core_exit_code"] == 23
 
 
+def test_m1_readiness_failure_wins_a_later_stop_during_child_settle():
+    class LateStop:
+        stopped = False
+
+        def is_set(self):
+            return self.stopped
+
+        def wait(self, _seconds):
+            return self.stopped
+
+    stop = LateStop()
+    reports = []
+    replies = iter([(True, True), (False, False), (False, False), (False, False)])
+    status = supervisor.supervise(
+        None,
+        None,
+        _Process(),
+        _Process(),
+        stop,
+        probe=lambda: next(replies),
+        report=reports.append,
+        settle=lambda _seconds: setattr(stop, "stopped", True),
+    )
+    assert status == 1
+    assert reports[-1]["error_class"] == "local_public_readiness_failed"
+    assert reports[-1]["readiness_failures"] == 3
+
+
+def test_m1_relay_exit_during_pre_core_stop_settle_is_not_planned(
+    monkeypatch, tmp_path
+):
+    events = []
+
+    class Api:
+        @staticmethod
+        def create_job():
+            return 1
+
+        @staticmethod
+        def terminate(_job):
+            return None
+
+        @staticmethod
+        def close(_job):
+            return None
+
+    class Stop:
+        @staticmethod
+        def wait(_seconds):
+            return True
+
+        @staticmethod
+        def is_set():
+            return True
+
+    relay = _Process(23)
+    monkeypatch.setattr(supervisor, "_job_api", Api)
+    monkeypatch.setattr(supervisor, "spawn_owned", lambda *_args, **_kwargs: relay)
+    monkeypatch.setattr(supervisor, "stop_process", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(supervisor, "wait_job_empty", lambda *_args: True)
+    monkeypatch.setattr(supervisor, "close_owned", lambda *_args: None)
+    monkeypatch.setattr(supervisor, "_operator_event", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        supervisor,
+        "_write_runtime_event",
+        lambda value, **_kwargs: events.append(value) or "sha256:" + "1" * 64,
+    )
+    result = supervisor._run_attempt(
+        SimpleNamespace(),
+        stop_event=Stop(),
+        series_id="a" * 32,
+        attempt=1,
+        retry_budget=10,
+        root=tmp_path,
+        activation_binding=_BINDING,
+        relay_command=["synthetic-relay"],
+        core_command_override=["synthetic-core"],
+        required_paths=(tmp_path,),
+        relay_settle_seconds=0.01,
+    )
+    assert result == {"status": 1, "recovery_disposition": "stop_non_retryable"}
+    assert events[-1]["error_class"] == "relay_exit"
+    assert events[-1]["relay_exit_code"] == 23
+    assert events[-1]["stage"] == "relay_start"
+
+
 def test_m1_local_and_public_readiness_have_independent_bounded_slots():
     assert supervisor._LOCAL_READINESS_PROBE is not supervisor._PUBLIC_READINESS_PROBE
     blocker = threading.Event()

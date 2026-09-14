@@ -16,7 +16,7 @@ import time
 import threading
 import urllib.request
 from ctypes import wintypes
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -60,8 +60,11 @@ EXIT_RECOVERY_REBIND_REJECTED = 80
 FALLBACK_EVENT_LOG_NAME = "runner-supervisor-fallback-v1.jsonl"
 FALLBACK_EVENT_LOG_BYTES = 128 * 1024
 FALLBACK_EVENT_LINE_BYTES = 2048
+RECOVERY_LATCH_NAME = "runner-supervisor-evidence-latch-v1.json"
+RECOVERY_LATCH_BYTES = 2048
 _HISTORY_AUTHENTICATION_ENTROPY = b"nobus-space:supervisor-history:v3"
 _FALLBACK_AUTHENTICATION_ENTROPY = b"nobus-space:supervisor-fallback:v1"
+_LATCH_AUTHENTICATION_ENTROPY = b"nobus-space:supervisor-evidence-latch:v1"
 RUNTIME_EVENT_KEYS = frozenset({
     "schema", "series_id", "run_id", "event", "stage", "error_class",
     "supervisor_exit_code", "core_exit_code", "relay_exit_code",
@@ -178,6 +181,17 @@ def _parse_core_outcome(payload: bytes, *, overflow: bool = False):
     else:
         return None, "core_outcome_invalid"
     return dict(value), None
+
+
+def _core_outcome_matches_exit(exit_code, outcome) -> bool:
+    """Reject a safe Core record that contradicts the observed process exit."""
+    if exit_code is None or outcome is None:
+        return True
+    if outcome.get("status") == "FAIL":
+        return exit_code != 0
+    if outcome.get("status") in {"STOPPED", "ALREADY_RUNNING"}:
+        return exit_code == 0
+    return False
 
 
 class _CoreOutcomeCapture:
@@ -301,12 +315,146 @@ def _plain_root(root: Path, *, create: bool) -> tuple[int, int]:
     return metadata.st_dev, metadata.st_ino
 
 
+def _read_recovery_latch(root: Path):
+    """Read the bounded owner-authenticated pre-control fail-stop latch."""
+    path = Path(root) / RECOVERY_LATCH_NAME
+    if not path.exists():
+        return None, None
+    identity = _plain_root(Path(root), create=False)
+    if (_path_is_reparse(path) or not path.is_file() or not _single_link_file(path)
+            or not 0 < path.stat().st_size <= RECOVERY_LATCH_BYTES):
+        raise ValueError("runtime evidence latch is invalid")
+    content = path.read_bytes()
+    if not content.endswith(b"\n") or identity != _plain_root(Path(root), create=False):
+        raise ValueError("runtime evidence latch is invalid")
+    try:
+        recorded = json.loads(
+            content[:-1].decode("ascii"), object_pairs_hook=_unique_json_object
+        )
+        keys = {
+            "schema", "status", "error_class", "activation_binding",
+            "previous_event_digest", "series_id", "run_id", "attempt",
+            "retry_budget", "at", "authentication",
+        }
+        if type(recorded) is not dict or set(recorded) != keys:
+            raise ValueError
+        authentication = recorded.pop("authentication")
+        _verify_authentication(
+            recorded, authentication, entropy=_LATCH_AUTHENTICATION_ENTROPY
+        )
+        if (recorded["schema"] != "nobus-recovery-evidence-latch-1"
+                or recorded["status"] != "STOP"
+                or recorded["error_class"] != "runtime_event_write_failed"
+                or not _digest(recorded["activation_binding"])
+                or not _digest(recorded["previous_event_digest"])
+                or re.fullmatch(r"[0-9a-f]{32}", recorded["series_id"]) is None
+                or re.fullmatch(r"[0-9a-f]{32}", recorded["run_id"]) is None
+                or type(recorded["retry_budget"]) is not int
+                or not 0 <= recorded["retry_budget"] <= RECOVERY_RETRY_BUDGET
+                or type(recorded["attempt"]) is not int
+                or not 1 <= recorded["attempt"] <= recorded["retry_budget"] + 1
+                or re.fullmatch(
+                    r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
+                    recorded["at"],
+                ) is None):
+            raise ValueError
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError, TypeError):
+        raise ValueError("runtime evidence latch is invalid") from None
+    return recorded, "sha256:" + hashlib.sha256(content).hexdigest()
+
+
+def _write_recovery_latch(*, root: Path, activation_binding: str,
+                          previous_event_digest: str, series_id: str,
+                          run_id: str, attempt: int, retry_budget: int):
+    payload = {
+        "schema": "nobus-recovery-evidence-latch-1",
+        "status": "STOP",
+        "error_class": "runtime_event_write_failed",
+        "activation_binding": activation_binding,
+        "previous_event_digest": previous_event_digest,
+        "series_id": series_id,
+        "run_id": run_id,
+        "attempt": attempt,
+        "retry_budget": retry_budget,
+        "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    authentication = _authentication(
+        payload, entropy=_LATCH_AUTHENTICATION_ENTROPY
+    )
+    content = _canonical_ascii({**payload, "authentication": authentication}) + b"\n"
+    if len(content) > RECOVERY_LATCH_BYTES:
+        raise OSError
+    identity = _plain_root(Path(root), create=True)
+    path = Path(root) / RECOVERY_LATCH_NAME
+    if path.exists():
+        raise OSError
+    try:
+        with path.open("xb") as stream:
+            opened = os.fstat(stream.fileno())
+            if opened.st_nlink != 1:
+                raise OSError
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+            current = path.stat(follow_symlinks=False)
+            if (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino):
+                raise OSError
+        if identity != _plain_root(Path(root), create=False):
+            raise OSError
+        _value, digest = _read_recovery_latch(Path(root))
+        return digest
+    except Exception:
+        # A partial latch is intentionally retained: invalid control inventory
+        # is itself a durable fail-closed condition for the next invocation.
+        raise OSError from None
+
+
+def _clear_recovery_latch(*, root: Path, expected_digest: str) -> None:
+    identity = _plain_root(Path(root), create=False)
+    _value, digest = _read_recovery_latch(Path(root))
+    if digest != expected_digest:
+        raise OSError
+    path = Path(root) / RECOVERY_LATCH_NAME
+    path.unlink()
+    if path.exists() or identity != _plain_root(Path(root), create=False):
+        raise OSError
+
+
+def _latch_matches_control_starting(latch, event) -> bool:
+    return (
+        event is not None
+        and event["event"] == "control_starting"
+        and event["previous_event_digest"] == latch["previous_event_digest"]
+        and event["activation_binding"] == latch["activation_binding"]
+        and event["series_id"] == latch["series_id"]
+        and event["run_id"] == latch["run_id"]
+        and event["attempt"] == latch["attempt"]
+        and event["retry_budget"] == latch["retry_budget"]
+    )
+
+
+def _latch_matches_control_failure(latch, event) -> bool:
+    return (
+        event is not None
+        and event["event"] == "control_failure"
+        and event["previous_event_digest"] == latch["previous_event_digest"]
+        and event["activation_binding"] == latch["activation_binding"]
+        and event["series_id"] == latch["series_id"]
+        and event["run_id"] == latch["run_id"]
+        and event["attempt"] == latch["attempt"]
+        and event["retry_budget"] == latch["retry_budget"]
+        and event["error_class"] == "runtime_event_write_failed"
+        and event["supervisor_exit_code"] == EXIT_RUNTIME_EVIDENCE_FAILED
+    )
+
+
 def _validate_recovery_inventory(root: Path) -> None:
     allowed = {
         RUNTIME_EVENT_LOG_NAME,
         RUNTIME_EVENT_LOG_NAME + ".previous",
         "runner-supervisor.log",
         "runner-supervisor.log.previous",
+        RECOVERY_LATCH_NAME,
     }
     children = tuple(root.iterdir())
     if len(children) > len(allowed):
@@ -317,6 +465,8 @@ def _validate_recovery_inventory(root: Path) -> None:
             raise OSError
         if child.name.startswith("runner-supervisor.log"):
             _validate_operator_segment(child)
+        elif child.name == RECOVERY_LATCH_NAME:
+            _read_recovery_latch(root)
 
 
 def _terminal_state_valid(value) -> bool:
@@ -484,6 +634,10 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             raise ValueError("runtime event Core outcome is invalid")
     if value["core_outcome"] is not None and value["core_outcome_error"] is not None:
         raise ValueError("runtime event Core outcome is inconsistent")
+    if not _core_outcome_matches_exit(
+        value["core_exit_code"], value["core_outcome"]
+    ):
+        raise ValueError("runtime event Core outcome contradicts exit code")
 
     if value["event"] == "history_checkpoint":
         if (value["checkpoint_event"] not in {
@@ -711,7 +865,22 @@ def _validate_transition(previous, current, previous_digest):
             and current["attempt"] == previous["attempt"] + 1
             and current["retry_budget"] == previous["retry_budget"]
         )
-        if not (same_attempt_prior or next_attempt_after_wait):
+        clean_prior = (
+            prior in {"bootstrap", "recovery_reset", "activation_rebind"}
+            or (
+                prior == "control_closed"
+                and previous["recovery_disposition"] in {"complete", "stop_planned"}
+            )
+        )
+        failed_before_control_start = (
+            current["error_class"] == "runtime_event_write_failed"
+            and clean_prior
+            and current["series_id"] != previous["series_id"]
+            and current["attempt"] == 1
+            and current["retry_budget"] == previous["retry_budget"]
+        )
+        if not (same_attempt_prior or next_attempt_after_wait
+                or failed_before_control_start):
             raise ValueError("runtime control failure transition is invalid")
         return
     if prior == "bootstrap":
@@ -1015,6 +1184,10 @@ def _recovery_disposition(*, status, terminal, core_outcome, core_outcome_error,
         return "stop_evidence_failed"
     if core_outcome_error is not None:
         return "stop_evidence_failed"
+    if not _core_outcome_matches_exit(
+        terminal.get("core_exit_code"), core_outcome
+    ):
+        return "stop_evidence_failed"
     if terminal["error_class"] == "planned_stop":
         safe = core_outcome in (None, {"status": "STOPPED"})
         return "stop_planned" if status == 0 and safe else "stop_non_retryable"
@@ -1104,15 +1277,32 @@ def _last_runtime_event(*, root: Path = LOG_ROOT, activation_binding=None):
 def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
     """Resume a proven retry, or fail closed on STOP/UNKNOWN history."""
     try:
+        latch, latch_digest = _read_recovery_latch(root)
         event, digest = _last_runtime_event(
             root=root, activation_binding=activation_binding
         )
-    except (RuntimeError, ValueError):
+    except (OSError, RuntimeError, ValueError):
         return {"state": "blocked", "reason": "runtime_history_invalid",
                 "series_id": None, "next_attempt": None, "last_digest": None}
     if event is None:
         return {"state": "blocked", "reason": "runtime_history_missing",
                 "series_id": None, "next_attempt": None, "last_digest": None}
+    if latch is not None:
+        if latch["activation_binding"] != activation_binding:
+            return {"state": "blocked", "reason": "runtime_history_invalid",
+                    "series_id": None, "next_attempt": None, "last_digest": None}
+        if digest == latch["previous_event_digest"]:
+            return {
+                "state": "blocked", "reason": "runtime_event_write_failed",
+                "series_id": latch["series_id"], "next_attempt": None,
+                "last_digest": latch_digest,
+            }
+        if not (
+            _latch_matches_control_starting(latch, event)
+            or _latch_matches_control_failure(latch, event)
+        ):
+            return {"state": "blocked", "reason": "runtime_history_invalid",
+                    "series_id": None, "next_attempt": None, "last_digest": None}
     event = _effective_event(event)
     if event["event"] in {"bootstrap", "recovery_reset", "activation_rebind"}:
         return {"state": "new", "reason": None, "series_id": None,
@@ -1160,8 +1350,11 @@ def _initialize_recovery(*, root: Path, activation_binding: str):
     if not _digest(activation_binding):
         raise ValueError("recovery activation binding is invalid")
     try:
+        latch, _latch_digest = _read_recovery_latch(root)
+        if latch is not None:
+            raise RuntimeError
         event, digest = _last_runtime_event(root=root)
-    except RuntimeError:
+    except (RuntimeError, ValueError):
         if root.exists() and any(root.iterdir()):
             raise
         event = digest = None
@@ -1190,6 +1383,9 @@ def _rebind_recovery(expected_digest: str, *, root: Path,
     """Move a clean preserved history to one exact new activation binding."""
     if (not _digest(expected_digest) or not _digest(activation_binding)):
         raise ValueError("recovery rebind digest is invalid")
+    latch, _latch_digest = _read_recovery_latch(root)
+    if latch is not None:
+        raise RuntimeError("recovery rebind precondition failed")
     event, digest = _last_runtime_event(root=root)
     if event is None or digest != expected_digest:
         raise RuntimeError("recovery rebind precondition failed")
@@ -1218,12 +1414,54 @@ def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT,
                                activation_binding=None):
     if re.fullmatch(r"sha256:[0-9a-f]{64}", expected_digest) is None:
         raise ValueError("recovery reset digest is invalid")
+    try:
+        latch, latch_digest = _read_recovery_latch(root)
+    except (OSError, ValueError):
+        raise RuntimeError("recovery reset precondition failed") from None
     state = _recovery_state(root=root, activation_binding=activation_binding)
     event, digest = _last_runtime_event(
         root=root, activation_binding=activation_binding
     )
+    acknowledged_latch = None
+    if latch is not None:
+        if (latch["activation_binding"] != activation_binding
+                or state["state"] != "blocked"):
+            raise RuntimeError("recovery reset precondition failed")
+        if digest == latch["previous_event_digest"]:
+            if expected_digest != latch_digest or state["last_digest"] != latch_digest:
+                raise RuntimeError("recovery reset precondition failed")
+            digest = _write_runtime_event(_runtime_record(
+                latch["series_id"], latch["run_id"], "control_failure",
+                activation_binding=latch["activation_binding"],
+                attempt=latch["attempt"], retry_budget=latch["retry_budget"],
+                recovery_disposition="stop_evidence_failed",
+                stage="recovery_control", error_class="runtime_event_write_failed",
+                supervisor_exit_code=EXIT_RUNTIME_EVIDENCE_FAILED,
+                cleanup_outcome="proven",
+            ), root=root)
+            event, _current = _last_runtime_event(
+                root=root, activation_binding=activation_binding
+            )
+            if _current != digest or not _latch_matches_control_failure(latch, event):
+                raise RuntimeError("recovery reset precondition failed")
+            acknowledged_latch = latch_digest
+            _clear_recovery_latch(root=root, expected_digest=latch_digest)
+        elif (_latch_matches_control_starting(latch, event)
+              or _latch_matches_control_failure(latch, event)):
+            if expected_digest != digest or state["last_digest"] != digest:
+                raise RuntimeError("recovery reset precondition failed")
+            acknowledged_latch = latch_digest
+            _clear_recovery_latch(root=root, expected_digest=latch_digest)
+        else:
+            raise RuntimeError("recovery reset precondition failed")
+        state = _recovery_state(root=root, activation_binding=activation_binding)
+        event, digest = _last_runtime_event(
+            root=root, activation_binding=activation_binding
+        )
     if (state["state"] != "blocked" or event is None
-            or digest != expected_digest or state["last_digest"] != digest):
+            or state["last_digest"] != digest):
+        raise RuntimeError("recovery reset precondition failed")
+    if acknowledged_latch is None and digest != expected_digest:
         raise RuntimeError("recovery reset precondition failed")
     semantic = _effective_event(event)
     reset_digest = _write_runtime_event(_runtime_record(
@@ -1232,14 +1470,17 @@ def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT,
         attempt=semantic["attempt"], retry_budget=semantic["retry_budget"],
         recovery_disposition="reset", stage="recovery_control",
         supervisor_exit_code=0, cleanup_outcome="proven",
-        reset_of_digest=expected_digest,
+        reset_of_digest=digest,
     ), root=root)
-    return {
+    result = {
         "schema": "nobus-recovery-control-1",
         "status": "RESET",
-        "reset_of_digest": expected_digest,
+        "reset_of_digest": digest,
         "reset_event_digest": reset_digest,
     }
+    if acknowledged_latch is not None:
+        result["evidence_latch_digest"] = acknowledged_latch
+    return result
 
 
 class StopEvent:
@@ -1595,8 +1836,6 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
             settle(CHILD_EXIT_SETTLE_SECONDS)
             if child_exit("steady"):
                 return 1
-            if stop_event.is_set():
-                return planned_or_child("steady", failures)
             report({"stage": "steady", "error_class": _readiness_error(local, public),
                     "core_exit_code": None, "relay_exit_code": None,
                     "local_ready": local, "public_ready": public,
@@ -1757,7 +1996,9 @@ def _scheduler_task_signature(task_name: str):
 
 
 def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
-                                      expected_action: dict[str, object]):
+                                      expected_action: dict[str, object],
+                                      allow_disabled_health: bool = False,
+                                      now: datetime | None = None):
     """Reject unsafe Scheduler composition before hashing its exact identity."""
     from src.contracts.models import canonical_json_digest
 
@@ -1769,15 +2010,29 @@ def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
         "principal", "logon_type", "run_level", "actions", "triggers",
         "start_when_available", "disallow_battery", "stop_on_battery",
         "wake_to_run", "restart_count", "restart_interval",
-        "execution_limit", "multiple_instances",
+        "execution_limit", "multiple_instances", "compatibility",
+        "allow_demand_start", "allow_hard_terminate",
+        "delete_expired_task_after", "hidden", "priority",
+        "run_only_if_idle", "idle_duration", "idle_wait_timeout",
+        "stop_on_idle_end", "restart_on_idle", "run_only_if_network",
+        "network_id", "network_name", "disallow_remote_app_session",
+        "unified_scheduling_engine", "volatile",
+        "maintenance_settings_present",
     }
     trigger_keys = {
         "type", "enabled", "start", "end", "user", "days_interval",
-        "interval", "duration", "stop_at_end",
+        "interval", "duration", "stop_at_end", "execution_limit", "id",
+        "delay", "random_delay",
     }
+    disabled_health = (
+        allow_disabled_health and role == "health"
+        and type(value) is dict and value.get("enabled") is False
+        and value.get("state") == "Disabled"
+    )
     if (role not in {"main", "health", "backup"}
             or type(value) is not dict or set(value) != top_keys
-            or value["name"] != task_name or value["enabled"] is not True
+            or value["name"] != task_name
+            or (value["enabled"] is not True and not disabled_health)
             or type(value["state"]) is not str
             or type(value["last_result"]) is not int
             or type(value["current_principal"]) is not str
@@ -1798,17 +2053,40 @@ def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
             or signature["wake_to_run"] is not False
             or signature["restart_count"] != 0
             or signature["restart_interval"] not in {None, ""}
-            or signature["multiple_instances"] != 2):
+            or signature["multiple_instances"] != 2
+            or signature["compatibility"] != 3
+            or signature["allow_demand_start"] is not True
+            or signature["allow_hard_terminate"] is not True
+            or signature["delete_expired_task_after"] != ""
+            or signature["hidden"] is not False
+            or signature["priority"] != 7
+            or signature["run_only_if_idle"] is not False
+            or signature["idle_duration"] != "PT10M"
+            or signature["idle_wait_timeout"] != "PT1H"
+            or signature["stop_on_idle_end"] is not True
+            or signature["restart_on_idle"] is not False
+            or signature["run_only_if_network"] is not False
+            or signature["network_id"] != ""
+            or signature["network_name"] != ""
+            or signature["disallow_remote_app_session"] is not False
+            or signature["unified_scheduling_engine"] is not True
+            or signature["volatile"] is not False
+            or signature["maintenance_settings_present"] is not False):
         raise ValueError("scheduler task profile is invalid")
     trigger = signature["triggers"][0]
-    if type(trigger) is not dict or set(trigger) != trigger_keys or trigger["enabled"] is not True:
+    if (type(trigger) is not dict or set(trigger) != trigger_keys
+            or trigger["enabled"] is not True
+            or trigger["execution_limit"] != ""
+            or trigger["id"] != ""
+            or trigger["delay"] != ""
+            or trigger["random_delay"] != ""):
         raise ValueError("scheduler task profile is invalid")
     common_trigger = trigger["end"] is None
     if role == "main":
         valid_trigger = (
             common_trigger and trigger["type"] == "MSFT_TaskLogonTrigger"
-            and trigger["start"] is None and type(trigger["user"]) is str
-            and 0 < len(trigger["user"]) <= 256
+            and trigger["start"] is None
+            and trigger["user"] == value["current_principal"]
             and trigger["days_interval"] is None
             and trigger["interval"] is None and trigger["duration"] is None
             and trigger["stop_at_end"] is False
@@ -1820,19 +2098,26 @@ def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
         except (TypeError, ValueError):
             start = None
         aware_start = start is not None and start.tzinfo is not None
+        reference = now or datetime.now().astimezone()
+        reference_is_aware = reference.tzinfo is not None
         if role == "health":
             valid_trigger = (
-                common_trigger and aware_start
+                common_trigger and aware_start and reference_is_aware
                 and trigger["type"] == "MSFT_TaskTimeTrigger"
                 and trigger["user"] is None and trigger["days_interval"] is None
                 and trigger["interval"] == "PT1M" and trigger["duration"] == "P3650D"
                 and trigger["stop_at_end"] is True
                 and signature["execution_limit"] == "PT2M"
+                and start <= reference + timedelta(minutes=5)
+                and start + timedelta(days=3650) > reference
             )
         else:
+            local_start = start.astimezone() if aware_start else None
             valid_trigger = (
-                common_trigger and aware_start and start.hour == 3 and start.minute == 30
-                and start.second == 0 and trigger["type"] == "MSFT_TaskDailyTrigger"
+                common_trigger and aware_start
+                and local_start.hour == 3 and local_start.minute == 30
+                and local_start.second == 0 and local_start.microsecond == 0
+                and trigger["type"] == "MSFT_TaskDailyTrigger"
                 and trigger["user"] is None and trigger["days_interval"] == 1
                 and trigger["interval"] is None and trigger["duration"] is None
                 and trigger["stop_at_end"] is False
@@ -1913,6 +2198,41 @@ def _backup_action_binding(snapshot, pythonw: Path):
         raise ValueError("scheduler task profile is invalid") from None
 
 
+def _backup_restart_authorized(config_path: Path, config_digest: str) -> bool:
+    """Allow the one health-disabled instant created by the bound backup cycle."""
+    try:
+        from src.application import managed_backups
+        from src.application.runtime_maintenance import checked_path
+
+        journal = checked_path(
+            config_path.with_name("backup-cycle-state.dpapi"),
+            root=config_path.parent,
+        )
+        if (_path_is_reparse(journal) or not journal.is_file()
+                or not _single_link_file(journal)
+                or not 0 < journal.stat().st_size <= 64 * 1024):
+            return False
+        value = managed_backups._certificate(journal)
+        if (type(value) is not dict or set(value) != {
+                "schema", "config_digest", "phase", "at", "attempt_id",
+                "generation",
+            }
+                or value["schema"] != "c6-backup-cycle-state-1"
+                or value["config_digest"] != config_digest
+                or value["phase"] not in {"restart_permitted", "starting"}
+                or re.fullmatch(r"[0-9a-f]{32}", value["attempt_id"]) is None
+                or managed_backups.GENERATION.fullmatch(value["generation"]) is None):
+            return False
+        stamp = datetime.fromisoformat(value["at"])
+        current = datetime.now().astimezone()
+        if stamp.tzinfo is None:
+            return False
+        age = current - stamp
+        return -timedelta(minutes=1) <= age <= timedelta(minutes=10)
+    except (KeyError, OSError, RuntimeError, TypeError, ValueError):
+        return False
+
+
 def _validate_backup_activation_config(path: Path, digest: str, *, application,
                                        runtime: Path, backup: Path, ownership: str,
                                        task_name: str, snapshots):
@@ -1988,10 +2308,15 @@ def _scheduler_activation(values, runtime: Path, *, application,
         snapshots["backup"], pythonw
     )
     actions["backup"] = backup_action
+    backup_restart = (
+        snapshots["health"]["enabled"] is False
+        and _backup_restart_authorized(config_path, config_digest)
+    )
     bindings = {
         role: _validate_scheduler_task_snapshot(
             snapshots[role], role=role, task_name=names[role],
             expected_action=actions[role],
+            allow_disabled_health=(role == "health" and backup_restart),
         )
         for role in ("main", "health", "backup")
     }
@@ -2584,12 +2909,42 @@ def _recover(values, *, root=None, activation_binding=None, run_attempt=None) ->
     }
 
     try:
+        latch_digest = _write_recovery_latch(
+            root=root, activation_binding=activation_binding,
+            previous_event_digest=state["last_digest"], series_id=series_id,
+            run_id=control_run_id, attempt=context["attempt"],
+            retry_budget=RECOVERY_RETRY_BUDGET,
+        )
+    except Exception:
+        try:
+            _write_runtime_event(_runtime_record(
+                series_id, control_run_id, "control_failure",
+                activation_binding=activation_binding,
+                attempt=context["attempt"], retry_budget=RECOVERY_RETRY_BUDGET,
+                recovery_disposition="stop_evidence_failed",
+                stage="recovery_control", error_class="runtime_event_write_failed",
+                supervisor_exit_code=EXIT_RUNTIME_EVIDENCE_FAILED,
+                cleanup_outcome="proven",
+            ), root=root)
+        except Exception:
+            pass
+        raise _CliFailure(
+            "runtime_event_write_failed", EXIT_RUNTIME_EVIDENCE_FAILED
+        ) from None
+
+    try:
         _write_runtime_event(_runtime_record(
             series_id, control_run_id, "control_starting",
             activation_binding=activation_binding,
             attempt=context["attempt"], retry_budget=RECOVERY_RETRY_BUDGET,
             recovery_disposition="pending", stage="recovery_control",
         ), root=root)
+    except Exception:
+        raise _CliFailure(
+            "runtime_event_write_failed", EXIT_RUNTIME_EVIDENCE_FAILED
+        ) from None
+    try:
+        _clear_recovery_latch(root=root, expected_digest=latch_digest)
     except Exception:
         raise _CliFailure(
             "runtime_event_write_failed", EXIT_RUNTIME_EVIDENCE_FAILED
@@ -2763,7 +3118,15 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         job = api.create_job()
         terminal.update(stage="relay_start", error_class="relay_launch_failed")
         relay = spawn_owned(api, job, relay_values)
-        if not stop_event.wait(relay_settle_seconds) and relay.poll() is None:
+        stopped_before_core = stop_event.wait(relay_settle_seconds)
+        relay_before_core = relay.poll()
+        if relay_before_core is not None:
+            terminal.update(stage="relay_start", error_class="relay_exit",
+                            relay_exit_code=relay_before_core)
+        elif stopped_before_core or stop_event.is_set():
+            terminal.update(stage="setup", error_class="planned_stop")
+            status = 0
+        else:
             terminal.update(stage="core_start", error_class="core_launch_failed")
             core = spawn_owned(api, job, command, stdout=subprocess.PIPE)
             if getattr(core, "stdout", None) is not None:
@@ -2774,15 +3137,10 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
             status = supervise(api, job, relay, core, stop_event,
                                probe=probe,
                                report=lambda value: terminal.update(value))
-        elif stop_event.is_set():
-            terminal.update(stage="setup", error_class="planned_stop")
-            status = 0
-        else:
-            terminal.update(stage="relay_start", error_class="relay_exit",
-                            relay_exit_code=relay.poll())
     except Exception:
         status = 1
     finally:
+        relay_before_cleanup = relay.poll() if relay is not None else None
         cleanup_ok = True
         try:
             cleanup_ok = stop_process(core, graceful=True)
@@ -2811,18 +3169,30 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         elif core is not None:
             core_outcome_error = "core_outcome_missing"
         core_code = core.poll() if core is not None else None
-        relay_code = relay.poll() if relay is not None else None
-        if terminal["error_class"] == "planned_stop" and core is not None and (
+        if not _core_outcome_matches_exit(core_code, core_outcome):
+            core_outcome = None
+            core_outcome_error = "core_outcome_invalid"
+        planned_core_failed = core is not None and (
             core_code not in {None, 0}
             or core_outcome != {"status": "STOPPED"}
             or core_outcome_error is not None
+        )
+        planned_relay_failed = relay_before_cleanup is not None
+        if terminal["error_class"] == "planned_stop" and (
+            planned_core_failed or planned_relay_failed
         ):
+            corrected_error = (
+                "core_and_relay_exit" if planned_core_failed and planned_relay_failed
+                else ("core_exit" if planned_core_failed else "relay_exit")
+            )
             terminal.update(
-                stage=terminal["stage"],
-                error_class=("core_and_relay_exit" if relay_code not in {None, 0}
-                             else "core_exit"),
-                core_exit_code=core_code,
-                relay_exit_code=relay_code if relay_code not in {None, 0} else None,
+                stage=("relay_start" if corrected_error == "relay_exit" and core is None
+                       else terminal["stage"]),
+                error_class=corrected_error,
+                core_exit_code=core_code if planned_core_failed else None,
+                relay_exit_code=(
+                    relay_before_cleanup if planned_relay_failed else None
+                ),
             )
             status = 1
         if not cleanup_ok:

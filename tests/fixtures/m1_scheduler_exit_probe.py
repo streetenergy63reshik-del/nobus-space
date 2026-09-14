@@ -215,10 +215,14 @@ def _product_controller(values) -> int:
             _values, stop_event=stop_event, series_id=series_id,
             attempt=attempt, retry_budget=retry_budget, root=root,
             activation_binding=activation_binding,
-            relay_command=[executable, fixture, "--child-role", "relay"],
+            relay_command=[
+                executable, fixture, "--child-role", "relay",
+                "--fixture-run-id", values.run_id,
+            ],
             core_command_override=[
                 executable, fixture, "--child-role",
                 "core-permanent" if permanent else "core",
+                "--fixture-run-id", values.run_id,
             ],
             probe=probe,
             required_paths=(Path(executable), Path(fixture)),
@@ -267,7 +271,9 @@ def _product_controller(values) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
-    if len(arguments) == 2 and arguments[0] == "--child-role":
+    if (len(arguments) == 4 and arguments[0] == "--child-role"
+            and arguments[2] == "--fixture-run-id"
+            and re.fullmatch(r"[0-9a-f]{32}", arguments[3]) is not None):
         return _child(arguments[1])
     parser = argparse.ArgumentParser()
     parser.add_argument("--receipt", type=Path, required=True)

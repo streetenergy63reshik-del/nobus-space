@@ -689,6 +689,9 @@ def test_m1_terminal_event_keeps_cleanup_failure_distinct(monkeypatch):
         def wait(self, _timeout):
             return False
 
+        def is_set(self):
+            return False
+
         def close(self):
             pass
 
@@ -702,7 +705,9 @@ def test_m1_terminal_event_keeps_cleanup_failure_distinct(monkeypatch):
         def close(self, _job):
             pass
 
-    child = SimpleNamespace(poll=lambda: None, stdout=io.BytesIO(b'{"status":"STOPPED"}\n'))
+    relay = SimpleNamespace(poll=lambda: None)
+    core = SimpleNamespace(poll=lambda: 0, stdout=io.BytesIO(b'{"status":"STOPPED"}\n'))
+    children = iter((relay, core))
     monkeypatch.setattr(supervisor.Path, "exists", lambda _: True)
     monkeypatch.setattr(supervisor, "StopEvent", Stop)
     monkeypatch.setattr(supervisor, "_job_api", Api)
@@ -711,7 +716,7 @@ def test_m1_terminal_event_keeps_cleanup_failure_distinct(monkeypatch):
         supervisor, "_write_runtime_event",
         lambda value, **_ignored: events.append(value),
     )
-    monkeypatch.setattr(supervisor, "spawn_owned", lambda *args, **kwargs: child)
+    monkeypatch.setattr(supervisor, "spawn_owned", lambda *args, **kwargs: next(children))
     monkeypatch.setattr(
         supervisor,
         "supervise",

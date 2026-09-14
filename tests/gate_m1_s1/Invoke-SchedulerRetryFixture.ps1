@@ -106,8 +106,7 @@ function Get-FixtureProcessCount(
             [string] $process.Name -in @('python.exe','pythonw.exe') -and
             -not [string]::IsNullOrEmpty([string] $process.CommandLine) -and
             ([string] $process.CommandLine).Contains($ExpectedRunId) -and
-            ([string] $process.CommandLine).Contains($ExpectedProbe) -and
-            ([string] $process.CommandLine).Contains('--controller')
+            ([string] $process.CommandLine).Contains($ExpectedProbe)
         ) {
             $count += 1
         }
@@ -560,7 +559,9 @@ finally {
             error_class = $errorClass
             mechanism = 'Windows Task Scheduler action -> product mutex/recovery/history/attempt/Job/gated-helper/cleanup chain'
             action = [ordered]@{
-                executable = 'pythonw.exe'
+                executable = [IO.Path]::GetFileName($pythonw)
+                executable_bytes = [long](Get-Item -LiteralPath $pythonw).Length
+                executable_sha256 = (Get-FileHash -LiteralPath $pythonw -Algorithm SHA256).Hash.ToLowerInvariant()
                 probe_sha256 = (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash.ToLowerInvariant()
                 controller_sha256 = $controllerSha256
             }

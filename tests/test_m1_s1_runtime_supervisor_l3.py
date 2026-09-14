@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 from contextlib import nullcontext
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -165,6 +166,22 @@ def test_m1_terminal_matrix_rejects_child_exit_with_readiness_fields():
         )
 
 
+def test_m1_core_failure_outcome_cannot_contradict_success_exit():
+    outcome = {"status": "FAIL", "code": "telegram_unavailable"}
+    contradictory = _terminal(core_exit_code=0, core_outcome=outcome)
+    with pytest.raises(ValueError, match="contradicts exit code"):
+        supervisor._validate_runtime_event(contradictory)
+    assert supervisor._recovery_disposition(
+        status=1,
+        terminal=contradictory,
+        core_outcome=outcome,
+        core_outcome_error=None,
+        cleanup_ok=True,
+        attempt=1,
+        retry_budget=10,
+    ) == "stop_evidence_failed"
+
+
 def test_m1_control_failure_requires_exact_error_exit_mapping():
     record = supervisor._runtime_record(
         "f" * 32,
@@ -255,6 +272,50 @@ def test_m1_starting_append_failure_is_an_exact_durable_control_failure(
     state = supervisor._recovery_state(root=tmp_path, activation_binding=_BINDING)
     assert state["state"] == "blocked"
     assert state["reason"] == "runtime_event_write_failed"
+
+
+def test_m1_pre_control_append_failure_latches_until_exact_reset(
+    monkeypatch, tmp_path
+):
+    initialized = supervisor._initialize_recovery(
+        root=tmp_path, activation_binding=_BINDING
+    )
+    original = supervisor._write_runtime_event
+    monkeypatch.setattr(
+        supervisor,
+        "_write_runtime_event",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            OSError("synthetic total history append failure")
+        ),
+    )
+
+    with pytest.raises(supervisor._CliFailure) as caught:
+        supervisor._recover(
+            SimpleNamespace(), root=tmp_path, activation_binding=_BINDING,
+            run_attempt=lambda *_args, **_kwargs: pytest.fail(
+                "no attempt may start without control evidence"
+            ),
+        )
+    assert caught.value.error_class == "runtime_event_write_failed"
+    assert initialized["event_digest"] != ""
+
+    monkeypatch.setattr(supervisor, "_write_runtime_event", original)
+    blocked = supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )
+    assert blocked["state"] == "blocked"
+    assert blocked["reason"] == "runtime_event_write_failed"
+    assert (tmp_path / supervisor.RECOVERY_LATCH_NAME).is_file()
+
+    reset = supervisor._acknowledge_recovery_stop(
+        blocked["last_digest"], root=tmp_path, activation_binding=_BINDING
+    )
+    assert reset["status"] == "RESET"
+    assert reset["evidence_latch_digest"] == blocked["last_digest"]
+    assert not (tmp_path / supervisor.RECOVERY_LATCH_NAME).exists()
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["state"] == "new"
 
 
 def test_m1_activation_binds_every_runtime_input_and_scheduler_signature(
@@ -686,16 +747,23 @@ def test_m1_next_attempt_start_write_failure_becomes_durable_stop(monkeypatch, t
 def _scheduler_snapshot(name, *, role, enabled=True, restart_count=0):
     trigger = {
         "type": "MSFT_TaskLogonTrigger", "enabled": True, "start": None,
-        "end": None, "user": "OWNER\\user", "days_interval": None,
+        "end": None, "user": "S-1-5-21-1-2-3-1001", "days_interval": None,
         "interval": None, "duration": None, "stop_at_end": False,
+        "execution_limit": "", "id": "", "delay": "", "random_delay": "",
     }
     execution_limit = "PT0S"
     if role == "health":
-        trigger.update(type="MSFT_TaskTimeTrigger", start="2026-09-14T00:00:00+03:00",
+        trigger.update(type="MSFT_TaskTimeTrigger", start=(
+            datetime.now().astimezone() - timedelta(minutes=1)
+        ).isoformat(),
                        user=None, interval="PT1M", duration="P3650D", stop_at_end=True)
         execution_limit = "PT2M"
     elif role == "backup":
-        trigger.update(type="MSFT_TaskDailyTrigger", start="2026-09-14T03:30:00+03:00",
+        trigger.update(type="MSFT_TaskDailyTrigger", start=(
+            datetime.now().astimezone().replace(
+                hour=3, minute=30, second=0, microsecond=0
+            )
+        ).isoformat(),
                        user=None, days_interval=1)
         execution_limit = "PT20M"
     action = {"execute": "expected.exe", "arguments": "exact", "working_directory": None}
@@ -708,6 +776,15 @@ def _scheduler_snapshot(name, *, role, enabled=True, restart_count=0):
             "disallow_battery": False, "stop_on_battery": False, "wake_to_run": False,
             "restart_count": restart_count, "restart_interval": None,
             "execution_limit": execution_limit, "multiple_instances": 2,
+            "compatibility": 3, "allow_demand_start": True,
+            "allow_hard_terminate": True, "delete_expired_task_after": "",
+            "hidden": False, "priority": 7, "run_only_if_idle": False,
+            "idle_duration": "PT10M", "idle_wait_timeout": "PT1H",
+            "stop_on_idle_end": True, "restart_on_idle": False,
+            "run_only_if_network": False, "network_id": "", "network_name": "",
+            "disallow_remote_app_session": False,
+            "unified_scheduling_engine": True, "volatile": False,
+            "maintenance_settings_present": False,
         },
     }, action
 
@@ -737,6 +814,147 @@ def test_m1_scheduler_binding_includes_exact_task_name():
         )
 
 
+def test_m1_disabled_health_requires_exact_backup_restart_authority():
+    snapshot, action = _scheduler_snapshot(
+        "NobusSpaceBot-Health", role="health", enabled=False
+    )
+    snapshot["state"] = "Disabled"
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            snapshot, role="health", task_name="NobusSpaceBot-Health",
+            expected_action=action,
+        )
+    binding = supervisor._validate_scheduler_task_snapshot(
+        snapshot, role="health", task_name="NobusSpaceBot-Health",
+        expected_action=action, allow_disabled_health=True,
+    )
+    assert binding["name"] == "NobusSpaceBot-Health"
+
+
+def test_m1_scheduler_activation_accepts_disabled_health_only_in_bound_backup_window(
+    monkeypatch, tmp_path
+):
+    names = {
+        "main": "NobusSpaceBot",
+        "health": "NobusSpaceBot-Health",
+        "backup": "NobusSpaceBot-Backup",
+    }
+    snapshots = {}
+    actions = {}
+    for role, name in names.items():
+        snapshot, action = _scheduler_snapshot(
+            name, role=role, enabled=(role != "health")
+        )
+        if role == "health":
+            snapshot["state"] = "Disabled"
+        snapshots[name] = snapshot
+        actions[role] = action
+    config = tmp_path / "backup-cycle.json"
+    digest = "sha256:" + "6" * 64
+    monkeypatch.setattr(
+        supervisor, "_scheduler_task_signature", lambda name: snapshots[name]
+    )
+    monkeypatch.setattr(
+        supervisor, "_main_scheduler_action",
+        lambda *_args, **_kwargs: actions["main"],
+    )
+    monkeypatch.setattr(
+        supervisor, "_health_scheduler_action", lambda *_args: actions["health"]
+    )
+    monkeypatch.setattr(
+        supervisor, "_backup_action_binding",
+        lambda *_args: (actions["backup"], config, digest),
+    )
+    monkeypatch.setattr(
+        supervisor,
+        "_validate_backup_activation_config",
+        lambda *_args, **_kwargs: {"path": "backup-cycle.json"},
+    )
+    monkeypatch.setattr(
+        supervisor, "_backup_restart_authorized", lambda *_args: True
+    )
+    values = SimpleNamespace(
+        scheduler_task_name="NobusSpaceBot",
+        backup_root=tmp_path,
+        backup_ownership="sha256:" + "5" * 64,
+    )
+    result = supervisor._scheduler_activation(
+        values, tmp_path, application={}, pythonw=tmp_path / "pythonw.exe",
+        health_launcher=tmp_path / "health.ps1",
+    )
+    assert set(result["tasks"]) == {"main", "health", "backup"}
+
+    monkeypatch.setattr(
+        supervisor, "_backup_restart_authorized", lambda *_args: False
+    )
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._scheduler_activation(
+            values, tmp_path, application={}, pythonw=tmp_path / "pythonw.exe",
+            health_launcher=tmp_path / "health.ps1",
+        )
+
+
+def test_m1_scheduler_trigger_identity_and_time_are_owner_local_and_active():
+    main, action = _scheduler_snapshot("NobusSpaceBot", role="main")
+    main["signature"]["triggers"][0]["user"] = "S-1-5-21-9-9-9-1001"
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            main, role="main", task_name="NobusSpaceBot", expected_action=action
+        )
+
+    reference = datetime(2026, 9, 14, 12, 0, tzinfo=timezone.utc)
+    health, action = _scheduler_snapshot("NobusSpaceBot-Health", role="health")
+    health["signature"]["triggers"][0]["start"] = "2099-09-14T00:00:00+00:00"
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            health, role="health", task_name="NobusSpaceBot-Health",
+            expected_action=action, now=reference,
+        )
+
+    local_offset = datetime.now().astimezone().utcoffset() or timedelta(0)
+    wrong_offset = timezone(
+        timedelta(hours=1) if local_offset == timedelta(0) else timedelta(0)
+    )
+    backup, action = _scheduler_snapshot("NobusSpaceBot-Backup", role="backup")
+    backup["signature"]["triggers"][0]["start"] = datetime.now(
+        wrong_offset
+    ).replace(hour=3, minute=30, second=0, microsecond=0).isoformat()
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        supervisor._validate_scheduler_task_snapshot(
+            backup, role="backup", task_name="NobusSpaceBot-Backup",
+            expected_action=action,
+        )
+
+
+def test_m1_backup_restart_authority_is_authenticated_bound_and_fresh(tmp_path):
+    from src.application.durable_telegram_state import DpapiJsonCodec
+
+    config = tmp_path / "backup-cycle.json"
+    digest = "sha256:" + "7" * 64
+    journal = tmp_path / "backup-cycle-state.dpapi"
+
+    def write(phase, *, at=None):
+        value = {
+            "schema": "c6-backup-cycle-state-1",
+            "config_digest": digest,
+            "phase": phase,
+            "at": at or datetime.now().astimezone().isoformat(),
+            "attempt_id": "8" * 32,
+            "generation": "daily-20260914T033000-" + "9" * 32,
+        }
+        journal.write_bytes(DpapiJsonCodec().encode(value))
+
+    write("restart_permitted")
+    assert supervisor._backup_restart_authorized(config, digest) is True
+    write("complete")
+    assert supervisor._backup_restart_authorized(config, digest) is False
+    write(
+        "starting",
+        at=(datetime.now().astimezone() - timedelta(minutes=11)).isoformat(),
+    )
+    assert supervisor._backup_restart_authorized(config, digest) is False
+
+
 def test_m1_scheduler_binding_rejects_unsafe_identity_action_trigger_and_settings():
     snapshot, action = _scheduler_snapshot("NobusSpaceBot", role="main")
     changes = (
@@ -747,7 +965,11 @@ def test_m1_scheduler_binding_rejects_unsafe_identity_action_trigger_and_setting
         lambda value: value["signature"].update(start_when_available=False),
         lambda value: value["signature"].update(disallow_battery=True),
         lambda value: value["signature"].update(multiple_instances=0),
+        lambda value: value["signature"].update(allow_demand_start=False),
+        lambda value: value["signature"].update(run_only_if_idle=True),
+        lambda value: value["signature"].update(run_only_if_network=True),
         lambda value: value["signature"]["triggers"][0].update(type="MSFT_TaskTimeTrigger"),
+        lambda value: value["signature"]["triggers"][0].update(delay="PT5M"),
     )
     for change in changes:
         candidate = json.loads(json.dumps(snapshot))
@@ -845,7 +1067,25 @@ def test_m1_fixture_uses_process_handshake_and_proves_cleanup():
     ).read_text(encoding="utf-8")
     assert "time.sleep(0.5)" not in probe
     assert "children_started=" in probe
+    assert "--fixture-run-id" in probe
     assert "Stop-ScheduledTask" in fixture
     assert "Get-CimInstance Win32_Process" in fixture
     assert "OpenExisting" in fixture
+    process_scan = fixture[
+        fixture.index("function Get-FixtureProcessCount"):
+        fixture.index("$fixtureObjectSuffixes")
+    ]
+    assert "--controller" not in process_scan
+    assert "executable_sha256" in fixture and "executable_bytes" in fixture
     assert fixture.index("Stop-ScheduledTask") < fixture.index("Unregister-ScheduledTask")
+
+
+def test_m1_backup_installer_replaces_only_an_explicit_stopped_disabled_task():
+    installer = (
+        Path(__file__).parents[1] / "ops" / "windows" /
+        "Install-NobusSpaceBackup.ps1"
+    ).read_text(encoding="utf-8-sig")
+    assert "[switch]$ReplaceExisting" in installer
+    assert "Exact backup task replacement requires a stopped disabled task" in installer
+    assert installer.index("Settings.Enabled") < installer.index("Register-ScheduledTask")
+    assert "-InputObject $task -Force" in installer

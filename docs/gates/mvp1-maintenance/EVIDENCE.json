@@ -1,7 +1,7 @@
 {
-  "schema": "nobus-m1-s1-evidence-3",
+  "schema": "nobus-m1-s1-evidence-4",
   "gate": "M1-S1",
-  "updated_at": "2026-09-14T14:20:00Z",
+  "updated_at": "2026-09-14T15:47:00Z",
   "status": "WIP_LOCAL_GREEN_FREEZE_PENDING",
   "accepted_product": {
     "tag": "v1.0.2",
@@ -57,23 +57,46 @@
       "broad_failures": 18,
       "evidence_reused_for_next_candidate": false,
       "publish_or_deploy": false
+    },
+    {
+      "commit": "e357629859f728bf3403174a25a7a64c90d0d830",
+      "tree": "225a7000cc470e4bb011a4e3d5f7567182d17915",
+      "parent": "121a4df400a6bed01427e48f9aa66eb2822852db",
+      "verdict": {
+        "L1": "PASS",
+        "L2": "FAIL",
+        "L3": "FAIL",
+        "aggregate": "FAIL"
+      },
+      "freeze_receipt": "m1-s1-source-freeze-e357629.json",
+      "freeze_receipt_sha256": "sha256:930af8bd2aa57730015e413a99be2af1817e34ee11b6e76d8c6b52ce08540fc0",
+      "frozen_junit": "m1-s1-frozen-tests-e357629.xml",
+      "frozen_junit_sha256": "sha256:cab9f63763595f436325149d29782d00fa0c9882c6e62b694e5a15fcffc2126e",
+      "frozen_tests_passed": 209,
+      "scheduler_fixture_run_id": "fa21f7b41d5c4a7cb7fbe16c40051b02",
+      "scheduler_fixture_result_sha256": "sha256:1dfc6a82d24c457841c53f16bedf47f2627f83c5846c77d9ac275d94357f70b1",
+      "security_report_sha256": "sha256:54d33ab1ef098a5d5b31a00f4ccfa793803fb81d950cee857ce8734eeb4192f8",
+      "D01_inventory_digest": "sha256:c4b1be2c5795df1c19722441f157264ce7041558c616e26df98e67037c905be7",
+      "evidence_reused_for_next_candidate": false,
+      "publish_or_deploy": false
     }
   ],
   "current_wip": {
     "branch": "codex/m1-s1-stability",
     "isolated_worktree": true,
-    "parent_commit": "121a4df400a6bed01427e48f9aa66eb2822852db",
+    "parent_commit": "e357629859f728bf3403174a25a7a64c90d0d830",
     "source_candidate_commit": null,
     "source_candidate_tree": null,
     "gate_freeze_receipt": "PENDING_POST_COMMIT",
     "changed_zone": [
       "scripts/run_nobus_space_live.py",
       "ops/windows/Invoke-NobusSpaceTask.ps1",
-      "ops/windows/Install-NobusSpaceBot.ps1",
+      "ops/windows/Install-NobusSpaceBackup.ps1",
       "tests/fixtures/m1_scheduler_exit_probe.py",
       "tests/gate_m1_s1/Invoke-SchedulerRetryFixture.ps1",
-      "tests/test_m1_s1_runtime_supervisor.py",
       "tests/test_m1_s1_runtime_supervisor_l3.py",
+      "tests/test_m1_s1_runtime_supervisor_rework.py",
+      "tests/test_m1_s1_runtime_supervisor.py",
       "docs/01-Единый-документ-проекта.md",
       "docs/08-Runbook-эксплуатации.md",
       "docs/handoffs/CURRENT-STATUS.md",
@@ -161,18 +184,20 @@
     },
     "F02": {
       "class": "FACT",
-      "status": "REPAIRED_WIP_NOT_FROZEN_OR_DEPLOYED",
+      "status": "REPAIRED_WIP_TARGETED_GREEN_FREEZE_PENDING",
       "core_safe_json_max_bytes": 4096,
       "exact_core_failure_allowlist": true,
       "protocol": "nobus-runtime-event-3",
       "dpapi_current_owner_authentication": true,
       "exact_terminal_matrix": true,
+      "core_outcome_exit_cross_validation": true,
+      "bounded_owner_authenticated_pre_control_latch": true,
       "safe_cli_fallback": true,
       "raw_stdout_stderr_argv_env_payload_task_text_credentials_persisted": false
     },
     "F03": {
       "class": "FACT",
-      "status": "OLD_MECHANISM_FAILED_NEW_THREE_CASE_FIXTURE_SOURCE_GREEN_REAL_RUN_PENDING",
+      "status": "OLD_MECHANISM_FAILED_NEW_FIXTURE_SOURCE_WIP_GREEN_REAL_RUN_PENDING",
       "old_scheduler_normal_exit_retry_observed": false,
       "production_retry_budget_exhausted_claimed": false,
       "candidate_owner": "one_scheduler_action",
@@ -184,12 +209,14 @@
         "repeated_transient": "attempt_3_budget_stop",
         "permanent_core_fail": "attempt_1_stop_non_retryable"
       },
+      "rejected_e357_fixture_run_id": "fa21f7b41d5c4a7cb7fbe16c40051b02",
+      "rejected_e357_fixture_evidence_reused": false,
       "production_attempt_history_available": false,
       "production_budget_exhaustion_claimed": false
     },
     "F04": {
       "class": "FACT",
-      "status": "PREPARED_DOCS_INCLUDED",
+      "status": "ACTIVE_DOCS_UPDATED_IN_WIP",
       "docs01_current_runbook_rewritten_from_scratch": false,
       "document_11_runtime_input_digest_bound": true
     },
@@ -218,6 +245,10 @@
     "runtime_event_segment_bytes": 1048576,
     "operator_log_segment_bytes": 5242880,
     "fallback_log_segment_bytes": 131072,
+    "recovery_latch_max_bytes": 2048,
+    "recovery_latch_authentication": "separate current-user Windows DPAPI entropy",
+    "pre_control_write_failure": "durable latch or exact control_failure; otherwise typed STOP and no Core attempt",
+    "core_outcome_exit_contract": "FAIL requires nonzero; STOPPED and ALREADY_RUNNING require zero",
     "reparse_hardlink_extra_oversize_parse_write_fsync_rotation": "STOP",
     "typed_exit_codes": [
       70,
@@ -249,60 +280,45 @@
     "health_launcher": true,
     "scheduler_main_health_backup_signatures": true,
     "scheduler_names_actions_principal_triggers_settings_validated": true,
+    "scheduler_main_trigger_sid_equals_current_principal": true,
+    "scheduler_health_trigger_active_window_validated": true,
+    "scheduler_backup_trigger_local_03_30_validated": true,
+    "scheduler_behavior_settings_validated": true,
     "scheduler_restart_count_zero_required": true,
     "candidate_bound_backup_config": true,
+    "disabled_health_allowed_only_for_fresh_authenticated_candidate_bound_backup_transition": true,
     "authenticated_history_rebind_preserves_chain": true
   },
   "verification": [
     {
-      "kind": "RED",
-      "scope": "eight aggregate L2/L3 blocking regressions",
-      "result": "8 failed"
-    },
-    {
-      "kind": "GREEN",
-      "scope": "new L3 regression matrix",
-      "result": "12 passed"
-    },
-    {
-      "kind": "GREEN",
-      "scope": "M1-S1 supervisor plus rework plus L3",
-      "result": "87 passed in 15.72s"
-    },
-    {
-      "kind": "GREEN",
-      "scope": "permanent product controller",
-      "result": "one attempt; stop_non_retryable; exit 29; no raw output"
+      "kind": "REJECTED_FREEZE",
+      "scope": "121a4df400a6bed01427e48f9aa66eb2822852db",
+      "result": "aggregate FAIL; evidence archived and not reusable"
     },
     {
       "kind": "REJECTED_FREEZE",
-      "scope": "121a4df400a6bed01427e48f9aa66eb2822852db",
-      "result": "L1/L2/L3 FAIL; 206 broad tests with 18 failures; evidence archived and not reusable"
+      "scope": "e357629859f728bf3403174a25a7a64c90d0d830",
+      "result": "209 frozen tests PASS and real Scheduler fixture PASS, but L1 PASS/L2 FAIL/L3 FAIL; aggregate FAIL; evidence archived and not reusable"
     },
     {
-      "kind": "RED",
-      "scope": "post-121a collected reviewer blockers",
-      "result": "12 passed, 21 failed; failures matched the intended blocking cases"
-    },
-    {
-      "kind": "RED",
-      "scope": "invalid arguments must not inherit a partial command",
-      "result": "1 failed: returned fallback_event_write_failed/73 instead of runtime_arguments_invalid/74"
+      "kind": "COLLECTED_REVIEW",
+      "scope": "all e357629 L2/L3 blockers before batch repair",
+      "result": "relay and readiness stop races; pre-control evidence gap; Core outcome/exit contradiction; trigger principal/time and Scheduler behavior gaps; backup-start transition; fixture child cleanup/executable binding; production task replacement transaction"
     },
     {
       "kind": "WIP_GREEN",
-      "scope": "post-121a supervisor/rework/L3 synthetic including real Scheduler cleanup source contract",
-      "result": "109 passed in 12.68s"
+      "scope": "post-e357 targeted supervisor/rework/L3",
+      "result": "118 passed"
     },
     {
       "kind": "WIP_GREEN",
-      "scope": "dependent Windows/backup set",
-      "result": "85 passed; one sandbox-only C5 recovery test separately 1 passed outside sandbox"
+      "scope": "post-e357 affected and dependent set under the actual Windows owner identity with isolated pytest mutex namespace",
+      "result": "218 passed; the three identity cases that failed only under the mismatched sandbox SID passed 3/3 on host and are included"
     },
     {
-      "kind": "WIP_GREEN",
+      "kind": "WIP_CHECK",
       "scope": "syntax and diff",
-      "result": "Python AST PASS; PowerShell parser PASS; git diff --check PASS"
+      "result": "PowerShell parser PASS; Python AST PASS; git diff --check PASS before final documentation update; final repeat pending"
     }
   ],
   "frozen_verification_pending": [

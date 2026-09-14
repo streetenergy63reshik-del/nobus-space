@@ -1,9 +1,9 @@
 # M1-S1 — HANDOFF
 
 
-**Статус 14.09.2026, 17:20 МСК:** принятый и опубликованный MVP1 v1.0.2 неизменён, а его последний проверенный runtime-срез остаётся DOWN после `runtime_failed` в 14:39:09 МСК. Третий frozen candidate `121a4df400a6bed01427e48f9aa66eb2822852db` отклонён совокупным L1/L2/L3 и не будет опубликован или развёрнут. Новый незамороженный WIP-пакет на его parent локально GREEN; владелец точно разрешил три именованные synthetic Scheduler-задачи и их scoped cleanup. Наблюдение 72 часа не начато.
+**Статус 14.09.2026, 18:47 МСК:** принятый и опубликованный MVP1 v1.0.2 неизменён, а последний проверенный production-срез остаётся DOWN после `runtime_failed` в 14:39:09 МСК. Четвёртый frozen candidate `e357629859f728bf3403174a25a7a64c90d0d830` отклонён: L1 PASS, L2/L3 FAIL, aggregate FAIL. Все замечания этого review собраны до одного нового WIP-пакета; production, publication и 72-часовое наблюдение ещё не начаты.
 
-## Текущий checkpoint после review `121a4df…`
+## Текущий checkpoint после review `e357629…`
 
 ### Refs и production read-only
 
@@ -13,7 +13,7 @@
 | Remote main до M1-S1 | `88e58c8866db2384423f2b154df901a2e4af6c48` |
 | LIVE | clean detached `Code/worktrees/telegram-live` на `82003c03…`; сейчас не запущен |
 | StateRoot / BackupRoot | canonical `.runtime/production-c6/migration-01/state` / `.runtime/production-c6/backups` |
-| Новый WIP | branch `codex/m1-s1-stability`, parent `121a4df…`, source freeze отсутствует |
+| Новый WIP | branch `codex/m1-s1-stability`, parent `e357629…`, source freeze отсутствует |
 
 Срез 15:34–15:37 МСК выполнен без production-записи:
 
@@ -26,34 +26,31 @@
 
 Проверка той же копии WIP-кодом ожидаемо дала `backup_unverified_do_not_restore`, потому что application code digest кандидата отличается от v1.0.2. Это fail-closed совместимость, не повреждение backup. Production-переход поэтому обязан сохранить свежую pre-change v1.0.2 generation и затем создать отдельную candidate-bound generation до допуска/запуска candidate.
 
-### Отклонённый третий freeze и текущий WIP
+### Отклонённый четвёртый freeze и текущий WIP
 
-`121a4df400a6bed01427e48f9aa66eb2822852db`, tree `e35b662538aa5b6470eca4aea8356ef12286163f`, отклонён: L1/L2/L3 — FAIL/REWORK. Freeze receipt `m1-s1-source-freeze-121a4df.json`, SHA-256 `505749417eccdb67fe10ea87868b9d520547754b24c29519942ed93df3bb7663`. Его broad JUnit содержит 206 tests / 18 failures: один реальный race с четвёртым `stop_event.wait`, 16 verifier/environment failures из-за отсутствующего pytest mutex namespace при работающем production singleton и один sandbox-only C5 `git safe.directory`; последний exact test вне sandbox PASS. Эти evidence не переносятся на следующую ревизию.
+`e357629859f728bf3403174a25a7a64c90d0d830`, tree `225a7000cc470e4bb011a4e3d5f7567182d17915`, parent `121a4df…`, отклонён и не будет опубликован или развёрнут. Freeze receipt `m1-s1-source-freeze-e357629.json`, SHA-256 `930af8bd2aa57730015e413a99be2af1817e34ee11b6e76d8c6b52ce08540fc0`; frozen JUnit — 209 PASS, SHA-256 `cab9f63763595f436325149d29782d00fa0c9882c6e62b694e5a15fcffc2126e`; real Scheduler fixture run `fa21f7b41d5c4a7cb7fbe16c40051b02`, result SHA-256 `1dfc6a82d24c457841c53f16bedf47f2627f83c5846c77d9ac275d94357f70b1`; security report SHA-256 `54d33ab1ef098a5d5b31a00f4ccfa793803fb81d950cee857ce8734eeb4192f8`. Эти доказательства архивны и не переносятся на следующую ревизию.
 
-Собранные L1/L2/L3 замечания исправляются одним WIP-пакетом:
+Совокупный review выявил и текущий WIP одним пакетом закрывает:
 
-- readiness settle больше не вызывает четвёртый stop wait; после отдельного bounded settle приоритет остаётся у child exit;
-- пустой recovery acknowledgement не запускает runtime; stop create/signal/close и неожиданный startup имеют отдельные безопасные exits;
-- UNKNOWN heads сбрасываются только exact newest authenticated digest; смена проверенного activation binding выполняется отдельным `activation_rebind` с сохранением цепочки;
-- control closing/closed/failure и fallback принимают только согласованные command/error/exit/disposition matrices; ошибка записи evidence остаётся типизированным STOP;
-- activation binding v3 проверяет exact names/actions/principal/triggers/settings main/health/backup, Scheduler restart `0`, candidate-bound backup config и все прежние runtime inputs;
-- permanent fixture ждёт фактический Core exit через process handshake, а не временную задержку.
+- pre-Core relay exit и доказанный readiness failure больше не маскируются поздним planned stop; состояние child фиксируется до cleanup;
+- bounded owner-authenticated recovery latch сохраняет pre-control отказ записи и после сверки материализуется в точный `control_failure`; без доказуемого terminal новая серия не открывается;
+- Core exit и санитизированный outcome обязаны согласовываться: FAIL — только nonzero, `STOPPED`/`ALREADY_RUNNING` — только zero;
+- main trigger привязан к SID текущего principal; health/backup trigger time и все влияющие Scheduler settings входят в exact binding;
+- backup может запускать остановленный enabled runtime только из свежей аутентифицированной candidate-bound journal-фазы `restart_permitted`/`starting`; это не разрешает общий disabled health profile;
+- real fixture помечает controller, gated wrappers, Core и relay единым уникальным run id, считает все дочерние процессы и связывает безопасные имя/размер/SHA-256 исполняемого файла;
+- backup task заменяется только с явным `-ReplaceExisting`, если exact прежняя задача уже остановлена и disabled.
 
-Локальные результаты WIP, не являющиеся frozen Gate evidence:
-
-- post-review RED: `12 passed, 21 failed`; все 21 отказ соответствовали собранным блокерам;
-- дополнительный CLI matrix RED: `1 failed` (`stop` был ошибочно унаследован частично распознанными arguments), после исправления включён в общий GREEN;
-- supervisor/rework/L3 synthetic вместе с cleanup source contract: `109 passed in 12.68s`;
-- зависимые Windows/backup tests: `85 passed`; C5 subprocess recovery, заблокированный sandbox `safe.directory`, отдельно вне sandbox — `1 passed`;
-- Python AST, PowerShell parser и `git diff --check` — PASS.
+Локальный целевой supervisor/rework/L3 набор после исправлений — 118 PASS. Полный affected/dependent набор той же рабочей копии под реальной Windows identity владельца — 218 PASS; три identity-теста ожидаемо отказали только в sandbox с несовместимыми `CodexSandboxOffline` SID и `USERNAME=CGC1ub`, затем дали 3/3 PASS и вошли в полный host-run. Это WIP evidence, не Gate PASS.
 
 ### Полученное разрешение и следующий шаг
 
-Владелец текущим ответом `Разрешаю` подтвердил ранее предъявленное точное действие: зарегистрировать, выполнить, при необходимости точечно остановить и удалить только три уникальные задачи `NobusSpace-M1S1-Fixture-Transient-*`, `NobusSpace-M1S1-Fixture-Budget-*`, `NobusSpace-M1S1-Fixture-Permanent-*`, без production inputs/model/ASR/messages. Fail-safe cleanup уже реализован и локально проверен: сначала exact `Stop-ScheduledTask`, затем bounded доказательство non-running state, нуля fixture-процессов и отсутствия уникальных mutex/event; только после этого definitions удаляются. При недоказанном cleanup definitions сохраняются для оператора, широкого kill нет.
+Владелец разрешил все необходимые действия и не ограничил число запусков. Для pre-production проверки это включает три уникальные задачи `NobusSpace-M1S1-Fixture-Transient-*`, `NobusSpace-M1S1-Fixture-Budget-*`, `NobusSpace-M1S1-Fixture-Permanent-*`, без production inputs/model/ASR/messages. Fail-safe cleanup: exact stop, bounded доказательство non-running state, нуля процессов с run id и отсутствия уникальных mutex/event; только после этого definitions удаляются. При недоказанном cleanup definitions сохраняются для оператора, широкого kill нет.
 
-Следующий шаг: один новый source freeze → real three-case Scheduler run → D01/security → независимые L1/L2/L3 той же ревизии. Только aggregate PASS открывает единый production-план: fresh v1.0.2 pre-change backup и baseline; exact planned stop/cleanup; publication без нового tag; переключение LIVE; exact task/config binding; recovery rebind; candidate-bound backup cycle, который запускает ровно один runtime; local/public/stock readiness; одна text-задача и TXT; post-baseline. Неизвестный внешний эффект сначала сверяется, БД поверх новых accepted tasks не откатываются.
+Следующий шаг: завершить тесты и документы, сделать один новый source freeze, затем real three-case Scheduler run, D01/security и независимые L1/L2/L3 именно этой ревизии. Только aggregate PASS открывает production-переход.
 
-Раздельный verdict: published release — `v1.0.2` unchanged; repaired candidate — WIP/local GREEN, freeze pending; deployed runtime — accepted `82003c03`, currently DOWN; stability observation — NOT STARTED; M2-G0 — BLOCKED.
+Подготовленная точная транзакция перехода: повторно снять baseline и проверить свежую v1.0.2 generation; экспортировать exact XML main/health/backup и hashes локальных config; штатно остановить runtime и доказать отсутствие exact процессов/Job/lease/listener; отключить только три exact production task; заменить остановленную disabled backup task через `-ReplaceExisting`, затем main/health; прочитать обратно и проверить profiles; выполнить activation initialize/rebind и candidate-bound backup cycle, который из своей аутентифицированной journal-фазы запускает ровно один runtime. Любой промежуточный отказ оставляет admission закрытым и runtime остановленным. Возврат прежних code/config/task definitions возможен только из экспортированных exact bytes по отдельному решению; БД поверх новых accepted tasks не откатываются. После запуска проверяются один Core/Job/lease, local/public/stock readiness, одна разрешённая text-задача, результат/TXT и post-baseline. UNKNOWN сначала сверяется, blind retry запрещён.
+
+Раздельный verdict: published release — `v1.0.2` unchanged; repaired candidate — WIP, freeze pending; deployed runtime — accepted `82003c03`, currently DOWN; stability observation — NOT STARTED; M2-G0 — BLOCKED.
 
 Следующие разделы до явно отмеченных архивов сохраняют предыдущие checkpoint-факты и не являются текущим runtime-срезом.
 
@@ -66,7 +63,7 @@
 | LIVE | clean detached `Code/worktrees/telegram-live` на `82003c03…` |
 | StateRoot / BackupRoot | canonical `.runtime/production-c6/migration-01/state` / `.runtime/production-c6/backups` |
 | Ветка Gate | `codex/m1-s1-stability`, изолированный worktree |
-| Текущий WIP | parent `19c9bf3…`; exact candidate фиксируется только post-commit freeze receipt |
+| Текущий WIP | parent `e357629…`; exact candidate фиксируется только post-commit freeze receipt |
 
 C6 не повторяется, MVP2 не запускался. Документ 11, исторические C6 receipts, sealed sources, старые backups и recovery refs не изменялись. Публикация и activation — разные статусы; tag v1.0.2 не перемещается.
 
@@ -92,6 +89,8 @@ Read-only проверка 14.09.2026, 13:57–13:59 МСК:
 
 1. `73ed1c95ff81f4c087bd7bc7e5d468e09cc8b1a6`, tree `2ca97f0a4b8a2a0fb6f534e211a636efe065c99c`: L1 FAIL, L2/L3 REWORK. Freeze receipt SHA-256 `90a20f87c36e8baf83fa166fcbedd1b8560001b361d9752cf664b86b05f2aaf8`.
 2. `19c9bf3b790f411790191d58c6110817ae887d3f`, tree `340c37763e5164cb5163454d698d03ac90281a54`: L1 PASS, aggregate FAIL. Freeze receipt `m1-s1-source-freeze-19c9bf3.json`, SHA-256 `b0e449d82ec1404bfd6d864ac571f20dbdc841cddc5246b550d41634df8b404a`; review receipt `m1-s1-review-evidence-19c9bf3.json`, SHA-256 `a65bf4de927628d2a545cbe2ed27631265d4b005ec3d5d237830db9517e7b682`.
+3. `121a4df400a6bed01427e48f9aa66eb2822852db`, tree `e35b662538aa5b6470eca4aea8356ef12286163f`: aggregate FAIL; freeze receipt SHA-256 `505749417eccdb67fe10ea87868b9d520547754b24c29519942ed93df3bb7663`.
+4. `e357629859f728bf3403174a25a7a64c90d0d830`, tree `225a7000cc470e4bb011a4e3d5f7567182d17915`: L1 PASS, L2/L3 FAIL, aggregate FAIL; freeze receipt SHA-256 `930af8bd2aa57730015e413a99be2af1817e34ee11b6e76d8c6b52ce08540fc0`.
 
 Evidence этих ревизий архивно и не переносится на новый candidate. Fixture `9af4c7e28d6b41d0a735e2f6b8c1934e` относится только к `19c9bf3…`: он доказал transient recovery и exhaustion, но не отдельную permanent ошибку.
 
@@ -111,31 +110,31 @@ Evidence этих ревизий архивно и не переносится �
 - Terminal parser проверяет точную матрицу stage/error/status/child exit/readiness/count/outcome/cleanup.
 - После каждого blocking readiness probe child проверяется снова; перед readiness terminal есть bounded propagation check.
 - Каждая v3 запись аутентифицирована DPAPI текущего Windows owner и связана digest-chain. Checkpoint допустим только второй записью физического `.previous`, никогда в `current`.
-- Reset требует exact newest authenticated digest. Потеря сегмента, reparse, hardlink, extra/oversize/invalid file, append/fsync/rotation failure дают STOP.
+- Reset требует exact newest authenticated digest. Отдельный owner-authenticated latch сохраняет pre-control failure до материализации в `control_failure`; потеря/подмена latch, сегмента, reparse, hardlink, extra/oversize/invalid file, append/fsync/rotation failure дают STOP.
 - Operator log имеет fixed parser и current+previous по 5 MiB. Fallback CLI log — current+previous по 128 KiB, строка ≤2048 bytes, fixed schema и DPAPI authentication.
-- Exit `70/71/72/73/74/75/76/77/78` различает create/signal/close/evidence, composition, activation binding, busy control, rejected reset и blocked history.
+- Exit `70/71/72/73/74/75/76/77/78/79/80` различает create/signal/close/evidence, composition, activation binding, busy control, rejected reset, blocked history, startup и rebind.
 - Retry разрешён только exact allowlisted transient после proven cleanup; permanent, missing/invalid outcome, cleanup/evidence failure, UNKNOWN и exhaustion дают STOP.
 
 Trust boundary: Windows owner — control authority. DPAPI защищает от другого пользователя и offline-подделки; произвольный код того же owner уже имеет эквивалентный доступ к StateRoot/БД и вне этой границы. Core/relay не имеют команды reset; недоверенные Codex workers остаются в существующей sandbox/Job-изоляции. Секретный key file не создаётся.
 
-Activation binding v2 включает source/code/schema, exact StateRoot, semantic flag, hashes документа 11, двух local config и Mini App assets, voice inventory, BackupRoot/ownership, Python/pythonw/base runtime и installed distributions/requirements, health launcher и фактические main/health/backup Scheduler signatures. Изменение любого input требует нового binding и явного bootstrap после сверки.
+Activation binding v3 включает source/code/schema, exact StateRoot, semantic flag, hashes документа 11, двух local config и Mini App assets, voice inventory, BackupRoot/ownership, Python/pythonw/base runtime и installed distributions/requirements, health launcher и фактические main/health/backup Scheduler signatures. Он также связывает principal SID, trigger identity/time и все влияющие task settings. Изменение любого input требует нового binding и явного bootstrap/rebind после сверки.
 
 ## WIP-проверки
 
-- RED по восьми блокерам L2/L3: `8 failed`;
-- GREEN новой матрицы: `12 passed`;
-- M1-S1 supervisor/rework/L3: `87 passed in 15.72s`;
-- permanent product controller: один `telegram_checkpoint_failed`, один attempt, exit 29, no raw output.
+- новый targeted supervisor/rework/L3 набор: `118 passed`;
+- affected/dependent набор под реальной Windows identity и отдельным pytest mutex namespace: `218 passed`;
+- sandbox-only identity mismatch воспроизведён отдельно; те же три проверки под владельцем: `3 passed`;
+- Python AST, PowerShell parser, EVIDENCE JSON и `git diff --check`: PASS.
 
-Python AST, PowerShell parser, полный affected/dependent набор, fixture v3, D01, security audit и L1/L2/L3 привязываются к source freeze. C0–C6 целиком не повторяются.
+Real fixture новой ревизии, D01, security audit и L1/L2/L3 привязываются только к следующему source freeze. C0–C6 целиком не повторяются.
 
 ## Следующий checkpoint и production-план
 
 1. Зафиксировать один source candidate и внешнюю receipt с commit/tree/source/assets/config/input digests.
 2. На нём выполнить real Scheduler fixture v3, D01 без package operations, scoped security audit и независимые L1/L2/L3.
-3. После aggregate PASS: fresh pre-change backup, baseline, planned stop exact supervisor/Job, свободные port/mutex/lease.
+3. После aggregate PASS: fresh pre-change backup, baseline, exact XML/config export, planned stop exact supervisor/Job, свободные port/mutex/lease.
 4. Опубликовать candidate через protected main, без нового tag и без перемещения v1.0.2.
-5. Переключить LIVE на exact reviewed source commit; установить main/health с Scheduler restart `0`, health launcher в LIVE и candidate-bound backup config/task.
+5. Отключить остановленные exact задачи; заменить backup только через `-ReplaceExisting`, затем main/health, сделать readback; переключить LIVE на exact reviewed source commit и candidate-bound config.
 6. При остановленном runtime выполнить explicit initialization полного activation binding; candidate backup cycle запускает ровно один runtime.
 7. Проверить один Core/Job/lease, local/public/stock readiness; одну разрешённую text-задачу, результат/TXT и post-baseline. UNKNOWN сначала сверяется, blind retry запрещён.
 
@@ -153,7 +152,7 @@ PASS требует непрерывных 72 часов включённого 
 |---|---|
 | Published release | v1.0.2 / `82003c03…` неизменён |
 | Repaired candidate | WIP GREEN; source freeze/reviews pending |
-| Deployed runtime | accepted `82003c03…`, ready на свежем срезе |
+| Deployed runtime | accepted `82003c03…`, currently DOWN |
 | Stability observation | AGREED, NOT STARTED |
 | M2-G0 | BLOCKED |
 
