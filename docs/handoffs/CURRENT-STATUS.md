@@ -1,34 +1,28 @@
 # Nobus Space текущий статус
 
-**14 сентября 2026, 18:47 МСК: MVP1 v1.0.2 остаётся принятым и опубликованным, его последний проверенный runtime-срез — DOWN; M1-S1 и 72-часовое наблюдение не завершены.**
+**14 сентября 2026, 21:17 МСК:** MVP1 v1.0.2 принят и опубликован. M1-S1 продолжается в той же задаче; production в текущем продолжении не изменялся, 72-часовое наблюдение ещё не началось.
 
-Последний legacy-запуск начался `00:31:06Z` и завершился `runtime_failed` в `11:39:09Z` (14:39:09 МСК). В свежем read-only срезе main enabled/Ready/LastTaskResult `1`, exact LIVE supervisor/Core/relay/listener 8765 отсутствуют, polling lease отсутствует, local/public readiness — `false/false`. Исторический первичный trigger остаётся `UNKNOWN`: v1.0.2 не сохраняет достаточную типизированную причину этого завершения.
+Published tag `v1.0.2` → `82003c03d8a36015703472b472640ab4021fb416`; main до M1-S1 — `88e58c8866db2384423f2b154df901a2e4af6c48`. Тег не перемещён. Исторические C6 receipts и sealed sources сохранены.
 
-Опубликован [выпуск v1.0.2](https://github.com/streetenergy63reshik-del/nobus-space/releases/tag/v1.0.2). Его tag и product commit не перемещались; непринятые maintenance-ревизии остаются локальным WIP.
+Пятый frozen candidate `5b743680eaee4b43fd4912f916c52ea1a8ed1080` восстановлен по внешней квитанции; прежние 218 PASS привязаны к его code/test/input blobs. По собранным L1/L2/L3 он отклонён. Проверяющий отказал до product attempt из-за PowerShell 5.1; поздние child exits, rotation/latch и безопасная замена Scheduler profiles исправлены одним пакетом. Текущий code checkpoint — `23e47414932e236824c0d48430addac3cb4e9f88`; 137 целевых и 56 зависимых PASS под Windows identity владельца с изолированными mutex. Итоговый commit/tree документов и кода будет связан одной внешней freeze-квитанцией.
 
-| Объект | Фактическое состояние |
+Следующий конкретный шаг — финальная проверка документов, freeze, реальный three-case Scheduler fixture через PowerShell 7 и существующие L1/L2/L3 этой revision. D01 и классификация security findings сохраняются по неизменным входам. После aggregate PASS: свежие LIVE inputs, backup/baseline, разрешённая публикация и безопасное переключение, реальная text-задача и TXT, сверка сохранности, heartbeat этой же задачи на 72 часа.
+
+Последний production read-only срез — **14.09, 15:34–15:37 МСК**, его требуется актуализировать перед activation:
+
+| Объект | Наблюдавшийся факт |
 |---|---|
-| Принятый продукт и исходник LIVE | `82003c03d8a36015703472b472640ab4021fb416`; checkout clean, runtime сейчас DOWN |
-| Тег | Аннотированный `v1.0.2`, точный product commit; опубликован и прочитан обратно |
-| Исходник в main | [PR №30](https://github.com/streetenergy63reshik-del/nobus-space/pull/30), merge `9a34b60ac883d00631a9b1138905671728c62426` |
-| Опубликованная main | `88e58c8866db2384423f2b154df901a2e4af6c48`, protected; документы текущего аудита пока local WIP |
-| Runtime | Нет exact LIVE supervisor/Core/relay/listener 8765 и active lease; local/public FAIL. Второго Core и второй очереди не найдено |
-| Данные | Четыре БД PASS; 86 tasks/ingress, 84 ACK messages/receipts, 14/14 delivery parts, queue `{}`, `delivery_unknown=0`, `reconciliation=false`; offset `375633467`, revision `44146` |
-| Scheduler | Main enabled/Ready/1, legacy `RestartCount=10/PT1M`; Health и Backup enabled, Backup Ready/0. История production retry-attempts отсутствует, поэтому исчерпание бюджета не заявляется |
-| Текущая копия | `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c`; exact LIVE v1.0.2 подтвердил authentication/binding/ciphertext PASS, возраст `43577.032` с. Restore не выполнялся |
-| Историческая приёмка | 09.09: реальные text/voice/Mini App/TXT; post-accept backup 127,016 с; та же Word-памятка, шесть страниц проверены |
-| Следующий шаг | `73ed1c9`, `19c9bf3`, `121a4df` и `e357629` отклонены. После завершения текущего WIP: один freeze → real fixture → D01/security → L1/L2/L3 той же ревизии |
+| LIVE | clean detached `82003c03…`; DOWN после `runtime_failed` в 14:39:09 МСК |
+| Runtime | Нет exact supervisor/Core/relay/listener 8765 и active polling lease; local/public false/false |
+| Scheduler | Main enabled/Ready/1, legacy RestartCount=10/PT1M; Backup Ready/0 |
+| Данные | Четыре БД healthy; 86 tasks, 84 ACK receipts, 14/14 parts; queue пустая, delivery_unknown=0, reconciliation=false |
+| Offset | 375633467, revision 44146 |
+| Backup | generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c` проверена exact v1.0.2; freshness сейчас не утверждается |
 
-### M1-S1 — незамороженный WIP 14.09, 18:47 МСК
+Исторический первичный trigger остановок остаётся UNKNOWN. Истории production retry-attempts нет, поэтому исчерпание старого бюджета не заявляется. Попытка fixture `4f4d9f130bbc4f21a800d754e5e0fd1b` сверена: task/process/result отсутствуют; успех ей не приписан.
 
-Preservation baseline: 86 tasks, 84 ACK receipts, пустая очередь, lease отсутствует, offset `375633467`, reconciliation false. Дублей и второй очереди нет. Принятый LIVE остаётся clean на `82003c03…`, но остановлен; legacy Scheduler retry `10/PT1M` ещё не заменён.
+Документ 11 неизменён и остаётся runtime input. Fresh LIVE input readback PENDING; ожидаемые старые hashes не являются свежей проверкой. Все необходимые разрешения владельца сохраняются. При неизвестном effect выполняется сверка, а не повтор. БД поверх новых accepted tasks не откатываются.
 
-Отклонены `73ed1c9`, `19c9bf3`, `121a4df` и `e357629`; их evidence не смешивается с новым candidate. У `e357629` были L1 PASS, L2/L3 FAIL, aggregate FAIL при 209 frozen PASS и успешном real fixture: проверка нашла реальные контрактные пробелы, поэтому ревизия не публикуется и не развёртывается.
+Точный текущий пакет: [HANDOFF](../gates/mvp1-maintenance/HANDOFF.md), [EVIDENCE](../gates/mvp1-maintenance/EVIDENCE.json), [Runbook](../08-Runbook-эксплуатации.md). Историческая эксплуатация: [C6 OPERATIONS](../gates/gate-c6-release/OPERATIONS.md), [роли каталогов](WORKSPACE-INVENTORY.md).
 
-Текущий WIP на parent `e357629` одним пакетом закрывает все собранные блокеры: relay/planned-stop races; поздний stop после доказанного readiness failure; durable owner-authenticated latch для pre-control write failure; согласование Core exit с санитизированным outcome; principal SID, trigger time и влияющие Scheduler settings в activation binding; ограниченный backup-start только из свежей candidate-bound journal-фазы; полный run-id process cleanup и executable digest fixture; явная безопасная замена остановленной disabled backup task. Целевой supervisor/rework/L3 набор — 118 PASS; полный affected/dependent набор под реальной Windows identity — 218 PASS. Новый freeze, real fixture и reviews ещё впереди. Точный пакет: [M1-S1 HANDOFF](../gates/mvp1-maintenance/HANDOFF.md) и [EVIDENCE](../gates/mvp1-maintenance/EVIDENCE.json).
-
-[Восемь критериев, ограничения и доказательства](../gates/gate-c6-release/OPERATIONAL-STATUS-14.md), [передача](../gates/gate-c6-release/HANDOFF.md), [эксплуатация](../08-Runbook-эксплуатации.md), [роли каталогов](WORKSPACE-INVENTORY.md).
-
-Прежние FAIL и версии сохраняются. Документ 11 не изменён и входит digest-ом в activation binding; его будущая правка создаёт новый candidate. Исторический trigger 10–14 сентября остаётся `UNKNOWN`; отсутствие старого Scheduler recovery воспроизведено отдельно. Разрешение владельца покрывает необходимые действия и число запусков, но production-переход начнётся только после aggregate PASS по единому точному плану. Подробнее: [аудит](../audits/MVP1-STABILITY-AUDIT.md), [промпт M1-S1](../gates/mvp1-maintenance/M1-S1-PROMPT.md).
-
-MVP2 остаётся предложением вне Gate. Publication, deploy и изменение live Tasks не выполнялись. Nobus Memory используется только в scope `project:nobus-space` и не заменяет exact Git revision/evidence.
+Раздельный verdict: published release — v1.0.2 unchanged; repaired candidate — код проверен, freeze/review pending; deployed runtime — без изменений, последний срез DOWN; stability observation — NOT STARTED; M2-G0 — BLOCKED. C6 не переоткрыт, MVP2 не запущен. Nobus Memory — только scope project:nobus-space.

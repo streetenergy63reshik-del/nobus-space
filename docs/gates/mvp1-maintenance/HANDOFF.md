@@ -1,58 +1,55 @@
 # M1-S1 — HANDOFF
 
+**Checkpoint 14.09.2026, 21:17 МСК:** published release остаётся v1.0.2; production в этом продолжении не изменялся. Пятый frozen candidate `5b743680eaee4b43fd4912f916c52ea1a8ed1080` восстановлен по clean HEAD и внешней квитанции и отклонён по собранному review. Проверенный пакет ремонта кода — `23e47414932e236824c0d48430addac3cb4e9f88` (предыдущий checkpoint `180ac12e1e83f1f1f4217acdba15eb9214692890`). Точная итоговая revision/tree после этого документа связывается одной внешней freeze-квитанцией; до её создания пакет DRAFT.
 
-**Статус 14.09.2026, 18:47 МСК:** принятый и опубликованный MVP1 v1.0.2 неизменён, а последний проверенный production-срез остаётся DOWN после `runtime_failed` в 14:39:09 МСК. Четвёртый frozen candidate `e357629859f728bf3403174a25a7a64c90d0d830` отклонён: L1 PASS, L2/L3 FAIL, aggregate FAIL. Все замечания этого review собраны до одного нового WIP-пакета; production, publication и 72-часовое наблюдение ещё не начаты.
+## Конечный результат и границы
 
-## Текущий checkpoint после review `e357629…`
+M1-S1 завершается безопасным различением новых завершений, ограниченным восстановлением transient-отказов и понятным STOP при permanent/UNKNOWN/exhaustion; одним Core/Job/lease без повторения неизвестных effects и потери accepted tasks; совместимостью с backup; проверенным переходом, реальной задачей и TXT и началом согласованного наблюдения. Старый первичный trigger может остаться UNKNOWN. Отсутствующие исторические журналы не являются основанием для бесконечного поиска. Необязательные усиления не расширяют ремонт.
 
-### Refs и production read-only
+Зона владельца пакета: supervisor, два installer, Scheduler fixture, относящиеся tests, Runbook/CURRENT и этот Gate-пакет. Подготовленный docs01 сохранён; документ 11, C6 receipts, sealed sources, старые backups и recovery refs не менялись.
 
-| Объект | Факт |
-|---|---|
-| Published product/tag | `v1.0.2` → `82003c03d8a36015703472b472640ab4021fb416`, не перемещён |
-| Remote main до M1-S1 | `88e58c8866db2384423f2b154df901a2e4af6c48` |
-| LIVE | clean detached `Code/worktrees/telegram-live` на `82003c03…`; сейчас не запущен |
-| StateRoot / BackupRoot | canonical `.runtime/production-c6/migration-01/state` / `.runtime/production-c6/backups` |
-| Новый WIP | branch `codex/m1-s1-stability`, parent `e357629…`, source freeze отсутствует |
+## Сохранённые доказательства
 
-Срез 15:34–15:37 МСК выполнен без production-записи:
+Внешние freeze/JUnit-квитанции находятся в указанном владельцем каталоге Codex visualizations / 2026 / 09 / 13 / 01a09c25-1d78-73e2-8691-be3db59a9fd1. Результаты Scheduler fixture сохраняются в изолированном worktree, `.runtime/m1-s1/scheduler-fixture/<run_id>/result.json`.
 
-- legacy operator history: `starting` `2026-09-14T00:31:06Z`, затем `runtime_failed` `2026-09-14T11:39:09Z`; первичная причина остаётся `UNKNOWN`;
-- main enabled/Ready/LastTaskResult `1`, `RestartCount=10`, `RestartInterval=PT1M`; Health и Backup enabled, Backup Ready/0;
-- exact LIVE supervisor/Core/relay/listener 8765 отсутствуют; local/public `false/false`; active polling/job lease отсутствует;
-- четыре БД PASS; 86 tasks/ingress, 168 audit events, 7 sealed answers, 84 ACK messages/receipts, 14/14 delivery parts, queue `{}`, `delivery_unknown=0`, `reconciliation=false`;
-- polling offset `375633467`, revision `44146`; ни дублей, ни второй очереди не выявлено;
-- exact LIVE v1.0.2 повторно проверил generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c`: manifest `sha256:575a2f272f7c48810fbb4c44d88215bcba2556dc01fb0c95a396c75ad93ae84e`, authentication/binding/ciphertext PASS, возраст `43577.032` с; restore не запускался.
+- Пятый кандидат: tree `cea7a00248d8c8bbd564d153436f967ab75f924c`; freeze SHA-256 `ba464970889610e1e264c3e05fd34aecbdbc3efc215425e73d620e3cf59505d4`.
+- Существующие 218 PASS: `m1-s1-wip-dependent-host-20260914-1844.xml`, SHA-256 `3d9083ae2049d4e1e2123f495af6ee9dfb426f00c1bcc1a1ff6a4e8c52b4b200`; code/test/input blobs сверены с пятым freeze в `m1-s1-junit-binding-5b74368.json`, SHA-256 `6d0e39a4bdbcc00683c88c2411fdd20177966e36f2c0d3120d57b0e454066133`. Смена WIP → frozen сама по себе их не обнуляла. Для изменённого кода ниже получено новое evidence; неизменные Core/contracts не переоткрываются.
+- Попытка `4f4d9f130bbc4f21a800d754e5e0fd1b`: exact tasks/process/result отсутствовали при повторной сверке; исход не объявлен успешным. Квитанция reconciliation SHA-256 `169df3171a84d724ca68394b385363062e15d919b3b4700b43fb42cd048658ce`.
+- Попытка `a50f1e4a20a24721a43b43c2847395ee`: FAIL `fixture_observation_failed`, rows пустые, cleanup proven; SHA-256 `a70601cbaffdf40bf382051cc2c565dbeb4830b4767ac9656db9713ad2c2bef7`. Проверяющий запущен в Windows PowerShell 5.1 при использовании API PowerShell 7; до product attempt не дошёл.
+- Текущий целевой набор: 137 PASS, `m1-s1-wip-dependent-09.xml`, SHA-256 `bb655c4994b070ad2f9263f7f77a8f6bdcb21ae8e63439a190e160e2771bd804`. Зависимые C5 runtime/ops: 56 PASS, `m1-s1-wip-dependent-c5ops-03.xml`, SHA-256 `8457a0909b4ff7a521e9d8f60cd52c51450fe3878a53198b6f1d554f2ef1a433`. Оба запуска — Windows identity владельца и отдельный pytest mutex namespace, без production/model/ASR.
+- Отрицательная проверка WPS 5.1: run `2f0d0c98df5b49d1b61ed44fe0c7e372`, точный `fixture_runtime_unsupported` до регистрации; cleanup proven, tasks/processes отсутствуют; result SHA-256 `d380d8547b73352b1fa87de501c98b346a69d124f90d5a859262fca332ebda4b`.
+- D01: прежние inventory/tool/requirements неизменны, 80 packages/15 pins/0 mismatch; inventory digest `c4b1be2c5795df1c19722441f157264ce7041558c616e26df98e67037c905be7`. OSV finding относится к pip 25.0.1 вне runtime Actions; пакеты не менялись.
+- Security: повторный scoped scanner даёт тот же report SHA-256 `54d33ab1ef098a5d5b31a00f4ccfa793803fb81d950cee857ce8734eeb4192f8`: 42 findings, включая 6 synthetic fake-secret fixtures; новых findings в изменённых файлах нет. Классификация сохранена.
 
-Проверка той же копии WIP-кодом ожидаемо дала `backup_unverified_do_not_restore`, потому что application code digest кандидата отличается от v1.0.2. Это fail-closed совместимость, не повреждение backup. Production-переход поэтому обязан сохранить свежую pre-change v1.0.2 generation и затем создать отдельную candidate-bound generation до допуска/запуска candidate.
+## Собранные замечания пятого кандидата и ремонт
 
-### Отклонённый четвёртый freeze и текущий WIP
+L1: FAIL из-за проверяющего, product blockers не найдено. L2/L3: FAIL/REWORK. Все обязательные замечания собраны до исправления: совместимость fixture с PowerShell, поздние child exits в cleanup, пропавший current при первой rotation/compaction/latch-clear failure, backup trigger в далёком будущем, частичная замена Scheduler tasks.
 
-`e357629859f728bf3403174a25a7a64c90d0d830`, tree `225a7000cc470e4bb011a4e3d5f7567182d17915`, parent `121a4df…`, отклонён и не будет опубликован или развёрнут. Freeze receipt `m1-s1-source-freeze-e357629.json`, SHA-256 `930af8bd2aa57730015e413a99be2af1817e34ee11b6e76d8c6b52ce08540fc0`; frozen JUnit — 209 PASS, SHA-256 `cab9f63763595f436325149d29782d00fa0c9882c6e62b694e5a15fcffc2126e`; real Scheduler fixture run `fa21f7b41d5c4a7cb7fbe16c40051b02`, result SHA-256 `1dfc6a82d24c457841c53f16bedf47f2627f83c5846c77d9ac275d94357f70b1`; security report SHA-256 `54d33ab1ef098a5d5b31a00f4ccfa793803fb81d950cee857ce8734eeb4192f8`. Эти доказательства архивны и не переносятся на следующую ревизию.
+Пакет закрывает эти случаи целевыми тестами: типизированный отказ неподдерживаемой среды до регистрации; late Core/relay exit фиксируется до принадлежащего supervisor завершения; только exact authenticated latch позволяет материализовать control failure после прерванной rotation; backup start не позже ближайших локальных 03:30; installers проверяют старые XML/launcher digests, сохраняют rollback bytes, ставят задания disabled и при промежуточном отказе оставляют их отключёнными.
 
-Совокупный review выявил и текущий WIP одним пакетом закрывает:
+Инициализация/rebind/inspect/acknowledge допускают профиль всех трёх disabled заданий с теми же signatures под production mutex. Обычный run этот профиль отклоняет. После включения binding сохраняется. Смешанный профиль запрещён, кроме уже аутентифицированного backup перехода с disabled health. Staged backup получает ближайший будущий trigger, чтобы включение не проигрывало пропущенное время. Это минимальная правка безопасного переключения.
 
-- pre-Core relay exit и доказанный readiness failure больше не маскируются поздним planned stop; состояние child фиксируется до cleanup;
-- bounded owner-authenticated recovery latch сохраняет pre-control отказ записи и после сверки материализуется в точный `control_failure`; без доказуемого terminal новая серия не открывается;
-- Core exit и санитизированный outcome обязаны согласовываться: FAIL — только nonzero, `STOPPED`/`ALREADY_RUNNING` — только zero;
-- main trigger привязан к SID текущего principal; health/backup trigger time и все влияющие Scheduler settings входят в exact binding;
-- backup может запускать остановленный enabled runtime только из свежей аутентифицированной candidate-bound journal-фазы `restart_permitted`/`starting`; это не разрешает общий disabled health profile;
-- real fixture помечает controller, gated wrappers, Core и relay единым уникальным run id, считает все дочерние процессы и связывает безопасные имя/размер/SHA-256 исполняемого файла;
-- backup task заменяется только с явным `-ReplaceExisting`, если exact прежняя задача уже остановлена и disabled.
+Необязательные P2 (дополнительные principal fields, усиление alert, детальные fixture substages, независимый parser auth) сохранены отдельно; точного нарушенного обязательного контракта в текущей области для них не установлено.
 
-Локальный целевой supervisor/rework/L3 набор после исправлений — 118 PASS. Полный affected/dependent набор той же рабочей копии под реальной Windows identity владельца — 218 PASS; три identity-теста ожидаемо отказали только в sandbox с несовместимыми `CodexSandboxOffline` SID и `USERNAME=CGC1ub`, затем дали 3/3 PASS и вошли в полный host-run. Это WIP evidence, не Gate PASS.
+## Оставшиеся блокеры и переход
 
-### Полученное разрешение и следующий шаг
+1. Проверить изменённые документы, записать одну внешнюю freeze-квитанцию итогового commit/tree/assets/config/input digests.
+2. Выполнить three-case fixture этой revision через точный PowerShell 7: transient recovery, budget exhaustion, permanent STOP и доказанный cleanup. Использовать новый run id после сверки предыдущих effects.
+3. Передать этот же freeze существующим L1/L2/L3 с прежними findings и применимым evidence. Собрать все verdicts; до aggregate PASS production закрыт.
+4. Перед activation обновить LIVE inputs (сейчас PENDING), refs/status, backup и baseline. Выполнить разрешённые publication и переключение; проверить реальный результат/TXT и сохранность.
+5. Только после фактической activation создать heartbeat этой же задачи: 72 часа включённого ПК, каждые 30 минут, минимум две плановые backup; gap >60 минут начинает окно заново; уведомления только об изменении/сбое/завершении. Автоматический restore/reset/restart heartbeat не выполняет.
 
-Владелец разрешил все необходимые действия и не ограничил число запусков. Для pre-production проверки это включает три уникальные задачи `NobusSpace-M1S1-Fixture-Transient-*`, `NobusSpace-M1S1-Fixture-Budget-*`, `NobusSpace-M1S1-Fixture-Permanent-*`, без production inputs/model/ASR/messages. Fail-safe cleanup: exact stop, bounded доказательство non-running state, нуля процессов с run id и отсутствия уникальных mutex/event; только после этого definitions удаляются. При недоказанном cleanup definitions сохраняются для оператора, широкого kill нет.
+Production-план: свежая проверенная v1.0.2 generation; baseline tasks/receipts/offset и exact XML/config hashes; admission hold; штатный STOP и доказательство отсутствия exact процессов/Job/lease/listener; только три production task disabled; сохранить rollback bytes; опубликовать проверенный source через защищённую main без перемещения v1.0.2; clean LIVE на проверенном source; staged main/health/backup с candidate-bound config и точным readback; initialize/rebind при всех disabled; включить задания и контролируемо запустить candidate backup cycle, который сохраняет hold, останавливает runtime при необходимости и создаёт новую связанную generation до своего разрешённого старта runtime. До завершения baseline/backup/readiness hold не снимается. Затем один Core/Job/lease, local/public/stock readiness, одна квалификационная text-задача (model 1, ASR 0), правильный результат/TXT и post-baseline. Плановая пауза до 20 минут; при превышении остаётся STOP до диагностики. UNKNOWN эффект сначала сверяется. Rollback совместимых code/config/task bytes — по решению владельца; БД поверх новых accepted tasks не откатываются.
 
-Следующий шаг: завершить тесты и документы, сделать один новый source freeze, затем real three-case Scheduler run, D01/security и независимые L1/L2/L3 именно этой ревизии. Только aggregate PASS открывает production-переход.
+Разрешения владельца на необходимые действия и число запусков сохраняются; повторное подтверждение только из-за новой revision не требуется. Автоматический отказ среды фиксируется отдельно и не обходится.
 
-Подготовленная точная транзакция перехода: повторно снять baseline и проверить свежую v1.0.2 generation; экспортировать exact XML main/health/backup и hashes локальных config; штатно остановить runtime и доказать отсутствие exact процессов/Job/lease/listener; отключить только три exact production task; заменить остановленную disabled backup task через `-ReplaceExisting`, затем main/health; прочитать обратно и проверить profiles; выполнить activation initialize/rebind и candidate-bound backup cycle, который из своей аутентифицированной journal-фазы запускает ровно один runtime. Любой промежуточный отказ оставляет admission закрытым и runtime остановленным. Возврат прежних code/config/task definitions возможен только из экспортированных exact bytes по отдельному решению; БД поверх новых accepted tasks не откатываются. После запуска проверяются один Core/Job/lease, local/public/stock readiness, одна разрешённая text-задача, результат/TXT и post-baseline. UNKNOWN сначала сверяется, blind retry запрещён.
+Последний production read-only срез 14.09, 15:34–15:37 МСК: LIVE `82003c03…`, runtime DOWN; 86 tasks, 84 ACK receipts, 14/14 parts, четыре БД healthy, queue пустая, unknown=0, reconciliation=false, offset 375633467/revision 44146. Эти значения — исторический baseline, не свежие preconditions.
 
-Раздельный verdict: published release — `v1.0.2` unchanged; repaired candidate — WIP, freeze pending; deployed runtime — accepted `82003c03`, currently DOWN; stability observation — NOT STARTED; M2-G0 — BLOCKED.
+Раздельный verdict: published release — v1.0.2 unchanged; repaired candidate — проверенный код, финальный freeze/review pending; deployed runtime — без изменений, последний срез DOWN; stability observation — NOT STARTED; M2-G0 — BLOCKED.
 
-Следующие разделы до явно отмеченных архивов сохраняют предыдущие checkpoint-факты и не являются текущим runtime-срезом.
+## Архив предыдущих checkpoint
+
+Ниже сохранена история прежних решений и проверок. Старые статусы и разрешения не заменяют текущий раздел и свежие внешние readbacks.
 
 ## Канонические refs и границы
 

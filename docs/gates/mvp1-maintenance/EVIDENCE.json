@@ -1,7 +1,7 @@
 {
   "schema": "nobus-m1-s1-evidence-4",
   "gate": "M1-S1",
-  "updated_at": "2026-09-14T15:47:00Z",
+  "updated_at": "2026-09-14T18:17:00Z",
   "status": "WIP_LOCAL_GREEN_FREEZE_PENDING",
   "accepted_product": {
     "tag": "v1.0.2",
@@ -79,12 +79,29 @@
       "D01_inventory_digest": "sha256:c4b1be2c5795df1c19722441f157264ce7041558c616e26df98e67037c905be7",
       "evidence_reused_for_next_candidate": false,
       "publish_or_deploy": false
+    },
+    {
+      "commit": "5b743680eaee4b43fd4912f916c52ea1a8ed1080",
+      "tree": "cea7a00248d8c8bbd564d153436f967ab75f924c",
+      "verdict": {
+        "L1": "FAIL_VERIFIER_ONLY",
+        "L2": "FAIL_REWORK",
+        "L3": "FAIL_REWORK",
+        "aggregate": "FAIL"
+      },
+      "freeze_receipt": "m1-s1-source-freeze-5b74368.json",
+      "freeze_receipt_sha256": "sha256:ba464970889610e1e264c3e05fd34aecbdbc3efc215425e73d620e3cf59505d4",
+      "junit": "m1-s1-wip-dependent-host-20260914-1844.xml",
+      "junit_sha256": "sha256:3d9083ae2049d4e1e2123f495af6ee9dfb426f00c1bcc1a1ff6a4e8c52b4b200",
+      "junit_binding_receipt_sha256": "sha256:6d0e39a4bdbcc00683c88c2411fdd20177966e36f2c0d3120d57b0e454066133",
+      "tests_passed": 218,
+      "publish_or_deploy": false
     }
   ],
   "current_wip": {
     "branch": "codex/m1-s1-stability",
     "isolated_worktree": true,
-    "parent_commit": "e357629859f728bf3403174a25a7a64c90d0d830",
+    "parent_commit": "23e47414932e236824c0d48430addac3cb4e9f88",
     "source_candidate_commit": null,
     "source_candidate_tree": null,
     "gate_freeze_receipt": "PENDING_POST_COMMIT",
@@ -101,11 +118,17 @@
       "docs/08-Runbook-эксплуатации.md",
       "docs/handoffs/CURRENT-STATUS.md",
       "docs/gates/mvp1-maintenance/HANDOFF.md",
-      "docs/gates/mvp1-maintenance/EVIDENCE.json"
+      "docs/gates/mvp1-maintenance/EVIDENCE.json",
+      "ops/windows/Install-NobusSpaceBot.ps1"
     ],
     "document_11_changed": false,
     "historical_c6_receipts_or_sealed_sources_changed": false,
-    "old_backups_or_recovery_refs_changed": false
+    "old_backups_or_recovery_refs_changed": false,
+    "code_repair_checkpoints": [
+      "180ac12e1e83f1f1f4217acdba15eb9214692890",
+      "23e47414932e236824c0d48430addac3cb4e9f88"
+    ],
+    "freeze_binding_rule": "Final docs commit/tree bound by one external post-commit receipt; code/test blobs reused when identical."
   },
   "production_snapshot": {
     "observed_utc": "2026-09-14T12:34:00Z/2026-09-14T12:37:20Z",
@@ -286,8 +309,10 @@
     "scheduler_behavior_settings_validated": true,
     "scheduler_restart_count_zero_required": true,
     "candidate_bound_backup_config": true,
-    "disabled_health_allowed_only_for_fresh_authenticated_candidate_bound_backup_transition": true,
-    "authenticated_history_rebind_preserves_chain": true
+    "disabled_health_allowed_only_for_fresh_authenticated_candidate_bound_backup_transition": "runtime mode only; all-disabled control-only staging separately allowed",
+    "authenticated_history_rebind_preserves_chain": true,
+    "all_disabled_staging_control_only": true,
+    "fresh_live_input_readback": "PENDING"
   },
   "verification": [
     {
@@ -319,14 +344,37 @@
       "kind": "WIP_CHECK",
       "scope": "syntax and diff",
       "result": "PowerShell parser PASS; Python AST PASS; git diff --check PASS before final documentation update; final repeat pending"
+    },
+    {
+      "kind": "WIP_GREEN",
+      "scope": "23e4741 code/test blobs; owner Windows identity; isolated mutex",
+      "result": "137 passed",
+      "junit": "m1-s1-wip-dependent-09.xml",
+      "sha256": "sha256:bb655c4994b070ad2f9263f7f77a8f6bdcb21ae8e63439a190e160e2771bd804"
+    },
+    {
+      "kind": "WIP_GREEN",
+      "scope": "23e4741 dependent C5 runtime and ops",
+      "result": "56 passed",
+      "junit": "m1-s1-wip-dependent-c5ops-03.xml",
+      "sha256": "sha256:8457a0909b4ff7a521e9d8f60cd52c51450fe3878a53198b6f1d554f2ef1a433"
+    },
+    {
+      "kind": "SCOPED_SECURITY",
+      "scope": "changed code; same scanner and classification",
+      "result": "42 findings unchanged; 6 critical synthetic fake-secret test fixtures; no changed-file finding",
+      "sha256": "sha256:54d33ab1ef098a5d5b31a00f4ccfa793803fb81d950cee857ce8734eeb4192f8"
+    },
+    {
+      "kind": "D01_REUSED",
+      "scope": "same inventory, requirements, audit tool and environment",
+      "result": "80 packages, 15 pins, zero mismatch; no package changes"
     }
   ],
   "frozen_verification_pending": [
-    "python_ast_and_powershell_parser_and_diff",
-    "affected_and_dependent_tests",
-    "real_windows_scheduler_fixture_v3",
-    "D01_metadata_readback_without_package_operations",
-    "scoped_security_audit",
+    "final_documentation_checks",
+    "external_source_freeze_receipt",
+    "real_windows_scheduler_fixture_v3_on_PowerShell7",
     "independent_L1",
     "independent_L2",
     "independent_L3"
@@ -335,7 +383,7 @@
     "general_all_necessary_actions_authorization_received": true,
     "run_count_limited": false,
     "exact_scheduler_fixture_tool_approval": "GRANTED_2026-09-14_FOR_TRANSIENT_BUDGET_PERMANENT_SCOPED_STOP_AND_CLEANUP",
-    "publication_deploy_scheduler_activation_real_text_and_observation": "PENDING_EXACT_FINAL_CANDIDATE_PLAN",
+    "publication_deploy_scheduler_activation_real_text_and_observation": "AUTHORIZED_BY_OWNER_IN_THIS_GATE; exact final reviewed plan required before execution",
     "production_transition_performed": false,
     "qualification_text_tasks": 1,
     "model_execution_budget": 1,
@@ -360,12 +408,58 @@
     "managed_update": "NOT_APPLIED_ARGUMENT_REJECTED",
     "unchanged_retry_performed": false
   },
-  "next_step": "commit one source candidate; bind external freeze receipt; run the approved fixture v3 plus D01/security/L1/L2/L3; proceed to production only on aggregate PASS and exact final plan",
+  "next_step": "Check docs and freeze final revision once; real three-case Scheduler fixture with proven cleanup; existing L1/L2/L3; fresh LIVE inputs/backup/baseline and authorized publication/activation; real TXT; same-thread 72-hour heartbeat.",
   "verdict": {
     "published_release": "v1.0.2_UNCHANGED",
-    "repaired_candidate": "WIP_LOCAL_GREEN_FREEZE_PENDING",
+    "repaired_candidate": "CODE_23e4741_GREEN_FINAL_FREEZE_REVIEW_PENDING",
     "deployed_runtime": "ACCEPTED_82003c03_CURRENTLY_DOWN",
     "stability_observation": "NOT_STARTED",
     "M2_G0": "BLOCKED"
+  },
+  "continuation_audit": {
+    "sha256": "sha256:9b2dec69bcbbda9682a819ff14e35cccbe96bbec00830774c8815cb54ef3300c",
+    "scope": "same Gate; finite repair boundary; reuse unchanged evidence"
+  },
+  "scheduler_attempt_reconciliation": [
+    {
+      "run_id": "4f4d9f130bbc4f21a800d754e5e0fd1b",
+      "result": "NO_OBSERVED_EFFECT_NOT_SUCCESS",
+      "tasks_process_result_absent": true,
+      "receipt_sha256": "sha256:169df3171a84d724ca68394b385363062e15d919b3b4700b43fb42cd048658ce"
+    },
+    {
+      "run_id": "a50f1e4a20a24721a43b43c2847395ee",
+      "result": "FAIL",
+      "error_class": "fixture_observation_failed",
+      "product_attempt_observed": false,
+      "cleanup": "proven",
+      "cause": "Windows PowerShell 5.1 verifier used PowerShell 7 APIs",
+      "result_sha256": "sha256:a70601cbaffdf40bf382051cc2c565dbeb4830b4767ac9656db9713ad2c2bef7"
+    },
+    {
+      "run_id": "2f0d0c98df5b49d1b61ed44fe0c7e372",
+      "result": "EXPECTED_FAIL",
+      "error_class": "fixture_runtime_unsupported",
+      "product_attempt_observed": false,
+      "cleanup": "proven",
+      "result_sha256": "sha256:d380d8547b73352b1fa87de501c98b346a69d124f90d5a859262fca332ebda4b"
+    }
+  ],
+  "current_repair": {
+    "all_review_findings_collected_before_batch": true,
+    "required_fixed": [
+      "PowerShell fixture preflight and executable binding",
+      "late Core/relay exit before owned cleanup",
+      "authenticated latch reconciliation after first rotation, compaction and latch-clear failure",
+      "nearest local daily backup boundary",
+      "exact stopped disabled staging, rollback bytes, fail-closed partial registration",
+      "control-only all-disabled activation initialization without run authority"
+    ],
+    "optional_nonblocking": [
+      "extra principal fields",
+      "health alert hardening",
+      "fixture substage details",
+      "independent parser auth"
+    ]
   }
 }
