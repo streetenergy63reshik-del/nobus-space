@@ -369,8 +369,8 @@ $settings = [pscustomobject]@{
   StartWhenAvailable=$true
   DisallowStartIfOnBatteries=$false
   StopIfGoingOnBatteries=$false
-  RestartCount=10
-  RestartInterval='PT1M'
+  RestartCount=0
+  RestartInterval=$null
   ExecutionTimeLimit='PT0S'
 }
 $task = [pscustomobject]@{
@@ -399,7 +399,7 @@ $action.Arguments = " -nologo   -noprofile -noninteractive -executionpolicy bypa
 $normalized = Test-ExactScheduledTaskContract `
   -Task $task -Action $action -LauncherPath $launcher `
   -ActionExecutablePath $executable -ExpectedPrincipal $principal
-$settings.RestartCount = 9
+$settings.RestartCount = 1
 $drift = Test-ExactScheduledTaskContract `
   -Task $task -Action $action -LauncherPath $launcher `
   -ActionExecutablePath $executable -ExpectedPrincipal $principal
@@ -431,8 +431,8 @@ function New-ExactFixture {
     StartWhenAvailable=$true
     DisallowStartIfOnBatteries=$false
     StopIfGoingOnBatteries=$false
-    RestartCount=10
-    RestartInterval='PT1M'
+    RestartCount=0
+    RestartInterval=$null
     ExecutionTimeLimit='PT0S'
   }
   $task = [pscustomobject]@{
@@ -470,8 +470,8 @@ $mutations = [ordered]@{
   start_when_available={param($f) $f.Task.Settings.StartWhenAvailable=$false}
   disallow_battery={param($f) $f.Task.Settings.DisallowStartIfOnBatteries=$true}
   stop_on_battery={param($f) $f.Task.Settings.StopIfGoingOnBatteries=$true}
-  restart_count={param($f) $f.Task.Settings.RestartCount=9}
-  restart_interval={param($f) $f.Task.Settings.RestartInterval='PT2M'}
+  restart_count={param($f) $f.Task.Settings.RestartCount=1}
+  restart_interval={param($f) $f.Task.Settings.RestartInterval='PT1M'}
   execution_limit={param($f) $f.Task.Settings.ExecutionTimeLimit='PT1H'}
   principal_user={param($f) $f.Task.Principal.UserId='DOMAIN\Other'}
   logon_type={param($f) $f.Task.Principal.LogonType='Password'}

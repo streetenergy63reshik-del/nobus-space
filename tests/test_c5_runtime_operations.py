@@ -456,6 +456,7 @@ def test_c5_setup_failure_closes_acquired_handles_and_cannot_pass(monkeypatch, f
     monkeypatch.setattr(supervisor, "StopEvent", Event)
     monkeypatch.setattr(supervisor, "_job_api", Api)
     monkeypatch.setattr(supervisor, "_operator_event", log)
+    monkeypatch.setattr(supervisor, "_write_runtime_event", lambda *_: None)
     monkeypatch.setattr(supervisor, "spawn_owned", spawn)
     monkeypatch.setattr(supervisor, "supervise", lambda *a, **k: 0)
     monkeypatch.setattr(supervisor, "stop_process", lambda *a, **k: failure != "stop")

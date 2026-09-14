@@ -754,9 +754,10 @@ function Get-ExactScheduledTaskContractProfile {
             -not [bool] $Task.Settings.DisallowStartIfOnBatteries
         stop_on_battery =
             -not [bool] $Task.Settings.StopIfGoingOnBatteries
-        restart_count = [int] $Task.Settings.RestartCount -eq 10
-        restart_interval =
-            [string] $Task.Settings.RestartInterval -ceq "PT1M"
+        restart_count = [int] $Task.Settings.RestartCount -eq 0
+        restart_interval = [string]::IsNullOrEmpty(
+            [string] $Task.Settings.RestartInterval
+        )
         execution_limit =
             [string] $Task.Settings.ExecutionTimeLimit -ceq "PT0S"
         principal_user = Test-ExactIdentityContract `

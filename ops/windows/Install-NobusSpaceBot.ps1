@@ -108,7 +108,7 @@ if (-not `$healthy) {
     Add-Content -LiteralPath `$alert -Value (
         (Get-Date).ToUniversalTime().ToString('o') + ' product health probe failed'
     )
-    # Recovery belongs to the main task RestartCount budget; no minute-by-minute reset.
+    # Health is observation-only; the main action owns bounded, evidence-gated recovery.
     exit 1
 }
 exit 0
@@ -143,8 +143,6 @@ $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
-    -RestartCount 10 `
-    -RestartInterval (New-TimeSpan -Minutes 1) `
     -ExecutionTimeLimit ([TimeSpan]::Zero) `
     -MultipleInstances IgnoreNew
 $healthSettings = New-ScheduledTaskSettingsSet `
