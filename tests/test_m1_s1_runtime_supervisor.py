@@ -149,7 +149,7 @@ def test_m1_supervisor_records_local_and_public_failures_separately(failed_pair,
         report=reports.append,
     )
     assert status == 1
-    assert event.waits == 3
+    assert event.waits == 4  # Three intervals plus the final child-exit settle.
     assert reports[-1] == {
         "stage": "steady",
         "error_class": error_class,
@@ -294,7 +294,7 @@ def test_m1_runtime_event_is_ascii_bounded_and_rotates_one_owned_file(tmp_path, 
         for line in path.read_bytes().splitlines():
             assert len(line) <= supervisor.RUNTIME_EVENT_LINE_BYTES
             value = json.loads(line.decode("ascii"))
-            assert set(value) == supervisor.RUNTIME_EVENT_KEYS | {"at"}
+            assert set(value) == supervisor.RUNTIME_RECORDED_KEYS
             assert "payload" not in value and "argv" not in value and "environment" not in value
 
 
@@ -769,8 +769,8 @@ def test_m1_scheduler_fixture_transient_failure_recovers_without_raw_output(tmp_
     assert [row["outcome"] for row in rows] == ["retryable_failure", "recovered"]
 
 
-def test_m1_scheduler_fixture_permanent_failure_stops_at_budget(tmp_path):
-    receipt = tmp_path / "permanent.jsonl"
+def test_m1_scheduler_fixture_transient_failure_stops_at_budget(tmp_path):
+    receipt = tmp_path / "exhausted.jsonl"
     run_id = "2" * 32
     results = [_run_scheduler_probe(receipt, run_id, succeed_on=0) for _ in range(4)]
     assert [result.returncode for result in results] == [23, 23, 23, 125]
@@ -781,6 +781,36 @@ def test_m1_scheduler_fixture_permanent_failure_stops_at_budget(tmp_path):
         "retryable_failure",
         "retryable_failure",
         "budget_exhausted",
+    ]
+
+
+def test_m1_scheduler_fixture_permanent_failure_stops_after_one_attempt(tmp_path):
+    receipt = tmp_path / "permanent.jsonl"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(Path(scheduler_probe.__file__).resolve()),
+            "--receipt",
+            str(receipt),
+            "--run-id",
+            "4" * 32,
+            "--restart-budget",
+            "2",
+            "--succeed-on",
+            "0",
+            "--failure-mode",
+            "permanent",
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert result.returncode == scheduler_probe.EXIT_PERMANENT
+    assert result.stdout == result.stderr == b""
+    rows = [json.loads(line) for line in receipt.read_text(encoding="ascii").splitlines()]
+    assert [(row["attempt"], row["outcome"]) for row in rows] == [
+        (1, "permanent_failure")
     ]
 
 
@@ -816,11 +846,47 @@ def test_m1_scheduler_fixture_controller_uses_product_bounded_recovery(tmp_path)
     assert [row["outcome"] for row in rows] == ["retryable_failure", "recovered"]
 
 
+def test_m1_scheduler_fixture_controller_stops_permanent_core_once(tmp_path):
+    receipt = tmp_path / "controller-permanent.jsonl"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(Path(scheduler_probe.__file__).resolve()),
+            "--receipt",
+            str(receipt),
+            "--run-id",
+            "5" * 32,
+            "--restart-budget",
+            "2",
+            "--succeed-on",
+            "0",
+            "--failure-mode",
+            "permanent",
+            "--controller",
+            "--controller-sha256",
+            scheduler_probe._controller_sha256(),
+            "--retry-interval-seconds",
+            "0.001",
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert result.returncode == scheduler_probe.EXIT_PERMANENT
+    assert result.stdout == result.stderr == b""
+    rows = [json.loads(line) for line in receipt.read_text(encoding="ascii").splitlines()]
+    assert [(row["attempt"], row["outcome"]) for row in rows] == [
+        (1, "permanent_failure")
+    ]
+
+
 def test_m1_scheduler_fixture_operator_is_scoped_and_never_touches_production_task():
     source = (
         Path(__file__).parent / "gate_m1_s1" / "Invoke-SchedulerRetryFixture.ps1"
     ).read_text(encoding="utf-8")
     assert "NobusSpace-M1S1-Fixture-Transient-" in source
+    assert "NobusSpace-M1S1-Fixture-Budget-" in source
     assert "NobusSpace-M1S1-Fixture-Permanent-" in source
     assert "$restartBudget = 2" in source
     assert "-RestartCount $restartBudget" not in source

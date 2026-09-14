@@ -3,6 +3,7 @@ param(
     [string]$TaskName = 'NobusSpaceBot',
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$RuntimeRoot = '',
+    [string]$HealthLauncherRoot = '',
     [switch]$SemanticAdmission,
     [string]$StateRoot = '',
     [string]$VoiceModelDirectory = '',
@@ -42,11 +43,20 @@ $runtimeOwner = if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) {
 else {
     (Resolve-Path -LiteralPath $RuntimeRoot).Path
 }
+$healthLauncherOwner = if ([string]::IsNullOrWhiteSpace($HealthLauncherRoot)) {
+    $runtimeOwner
+}
+else {
+    Resolve-CompositionDirectory $HealthLauncherRoot
+}
 $python = Join-Path $runtimeOwner '.venv\Scripts\python.exe'
 $pythonw = Join-Path $runtimeOwner '.venv\Scripts\pythonw.exe'
 $runner = Join-Path $root 'scripts\run_nobus_space_live.py'
 $health = Join-Path $root 'scripts\check_telegram_health.py'
 $healthTaskName = "$TaskName-Health"
+$runtime = Join-Path $healthLauncherOwner '.runtime'
+$logs = Join-Path $runtime 'logs'
+$healthLauncher = Join-Path $runtime 'check-nobus-space-bot.ps1'
 if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
     -not (Test-Path -LiteralPath $pythonw -PathType Leaf) -or
     -not (Test-Path -LiteralPath $runner -PathType Leaf) -or
@@ -69,6 +79,10 @@ if ($null -ne $modelDirectory) {
 if ($null -ne $backupDirectory) {
     $runnerArguments += @('--backup-root', ('"' + $backupDirectory + '"'), '--backup-ownership', $BackupOwnership)
 }
+$runnerArguments += @(
+    '--health-launcher', ('"' + $healthLauncher + '"'),
+    '--scheduler-task-name', $TaskName
+)
 
 if (-not $PSCmdlet.ShouldProcess(
     "$TaskName and $healthTaskName",
@@ -77,10 +91,7 @@ if (-not $PSCmdlet.ShouldProcess(
     return
 }
 
-$runtime = Join-Path $runtimeOwner '.runtime'
-$logs = Join-Path $runtime 'logs'
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
-$healthLauncher = Join-Path $runtime 'check-nobus-space-bot.ps1'
 $healthBody = @"
 `$ErrorActionPreference = 'Continue'
 `$taskName = '$($TaskName.Replace("'", "''"))'

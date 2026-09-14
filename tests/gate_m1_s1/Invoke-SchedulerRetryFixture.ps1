@@ -16,8 +16,9 @@ $controller = Join-Path $root 'scripts\run_nobus_space_live.py'
 $controllerSha256 = $null
 $evidenceRoot = Join-Path $root ".runtime\m1-s1\scheduler-fixture\$RunId"
 $transientTask = "NobusSpace-M1S1-Fixture-Transient-$($RunId.Substring(0, 8))"
+$exhaustedTask = "NobusSpace-M1S1-Fixture-Budget-$($RunId.Substring(0, 8))"
 $permanentTask = "NobusSpace-M1S1-Fixture-Permanent-$($RunId.Substring(0, 8))"
-$taskNames = @($transientTask, $permanentTask)
+$taskNames = @($transientTask, $exhaustedTask, $permanentTask)
 $restartBudget = 2
 $expectedAttempts = $restartBudget + 1
 $registered = [System.Collections.Generic.List[string]]::new()
@@ -28,9 +29,12 @@ $observed = $false
 $stable = $false
 $snapshots = @{}
 $transientRows = @()
+$exhaustedRows = @()
 $permanentRows = @()
 $transientController = $null
+$exhaustedController = $null
 $permanentController = $null
+$triggerAt = $null
 
 function Get-Sha256Text([string] $Value) {
     $hash = [System.Security.Cryptography.SHA256]::HashData(
@@ -42,7 +46,9 @@ function Get-Sha256Text([string] $Value) {
 function Read-SafeRows(
     [string] $Path,
     [string] $ExpectedRunId,
-    [string] $ExpectedControllerSha256
+    [string] $ExpectedControllerSha256,
+    [ValidateSet('transient','permanent')]
+    [string] $ExpectedFailureMode
 ) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return @() }
     $item = Get-Item -LiteralPath $Path
@@ -53,16 +59,23 @@ function Read-SafeRows(
     foreach ($line in @(Get-Content -LiteralPath $Path -Encoding Ascii)) {
         $row = $line | ConvertFrom-Json -AsHashtable
         $keys = @($row.Keys | Sort-Object)
-        $expectedKeys = @('at','attempt','controller_sha256','exit_code','outcome','restart_budget','run_id','schema')
+        $expectedKeys = @('at','attempt','controller_sha256','exit_code','failure_mode','outcome','restart_budget','run_id','schema')
         if (
             (Compare-Object $keys $expectedKeys) -or
             $row.schema -cne 'nobus-m1-scheduler-fixture-2' -or
             $row.run_id -cne $ExpectedRunId -or
             $row.controller_sha256 -cne $ExpectedControllerSha256 -or
+            $row.failure_mode -cne $ExpectedFailureMode -or
             [int] $row.attempt -ne ($rows.Count + 1) -or
             [int] $row.restart_budget -ne 2 -or
-            [string] $row.outcome -notin @('retryable_failure','recovered','budget_exhausted') -or
-            [int] $row.exit_code -notin @(0,23)
+            [string] $row.outcome -notin @('retryable_failure','recovered','budget_exhausted','permanent_failure') -or
+            [int] $row.exit_code -notin @(0,23,29) -or
+            ($ExpectedFailureMode -ceq 'permanent' -and (
+                [int] $row.attempt -ne 1 -or
+                [string] $row.outcome -cne 'permanent_failure' -or
+                [int] $row.exit_code -ne 29
+            )) -or
+            ($ExpectedFailureMode -ceq 'transient' -and [string] $row.outcome -ceq 'permanent_failure')
         ) {
             throw 'Fixture receipt schema is invalid.'
         }
@@ -71,6 +84,7 @@ function Read-SafeRows(
             attempt = [int] $row.attempt
             outcome = [string] $row.outcome
             exit_code = [int] $row.exit_code
+            failure_mode = [string] $row.failure_mode
             controller_sha256 = [string] $row.controller_sha256
         }
     }
@@ -214,6 +228,7 @@ try {
     $stage = 'register'
     New-Item -ItemType Directory -Path $evidenceRoot | Out-Null
     $transientReceipt = Join-Path $evidenceRoot 'transient.jsonl'
+    $exhaustedReceipt = Join-Path $evidenceRoot 'exhausted.jsonl'
     $permanentReceipt = Join-Path $evidenceRoot 'permanent.jsonl'
     $settings = New-ScheduledTaskSettingsSet `
         -StartWhenAvailable `
@@ -232,11 +247,19 @@ try {
             name = $transientTask
             receipt = $transientReceipt
             succeed_on = 2
+            failure_mode = 'transient'
+        },
+        @{
+            name = $exhaustedTask
+            receipt = $exhaustedReceipt
+            succeed_on = 0
+            failure_mode = 'transient'
         },
         @{
             name = $permanentTask
             receipt = $permanentReceipt
             succeed_on = 0
+            failure_mode = 'permanent'
         }
     )
     foreach ($definition in $definitions) {
@@ -246,6 +269,7 @@ try {
             '--run-id', $RunId,
             '--restart-budget', [string] $restartBudget,
             '--succeed-on', [string] $definition.succeed_on,
+            '--failure-mode', [string] $definition.failure_mode,
             '--controller',
             '--controller-sha256', $controllerSha256,
             '--retry-interval-seconds', '60'
@@ -265,22 +289,30 @@ try {
     $deadline = (Get-Date).AddMinutes(4)
     do {
         Start-Sleep -Seconds 2
-        $transientRows = @(Read-SafeRows $transientReceipt $RunId $controllerSha256)
-        $permanentRows = @(Read-SafeRows $permanentReceipt $RunId $controllerSha256)
+        $transientRows = @(Read-SafeRows $transientReceipt $RunId $controllerSha256 'transient')
+        $exhaustedRows = @(Read-SafeRows $exhaustedReceipt $RunId $controllerSha256 'transient')
+        $permanentRows = @(Read-SafeRows $permanentReceipt $RunId $controllerSha256 'permanent')
         $transientSnapshot = Get-TaskSnapshot $transientTask
+        $exhaustedSnapshot = Get-TaskSnapshot $exhaustedTask
         $permanentSnapshot = Get-TaskSnapshot $permanentTask
         $observed = (
             $transientRows.Count -eq 2 -and
-            $permanentRows.Count -eq $expectedAttempts -and
+            $exhaustedRows.Count -eq $expectedAttempts -and
+            $permanentRows.Count -eq 1 -and
             $transientSnapshot.state -cne 'Running' -and
+            $exhaustedSnapshot.state -cne 'Running' -and
             $permanentSnapshot.state -cne 'Running' -and
             $transientSnapshot.last_result -eq 0 -and
-            $permanentSnapshot.last_result -eq 23 -and
+            $exhaustedSnapshot.last_result -eq 23 -and
+            $permanentSnapshot.last_result -eq 29 -and
             $transientSnapshot.restart_count -eq 0 -and
+            $exhaustedSnapshot.restart_count -eq 0 -and
             $permanentSnapshot.restart_count -eq 0 -and
             [string]::IsNullOrEmpty($transientSnapshot.restart_interval) -and
+            [string]::IsNullOrEmpty($exhaustedSnapshot.restart_interval) -and
             [string]::IsNullOrEmpty($permanentSnapshot.restart_interval) -and
             $transientSnapshot.multiple_instances -ceq 'IgnoreNew' -and
+            $exhaustedSnapshot.multiple_instances -ceq 'IgnoreNew' -and
             $permanentSnapshot.multiple_instances -ceq 'IgnoreNew'
         )
     } while (-not $observed -and (Get-Date) -lt $deadline)
@@ -290,39 +322,51 @@ try {
         $confirmationDeadline = (Get-Date).AddSeconds(75)
         do {
             Start-Sleep -Seconds 2
-            $confirmedTransient = @(Read-SafeRows $transientReceipt $RunId $controllerSha256)
-            $confirmedPermanent = @(Read-SafeRows $permanentReceipt $RunId $controllerSha256)
+            $confirmedTransient = @(Read-SafeRows $transientReceipt $RunId $controllerSha256 'transient')
+            $confirmedExhausted = @(Read-SafeRows $exhaustedReceipt $RunId $controllerSha256 'transient')
+            $confirmedPermanent = @(Read-SafeRows $permanentReceipt $RunId $controllerSha256 'permanent')
         } while (
             $confirmedTransient.Count -eq 2 -and
-            $confirmedPermanent.Count -eq $expectedAttempts -and
+            $confirmedExhausted.Count -eq $expectedAttempts -and
+            $confirmedPermanent.Count -eq 1 -and
             (Get-Date) -lt $confirmationDeadline
         )
         $stable = (
             $confirmedTransient.Count -eq 2 -and
-            $confirmedPermanent.Count -eq $expectedAttempts
+            $confirmedExhausted.Count -eq $expectedAttempts -and
+            $confirmedPermanent.Count -eq 1
         )
     }
     $snapshots = [ordered]@{
         transient = Get-TaskSnapshot $transientTask
+        exhausted = Get-TaskSnapshot $exhaustedTask
         permanent = Get-TaskSnapshot $permanentTask
     }
-    $transientRows = @(Read-SafeRows $transientReceipt $RunId $controllerSha256)
-    $permanentRows = @(Read-SafeRows $permanentReceipt $RunId $controllerSha256)
+    $transientRows = @(Read-SafeRows $transientReceipt $RunId $controllerSha256 'transient')
+    $exhaustedRows = @(Read-SafeRows $exhaustedReceipt $RunId $controllerSha256 'transient')
+    $permanentRows = @(Read-SafeRows $permanentReceipt $RunId $controllerSha256 'permanent')
     $transientController = Get-ControllerHistorySummary `
         $transientReceipt 'stop_planned' 2 0 'new'
+    $exhaustedController = Get-ControllerHistorySummary `
+        $exhaustedReceipt 'stop_budget_exhausted' 3 1 'blocked'
     $permanentController = Get-ControllerHistorySummary `
-        $permanentReceipt 'stop_budget_exhausted' 3 1 'blocked'
+        $permanentReceipt 'stop_non_retryable' 1 1 'blocked'
     $stable = (
         $stable -and
         $snapshots.transient.state -cne 'Running' -and
+        $snapshots.exhausted.state -cne 'Running' -and
         $snapshots.permanent.state -cne 'Running' -and
         $snapshots.transient.last_result -eq 0 -and
-        $snapshots.permanent.last_result -eq 23 -and
+        $snapshots.exhausted.last_result -eq 23 -and
+        $snapshots.permanent.last_result -eq 29 -and
         $snapshots.transient.restart_count -eq 0 -and
+        $snapshots.exhausted.restart_count -eq 0 -and
         $snapshots.permanent.restart_count -eq 0 -and
         [string]::IsNullOrEmpty($snapshots.transient.restart_interval) -and
+        [string]::IsNullOrEmpty($snapshots.exhausted.restart_interval) -and
         [string]::IsNullOrEmpty($snapshots.permanent.restart_interval) -and
         $snapshots.transient.multiple_instances -ceq 'IgnoreNew' -and
+        $snapshots.exhausted.multiple_instances -ceq 'IgnoreNew' -and
         $snapshots.permanent.multiple_instances -ceq 'IgnoreNew'
     )
     if (-not ($observed -and $stable)) {
@@ -359,7 +403,7 @@ finally {
     }
     if (Test-Path -LiteralPath $evidenceRoot -PathType Container) {
         $result = [ordered]@{
-            schema = 'nobus-m1-scheduler-fixture-result-2'
+            schema = 'nobus-m1-scheduler-fixture-result-3'
             run_id = $RunId
             status = if ($null -eq $errorClass -and $cleanupOutcome -eq 'proven') { 'PASS' } else { 'FAIL' }
             error_class = $errorClass
@@ -376,6 +420,9 @@ finally {
                 controller_retry_interval_seconds = 60
                 total_attempts = $expectedAttempts
                 trigger = 'one_time'
+                trigger_at_utc = if ($null -ne $triggerAt) {
+                    $triggerAt.ToUniversalTime().ToString('o')
+                } else { $null }
                 multiple_instances = 'IgnoreNew'
                 principal = 'Interactive/Limited'
             }
@@ -383,6 +430,11 @@ finally {
                 rows = @($transientRows)
                 task = $snapshots.transient
                 controller = $transientController
+            }
+            exhausted = [ordered]@{
+                rows = @($exhaustedRows)
+                task = $snapshots.exhausted
+                controller = $exhaustedController
             }
             permanent = [ordered]@{
                 rows = @($permanentRows)

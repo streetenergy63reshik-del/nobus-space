@@ -21,11 +21,12 @@ from scripts import run_nobus_space_live as supervisor
 
 SCHEMA = "nobus-m1-scheduler-fixture-2"
 EXIT_RETRYABLE = 23
+EXIT_PERMANENT = 29
 EXIT_FIXTURE_INVALID = 125
 MAX_RECEIPT_BYTES = 8192
 _KEYS = frozenset({
     "schema", "run_id", "attempt", "restart_budget", "at", "outcome",
-    "exit_code", "controller_sha256",
+    "exit_code", "controller_sha256", "failure_mode",
 })
 
 
@@ -60,7 +61,15 @@ def _rows(path: Path, run_id: str, restart_budget: int) -> list[dict[str, object
             or value["run_id"] != run_id
             or value["attempt"] != expected
             or value["restart_budget"] != restart_budget
-            or value["outcome"] not in {"retryable_failure", "recovered", "budget_exhausted"}
+            or value["failure_mode"] not in {"transient", "permanent"}
+            or value["outcome"] not in {
+                "retryable_failure", "recovered", "budget_exhausted",
+                "permanent_failure",
+            }
+            or (value["failure_mode"] == "permanent"
+                and (value["outcome"] != "permanent_failure" or expected != 1))
+            or (value["failure_mode"] == "transient"
+                and value["outcome"] == "permanent_failure")
             or type(value["exit_code"]) is not int
             or re.fullmatch(r"[0-9a-f]{64}", value["controller_sha256"]) is None
             or value["controller_sha256"] != _controller_sha256()
@@ -74,24 +83,29 @@ def _record_attempt(values, attempt: int, *, recovered: bool) -> tuple[int, str]
     rows = _rows(values.receipt, values.run_id, values.restart_budget)
     if attempt != len(rows) + 1:
         raise ValueError
-    total_attempts = values.restart_budget + 1
+    total_attempts = 1 if values.failure_mode == "permanent" else values.restart_budget + 1
     if attempt > total_attempts:
         raise ValueError
-    outcome = (
-        "recovered"
-        if recovered
-        else ("budget_exhausted" if attempt == total_attempts else "retryable_failure")
-    )
-    exit_code = 0 if recovered else EXIT_RETRYABLE
+    if values.failure_mode == "permanent":
+        outcome = "permanent_failure"
+        exit_code = EXIT_PERMANENT
+    else:
+        outcome = (
+            "recovered"
+            if recovered
+            else ("budget_exhausted" if attempt == total_attempts else "retryable_failure")
+        )
+        exit_code = 0 if recovered else EXIT_RETRYABLE
     record = {
         "schema": SCHEMA,
         "run_id": values.run_id,
         "attempt": attempt,
         "restart_budget": values.restart_budget,
-        "at": datetime.now(UTC).isoformat(),
+        "at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "outcome": outcome,
         "exit_code": exit_code,
         "controller_sha256": _controller_sha256(),
+        "failure_mode": values.failure_mode,
     }
     line = json.dumps(record, ensure_ascii=True, separators=(",", ":"), sort_keys=True).encode("ascii") + b"\n"
     if len(line) > 1024 or values.receipt.exists() and values.receipt.stat().st_size + len(line) > MAX_RECEIPT_BYTES:
@@ -128,6 +142,12 @@ def _child(role: str) -> int:
         sys.stdout.buffer.write(b'{"status":"STOPPED"}\n')
         sys.stdout.buffer.flush()
         return 0
+    if role == "core-permanent":
+        sys.stdout.buffer.write(
+            b'{"status":"FAIL","code":"telegram_checkpoint_failed"}\n'
+        )
+        sys.stdout.buffer.flush()
+        return EXIT_PERMANENT
     return EXIT_FIXTURE_INVALID
 
 
@@ -141,6 +161,7 @@ def _product_controller(values) -> int:
         "probe_sha256": probe_digest,
         "run_id": values.run_id,
         "receipt": values.receipt.name,
+        "failure_mode": values.failure_mode,
     }, ensure_ascii=True, separators=(",", ":"), sort_keys=True).encode("ascii")).hexdigest()
     control_root = values.receipt.parent / ("controller-" + values.receipt.stem)
     control_root.mkdir()
@@ -167,12 +188,17 @@ def _product_controller(values) -> int:
     def run_attempt(_values, *, stop_event, series_id, attempt, retry_budget,
                     root, activation_binding):
         nonlocal last_exit
-        recovered = values.succeed_on == attempt
+        permanent = values.failure_mode == "permanent"
+        recovered = not permanent and values.succeed_on == attempt
         calls = [0]
 
         def probe():
             calls[0] += 1
             if calls[0] == 1:
+                if permanent:
+                    # Mirror a blocking local HTTP probe so gated-child exit can
+                    # propagate to the owned parent before the supervisor poll.
+                    time.sleep(0.5)
                 if recovered:
                     def request_stop():
                         time.sleep(0.02)
@@ -186,7 +212,10 @@ def _product_controller(values) -> int:
             attempt=attempt, retry_budget=retry_budget, root=root,
             activation_binding=activation_binding,
             relay_command=[executable, fixture, "--child-role", "relay"],
-            core_command_override=[executable, fixture, "--child-role", "core"],
+            core_command_override=[
+                executable, fixture, "--child-role",
+                "core-permanent" if permanent else "core",
+            ],
             probe=probe,
             required_paths=(Path(executable), Path(fixture)),
             relay_settle_seconds=0.01,
@@ -199,6 +228,7 @@ def _product_controller(values) -> int:
             "stop_planned": "recovered",
             "retry": "retryable_failure",
             "stop_budget_exhausted": "budget_exhausted",
+            "stop_non_retryable": "permanent_failure",
         }.get(outcome["recovery_disposition"])
         if actual != expected or (outcome["status"] == 0) != recovered:
             raise ValueError
@@ -217,11 +247,12 @@ def _product_controller(values) -> int:
     inspection = supervisor._inspect_recovery(
         root=control_root, activation_binding=binding
     )
-    expected_inspection = (
-        ("PASS", "new", None)
-        if values.succeed_on > 0
-        else ("STOP", "blocked", "stop_budget_exhausted")
-    )
+    if values.failure_mode == "permanent":
+        expected_inspection = ("STOP", "blocked", "stop_non_retryable")
+    elif values.succeed_on > 0:
+        expected_inspection = ("PASS", "new", None)
+    else:
+        expected_inspection = ("STOP", "blocked", "stop_budget_exhausted")
     if (
         inspection["status"], inspection["state"], inspection["reason"]
     ) != expected_inspection:
@@ -238,6 +269,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--restart-budget", type=int, required=True)
     parser.add_argument("--succeed-on", type=int, required=True)
+    parser.add_argument(
+        "--failure-mode", choices=("transient", "permanent"), default="transient"
+    )
     parser.add_argument("--controller", action="store_true")
     parser.add_argument("--controller-sha256")
     parser.add_argument("--retry-interval-seconds", type=float, default=60.0)
@@ -247,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
             re.fullmatch(r"[0-9a-f]{32}", values.run_id) is None
             or not 1 <= values.restart_budget <= 10
             or not 0 <= values.succeed_on <= values.restart_budget + 1
+            or (values.failure_mode == "permanent" and values.succeed_on != 0)
             or not 0.001 <= values.retry_interval_seconds <= 60
             or not values.receipt.is_absolute()
             or (values.controller and re.fullmatch(

@@ -1,6 +1,6 @@
 # 08. Эксплуатация Nobus Space
 
-**14 сентября 2026, локальная актуализация:** MVP1 `82003c03` принят, v1.0.2 опубликован. На цельном read-only срезе 12:20–12:26 МСК тот же runtime READY, но M1-S1 и 72-часовое наблюдение не завершены. Первая maintenance revision отклонена; protocol v3 пока только локальный implementation checkpoint. [Текущий статус](handoffs/CURRENT-STATUS.md) и [пакет M1-S1](gates/mvp1-maintenance/HANDOFF.md) содержат привязанные наблюдения.
+**14 сентября 2026, 14:02 МСК:** MVP1 `82003c03` принят, v1.0.2 опубликован. Read-only срез 13:57–13:59 МСК подтверждает READY прежнего runtime, но M1-S1 и 72-часовое наблюдение не завершены. Revisions `73ed1c9` и `19c9bf3` отклонены; новый protocol v3 остаётся локальным WIP до freeze/fixture/reviews. [Текущий статус](handoffs/CURRENT-STATUS.md) и [пакет M1-S1](gates/mvp1-maintenance/HANDOFF.md) содержат привязанные факты.
 
 Этот документ содержит действующие процедуры. Прежние команды остановленных кандидатов и повторяющиеся июльские инструкции удалены из текущего текста; их история сохранена в Git и соответствующих Gate-пакетах. Подробный механизм защищённого резервирования и восстановления — [C6 OPERATIONS](gates/gate-c6-release/OPERATIONS.md).
 
@@ -8,7 +8,7 @@
 
 Telegram Bot и Mini App используют один Core, одну очередь, четыре SQLite БД и подтверждения доставки. Планировщик запускает supervisor с явными параметрами semantic admission, состояния, модели и backup ownership. Supervisor объединяет Core и reverse SSH в один Windows Job; действует один polling lease. HTTP 200 не доказывает выполнение задачи: отдельно проверяются приём, результат и файл.
 
-Настроен постоянный профиль принятой ревизии: logon trigger владельца и legacy `RestartCount=10/PT1M` включены; `NobusSpaceBot-Health` и `NobusSpaceBot-Backup` включены. На срезе 14 сентября основной task Running с 03:31:05 МСК, один логический supervisor/Core/relay/listener и polling lease, local/public readiness PASS; Health LastTaskResult 0 в 12:20:44 МСК. Четыре БД healthy, 86 задач и 84 ACK receipts сохранены, queue пустая, delivery_unknown 0, reconciliation false; offset `375633467`, revision `43607`. Backup 14 сентября LastTaskResult 0, latest generation повторно прошёл binding, authentication, freshness и ciphertext checks; следующая копия — 15 сентября, 03:30 МСК. Restore не запускался. Запуск через 65 секунд после начала backup соответствует штатному backup restart path, а не доказательству Scheduler retry.
+Настроен профиль принятой ревизии: logon trigger владельца и legacy `RestartCount=10/PT1M` включены; `NobusSpaceBot-Health` и `NobusSpaceBot-Backup` включены. На срезе 14 сентября main Running с 03:31:05 МСК, один logical supervisor/Core/relay/listener и polling lease, local/public readiness PASS; Health LastTaskResult 0. Четыре БД healthy, 86 задач и 84 ACK receipts сохранены, queue пустая, delivery_unknown 0, reconciliation false; offset `375633467`, revision `43983`. Generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c` прошла binding, authentication, freshness и ciphertext checks; следующая плановая копия — 15 сентября, 03:30 МСК. Restore не запускался.
 
 Реальный изолированный fixture показал: после normal action exit 23 Планировщик не выполнил ни одного из настроенных повторов. Поэтому `RestartCount/PT1M` считается существующей конфигурацией, но не работающим recovery-контрактом и не доказательством исчерпанного бюджета. Исторический первичный trigger остановок 10–13 сентября остаётся `UNKNOWN`.
 
@@ -38,11 +38,24 @@ Telegram Bot и Mini App используют один Core, одну очере
 
 При подтверждённом STOP переключается чистый LIVE; новая версия проверяет прежние БД и создаёт новую связанную копию. Затем запускается ровно один экземпляр и проверяются Job, lease, local/public/stock readiness и относящийся к изменению сценарий. Ошибка оставляет безопасную остановку и доказательства; прежние одноразовые operators и использованные intent нельзя проигрывать заново.
 
-В принятом v1.0.2 Health не создаёт второй runtime, а legacy Scheduler retries не считаются доказанным recovery. Исправленный локальный maintenance checkpoint переносит ограниченные повторы внутрь одного Scheduler action: максимум 10 retries через 60 секунд, только для exact allowlisted transient outcome и после доказанного cleanup; permanent, `UNKNOWN`, invalid/missing Core outcome, повреждённая история или исчерпание бюджета дают типизированный STOP. Первая frozen реализация отклонена reviewers; реальный product-chain Scheduler fixture v2 новой revision ещё не запускался. До его PASS, L1/L2/L3, публикации и активации это TARGET, а не действующее поведение.
+В принятом v1.0.2 Health не создаёт второй runtime, а legacy Scheduler retries не считаются recovery. Текущий maintenance WIP переносит ограниченные повторы внутрь одного Scheduler action: максимум 10 retries через 60 секунд, только для exact allowlisted transient outcome и после proven cleanup; permanent, `UNKNOWN`, invalid/missing Core outcome, повреждённая evidence history или exhaustion дают typed STOP. Две frozen revisions отклонены. До PASS real three-case Scheduler fixture, L1/L2/L3, publication и activation это TARGET, а не действующее поведение.
 
-Перед первой активацией protocol v3 оператор при остановленном runtime выполняет отдельный `--initialize-recovery --runtime-root <точный StateRoot>` под production mutex. Обычный запуск при отсутствующей, неполной, invalid или другой activation binding истории блокируется. После активации используется read-only `--inspect-recovery`; незавершённый `starting/control/wait` остаётся STOP/UNKNOWN, а `--acknowledge-recovery-stop <exact newest digest>` допустим только после сверки данных и внешних effects и сам runtime не запускает.
+Перед первой активацией protocol v3 оператор при остановленном runtime передаёт полный тот же набор параметров, что установлен в main action:
 
-V3 history находится в `<StateRoot>/supervisor-control`, содержит linked digests и строгие transitions, ограничена current+previous по 1 MiB и fixed operator logs по 5 MiB. Потеря одного сегмента после ротации, reparse/oversize/лишний файл, parser/write/fsync/control failure не открывают новую серию. In-place restore четырёх БД сохраняет control directory; реконструированный StateRoot без него остаётся STOP до явной сверки и нового bootstrap. Удалять историю для сброса бюджета нельзя.
+```text
+--initialize-recovery --semantic-admission
+--runtime-root <exact StateRoot>
+--voice-model-directory <exact model directory>
+--backup-root <exact BackupRoot> --backup-ownership <exact digest>
+--health-launcher <exact generated LIVE launcher>
+--scheduler-task-name NobusSpaceBot
+```
+
+Эта команда выполняется под production mutex только после установки точных main/health/backup task signatures. Для read-only `--inspect-recovery` и digest-bound `--acknowledge-recovery-stop` нужен тот же полный activation input. Отсутствующая, неполная, invalid или другая binding блокирует запуск. Незавершённый `starting/control/wait` остаётся STOP/UNKNOWN; reset допустим только после сверки данных и внешних effects и сам runtime не запускает.
+
+V3 history находится в `<StateRoot>/supervisor-control`. Каждая запись аутентифицирована DPAPI текущего Windows owner, связана digest-chain и проходит строгую transition/terminal matrix; checkpoint допустим только вторым record физического `.previous`. Current+previous ограничены 1 MiB, fixed operator logs — 5 MiB. Отдельный CLI fallback current+previous ограничен 128 KiB и не содержит argv/env/payload/path. Потеря сегмента, reparse, hardlink, oversize/extra/invalid file, parser/write/fsync/control failure не открывают новую серию. Exit 70–78 различают control, evidence, composition, binding, busy/reset/history STOP. In-place restore четырёх БД сохраняет control directory; реконструированный StateRoot без него остаётся STOP до сверки и нового bootstrap. Удалять историю для сброса бюджета нельзя.
+
+Activation binding включает document 11 и local configs, Mini App assets, semantic flag, voice inventory, BackupRoot/ownership, installed Python/distributions/requirements, health launcher и фактические signatures main/health/backup. Изменение любого элемента требует нового candidate binding. Windows owner является control authority: DPAPI защищает от другого пользователя и offline-подделки; произвольный код того же owner уже эквивалентен компрометации StateRoot/БД. Core/relay не имеют reset-команды, а недоверенные workers остаются в существующей sandbox/Job-изоляции.
 
 ## Резервирование и восстановление
 
@@ -55,6 +68,12 @@ V3 history находится в `<StateRoot>/supervisor-control`, содерж�
 Managed backup удерживает admission, останавливает точные main/health, создаёт и проверяет поколение, затем разрешает один запуск. Retention перемещает только доказанно принадлежащие циклу устаревшие поколения в карантин; произвольного удаления нет. Предел управляемого корня — 64 поколения и 2 ГиБ. Неизвестные, изменённые или linked файлы требуют оператора.
 
 Restore всегда требует точных manifest, target binding и согласования записей/эффектов после снимка. Восстановление сначала проверяется в отдельном каталоге. Существующие новые accepted tasks и receipts нельзя заменить старой копией. После restore прежние сессии и подтверждения не возрождаются; admission остаётся закрыт до аутентифицированной сверки. Автоматического live restore или отката данных нет.
+
+## Наблюдение M1-S1
+
+После успешной активации T0 фиксируется по exact deployed commit и authenticated control history. Heartbeat этой же задачи каждые 30 минут выполняет только read-only проверки Scheduler, history/fallback, local/public readiness, exact supervisor/Core/relay/listener/lease, DB counters и backup manifests. Он не запускает, не перезапускает, не сбрасывает и не восстанавливает runtime автоматически.
+
+PASS требует непрерывных 72 часов включённого ПК и owner session, минимум двух daily backup с LastTaskResult 0 и повторной authentication/binding/ciphertext проверкой, одного runtime, сохранности tasks/receipts/offset и отсутствия необъяснённых terminal events. Промежуток без проверяемого наблюдения более 60 минут начинает окно заново. Старый 15-минутный smoke не засчитывается.
 
 ## Очистка и ограничения
 

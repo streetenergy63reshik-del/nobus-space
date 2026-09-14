@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import hashlib
+import importlib.metadata
 import importlib.util
 import json
 import os
@@ -36,6 +37,7 @@ STARTUP_SECONDS = 360
 SHUTDOWN_SECONDS = 90
 READINESS_INTERVAL_SECONDS = 10
 READINESS_FAILURE_LIMIT = 3
+CHILD_EXIT_SETTLE_SECONDS = 0.1
 RECOVERY_RETRY_BUDGET = 10
 RECOVERY_RETRY_INTERVAL_SECONDS = 60
 CORE_OUTCOME_BYTES = 4096
@@ -47,6 +49,16 @@ EXIT_STOP_CONTROL_CREATE_FAILED = 70
 EXIT_STOP_CONTROL_SIGNAL_FAILED = 71
 EXIT_STOP_CONTROL_CLOSE_FAILED = 72
 EXIT_RUNTIME_EVIDENCE_FAILED = 73
+EXIT_RUNTIME_COMPOSITION_INVALID = 74
+EXIT_ACTIVATION_BINDING_INVALID = 75
+EXIT_RECOVERY_CONTROL_BUSY = 76
+EXIT_RECOVERY_RESET_REJECTED = 77
+EXIT_RECOVERY_HISTORY_BLOCKED = 78
+FALLBACK_EVENT_LOG_NAME = "runner-supervisor-fallback-v1.jsonl"
+FALLBACK_EVENT_LOG_BYTES = 128 * 1024
+FALLBACK_EVENT_LINE_BYTES = 2048
+_HISTORY_AUTHENTICATION_ENTROPY = b"nobus-space:supervisor-history:v3"
+_FALLBACK_AUTHENTICATION_ENTROPY = b"nobus-space:supervisor-fallback:v1"
 RUNTIME_EVENT_KEYS = frozenset({
     "schema", "series_id", "run_id", "event", "stage", "error_class",
     "supervisor_exit_code", "core_exit_code", "relay_exit_code",
@@ -56,6 +68,7 @@ RUNTIME_EVENT_KEYS = frozenset({
     "previous_event_digest", "reset_of_digest", "checkpoint_event",
     "anchor_of_digest",
 })
+RUNTIME_RECORDED_KEYS = RUNTIME_EVENT_KEYS | {"at", "authentication"}
 _EVENT_STAGES = frozenset({
     "input_validation", "setup", "job_setup", "relay_start", "core_start",
     "startup", "steady", "cleanup", "complete", "recovery_wait",
@@ -89,6 +102,11 @@ _CORE_OUTCOME_ERRORS = frozenset({
     "core_outcome_invalid", "core_outcome_oversize", "core_outcome_unavailable",
 })
 _EVENT_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+_AUTHENTICATION = re.compile(r"[0-9a-f]{64,1536}")
+_OPERATOR_EVENT = re.compile(
+    rb"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z "
+    rb"(?:starting|stopped|runtime_failed|cleanup_failed)\n"
+)
 _CORE_FAILURE_CODES = frozenset({
     "credential_configuration_invalid",
     "credential_unavailable",
@@ -198,6 +216,62 @@ def _digest(value) -> bool:
     return type(value) is str and _EVENT_DIGEST.fullmatch(value) is not None
 
 
+def _unique_json_object(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError
+        value[key] = item
+    return value
+
+
+def _canonical_ascii(value) -> bytes:
+    return json.dumps(
+        value, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+    ).encode("ascii")
+
+
+def _authentication(value, *, entropy: bytes) -> str:
+    from src.security.dpapi import protect_current_user
+
+    payload_digest = hashlib.sha256(_canonical_ascii(value)).digest()
+    return protect_current_user(payload_digest, entropy=entropy).hex()
+
+
+def _verify_authentication(value, authentication, *, entropy: bytes) -> None:
+    from src.security.dpapi import unprotect_current_user
+
+    if type(authentication) is not str or _AUTHENTICATION.fullmatch(authentication) is None:
+        raise ValueError
+    try:
+        protected = bytes.fromhex(authentication)
+        authenticated = unprotect_current_user(protected, entropy=entropy)
+    except Exception:
+        raise ValueError from None
+    if authenticated != hashlib.sha256(_canonical_ascii(value)).digest():
+        raise ValueError
+
+
+def _single_link_file(path: Path) -> bool:
+    try:
+        metadata = path.stat(follow_symlinks=False)
+    except OSError:
+        return False
+    return metadata.st_nlink == 1
+
+
+def _validate_operator_segment(path: Path) -> None:
+    if (_path_is_reparse(path) or not path.is_file() or not _single_link_file(path)
+            or not 0 < path.stat().st_size <= OPERATOR_EVENT_LOG_BYTES):
+        raise OSError
+    content = path.read_bytes()
+    if not content.endswith(b"\n"):
+        raise OSError
+    lines = content.splitlines(keepends=True)
+    if not lines or any(_OPERATOR_EVENT.fullmatch(line) is None for line in lines):
+        raise OSError
+
+
 def _path_is_reparse(path: Path) -> bool:
     if path.is_symlink() or path.is_junction():
         return True
@@ -236,11 +310,116 @@ def _validate_recovery_inventory(root: Path) -> None:
         raise OSError
     for child in children:
         if (child.name not in allowed or _path_is_reparse(child)
-                or not child.is_file()):
+                or not child.is_file() or not _single_link_file(child)):
             raise OSError
-        if (child.name.startswith("runner-supervisor.log")
-                and not 0 < child.stat().st_size <= OPERATOR_EVENT_LOG_BYTES):
-            raise OSError
+        if child.name.startswith("runner-supervisor.log"):
+            _validate_operator_segment(child)
+
+
+def _terminal_state_valid(value) -> bool:
+    """Enforce the exact combinations emitted by one supervised attempt."""
+    status = value["supervisor_exit_code"]
+    error = value["error_class"]
+    stage = value["stage"]
+    core_code = value["core_exit_code"]
+    relay_code = value["relay_exit_code"]
+    local = value["local_ready"]
+    public = value["public_ready"]
+    failures = value["readiness_failures"]
+    outcome = value["core_outcome"]
+    outcome_error = value["core_outcome_error"]
+    cleanup = value["cleanup_outcome"]
+
+    no_children = core_code is None and relay_code is None
+    no_readiness = local is None and public is None and failures == 0
+    no_core_evidence = outcome is None and outcome_error is None
+    if status not in {0, 1} or cleanup not in {"proven", "failed"}:
+        return False
+
+    if error is None:
+        return (
+            stage == "complete" and status == 0 and cleanup == "proven"
+            and no_children and no_readiness and outcome_error is None
+            and outcome in (None, {"status": "STOPPED"})
+        )
+    early = {
+        "runtime_input_missing": "input_validation",
+        "supervisor_setup_failed": "setup",
+        "job_setup_failed": "job_setup",
+        "relay_launch_failed": "relay_start",
+        "core_launch_failed": "core_start",
+    }
+    if error in early:
+        return (
+            stage == early[error] and status == 1 and no_children
+            and no_readiness and no_core_evidence
+        )
+    if error == "runtime_event_write_failed":
+        # A failed history append is represented by control_failure instead;
+        # accepting a terminal row would falsely claim that append succeeded.
+        return False
+    if error == "operator_event_write_failed":
+        if stage == "setup":
+            return status == 1 and no_children and no_readiness and no_core_evidence
+        if stage != "cleanup" or status != 1:
+            return False
+        if not no_children and not no_readiness:
+            return False
+        if no_children and (local is None) != (public is None):
+            return False
+        return no_readiness or (type(local) is bool and type(public) is bool)
+    if error == "supervision_failed":
+        return (
+            stage == "startup" and status == 1 and no_children
+            and no_readiness
+        )
+    if error in {"core_exit", "relay_exit", "core_and_relay_exit"}:
+        expected_stages = {
+            "core_exit": {"startup", "steady"},
+            "relay_exit": {"relay_start", "startup", "steady"},
+            "core_and_relay_exit": {"startup", "steady"},
+        }
+        codes_match = {
+            "core_exit": core_code is not None and relay_code is None,
+            "relay_exit": relay_code is not None and core_code is None,
+            "core_and_relay_exit": core_code is not None and relay_code is not None,
+        }[error]
+        if not (
+            stage in expected_stages[error] and status == 1 and codes_match
+            and no_readiness
+        ):
+            return False
+        if error == "relay_exit" and stage == "relay_start":
+            return no_core_evidence
+        return outcome is not None or outcome_error is not None
+    if error == "startup_timeout":
+        return (
+            stage == "startup" and status == 1 and no_children
+            and type(local) is bool and type(public) is bool and failures == 0
+            and (outcome is not None or outcome_error is not None)
+        )
+    readiness = {
+        "local_readiness_failed": (False, True),
+        "public_readiness_failed": (True, False),
+        "local_public_readiness_failed": (False, False),
+    }
+    if error in readiness:
+        return (
+            stage == "steady" and status == 1 and no_children
+            and (local, public) == readiness[error]
+            and failures == READINESS_FAILURE_LIMIT
+            and (outcome is not None or outcome_error is not None)
+        )
+    if error == "planned_stop":
+        return (
+            stage in {"setup", "startup", "steady"}
+            and status == (0 if cleanup == "proven" else 1)
+            and no_children and local is None and public is None
+            and 0 <= failures < READINESS_FAILURE_LIMIT
+            and outcome_error is None
+            and outcome in (None, {"status": "STOPPED"})
+        )
+    return False
 
 
 def _validate_runtime_event(value, *, recorded: bool = False):
@@ -275,7 +454,9 @@ def _validate_runtime_event(value, *, recorded: bool = False):
     ) is None:
         raise ValueError("runtime event timestamp is invalid")
     for name in ("supervisor_exit_code", "core_exit_code", "relay_exit_code"):
-        if value[name] is not None and type(value[name]) is not int:
+        if (value[name] is not None
+                and (type(value[name]) is not int
+                     or not -(2 ** 31) <= value[name] <= 2 ** 32 - 1)):
             raise ValueError("runtime event exit code is invalid")
     for name in ("local_ready", "public_ready"):
         if value[name] is not None and type(value[name]) is not bool:
@@ -359,18 +540,18 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             and empty_process_fields
         )
     elif event == "control_failure":
+        expected_exit = {
+            "stop_control_create_failed": EXIT_STOP_CONTROL_CREATE_FAILED,
+            "stop_control_signal_failed": EXIT_STOP_CONTROL_SIGNAL_FAILED,
+            "stop_control_close_failed": EXIT_STOP_CONTROL_CLOSE_FAILED,
+            "stop_control_callback_failed": EXIT_RUNTIME_EVIDENCE_FAILED,
+            "runtime_event_write_failed": EXIT_RUNTIME_EVIDENCE_FAILED,
+            "recovery_wait_event_write_failed": EXIT_RUNTIME_EVIDENCE_FAILED,
+        }
         valid = (
             value["stage"] == "recovery_control"
-            and value["error_class"] in {
-                "stop_control_create_failed", "stop_control_signal_failed",
-                "stop_control_close_failed", "stop_control_callback_failed",
-                "recovery_wait_event_write_failed",
-            }
-            and value["supervisor_exit_code"] in {
-                1, EXIT_STOP_CONTROL_CREATE_FAILED,
-                EXIT_STOP_CONTROL_SIGNAL_FAILED, EXIT_STOP_CONTROL_CLOSE_FAILED,
-                EXIT_RUNTIME_EVIDENCE_FAILED,
-            }
+            and value["error_class"] in expected_exit
+            and value["supervisor_exit_code"] == expected_exit.get(value["error_class"])
             and value["recovery_disposition"] == "stop_evidence_failed"
             and value["cleanup_outcome"] == "proven"
             and value["reset_of_digest"] is None
@@ -421,9 +602,8 @@ def _validate_runtime_event(value, *, recorded: bool = False):
     else:
         valid = (
             value["recovery_disposition"] in _ATTEMPT_DISPOSITIONS
-            and value["supervisor_exit_code"] in {0, 1}
-            and value["cleanup_outcome"] in {"proven", "failed"}
             and value["reset_of_digest"] is None
+            and _terminal_state_valid(value)
         )
         if valid:
             expected = _recovery_disposition(
@@ -546,16 +726,17 @@ def _decode_runtime_event(line: bytes):
     if not line.endswith(b"\n") or len(line) > RUNTIME_EVENT_LINE_BYTES:
         raise ValueError("runtime history is invalid")
 
-    def unique(pairs):
-        value = {}
-        for key, item in pairs:
-            if key in value:
-                raise ValueError
-            value[key] = item
-        return value
-
     try:
-        value = json.loads(line[:-1].decode("ascii"), object_pairs_hook=unique)
+        recorded = json.loads(
+            line[:-1].decode("ascii"), object_pairs_hook=_unique_json_object
+        )
+        if type(recorded) is not dict or set(recorded) != RUNTIME_RECORDED_KEYS:
+            raise ValueError
+        authentication = recorded.pop("authentication")
+        _verify_authentication(
+            recorded, authentication, entropy=_HISTORY_AUTHENTICATION_ENTROPY
+        )
+        value = recorded
         _validate_runtime_event(value, recorded=True)
     except (UnicodeDecodeError, ValueError, json.JSONDecodeError, TypeError):
         raise ValueError("runtime history is invalid") from None
@@ -576,10 +757,12 @@ def _runtime_history(*, root: Path, activation_binding: str | None = None):
             raise OSError
         rows = []
         digests = []
+        origins = []
         for path in (previous, current):
             if not path.exists():
                 continue
-            if _path_is_reparse(path) or not path.is_file():
+            if (_path_is_reparse(path) or not path.is_file()
+                    or not _single_link_file(path)):
                 raise OSError
             if not 0 < path.stat().st_size <= RUNTIME_EVENT_LOG_BYTES:
                 raise OSError
@@ -599,6 +782,7 @@ def _runtime_history(*, root: Path, activation_binding: str | None = None):
                 row = _decode_runtime_event(line)
                 rows.append(row)
                 digests.append("sha256:" + hashlib.sha256(line).hexdigest())
+                origins.append(path.name)
             metadata = path.stat(follow_symlinks=False)
             after = (
                 metadata.st_dev, metadata.st_ino, metadata.st_size,
@@ -618,7 +802,10 @@ def _runtime_history(*, root: Path, activation_binding: str | None = None):
             if rows[index]["previous_event_digest"] != digests[index - 1]:
                 raise ValueError("runtime history digest chain is invalid")
             if rows[index]["event"] == "history_checkpoint":
-                if checkpoint_seen or index != 1:
+                previous_rows = origins.count(previous.name)
+                if (checkpoint_seen or index != 1
+                        or origins[index] != previous.name
+                        or previous_rows != 2):
                     raise ValueError("runtime history checkpoint placement is invalid")
                 checkpoint_seen = True
                 continue
@@ -629,9 +816,15 @@ def _runtime_history(*, root: Path, activation_binding: str | None = None):
 
 
 def _encoded_record(record):
-    line = json.dumps(
-        record, ensure_ascii=True, separators=(",", ":"), sort_keys=True
-    ).encode("ascii") + b"\n"
+    if type(record) is not dict or "authentication" in record:
+        raise ValueError("runtime event authentication is invalid")
+    authenticated = {
+        **record,
+        "authentication": _authentication(
+            record, entropy=_HISTORY_AUTHENTICATION_ENTROPY
+        ),
+    }
+    line = _canonical_ascii(authenticated) + b"\n"
     if len(line) > RUNTIME_EVENT_LINE_BYTES:
         raise ValueError("runtime event line is too large")
     return line
@@ -652,9 +845,13 @@ def _write_compacted_previous(root, bootstrap, last, last_digest):
         raise OSError
     temporary = root / (RUNTIME_EVENT_LOG_NAME + ".compact")
     previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
-    if temporary.exists() or (previous.exists() and _path_is_reparse(previous)):
+    if (temporary.exists()
+            or (previous.exists()
+                and (_path_is_reparse(previous) or not _single_link_file(previous)))):
         raise OSError
     with temporary.open("xb") as stream:
+        if os.fstat(stream.fileno()).st_nlink != 1:
+            raise OSError
         stream.write(content)
         stream.flush()
         os.fsync(stream.fileno())
@@ -686,7 +883,9 @@ def _write_runtime_event(value, *, root: Path = LOG_ROOT):
         path = root / RUNTIME_EVENT_LOG_NAME
         previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
         for candidate in (path, previous):
-            if candidate.exists() and (_path_is_reparse(candidate) or not candidate.is_file()):
+            if (candidate.exists()
+                    and (_path_is_reparse(candidate) or not candidate.is_file()
+                         or not _single_link_file(candidate))):
                 raise OSError
         if path.exists() and path.stat().st_size + len(line) > RUNTIME_EVENT_LOG_BYTES:
             if not previous.exists():
@@ -705,6 +904,8 @@ def _write_runtime_event(value, *, root: Path = LOG_ROOT):
             raise OSError
         with path.open("ab") as stream:
             opened = os.fstat(stream.fileno())
+            if opened.st_nlink != 1:
+                raise OSError
             stream.write(line)
             stream.flush()
             os.fsync(stream.fileno())
@@ -713,7 +914,8 @@ def _write_runtime_event(value, *, root: Path = LOG_ROOT):
                 path.stat(follow_symlinks=False).st_ino,
             ):
                 raise OSError
-        if (_path_is_reparse(path) or path.stat().st_size > RUNTIME_EVENT_LOG_BYTES
+        if (_path_is_reparse(path) or not _single_link_file(path)
+                or path.stat().st_size > RUNTIME_EVENT_LOG_BYTES
                 or identity != _plain_root(root, create=False)):
             raise OSError
     except (OSError, RuntimeError):
@@ -1006,24 +1208,27 @@ def _operator_event(code, *, root: Path = LOG_ROOT):
         path = root / "runner-supervisor.log"
         previous = root / "runner-supervisor.log.previous"
         for candidate in (path, previous):
-            if candidate.exists() and (_path_is_reparse(candidate) or not candidate.is_file()):
-                raise OSError
             if (candidate.exists()
-                    and not 0 < candidate.stat().st_size <= OPERATOR_EVENT_LOG_BYTES):
+                    and (_path_is_reparse(candidate) or not candidate.is_file()
+                         or not _single_link_file(candidate))):
                 raise OSError
+            if candidate.exists():
+                _validate_operator_segment(candidate)
         if path.exists() and path.stat().st_size + len(line) > OPERATOR_EVENT_LOG_BYTES:
             os.replace(path, previous)
         if identity != _plain_root(root, create=False):
             raise OSError
         with path.open("ab") as stream:
             opened = os.fstat(stream.fileno())
+            if opened.st_nlink != 1:
+                raise OSError
             stream.write(line)
             stream.flush()
             os.fsync(stream.fileno())
             current = path.stat(follow_symlinks=False)
             if (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino):
                 raise OSError
-        if (_path_is_reparse(path)
+        if (_path_is_reparse(path) or not _single_link_file(path)
                 or path.stat().st_size > OPERATOR_EVENT_LOG_BYTES
                 or identity != _plain_root(root, create=False)):
             raise OSError
@@ -1265,6 +1470,10 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
         if stop_event.is_set():
             return planned_or_child("startup")
         local, public = readiness()
+        if child_exit("startup"):
+            return 1
+        if stop_event.is_set():
+            return planned_or_child("startup")
         last_local, last_public = local, public
         if local and public:
             startup_ready = True
@@ -1289,8 +1498,16 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
         if stopped:
             return planned_or_child("steady", failures)
         local, public = readiness()
+        if child_exit("steady"):
+            return 1
+        if stop_event.is_set():
+            return planned_or_child("steady", failures)
         failures = 0 if local and public else failures + 1
         if failures >= READINESS_FAILURE_LIMIT:
+            if stop_event.wait(CHILD_EXIT_SETTLE_SECONDS):
+                return planned_or_child("steady", failures)
+            if child_exit("steady"):
+                return 1
             report({"stage": "steady", "error_class": _readiness_error(local, public),
                     "core_exit_code": None, "relay_exit_code": None,
                     "local_ready": local, "public_ready": public,
@@ -1299,7 +1516,13 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
 
 
 def _arguments(argv=None):
-    parser = argparse.ArgumentParser()
+    class Parser(argparse.ArgumentParser):
+        def error(self, _message):
+            raise _CliFailure(
+                "runtime_arguments_invalid", EXIT_RUNTIME_COMPOSITION_INVALID
+            )
+
+    parser = Parser()
     commands = parser.add_mutually_exclusive_group()
     commands.add_argument("--stop", action="store_true")
     commands.add_argument("--check-ready", action="store_true")
@@ -1311,6 +1534,8 @@ def _arguments(argv=None):
     parser.add_argument("--voice-model-directory", type=Path)
     parser.add_argument("--backup-root", type=Path)
     parser.add_argument("--backup-ownership")
+    parser.add_argument("--health-launcher", type=Path)
+    parser.add_argument("--scheduler-task-name", default="NobusSpaceBot")
     return parser.parse_args(argv)
 
 
@@ -1337,20 +1562,209 @@ def core_command(python: Path, values) -> list[str]:
     return command
 
 
-def _runtime_recovery_context(values):
-    runtime = getattr(values, "runtime_root", None)
-    if runtime is None or not runtime.is_absolute() or not runtime.is_dir():
-        raise ValueError("explicit runtime root is required")
-    _plain_root(runtime, create=False)
-    root = runtime / RECOVERY_DIRECTORY_NAME
-    from src.application.runtime_maintenance import application_binding, runtime_target_binding
+def _bounded_directory_evidence(root: Path) -> dict[str, object]:
+    from src.application.runtime_maintenance import checked_path
     from src.contracts.models import canonical_json_digest
-    activation_binding = canonical_json_digest({
-        "schema": "nobus-supervisor-activation-1",
+
+    root = checked_path(root)
+    _plain_root(root, create=False)
+    if not root.is_dir():
+        raise ValueError("activation directory is invalid")
+    rows = []
+    total = 0
+    for path in sorted(root.rglob("*")):
+        checked_path(path, root=root)
+        if _path_is_reparse(path):
+            raise ValueError("activation directory is invalid")
+        if path.is_dir():
+            continue
+        if (not path.is_file() or not _single_link_file(path)
+                or len(rows) >= 64):
+            raise ValueError("activation directory is invalid")
+        size = path.stat().st_size
+        total += size
+        if size <= 0 or total > 1024 * 1024 * 1024:
+            raise ValueError("activation directory is invalid")
+        with path.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        rows.append({
+            "name": path.relative_to(root).as_posix(),
+            "bytes": size,
+            "sha256": digest,
+        })
+    if not rows:
+        raise ValueError("activation directory is invalid")
+    return {
+        "count": len(rows),
+        "bytes": total,
+        "digest": canonical_json_digest(rows),
+    }
+
+
+def _installed_distribution_identity() -> dict[str, object]:
+    from src.contracts.models import canonical_json_digest
+
+    inventory = {}
+    for distribution in importlib.metadata.distributions():
+        name = distribution.metadata.get("Name")
+        version = distribution.version
+        if type(name) is not str or type(version) is not str:
+            raise ValueError("installed distribution identity is invalid")
+        normalized = re.sub(r"[-_.]+", "-", name).lower()
+        if (re.fullmatch(r"[a-z0-9][a-z0-9-]{0,127}", normalized) is None
+                or not version or len(version) > 128
+                or normalized in inventory):
+            raise ValueError("installed distribution identity is invalid")
+        inventory[normalized] = version
+    rows = [
+        {"name": name, "version": inventory[name]}
+        for name in sorted(inventory)
+    ]
+    if not rows or len(rows) > 512:
+        raise ValueError("installed distribution identity is invalid")
+    return {"count": len(rows), "digest": canonical_json_digest(rows)}
+
+
+def _scheduler_task_signature(task_name: str):
+    if re.fullmatch(r"NobusSpace[A-Za-z0-9-]{1,64}", task_name) is None:
+        raise ValueError("scheduler task name is invalid")
+    helper = WORKTREE / "ops" / "windows" / "Invoke-NobusSpaceTask.ps1"
+    powershell = (
+        Path(os.environ["SYSTEMROOT"])
+        / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    )
+    result = subprocess.run(
+        [
+            str(powershell), "-NoLogo", "-NoProfile", "-NonInteractive",
+            "-ExecutionPolicy", "Bypass", "-File", str(helper),
+            "-Operation", "Inspect", "-TaskName", task_name,
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        timeout=30,
+        check=False,
+        creationflags=CREATE_NO_WINDOW,
+    )
+    if result.returncode != 0 or not 0 < len(result.stdout) <= 64 * 1024:
+        raise RuntimeError("scheduler signature unavailable")
+    try:
+        value = json.loads(
+            result.stdout.decode("utf-8-sig"), object_pairs_hook=_unique_json_object
+        )
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        raise RuntimeError("scheduler signature unavailable") from None
+    if (type(value) is not dict
+            or set(value) != {"name", "state", "enabled", "last_result", "signature"}
+            or value["name"] != task_name
+            or type(value["signature"]) is not dict):
+        raise RuntimeError("scheduler signature unavailable")
+    return value["signature"]
+
+
+def _activation_manifest(values, runtime: Path) -> dict[str, object]:
+    from src.application.runtime_maintenance import (
+        application_binding,
+        file_evidence,
+        runtime_target_binding,
+    )
+    from src.contracts.models import canonical_json_digest
+
+    voice = getattr(values, "voice_model_directory", None)
+    backup = getattr(values, "backup_root", None)
+    backup_owner = getattr(values, "backup_ownership", None)
+    health_launcher = getattr(values, "health_launcher", None)
+    task_name = getattr(values, "scheduler_task_name", "NobusSpaceBot")
+    if (voice is None or backup is None or health_launcher is None
+            or type(backup_owner) is not str
+            or _EVENT_DIGEST.fullmatch(backup_owner) is None):
+        raise ValueError("activation inputs are incomplete")
+    for directory in (voice, backup):
+        if not Path(directory).is_absolute() or not Path(directory).is_dir():
+            raise ValueError("activation directory is invalid")
+        _plain_root(Path(directory), create=False)
+    if (not Path(health_launcher).is_absolute()
+            or file_evidence(Path(health_launcher)) is None):
+        raise ValueError("health launcher is invalid")
+
+    inputs = {}
+    for relative in (
+        "docs/11-Контекст-продукта.md",
+        "telegram-bindings.local.json",
+        "codex-runtime.local.json",
+        "src/transport/miniapp_static/app.js",
+        "src/transport/miniapp_static/index.html",
+        "src/transport/miniapp_static/styles.css",
+        "ops/windows/Invoke-NobusSpaceTask.ps1",
+        "requirements.txt",
+    ):
+        evidence = file_evidence(WORKTREE / relative)
+        if evidence is None:
+            raise ValueError("activation input is unavailable")
+        inputs[relative] = evidence
+
+    python = Path(sys.executable).with_name("python.exe").resolve(strict=True)
+    pythonw = Path(sys.executable).with_name("pythonw.exe").resolve(strict=True)
+    base_python = Path(sys._base_executable).resolve(strict=True)
+    runtime_identity = {
+        "python_version": list(sys.version_info[:5]),
+        "python": file_evidence(python),
+        "pythonw": file_evidence(pythonw),
+        "base_python": file_evidence(base_python),
+        "distributions": _installed_distribution_identity(),
+    }
+    if any(value is None for key, value in runtime_identity.items() if key != "python_version"):
+        raise ValueError("installed runtime identity is invalid")
+
+    scheduler = {}
+    for role, name in (
+        ("main", task_name),
+        ("health", task_name + "-Health"),
+        ("backup", task_name + "-Backup"),
+    ):
+        scheduler[role] = canonical_json_digest(_scheduler_task_signature(name))
+
+    return {
+        "schema": "nobus-supervisor-activation-2",
         "application": application_binding(),
         "runtime_binding": runtime_target_binding(runtime),
-    })
-    return root, activation_binding
+        "semantic_admission": bool(getattr(values, "semantic_admission", False)),
+        "runtime_inputs": inputs,
+        "voice": {
+            "root_binding": runtime_target_binding(Path(voice)),
+            "inventory": _bounded_directory_evidence(Path(voice)),
+        },
+        "backup": {
+            "root_binding": runtime_target_binding(Path(backup)),
+            "ownership": backup_owner,
+        },
+        "health_launcher": file_evidence(Path(health_launcher)),
+        "installed_runtime": runtime_identity,
+        "scheduler_signatures": scheduler,
+    }
+
+
+def _runtime_recovery_context(values):
+    runtime = getattr(values, "runtime_root", None)
+    try:
+        if runtime is None or not runtime.is_absolute() or not runtime.is_dir():
+            raise OSError
+        _plain_root(runtime, create=False)
+    except (OSError, ValueError):
+        raise _CliFailure(
+            "runtime_composition_invalid", EXIT_RUNTIME_COMPOSITION_INVALID
+        ) from None
+    try:
+        from src.contracts.models import canonical_json_digest
+
+        activation_binding = canonical_json_digest(
+            _activation_manifest(values, runtime)
+        )
+    except Exception:
+        raise _CliFailure(
+            "activation_binding_invalid", EXIT_ACTIVATION_BINDING_INVALID
+        ) from None
+    return runtime / RECOVERY_DIRECTORY_NAME, activation_binding
 
 
 def _run_owned_recovery(values, *, mutex_name=r"Global\NobusSpaceBotSupervisor",
@@ -1365,12 +1779,151 @@ def _run_owned_recovery(values, *, mutex_name=r"Global\NobusSpaceBotSupervisor",
         )
 
 
+class _CliFailure(RuntimeError):
+    def __init__(self, error_class: str, exit_code: int):
+        self.error_class = error_class
+        self.exit_code = exit_code
+        super().__init__(error_class)
+
+
+def _cli_command(values=None) -> str:
+    commands = (
+        ("inspect_recovery", "inspect_recovery"),
+        ("initialize_recovery", "initialize_recovery"),
+        ("acknowledge_recovery_stop", "acknowledge_recovery_stop"),
+        ("check_ready", "check_ready"),
+        ("stop", "stop"),
+    )
+    if values is not None:
+        for attribute, name in commands:
+            if getattr(values, attribute, False):
+                return name
+        return "run"
+    arguments = set(sys.argv[1:])
+    for attribute, name in commands:
+        if "--" + attribute.replace("_", "-") in arguments:
+            return name
+    return "arguments"
+
+
+def _decode_fallback_event(line: bytes) -> dict[str, object]:
+    if not line.endswith(b"\n") or len(line) > FALLBACK_EVENT_LINE_BYTES:
+        raise ValueError
+    try:
+        value = json.loads(
+            line[:-1].decode("ascii"), object_pairs_hook=_unique_json_object
+        )
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        raise ValueError from None
+    keys = {
+        "schema", "status", "command", "error_class", "exit_code",
+        "run_id", "at", "authentication",
+    }
+    if type(value) is not dict or set(value) != keys:
+        raise ValueError
+    authentication = value.pop("authentication")
+    if (value["schema"] != "nobus-supervisor-cli-failure-1"
+            or value["status"] != "STOP"
+            or value["command"] not in {
+                "arguments", "check_ready", "inspect_recovery",
+                "initialize_recovery", "acknowledge_recovery_stop", "stop", "run",
+            }
+            or value["error_class"] not in {
+                "runtime_arguments_invalid", "runtime_composition_invalid",
+                "activation_binding_invalid", "recovery_control_busy",
+                "recovery_reset_rejected", "recovery_history_blocked",
+                "runtime_event_write_failed", "stop_control_signal_failed",
+                "supervisor_startup_failed",
+            }
+            or type(value["exit_code"]) is not int
+            or not 1 <= value["exit_code"] <= 255
+            or re.fullmatch(r"[0-9a-f]{32}", value["run_id"]) is None
+            or re.fullmatch(
+                r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
+                value["at"],
+            ) is None):
+        raise ValueError
+    _verify_authentication(
+        value, authentication, entropy=_FALLBACK_AUTHENTICATION_ENTROPY
+    )
+    return value
+
+
+def _write_fallback_failure(command: str, error_class: str, exit_code: int) -> None:
+    payload = {
+        "schema": "nobus-supervisor-cli-failure-1",
+        "status": "STOP",
+        "command": command,
+        "error_class": error_class,
+        "exit_code": exit_code,
+        "run_id": uuid4().hex,
+        "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    authentication = _authentication(
+        payload, entropy=_FALLBACK_AUTHENTICATION_ENTROPY
+    )
+    line = _canonical_ascii({**payload, "authentication": authentication}) + b"\n"
+    if len(line) > FALLBACK_EVENT_LINE_BYTES:
+        raise OSError
+    identity = _plain_root(LOG_ROOT, create=True)
+    path = LOG_ROOT / FALLBACK_EVENT_LOG_NAME
+    previous = LOG_ROOT / (FALLBACK_EVENT_LOG_NAME + ".previous")
+    for candidate in (previous, path):
+        if not candidate.exists():
+            continue
+        if (_path_is_reparse(candidate) or not candidate.is_file()
+                or not _single_link_file(candidate)
+                or not 0 < candidate.stat().st_size <= FALLBACK_EVENT_LOG_BYTES):
+            raise OSError
+        content = candidate.read_bytes()
+        if not content.endswith(b"\n"):
+            raise OSError
+        for existing in content.splitlines(keepends=True):
+            _decode_fallback_event(existing)
+    if path.exists() and path.stat().st_size + len(line) > FALLBACK_EVENT_LOG_BYTES:
+        if previous.exists():
+            previous.unlink()
+        os.replace(path, previous)
+    if identity != _plain_root(LOG_ROOT, create=False):
+        raise OSError
+    with path.open("ab") as stream:
+        opened = os.fstat(stream.fileno())
+        if opened.st_nlink != 1:
+            raise OSError
+        stream.write(line)
+        stream.flush()
+        os.fsync(stream.fileno())
+        current = path.stat(follow_symlinks=False)
+        if (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino):
+            raise OSError
+    if (_path_is_reparse(path) or not _single_link_file(path)
+            or path.stat().st_size > FALLBACK_EVENT_LOG_BYTES
+            or identity != _plain_root(LOG_ROOT, create=False)):
+        raise OSError
+
+
+def _emit_cli_failure(command: str, error_class: str, exit_code: int) -> int:
+    try:
+        _write_fallback_failure(command, error_class, exit_code)
+    except Exception:
+        pass
+    print(json.dumps({
+        "schema": "nobus-supervisor-cli-failure-1",
+        "status": "STOP",
+        "command": command,
+        "error_class": error_class,
+        "exit_code": exit_code,
+    }, ensure_ascii=True, separators=(",", ":"), sort_keys=True))
+    return exit_code
+
+
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "--gated-child":
         return _gated_child(sys.argv[2:])
     if str(WORKTREE) not in sys.path:
         sys.path.insert(0, str(WORKTREE))
     from src.application.windows_singleton import WindowsNamedMutex, RunnerAlreadyActive
+    values = None
     try:
         values = _arguments()
         if values.check_ready:
@@ -1391,22 +1944,35 @@ def main() -> int:
             ))
             return 0
         if values.stop:
-            event = StopEvent(request=True)
             try:
-                event.set()
-                print('{"status":"stop_requested"}')
-                return 0
-            finally:
-                event.close()
+                event = StopEvent(request=True)
+                try:
+                    event.set()
+                    print('{"status":"stop_requested"}')
+                    return 0
+                finally:
+                    event.close()
+            except Exception:
+                raise _CliFailure(
+                    "stop_control_signal_failed", EXIT_STOP_CONTROL_SIGNAL_FAILED
+                ) from None
         if values.initialize_recovery:
             root, activation_binding = _runtime_recovery_context(values)
             try:
                 with WindowsNamedMutex(r"Global\NobusSpaceBotSupervisor"):
-                    result = _initialize_recovery(
-                        root=root, activation_binding=activation_binding
-                    )
+                    try:
+                        result = _initialize_recovery(
+                            root=root, activation_binding=activation_binding
+                        )
+                    except (RuntimeError, ValueError):
+                        raise _CliFailure(
+                            "recovery_history_blocked",
+                            EXIT_RECOVERY_HISTORY_BLOCKED,
+                        ) from None
             except RunnerAlreadyActive:
-                return 1
+                raise _CliFailure(
+                    "recovery_control_busy", EXIT_RECOVERY_CONTROL_BUSY
+                ) from None
             print(json.dumps(
                 result, ensure_ascii=True, separators=(",", ":"), sort_keys=True
             ))
@@ -1415,21 +1981,38 @@ def main() -> int:
             root, activation_binding = _runtime_recovery_context(values)
             try:
                 with WindowsNamedMutex(r"Global\NobusSpaceBotSupervisor"):
-                    result = _acknowledge_recovery_stop(
-                        values.acknowledge_recovery_stop, root=root,
-                        activation_binding=activation_binding,
-                    )
+                    try:
+                        result = _acknowledge_recovery_stop(
+                            values.acknowledge_recovery_stop, root=root,
+                            activation_binding=activation_binding,
+                        )
+                    except (RuntimeError, ValueError):
+                        raise _CliFailure(
+                            "recovery_reset_rejected", EXIT_RECOVERY_RESET_REJECTED
+                        ) from None
             except RunnerAlreadyActive:
-                return 1
+                raise _CliFailure(
+                    "recovery_control_busy", EXIT_RECOVERY_CONTROL_BUSY
+                ) from None
             print(json.dumps(
                 result, ensure_ascii=True, separators=(",", ":"), sort_keys=True
             ))
             return 0
         return _run_owned_recovery(values)
+    except _CliFailure as error:
+        return _emit_cli_failure(
+            _cli_command(values), error.error_class, error.exit_code
+        )
     except RunnerAlreadyActive:
-        return 0
+        return _emit_cli_failure(
+            _cli_command(values), "recovery_control_busy",
+            EXIT_RECOVERY_CONTROL_BUSY,
+        )
     except Exception:
-        return 1
+        return _emit_cli_failure(
+            _cli_command(values), "supervisor_startup_failed",
+            EXIT_ACTIVATION_BINDING_INVALID,
+        )
 
 
 class _RecoveryControlFailure(RuntimeError):
@@ -1520,7 +2103,9 @@ def _recover(values, *, root=None, activation_binding=None, run_attempt=None) ->
         root, activation_binding = _runtime_recovery_context(values)
     state = _recovery_state(root=root, activation_binding=activation_binding)
     if state["state"] == "blocked":
-        return 1
+        raise _CliFailure(
+            "recovery_history_blocked", EXIT_RECOVERY_HISTORY_BLOCKED
+        )
     series_id = state["series_id"] or uuid4().hex
     control_run_id = uuid4().hex
     context = {
@@ -1536,7 +2121,9 @@ def _recover(values, *, root=None, activation_binding=None, run_attempt=None) ->
             recovery_disposition="pending", stage="recovery_control",
         ), root=root)
     except Exception:
-        return EXIT_RUNTIME_EVIDENCE_FAILED
+        raise _CliFailure(
+            "runtime_event_write_failed", EXIT_RUNTIME_EVIDENCE_FAILED
+        ) from None
 
     def control_event(event, *, error_class=None, exit_code=None):
         run_id = context["closing_run_id"] or control_run_id
@@ -1621,6 +2208,7 @@ def _recover(values, *, root=None, activation_binding=None, run_attempt=None) ->
             "stop_control_create_failed": EXIT_STOP_CONTROL_CREATE_FAILED,
             "stop_control_signal_failed": EXIT_STOP_CONTROL_SIGNAL_FAILED,
             "stop_control_close_failed": EXIT_STOP_CONTROL_CLOSE_FAILED,
+            "runtime_event_write_failed": EXIT_RUNTIME_EVIDENCE_FAILED,
         }.get(code, EXIT_RUNTIME_EVIDENCE_FAILED)
         try:
             control_event("control_failure", error_class=code, exit_code=exit_code)
@@ -1667,6 +2255,15 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
     core_capture = None
     status = 1
     try:
+        _write_runtime_event(_runtime_record(
+            series_id, run_id, "starting", attempt=attempt,
+            activation_binding=activation_binding,
+            retry_budget=retry_budget, recovery_disposition="pending",
+            stage="setup",
+        ), root=root)
+    except Exception:
+        raise _RecoveryControlFailure("runtime_event_write_failed") from None
+    try:
         required_inputs = required_paths or (
             WORKTREE, CANONICAL_REPOSITORY, python, RUNNER, SSH,
             private_key, known_hosts,
@@ -1687,13 +2284,6 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         api = _job_api()
         terminal.update(error_class="operator_event_write_failed")
         _operator_event("starting", root=root)
-        terminal.update(error_class="runtime_event_write_failed")
-        _write_runtime_event(_runtime_record(
-            series_id, run_id, "starting", attempt=attempt,
-            activation_binding=activation_binding,
-            retry_budget=retry_budget, recovery_disposition="pending",
-            stage="setup",
-        ), root=root)
         terminal.update(stage="job_setup", error_class="job_setup_failed")
         job = api.create_job()
         terminal.update(stage="relay_start", error_class="relay_launch_failed")
@@ -1794,8 +2384,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
                 cleanup_outcome="proven" if cleanup_ok else "failed",
             ), root=root)
         except Exception:
-            status = 1
-            disposition = "stop_evidence_failed"
+            raise _RecoveryControlFailure("runtime_event_write_failed") from None
     return {"status": status, "recovery_disposition": disposition}
 
 

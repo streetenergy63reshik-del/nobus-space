@@ -1,5 +1,111 @@
 # M1-S1 — HANDOFF
 
+
+**Статус 14.09.2026, 14:02 МСК:** принятый MVP1 v1.0.2 работает на прежнем LIVE `82003c03d8a36015703472b472640ab4021fb416`. Второй frozen candidate `19c9bf3b790f411790191d58c6110817ae887d3f` отклонён совокупным L2/L3 и не будет опубликован или развёрнут. На его exact parent подготовлен один новый WIP-пакет; source freeze, real fixture v3 и независимые L1/L2/L3 ещё не выполнены. Наблюдение 72 часа не начато.
+
+## Канонические refs и границы
+
+| Объект | Значение |
+|---|---|
+| Published product/tag | `v1.0.2` → `82003c03d8a36015703472b472640ab4021fb416` |
+| Remote main до M1-S1 | `88e58c8866db2384423f2b154df901a2e4af6c48` |
+| LIVE | clean detached `Code/worktrees/telegram-live` на `82003c03…` |
+| StateRoot / BackupRoot | canonical `.runtime/production-c6/migration-01/state` / `.runtime/production-c6/backups` |
+| Ветка Gate | `codex/m1-s1-stability`, изолированный worktree |
+| Текущий WIP | parent `19c9bf3…`; exact candidate фиксируется только post-commit freeze receipt |
+
+C6 не повторяется, MVP2 не запускался. Документ 11, исторические C6 receipts, sealed sources, старые backups и recovery refs не изменялись. Публикация и activation — разные статусы; tag v1.0.2 не перемещается.
+
+## Свежий production-срез
+
+Read-only проверка 14.09.2026, 13:57–13:59 МСК:
+
+- main enabled/Running, LastTaskResult `267009`; legacy `RestartCount=10/PT1M` ещё действует;
+- Health enabled/Ready/0; Backup enabled/Ready/0, daily 03:30 МСК;
+- один logical supervisor (два venv host), два gated helper, один relay, одна Core chain; listener `127.0.0.1:8765` принадлежит Core;
+- local readiness `true`, public readiness `true`;
+- четыре БД healthy; 86 tasks/ingress, 168 audit events, 7 sealed answers, 84 ACK messages/receipts, 14/14 delivery parts;
+- queue пустая, active job leases `0`, `delivery_unknown=0`, `reconciliation=false`;
+- polling offset `375633467`, revision `43983`, один active polling lease; task/receipt/delivery counters не изменились;
+- generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c`, manifest `sha256:575a2f272f7c48810fbb4c44d88215bcba2556dc01fb0c95a396c75ad93ae84e`: authentication/binding/ciphertext PASS, возраст `37840.017` с (<24 ч);
+- restore не запускался.
+
+Первая попытка проверки backup использовала неверный путь без `snapshot` и дала безопасный `backup_unverified`. После read-only inventory проверен правильный `snapshot/manifest.json`, получен PASS. Это ошибка диагностического пути, а не состояние копии.
+
+Срез подтверждает доступность принятого runtime только на этот момент. Он не объясняет остановки 10–13 сентября, не доказывает recovery нового кандидата и не считается 72-часовой устойчивостью.
+
+## Отклонённые снимки
+
+1. `73ed1c95ff81f4c087bd7bc7e5d468e09cc8b1a6`, tree `2ca97f0a4b8a2a0fb6f534e211a636efe065c99c`: L1 FAIL, L2/L3 REWORK. Freeze receipt SHA-256 `90a20f87c36e8baf83fa166fcbedd1b8560001b361d9752cf664b86b05f2aaf8`.
+2. `19c9bf3b790f411790191d58c6110817ae887d3f`, tree `340c37763e5164cb5163454d698d03ac90281a54`: L1 PASS, aggregate FAIL. Freeze receipt `m1-s1-source-freeze-19c9bf3.json`, SHA-256 `b0e449d82ec1404bfd6d864ac571f20dbdc841cddc5246b550d41634df8b404a`; review receipt `m1-s1-review-evidence-19c9bf3.json`, SHA-256 `a65bf4de927628d2a545cbe2ed27631265d4b005ec3d5d237830db9517e7b682`.
+
+Evidence этих ревизий архивно и не переносится на новый candidate. Fixture `9af4c7e28d6b41d0a735e2f6b8c1934e` относится только к `19c9bf3…`: он доказал transient recovery и exhaustion, но не отдельную permanent ошибку.
+
+## F01–F04 / D01
+
+| ID | Класс | Состояние |
+|---|---|---|
+| F01 | FACT + UNKNOWN | Core/relay/simultaneous exit, local/public/both readiness, startup timeout, planned stop и cleanup различаются. Child exit после blocking probe теперь имеет приоритет. Исторический trigger 10–13 сентября остаётся `UNKNOWN` |
+| F02 | FACT | Core JSON ≤4096 bytes и exact allowlist. History v3 хранит run/stage/error/exit, readiness, attempt/budget и cleanup; raw streams, argv/env, payload, task text и credential paths не сохраняются. Ранние CLI/control failures получают typed exit и bounded fallback receipt |
+| F03 | FACT | Старый `RestartCount/PT1M` не перезапустил normal exit 23. Recovery остаётся внутри одного action, только после proven cleanup. Fixture v3 разделяет transient→attempt2, repeated transient→budget STOP attempt3 и permanent Core FAIL→один attempt/`stop_non_retryable`. Real Scheduler run нового freeze pending |
+| F04 | FACT | Подготовленные docs01/CURRENT/runbook сохранены и включены. Документ 11 не редактировался: его digest теперь обязательный activation input |
+| D01 | FACT + REVIEW | Python 3.12.14, 80 installed, 15 direct pins, 0 mismatch. OSV matches только у `pip 25.0.1`; pip не входит в runtime requirements/action. Install, upgrade, rebuild и package operations запрещены |
+
+## Исправленный recovery-контракт
+
+- `starting` записывается до проверки runtime inputs, Job API и operator log. После него есть exact terminal либо durable `control_failure`; ошибка history сохраняет класс `runtime_event_write_failed`.
+- Terminal parser проверяет точную матрицу stage/error/status/child exit/readiness/count/outcome/cleanup.
+- После каждого blocking readiness probe child проверяется снова; перед readiness terminal есть bounded propagation check.
+- Каждая v3 запись аутентифицирована DPAPI текущего Windows owner и связана digest-chain. Checkpoint допустим только второй записью физического `.previous`, никогда в `current`.
+- Reset требует exact newest authenticated digest. Потеря сегмента, reparse, hardlink, extra/oversize/invalid file, append/fsync/rotation failure дают STOP.
+- Operator log имеет fixed parser и current+previous по 5 MiB. Fallback CLI log — current+previous по 128 KiB, строка ≤2048 bytes, fixed schema и DPAPI authentication.
+- Exit `70/71/72/73/74/75/76/77/78` различает create/signal/close/evidence, composition, activation binding, busy control, rejected reset и blocked history.
+- Retry разрешён только exact allowlisted transient после proven cleanup; permanent, missing/invalid outcome, cleanup/evidence failure, UNKNOWN и exhaustion дают STOP.
+
+Trust boundary: Windows owner — control authority. DPAPI защищает от другого пользователя и offline-подделки; произвольный код того же owner уже имеет эквивалентный доступ к StateRoot/БД и вне этой границы. Core/relay не имеют команды reset; недоверенные Codex workers остаются в существующей sandbox/Job-изоляции. Секретный key file не создаётся.
+
+Activation binding v2 включает source/code/schema, exact StateRoot, semantic flag, hashes документа 11, двух local config и Mini App assets, voice inventory, BackupRoot/ownership, Python/pythonw/base runtime и installed distributions/requirements, health launcher и фактические main/health/backup Scheduler signatures. Изменение любого input требует нового binding и явного bootstrap после сверки.
+
+## WIP-проверки
+
+- RED по восьми блокерам L2/L3: `8 failed`;
+- GREEN новой матрицы: `12 passed`;
+- M1-S1 supervisor/rework/L3: `87 passed in 15.72s`;
+- permanent product controller: один `telegram_checkpoint_failed`, один attempt, exit 29, no raw output.
+
+Python AST, PowerShell parser, полный affected/dependent набор, fixture v3, D01, security audit и L1/L2/L3 привязываются к source freeze. C0–C6 целиком не повторяются.
+
+## Следующий checkpoint и production-план
+
+1. Зафиксировать один source candidate и внешнюю receipt с commit/tree/source/assets/config/input digests.
+2. На нём выполнить real Scheduler fixture v3, D01 без package operations, scoped security audit и независимые L1/L2/L3.
+3. После aggregate PASS: fresh pre-change backup, baseline, planned stop exact supervisor/Job, свободные port/mutex/lease.
+4. Опубликовать candidate через protected main, без нового tag и без перемещения v1.0.2.
+5. Переключить LIVE на exact reviewed source commit; установить main/health с Scheduler restart `0`, health launcher в LIVE и candidate-bound backup config/task.
+6. При остановленном runtime выполнить explicit initialization полного activation binding; candidate backup cycle запускает ровно один runtime.
+7. Проверить один Core/Job/lease, local/public/stock readiness; одну разрешённую text-задачу, результат/TXT и post-baseline. UNKNOWN сначала сверяется, blind retry запрещён.
+
+Бюджеты: одна activation, одна реальная text-задача, максимум один model execution, ASR `0`. Ожидаемая пауза ≤15 минут; через 20 минут без сигнала — STOP/diagnosis. Rollback только совместимого code/config; БД не откатываются поверх новых accepted tasks.
+
+## Согласованное наблюдение
+
+После T0 эта же задача создаёт heartbeat каждые 30 минут. Он только читает Scheduler, authenticated history/fallback, readiness, exact process/listener/lease, DB counters и backup manifests; auto restart/reset/restore отсутствует.
+
+PASS требует непрерывных 72 часов включённого ПК и owner session, минимум двух planned daily backup с LastTaskResult 0 и authentication/binding/ciphertext PASS, отсутствия необъяснённых terminal events, одного runtime и сохранности данных. Gap >60 минут начинает окно заново. Старый 15-минутный smoke не считается устойчивостью.
+
+## Раздельный verdict
+
+| Слой | Статус |
+|---|---|
+| Published release | v1.0.2 / `82003c03…` неизменён |
+| Repaired candidate | WIP GREEN; source freeze/reviews pending |
+| Deployed runtime | accepted `82003c03…`, ready на свежем срезе |
+| Stability observation | AGREED, NOT STARTED |
+| M2-G0 | BLOCKED |
+
+## Архив состояния до отклонения `19c9bf3…`
+
+
 **Текущий статус 14.09.2026, 12:28 МСК:** замечания по первой отклонённой ревизии собраны и исправлены одним WIP-пакетом. Implementation checkpoint `87dba94ab340f5b335f0779043c948b7ac5671b3`, tree `3a5408aa630070f247f5b3069311cd08585b4a0a` локально GREEN. Единственный новый Gate freeze, реальный Scheduler fixture v2 и независимые L1/L2/L3 ещё не выполнены. Принятый v1.0.2 остаётся в LIVE; это не PASS 72-часового наблюдения.
 
 ## Текущий checkpoint после rework
