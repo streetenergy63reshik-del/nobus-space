@@ -15,6 +15,8 @@ from scripts import run_nobus_space_live as supervisor
 from tests.fixtures import m1_scheduler_exit_probe as scheduler_probe
 from tests.gate_m1_s1 import audit_dependencies_osv as dependency_audit
 
+_BINDING = "sha256:" + "9" * 64
+
 
 class _Event:
     def __init__(self, *, stopped: bool = False) -> None:
@@ -77,7 +79,7 @@ def test_m1_gated_helper_propagates_child_exit_and_safe_outcome():
             [
                 sys._base_executable,
                 "-c",
-                "import sys;print('{\"status\":\"FAIL\",\"code\":\"synthetic_core_failure\"}');sys.exit(23)",
+                "import sys;print('{\"status\":\"FAIL\",\"code\":\"telegram_mvp1_polling_failed\"}');sys.exit(23)",
             ],
             stdout=subprocess.PIPE,
         )
@@ -85,7 +87,7 @@ def test_m1_gated_helper_propagates_child_exit_and_safe_outcome():
         process.wait(timeout=10)
         assert process.returncode == 23
         assert capture.finish() == (
-            {"status": "FAIL", "code": "synthetic_core_failure"},
+            {"status": "FAIL", "code": "telegram_mvp1_polling_failed"},
             None,
         )
     finally:
@@ -192,7 +194,7 @@ def test_m1_supervisor_distinguishes_startup_deadline_and_planned_stop(monkeypat
 
 def _event_record(run_id: str = "a" * 32, **changes):
     value = {
-        "schema": "nobus-runtime-event-2",
+        "schema": "nobus-runtime-event-3",
         "series_id": "f" * 32,
         "run_id": run_id,
         "event": "terminal",
@@ -210,19 +212,84 @@ def _event_record(run_id: str = "a" * 32, **changes):
         "core_outcome": None,
         "core_outcome_error": None,
         "cleanup_outcome": "proven",
+        "activation_binding": _BINDING,
+        "previous_event_digest": None,
+        "reset_of_digest": None,
+        "checkpoint_event": None,
+        "anchor_of_digest": None,
     }
     value.update(changes)
     return value
 
 
+def _record(root, series_id, run_id, event, **values):
+    defaults = {
+        "activation_binding": _BINDING,
+        "attempt": 1,
+        "retry_budget": 10,
+        "recovery_disposition": "pending",
+        "stage": "setup",
+    }
+    defaults.update(values)
+    return supervisor._write_runtime_event(
+        supervisor._runtime_record(series_id, run_id, event, **defaults),
+        root=root,
+    )
+
+
+def _start_attempt(root, series_id, run_id, *, attempt=1, retry_budget=10):
+    control_run = ("e" if attempt == 1 else "d") * 32
+    _record(
+        root, series_id, control_run, "control_starting", attempt=attempt,
+        retry_budget=retry_budget, stage="recovery_control",
+    )
+    _record(
+        root, series_id, control_run, "control_ready", attempt=attempt,
+        retry_budget=retry_budget, stage="recovery_control", supervisor_exit_code=0,
+    )
+    return _record(
+        root, series_id, run_id, "starting", attempt=attempt,
+        retry_budget=retry_budget,
+    )
+
+
+def _close_control(root, series_id, *, attempt, retry_budget, disposition, status):
+    closing_run = "8" * 32
+    _record(
+        root, series_id, closing_run, "control_closing", attempt=attempt,
+        retry_budget=retry_budget, recovery_disposition=disposition,
+        stage="recovery_control", supervisor_exit_code=status,
+        cleanup_outcome="proven",
+    )
+    return _record(
+        root, series_id, closing_run, "control_closed", attempt=attempt,
+        retry_budget=retry_budget, recovery_disposition=disposition,
+        stage="recovery_control", supervisor_exit_code=status,
+        cleanup_outcome="proven",
+    )
+
+
 def test_m1_runtime_event_is_ascii_bounded_and_rotates_one_owned_file(tmp_path, monkeypatch):
-    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", 700)
-    for index in range(8):
-        supervisor._write_runtime_event(_event_record(run_id=f"{index:032x}"), root=tmp_path)
+    monkeypatch.setattr(supervisor, "RUNTIME_EVENT_LOG_BYTES", 6500)
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    for index in range(4):
+        series_id = f"{index + 1:032x}"
+        run_id = f"{index + 101:032x}"
+        _start_attempt(tmp_path, series_id, run_id)
+        _record(
+            tmp_path, series_id, run_id, "terminal", stage="steady",
+            error_class="planned_stop", supervisor_exit_code=0,
+            recovery_disposition="stop_planned",
+            core_outcome={"status": "STOPPED"}, cleanup_outcome="proven",
+        )
+        _close_control(
+            tmp_path, series_id, attempt=1, retry_budget=10,
+            disposition="stop_planned", status=0,
+        )
     current = tmp_path / supervisor.RUNTIME_EVENT_LOG_NAME
     previous = tmp_path / (supervisor.RUNTIME_EVENT_LOG_NAME + ".previous")
     assert current.is_file() and previous.is_file()
-    assert current.stat().st_size <= 700 and previous.stat().st_size <= 700
+    assert current.stat().st_size <= 6500 and previous.stat().st_size <= 6500
     for path in (current, previous):
         for line in path.read_bytes().splitlines():
             assert len(line) <= supervisor.RUNTIME_EVENT_LINE_BYTES
@@ -247,9 +314,10 @@ def test_m1_runtime_event_rejects_untrusted_or_unbounded_fields(tmp_path, change
 
 
 def test_m1_runtime_event_write_failure_is_not_reported_as_success(tmp_path, monkeypatch):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
     monkeypatch.setattr(Path, "open", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("synthetic disk failure")))
     with pytest.raises(RuntimeError, match="runtime event write failed"):
-        supervisor._write_runtime_event(_event_record(), root=tmp_path)
+        _record(tmp_path, "f" * 32, "a" * 32, "control_starting", stage="recovery_control")
 
 
 def test_m1_readiness_cli_probes_local_and_public_even_when_local_fails(monkeypatch, capsys):
@@ -260,7 +328,9 @@ def test_m1_readiness_cli_probes_local_and_public_even_when_local_fails(monkeypa
     monkeypatch.setattr(supervisor, "_main", lambda *_: pytest.fail("read-only probe started runtime"))
     assert supervisor.main() == 1
     assert calls == ["local", "public"]
-    assert capsys.readouterr().out.strip() == '{"status":"FAIL"}'
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "FAIL", "local_ready": False, "public_ready": True,
+    }
 
 
 def test_m1_bounded_recovery_retries_serially_then_recovers():
@@ -342,7 +412,7 @@ def test_m1_bounded_recovery_rejects_inconsistent_attempt_outcome():
                 "local_ready": None,
                 "public_ready": None,
             },
-            None,
+            {"status": "STOPPED"},
             True,
             1,
             "retry",
@@ -361,7 +431,7 @@ def test_m1_bounded_recovery_rejects_inconsistent_attempt_outcome():
         ),
         (
             {"error_class": "public_readiness_failed", "local_ready": True, "public_ready": False},
-            None,
+            {"status": "STOPPED"},
             True,
             1,
             "retry",
@@ -406,7 +476,7 @@ def test_m1_bounded_recovery_rejects_inconsistent_attempt_outcome():
                 "local_ready": None,
                 "public_ready": None,
             },
-            None,
+            {"status": "STOPPED"},
             True,
             11,
             "stop_budget_exhausted",
@@ -430,37 +500,40 @@ def test_m1_recovery_classification_is_allowlisted_and_cleanup_gated(
 def test_m1_recovery_history_blocks_unknown_and_resumes_known_retry(tmp_path):
     series_id = "b" * 32
     run_id = "c" * 32
-    supervisor._write_runtime_event(
-        _event_record(
-            run_id=run_id,
-            series_id=series_id,
-            event="starting",
-            stage="setup",
-            error_class=None,
-            supervisor_exit_code=None,
-            local_ready=None,
-            public_ready=None,
-            readiness_failures=0,
-            attempt=1,
-            recovery_disposition="pending",
-            cleanup_outcome="not_started",
-        ),
-        root=tmp_path,
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    _start_attempt(tmp_path, series_id, run_id)
+    unknown = supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
     )
-    unknown = supervisor._recovery_state(root=tmp_path)
     assert unknown["state"] == "blocked"
     assert unknown["reason"] == "previous_attempt_unknown"
 
-    supervisor._write_runtime_event(
-        _event_record(
-            run_id=run_id,
-            series_id=series_id,
-            attempt=1,
-            recovery_disposition="retry",
-        ),
-        root=tmp_path,
+    _record(
+        tmp_path, series_id, run_id, "terminal",
+        stage="steady", error_class="public_readiness_failed",
+        supervisor_exit_code=1, local_ready=True, public_ready=False,
+        readiness_failures=3, recovery_disposition="retry",
+        core_outcome={"status": "STOPPED"}, cleanup_outcome="proven",
     )
-    resumable = supervisor._recovery_state(root=tmp_path)
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["reason"] == "retry_transition_missing"
+    _record(
+        tmp_path, series_id, "7" * 32, "retry_waiting",
+        stage="recovery_wait", recovery_disposition="retry",
+        cleanup_outcome="proven",
+    )
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["reason"] == "recovery_wait_unknown"
+    _record(
+        tmp_path, series_id, "6" * 32, "retry_elapsed",
+        stage="recovery_wait", recovery_disposition="retry",
+        cleanup_outcome="proven",
+    )
+    resumable = supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )
     assert resumable["state"] == "resume"
     assert resumable["series_id"] == series_id
     assert resumable["next_attempt"] == 2
@@ -468,26 +541,41 @@ def test_m1_recovery_history_blocks_unknown_and_resumes_known_retry(tmp_path):
 
 def test_m1_recovery_stop_reset_requires_exact_latest_digest(tmp_path):
     series_id = "d" * 32
-    terminal_digest = supervisor._write_runtime_event(
-        _event_record(
-            series_id=series_id,
-            error_class="local_readiness_failed",
-            local_ready=False,
-            public_ready=True,
-            recovery_disposition="stop_non_retryable",
-        ),
-        root=tmp_path,
+    run_id = "c" * 32
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    _start_attempt(tmp_path, series_id, run_id)
+    _record(
+        tmp_path, series_id, run_id, "terminal", stage="steady",
+        error_class="local_readiness_failed", supervisor_exit_code=1,
+        local_ready=False, public_ready=True, readiness_failures=3,
+        recovery_disposition="stop_non_retryable",
+        core_outcome={"status": "STOPPED"}, cleanup_outcome="proven",
     )
-    assert supervisor._inspect_recovery(root=tmp_path)["status"] == "STOP"
+    terminal_digest = _close_control(
+        tmp_path, series_id, attempt=1, retry_budget=10,
+        disposition="stop_non_retryable", status=1,
+    )
+    assert supervisor._inspect_recovery(
+        root=tmp_path, activation_binding=_BINDING
+    )["status"] == "STOP"
 
     with pytest.raises(RuntimeError, match="precondition"):
-        supervisor._acknowledge_recovery_stop("sha256:" + "0" * 64, root=tmp_path)
-    assert supervisor._recovery_state(root=tmp_path)["state"] == "blocked"
+        supervisor._acknowledge_recovery_stop(
+            "sha256:" + "0" * 64, root=tmp_path,
+            activation_binding=_BINDING,
+        )
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["state"] == "blocked"
 
-    result = supervisor._acknowledge_recovery_stop(terminal_digest, root=tmp_path)
+    result = supervisor._acknowledge_recovery_stop(
+        terminal_digest, root=tmp_path, activation_binding=_BINDING
+    )
     assert result["status"] == "RESET"
     assert result["reset_of_digest"] == terminal_digest
-    assert supervisor._recovery_state(root=tmp_path)["state"] == "new"
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["state"] == "new"
 
 
 def test_m1_planned_stop_is_distinct_and_allows_a_later_clean_start(tmp_path):
@@ -505,24 +593,28 @@ def test_m1_planned_stop_is_distinct_and_allows_a_later_clean_start(tmp_path):
         attempt=1,
         retry_budget=10,
     ) == "stop_planned"
-    supervisor._write_runtime_event(
-        _event_record(
-            event="terminal",
-            stage="steady",
-            error_class="planned_stop",
-            supervisor_exit_code=0,
-            local_ready=None,
-            public_ready=None,
-            readiness_failures=0,
-            recovery_disposition="stop_planned",
-            core_outcome={"status": "STOPPED"},
-        ),
-        root=tmp_path,
+    series_id = "f" * 32
+    run_id = "a" * 32
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    _start_attempt(tmp_path, series_id, run_id)
+    _record(
+        tmp_path, series_id, run_id, "terminal", stage="steady",
+        error_class="planned_stop", supervisor_exit_code=0,
+        recovery_disposition="stop_planned",
+        core_outcome={"status": "STOPPED"}, cleanup_outcome="proven",
     )
-    assert supervisor._recovery_state(root=tmp_path)["state"] == "new"
+    _close_control(
+        tmp_path, series_id, attempt=1, retry_budget=10,
+        disposition="stop_planned", status=0,
+    )
+    assert supervisor._recovery_state(
+        root=tmp_path, activation_binding=_BINDING
+    )["state"] == "new"
 
 
 def test_m1_runtime_history_rejects_forged_retry_disposition(tmp_path):
+    supervisor._initialize_recovery(root=tmp_path, activation_binding=_BINDING)
+    _start_attempt(tmp_path, "f" * 32, "a" * 32)
     with pytest.raises(ValueError, match="runtime event"):
         supervisor._write_runtime_event(
             _event_record(
@@ -536,7 +628,7 @@ def test_m1_runtime_history_rejects_forged_retry_disposition(tmp_path):
         )
 
 
-def test_m1_recover_resumes_the_same_series_at_the_proven_attempt(monkeypatch):
+def test_m1_recover_resumes_the_same_series_at_the_proven_attempt(monkeypatch, tmp_path):
     calls = []
     series_id = "e" * 32
     outcomes = iter(
@@ -548,7 +640,7 @@ def test_m1_recover_resumes_the_same_series_at_the_proven_attempt(monkeypatch):
     monkeypatch.setattr(
         supervisor,
         "_recovery_state",
-        lambda: {
+        lambda **_ignored: {
             "state": "resume",
             "reason": None,
             "series_id": series_id,
@@ -558,18 +650,29 @@ def test_m1_recover_resumes_the_same_series_at_the_proven_attempt(monkeypatch):
     )
     monkeypatch.setattr(supervisor, "RECOVERY_RETRY_BUDGET", 3)
     monkeypatch.setattr(supervisor, "RECOVERY_RETRY_INTERVAL_SECONDS", 0.001)
+    def controlled(callback, **callbacks):
+        callbacks["on_ready"]()
+        status = callback(_Event())
+        callbacks["on_closing"](status)
+        callbacks["on_closed"](status)
+        return status
+
+    monkeypatch.setattr(supervisor, "_with_stop_control", controlled)
     monkeypatch.setattr(
-        supervisor,
-        "_with_stop_control",
-        lambda callback: callback(_Event()),
+        supervisor, "_write_runtime_event",
+        lambda *_args, **_kwargs: "sha256:" + "2" * 64,
     )
 
-    def attempt(_values, *, stop_event, series_id, attempt, retry_budget):
+    def attempt(_values, *, stop_event, series_id, attempt, retry_budget,
+                root, activation_binding):
         calls.append((stop_event, series_id, attempt, retry_budget))
         return next(outcomes)
 
     monkeypatch.setattr(supervisor, "_run_attempt", attempt)
-    assert supervisor._recover(supervisor._arguments([])) == 1
+    assert supervisor._recover(
+        supervisor._arguments([]), root=tmp_path,
+        activation_binding=_BINDING,
+    ) == 1
     assert [(call[1], call[2], call[3]) for call in calls] == [
         (series_id, 2, 3),
         (series_id, 3, 3),
@@ -600,8 +703,11 @@ def test_m1_terminal_event_keeps_cleanup_failure_distinct(monkeypatch):
     monkeypatch.setattr(supervisor.Path, "exists", lambda _: True)
     monkeypatch.setattr(supervisor, "StopEvent", Stop)
     monkeypatch.setattr(supervisor, "_job_api", Api)
-    monkeypatch.setattr(supervisor, "_operator_event", lambda *_: None)
-    monkeypatch.setattr(supervisor, "_write_runtime_event", events.append)
+    monkeypatch.setattr(supervisor, "_operator_event", lambda *_, **__: None)
+    monkeypatch.setattr(
+        supervisor, "_write_runtime_event",
+        lambda value, **_ignored: events.append(value),
+    )
     monkeypatch.setattr(supervisor, "spawn_owned", lambda *args, **kwargs: child)
     monkeypatch.setattr(
         supervisor,
@@ -693,6 +799,8 @@ def test_m1_scheduler_fixture_controller_uses_product_bounded_recovery(tmp_path)
             "--succeed-on",
             "2",
             "--controller",
+            "--controller-sha256",
+            scheduler_probe._controller_sha256(),
             "--retry-interval-seconds",
             "0.001",
         ],
@@ -719,9 +827,11 @@ def test_m1_scheduler_fixture_operator_is_scoped_and_never_touches_production_ta
     assert "'--controller'" in source
     assert "'--retry-interval-seconds', '60'" in source
     assert "Unregister-ScheduledTask -TaskName $name" in source
-    assert "Register-ScheduledTask -TaskName $definition.name" in source
+    assert (
+        "Register-ScheduledTask -TaskName $definition.name -TaskPath '\\' "
+        "-InputObject $task | Out-Null"
+    ) in source
     assert "Register-ScheduledTask -TaskName 'NobusSpaceBot'" not in source
-    assert "-Force" not in source
     assert "Get-WinEvent" not in source and "wevtutil" not in source.lower()
 
 

@@ -84,23 +84,20 @@ $healthLauncher = Join-Path $runtime 'check-nobus-space-bot.ps1'
 $healthBody = @"
 `$ErrorActionPreference = 'Continue'
 `$taskName = '$($TaskName.Replace("'", "''"))'
-`$log = '$($logs.Replace("'", "''"))\health.log'
 `$alert = '$($logs.Replace("'", "''"))\health-alerts.log'
-foreach (`$path in @(`$log, `$alert)) {
-    if (Test-Path -LiteralPath `$path -PathType Leaf) {
-        `$item = Get-Item -LiteralPath `$path
-        if (`$item.Length -gt 2MB) {
-            Move-Item -LiteralPath `$path -Destination "`$path.previous" -Force
-        }
+if (Test-Path -LiteralPath `$alert -PathType Leaf) {
+    `$item = Get-Item -LiteralPath `$alert
+    if (`$item.Length -gt 2MB) {
+        Move-Item -LiteralPath `$alert -Destination "`$alert.previous" -Force
     }
 }
 `$healthy = `$true
-& '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' --runtime '$($healthStateDirectory.Replace("'", "''"))' *>> `$log
+& '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' --runtime '$($healthStateDirectory.Replace("'", "''"))' 1>`$null 2>`$null
 if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }
 # The shared read-only CLI enforces exact body, no redirects and total2s/5s deadlines.
-& '$($python.Replace("'", "''"))' '$($runner.Replace("'", "''"))' --check-ready *>> `$log
+& '$($python.Replace("'", "''"))' '$($runner.Replace("'", "''"))' --check-ready 1>`$null 2>`$null
 if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }

@@ -41,7 +41,10 @@ def inventory(requirements: Path) -> tuple[list[tuple[str, str]], dict[str, obje
         match = re.fullmatch(r"([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?==([^\s]+)", line)
         if match is None:
             raise ValueError
-        direct[_name(match.group(1))] = match.group(2)
+        name = _name(match.group(1))
+        if name in direct:
+            raise ValueError
+        direct[name] = match.group(2)
     mismatches = [
         {"name": name, "expected": version, "actual": installed.get(name)}
         for name, version in sorted(direct.items())
@@ -60,6 +63,18 @@ def inventory(requirements: Path) -> tuple[list[tuple[str, str]], dict[str, obje
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, response, code, message, headers, new_url):
         return None
+
+
+def _decode_osv_response(content: bytes):
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("duplicate JSON key")
+            value[key] = item
+        return value
+
+    return json.loads(content.decode("utf-8"), object_pairs_hook=unique)
 
 
 def query_osv(packages: list[tuple[str, str]]) -> list[dict[str, object]]:
@@ -86,7 +101,7 @@ def query_osv(packages: list[tuple[str, str]]) -> list[dict[str, object]]:
         content = response.read(MAX_RESPONSE_BYTES + 1)
     if len(content) > MAX_RESPONSE_BYTES:
         raise ValueError
-    value = json.loads(content.decode("utf-8"))
+    value = _decode_osv_response(content)
     results = value.get("results") if type(value) is dict else None
     if type(results) is not list or len(results) != len(packages):
         raise ValueError

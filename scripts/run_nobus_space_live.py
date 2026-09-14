@@ -27,6 +27,7 @@ CODE_ROOT = CANONICAL_REPOSITORY.parent
 RUNNER = WORKTREE / "scripts" / "run_telegram_mvp1.py"
 SSH = Path(os.environ["SYSTEMROOT"]) / "System32" / "OpenSSH" / "ssh.exe"
 LOG_ROOT = CANONICAL_REPOSITORY / ".runtime" / "logs"
+RECOVERY_DIRECTORY_NAME = "supervisor-control"
 PUBLIC_ORIGIN = "https://app.nobusspace.com"
 RELAY_TARGET = "nobus-relay@76.13.9.125"
 REVERSE_BINDING = "127.0.0.1:18765:127.0.0.1:8765"
@@ -38,15 +39,22 @@ READINESS_FAILURE_LIMIT = 3
 RECOVERY_RETRY_BUDGET = 10
 RECOVERY_RETRY_INTERVAL_SECONDS = 60
 CORE_OUTCOME_BYTES = 4096
-RUNTIME_EVENT_LOG_NAME = "runner-supervisor-v2.jsonl"
+RUNTIME_EVENT_LOG_NAME = "runner-supervisor-v3.jsonl"
 RUNTIME_EVENT_LOG_BYTES = 1024 * 1024
 RUNTIME_EVENT_LINE_BYTES = 2048
+OPERATOR_EVENT_LOG_BYTES = 5 * 1024 * 1024
+EXIT_STOP_CONTROL_CREATE_FAILED = 70
+EXIT_STOP_CONTROL_SIGNAL_FAILED = 71
+EXIT_STOP_CONTROL_CLOSE_FAILED = 72
+EXIT_RUNTIME_EVIDENCE_FAILED = 73
 RUNTIME_EVENT_KEYS = frozenset({
     "schema", "series_id", "run_id", "event", "stage", "error_class",
     "supervisor_exit_code", "core_exit_code", "relay_exit_code",
     "local_ready", "public_ready", "readiness_failures",
     "attempt", "retry_budget", "recovery_disposition", "core_outcome",
-    "core_outcome_error", "cleanup_outcome",
+    "core_outcome_error", "cleanup_outcome", "activation_binding",
+    "previous_event_digest", "reset_of_digest", "checkpoint_event",
+    "anchor_of_digest",
 })
 _EVENT_STAGES = frozenset({
     "input_validation", "setup", "job_setup", "relay_start", "core_start",
@@ -60,11 +68,14 @@ _EVENT_ERRORS = frozenset({
     "supervision_failed", "core_exit", "relay_exit", "core_and_relay_exit",
     "startup_timeout", "local_readiness_failed", "public_readiness_failed",
     "local_public_readiness_failed", "planned_stop",
+    "stop_control_create_failed", "stop_control_signal_failed",
+    "stop_control_close_failed", "stop_control_callback_failed",
+    "recovery_wait_event_write_failed",
 })
 _RECOVERY_DISPOSITIONS = frozenset({
     "pending", "complete", "retry", "stop_non_retryable",
     "stop_budget_exhausted", "stop_cleanup_failed", "stop_evidence_failed",
-    "stop_planned", "reset",
+    "stop_planned", "reset", "initialized",
 })
 _ATTEMPT_DISPOSITIONS = frozenset({
     "complete", "retry", "stop_non_retryable", "stop_budget_exhausted",
@@ -76,6 +87,34 @@ _EVIDENCE_ERRORS = frozenset({
 _CORE_OUTCOME_ERRORS = frozenset({
     None, "core_outcome_missing", "core_outcome_truncated",
     "core_outcome_invalid", "core_outcome_oversize", "core_outcome_unavailable",
+})
+_EVENT_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+_CORE_FAILURE_CODES = frozenset({
+    "credential_configuration_invalid",
+    "credential_unavailable",
+    "telegram_binding_configuration_invalid",
+    "telegram_binding_unavailable",
+    "telegram_configuration_invalid",
+    "telegram_unavailable",
+    "telegram_protocol_error",
+    "telegram_response_too_large",
+    "telegram_download_too_large",
+    "telegram_upload_too_large",
+    "telegram_handler_failed",
+    "telegram_checkpoint_failed",
+    "telegram_consumer_busy",
+    "telegram_artifact_projection_failed",
+    "telegram_mvp1_failed",
+    *{
+        "telegram_mvp1_" + stage + "_failed"
+        for stage in (
+            "credentials", "local_preflight", "telegram_identity", "bindings",
+            "runtime_stores", "core_runtime", "runtime_validation",
+            "worker_probe", "voice_warmup", "rate_limit_provider",
+            "control_construction", "control_start", "miniapp_core",
+            "miniapp_server", "polling",
+        )
+    },
 })
 
 
@@ -110,7 +149,7 @@ def _parse_core_outcome(payload: bytes, *, overflow: bool = False):
         return None, "core_outcome_invalid"
     if value["status"] == "FAIL":
         if (set(value) != {"status", "code"} or type(value.get("code")) is not str
-                or re.fullmatch(r"[a-z][a-z0-9_]{0,95}", value["code"]) is None):
+                or value["code"] not in _CORE_FAILURE_CODES):
             return None, "core_outcome_invalid"
     elif value["status"] in {"STOPPED", "ALREADY_RUNNING"}:
         if set(value) != {"status"}:
@@ -155,15 +194,74 @@ class _CoreOutcomeCapture:
         return _parse_core_outcome(bytes(self.content), overflow=self.overflow)
 
 
+def _digest(value) -> bool:
+    return type(value) is str and _EVENT_DIGEST.fullmatch(value) is not None
+
+
+def _path_is_reparse(path: Path) -> bool:
+    if path.is_symlink() or path.is_junction():
+        return True
+    attributes = getattr(path.stat(follow_symlinks=False), "st_file_attributes", 0)
+    return bool(attributes & 0x400)  # FILE_ATTRIBUTE_REPARSE_POINT
+
+
+def _plain_root(root: Path, *, create: bool) -> tuple[int, int]:
+    """Reject every reparse component and return the exact directory identity."""
+    root = Path(root)
+    if not root.is_absolute():
+        raise OSError
+    for candidate in (root, *root.parents):
+        if candidate.exists() and _path_is_reparse(candidate):
+            raise OSError
+    if create:
+        root.mkdir(parents=True, exist_ok=True)
+    if not root.is_dir() or _path_is_reparse(root):
+        raise OSError
+    for candidate in (root, *root.parents):
+        if candidate.exists() and _path_is_reparse(candidate):
+            raise OSError
+    metadata = root.stat(follow_symlinks=False)
+    return metadata.st_dev, metadata.st_ino
+
+
+def _validate_recovery_inventory(root: Path) -> None:
+    allowed = {
+        RUNTIME_EVENT_LOG_NAME,
+        RUNTIME_EVENT_LOG_NAME + ".previous",
+        "runner-supervisor.log",
+        "runner-supervisor.log.previous",
+    }
+    children = tuple(root.iterdir())
+    if len(children) > len(allowed):
+        raise OSError
+    for child in children:
+        if (child.name not in allowed or _path_is_reparse(child)
+                or not child.is_file()):
+            raise OSError
+        if (child.name.startswith("runner-supervisor.log")
+                and not 0 < child.stat().st_size <= OPERATOR_EVENT_LOG_BYTES):
+            raise OSError
+
+
 def _validate_runtime_event(value, *, recorded: bool = False):
     keys = RUNTIME_EVENT_KEYS | ({"at"} if recorded else set())
     if type(value) is not dict or set(value) != keys:
         raise ValueError("runtime event fields are invalid")
-    if (value["schema"] != "nobus-runtime-event-2"
+    if (value["schema"] != "nobus-runtime-event-3"
             or re.fullmatch(r"[0-9a-f]{32}", value["series_id"]) is None
             or re.fullmatch(r"[0-9a-f]{32}", value["run_id"]) is None
+            or not _digest(value["activation_binding"])
+            or (value["previous_event_digest"] is not None
+                and not _digest(value["previous_event_digest"]))
+            or (value["reset_of_digest"] is not None
+                and not _digest(value["reset_of_digest"]))
+            or (value["anchor_of_digest"] is not None
+                and not _digest(value["anchor_of_digest"]))
             or value["event"] not in {
-                "starting", "terminal", "recovery_wait_stopped", "recovery_reset"
+                "bootstrap", "control_starting", "control_ready",
+                "control_closing", "control_closed", "control_failure",
+                "starting", "terminal", "retry_waiting", "retry_elapsed",
+                "recovery_wait_stopped", "recovery_reset", "history_checkpoint",
             }
             or value["stage"] not in _EVENT_STAGES
             or value["error_class"] not in _EVENT_ERRORS
@@ -191,7 +289,9 @@ def _validate_runtime_event(value, *, recorded: bool = False):
         raise ValueError("runtime event retry data is invalid")
     if value["core_outcome"] is not None:
         try:
-            encoded = json.dumps(value["core_outcome"], ensure_ascii=True, separators=(",", ":")).encode("ascii") + b"\n"
+            encoded = json.dumps(
+                value["core_outcome"], ensure_ascii=True, separators=(",", ":")
+            ).encode("ascii") + b"\n"
         except (TypeError, ValueError, UnicodeEncodeError):
             raise ValueError("runtime event Core outcome is invalid") from None
         parsed, error = _parse_core_outcome(encoded)
@@ -199,6 +299,23 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             raise ValueError("runtime event Core outcome is invalid")
     if value["core_outcome"] is not None and value["core_outcome_error"] is not None:
         raise ValueError("runtime event Core outcome is inconsistent")
+
+    if value["event"] == "history_checkpoint":
+        if (value["checkpoint_event"] not in {
+                "control_starting", "control_ready", "control_closing",
+                "control_closed", "control_failure", "starting", "terminal",
+                "retry_waiting", "retry_elapsed", "recovery_wait_stopped",
+                "recovery_reset",
+            } or not _digest(value["anchor_of_digest"])):
+            raise ValueError("runtime history checkpoint is invalid")
+        semantic = dict(value)
+        semantic["event"] = value["checkpoint_event"]
+        semantic["checkpoint_event"] = None
+        semantic["anchor_of_digest"] = None
+        _validate_runtime_event(semantic, recorded=recorded)
+        return
+    if value["checkpoint_event"] is not None or value["anchor_of_digest"] is not None:
+        raise ValueError("runtime event checkpoint fields are invalid")
 
     empty_process_fields = (
         value["core_exit_code"] is None
@@ -209,95 +326,413 @@ def _validate_runtime_event(value, *, recorded: bool = False):
         and value["core_outcome"] is None
         and value["core_outcome_error"] is None
     )
-    if value["event"] == "starting":
-        if not (
+    event = value["event"]
+    if event == "bootstrap":
+        valid = (
+            value["stage"] == "recovery_control"
+            and value["error_class"] is None
+            and value["supervisor_exit_code"] == 0
+            and value["recovery_disposition"] == "initialized"
+            and value["cleanup_outcome"] == "proven"
+            and value["previous_event_digest"] is None
+            and value["reset_of_digest"] is None
+            and empty_process_fields
+        )
+    elif event in {"control_starting", "control_ready"}:
+        valid = (
+            value["stage"] == "recovery_control"
+            and value["error_class"] is None
+            and value["supervisor_exit_code"] == (0 if event == "control_ready" else None)
+            and value["recovery_disposition"] == "pending"
+            and value["cleanup_outcome"] == "not_started"
+            and value["reset_of_digest"] is None
+            and empty_process_fields
+        )
+    elif event in {"control_closing", "control_closed"}:
+        valid = (
+            value["stage"] == "recovery_control"
+            and value["error_class"] is None
+            and value["supervisor_exit_code"] in {0, 1}
+            and value["recovery_disposition"] in _ATTEMPT_DISPOSITIONS
+            and value["cleanup_outcome"] == "proven"
+            and value["reset_of_digest"] is None
+            and empty_process_fields
+        )
+    elif event == "control_failure":
+        valid = (
+            value["stage"] == "recovery_control"
+            and value["error_class"] in {
+                "stop_control_create_failed", "stop_control_signal_failed",
+                "stop_control_close_failed", "stop_control_callback_failed",
+                "recovery_wait_event_write_failed",
+            }
+            and value["supervisor_exit_code"] in {
+                1, EXIT_STOP_CONTROL_CREATE_FAILED,
+                EXIT_STOP_CONTROL_SIGNAL_FAILED, EXIT_STOP_CONTROL_CLOSE_FAILED,
+                EXIT_RUNTIME_EVIDENCE_FAILED,
+            }
+            and value["recovery_disposition"] == "stop_evidence_failed"
+            and value["cleanup_outcome"] == "proven"
+            and value["reset_of_digest"] is None
+            and empty_process_fields
+        )
+    elif event == "starting":
+        valid = (
             value["stage"] == "setup"
             and value["error_class"] is None
             and value["supervisor_exit_code"] is None
             and value["recovery_disposition"] == "pending"
             and value["cleanup_outcome"] == "not_started"
+            and value["reset_of_digest"] is None
             and empty_process_fields
-        ):
-            raise ValueError("runtime event starting state is inconsistent")
-    elif value["event"] == "recovery_wait_stopped":
-        if not (
+        )
+    elif event in {"retry_waiting", "retry_elapsed"}:
+        valid = (
+            value["stage"] == "recovery_wait"
+            and value["error_class"] is None
+            and value["supervisor_exit_code"] is None
+            and value["attempt"] <= value["retry_budget"]
+            and value["recovery_disposition"] == "retry"
+            and value["cleanup_outcome"] == "proven"
+            and value["reset_of_digest"] is None
+            and empty_process_fields
+        )
+    elif event == "recovery_wait_stopped":
+        valid = (
             value["stage"] == "recovery_wait"
             and value["error_class"] == "planned_stop"
             and value["supervisor_exit_code"] == 0
             and value["attempt"] <= value["retry_budget"]
             and value["recovery_disposition"] == "stop_planned"
             and value["cleanup_outcome"] == "proven"
+            and value["reset_of_digest"] is None
             and empty_process_fields
-        ):
-            raise ValueError("runtime event recovery wait state is inconsistent")
-    elif value["event"] == "recovery_reset":
-        if not (
+        )
+    elif event == "recovery_reset":
+        valid = (
             value["stage"] == "recovery_control"
             and value["error_class"] is None
             and value["supervisor_exit_code"] == 0
             and value["recovery_disposition"] == "reset"
             and value["cleanup_outcome"] == "proven"
+            and _digest(value["reset_of_digest"])
             and empty_process_fields
-        ):
-            raise ValueError("runtime event reset state is inconsistent")
-    else:
-        if (
-            value["recovery_disposition"] not in _ATTEMPT_DISPOSITIONS
-            or value["supervisor_exit_code"] not in {0, 1}
-            or value["cleanup_outcome"] not in {"proven", "failed"}
-        ):
-            raise ValueError("runtime event terminal state is inconsistent")
-        expected = _recovery_disposition(
-            status=value["supervisor_exit_code"],
-            terminal=value,
-            core_outcome=value["core_outcome"],
-            core_outcome_error=value["core_outcome_error"],
-            cleanup_ok=value["cleanup_outcome"] == "proven",
-            attempt=value["attempt"],
-            retry_budget=value["retry_budget"],
         )
-        if value["recovery_disposition"] != expected:
-            raise ValueError("runtime event recovery disposition is inconsistent")
+    else:
+        valid = (
+            value["recovery_disposition"] in _ATTEMPT_DISPOSITIONS
+            and value["supervisor_exit_code"] in {0, 1}
+            and value["cleanup_outcome"] in {"proven", "failed"}
+            and value["reset_of_digest"] is None
+        )
+        if valid:
+            expected = _recovery_disposition(
+                status=value["supervisor_exit_code"], terminal=value,
+                core_outcome=value["core_outcome"],
+                core_outcome_error=value["core_outcome_error"],
+                cleanup_ok=value["cleanup_outcome"] == "proven",
+                attempt=value["attempt"], retry_budget=value["retry_budget"],
+            )
+            valid = value["recovery_disposition"] == expected
+    if not valid:
+        raise ValueError("runtime event state is inconsistent")
+
+
+def _effective_event(value):
+    if value["event"] != "history_checkpoint":
+        return value
+    semantic = dict(value)
+    semantic["event"] = value["checkpoint_event"]
+    semantic["checkpoint_event"] = None
+    semantic["anchor_of_digest"] = None
+    return semantic
+
+
+def _validate_transition(previous, current, previous_digest):
+    previous = _effective_event(previous)
+    current = _effective_event(current)
+    if current["previous_event_digest"] != previous_digest:
+        raise ValueError("runtime history digest chain is invalid")
+    prior, event = previous["event"], current["event"]
+    same_series_attempt = (
+        current["series_id"] == previous["series_id"]
+        and current["attempt"] == previous["attempt"]
+        and current["retry_budget"] == previous["retry_budget"]
+    )
+    if event == "control_failure":
+        if prior not in {
+            "control_starting", "control_ready", "control_closing", "starting",
+            "control_closed", "terminal", "retry_waiting", "retry_elapsed",
+            "recovery_wait_stopped",
+        } or not same_series_attempt:
+            raise ValueError("runtime control failure transition is invalid")
+        return
+    if prior == "bootstrap":
+        valid = (
+            event == "control_starting"
+            and current["attempt"] == 1
+            and current["retry_budget"] == previous["retry_budget"]
+            and current["series_id"] != previous["series_id"]
+        )
+    elif prior == "recovery_reset":
+        valid = (
+            event == "control_starting"
+            and current["attempt"] == 1
+            and current["retry_budget"] == previous["retry_budget"]
+            and current["series_id"] != previous["series_id"]
+        )
+    elif prior == "control_starting":
+        valid = (
+            event == "control_ready" and same_series_attempt
+            and current["run_id"] == previous["run_id"]
+        )
+    elif prior == "control_ready":
+        valid = event == "starting" and same_series_attempt
+    elif prior == "starting":
+        valid = (
+            event == "terminal" and same_series_attempt
+            and current["run_id"] == previous["run_id"]
+        )
+    elif prior == "terminal" and previous["recovery_disposition"] == "retry":
+        valid = event == "retry_waiting" and same_series_attempt
+    elif prior == "retry_waiting":
+        valid = event in {"retry_elapsed", "recovery_wait_stopped"} and same_series_attempt
+    elif prior == "retry_elapsed":
+        valid = (
+            event in {"starting", "control_starting"}
+            and current["series_id"] == previous["series_id"]
+            and current["attempt"] == previous["attempt"] + 1
+            and current["retry_budget"] == previous["retry_budget"]
+        )
+    elif prior in {"terminal", "recovery_wait_stopped"}:
+        valid = (
+            event == "control_closing" and same_series_attempt
+            and current["recovery_disposition"] == previous["recovery_disposition"]
+        )
+    elif prior == "control_closing":
+        valid = (
+            event == "control_closed" and same_series_attempt
+            and current["run_id"] == previous["run_id"]
+            and current["recovery_disposition"] == previous["recovery_disposition"]
+            and current["supervisor_exit_code"] == previous["supervisor_exit_code"]
+        )
+    elif prior == "control_closed":
+        if previous["recovery_disposition"] in {"complete", "stop_planned"}:
+            valid = (
+                event == "control_starting"
+                and current["attempt"] == 1
+                and current["retry_budget"] == previous["retry_budget"]
+                and current["series_id"] != previous["series_id"]
+            )
+        else:
+            valid = (
+                event == "recovery_reset"
+                and current["reset_of_digest"] == previous_digest
+                and same_series_attempt
+            )
+    elif prior == "control_failure":
+        valid = (
+            event == "recovery_reset"
+            and current["reset_of_digest"] == previous_digest
+            and same_series_attempt
+        )
+    else:
+        valid = False
+    if not valid:
+        raise ValueError("runtime history transition is invalid")
+
+
+def _decode_runtime_event(line: bytes):
+    if not line.endswith(b"\n") or len(line) > RUNTIME_EVENT_LINE_BYTES:
+        raise ValueError("runtime history is invalid")
+
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError
+            value[key] = item
+        return value
+
+    try:
+        value = json.loads(line[:-1].decode("ascii"), object_pairs_hook=unique)
+        _validate_runtime_event(value, recorded=True)
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError, TypeError):
+        raise ValueError("runtime history is invalid") from None
+    return value
+
+
+def _runtime_history(*, root: Path, activation_binding: str | None = None):
+    try:
+        identity = _plain_root(root, create=False) if root.exists() else None
+        if identity is not None:
+            _validate_recovery_inventory(root)
+        current = root / RUNTIME_EVENT_LOG_NAME
+        previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
+        # Once rotation has created a previous segment, a current segment is the
+        # durable continuation marker.  Missing either side must never expose an
+        # older clean terminal as the newest recovery decision.
+        if previous.exists() and not current.exists():
+            raise OSError
+        rows = []
+        digests = []
+        for path in (previous, current):
+            if not path.exists():
+                continue
+            if _path_is_reparse(path) or not path.is_file():
+                raise OSError
+            if not 0 < path.stat().st_size <= RUNTIME_EVENT_LOG_BYTES:
+                raise OSError
+            content = path.read_bytes()
+            if not content.endswith(b"\n"):
+                raise OSError
+            if identity != _plain_root(root, create=False):
+                raise OSError
+            metadata = path.stat(follow_symlinks=False)
+            before = (
+                metadata.st_dev, metadata.st_ino, metadata.st_size,
+                metadata.st_mtime_ns,
+            )
+            if _path_is_reparse(path) or not path.is_file():
+                raise OSError
+            for line in content.splitlines(keepends=True):
+                row = _decode_runtime_event(line)
+                rows.append(row)
+                digests.append("sha256:" + hashlib.sha256(line).hexdigest())
+            metadata = path.stat(follow_symlinks=False)
+            after = (
+                metadata.st_dev, metadata.st_ino, metadata.st_size,
+                metadata.st_mtime_ns,
+            )
+            if before != after:
+                raise OSError
+        if not rows:
+            return [], []
+        if rows[0]["event"] != "bootstrap" or rows[0]["previous_event_digest"] is not None:
+            raise ValueError("runtime history bootstrap is invalid")
+        binding = activation_binding or rows[0]["activation_binding"]
+        if not _digest(binding) or any(row["activation_binding"] != binding for row in rows):
+            raise ValueError("runtime history activation binding is invalid")
+        checkpoint_seen = False
+        for index in range(1, len(rows)):
+            if rows[index]["previous_event_digest"] != digests[index - 1]:
+                raise ValueError("runtime history digest chain is invalid")
+            if rows[index]["event"] == "history_checkpoint":
+                if checkpoint_seen or index != 1:
+                    raise ValueError("runtime history checkpoint placement is invalid")
+                checkpoint_seen = True
+                continue
+            _validate_transition(rows[index - 1], rows[index], digests[index - 1])
+        return rows, digests
+    except OSError:
+        raise RuntimeError("runtime history unavailable") from None
+
+
+def _encoded_record(record):
+    line = json.dumps(
+        record, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+    ).encode("ascii") + b"\n"
+    if len(line) > RUNTIME_EVENT_LINE_BYTES:
+        raise ValueError("runtime event line is too large")
+    return line
+
+
+def _write_compacted_previous(root, bootstrap, last, last_digest):
+    bootstrap_line = _encoded_record(bootstrap)
+    semantic = dict(_effective_event(last))
+    semantic["event"] = "history_checkpoint"
+    semantic["checkpoint_event"] = _effective_event(last)["event"]
+    semantic["anchor_of_digest"] = last_digest
+    semantic["previous_event_digest"] = "sha256:" + hashlib.sha256(bootstrap_line).hexdigest()
+    semantic["at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    _validate_runtime_event(semantic, recorded=True)
+    checkpoint_line = _encoded_record(semantic)
+    content = bootstrap_line + checkpoint_line
+    if len(content) > RUNTIME_EVENT_LOG_BYTES:
+        raise OSError
+    temporary = root / (RUNTIME_EVENT_LOG_NAME + ".compact")
+    previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
+    if temporary.exists() or (previous.exists() and _path_is_reparse(previous)):
+        raise OSError
+    with temporary.open("xb") as stream:
+        stream.write(content)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, previous)
+    return semantic, "sha256:" + hashlib.sha256(checkpoint_line).hexdigest()
 
 
 def _write_runtime_event(value, *, root: Path = LOG_ROOT):
-    """Append one fixed-schema ASCII event; rotate only this owned bounded log."""
-    _validate_runtime_event(value)
-    record = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **value}
-    line = json.dumps(record, ensure_ascii=True, separators=(",", ":"), sort_keys=True).encode("ascii") + b"\n"
-    if len(line) > RUNTIME_EVENT_LINE_BYTES:
-        raise ValueError("runtime event line is too large")
+    """Append one linked safe event; compact only this owned bounded history."""
+    if type(value) is not dict or value.get("previous_event_digest") is not None:
+        raise ValueError("runtime event previous digest is caller-controlled")
     try:
-        root.mkdir(parents=True, exist_ok=True)
-        if root.is_symlink() or root.is_junction():
-            raise OSError
+        identity = _plain_root(root, create=True)
+        rows, digests = _runtime_history(
+            root=root, activation_binding=value.get("activation_binding")
+        )
+        if not rows and value.get("event") != "bootstrap":
+            raise ValueError("runtime event requires explicit bootstrap")
+        if rows and value.get("event") == "bootstrap":
+            raise ValueError("runtime bootstrap already exists")
+        record = dict(value)
+        previous_digest = digests[-1] if digests else None
+        record["previous_event_digest"] = previous_digest
+        if rows:
+            _validate_transition(rows[-1], record, previous_digest)
+        _validate_runtime_event(record)
+        recorded = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **record}
+        line = _encoded_record(recorded)
         path = root / RUNTIME_EVENT_LOG_NAME
         previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
         for candidate in (path, previous):
-            if candidate.exists() and (candidate.is_symlink() or candidate.is_junction() or not candidate.is_file()):
+            if candidate.exists() and (_path_is_reparse(candidate) or not candidate.is_file()):
                 raise OSError
         if path.exists() and path.stat().st_size + len(line) > RUNTIME_EVENT_LOG_BYTES:
-            os.replace(path, previous)
+            if not previous.exists():
+                os.replace(path, previous)
+            else:
+                checkpoint, previous_digest = _write_compacted_previous(
+                    root, rows[0], rows[-1], digests[-1]
+                )
+                path.unlink()
+                record["previous_event_digest"] = previous_digest
+                _validate_transition(checkpoint, record, previous_digest)
+                _validate_runtime_event(record)
+                recorded = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **record}
+                line = _encoded_record(recorded)
+        if identity != _plain_root(root, create=False):
+            raise OSError
         with path.open("ab") as stream:
+            opened = os.fstat(stream.fileno())
             stream.write(line)
             stream.flush()
             os.fsync(stream.fileno())
-        if path.stat().st_size > RUNTIME_EVENT_LOG_BYTES:
+            if (opened.st_dev, opened.st_ino) != (
+                path.stat(follow_symlinks=False).st_dev,
+                path.stat(follow_symlinks=False).st_ino,
+            ):
+                raise OSError
+        if (_path_is_reparse(path) or path.stat().st_size > RUNTIME_EVENT_LOG_BYTES
+                or identity != _plain_root(root, create=False)):
             raise OSError
-    except OSError:
+    except (OSError, RuntimeError):
         raise RuntimeError("runtime event write failed") from None
     return "sha256:" + hashlib.sha256(line).hexdigest()
 
 
-def _runtime_record(series_id: str, run_id: str, event: str, *, attempt: int,
-                    retry_budget: int, recovery_disposition: str,
-                    stage: str, error_class=None,
+def _runtime_record(series_id: str, run_id: str, event: str, *,
+                    activation_binding: str, attempt: int, retry_budget: int,
+                    recovery_disposition: str, stage: str, error_class=None,
                     supervisor_exit_code=None, core_exit_code=None, relay_exit_code=None,
                     local_ready=None, public_ready=None, readiness_failures=0,
-                    core_outcome=None, core_outcome_error=None, cleanup_outcome="not_started"):
+                    core_outcome=None, core_outcome_error=None,
+                    cleanup_outcome="not_started", reset_of_digest=None):
     return {
-        "schema": "nobus-runtime-event-2", "series_id": series_id,
-        "run_id": run_id, "event": event,
+        "schema": "nobus-runtime-event-3", "series_id": series_id,
+        "run_id": run_id, "event": event, "activation_binding": activation_binding,
+        "previous_event_digest": None, "reset_of_digest": reset_of_digest,
+        "checkpoint_event": None, "anchor_of_digest": None,
         "stage": stage, "error_class": error_class,
         "supervisor_exit_code": supervisor_exit_code,
         "core_exit_code": core_exit_code, "relay_exit_code": relay_exit_code,
@@ -317,24 +752,32 @@ def _recovery_disposition(*, status, terminal, core_outcome, core_outcome_error,
         return "stop_cleanup_failed"
     if terminal["error_class"] in _EVIDENCE_ERRORS:
         return "stop_evidence_failed"
+    if core_outcome_error is not None:
+        return "stop_evidence_failed"
     if terminal["error_class"] == "planned_stop":
-        return "stop_planned" if status == 0 else "stop_non_retryable"
+        safe = core_outcome in (None, {"status": "STOPPED"})
+        return "stop_planned" if status == 0 and safe else "stop_non_retryable"
     if status == 0:
-        return "complete"
+        return "complete" if core_outcome in (None, {"status": "STOPPED"}) else "stop_non_retryable"
+    if core_outcome is not None and core_outcome.get("status") == "FAIL":
+        transient = (
+            terminal["error_class"] == "core_exit"
+            and core_outcome == {"status": "FAIL", "code": "telegram_unavailable"}
+        )
+        if not transient:
+            return "stop_non_retryable"
+        return "retry" if attempt <= retry_budget else "stop_budget_exhausted"
     transient = (
         (
             terminal["error_class"] == "relay_exit"
             and terminal.get("stage") == "steady"
+            and core_outcome == {"status": "STOPPED"}
         )
         or (
             terminal["error_class"] in {"public_readiness_failed", "startup_timeout"}
             and terminal["local_ready"] is True
             and terminal["public_ready"] is False
-        )
-        or (
-            terminal["error_class"] == "core_exit"
-            and core_outcome_error is None
-            and core_outcome == {"status": "FAIL", "code": "telegram_unavailable"}
+            and core_outcome == {"status": "STOPPED"}
         )
     )
     if not transient:
@@ -343,7 +786,8 @@ def _recovery_disposition(*, status, terminal, core_outcome, core_outcome_error,
 
 
 def _run_bounded_recovery(run_attempt, *, stop_event, first_attempt,
-                          retry_budget, retry_interval, on_wait_stop=None):
+                          retry_budget, retry_interval, on_wait_start=None,
+                          on_wait_complete=None, on_wait_stop=None):
     """Run one serial recovery series; the first attempt is not a retry."""
     if (type(first_attempt) is not int or type(retry_budget) is not int
             or not 0 <= retry_budget <= RECOVERY_RETRY_BUDGET
@@ -372,66 +816,44 @@ def _run_bounded_recovery(run_attempt, *, stop_event, first_attempt,
             return outcome["status"]
         if attempt > retry_budget:
             return 1
+        if on_wait_start is not None:
+            on_wait_start(attempt)
         if stop_event.wait(retry_interval):
             if on_wait_stop is not None:
                 on_wait_stop(attempt)
             return 0
+        if on_wait_complete is not None:
+            on_wait_complete(attempt)
     return 1
 
 
-def _decode_runtime_event(line: bytes):
-    if not line.endswith(b"\n") or len(line) > RUNTIME_EVENT_LINE_BYTES + 1:
-        raise ValueError("runtime history is invalid")
-
-    def unique(pairs):
-        value = {}
-        for key, item in pairs:
-            if key in value:
-                raise ValueError
-            value[key] = item
-        return value
-
-    try:
-        value = json.loads(line[:-1].decode("ascii"), object_pairs_hook=unique)
-        _validate_runtime_event(value, recorded=True)
-    except (UnicodeDecodeError, ValueError, json.JSONDecodeError, TypeError):
-        raise ValueError("runtime history is invalid") from None
-    return value
-
-
-def _last_runtime_event(*, root: Path = LOG_ROOT):
+def _last_runtime_event(*, root: Path = LOG_ROOT, activation_binding=None):
     """Return the newest bounded event and a digest suitable for exact reset."""
     try:
-        if root.exists() and (root.is_symlink() or root.is_junction() or not root.is_dir()):
-            raise OSError
-        current = root / RUNTIME_EVENT_LOG_NAME
-        previous = root / (RUNTIME_EVENT_LOG_NAME + ".previous")
-        for path in (current, previous):
-            if path.exists() and (path.is_symlink() or path.is_junction() or not path.is_file()):
-                raise OSError
-        path = current if current.exists() and current.stat().st_size else previous
-        if not path.exists():
+        rows, digests = _runtime_history(
+            root=root, activation_binding=activation_binding
+        )
+        if not rows:
             return None, None
-        if path.stat().st_size > RUNTIME_EVENT_LOG_BYTES:
-            raise OSError
-        content = path.read_bytes()
-        if not content or not content.endswith(b"\n"):
-            raise OSError
-        line = content.splitlines(keepends=True)[-1]
-        digest = "sha256:" + hashlib.sha256(line).hexdigest()
-        return _decode_runtime_event(line), digest
-    except OSError:
+        return rows[-1], digests[-1]
+    except (OSError, ValueError):
         raise RuntimeError("runtime history unavailable") from None
 
 
-def _recovery_state(*, root: Path = LOG_ROOT):
+def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
     """Resume a proven retry, or fail closed on STOP/UNKNOWN history."""
     try:
-        event, digest = _last_runtime_event(root=root)
+        event, digest = _last_runtime_event(
+            root=root, activation_binding=activation_binding
+        )
     except (RuntimeError, ValueError):
         return {"state": "blocked", "reason": "runtime_history_invalid",
                 "series_id": None, "next_attempt": None, "last_digest": None}
-    if event is None or event["event"] in {"recovery_reset", "recovery_wait_stopped"}:
+    if event is None:
+        return {"state": "blocked", "reason": "runtime_history_missing",
+                "series_id": None, "next_attempt": None, "last_digest": None}
+    event = _effective_event(event)
+    if event["event"] in {"bootstrap", "recovery_reset"}:
         return {"state": "new", "reason": None, "series_id": None,
                 "next_attempt": 1, "last_digest": digest}
     if event["event"] == "starting":
@@ -439,25 +861,33 @@ def _recovery_state(*, root: Path = LOG_ROOT):
                 "series_id": event["series_id"], "next_attempt": None,
                 "last_digest": digest}
     disposition = event["recovery_disposition"]
-    if event["event"] == "terminal" and disposition == "retry":
-        if event["attempt"] <= event["retry_budget"]:
-            return {"state": "resume", "reason": None,
-                    "series_id": event["series_id"],
-                    "next_attempt": event["attempt"] + 1,
-                    "last_digest": digest}
-        return {"state": "blocked", "reason": "runtime_history_invalid",
+    if event["event"] == "retry_elapsed" and event["attempt"] <= event["retry_budget"]:
+        return {"state": "resume", "reason": None,
+                "series_id": event["series_id"],
+                "next_attempt": event["attempt"] + 1, "last_digest": digest}
+    if event["event"] == "control_closed":
+        if disposition in {"complete", "stop_planned"}:
+            return {"state": "new", "reason": None, "series_id": None,
+                    "next_attempt": 1, "last_digest": digest}
+        return {"state": "blocked", "reason": disposition,
                 "series_id": event["series_id"], "next_attempt": None,
                 "last_digest": digest}
-    if event["event"] == "terminal" and disposition in {"complete", "stop_planned"}:
-        return {"state": "new", "reason": None, "series_id": None,
-                "next_attempt": 1, "last_digest": digest}
-    return {"state": "blocked", "reason": disposition,
+    reasons = {
+        "control_starting": "previous_control_setup_unknown",
+        "control_ready": "previous_control_callback_unknown",
+        "control_closing": "previous_control_close_unknown",
+        "control_failure": event["error_class"],
+        "terminal": "retry_transition_missing" if disposition == "retry" else "previous_control_close_unknown",
+        "retry_waiting": "recovery_wait_unknown",
+        "recovery_wait_stopped": "previous_control_close_unknown",
+    }
+    return {"state": "blocked", "reason": reasons.get(event["event"], "runtime_history_invalid"),
             "series_id": event["series_id"], "next_attempt": None,
             "last_digest": digest}
 
 
-def _inspect_recovery(*, root: Path = LOG_ROOT):
-    state = _recovery_state(root=root)
+def _inspect_recovery(*, root: Path = LOG_ROOT, activation_binding=None):
+    state = _recovery_state(root=root, activation_binding=activation_binding)
     return {
         "schema": "nobus-recovery-control-1",
         "status": "PASS" if state["state"] != "blocked" else "STOP",
@@ -465,19 +895,54 @@ def _inspect_recovery(*, root: Path = LOG_ROOT):
     }
 
 
-def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT):
+def _initialize_recovery(*, root: Path, activation_binding: str):
+    if not _digest(activation_binding):
+        raise ValueError("recovery activation binding is invalid")
+    try:
+        event, digest = _last_runtime_event(
+            root=root, activation_binding=activation_binding
+        )
+    except RuntimeError:
+        if root.exists() and any(root.iterdir()):
+            raise
+        event = digest = None
+    if event is not None:
+        return {
+            "schema": "nobus-recovery-control-2", "status": "ALREADY_INITIALIZED",
+            "activation_binding": activation_binding, "event_digest": digest,
+        }
+    event_digest = _write_runtime_event(_runtime_record(
+        uuid4().hex, uuid4().hex, "bootstrap",
+        activation_binding=activation_binding, attempt=1,
+        retry_budget=RECOVERY_RETRY_BUDGET, recovery_disposition="initialized",
+        stage="recovery_control", supervisor_exit_code=0,
+        cleanup_outcome="proven",
+    ), root=root)
+    return {
+        "schema": "nobus-recovery-control-2", "status": "INITIALIZED",
+        "activation_binding": activation_binding, "event_digest": event_digest,
+    }
+
+
+def _acknowledge_recovery_stop(expected_digest: str, *, root: Path = LOG_ROOT,
+                               activation_binding=None):
     if re.fullmatch(r"sha256:[0-9a-f]{64}", expected_digest) is None:
         raise ValueError("recovery reset digest is invalid")
-    state = _recovery_state(root=root)
-    event, digest = _last_runtime_event(root=root)
+    state = _recovery_state(root=root, activation_binding=activation_binding)
+    event, digest = _last_runtime_event(
+        root=root, activation_binding=activation_binding
+    )
     if (state["state"] != "blocked" or event is None
             or digest != expected_digest or state["last_digest"] != digest):
         raise RuntimeError("recovery reset precondition failed")
+    semantic = _effective_event(event)
     reset_digest = _write_runtime_event(_runtime_record(
-        event["series_id"], uuid4().hex, "recovery_reset",
-        attempt=event["attempt"], retry_budget=event["retry_budget"],
+        semantic["series_id"], uuid4().hex, "recovery_reset",
+        activation_binding=semantic["activation_binding"],
+        attempt=semantic["attempt"], retry_budget=semantic["retry_budget"],
         recovery_disposition="reset", stage="recovery_control",
         supervisor_exit_code=0, cleanup_outcome="proven",
+        reset_of_digest=expected_digest,
     ), root=root)
     return {
         "schema": "nobus-recovery-control-1",
@@ -531,16 +996,39 @@ class StopEvent:
                 raise RuntimeError("runtime stop control close failed")
 
 
-def _operator_event(code):
+def _operator_event(code, *, root: Path = LOG_ROOT):
     if code not in {"starting", "stopped", "runtime_failed", "cleanup_failed"}:
         raise ValueError("runtime event is invalid")
-    LOG_ROOT.mkdir(parents=True, exist_ok=True)
-    path = LOG_ROOT / "runner-supervisor.log"
-    if path.exists() and path.stat().st_size > 5 * 1024 * 1024:
-        # Stop if bounded logging cannot continue; retention is operator-owned.
-        raise RuntimeError("runtime log capacity exhausted")
-    with path.open("a", encoding="ascii") as stream:
-        stream.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + " " + code + "\n")
+    line = (time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            + " " + code + "\n").encode("ascii")
+    try:
+        identity = _plain_root(root, create=True)
+        path = root / "runner-supervisor.log"
+        previous = root / "runner-supervisor.log.previous"
+        for candidate in (path, previous):
+            if candidate.exists() and (_path_is_reparse(candidate) or not candidate.is_file()):
+                raise OSError
+            if (candidate.exists()
+                    and not 0 < candidate.stat().st_size <= OPERATOR_EVENT_LOG_BYTES):
+                raise OSError
+        if path.exists() and path.stat().st_size + len(line) > OPERATOR_EVENT_LOG_BYTES:
+            os.replace(path, previous)
+        if identity != _plain_root(root, create=False):
+            raise OSError
+        with path.open("ab") as stream:
+            opened = os.fstat(stream.fileno())
+            stream.write(line)
+            stream.flush()
+            os.fsync(stream.fileno())
+            current = path.stat(follow_symlinks=False)
+            if (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino):
+                raise OSError
+        if (_path_is_reparse(path)
+                or path.stat().st_size > OPERATOR_EVENT_LOG_BYTES
+                or identity != _plain_root(root, create=False)):
+            raise OSError
+    except OSError:
+        raise RuntimeError("runtime operator event write failed") from None
 
 
 def _job_api():
@@ -692,25 +1180,30 @@ class _ReadinessProbe:
                         and result[0])
 
 
-_READINESS_PROBE = _ReadinessProbe()
+_LOCAL_READINESS_PROBE = _ReadinessProbe()
+_PUBLIC_READINESS_PROBE = _ReadinessProbe()
 
 
-def _ready_request(url, *, seconds, headers=None, stop_event=None):
+def _ready_request(url, *, seconds, probe, headers=None, stop_event=None):
     def read():
         request = urllib.request.Request(url, headers={"User-Agent": "NobusSpace-Health/1.0", **(headers or {})})
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         with opener.open(request, timeout=seconds) as response:
             return response.status == 200 and response.read(256) == b'{"status":"ready"}'
-    return _READINESS_PROBE.run(read, seconds=seconds, stop_event=stop_event)
+    return probe.run(read, seconds=seconds, stop_event=stop_event)
 
 
 def ready(*, stop_event=None) -> bool:
     return _ready_request("http://127.0.0.1:8765/readyz", seconds=2,
+                          probe=_LOCAL_READINESS_PROBE,
                           headers={"Host": "app.nobusspace.com"}, stop_event=stop_event)
 
 
 def public_ready(*, stop_event=None) -> bool:
-    return _ready_request(PUBLIC_ORIGIN + "/readyz", seconds=5, stop_event=stop_event)
+    return _ready_request(
+        PUBLIC_ORIGIN + "/readyz", seconds=5,
+        probe=_PUBLIC_READINESS_PROBE, stop_event=stop_event,
+    )
 
 
 def _readiness_pair(stop_event):
@@ -754,27 +1247,47 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
                 "readiness_failures": 0})
         return True
 
+    def planned_or_child(stage, failures=0):
+        if child_exit(stage):
+            return 1
+        report({"stage": stage, "error_class": "planned_stop",
+                "core_exit_code": None, "relay_exit_code": None,
+                "local_ready": None, "public_ready": None,
+                "readiness_failures": failures})
+        return 0
+
     deadline = clock() + STARTUP_SECONDS
     last_local = last_public = None
-    while not stop_event.is_set() and clock() < deadline:
+    startup_ready = False
+    while clock() < deadline:
         if child_exit("startup"):
             return 1
+        if stop_event.is_set():
+            return planned_or_child("startup")
         local, public = readiness()
         last_local, last_public = local, public
         if local and public:
+            startup_ready = True
             break
-        stop_event.wait(1)
-    else:
-        stopped = stop_event.is_set()
-        report({"stage": "startup", "error_class": "planned_stop" if stopped else "startup_timeout",
+        if stop_event.wait(1):
+            return planned_or_child("startup")
+    if not startup_ready:
+        if child_exit("startup"):
+            return 1
+        if stop_event.is_set():
+            return planned_or_child("startup")
+        report({"stage": "startup", "error_class": "startup_timeout",
                 "core_exit_code": None, "relay_exit_code": None,
                 "local_ready": last_local, "public_ready": last_public,
                 "readiness_failures": 0})
-        return 0 if stopped else 1
+        return 1
     failures = 0
-    while not stop_event.wait(READINESS_INTERVAL_SECONDS):
+    while True:
+        stopped = stop_event.wait(READINESS_INTERVAL_SECONDS)
         if child_exit("steady"):
             return 1
+        if stopped:
+            return planned_or_child("steady", failures)
         local, public = readiness()
         failures = 0 if local and public else failures + 1
         if failures >= READINESS_FAILURE_LIMIT:
@@ -783,11 +1296,6 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
                     "local_ready": local, "public_ready": public,
                     "readiness_failures": failures})
             return 1
-    report({"stage": "steady", "error_class": "planned_stop",
-            "core_exit_code": None, "relay_exit_code": None,
-            "local_ready": None, "public_ready": None,
-            "readiness_failures": failures})
-    return 0
 
 
 def _arguments(argv=None):
@@ -796,6 +1304,7 @@ def _arguments(argv=None):
     commands.add_argument("--stop", action="store_true")
     commands.add_argument("--check-ready", action="store_true")
     commands.add_argument("--inspect-recovery", action="store_true")
+    commands.add_argument("--initialize-recovery", action="store_true")
     commands.add_argument("--acknowledge-recovery-stop")
     parser.add_argument("--semantic-admission", action="store_true")
     parser.add_argument("--runtime-root", type=Path)
@@ -828,6 +1337,34 @@ def core_command(python: Path, values) -> list[str]:
     return command
 
 
+def _runtime_recovery_context(values):
+    runtime = getattr(values, "runtime_root", None)
+    if runtime is None or not runtime.is_absolute() or not runtime.is_dir():
+        raise ValueError("explicit runtime root is required")
+    _plain_root(runtime, create=False)
+    root = runtime / RECOVERY_DIRECTORY_NAME
+    from src.application.runtime_maintenance import application_binding, runtime_target_binding
+    from src.contracts.models import canonical_json_digest
+    activation_binding = canonical_json_digest({
+        "schema": "nobus-supervisor-activation-1",
+        "application": application_binding(),
+        "runtime_binding": runtime_target_binding(runtime),
+    })
+    return root, activation_binding
+
+
+def _run_owned_recovery(values, *, mutex_name=r"Global\NobusSpaceBotSupervisor",
+                        root=None, activation_binding=None, run_attempt=None) -> int:
+    from src.application.windows_singleton import WindowsNamedMutex
+    if root is None or activation_binding is None:
+        root, activation_binding = _runtime_recovery_context(values)
+    with WindowsNamedMutex(mutex_name):
+        return _recover(
+            values, root=root, activation_binding=activation_binding,
+            run_attempt=run_attempt,
+        )
+
+
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "--gated-child":
         return _gated_child(sys.argv[2:])
@@ -840,11 +1377,16 @@ def main() -> int:
             local = ready()
             public = public_ready()
             healthy = local and public
-            print('{"status":"PASS"}' if healthy else '{"status":"FAIL"}')
+            print(json.dumps({
+                "status": "PASS" if healthy else "FAIL",
+                "local_ready": local, "public_ready": public,
+            }, ensure_ascii=True, separators=(",", ":"), sort_keys=True))
             return 0 if healthy else 1
         if values.inspect_recovery:
+            root, activation_binding = _runtime_recovery_context(values)
             print(json.dumps(
-                _inspect_recovery(), ensure_ascii=True,
+                _inspect_recovery(root=root, activation_binding=activation_binding),
+                ensure_ascii=True,
                 separators=(",", ":"), sort_keys=True,
             ))
             return 0
@@ -856,11 +1398,12 @@ def main() -> int:
                 return 0
             finally:
                 event.close()
-        if values.acknowledge_recovery_stop:
+        if values.initialize_recovery:
+            root, activation_binding = _runtime_recovery_context(values)
             try:
                 with WindowsNamedMutex(r"Global\NobusSpaceBotSupervisor"):
-                    result = _acknowledge_recovery_stop(
-                        values.acknowledge_recovery_stop
+                    result = _initialize_recovery(
+                        root=root, activation_binding=activation_binding
                     )
             except RunnerAlreadyActive:
                 return 1
@@ -868,73 +1411,227 @@ def main() -> int:
                 result, ensure_ascii=True, separators=(",", ":"), sort_keys=True
             ))
             return 0
-        with WindowsNamedMutex(r"Global\NobusSpaceBotSupervisor"):
-            return _recover(values)
+        if values.acknowledge_recovery_stop:
+            root, activation_binding = _runtime_recovery_context(values)
+            try:
+                with WindowsNamedMutex(r"Global\NobusSpaceBotSupervisor"):
+                    result = _acknowledge_recovery_stop(
+                        values.acknowledge_recovery_stop, root=root,
+                        activation_binding=activation_binding,
+                    )
+            except RunnerAlreadyActive:
+                return 1
+            print(json.dumps(
+                result, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+            ))
+            return 0
+        return _run_owned_recovery(values)
     except RunnerAlreadyActive:
         return 0
     except Exception:
         return 1
 
 
-def _with_stop_control(callback) -> int:
+class _RecoveryControlFailure(RuntimeError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def _with_stop_control(callback, *, on_ready=None, on_closing=None,
+                       on_closed=None, on_failure=None) -> int:
     stop_event = None
     previous_signals = {}
     status = 1
+    failure = None
+    callback_completed = False
+    signal_failed = [False]
     try:
-        stop_event = StopEvent()
+        try:
+            stop_event = StopEvent()
+        except Exception:
+            failure = "stop_control_create_failed"
+            status = EXIT_STOP_CONTROL_CREATE_FAILED
+            return status
+
+        def request_stop(*_ignored):
+            try:
+                stop_event.set()
+            except Exception:
+                signal_failed[0] = True
+                raise
+
         for named_signal in (signal.SIGINT, signal.SIGTERM):
             previous_signals[named_signal] = signal.signal(
-                named_signal, lambda *_: stop_event.set()
+                named_signal, request_stop
             )
+        if on_ready is not None:
+            on_ready()
         status = callback(stop_event)
+        callback_completed = True
+        if signal_failed[0]:
+            failure = "stop_control_signal_failed"
+            status = EXIT_STOP_CONTROL_SIGNAL_FAILED
+        elif on_closing is not None:
+            on_closing(status)
+    except _RecoveryControlFailure as error:
+        failure = error.code
+        status = EXIT_RUNTIME_EVIDENCE_FAILED
     except Exception:
-        status = 1
+        failure = (
+            "stop_control_signal_failed" if signal_failed[0]
+            else "stop_control_callback_failed"
+        )
+        status = (
+            EXIT_STOP_CONTROL_SIGNAL_FAILED if signal_failed[0]
+            else EXIT_RUNTIME_EVIDENCE_FAILED
+        )
     finally:
         if stop_event is not None:
             try:
                 stop_event.close()
             except Exception:
-                status = 1
+                failure = "stop_control_close_failed"
+                status = EXIT_STOP_CONTROL_CLOSE_FAILED
+            else:
+                if failure is None and callback_completed and on_closed is not None:
+                    try:
+                        on_closed(status)
+                    except Exception:
+                        failure = "stop_control_callback_failed"
+                        status = EXIT_RUNTIME_EVIDENCE_FAILED
         for named_signal, handler in previous_signals.items():
-            signal.signal(named_signal, handler)
+            try:
+                signal.signal(named_signal, handler)
+            except Exception:
+                if failure is None:
+                    failure = "stop_control_callback_failed"
+                    status = EXIT_RUNTIME_EVIDENCE_FAILED
+        if failure is not None and on_failure is not None:
+            try:
+                on_failure(failure)
+            except Exception:
+                status = EXIT_RUNTIME_EVIDENCE_FAILED
     return status
 
 
-def _recover(values) -> int:
-    state = _recovery_state()
+def _recover(values, *, root=None, activation_binding=None, run_attempt=None) -> int:
+    if root is None or activation_binding is None:
+        root, activation_binding = _runtime_recovery_context(values)
+    state = _recovery_state(root=root, activation_binding=activation_binding)
     if state["state"] == "blocked":
         return 1
     series_id = state["series_id"] or uuid4().hex
+    control_run_id = uuid4().hex
+    context = {
+        "attempt": state["next_attempt"], "disposition": "stop_evidence_failed",
+        "status": 1, "closing_run_id": None,
+    }
+
+    try:
+        _write_runtime_event(_runtime_record(
+            series_id, control_run_id, "control_starting",
+            activation_binding=activation_binding,
+            attempt=context["attempt"], retry_budget=RECOVERY_RETRY_BUDGET,
+            recovery_disposition="pending", stage="recovery_control",
+        ), root=root)
+    except Exception:
+        return EXIT_RUNTIME_EVIDENCE_FAILED
+
+    def control_event(event, *, error_class=None, exit_code=None):
+        run_id = context["closing_run_id"] or control_run_id
+        disposition = (
+            "stop_evidence_failed" if event == "control_failure"
+            else (context["disposition"] if event in {"control_closing", "control_closed"}
+                  else "pending")
+        )
+        return _write_runtime_event(_runtime_record(
+            series_id, run_id, event, activation_binding=activation_binding,
+            attempt=context["attempt"], retry_budget=RECOVERY_RETRY_BUDGET,
+            recovery_disposition=disposition, stage="recovery_control",
+            error_class=error_class, supervisor_exit_code=exit_code,
+            cleanup_outcome=("proven" if event in {
+                "control_closing", "control_closed", "control_failure"
+            } else "not_started"),
+        ), root=root)
+
+    def write_wait_event(event, number, *, stopped=False):
+        try:
+            _write_runtime_event(_runtime_record(
+                series_id, uuid4().hex, event,
+                activation_binding=activation_binding,
+                attempt=number, retry_budget=RECOVERY_RETRY_BUDGET,
+                recovery_disposition="stop_planned" if stopped else "retry",
+                stage="recovery_wait", error_class="planned_stop" if stopped else None,
+                supervisor_exit_code=0 if stopped else None,
+                cleanup_outcome="proven",
+            ), root=root)
+            if stopped:
+                context.update(
+                    attempt=number, disposition="stop_planned", status=0
+                )
+        except Exception:
+            raise _RecoveryControlFailure(
+                "recovery_wait_event_write_failed"
+            ) from None
 
     def controlled(stop_event):
         def attempt(number):
-            return _run_attempt(
+            context["attempt"] = number
+            implementation = run_attempt or _run_attempt
+            outcome = implementation(
                 values,
                 stop_event=stop_event,
                 series_id=series_id,
                 attempt=number,
                 retry_budget=RECOVERY_RETRY_BUDGET,
+                root=root,
+                activation_binding=activation_binding,
             )
+            context.update(
+                disposition=outcome["recovery_disposition"],
+                status=outcome["status"],
+            )
+            return outcome
 
-        def wait_stopped(number):
-            _write_runtime_event(_runtime_record(
-                series_id, uuid4().hex, "recovery_wait_stopped",
-                attempt=number, retry_budget=RECOVERY_RETRY_BUDGET,
-                recovery_disposition="stop_planned", stage="recovery_wait",
-                error_class="planned_stop", supervisor_exit_code=0,
-                cleanup_outcome="proven",
-            ))
-
-        return _run_bounded_recovery(
+        status = _run_bounded_recovery(
             attempt,
             stop_event=stop_event,
             first_attempt=state["next_attempt"],
             retry_budget=RECOVERY_RETRY_BUDGET,
             retry_interval=RECOVERY_RETRY_INTERVAL_SECONDS,
-            on_wait_stop=wait_stopped,
+            on_wait_start=lambda number: write_wait_event("retry_waiting", number),
+            on_wait_complete=lambda number: write_wait_event("retry_elapsed", number),
+            on_wait_stop=lambda number: write_wait_event(
+                "recovery_wait_stopped", number, stopped=True
+            ),
         )
+        context["status"] = status
+        return status
 
-    return _with_stop_control(controlled)
+    def closing(status):
+        context["closing_run_id"] = uuid4().hex
+        control_event("control_closing", exit_code=0 if status == 0 else 1)
+
+    def closed(status):
+        control_event("control_closed", exit_code=0 if status == 0 else 1)
+
+    def failed(code):
+        exit_code = {
+            "stop_control_create_failed": EXIT_STOP_CONTROL_CREATE_FAILED,
+            "stop_control_signal_failed": EXIT_STOP_CONTROL_SIGNAL_FAILED,
+            "stop_control_close_failed": EXIT_STOP_CONTROL_CLOSE_FAILED,
+        }.get(code, EXIT_RUNTIME_EVIDENCE_FAILED)
+        try:
+            control_event("control_failure", error_class=code, exit_code=exit_code)
+        except Exception:
+            pass
+
+    return _with_stop_control(
+        controlled,
+        on_ready=lambda: control_event("control_ready", exit_code=0),
+        on_closing=closing, on_closed=closed, on_failure=failed,
+    )
 
 
 def _main(values) -> int:
@@ -946,11 +1643,16 @@ def _main(values) -> int:
             series_id=uuid4().hex,
             attempt=1,
             retry_budget=RECOVERY_RETRY_BUDGET,
+            root=LOG_ROOT,
+            activation_binding="sha256:" + "0" * 64,
         )["status"]
     )
 
 
-def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget):
+def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
+                 root, activation_binding, relay_command=None,
+                 core_command_override=None, probe=None, required_paths=None,
+                 relay_settle_seconds=2):
     python = Path(sys.executable).with_name("python.exe").resolve()
     private_key = Path.home() / ".ssh" / "nobus-space-vps-relay"
     known_hosts = Path.home() / ".ssh" / "nobus-space-vps-known_hosts"
@@ -965,36 +1667,45 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget):
     core_capture = None
     status = 1
     try:
-        for required in (WORKTREE, CANONICAL_REPOSITORY, python, RUNNER, SSH, private_key, known_hosts):
+        required_inputs = required_paths or (
+            WORKTREE, CANONICAL_REPOSITORY, python, RUNNER, SSH,
+            private_key, known_hosts,
+        )
+        for required in required_inputs:
             if not required.exists():
                 raise RuntimeError("runtime input unavailable")
-        command = core_command(python, values)
-        terminal.update(stage="setup", error_class="supervisor_setup_failed")
-        api = _job_api()
-        terminal.update(error_class="operator_event_write_failed")
-        _operator_event("starting")
-        terminal.update(error_class="runtime_event_write_failed")
-        _write_runtime_event(_runtime_record(
-            series_id, run_id, "starting", attempt=attempt,
-            retry_budget=retry_budget, recovery_disposition="pending",
-            stage="setup",
-        ))
-        terminal.update(stage="job_setup", error_class="job_setup_failed")
-        job = api.create_job()
-        terminal.update(stage="relay_start", error_class="relay_launch_failed")
-        relay = spawn_owned(api, job, [str(SSH), "-NT", "-F", "NUL", "-i", str(private_key),
+        command = core_command_override or core_command(python, values)
+        relay_values = relay_command or [
+            str(SSH), "-NT", "-F", "NUL", "-i", str(private_key),
             "-o", "BatchMode=yes", "-o", "UserKnownHostsFile=" + str(known_hosts),
             "-o", "StrictHostKeyChecking=yes", "-o", "IdentitiesOnly=yes",
             "-o", "KexAlgorithms=curve25519-sha256", "-o", "ExitOnForwardFailure=yes",
             "-o", "ServerAliveInterval=20", "-o", "ServerAliveCountMax=3",
-            "-o", "ConnectTimeout=15", "-R", REVERSE_BINDING, RELAY_TARGET])
-        if not stop_event.wait(2) and relay.poll() is None:
+            "-o", "ConnectTimeout=15", "-R", REVERSE_BINDING, RELAY_TARGET,
+        ]
+        terminal.update(stage="setup", error_class="supervisor_setup_failed")
+        api = _job_api()
+        terminal.update(error_class="operator_event_write_failed")
+        _operator_event("starting", root=root)
+        terminal.update(error_class="runtime_event_write_failed")
+        _write_runtime_event(_runtime_record(
+            series_id, run_id, "starting", attempt=attempt,
+            activation_binding=activation_binding,
+            retry_budget=retry_budget, recovery_disposition="pending",
+            stage="setup",
+        ), root=root)
+        terminal.update(stage="job_setup", error_class="job_setup_failed")
+        job = api.create_job()
+        terminal.update(stage="relay_start", error_class="relay_launch_failed")
+        relay = spawn_owned(api, job, relay_values)
+        if not stop_event.wait(relay_settle_seconds) and relay.poll() is None:
             terminal.update(stage="core_start", error_class="core_launch_failed")
             core = spawn_owned(api, job, command, stdout=subprocess.PIPE)
             if getattr(core, "stdout", None) is not None:
                 core_capture = _CoreOutcomeCapture(core.stdout)
             terminal.update(stage="startup", error_class="supervision_failed")
             status = supervise(api, job, relay, core, stop_event,
+                               probe=probe,
                                report=lambda value: terminal.update(value))
         elif stop_event.is_set():
             terminal.update(stage="setup", error_class="planned_stop")
@@ -1032,11 +1743,29 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget):
             core_outcome, core_outcome_error = core_capture.finish()
         elif core is not None:
             core_outcome_error = "core_outcome_missing"
+        core_code = core.poll() if core is not None else None
+        relay_code = relay.poll() if relay is not None else None
+        if terminal["error_class"] == "planned_stop" and core is not None and (
+            core_code not in {None, 0}
+            or core_outcome != {"status": "STOPPED"}
+            or core_outcome_error is not None
+        ):
+            terminal.update(
+                stage=terminal["stage"],
+                error_class=("core_and_relay_exit" if relay_code not in {None, 0}
+                             else "core_exit"),
+                core_exit_code=core_code,
+                relay_exit_code=relay_code if relay_code not in {None, 0} else None,
+            )
+            status = 1
         if not cleanup_ok:
             status = 1
         try:
-            _operator_event("cleanup_failed" if not cleanup_ok else
-                            ("stopped" if status == 0 else "runtime_failed"))
+            _operator_event(
+                "cleanup_failed" if not cleanup_ok else
+                ("stopped" if status == 0 else "runtime_failed"),
+                root=root,
+            )
         except Exception:
             status = 1
             terminal.update(stage="cleanup", error_class="operator_event_write_failed")
@@ -1052,6 +1781,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget):
         try:
             _write_runtime_event(_runtime_record(
                 series_id, run_id, "terminal", attempt=attempt,
+                activation_binding=activation_binding,
                 retry_budget=retry_budget, recovery_disposition=disposition,
                 stage=terminal["stage"],
                 error_class=terminal["error_class"], supervisor_exit_code=status,
@@ -1062,7 +1792,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget):
                 readiness_failures=terminal["readiness_failures"],
                 core_outcome=core_outcome, core_outcome_error=core_outcome_error,
                 cleanup_outcome="proven" if cleanup_ok else "failed",
-            ))
+            ), root=root)
         except Exception:
             status = 1
             disposition = "stop_evidence_failed"
