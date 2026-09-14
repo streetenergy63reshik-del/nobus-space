@@ -49,6 +49,7 @@ if($null -ne $existing) {
     throw 'Initial backup installation cannot accept replacement evidence'
 }
 $at=[datetime]::Today.Add([TimeSpan]::ParseExact($LocalTime,'hh\:mm',[Globalization.CultureInfo]::InvariantCulture))
+if($StageDisabled -and $at -le (Get-Date)) {$at=$at.AddDays(1)}
 $action=New-ScheduledTaskAction -Execute $Python -Argument ('"{0}" --config "{1}" --config-digest {2}' -f $script,$Config,$ConfigDigest) -WorkingDirectory $RepositoryRoot
 $trigger=New-ScheduledTaskTrigger -Daily -At $at
 $settings=New-ScheduledTaskSettingsSet -Disable:$StageDisabled.IsPresent -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 20) -MultipleInstances IgnoreNew

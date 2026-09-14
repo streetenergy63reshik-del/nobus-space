@@ -896,6 +896,56 @@ def test_m1_scheduler_activation_accepts_disabled_health_only_in_bound_backup_wi
         )
 
 
+def test_m1_all_disabled_staging_preserves_binding_but_cannot_launch(monkeypatch, tmp_path):
+    snapshots = {}
+    actions = {}
+    for role, suffix in (("main", ""), ("health", "-Health"), ("backup", "-Backup")):
+        name = "NobusSpaceBot" + suffix
+        snapshots[name], actions[role] = _scheduler_snapshot(name, role=role)
+    monkeypatch.setattr(supervisor, "_scheduler_task_signature", lambda name: snapshots[name])
+    monkeypatch.setattr(supervisor, "_main_scheduler_action", lambda *a, **kw: actions["main"])
+    monkeypatch.setattr(supervisor, "_health_scheduler_action", lambda *a: actions["health"])
+    monkeypatch.setattr(supervisor, "_backup_action_binding", lambda *a: (
+        actions["backup"], tmp_path / "backup.json", _BINDING,
+    ))
+    monkeypatch.setattr(supervisor, "_validate_backup_activation_config", lambda *a, **kw: {})
+    monkeypatch.setattr(supervisor, "_backup_restart_authorized", lambda *a: False)
+    values = SimpleNamespace(backup_root=tmp_path, backup_ownership=_BINDING)
+
+    def activation(staging=False):
+        return supervisor._scheduler_activation(
+            values, tmp_path, application={}, pythonw=tmp_path / "pythonw.exe",
+            health_launcher=tmp_path / "health.ps1", allow_disabled_staging=staging,
+        )
+
+    enabled = activation()
+    assert activation(True) == enabled
+    for snapshot in snapshots.values():
+        snapshot.update(enabled=False, state="Disabled")
+    assert activation(True) == enabled
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        activation()
+    snapshots["NobusSpaceBot"].update(enabled=True, state="Ready")
+    with pytest.raises(ValueError, match="scheduler task profile"):
+        activation(True)
+
+
+@pytest.mark.parametrize("command", [
+    {}, {"initialize_recovery": True}, {"rebind_recovery_from": _BINDING},
+    {"inspect_recovery": True}, {"acknowledge_recovery_stop": _BINDING},
+])
+def test_m1_disabled_staging_is_only_requested_by_recovery_controls(monkeypatch, tmp_path, command):
+    observed = []
+
+    def manifest(values, runtime, *, allow_disabled_staging=False):
+        observed.append(allow_disabled_staging)
+        return {"synthetic": True}
+
+    monkeypatch.setattr(supervisor, "_activation_manifest", manifest)
+    supervisor._runtime_recovery_context(SimpleNamespace(runtime_root=tmp_path, **command))
+    assert observed == [bool(command)]
+
+
 def test_m1_scheduler_trigger_identity_and_time_are_owner_local_and_active():
     main, action = _scheduler_snapshot("NobusSpaceBot", role="main")
     main["signature"]["triggers"][0]["user"] = "S-1-5-21-9-9-9-1001"
@@ -1285,7 +1335,8 @@ try {{
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows PowerShell installer")
-def test_m1_backup_installer_registration_failure_leaves_task_disabled(tmp_path):
+@pytest.mark.parametrize("local_time", ["00:00", "23:59"])
+def test_m1_backup_installer_registration_failure_leaves_task_disabled(tmp_path, local_time):
     root = tmp_path / "repo"
     python = root / ".venv" / "Scripts" / "python.exe"
     script = root / "scripts" / "run_telegram_backup_cycle.py"
@@ -1328,6 +1379,7 @@ function New-ScheduledTaskAction {{
 }}
 function New-ScheduledTaskTrigger {{
     [CmdletBinding()] param([switch]$Daily,$At)
+    if($At -le (Get-Date) -or $At -gt (Get-Date).AddDays(1)) {{throw 'unsafe staged backup boundary'}}
     [pscustomobject]@{{Kind='trigger'}}
 }}
 function New-ScheduledTaskSettingsSet {{
@@ -1357,6 +1409,7 @@ try {{
       -Python '{ps(python)}' `
       -Config '{ps(config)}' `
       -ConfigDigest 'sha256:{'d' * 64}' `
+      -LocalTime '{local_time}' `
       -ReplaceExisting `
       -StageDisabled `
       -ExpectedDefinitionDigest '{expected_definition}'

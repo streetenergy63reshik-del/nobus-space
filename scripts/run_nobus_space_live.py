@@ -2271,6 +2271,7 @@ def _scheduler_task_signature(task_name: str):
 def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
                                       expected_action: dict[str, object],
                                       allow_disabled_health: bool = False,
+                                      allow_disabled_staging: bool = False,
                                       now: datetime | None = None):
     """Reject unsafe Scheduler composition before hashing its exact identity."""
     from src.contracts.models import canonical_json_digest
@@ -2297,15 +2298,15 @@ def _validate_scheduler_task_snapshot(value, *, role: str, task_name: str,
         "interval", "duration", "stop_at_end", "execution_limit", "id",
         "delay", "random_delay",
     }
-    disabled_health = (
-        allow_disabled_health and role == "health"
+    disabled_task = (
+        (allow_disabled_staging or (allow_disabled_health and role == "health"))
         and type(value) is dict and value.get("enabled") is False
         and value.get("state") == "Disabled"
     )
     if (role not in {"main", "health", "backup"}
             or type(value) is not dict or set(value) != top_keys
             or value["name"] != task_name
-            or (value["enabled"] is not True and not disabled_health)
+            or (value["enabled"] is not True and not disabled_task)
             or type(value["state"]) is not str
             or type(value["last_result"]) is not int
             or type(value["current_principal"]) is not str
@@ -2573,7 +2574,8 @@ def _validate_backup_activation_config(path: Path, digest: str, *, application,
 
 
 def _scheduler_activation(values, runtime: Path, *, application,
-                          pythonw: Path, health_launcher: Path):
+                          pythonw: Path, health_launcher: Path,
+                          allow_disabled_staging: bool = False):
     task_name = getattr(values, "scheduler_task_name", "NobusSpaceBot")
     if re.fullmatch(r"NobusSpace[A-Za-z0-9-]{1,64}", task_name) is None:
         raise ValueError("scheduler task name is invalid")
@@ -2583,6 +2585,11 @@ def _scheduler_activation(values, runtime: Path, *, application,
         "backup": task_name + "-Backup",
     }
     snapshots = {role: _scheduler_task_signature(name) for role, name in names.items()}
+    staged_disabled = all(
+        snapshot["enabled"] is False and snapshot["state"] == "Disabled"
+        for snapshot in snapshots.values()
+    )
+    staging_mode = allow_disabled_staging and staged_disabled
     actions = {
         "main": _main_scheduler_action(values, runtime, pythonw, health_launcher, task_name),
         "health": _health_scheduler_action(health_launcher),
@@ -2600,6 +2607,7 @@ def _scheduler_activation(values, runtime: Path, *, application,
             snapshots[role], role=role, task_name=names[role],
             expected_action=actions[role],
             allow_disabled_health=(role == "health" and backup_restart),
+            allow_disabled_staging=staging_mode,
         )
         for role in ("main", "health", "backup")
     }
@@ -2611,7 +2619,8 @@ def _scheduler_activation(values, runtime: Path, *, application,
     return {"tasks": bindings, "backup_config": config}
 
 
-def _activation_manifest(values, runtime: Path) -> dict[str, object]:
+def _activation_manifest(values, runtime: Path, *,
+                         allow_disabled_staging: bool = False) -> dict[str, object]:
     from src.application.runtime_maintenance import (
         application_binding,
         file_evidence,
@@ -2673,6 +2682,7 @@ def _activation_manifest(values, runtime: Path) -> dict[str, object]:
     scheduler = _scheduler_activation(
         values, runtime, application=application,
         pythonw=pythonw, health_launcher=health_launcher,
+        allow_disabled_staging=allow_disabled_staging,
     )
 
     return {
@@ -2709,9 +2719,15 @@ def _runtime_recovery_context(values):
     try:
         from src.contracts.models import canonical_json_digest
 
-        activation_binding = canonical_json_digest(
-            _activation_manifest(values, runtime)
-        )
+        staging_control = any((
+            bool(getattr(values, "initialize_recovery", False)),
+            getattr(values, "rebind_recovery_from", None) is not None,
+            bool(getattr(values, "inspect_recovery", False)),
+            getattr(values, "acknowledge_recovery_stop", None) is not None,
+        ))
+        activation_binding = canonical_json_digest(_activation_manifest(
+            values, runtime, allow_disabled_staging=staging_control
+        ))
     except Exception:
         raise _CliFailure(
             "activation_binding_invalid", EXIT_ACTIVATION_BINDING_INVALID
