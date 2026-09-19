@@ -1,7 +1,7 @@
 {
   "schema": "nobus-m1-s1-evidence-4",
   "gate": "M1-S1",
-  "updated_at": "2026-09-19T05:01:04.559878+00:00",
+  "updated_at": "2026-09-19T14:50:10.191871+00:00",
   "operator_restart_after_reboot_20260918": {
     "owner_followup": {
       "automatic_recovery_after_pc_reboot": "FAILED: Scheduler invoked Main, but previous_attempt_unknown/78 blocked restart",
@@ -56,7 +56,7 @@
     "window_reset": false,
     "incident_retained_as_negative_evidence": true
   },
-  "status": "MERGED_DEPLOYED_FIXED_WINDOW_ENDED_STABILITY_NOT_PASS",
+  "status": "M1_S1_CLOSED_ACCEPTED_MVP1_ACCEPTED",
   "operator_recovery_20260918": {
     "scheduler_readback_receipt": "canonical/.runtime/m1-s1-recovery-scheduler-readback-20260918.json",
     "scheduler_signatures_unchanged": true,
@@ -130,11 +130,12 @@
   "accepted_product": {
     "tag": "v1.0.2",
     "commit": "82003c03d8a36015703472b472640ab4021fb416",
-    "live_commit": "0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c",
+    "live_commit": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
     "remote_main_before_m1_s1": "88e58c8866db2384423f2b154df901a2e4af6c48",
     "release_moved": false,
     "c6_repeated": false,
-    "mvp2_started": false
+    "mvp2_started": false,
+    "operational_acceptance": "M1-S1 CLOSED / ACCEPTED; MVP1 ACCEPTED"
   },
   "rejected_candidates": [
     {
@@ -240,36 +241,13 @@
   ],
   "current_wip": {
     "branch": "codex/m1-s1-stability",
+    "status": "CLOSED / ACCEPTED",
     "isolated_worktree": true,
-    "parent_commit": "fcf99fc0f3a93881bc681e69f1f6f56f3676e246",
-    "source_candidate_commit": "0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c",
-    "source_candidate_tree": "fd9b3f5e78fecf453e6ad28bf663d4a1797486c3",
-    "gate_freeze_receipt": "m1-s1-source-freeze-0bd63db.json",
-    "changed_zone": [
-      "scripts/run_nobus_space_live.py",
-      "ops/windows/Invoke-NobusSpaceTask.ps1",
-      "ops/windows/Install-NobusSpaceBackup.ps1",
-      "tests/fixtures/m1_scheduler_exit_probe.py",
-      "tests/gate_m1_s1/Invoke-SchedulerRetryFixture.ps1",
-      "tests/test_m1_s1_runtime_supervisor_l3.py",
-      "tests/test_m1_s1_runtime_supervisor_rework.py",
-      "tests/test_m1_s1_runtime_supervisor.py",
-      "docs/01-Единый-документ-проекта.md",
-      "docs/08-Runbook-эксплуатации.md",
-      "docs/handoffs/CURRENT-STATUS.md",
-      "docs/gates/mvp1-maintenance/HANDOFF.md",
-      "docs/gates/mvp1-maintenance/EVIDENCE.json",
-      "ops/windows/Install-NobusSpaceBot.ps1"
-    ],
-    "document_11_changed": false,
-    "historical_c6_receipts_or_sealed_sources_changed": false,
-    "old_backups_or_recovery_refs_changed": false,
-    "code_repair_checkpoints": [
-      "180ac12e1e83f1f1f4217acdba15eb9214692890",
-      "23e47414932e236824c0d48430addac3cb4e9f88",
-      "fcf99fc0f3a93881bc681e69f1f6f56f3676e246"
-    ],
-    "freeze_binding_rule": "Final docs commit/tree bound by one external post-commit receipt; code/test blobs reused when identical."
+    "source_candidate_commit": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+    "deployed_commit": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+    "code_merge_commit": "8af1309af36eb3ab591186906975dd8cd3ac9880",
+    "final_acceptance": "current_acceptance_20260919",
+    "historical_wip": "historical_root_before_final_acceptance.current_wip"
   },
   "historical_production_snapshot_before_activation": {
     "observed_utc": "2026-09-14T12:34:00Z/2026-09-14T12:37:20Z",
@@ -9777,16 +9755,16 @@
         "secondary_cleanup_error": "stop_control_create_failed exit70 at 00:37:30Z",
         "classification": "OPERATIONAL_FAILURE_REQUIRING_OPERATOR_RECONCILIATION",
         "root_cause": "Authenticated history proves public_readiness_failed on attempt3, then relay_exit255 on startup attempt4 with stop_non_retryable and cleanup proven. Backup restart was subsequently rejected by recovery history. Underlying relay/public failure cause UNKNOWN; no Python drift established.",
-      "acceptance_status": "RUNTIME_RESTORED_BY_OWNER_AUTHORIZED_RECOVERY_CAUSAL_SSH_FAILURE_UNRESOLVED",
-      "recovery_checkpoint": "operator_recovery_20260918",
-      "recovery_completed_at": "2026-09-18T04:40:38.008947+00:00",
-      "recovery_does_not_erase_original_failure": true,
+        "acceptance_status": "RUNTIME_RESTORED_BY_OWNER_AUTHORIZED_RECOVERY_CAUSAL_SSH_FAILURE_UNRESOLVED",
+        "recovery_checkpoint": "operator_recovery_20260918",
+        "recovery_completed_at": "2026-09-18T04:40:38.008947+00:00",
+        "recovery_does_not_erase_original_failure": true,
         "receipt": "canonical/.runtime/m1-s1-paused-backup-diagnostic-20260918-0405.json",
         "receipt_sha256": "4e0da5ae51e0fd1e4be8412e418fe4557da7d57c2f393585df812f93757ea8fd",
         "original_failure_receipt": "canonical/.runtime/m1-s1-observation-20260918-0403-failed.json",
         "window_reset": false,
         "production_mutation": false,
-      "next_step": "Owner recovery completed 18Sep07:40MSK; continue read-only observation, never replay consumed operators. Preserve original failed planned cycle, unresolved SSH cause and fixed 19Sep08:00 deadline."
+        "next_step": "Owner recovery completed 18Sep07:40MSK; continue read-only observation, never replay consumed operators. Preserve original failed planned cycle, unresolved SSH cause and fixed 19Sep08:00 deadline."
       },
       {
         "id": "PUBLIC_READINESS_20260918T000431",
@@ -10086,16 +10064,18 @@
     "managed_update": "NOT_APPLIED_ARGUMENT_REJECTED",
     "unchanged_retry_performed": false
   },
-  "next_step": "Согласовать с владельцем пакет исправлений диагностики relay и recovery после перезагрузки в том же Gate M1-S1; новый цикл наблюдения и его критерии начать только по отдельному решению. Production не менять и MVP2 не запускать автоматически.",
+  "next_step": "Gate M1-S1 closed. Keep heartbeat paused; do not start MVP2. Continue ordinary production Scheduler jobs. Any later product incident is a new evidenced maintenance action, not an automatic replay of acceptance.",
   "verdict": {
     "published_release": "v1.0.2_UNCHANGED",
-    "repaired_candidate": "0bd63db_FROZEN_L1_L2_L3_PASS_MERGED_26860ad",
-    "deployed_runtime": "PASS_POINT_IN_TIME_20260919T050104_NOT_CONTINUOUS_UPTIME",
+    "repaired_candidate": "0c9b778_L1_L2_L3_PASS_MERGED_8af1309",
+    "deployed_runtime": "PASS_POINT_IN_TIME_20260919T145010",
     "real_task_TXT": "PASS_ONE_WORKER_ATTEMPT_TEXT_AND_TXT_ACKED_ONCE",
-    "stability_observation": "FIXED_WINDOW_ENDED_NOT_PASS",
-    "M1_S1": "OPEN",
-    "M2_G0": "BLOCKED",
-    "qualification": "PASS_PREVIOUS_REAL_TASK_TEXT_TXT_EVIDENCE_RETAINED_NOT_REPEATED"
+    "stability_observation": "HISTORICAL_72H_NOT_PASS_UNCHANGED",
+    "stability_repaired_revision": "ACCEPTED_OWNER_SHORT_CRITERIA_20260919",
+    "M1_S1": "CLOSED / ACCEPTED",
+    "MVP1": "ACCEPTED",
+    "M2_G0": "NOT STARTED",
+    "qualification": "PASS_20260919T144645_OWNER_PRIVATE_TEXT_TXT"
   },
   "continuation_audit": {
     "sha256": "sha256:9b2dec69bcbbda9682a819ff14e35cccbe96bbec00830774c8815cb54ef3300c",
@@ -10642,5 +10622,285 @@
     "historical_external_causes": "UNKNOWN where original SSH/public/Health details were not retained",
     "observability_limit": "Targeted regressions close technical gaps; not proof that external causes were eliminated; no new72h window",
     "memory_limit": "Vibecoding records outside allowed scope; relevant memory Search failed; continue Git/local evidence without access workaround"
+  },
+  "historical_root_before_final_acceptance": {
+    "status": "MERGED_DEPLOYED_FIXED_WINDOW_ENDED_STABILITY_NOT_PASS",
+    "verdict": {
+      "published_release": "v1.0.2_UNCHANGED",
+      "repaired_candidate": "0bd63db_FROZEN_L1_L2_L3_PASS_MERGED_26860ad",
+      "deployed_runtime": "PASS_POINT_IN_TIME_20260919T050104_NOT_CONTINUOUS_UPTIME",
+      "real_task_TXT": "PASS_ONE_WORKER_ATTEMPT_TEXT_AND_TXT_ACKED_ONCE",
+      "stability_observation": "FIXED_WINDOW_ENDED_NOT_PASS",
+      "M1_S1": "OPEN",
+      "M2_G0": "BLOCKED",
+      "qualification": "PASS_PREVIOUS_REAL_TASK_TEXT_TXT_EVIDENCE_RETAINED_NOT_REPEATED"
+    },
+    "next_step": "Согласовать с владельцем пакет исправлений диагностики relay и recovery после перезагрузки в том же Gate M1-S1; новый цикл наблюдения и его критерии начать только по отдельному решению. Production не менять и MVP2 не запускать автоматически.",
+    "updated_at": "2026-09-19T05:01:04.559878+00:00",
+    "current_wip": {
+      "branch": "codex/m1-s1-stability",
+      "isolated_worktree": true,
+      "parent_commit": "fcf99fc0f3a93881bc681e69f1f6f56f3676e246",
+      "source_candidate_commit": "0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c",
+      "source_candidate_tree": "fd9b3f5e78fecf453e6ad28bf663d4a1797486c3",
+      "gate_freeze_receipt": "m1-s1-source-freeze-0bd63db.json",
+      "changed_zone": [
+        "scripts/run_nobus_space_live.py",
+        "ops/windows/Invoke-NobusSpaceTask.ps1",
+        "ops/windows/Install-NobusSpaceBackup.ps1",
+        "tests/fixtures/m1_scheduler_exit_probe.py",
+        "tests/gate_m1_s1/Invoke-SchedulerRetryFixture.ps1",
+        "tests/test_m1_s1_runtime_supervisor_l3.py",
+        "tests/test_m1_s1_runtime_supervisor_rework.py",
+        "tests/test_m1_s1_runtime_supervisor.py",
+        "docs/01-Единый-документ-проекта.md",
+        "docs/08-Runbook-эксплуатации.md",
+        "docs/handoffs/CURRENT-STATUS.md",
+        "docs/gates/mvp1-maintenance/HANDOFF.md",
+        "docs/gates/mvp1-maintenance/EVIDENCE.json",
+        "ops/windows/Install-NobusSpaceBot.ps1"
+      ],
+      "document_11_changed": false,
+      "historical_c6_receipts_or_sealed_sources_changed": false,
+      "old_backups_or_recovery_refs_changed": false,
+      "code_repair_checkpoints": [
+        "180ac12e1e83f1f1f4217acdba15eb9214692890",
+        "23e47414932e236824c0d48430addac3cb4e9f88",
+        "fcf99fc0f3a93881bc681e69f1f6f56f3676e246"
+      ],
+      "freeze_binding_rule": "Final docs commit/tree bound by one external post-commit receipt; code/test blobs reused when identical."
+    },
+    "accepted_product": {
+      "tag": "v1.0.2",
+      "commit": "82003c03d8a36015703472b472640ab4021fb416",
+      "live_commit": "0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c",
+      "remote_main_before_m1_s1": "88e58c8866db2384423f2b154df901a2e4af6c48",
+      "release_moved": false,
+      "c6_repeated": false,
+      "mvp2_started": false
+    }
+  },
+  "current_acceptance_20260919": {
+    "at": "2026-09-19T14:50:10.191871+00:00",
+    "status": "CLOSED / ACCEPTED",
+    "MVP1": "ACCEPTED",
+    "owner_authorization": "2026-09-19 continuation: all necessary actions, including normal semantic admission and one executor task",
+    "statement": "Устойчивость принята по сокращённым критериям владельца от 19.09.2026 после исправлений и целевой проверки работающего бота. Повторное 72-часовое наблюдение не проводилось",
+    "source_sha": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+    "code_merge_sha": "8af1309af36eb3ab591186906975dd8cd3ac9880",
+    "deployed_sha": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+    "qualified_task": "269f3aa7-942d-4195-b073-b300453d7a28",
+    "qualification": {
+      "at": "2026-09-19T14:50:10.191871+00:00",
+      "status": "PASS",
+      "task_id": "269f3aa7-942d-4195-b073-b300453d7a28",
+      "task_status": "answered",
+      "task_revision": 6,
+      "owner_scope": true,
+      "instruction_matches": true,
+      "answer": "42",
+      "answer_sha256": "sha256:73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+      "txt_bytes": 2,
+      "txt_filename": "nobus-result.txt",
+      "ui_result_seen": true,
+      "ui_txt_downloaded": true,
+      "worker_execution_attempts": 1,
+      "worker_events": [
+        "started",
+        "result_ready"
+      ],
+      "semantic_admission": "normal route authorized and completed; separate from worker execution budget",
+      "asr_calls": 0,
+      "delivery_attempts": 1,
+      "delivery_parts": [
+        {
+          "kind": "text",
+          "bytes": 2,
+          "content_digest": "sha256:73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+          "receipt": "ack",
+          "at": "2026-09-19T14:46:45.252403+00:00"
+        },
+        {
+          "kind": "document",
+          "bytes": 2,
+          "content_digest": "sha256:73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+          "receipt": "ack",
+          "at": "2026-09-19T14:46:45.436023+00:00"
+        }
+      ],
+      "duplicates": false,
+      "counts": {
+        "task_snapshots": 88,
+        "ingress_claims": 88,
+        "audit_events": 172,
+        "outbox_messages": 86,
+        "outbox_receipts": 86,
+        "sealed_answers": 9,
+        "outbox_delivery_parts": 18
+      },
+      "preservation_from_qualification": {
+        "task-runtime.sqlite3": {
+          "task_snapshots": 0,
+          "ingress_claims": 0,
+          "audit_events": 0,
+          "outbox_messages": 0,
+          "outbox_receipts": 0,
+          "miniapp_auth_replays": 0,
+          "runtime_reconciliations": 0,
+          "miniapp_restore_fence": 0,
+          "miniapp_session_recovery": 0,
+          "miniapp_requests": 0,
+          "sealed_answers": 0,
+          "outbox_delivery_parts": 0
+        },
+        "business-notes.sqlite3": {
+          "business_notes": 0
+        },
+        "telegram-state.sqlite3": {
+          "telegram_capabilities": 0,
+          "telegram_progress": 0,
+          "telegram_jobs": 0,
+          "semantic_clarifications": 0
+        }
+      },
+      "preservation_from_deploy": {
+        "task-runtime.sqlite3": {
+          "task_snapshots": 0,
+          "ingress_claims": 0,
+          "audit_events": 0,
+          "outbox_messages": 0,
+          "outbox_receipts": 0,
+          "miniapp_auth_replays": 0,
+          "runtime_reconciliations": 0,
+          "miniapp_restore_fence": 0,
+          "miniapp_session_recovery": 0,
+          "miniapp_requests": 0,
+          "sealed_answers": 0,
+          "outbox_delivery_parts": 0
+        },
+        "business-notes.sqlite3": {
+          "business_notes": 0
+        },
+        "telegram-state.sqlite3": {
+          "telegram_capabilities": 0,
+          "telegram_progress": 0,
+          "telegram_jobs": 0,
+          "semantic_clarifications": 0
+        }
+      },
+      "offset_monotonic": true,
+      "checkpoint": [
+        {
+          "consumer_digest": "f3085474657c636896ce42a4a489387a791422e6f4c14a044e592dde1e45a663",
+          "offset": 375633521,
+          "revision": 67173,
+          "active": true
+        }
+      ],
+      "delivery": {
+        "pending": 0,
+        "leased": 0,
+        "unknown": 0,
+        "failed": 0,
+        "confirmed_parts": 18
+      },
+      "reconciliation": false,
+      "readiness": [
+        {
+          "boundary": "local",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-09-19T14:50:09Z",
+          "elapsed_ms": 313,
+          "deadline_ms": 2000,
+          "status": "PASS"
+        },
+        {
+          "boundary": "public",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-09-19T14:50:10Z",
+          "elapsed_ms": 609,
+          "deadline_ms": 5000,
+          "status": "PASS"
+        }
+      ],
+      "hold": false
+    },
+    "binding_readback": {
+      "at": "2026-09-19T14:50:52.636743+00:00",
+      "status": "PASS",
+      "history_head": "sha256:82c6c2f54c79abdf68b3e02031496ac1348ec56889dbcfb1ac326e1d6a25b709",
+      "binding": "sha256:098ef3f231d54244f2d8fe35cfb6f2fb1de87a5d6fbbc367dea11abe1c044f25",
+      "history_unchanged_since_post_backup": true,
+      "tasks": [
+        {
+          "name": "NobusSpaceBot",
+          "state": "Running",
+          "enabled": true,
+          "last_result": 267009
+        },
+        {
+          "name": "NobusSpaceBot-Health",
+          "state": "Running",
+          "enabled": true,
+          "last_result": 267009
+        },
+        {
+          "name": "NobusSpaceBot-Backup",
+          "state": "Ready",
+          "enabled": true,
+          "last_result": 0
+        }
+      ]
+    },
+    "receipts": {
+      "qualification-baseline.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/qualification-baseline.json",
+        "sha256": "a348dcf24d0f5424c3c0db41b2f572dc977c4c572f3638ac758e5e3a2fb5bce5",
+        "bytes": 46326
+      },
+      "qualification-send-intent.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/qualification-send-intent.json",
+        "sha256": "caba2e8f3e2a870fda8b8d5651f4777a26d7b5d38b2906834dd27d70704bb90c",
+        "bytes": 382
+      },
+      "qualification-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/qualification-result.json",
+        "sha256": "193ca6a99dd87f9c99040f254c9d030e80a9cf1cdf4fde96c301e90163c6fcc8",
+        "bytes": 3610
+      },
+      "qualification-runtime-binding.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/qualification-runtime-binding.json",
+        "sha256": "2c2fce376a07a9bfa9e77b41e05678548353d53ab7186d164e0aea2ddd80f4bf",
+        "bytes": 681
+      }
+    },
+    "reused_evidence": "post_window_repair_20260919: same frozen code, L1/L2/L3, two completed Health, full controlled backup, process chain, deployed state; not repeated",
+    "history_unchanged_since_post_backup": true,
+    "verification_timing": {
+      "first_part": "2026-09-19 11:41:51–11:48:40 Europe/Moscow",
+      "owner_approval_pause": "No qualification submitted while waiting for explicit model-call clarification; pause not counted as product outage or continuous observation",
+      "qualification_part": "2026-09-19 17:44:26–17:50:10 Europe/Moscow",
+      "continuous_twenty_minutes_claimed": false,
+      "new_observation_window": false,
+      "checks_repeated_only_for_changed_task_state": true
+    },
+    "historical_window": "2026-09-16–19 NOT PASS, immutable",
+    "heartbeat": "PAUSED",
+    "MVP2": "NOT STARTED",
+    "c6_reopened": false,
+    "v1_0_2_moved": false,
+    "known_limits": [
+      "Historical public/SSH/Health external causes remain UNKNOWN where raw evidence was not retained",
+      "Targeted failure regressions prove technical recovery/observability repairs, not elimination of external transport failures",
+      "One recorded worker execution attempt; normal semantic provider stage separately authorized; provider-level network retry count not inferred from worker audit"
+    ],
+    "observer_verifier_notes": [
+      "Read-only qualification helper first used nonexistent projection.state; corrected to status, no external effect",
+      "Sealed answer is structured JSON; rendered text and TXT both bind to42; raw container length15 is not wrong answer"
+    ]
   }
 }
