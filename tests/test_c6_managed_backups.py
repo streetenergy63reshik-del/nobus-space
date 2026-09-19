@@ -11,6 +11,18 @@ from scripts import run_telegram_backup_cycle as cycle
 from tests.test_c5_backup_recovery import fixture_runtime
 
 
+@pytest.fixture(autouse=True)
+def _isolated_backup_mutexes(tmp_path,monkeypatch):
+    import hashlib
+    from scripts import backup_telegram_runtime
+    from src.application.windows_singleton import WindowsNamedMutex
+    suffix=hashlib.sha256(str(tmp_path).encode()).hexdigest()[:16]
+    def isolated(name=r'Global\NobusSpaceBot'):
+        return WindowsNamedMutex('Global\\NobusM1Test-'+suffix+'-'+hashlib.sha256(name.encode()).hexdigest()[:16])
+    monkeypatch.setattr(cycle,'WindowsNamedMutex',isolated)
+    monkeypatch.setattr(backup_telegram_runtime,'WindowsNamedMutex',isolated)
+
+
 def test_retention_7days_4weeks_is_reversible_and_never_adopts_old_backups(tmp_path):
     runtime=tmp_path/'runtime'
     fixture_runtime(runtime)
@@ -80,6 +92,7 @@ def fake_cycle(tmp_path,monkeypatch):
     monkeypatch.setattr(cycle,'_task',task)
     monkeypatch.setattr(cycle,'_runner',runner)
     monkeypatch.setattr(cycle,'_port_closed',lambda:True)
+    monkeypatch.setattr(cycle,'_children_absent',lambda:True)
     from tests.test_codex_runtime_profile import native_fixture
     fixture_root, _, _ = native_fixture(tmp_path, monkeypatch)
     for name in ('ops/windows/Invoke-NobusSpaceTask.ps1','docs/11-Контекст-продукта.md'):

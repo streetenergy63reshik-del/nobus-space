@@ -15,12 +15,18 @@ import sys
 import time
 import threading
 import urllib.request
+import urllib.error
+import socket
 from ctypes import wintypes
 from datetime import datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
 WORKTREE = Path(__file__).resolve().parents[1]
+if str(WORKTREE) not in sys.path:
+    sys.path.insert(0, str(WORKTREE))
+from scripts.runtime_diagnostics import RelayCapture, RELAY_CAUSES, TRANSIENT_RELAY_CAUSES
+from scripts.reboot_recovery import boot_identity
 CANONICAL_REPOSITORY = next(
     (path for path in (WORKTREE, *WORKTREE.parents) if path.name == "nobus-orchestrator-dev"),
     WORKTREE.parents[1] / "nobus-orchestrator-dev",
@@ -75,6 +81,7 @@ RUNTIME_EVENT_KEYS = frozenset({
     "anchor_of_digest",
 })
 RUNTIME_RECORDED_KEYS = RUNTIME_EVENT_KEYS | {"at", "authentication"}
+RUNTIME_V4_KEYS = frozenset({"boot_id", "previous_boot_id", "relay_cause"})
 _EVENT_STAGES = frozenset({
     "input_validation", "setup", "job_setup", "relay_start", "core_start",
     "startup", "steady", "cleanup", "complete", "recovery_wait",
@@ -599,9 +606,11 @@ def _terminal_state_valid(value) -> bool:
 
 def _validate_runtime_event(value, *, recorded: bool = False):
     keys = RUNTIME_EVENT_KEYS | ({"at"} if recorded else set())
+    if type(value) is dict and value.get("schema") == "nobus-runtime-event-4":
+        keys |= RUNTIME_V4_KEYS
     if type(value) is not dict or set(value) != keys:
         raise ValueError("runtime event fields are invalid")
-    if (value["schema"] != "nobus-runtime-event-3"
+    if (value["schema"] not in {"nobus-runtime-event-3", "nobus-runtime-event-4"}
             or re.fullmatch(r"[0-9a-f]{32}", value["series_id"]) is None
             or re.fullmatch(r"[0-9a-f]{32}", value["run_id"]) is None
             or not _digest(value["activation_binding"])
@@ -616,7 +625,7 @@ def _validate_runtime_event(value, *, recorded: bool = False):
                 "control_closing", "control_closed", "control_failure",
                 "starting", "terminal", "retry_waiting", "retry_elapsed",
                 "recovery_wait_stopped", "recovery_reset", "activation_rebind",
-                "history_checkpoint",
+                "history_checkpoint", "reboot_reconciled",
             }
             or value["stage"] not in _EVENT_STAGES
             or value["error_class"] not in _EVENT_ERRORS
@@ -624,6 +633,19 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             or value["core_outcome_error"] not in _CORE_OUTCOME_ERRORS
             or value["cleanup_outcome"] not in {"not_started", "proven", "failed"}):
         raise ValueError("runtime event value is invalid")
+    if value["schema"] == "nobus-runtime-event-4":
+        for key in ("boot_id", "previous_boot_id"):
+            if value[key] is not None and not _digest(value[key]):
+                raise ValueError("boot identity invalid")
+        if value["relay_cause"] is not None and value["relay_cause"] not in RELAY_CAUSES:
+            raise ValueError("relay cause invalid")
+        semantic_event = value["checkpoint_event"] or value["event"]
+        if value["relay_cause"] is not None and (semantic_event != "terminal" or value["error_class"] not in {"relay_exit", "core_and_relay_exit"}):
+            raise ValueError("relay cause misplaced")
+        if value["previous_boot_id"] is not None and semantic_event != "reboot_reconciled":
+            raise ValueError("previous boot misplaced")
+        if value["boot_id"] is not None and semantic_event not in {"starting", "reboot_reconciled"}:
+            raise ValueError("boot identity misplaced")
     if recorded and re.fullmatch(
         r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
         value["at"],
@@ -666,7 +688,7 @@ def _validate_runtime_event(value, *, recorded: bool = False):
                 "control_starting", "control_ready", "control_closing",
                 "control_closed", "control_failure", "starting", "terminal",
                 "retry_waiting", "retry_elapsed", "recovery_wait_stopped",
-                "recovery_reset", "activation_rebind",
+                "recovery_reset", "activation_rebind", "reboot_reconciled",
             } or not _digest(value["anchor_of_digest"])):
             raise ValueError("runtime history checkpoint is invalid")
         semantic = dict(value)
@@ -777,6 +799,16 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             and value["reset_of_digest"] is None
             and empty_process_fields
         )
+    elif event == "reboot_reconciled":
+        valid = (
+            value["schema"] == "nobus-runtime-event-4"
+            and _digest(value.get("boot_id")) and _digest(value.get("previous_boot_id"))
+            and value["boot_id"] != value["previous_boot_id"]
+            and value["stage"] == "recovery_control" and value["error_class"] is None
+            and value["supervisor_exit_code"] == 0 and value["cleanup_outcome"] == "proven"
+            and value["recovery_disposition"] == "retry" and value["attempt"] <= value["retry_budget"]
+            and _digest(value["reset_of_digest"]) and empty_process_fields
+        )
     elif event == "recovery_reset":
         valid = (
             value["stage"] == "recovery_control"
@@ -860,6 +892,13 @@ def _validate_transition(previous, current, previous_digest):
         return
     if current["activation_binding"] != previous["activation_binding"]:
         raise ValueError("runtime history activation binding is invalid")
+    if event == "reboot_reconciled":
+        if not (prior == "starting" and same_series_attempt
+                and _digest(previous.get("boot_id"))
+                and current["previous_boot_id"] == previous["boot_id"]
+                and current["reset_of_digest"] == previous_digest):
+            raise ValueError("reboot reconciliation transition invalid")
+        return
     if event == "recovery_reset":
         resettable = prior in {
             "control_starting", "control_ready", "starting", "terminal",
@@ -882,7 +921,7 @@ def _validate_transition(previous, current, previous_digest):
             "recovery_wait_stopped",
         } and same_series_attempt
         next_attempt_after_wait = (
-            prior == "retry_elapsed"
+            prior in {"retry_elapsed", "reboot_reconciled"}
             and current["series_id"] == previous["series_id"]
             and current["attempt"] == previous["attempt"] + 1
             and current["retry_budget"] == previous["retry_budget"]
@@ -935,7 +974,7 @@ def _validate_transition(previous, current, previous_digest):
         valid = event == "retry_waiting" and same_series_attempt
     elif prior == "retry_waiting":
         valid = event in {"retry_elapsed", "recovery_wait_stopped"} and same_series_attempt
-    elif prior == "retry_elapsed":
+    elif prior in {"retry_elapsed", "reboot_reconciled"}:
         valid = (
             event in {"starting", "control_starting"}
             and current["series_id"] == previous["series_id"]
@@ -980,7 +1019,7 @@ def _decode_runtime_event(line: bytes):
         recorded = json.loads(
             line[:-1].decode("ascii"), object_pairs_hook=_unique_json_object
         )
-        if type(recorded) is not dict or set(recorded) != RUNTIME_RECORDED_KEYS:
+        if type(recorded) is not dict or set(recorded) != (RUNTIME_RECORDED_KEYS | (RUNTIME_V4_KEYS if recorded.get("schema") == "nobus-runtime-event-4" else set())):
             raise ValueError
         authentication = recorded.pop("authentication")
         _verify_authentication(
@@ -1338,8 +1377,9 @@ def _runtime_record(series_id: str, run_id: str, event: str, *,
                     supervisor_exit_code=None, core_exit_code=None, relay_exit_code=None,
                     local_ready=None, public_ready=None, readiness_failures=0,
                     core_outcome=None, core_outcome_error=None,
-                    cleanup_outcome="not_started", reset_of_digest=None):
-    return {
+                    cleanup_outcome="not_started", reset_of_digest=None,
+                    boot_id=None, previous_boot_id=None, relay_cause=None):
+    result = {
         "schema": "nobus-runtime-event-3", "series_id": series_id,
         "run_id": run_id, "event": event, "activation_binding": activation_binding,
         "previous_event_digest": None, "reset_of_digest": reset_of_digest,
@@ -1354,6 +1394,10 @@ def _runtime_record(series_id: str, run_id: str, event: str, *,
         "core_outcome": core_outcome, "core_outcome_error": core_outcome_error,
         "cleanup_outcome": cleanup_outcome,
     }
+    if any(item is not None for item in (boot_id, previous_boot_id, relay_cause)):
+        result.update(schema="nobus-runtime-event-4", boot_id=boot_id,
+                      previous_boot_id=previous_boot_id, relay_cause=relay_cause)
+    return result
 
 
 def _materialize_latched_control_failure(*, root: Path, latch,
@@ -1482,8 +1526,15 @@ def _recovery_disposition(*, status, terminal, core_outcome, core_outcome_error,
     transient = (
         (
             terminal["error_class"] == "relay_exit"
-            and terminal.get("stage") == "steady"
-            and core_outcome == {"status": "STOPPED"}
+            and (
+                # Preserve the interpretation of authenticated historical v3 rows.
+                ("relay_cause" not in terminal and terminal.get("stage") == "steady"
+                 and core_outcome == {"status": "STOPPED"})
+                or (terminal.get("relay_cause") in TRANSIENT_RELAY_CAUSES
+                    and terminal.get("stage") in {"relay_start", "startup", "steady"}
+                    and (core_outcome == {"status": "STOPPED"}
+                         or (terminal.get("stage") == "relay_start" and core_outcome is None)))
+            )
         )
         or (
             terminal["error_class"] in {"public_readiness_failed", "startup_timeout"}
@@ -1611,7 +1662,7 @@ def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
                 "series_id": event["series_id"], "next_attempt": None,
                 "last_digest": digest}
     disposition = event["recovery_disposition"]
-    if event["event"] == "retry_elapsed" and event["attempt"] <= event["retry_budget"]:
+    if event["event"] in {"retry_elapsed", "reboot_reconciled"} and event["attempt"] <= event["retry_budget"]:
         return {"state": "resume", "reason": None,
                 "series_id": event["series_id"],
                 "next_attempt": event["attempt"] + 1, "last_digest": digest}
@@ -1947,7 +1998,7 @@ def _gated_child(argv: list[str]) -> int:
         return 125
 
 
-def spawn_owned(api, job: int, command: list[str], *, stdout=subprocess.DEVNULL):
+def spawn_owned(api, job: int, command: list[str], *, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL):
     gate, name = api.create_gate()
     process = None
     try:
@@ -1955,7 +2006,7 @@ def spawn_owned(api, job: int, command: list[str], *, stdout=subprocess.DEVNULL)
             [str(Path(sys._base_executable).with_name("python.exe")), "-I", "-S", str(Path(__file__).resolve()),
              "--gated-child", name, "--", *command],
             cwd=WORKTREE, stdin=subprocess.PIPE, stdout=stdout,
-            stderr=subprocess.DEVNULL, creationflags=CREATE_NO_WINDOW,
+            stderr=stderr, creationflags=CREATE_NO_WINDOW,
             env={key: value for key, value in os.environ.items() if key.upper() in
                  {"SYSTEMROOT", "WINDIR", "PATH", "TEMP", "TMP", "USERPROFILE",
                   "PROGRAMDATA", "LOCALAPPDATA", "APPDATA", "USERNAME", "USERDOMAIN", "COMSPEC"}},
@@ -2032,10 +2083,14 @@ class _ReadinessProbe:
     def __init__(self):
         self._lock = threading.Lock()
         self._thread = None
+        self.last = None
+        self.reason = None
 
     def run(self, read, *, seconds, stop_event=None):
         deadline = time.monotonic() + seconds
+        self.reason = None
         if stop_event is not None and stop_event.is_set():
+            self.reason = "cancelled"
             return False
         done = threading.Event()
         result = [False]
@@ -2050,15 +2105,18 @@ class _ReadinessProbe:
 
         with self._lock:
             if self._thread is not None and self._thread.is_alive():
+                self.reason = "probe_busy"
                 return False
             worker = threading.Thread(target=work, name="nobus-readiness", daemon=True)
             self._thread = worker
             worker.start()
         while True:
             if stop_event is not None and stop_event.is_set():
+                self.reason = "cancelled"
                 return False
             remaining = deadline - time.monotonic()
             if remaining <= 0:
+                self.reason = "deadline"
                 return False
             if done.wait(min(.05, remaining)):
                 worker.join(timeout=max(0.0, deadline - time.monotonic()))
@@ -2073,12 +2131,35 @@ _PUBLIC_READINESS_PROBE = _ReadinessProbe()
 
 
 def _ready_request(url, *, seconds, probe, headers=None, stop_event=None):
+    started = time.monotonic()
+    detail = {"http_status": None, "body_matches": False, "error_class": None}
     def read():
-        request = urllib.request.Request(url, headers={"User-Agent": "NobusSpace-Health/1.0", **(headers or {})})
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
-        with opener.open(request, timeout=seconds) as response:
-            return response.status == 200 and response.read(256) == b'{"status":"ready"}'
-    return probe.run(read, seconds=seconds, stop_event=stop_event)
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": "NobusSpace-Health/1.0", **(headers or {})})
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+            with opener.open(request, timeout=seconds) as response:
+                detail["http_status"] = response.status
+                detail["body_matches"] = response.read(256) == b'{"status":"ready"}'
+                detail["error_class"] = None if response.status == 200 and detail["body_matches"] else "response_mismatch"
+                return detail["error_class"] is None
+        except urllib.error.HTTPError as error:
+            detail.update(http_status=error.code, error_class="http_error")
+        except (TimeoutError, socket.timeout):
+            detail["error_class"] = "deadline"
+        except urllib.error.URLError as error:
+            detail["error_class"] = "deadline" if isinstance(error.reason, TimeoutError) else "transport_error"
+        except Exception:
+            detail["error_class"] = "probe_error"
+        return False
+    result = probe.run(read, seconds=seconds, stop_event=stop_event)
+    elapsed = round((time.monotonic() - started) * 1000)
+    if probe.reason is not None or elapsed >= seconds * 1000:
+        detail = {"http_status": None, "body_matches": False,
+                  "error_class": probe.reason or "deadline"}
+    probe.last = {**detail, "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                  "elapsed_ms": elapsed, "deadline_ms": int(seconds * 1000),
+                  "status": "PASS" if result else "FAIL"}
+    return result
 
 
 def ready(*, stop_event=None) -> bool:
@@ -2100,6 +2181,18 @@ def _readiness_pair(stop_event):
     return local, public
 
 
+def readiness_details():
+    return [{"boundary": boundary, **(probe.last or {"status": "NOT CHECKED", "error_class": "not_run"})}
+            for boundary, probe in (("local", _LOCAL_READINESS_PROBE), ("public", _PUBLIC_READINESS_PROBE))]
+
+
+def _write_probe_diagnostic(root, run_id, attempt, stage):
+    from scripts.runtime_diagnostics import write_diagnostic
+    write_diagnostic(root.parent / "supervisor-diagnostics", "readiness", {
+        "run_id": run_id, "attempt": attempt, "stage": stage, "checks": readiness_details(),
+    })
+
+
 def _readiness_error(local: bool, public: bool) -> str:
     if not local and not public:
         return "local_public_readiness_failed"
@@ -2107,14 +2200,16 @@ def _readiness_error(local: bool, public: bool) -> str:
 
 
 def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=None,
-              report=None, settle=time.sleep) -> int:
+              report=None, settle=time.sleep, diagnostic=None) -> int:
     if probe is None:
         probe = lambda: _readiness_pair(stop_event)
     if report is None:
         report = lambda _value: None
 
-    def readiness():
+    def readiness(stage):
         result = probe()
+        if diagnostic is not None:
+            diagnostic(stage)
         if type(result) is bool:  # Compatibility for existing deterministic C5 fixtures.
             return result, result
         if (type(result) is not tuple or len(result) != 2
@@ -2152,7 +2247,7 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
             return 1
         if stop_event.is_set():
             return planned_or_child("startup")
-        local, public = readiness()
+        local, public = readiness("startup")
         if child_exit("startup"):
             return 1
         if stop_event.is_set():
@@ -2180,7 +2275,7 @@ def supervise(api, job, relay, core, stop_event, *, clock=time.monotonic, probe=
             return 1
         if stopped:
             return planned_or_child("steady", failures)
-        local, public = readiness()
+        local, public = readiness("steady")
         if child_exit("steady"):
             return 1
         if stop_event.is_set():
@@ -2208,6 +2303,8 @@ def _arguments(argv=None):
     commands = parser.add_mutually_exclusive_group()
     commands.add_argument("--stop", action="store_true")
     commands.add_argument("--check-ready", action="store_true")
+    parser.add_argument("--diagnostic-details", action="store_true")
+    parser.add_argument("--verify-production-identity", action="store_true")
     commands.add_argument("--inspect-recovery", action="store_true")
     commands.add_argument("--initialize-recovery", action="store_true")
     commands.add_argument("--acknowledge-recovery-stop")
@@ -2800,6 +2897,9 @@ def _runtime_recovery_context(values):
     try:
         from src.contracts.models import canonical_json_digest
 
+        if getattr(values, "verify_production_identity", False):
+            require_production_identity()
+
         staging_control = any((
             bool(getattr(values, "initialize_recovery", False)),
             getattr(values, "rebind_recovery_from", None) is not None,
@@ -2816,12 +2916,21 @@ def _runtime_recovery_context(values):
     return runtime / RECOVERY_DIRECTORY_NAME, activation_binding
 
 
+def require_production_identity():
+    # Verification uses the same identity as production, never changes its digest.
+    if any(Path(item).name.lower() != "pythonw.exe" for item in (sys.executable, sys._base_executable)):
+        raise ValueError("production windowed Python identity required")
+
+
 def _run_owned_recovery(values, *, mutex_name=r"Global\NobusSpaceBotSupervisor",
                         root=None, activation_binding=None, run_attempt=None) -> int:
     from src.application.windows_singleton import WindowsNamedMutex
     if root is None or activation_binding is None:
         root, activation_binding = _runtime_recovery_context(values)
     with WindowsNamedMutex(mutex_name):
+        if run_attempt is None:
+            from scripts.reboot_recovery import reconcile
+            reconcile(sys.modules[__name__], values, root=root, binding=activation_binding)
         return _recover(
             values, root=root, activation_binding=activation_binding,
             run_attempt=run_attempt,
@@ -3052,10 +3161,13 @@ def main() -> int:
             local = ready()
             public = public_ready()
             healthy = local and public
-            print(json.dumps({
+            result = {
                 "status": "PASS" if healthy else "FAIL",
                 "local_ready": local, "public_ready": public,
-            }, ensure_ascii=True, separators=(",", ":"), sort_keys=True))
+            }
+            if values.diagnostic_details:
+                result["checks"] = readiness_details()
+            print(json.dumps(result, ensure_ascii=True, separators=(",", ":"), sort_keys=True))
             return 0 if healthy else 1
         if values.inspect_recovery:
             root, activation_binding = _runtime_recovery_context(values)
@@ -3463,6 +3575,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
     job = None
     relay = core = None
     core_capture = None
+    relay_capture = None
     status = 1
     try:
         _write_runtime_event(_runtime_record(
@@ -3470,6 +3583,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
             activation_binding=activation_binding,
             retry_budget=retry_budget, recovery_disposition="pending",
             stage="setup",
+            boot_id=boot_identity() if required_paths is None else None,
         ), root=root)
     except Exception:
         raise _RecoveryControlFailure("runtime_event_write_failed") from None
@@ -3497,7 +3611,9 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         terminal.update(stage="job_setup", error_class="job_setup_failed")
         job = api.create_job()
         terminal.update(stage="relay_start", error_class="relay_launch_failed")
-        relay = spawn_owned(api, job, relay_values)
+        relay = spawn_owned(api, job, relay_values, stderr=subprocess.PIPE)
+        if getattr(relay, "stderr", None) is not None:
+            relay_capture = RelayCapture(relay.stderr)
         stopped_before_core = stop_event.wait(relay_settle_seconds)
         relay_before_core = relay.poll()
         if relay_before_core is not None:
@@ -3516,6 +3632,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
             terminal.update(stage="startup", error_class="supervision_failed")
             status = supervise(api, job, relay, core, stop_event,
                                probe=probe,
+                               diagnostic=(lambda stage: _write_probe_diagnostic(root, run_id, attempt, stage)) if probe is None else None,
                                report=lambda value: terminal.update(value))
     except Exception:
         status = 1
@@ -3602,6 +3719,9 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
             status = 1
         if not cleanup_ok:
             status = 1
+        relay_cause = relay_capture.finish() if relay_capture is not None else "unknown"
+        if terminal["error_class"] in {"relay_exit", "core_and_relay_exit"}:
+            terminal["relay_cause"] = relay_cause
         try:
             _operator_event(
                 "cleanup_failed" if not cleanup_ok else
@@ -3633,6 +3753,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
                 public_ready=terminal["public_ready"],
                 readiness_failures=terminal["readiness_failures"],
                 core_outcome=core_outcome, core_outcome_error=core_outcome_error,
+                relay_cause=terminal.get("relay_cause"),
                 cleanup_outcome="proven" if cleanup_ok else "failed",
             ), root=root)
         except Exception:

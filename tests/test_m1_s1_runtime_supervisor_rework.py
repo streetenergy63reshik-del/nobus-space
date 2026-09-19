@@ -224,6 +224,7 @@ def test_m1_relay_exit_during_graceful_core_stop_overrides_planned_stop(
             return False
 
     relay = _Process()
+    relay.stderr = io.BytesIO(b'read from remote host synthetic: Connection reset by peer\n')
     core = _Process()
     core.stdout = io.BytesIO(b'{"status":"STOPPED"}\n')
 

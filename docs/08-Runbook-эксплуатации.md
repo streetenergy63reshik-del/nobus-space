@@ -1,6 +1,6 @@
 # 08. Эксплуатация Nobus Space
 
-**14 сентября 2026, 21:46 МСК:** v1.0.2 опубликован; production не менялся, срез 21:32 — DOWN с сохранёнными 86 задачами. Шестой candidate `4777a2e` отклонён; единый ремонт `fcf99fc0f3a93881bc681e69f1f6f56f3676e246` имеет 210 PASS. Итоговый freeze и delta-signoff существующих L1/L2/L3 впереди. [Текущий статус](handoffs/CURRENT-STATUS.md) и [пакет M1-S1](gates/mvp1-maintenance/HANDOFF.md).
+**16 сентября 2026:** релиз v1.0.2 сохранён. Maintenance source/deployed `0bd63db`, merge/main `26860ad`: 210 PASS, реальный three-case Scheduler fixture и L1/L2/L3 PASS; квалификация text/TXT PASS. Закрепление Python и текущее состояние runtime/72-часового наблюдения отражаются в [CURRENT](handoffs/CURRENT-STATUS.md) и [M1-S1](gates/mvp1-maintenance/HANDOFF.md). Исторические pending не являются текущими блокерами.
 
 Этот документ содержит действующие процедуры. Прежние команды остановленных кандидатов и повторяющиеся июльские инструкции удалены из текущего текста; их история сохранена в Git и соответствующих Gate-пакетах. Подробный механизм защищённого резервирования и восстановления — [C6 OPERATIONS](gates/gate-c6-release/OPERATIONS.md).
 
@@ -8,11 +8,11 @@
 
 Telegram Bot и Mini App используют один Core, одну очередь, четыре SQLite БД и подтверждения доставки. Планировщик запускает supervisor с явными параметрами semantic admission, состояния, модели и backup ownership. Supervisor объединяет Core и reverse SSH в один Windows Job; действует один polling lease. HTTP 200 не доказывает выполнение задачи: отдельно проверяются приём, результат и файл.
 
-Настроен профиль принятой ревизии: logon trigger владельца и legacy `RestartCount=10/PT1M` включены; `NobusSpaceBot-Health` и `NobusSpaceBot-Backup` включены. Последний запуск main начался в 03:31:06 МСК и завершился в 14:39:09 МСК; на срезе 14.09, 15:34–15:37 МСК main Ready/1, runtime и lease отсутствуют. Четыре БД healthy, 86 задач и 84 ACK receipts сохранены, queue пустая, delivery_unknown 0, reconciliation false; offset `375633467`, revision `44146`. Generation `daily-20260914T033039-58e82052c3f54d6da759caad4aaed41c` повторно проверена exact LIVE v1.0.2: binding, authentication, freshness и ciphertext PASS, возраст `43577.032` с; следующая плановая копия — 15 сентября, 03:30 МСК. Restore не запускался.
+Профиль принятого maintenance: logon trigger владельца, один supervisor action с внутренним ограниченным recovery; Scheduler restart у main/health равен 0. Health выполняет только наблюдение; backup назначен ежедневно на03:30 МСК. Enabled/Running и последняя квитанция каждого задания читаются при проверке, а не выводятся из расписания. В срезе16.09 до закрепления Python сохранены87 tasks/85 receipts/16 confirmed parts; это не предел новых задач. Актуальные offset, lease, generation и причины завершений находятся в EVIDENCE M1-S1.
 
 Реальный изолированный fixture показал: после normal action exit 23 Планировщик не выполнил ни одного из настроенных повторов. Поэтому `RestartCount/PT1M` считается существующей конфигурацией, но не работающим recovery-контрактом и не доказательством исчерпанного бюджета. Исторический первичный trigger остановок 10–14 сентября остаётся `UNKNOWN`.
 
-Рабочая копия `Code/worktrees/telegram-live` содержит активный код; состояние и резервирование находятся в приватной `Code/nobus-orchestrator-dev/.runtime/production-c6`. Python берётся из канонического `.venv`. Модель ASR пока находится в сохранённой копии C2; удалять этот каталог нельзя. Полные роли каталогов: [WORKSPACE-INVENTORY](handoffs/WORKSPACE-INVENTORY.md).
+Рабочая копия `Code/worktrees/telegram-live` содержит активный код; состояние и резервирование находятся в приватной `Code/nobus-orchestrator-dev/.runtime/production-c6`. Задания используют канонический `.venv/Scripts/python[w].exe`. Базовый Python для этой `.venv` закреплён отдельно: canonical `.runtime/production-python/cpython-3.12.14-ed91bed4/base`. Это точная офлайн-копия нынешней3.12.14, не обновление пакетов; `include-system-site-packages=false`. Кэш Codex не является production runtime. Модель ASR пока находится в сохранённой копии C2; удалять этот каталог нельзя. [Роли каталогов](handoffs/WORKSPACE-INVENTORY.md).
 
 ## Проверка без изменения состояния
 
@@ -38,7 +38,7 @@ Telegram Bot и Mini App используют один Core, одну очере
 
 При подтверждённом STOP переключается чистый LIVE; новая версия проверяет прежние БД и создаёт новую связанную копию. Затем запускается ровно один экземпляр и проверяются Job, lease, local/public/stock readiness и относящийся к изменению сценарий. Ошибка оставляет безопасную остановку и доказательства; прежние одноразовые operators и использованные intent нельзя проигрывать заново.
 
-В принятом v1.0.2 Health не создаёт второй runtime, а legacy Scheduler retries не считаются recovery. Текущий maintenance WIP переносит ограниченные повторы внутрь одного Scheduler action: максимум 10 retries через 60 секунд, только для exact allowlisted transient outcome и после proven cleanup; permanent, `UNKNOWN`, invalid/missing или противоречащий exit code Core outcome, повреждённая evidence history или exhaustion дают typed STOP. Шесть frozen revisions отклонены. До PASS real three-case Scheduler fixture, L1/L2/L3, publication и activation это TARGET, а не действующее поведение.
+В принятом maintenance `0bd63db` Health не создаёт второй runtime. Ограниченные повторы выполняются внутри одного Scheduler action: максимум10 retries через60 секунд, только для exact allowlisted transient outcome и после proven cleanup; permanent, `UNKNOWN`, invalid/missing или противоречащий exit code Core outcome, повреждённая evidence history или exhaustion дают typed STOP. Этот механизм проверен реальным three-case Scheduler fixture `613682de7d1243ffb3ee3ed9c08f11fd` и независимыми L1/L2/L3 именно принятой ревизии. Отклонённые предыдущие кандидаты остаются историей.
 
 Перед первой активацией protocol v3 оператор при остановленном runtime передаёт полный тот же набор параметров, что установлен в main action:
 
@@ -60,6 +60,14 @@ V3 history находится в `<StateRoot>/supervisor-control`. Каждая 
 Activation binding включает document 11 и local configs, Mini App assets, semantic flag, voice inventory, BackupRoot/ownership, installed Python/distributions/requirements, health launcher и фактические signatures main/health/backup. Изменение любого элемента требует нового candidate binding. Windows owner является control authority: DPAPI защищает от другого пользователя и offline-подделки; произвольный код того же owner уже эквивалентен компрометации StateRoot/БД. Core/relay не имеют reset-команды, а недоверенные workers остаются в существующей sandbox/Job-изоляции.
 
 ## Резервирование и восстановление
+
+### Закреплённый Python
+
+Замена базового `pythonw.exe` в кэше Codex изменила activation binding и заблокировала restart после backup16.09. При подготовке изолированной копии проверены12182 файла/443809639байт, Authenticode и запуск stdlib/native модулей. Копия не использует symlink/hardlink на кэш. `pyvenv.cfg` указывает на production-каталог; прежний файл сохранён рядом с inventory в `rollback/pyvenv.cfg`. Точные квитанции и результаты перехода — `EVIDENCE.python_pinning_20260916`.
+
+Не выполнять `venv --upgrade`, переустановку или обновление production-пакетов из bundled Codex runtime. Следующее обновление Python — отдельный точный переход: offline staging/version/hash/signature/inventory → проверки зависимостей → свежая проверенная копия → admission hold → штатный STOP/cleanup → сохранение исходного cfg → переключение → проверка фактического `sys.base_prefix`, search path и activation binding под **pythonw владельца** → штатный backup/start → сохранность/readiness. Пауза ограничена20 минутами. Console и windowed executable имеют разные bytes: проверку production binding не подменять console identity.
+
+При побайтово одинаковой копии текущая activation binding остаётся прежней; rebind/reset не выполнять только из-за нового пути base. При реальном изменении связанного содержимого нужен точный разрешённый rebind от authenticated history head после сверки effects. Историю не удалять. Rollback cfg возможен только после проверки совместимости, штатного STOP и точного разрешения; БД не откатывать. Само наличие старого cfg не гарантирует, что изменяемый кэш всё ещё содержит прежние bytes.
 
 Четыре БД: `business-notes.sqlite3`, `task-runtime.sqlite3`, `telegram-checkpoint.sqlite3`, `telegram-state.sqlite3`. TXT в папке результатов — восстанавливаемая проекция; исходные bytes сохраняются в Core/outbox. DPAPI защищает копию текущим пользователем Windows, а manifest связывает source, code/schema, root и все члены комплекта.
 

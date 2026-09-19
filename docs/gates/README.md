@@ -1,6 +1,6 @@
 # Gate index
 
-**9 сентября 2026:** MVP1 82003c03 принят владельцем, постоянный режим и ежедневная копия 03:30 МСК работают. Аннотированный v1.0.2 опубликован; GitHub release опубликован. [Текущий статус](../handoffs/CURRENT-STATUS.md).
+**16 сентября 2026:** C0–C6 и релиз v1.0.2 приняты; текущий Gate — [M1-S1](mvp1-maintenance/HANDOFF.md). Source/deployed `0bd63db`, merge/main `26860ad`; реальная задача/TXT PASS, 72-часовая устойчивость ещё не доказана. [Текущий runtime-статус](../handoffs/CURRENT-STATUS.md). Публикация релиза и доступность runtime — отдельные состояния.
 
 Gate 0–8 package сохраняется как исследовательский и digest-bound historical
 baseline. Он не является active Definition of Done MVP-1. Полный
@@ -22,7 +22,8 @@ checkpoints, не отдельные пользовательские чаты.
 | C3 — стабильность Core/backend/worker | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c3-core-stability/ACCEPTANCE.md), [передача](gate-c3-core-stability/HANDOFF.md) |
 | C4 — завершённый frontend/user journey | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
 | C5 — operations/recovery/security | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c5-mvp1-operations-security/ACCEPTANCE.md), [передача](gate-c5-mvp1-operations-security/HANDOFF.md) |
-| C6 — release и owner acceptance | READY / ACCEPTED / PUBLISHED / ACTIVE | [текущий пакет](gate-c6-release/HANDOFF.md), [восемь критериев](gate-c6-release/OPERATIONAL-STATUS-14.md) |
+| C6 — release и owner acceptance | ACCEPTED / PUBLISHED; исторический release | [принятый пакет](gate-c6-release/HANDOFF.md), [восемь критериев своей ревизии](gate-c6-release/OPERATIONAL-STATUS-14.md) |
+| M1-S1 — эксплуатационная стабилизация MVP1 | OPEN; candidate ACCEPTED / MERGED / DEPLOYED, stability NOT PASS | [handoff](mvp1-maintenance/HANDOFF.md), [evidence](mvp1-maintenance/EVIDENCE.json); одна задача, без повторной приёмки C6 |
 
 ## Historical status map
 

@@ -113,7 +113,7 @@ else {
 $python = Join-Path $runtimeOwner '.venv\Scripts\python.exe'
 $pythonw = Join-Path $runtimeOwner '.venv\Scripts\pythonw.exe'
 $runner = Join-Path $root 'scripts\run_nobus_space_live.py'
-$health = Join-Path $root 'scripts\check_telegram_health.py'
+$health = Join-Path $root 'scripts\check_nobus_space_health.py'
 $healthTaskName = "$TaskName-Health"
 $runtime = Join-Path $healthLauncherOwner '.runtime'
 $logs = Join-Path $runtime 'logs'
@@ -238,15 +238,11 @@ if (Test-Path -LiteralPath `$alert -PathType Leaf) {
     }
 }
 `$healthy = `$true
-& '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' --runtime '$($healthStateDirectory.Replace("'", "''"))' 1>`$null 2>`$null
+& '$($python.Replace("'", "''"))' '$($health.Replace("'", "''"))' --runtime '$($healthStateDirectory.Replace("'", "''"))' --diagnostic-root '$($logs.Replace("'", "''"))\health-diagnostics' 1>`$null 2>`$null
 if (`$LASTEXITCODE -ne 0) {
     `$healthy = `$false
 }
-# The shared read-only CLI enforces exact body, no redirects and total2s/5s deadlines.
-& '$($python.Replace("'", "''"))' '$($runner.Replace("'", "''"))' --check-ready 1>`$null 2>`$null
-if (`$LASTEXITCODE -ne 0) {
-    `$healthy = `$false
-}
+# Health calls the shared exact-body/no-redirect 2s/5s probes and retains typed results.
 if (-not `$healthy) {
     Add-Content -LiteralPath `$alert -Value (
         (Get-Date).ToUniversalTime().ToString('o') + ' product health probe failed'
