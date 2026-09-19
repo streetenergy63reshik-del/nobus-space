@@ -1,5 +1,17 @@
 # Nobus Space текущий статус
 
+**19.09.2026,17:50МСК — M1-S1 CLOSED / ACCEPTED; MVP1 ACCEPTED.**
+Устойчивость принята по сокращённым критериям владельца от 19.09.2026 после исправлений и целевой проверки работающего бота. Повторное 72-часовое наблюдение не проводилось.
+
+Source/deployed0c9b778, code merge8af1309, PR33/34. Принятые регрессии и L2/L3,
+local/public, два Health, полный controlled backup и сохранность4БД PASS.
+Последняя owner text/TXT квалификация:42, TXT2байта, ACK обеих частей без дублей,
+один worker attempt, отдельно разрешённый semantic-разбор, ASR0.
+Offset375633521;88tasks/86receipts/18parts; unknown0, hold снят.
+[Таблица и доказательства](../gates/mvp1-maintenance/REPAIR-ACCEPTANCE.md).
+Старое72ч окно сохраняет NOT PASS, heartbeat PAUSED, MVP2 не запущен.
+Ниже — история; прежний OPEN больше не описывает текущий Gate.
+
 **19.09.2026, 11:48 МСК — ремонт M1-S1 развёрнут; приёмка ещё OPEN.**
 Source/deployed0c9b778, merge8af1309, PR33/34. Независимые L2/L3 PASS;
 local/public, два Health, полный контролируемый backup, одна runtime-цепочка
