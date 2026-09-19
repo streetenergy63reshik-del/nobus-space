@@ -130,11 +130,12 @@
   "accepted_product": {
     "tag": "v1.0.2",
     "commit": "82003c03d8a36015703472b472640ab4021fb416",
-    "live_commit": "0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c",
+    "live_commit": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
     "remote_main_before_m1_s1": "88e58c8866db2384423f2b154df901a2e4af6c48",
     "release_moved": false,
     "c6_repeated": false,
-    "mvp2_started": false
+    "mvp2_started": false,
+    "operational_acceptance": "M1-S1 CLOSED / ACCEPTED; MVP1 ACCEPTED"
   },
   "rejected_candidates": [
     {
@@ -10668,6 +10669,15 @@
         "fcf99fc0f3a93881bc681e69f1f6f56f3676e246"
       ],
       "freeze_binding_rule": "Final docs commit/tree bound by one external post-commit receipt; code/test blobs reused when identical."
+    },
+    "accepted_product": {
+      "tag": "v1.0.2",
+      "commit": "82003c03d8a36015703472b472640ab4021fb416",
+      "live_commit": "0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c",
+      "remote_main_before_m1_s1": "88e58c8866db2384423f2b154df901a2e4af6c48",
+      "release_moved": false,
+      "c6_repeated": false,
+      "mvp2_started": false
     }
   },
   "current_acceptance_20260919": {
