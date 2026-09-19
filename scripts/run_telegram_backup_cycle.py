@@ -12,7 +12,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import socket
 import subprocess
 import sys
 import time
@@ -46,9 +45,8 @@ def _runner(mode):
 
 
 def _port_closed():
-    with socket.socket() as sock:
-        sock.settimeout(1)
-        return sock.connect_ex(('127.0.0.1',8765)) in {10061,111}
+    from scripts.reboot_recovery import listener_absent
+    return listener_absent()
 
 
 def _children_absent():
