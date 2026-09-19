@@ -252,7 +252,11 @@ def test_relay_terminal_v4_survives_authenticated_serialization(tmp_path):
 
 def test_health_failure_preserves_each_check_without_recovery(tmp_path,monkeypatch):
     runtime=tmp_path/'state';fixture_runtime(runtime)
-    monkeypatch.setattr(health.db,'check',lambda _: {'status':'FAIL'})
+    validate=health.db.validate_runtime_database
+    def failing(path):
+        if path.name=='telegram-state.sqlite3':raise ValueError('synthetic')
+        validate(path)
+    monkeypatch.setattr(health.db,'validate_runtime_database',failing)
     def pair(_):
         for probe in (s._LOCAL_READINESS_PROBE,s._PUBLIC_READINESS_PROBE):
             probe.last={'status':'PASS','at':'2026-09-19T00:00:00Z','http_status':200,'body_matches':True,
@@ -261,7 +265,10 @@ def test_health_failure_preserves_each_check_without_recovery(tmp_path,monkeypat
     monkeypatch.setattr(s,'_readiness_pair',pair)
     result=health.check(runtime,tmp_path/'diag')
     assert result['status']=='FAIL'
-    assert [row['status'] for row in result['checks']]==['FAIL','PASS','PASS']
+    failed=[row for row in result['checks'] if row['status']=='FAIL']
+    assert len(failed)==1 and failed[0]['boundary']=='telegram-state.sqlite3'
+    assert failed[0]['error_class']=='database_failed'
+    assert all(row['status']=='PASS' for row in result['checks'] if row['boundary']!='telegram-state.sqlite3')
 
 
 def test_rollback_reader_preserves_new_history_without_data_restore(tmp_path,no_native_mutex):
@@ -295,3 +302,120 @@ def test_rollback_reader_preserves_new_history_without_data_restore(tmp_path,no_
     old._rebind_recovery(digests[-1],root=history,activation_binding='sha256:'+'f'*64)
     after,_=s._runtime_history(root=history)
     assert after[:-1]==before
+
+
+def test_reboot_waits_for_same_lease_then_continues_once(tmp_path,no_native_mutex):
+    from datetime import UTC,datetime,timedelta
+    from uuid import uuid4
+    from src.transport.telegram.sqlite_checkpoint import SQLitePollingCheckpointStore
+    runtime=tmp_path/'state';fixture_runtime(runtime)
+    now=datetime.now(UTC)
+    checkpoint=SQLitePollingCheckpointStore(runtime/'telegram-checkpoint.sqlite3',consumer_id='synthetic',lease_duration_seconds=240)
+    checkpoint.acquire(uuid4(),now)
+    history=tmp_path/'history';started(history)
+    clock=[0.0]
+    def wait(seconds):clock[0]+=seconds
+    assert reboot.reconcile(s,SimpleNamespace(),root=history,binding=_BINDING,
+        current_boot='sha256:'+'e'*64,absent=lambda:True,
+        validate=lambda:reboot.validate_effects(runtime,now=now+timedelta(seconds=clock[0])),
+        clock=lambda:clock[0],wait=wait)
+    assert 240<=clock[0]<241
+    assert s._recovery_state(root=history,activation_binding=_BINDING)['next_attempt']==2
+    assert sum(row['event']=='reboot_reconciled' for row in s._runtime_history(root=history)[0])==1
+
+
+@pytest.mark.parametrize('cause',['changed','never_expires','runtime_appears'])
+def test_reboot_lease_wait_remains_bounded_and_exclusive(tmp_path,no_native_mutex,cause):
+    started(tmp_path);clock=[0.0];calls=[0]
+    before=(tmp_path/s.RUNTIME_EVENT_LOG_NAME).read_bytes()
+    def wait(seconds):clock[0]+=seconds
+    def validate():
+        calls[0]+=1
+        if cause=='runtime_appears' and calls[0]>1:return 'initial'
+        raise reboot.PreviousPollingLease(1,'changed' if cause=='changed' and calls[0]>1 else 'initial')
+    if cause=='runtime_appears':
+        assert not reboot.reconcile(s,SimpleNamespace(),root=tmp_path,binding=_BINDING,
+            current_boot='sha256:'+'e'*64,absent=lambda:calls[0]==0,validate=validate,clock=lambda:clock[0],wait=wait)
+    else:
+        with pytest.raises(ValueError,match='changed or deadline'):
+            reboot.reconcile(s,SimpleNamespace(),root=tmp_path,binding=_BINDING,
+                current_boot='sha256:'+'e'*64,absent=lambda:True,validate=validate,clock=lambda:clock[0],wait=wait)
+    assert clock[0]<=300 and (tmp_path/s.RUNTIME_EVENT_LOG_NAME).read_bytes()==before
+
+
+def test_reboot_delivered_capability_is_safe_unknown_still_stops(tmp_path):
+    from src.application.product_effects import DurableProductEffectVault,ProductEffectKind
+    runtime=tmp_path/'state';_,queue,_,_=fixture_runtime(runtime)
+    vault=DurableProductEffectVault(queue)
+    token=vault.issue(kind=ProductEffectKind.ARTIFACT,tenant_id='synthetic',user_id=1,chat_id=1,payload={'synthetic':True})
+    binding=vault.read(token,tenant_id='synthetic',user_id=1,chat_id=1)
+    for state in ('executing','unknown','completed'):
+        binding=vault.transition(binding,state=state,result={'delivered':False})
+        with pytest.raises(ValueError,match='effect capability'):reboot.validate_effects(runtime)
+    vault.transition(binding,state='delivered',result={'delivered':True})
+    reboot.validate_effects(runtime)
+
+
+@pytest.mark.parametrize('extra,expected',[({'backup_status':'VERIFIED'},True),({'backup_status':'NOT_CREATED'},False),({'backup_status':'VERIFIED','unreviewed':True},False)])
+def test_backup_journal_writer_and_restart_reader_agree(tmp_path,extra,expected):
+    config=tmp_path/'cycle.json';digest='sha256:'+'c'*64
+    backup._journal(tmp_path/'backup-cycle-state.dpapi',digest,'restart_permitted',
+        attempt_id='a'*32,generation='daily-20260919T033000-'+'b'*32,**extra)
+    assert s._backup_restart_authorized(config,digest) is expected
+
+
+@pytest.mark.parametrize('outcome',['recoverable','permanent','exhausted'])
+def test_backup_waits_only_for_authenticated_retry_progress(tmp_path,monkeypatch,outcome):
+    path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
+    ticks=[0.0];original=backup._runner
+    def runner(mode):
+        if mode=='--check-ready':return outcome=='recoverable' and ticks[0]>=421
+        return original(mode)
+    def progress(*args):
+        if outcome=='permanent':raise ValueError('runtime recovery stopped')
+        return 1 if ticks[0]<360 else 2+int((ticks[0]-360)//400)
+    monkeypatch.setattr(backup,'_runner',runner)
+    monkeypatch.setattr(backup,'_recovery_progress',progress)
+    def wait(seconds):ticks[0]+=seconds
+    if outcome=='recoverable':
+        assert backup.cycle(path,digest,clock=lambda:ticks[0],wait=wait)['runtime_ready']
+        assert 421<=ticks[0]<435
+    else:
+        with pytest.raises(ValueError):backup.cycle(path,digest,clock=lambda:ticks[0],wait=wait)
+        receipt=backup.managed._certificate(tmp_path/'backup-cycle-state.dpapi')
+        assert receipt['phase']=='failed_operator_required' and receipt['backup_status']=='VERIFIED'
+        assert receipt['admission_hold'] and receipt['cleanup_proven']
+        assert ticks[0]<=1140
+        if outcome=='permanent':assert ticks[0]==0
+
+
+@pytest.mark.parametrize('cause',['transport_refused','unknown'])
+def test_backup_progress_reads_authenticated_supervisor_history(tmp_path,cause):
+    runtime=tmp_path/'state';history=runtime/s.RECOVERY_DIRECTORY_NAME
+    started(history)
+    binding,initial=backup._recovery_anchor(runtime)
+    _record(history,'b'*32,'d'*32,'terminal',stage='relay_start',error_class='relay_exit',
+        supervisor_exit_code=1,relay_exit_code=255,relay_cause=cause,cleanup_outcome='proven',
+        recovery_disposition='retry' if cause=='transport_refused' else 'stop_non_retryable')
+    if cause=='transport_refused':
+        assert backup._recovery_progress(runtime,binding,initial)==2
+    else:
+        with pytest.raises(ValueError,match='recovery stopped'):backup._recovery_progress(runtime,binding,initial)
+        _,stopped_head=backup._recovery_anchor(runtime)
+        with pytest.raises(ValueError,match='recovery stopped'):backup._recovery_progress(runtime,binding,stopped_head)
+    with pytest.raises((ValueError,RuntimeError)):
+        backup._recovery_progress(runtime,'sha256:'+'0'*64,initial)
+
+
+@pytest.mark.parametrize('changed',[False,True])
+def test_reboot_rechecks_native_boot_proof_before_commit(tmp_path,no_native_mutex,monkeypatch,changed):
+    started(tmp_path)
+    identities=iter(['sha256:'+'e'*64,'sha256:'+('f' if changed else 'e')*64])
+    monkeypatch.setattr(reboot,'boot_identity',lambda:next(identities))
+    before=(tmp_path/s.RUNTIME_EVENT_LOG_NAME).read_bytes()
+    if changed:
+        with pytest.raises(ValueError,match='boot identity changed'):
+            reboot.reconcile(s,SimpleNamespace(),root=tmp_path,binding=_BINDING,validate=lambda:None,absent=lambda:True)
+        assert (tmp_path/s.RUNTIME_EVENT_LOG_NAME).read_bytes()==before
+    else:
+        assert reboot.reconcile(s,SimpleNamespace(),root=tmp_path,binding=_BINDING,validate=lambda:None,absent=lambda:True)

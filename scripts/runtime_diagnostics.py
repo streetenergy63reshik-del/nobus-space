@@ -90,9 +90,9 @@ def write_diagnostic(root: Path, kind: str, value: dict):
     for check in value["checks"]:
         if type(check) is not dict or set(check) != {"boundary", "status", "at", "http_status", "body_matches", "error_class", "elapsed_ms", "deadline_ms"}:
             raise ValueError("diagnostic check invalid")
-        if (check["boundary"] not in {"local", "public", "databases"}
+        if (check["boundary"] not in {"local", "public", "databases", "task-runtime.sqlite3", "telegram-state.sqlite3", "telegram-checkpoint.sqlite3", "business-notes.sqlite3"}
                 or check["status"] not in {"PASS", "FAIL", "NOT CHECKED"}
-                or check["error_class"] not in {None, "deadline", "cancelled", "probe_busy", "http_error", "transport_error", "probe_error", "response_mismatch", "database_failed", "database_degraded", "not_run"}
+                or check["error_class"] not in {None, "deadline", "cancelled", "probe_busy", "http_error", "transport_error", "probe_error", "response_mismatch", "database_failed", "database_degraded", "database_missing", "not_run"}
                 or type(check["body_matches"]) is not bool
                 or s.re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", check["at"]) is None
                 or (check["http_status"] is not None and (type(check["http_status"]) is not int or not 100 <= check["http_status"] <= 599))

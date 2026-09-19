@@ -93,6 +93,8 @@ def fake_cycle(tmp_path,monkeypatch):
     monkeypatch.setattr(cycle,'_runner',runner)
     monkeypatch.setattr(cycle,'_port_closed',lambda:True)
     monkeypatch.setattr(cycle,'_children_absent',lambda:True)
+    monkeypatch.setattr(cycle,'_recovery_anchor',lambda runtime:('synthetic','synthetic'))
+    monkeypatch.setattr(cycle,'_recovery_progress',lambda *args:1)
     from tests.test_codex_runtime_profile import native_fixture
     fixture_root, _, _ = native_fixture(tmp_path, monkeypatch)
     for name in ('ops/windows/Invoke-NobusSpaceTask.ps1','docs/11-Контекст-продукта.md'):

@@ -144,8 +144,35 @@ def _cleanup(config,clock,wait):
     return False
 
 
+def _recovery_anchor(runtime):
+    from scripts import run_nobus_space_live as s
+    event, digest = s._last_runtime_event(root=runtime/s.RECOVERY_DIRECTORY_NAME)
+    if event is None:
+        raise ValueError('recovery history unavailable')
+    return event['activation_binding'], digest
+
+
+def _recovery_progress(runtime, binding, initial_digest):
+    from scripts import run_nobus_space_live as s
+    event, digest = s._last_runtime_event(root=runtime/s.RECOVERY_DIRECTORY_NAME, activation_binding=binding)
+    if event is None:
+        raise ValueError('recovery history unavailable')
+    event = s._effective_event(event)
+    if (event['recovery_disposition'].startswith('stop_')
+            and event['recovery_disposition']!='stop_planned') or event['event']=='control_failure':
+        raise ValueError('runtime recovery stopped')
+    if digest == initial_digest:
+        return 1
+    if event['recovery_disposition']=='stop_planned':
+        raise ValueError('runtime recovery stopped')
+    # Only authenticated history can authorize more time; a running task alone
+    # cannot renew the budget. Preserve the supervisor's own finite retry count.
+    return event['attempt'] + int(event['recovery_disposition']=='retry')
+
+
 def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotonic,wait=time.sleep):
     with WindowsNamedMutex(r'Global\NobusSpaceBackupCycle'):
+        cycle_deadline=clock()+1140
         config=load_config(config_path,expected)
         runtime,backups=Path(config['runtime']),Path(config['backup_root'])
         journal=m.checked_path(config_path.parent/'backup-cycle-state.dpapi')
@@ -219,15 +246,21 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             load_config(config_path,expected)
             if not _stopped(config):
                 raise ValueError('runtime changed before restart')
+            recovery_binding,initial_history=_recovery_anchor(runtime)
             record('restart_permitted',generation=generation.name)
             managed.permit_admission(backups,config['ownership'])
             _bound_task(config,'Enable',main)
             _bound_task(config,'Start',main)
             record('starting',generation=generation.name)
-            deadline=clock()+375
+            deadline=min(clock()+375,cycle_deadline)
+            allowed_attempt=1
             while clock()<deadline:
                 if _task('Inspect',main)['state']=='Running' and _runner('--check-ready'):
                     break
+                attempt=_recovery_progress(runtime,recovery_binding,initial_history)
+                if attempt>allowed_attempt:
+                    allowed_attempt=attempt
+                    deadline=min(clock()+435,cycle_deadline)
                 wait(3)
             else:
                 raise ValueError('runtime restart readiness failed')

@@ -2675,10 +2675,12 @@ def _backup_restart_authorized(config_path: Path, config_digest: str) -> bool:
                 or not 0 < journal.stat().st_size <= 64 * 1024):
             return False
         value = managed_backups._certificate(journal)
-        if (type(value) is not dict or set(value) != {
+        allowed = {
                 "schema", "config_digest", "phase", "at", "attempt_id",
                 "generation",
             }
+        if (type(value) is not dict or set(value) not in (allowed, allowed | {"backup_status"})
+                or ("backup_status" in value and value["backup_status"] != "VERIFIED")
                 or value["schema"] != "c6-backup-cycle-state-1"
                 or value["config_digest"] != config_digest
                 or value["phase"] not in {"restart_permitted", "starting"}
@@ -2690,7 +2692,9 @@ def _backup_restart_authorized(config_path: Path, config_digest: str) -> bool:
         if stamp.tzinfo is None:
             return False
         age = current - stamp
-        return -timedelta(minutes=1) <= age <= timedelta(minutes=10)
+        # New cycles may follow authenticated retry progress, bounded by the
+        # existing 20-minute Scheduler limit with one minute reserved for cleanup.
+        return -timedelta(minutes=1) <= age <= timedelta(minutes=19 if "backup_status" in value else 10)
     except (KeyError, OSError, RuntimeError, TypeError, ValueError):
         return False
 

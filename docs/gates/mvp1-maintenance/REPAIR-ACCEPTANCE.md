@@ -42,6 +42,14 @@ deliveries. Новый reboot_reconciled ссылается на прежний 
 следующая попытка расходует прежний бюджет. Legacy starting без boot-доказательства,
 неизвестность, повреждение или несовпадение остаются STOP. ПК ради проверки не
 перезагружается. Получение boot GUID проверено реальным read-only Windows API.
+Если прежняя lease ещё действует (production TTL240с), при доказанной смене boot
+и отсутствии runtime допускается ограниченное ожидание до300с с неизменным
+checkpoint digest под теми же mutex. Затем повторяются полная проверка и
+отсутствие процессов. Изменение lease, превышение срока или unknown — STOP.
+Защищённая capability в delivered с проверенным token/tenant/effect binding
+считается завершённой; pending/executing/completed/unknown остаются STOP.
+Завершённый effect job удаляется штатным ACK; произвольный finished для effect
+не является допустимым состоянием существующего контракта.
 
 Relay stderr читается только в ограниченную память (8192 байта) и не сохраняется.
 Retry разрешают только завершённые однозначные OpenSSH transport diagnostics:
@@ -54,7 +62,8 @@ deadlines 2/5с, steady 3 неудачи с интервалом 10с не ув�
 Readiness и Health используют один local probe с Host app.nobusspace.com и
 точным телом {"status":"ready"}. Диагностический журнал сохраняет разрешённые
 поля: boundary, PASS/FAIL, время, status/error class, elapsed/deadline, stage,
-attempt. Его объём ограничен двумя сегментами по 1MiB. Health не перезапускает
+attempt. Health сохраняет allowlisted имя и результат каждой БД. Его объём
+ограничен двумя сегментами по 1MiB. Health не перезапускает
 Core; его FAIL и доступность маршрутов фиксируются отдельно. Наблюдатель
 независимо читает DB, delivery, checkpoint, backup, hold и local/public; при
 непроверенной task DB delivery — NOT CHECKED, а не нули. Read-only SQLite
@@ -66,6 +75,13 @@ failed_operator_required сохраняет generation, phase, причину, h
 или неизвестный результат не превращается в успешную остановку. Восстановление
 после отказа использует прежний штатный exact-digest recover-failure; автоматическое
 acknowledgement неизвестной аварийной серии не добавлено.
+Начальное ожидание backup restart375с продлевается только по аутентифицированной
+истории той же activation binding при переходе к следующей retry-попытке,
+на startup360с + pause60с +15с запаса. Абсолютный предел цикла1140с оставляет
+60с до существующего Scheduler limit20мин для cleanup. Permanent/UNKNOWN STOP
+немедленно завершает ожидание. Readiness deadlines и retry-budget не изменены.
+Новый restart journal допускает ровно дополнительное backup_status=VERIFIED;
+его admission-разрешение ограничено19мин, legacy journal — прежними10мин.
 
 ## L1 и ограничения доказательств
 
@@ -93,7 +109,7 @@ Source, merge и deployed фиксируются раздельно. Новые 
 одноразовые квитанции; операторы PR32/18 сентября не повторяются.
 
 Прямой возврат на 0bd63db несовместим с schema4. Для возврата подготовлен
-[патч reader-совместимости](../../../..//ops/windows/m1-s1-rollback-compat.patch):
+[патч reader-совместимости](../../../../ops/windows/m1-s1-rollback-compat.patch):
 он применяется только к 0bd63db, сохраняет прежний executable behavior и добавляет
 чтение/валидацию новой истории и её recovery disposition. Автоматическое boot
 reconciliation, новые probes и relay capture в rollback не включаются. Перед
@@ -110,3 +126,13 @@ effect/cleanup или неразрешённой аварии — hold и опе
 четыре БД PASS, все прежние строки сохранены, offset не уменьшился, unknown/stuck
 нет. Новые законные задачи учитываются, счётчики не обязаны остаться 87/85/16.
 До выполнения этой части итоговая эксплуатационная приёмка не объявляется.
+
+## Независимые замечания первого кандидата
+
+Кандидат e128c39: L2 NOT PASS / L3 REWORK. До production выявлены и исправляются
+одним пакетом: несовпадение backup_status с exact-key validator; STOP при ещё
+действующей прежней lease после reboot; обрыв допустимого retry по375с backup
+deadline; потеря отдельной DB-причины в Health; STOP для доказанно delivered
+capability. Исходные отзывы и первый commit сохранены. Повторный разбор выполняют
+те же L2/L3 по изменённым ветвям и зависимым контрактам; прежние успешные проверки
+неизменных файлов не перезапускаются.

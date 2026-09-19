@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import socket
 import subprocess
+import time
 from uuid import UUID, uuid4
 
 
@@ -51,21 +52,44 @@ $items.Count
         return sock.connect_ex(("127.0.0.1", 8765)) in {10061, 111}
 
 
-def validate_effects(runtime):
+class PreviousPollingLease(ValueError):
+    def __init__(self, seconds, binding):
+        super().__init__("polling lease active")
+        self.seconds, self.binding = seconds, binding
+
+
+def validate_effects(runtime, *, now=None):
     from src.application import runtime_maintenance as m
     m.validate_runtime_set(runtime)
     store = m._read_only_store(runtime / "task-runtime.sqlite3")
     if store.restore_reconciliation_required():
         raise ValueError("reconciliation required")
+    pending_lease = None
     with closing(m._read_connection(runtime / "telegram-checkpoint.sqlite3")) as con:
         for (expires,) in con.execute("SELECT lease_expires_at FROM telegram_polling_checkpoints"):
-            if expires is not None and datetime.fromisoformat(expires) > datetime.now(UTC):
-                raise ValueError("polling lease active")
+            remaining = (datetime.fromisoformat(expires) - (now or datetime.now(UTC))).total_seconds() if expires else 0
+            if remaining > 0:
+                if remaining > 300:
+                    raise ValueError("polling lease deadline invalid")
+                pending_lease = PreviousPollingLease(remaining, m.database_state_digest(runtime / "telegram-checkpoint.sqlite3"))
     with closing(m._read_connection(runtime / "telegram-state.sqlite3")) as con:
         if con.execute("SELECT COUNT(*) FROM telegram_jobs WHERE status NOT IN ('finished','failed') OR kind='effect'").fetchone()[0]:
             raise ValueError("unfinished task requires reconciliation")
-        if con.execute("SELECT COUNT(*) FROM telegram_capabilities WHERE kind='action'").fetchone()[0]:
-            raise ValueError("effect capability requires reconciliation")
+        from src.application.durable_telegram_state import DpapiJsonCodec
+        from src.application.product_effects import ProductEffectKind
+        from src.contracts.models import canonical_json_digest
+        for token_digest, tenant, protected in con.execute("SELECT token_digest,tenant_id,payload FROM telegram_capabilities WHERE kind='action'"):
+            value = DpapiJsonCodec().decode(bytes(protected))
+            # A delivered capability is inert. All unfinished/unknown effects STOP.
+            if (set(value) != {"token", "kind", "tenant_id", "user_id", "chat_id", "payload", "effect_digest", "state", "result"}
+                    or value["state"] != "delivered" or value["tenant_id"] != tenant
+                    or type(value["token"]) is not str
+                    or "sha256:" + hashlib.sha256(value["token"].encode()).hexdigest() != token_digest
+                    or value["kind"] not in {kind.value for kind in ProductEffectKind}
+                    or type(value["user_id"]) is not int or type(value["chat_id"]) is not int
+                    or type(value["result"]) is not dict
+                    or canonical_json_digest(value["payload"]) != value["effect_digest"]):
+                raise ValueError("effect capability requires reconciliation")
     with closing(m._read_connection(runtime / "task-runtime.sqlite3")) as con:
         rows = con.execute("SELECT tenant_id,task_id FROM task_snapshots").fetchall()
         for tenant in {row[0] for row in rows}:
@@ -77,9 +101,13 @@ def validate_effects(runtime):
             task = store.read_task(tenant, UUID(task_id))
             if task is None or task.projection.status.value not in {"answered", "completed", "failed", "rejected", "waiting_input", "waiting_human", "deferred", "escalate"}:
                 raise ValueError("task requires reconciliation")
+    if pending_lease is not None:
+        raise pending_lease
+    return m.database_state_digest(runtime / "telegram-checkpoint.sqlite3")
 
 
-def reconcile(s, values, *, root, binding, current_boot=None, validate=None, absent=None):
+def reconcile(s, values, *, root, binding, current_boot=None, validate=None, absent=None,
+              clock=time.monotonic, wait=time.sleep):
     """Caller owns the supervisor mutex. Hold Core + backup exclusion to commit."""
     from src.application.windows_singleton import WindowsNamedMutex
     state = s._recovery_state(root=root, activation_binding=binding)
@@ -94,7 +122,24 @@ def reconcile(s, values, *, root, binding, current_boot=None, validate=None, abs
     with WindowsNamedMutex(r"Global\NobusSpaceBackupCycle"), WindowsNamedMutex():
         if not (absent or (lambda: children_absent(s.WORKTREE, s.REVERSE_BINDING)))():
             return False
-        (validate or (lambda: validate_effects(values.runtime_root)))()
+        validate = validate or (lambda: validate_effects(values.runtime_root))
+        deadline, lease_binding = clock() + 300, None
+        while True:
+            try:
+                checked_lease = validate()
+                if lease_binding is not None and checked_lease != lease_binding:
+                    raise ValueError("previous polling lease changed or deadline expired")
+                break
+            except PreviousPollingLease as lease:
+                if (not 0 < lease.seconds <= 300 or clock() >= deadline
+                        or (lease_binding is not None and lease.binding != lease_binding)):
+                    raise ValueError("previous polling lease changed or deadline expired") from None
+                lease_binding = lease.binding
+                wait(min(1, lease.seconds, max(0, deadline - clock())))
+        if not (absent or (lambda: children_absent(s.WORKTREE, s.REVERSE_BINDING)))():
+            return False
+        if current_boot is None and boot_identity() != boot:
+            raise ValueError("boot identity changed")
         again, head = s._last_runtime_event(root=root, activation_binding=binding)
         if head != digest or s._effective_event(again) != event:
             raise ValueError("recovery history changed")
