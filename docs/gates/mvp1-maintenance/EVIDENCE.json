@@ -10371,5 +10371,276 @@
     ],
     "documentation_publication": "LOCAL_WIP_NOT_PUBLISHED",
     "prior_evidence_preserved": true
+  },
+  "post_window_repair_20260919": {
+    "schema": "m1-s1-owner-short-acceptance-1",
+    "at": "2026-09-19T08:51:21.156577+00:00",
+    "status": "OPEN_QUALIFICATION_PENDING",
+    "owner_criteria_date": "2026-09-19",
+    "historical_72h": "NOT PASS",
+    "new_72h_started": false,
+    "heartbeat": "PAUSED",
+    "mvp2": "NOT STARTED",
+    "source_sha": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+    "merge_sha": "8af1309af36eb3ab591186906975dd8cd3ac9880",
+    "deployed_sha": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+    "publication": [
+      {
+        "pr": 33,
+        "merge": "335a1574e5cdd3fac3dcb14df95ebf1f1988b6a0"
+      },
+      {
+        "pr": 34,
+        "merge": "8af1309af36eb3ab591186906975dd8cd3ac9880"
+      }
+    ],
+    "rollback_code_sha": "220b396ba992a8b2668b5ea3fa632da6f10b7853",
+    "activation_binding": "sha256:098ef3f231d54244f2d8fe35cfb6f2fb1de87a5d6fbbc367dea11abe1c044f25",
+    "backup_config_digest": "sha256:028620bb5b0d94224a114c9f5d630895e1d9df2df40e491235823dd116a2ce70",
+    "independent_reviews": [
+      {
+        "source": "e128c39ae01282a2731acd629fbe2c01f66f9bb0",
+        "L2": "NOT PASS",
+        "L3": "REWORK",
+        "findings_collected_before_batch": true
+      },
+      {
+        "source": "5425db84c96fc99d5cbc4b0d67ef6efe4068d93e",
+        "L2": "PASS",
+        "L3": "PASS"
+      },
+      {
+        "source": "0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83",
+        "L2": "PASS",
+        "L3": "PASS",
+        "scope": "Windows listener delta plus unchanged accepted dependency evidence",
+        "same_reviewers": true
+      }
+    ],
+    "tests": {
+      "repair-coherent-04.xml": {
+        "path": ".runtime/worktrees/m1-s1-stability/.runtime/m1-s1/repair-coherent-04.xml",
+        "sha256": "ab34f87c2eb5870fae8d57a6420e7d031db0687e68a1884b61157086515e37cc",
+        "bytes": 54447,
+        "tests": 280,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "repair-dependency-01.xml": {
+        "path": ".runtime/worktrees/m1-s1-stability/.runtime/m1-s1/repair-dependency-01.xml",
+        "sha256": "a1e66526d0596992535b76a56f9cb4a1d397945bf2b5f76c8dd5e928dcc0f5e6",
+        "bytes": 2910,
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "repair-review-fixes-02.xml": {
+        "path": ".runtime/worktrees/m1-s1-stability/.runtime/m1-s1/repair-review-fixes-02.xml",
+        "sha256": "7c45c6dedf11b86a8e55412fc7a1224dbed13e06a687d44ce07b585780f1881b",
+        "bytes": 21950,
+        "tests": 98,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "repair-final-branches-01.xml": {
+        "path": ".runtime/worktrees/m1-s1-stability/.runtime/m1-s1/repair-final-branches-01.xml",
+        "sha256": "3b97f06ab6b978991d3bc6e1e8b3657f31d9a2ac37364ad2f0f430d972623e84",
+        "bytes": 832,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "repair-listener-01.xml": {
+        "path": ".runtime/worktrees/m1-s1-stability/.runtime/m1-s1/repair-listener-01.xml",
+        "sha256": "23487b89afab60703f92f251e840772d362cc42b4ac52a3954056c402f6498e3",
+        "bytes": 1380,
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "receipts": {
+      "plan.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/plan.json",
+        "sha256": "876ea22f83d41aaa257149f7a433f6707f0033dacfd08ed8410b62f1f28725ef",
+        "bytes": 1204
+      },
+      "baseline.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/baseline.json",
+        "sha256": "4ce8ea4dc4a9f61dae67b48ff8695469a8a71912e703bb2086a8042c1659cd82",
+        "bytes": 45826
+      },
+      "stopped-backup.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/stopped-backup.json",
+        "sha256": "23400a0fd48b54530a5288b7933946b919965af5d3ac76b5e07dd6188079794a",
+        "bytes": 45945
+      },
+      "candidate-backup-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/candidate-backup-result.json",
+        "sha256": "6952f46d82d248588845ac02fdf2b921e0edd2de7dbc015c293861c2c3557338",
+        "bytes": 296
+      },
+      "config-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/config-result.json",
+        "sha256": "dca18a3f47fa35b821c2f9097582a1c4c0b3e8c907771945e5c3be7b6532e0d3",
+        "bytes": 216
+      },
+      "rebind-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/rebind-result.json",
+        "sha256": "75e8c44c3dc858f5305b5b76afa530ab395590cbb8ae633204ecda546b47c120",
+        "bytes": 710
+      },
+      "start-issued.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/start-issued.json",
+        "sha256": "9981bbfe7ca7b51dcbc02f1a4d53476d531a1d7673f1c7db5e9a36a5f70b06d5",
+        "bytes": 61
+      },
+      "ready-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/ready-result.json",
+        "sha256": "52665a584a4e16cb94d510504ee0cb4ef68e2a200d1111c6cb8552a70bc1eb9e",
+        "bytes": 3024
+      },
+      "first-readiness.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/first-readiness.json",
+        "sha256": "f6df53ada54fcaec70f00fdd7859f7b27cdc4d1049de504b42add2f06cb9ad62",
+        "bytes": 585
+      },
+      "health-readback.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/health-readback.json",
+        "sha256": "a98a1ab70c14db18a4f0815ef2aa7fbe50f7ea269c5413174e0c18a9a9780087",
+        "bytes": 6080
+      },
+      "controlled-backup-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/controlled-backup-result.json",
+        "sha256": "356f4908197844e20be75c7b505f331c9498f02afcf04db0dc015fc50086398c",
+        "bytes": 569
+      },
+      "identity-readback.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/identity-readback.json",
+        "sha256": "fbab0044d729ef587dce4c38727898f584d96f246780ccd0e34166ffa1500110",
+        "bytes": 366
+      },
+      "process-readback.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/process-readback.json",
+        "sha256": "9be8467f85fca60628075c1a413e6298ca8f2dd079e9de0ec8920e91f2c3d5e0",
+        "bytes": 1078
+      },
+      "final-result.json": {
+        "path": ".runtime/production-c6/m1-s1-final-20260919-r2/final-result.json",
+        "sha256": "c6787518c60f3a6f5bb3342f1933bb1e8e02fe36dcfd2993422beeb329eca7ae",
+        "bytes": 3682
+      }
+    },
+    "runtime_check": {
+      "at": "2026-09-19T08:48:40.591202+00:00",
+      "status": "PASS",
+      "local": {
+        "boundary": "local",
+        "http_status": 200,
+        "body_matches": true,
+        "error_class": null,
+        "at": "2026-09-19T08:48:20Z",
+        "elapsed_ms": 344,
+        "deadline_ms": 2000,
+        "status": "PASS"
+      },
+      "public": {
+        "boundary": "public",
+        "http_status": 200,
+        "body_matches": true,
+        "error_class": null,
+        "at": "2026-09-19T08:48:21Z",
+        "elapsed_ms": 937,
+        "deadline_ms": 5000,
+        "status": "PASS"
+      },
+      "four_databases": "PASS",
+      "old_rows_preserved": true,
+      "offset_monotonic": true,
+      "checkpoint": [
+        {
+          "offset": 375633520,
+          "revision": 65740,
+          "active": true
+        }
+      ],
+      "delivery": {
+        "counts": {
+          "pending": 0,
+          "leased": 0,
+          "unknown": 0,
+          "failed": 0,
+          "confirmed_parts": 16
+        },
+        "reconciliation": false
+      },
+      "one_logical_chain": true,
+      "one_listener": true,
+      "active_lease": true,
+      "admission_hold": false
+    },
+    "health_runs": [
+      {
+        "at": "2026-09-19T08:40:59Z",
+        "status": "FAIL",
+        "run_id": "5c0487cf2413422ea3dc4ad09aff0c60"
+      },
+      {
+        "at": "2026-09-19T08:41:51Z",
+        "status": "PASS",
+        "run_id": "ba279e696d864869a247e978e50942a4"
+      },
+      {
+        "at": "2026-09-19T08:42:52Z",
+        "status": "PASS",
+        "run_id": "8a75f91a2adf4853a513ced21fac4c7a"
+      }
+    ],
+    "startup_fail_classification": "08:40:59Z local deadline/public503 before readiness; retained, not steady outage",
+    "controlled_backup": {
+      "status": "PASS",
+      "started_at": "2026-09-19T08:42:35Z",
+      "completed_at": "2026-09-19T08:46:03.077976+00:00",
+      "generation": "daily-20260919T114339-d3bc57fd7b6046b388022492ac5b40f1",
+      "copy_status": "VERIFIED",
+      "cycle_phase": "complete",
+      "scheduler_exit": 0,
+      "hold": false,
+      "readiness_after": "PASS"
+    },
+    "deployment_precondition_stops": [
+      {
+        "stage": "first stopped absence proof",
+        "reason": "Windows connect_ex timeout10035 did not prove closed listener",
+        "action": "safe STOP before backup/checkout; old runtime restored once after exact clean-head readback; PR34 fixed proof"
+      },
+      {
+        "stage": "stage_main_health",
+        "reason": "single-use operator omitted required existing rollback directory",
+        "action": "old disabled XML and launcher readback unchanged; create directory; continue from installer without recopy/recheckout"
+      },
+      {
+        "stage": "permit",
+        "reason": "old copy code_digest differs from accepted deployed source",
+        "action": "STOP before permit intent; verify unchanged DB snapshot; create candidate-bound prechange copy; preserve old copy; then permit/start once"
+      }
+    ],
+    "qualification": {
+      "status": "NOT CHECKED",
+      "reason": "Await owner clarification: one total model call conflicts with semantic admission plus task executor in current normal route",
+      "text_tasks_submitted": 0,
+      "executor_model_calls": 0,
+      "semantic_model_calls": 0,
+      "asr_calls": 0,
+      "required_next_action": "Clarify whether one executor call plus separate normal semantic call is allowed; do not change access/binding or submit until answer"
+    },
+    "historical_external_causes": "UNKNOWN where original SSH/public/Health details were not retained",
+    "observability_limit": "Targeted regressions close technical gaps; not proof that external causes were eliminated; no new72h window",
+    "memory_limit": "Vibecoding records outside allowed scope; relevant memory Search failed; continue Git/local evidence without access workaround"
   }
 }
