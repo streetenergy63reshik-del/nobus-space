@@ -424,6 +424,12 @@ def _read_only_store(path: Path):
     store._path = path
     store._verifier_registry = None
     store._busy_timeout_ms = 5_000
+    def connect():
+        connection = _read_connection(path)
+        connection.row_factory = sqlite3.Row
+        return connection
+    # Inspection must not enter SQLiteStore's production admission/write path.
+    store._connect = connect
     return store
 
 

@@ -595,7 +595,8 @@ def test_c5_installer_health_delegates_exact_bounded_probe_and_has_total_task_li
     installer = (Path(__file__).parents[1] / "ops/windows/Install-NobusSpaceBot.ps1").read_text(encoding="utf-8")
     body = installer.split('$healthBody = @"', 1)[1].split('"@', 1)[0]
     assert "Invoke-WebRequest" not in body
-    assert "--check-ready 1>`$null 2>`$null" in body
+    assert "--diagnostic-root" in body
+    assert "scripts\\check_nobus_space_health.py" in installer
     assert "*>>" not in body and "health.log" not in body
     assert "if (`$LASTEXITCODE -ne 0)" in body
     assert "Start-ScheduledTask" not in body

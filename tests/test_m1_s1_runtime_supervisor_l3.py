@@ -1221,7 +1221,7 @@ def test_m1_bot_installer_second_registration_failure_leaves_pair_disabled(
         ".venv/Scripts/python.exe",
         ".venv/Scripts/pythonw.exe",
         "scripts/run_nobus_space_live.py",
-        "scripts/check_telegram_health.py",
+        "scripts/check_nobus_space_health.py",
     ):
         (root / relative).write_bytes(b"synthetic\n")
     launcher = root / ".runtime" / "check-nobus-space-bot.ps1"

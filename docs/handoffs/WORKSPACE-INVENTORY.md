@@ -1,12 +1,14 @@
 # Nobus Space — рабочие каталоги
 
-**Актуально на 9 сентября 2026.** Канон принятой истории — защищённая GitHub main; точный опубликованный код и состояние runtime разделены в [CURRENT](CURRENT-STATUS.md).
+**Актуально на 16 сентября 2026.** Канон принятой истории — защищённая GitHub main; точный опубликованный код и состояние runtime разделены в [CURRENT](CURRENT-STATUS.md). Исторические сведения об очистке ниже не являются новым разрешением на удаление.
 
 | Каталог относительно Code | Назначение |
 |---|---|
-| nobus-orchestrator-dev | Основной чистый checkout main; Python-окружение и закрытые служебные архивы сохраняются. |
+| nobus-orchestrator-dev | Канонический checkout с сохранённым пользовательским WIP; локальная main не подменяет принятую remote main. `.venv` production и закрытые архивы сохраняются. |
 | worktrees/mvp1-closure-c6 | Рабочая ветка завершения и документации C6. |
-| worktrees/telegram-live | Штатный runtime checkout принятой 82003c03; постоянный процесс работает. Состояние и резервные копии сохраняются отдельно. |
+| worktrees/telegram-live | Runtime checkout принятого maintenance `0bd63db`; наличие работающего процесса проверяется отдельно. StateRoot и BackupRoot сохранены в canonical `.runtime/production-c6`. |
+| nobus-orchestrator-dev/.runtime/worktrees/m1-s1-stability | Рабочая ветка `codex/m1-s1-stability`; код принятого кандидата и текущая непубликуемая автоматически документная проекция. |
+| nobus-orchestrator-dev/.runtime/production-python/cpython-3.12.14-ed91bed4/base | Отдельная точная копия Python 3.12.14 для `.venv`, вне обновляемого кэша Codex. Inventory и rollback `pyvenv.cfg` хранятся рядом; не обновлять или удалять как кэш. |
 | nobus-orchestrator-dev/.runtime/worktrees/mvp1-closure-c2-voice-parity | Сохранён из-за ASR-модели, указанной в действующем профиле. Удалять его как промежуточную копию нельзя. |
 
 Восемь устаревших рабочих копий удалены после проверки полных архивов: c1-publication-status, c0-publication, c0-publication-readback, c0-truth-contract, release-docs, closure-c5, docs-product-readiness и docs-status-g7-ready.

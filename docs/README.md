@@ -1,8 +1,8 @@
 # Документация Nobus Space
 
-**9 сентября 2026:** MVP1 82003c03 принят владельцем, постоянный режим и ежедневная копия 03:30 МСК работают. Аннотированный v1.0.2 опубликован; GitHub release опубликован. [Текущий статус](handoffs/CURRENT-STATUS.md).
+**16 сентября 2026:** опубликованный релиз v1.0.2 (`82003c03`) сохранён. Maintenance M1-S1 принят и слит: source/deployed `0bd63db`, merge/main `26860ad`. Текущее состояние runtime и незавершённое 72-часовое наблюдение — в [CURRENT](handoffs/CURRENT-STATUS.md) и [M1-S1](gates/mvp1-maintenance/HANDOFF.md). Принятие релиза не означает непрерывную доступность production.
 
-Начните с [текущего статуса](handoffs/CURRENT-STATUS.md), [пакета C6](gates/gate-c6-release/HANDOFF.md) и [эксплуатационной инструкции](08-Runbook-эксплуатации.md). Точная история проверки кода — [PROMPT-RECHECK-10](gates/gate-c6-release/PROMPT-RECHECK-10.md).
+Начните с [текущего статуса](handoffs/CURRENT-STATUS.md), [пакета M1-S1](gates/mvp1-maintenance/HANDOFF.md) и [эксплуатационной инструкции](08-Runbook-эксплуатации.md). [Пакет C6](gates/gate-c6-release/HANDOFF.md) и [PROMPT-RECHECK-10](gates/gate-c6-release/PROMPT-RECHECK-10.md) сохраняют историю принятого релиза; C6 не переоткрывается.
 
 Тонкие Telegram и Mini App используют один локальный Core по ADR 0022/0023. Полный распределённый Gate 2A остаётся FROZEN / NOT CURRENT; MVP2 HOLD. Редакционные документы 15/16 сохраняются как неопубликованный WIP и не подменяют принятый продукт.
 
@@ -49,7 +49,7 @@ pointer, короткий status, decisions и freshness.
    worktrees и recovery; точное live-состояние всегда читается из Git.
 9. [Owner inputs](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) —
    оставшиеся пользовательские сценарии, точное переключение и итоговая приёмка.
-10. [Gate index](gates/README.md) — принятые C0–C5, текущий C6 и исторические Gate.
+10. [Gate index](gates/README.md) — принятые C0–C6, текущий maintenance M1-S1 и исторические Gate.
 11. [C0 handoff](gates/gate-c0-mvp1-truth-contract/HANDOFF.md) — exact
     predecessor/contract C1.
 12. [C1 acceptance](gates/gate-c1-semantic-task-compiler/ACCEPTANCE.md) и
@@ -109,4 +109,4 @@ product effect.
 - Не записывать credentials, tokens, cookies, raw payload, audio, local secret
   paths или данные другого tenant.
 
-Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [рабочем пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). В LIVE работает принятая 82003c03 из PR №30; [проверка исходника](gates/gate-c6-release/NATIVE-PROMPT-REVIEW-11.md) сохранена с её привязками.
+Исправление зависшего приёма Mini App в C6 описано в [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) и [историческом пакете](gates/gate-c6-release/INTAKE-CORRECTION-07.md). Принятая 82003c03 из PR №30 и [проверка исходника](gates/gate-c6-release/NATIVE-PROMPT-REVIEW-11.md) сохранены с их привязками. Последующий LIVE maintenance — `0bd63db` из PR №32; runtime подтверждается текущим срезом, а не строкой о релизе.

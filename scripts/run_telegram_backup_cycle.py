@@ -48,7 +48,13 @@ def _runner(mode):
 def _port_closed():
     with socket.socket() as sock:
         sock.settimeout(1)
-        return sock.connect_ex(('127.0.0.1',8765))!=0
+        return sock.connect_ex(('127.0.0.1',8765)) in {10061,111}
+
+
+def _children_absent():
+    from scripts.reboot_recovery import children_absent
+    from scripts.run_nobus_space_live import REVERSE_BINDING
+    return children_absent(ROOT,REVERSE_BINDING)
 
 
 def load_config(path,expected):
@@ -103,7 +109,7 @@ def _stopped(config):
         actual=_task('Inspect',item['name'])
         if actual['signature']!=item['signature'] or actual['enabled'] or actual['state']=='Running':
             return False
-    if not _port_closed():
+    if not _port_closed() or not _children_absent():
         return False
     try:
         with WindowsNamedMutex(r'Global\NobusSpaceBotSupervisor'), WindowsNamedMutex():
@@ -118,6 +124,11 @@ def _cleanup(config,clock,wait):
     for item in config['tasks'].values():
         try: _bound_task(config,'Disable',item['name'])
         except Exception: pass
+    try:
+        if _stopped(config):
+            return True
+    except Exception:
+        pass  # Unknown absence still requires the normal bounded cleanup path.
     try: _runner('--stop')
     except Exception: pass
     for item in config['tasks'].values():
@@ -133,8 +144,35 @@ def _cleanup(config,clock,wait):
     return False
 
 
+def _recovery_anchor(runtime):
+    from scripts import run_nobus_space_live as s
+    event, digest = s._last_runtime_event(root=runtime/s.RECOVERY_DIRECTORY_NAME)
+    if event is None:
+        raise ValueError('recovery history unavailable')
+    return event['activation_binding'], digest
+
+
+def _recovery_progress(runtime, binding, initial_digest):
+    from scripts import run_nobus_space_live as s
+    event, digest = s._last_runtime_event(root=runtime/s.RECOVERY_DIRECTORY_NAME, activation_binding=binding)
+    if event is None:
+        raise ValueError('recovery history unavailable')
+    event = s._effective_event(event)
+    if (event['recovery_disposition'].startswith('stop_')
+            and event['recovery_disposition']!='stop_planned') or event['event']=='control_failure':
+        raise ValueError('runtime recovery stopped')
+    if digest == initial_digest:
+        return 1
+    if event['recovery_disposition']=='stop_planned':
+        raise ValueError('runtime recovery stopped')
+    # Only authenticated history can authorize more time; a running task alone
+    # cannot renew the budget. Preserve the supervisor's own finite retry count.
+    return event['attempt'] + int(event['recovery_disposition']=='retry')
+
+
 def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotonic,wait=time.sleep):
     with WindowsNamedMutex(r'Global\NobusSpaceBackupCycle'):
+        cycle_deadline=clock()+1140
         config=load_config(config_path,expected)
         runtime,backups=Path(config['runtime']),Path(config['backup_root'])
         journal=m.checked_path(config_path.parent/'backup-cycle-state.dpapi')
@@ -169,7 +207,13 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
         attempt_id=old.get('attempt_id') if recovering else uuid4().hex
         if not isinstance(attempt_id,str) or not re.fullmatch('[0-9a-f]{32}',attempt_id):
             raise ValueError('failed cycle attempt binding invalid')
+        generation_name=None
+        phase_name='preflight'
         def record(phase,**details):
+            nonlocal phase_name
+            phase_name=phase
+            details.setdefault('generation',generation_name)
+            details.setdefault('backup_status','VERIFIED' if generation_name else 'NOT_CREATED')
             _journal(journal,expected,phase,attempt_id=attempt_id,**details)
         try:
             managed.hold_admission(backups,config['ownership'])
@@ -195,21 +239,28 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             if shutil.disk_usage(runtime).free<256*1024*1024:
                 raise ValueError('runtime disk pressure')
             generation=managed.create_generation(backups,runtime,config['ownership'],attempt_id=attempt_id)
+            generation_name=generation.name
             retention=managed.retention(backups,config['ownership'],apply=True)
             record('backed_up',generation=generation.name)
             # Recheck exact inputs/actions after snapshot before resuming the one task.
             load_config(config_path,expected)
             if not _stopped(config):
                 raise ValueError('runtime changed before restart')
+            recovery_binding,initial_history=_recovery_anchor(runtime)
             record('restart_permitted',generation=generation.name)
             managed.permit_admission(backups,config['ownership'])
             _bound_task(config,'Enable',main)
             _bound_task(config,'Start',main)
             record('starting',generation=generation.name)
-            deadline=clock()+375
+            deadline=min(clock()+375,cycle_deadline)
+            allowed_attempt=1
             while clock()<deadline:
                 if _task('Inspect',main)['state']=='Running' and _runner('--check-ready'):
                     break
+                attempt=_recovery_progress(runtime,recovery_binding,initial_history)
+                if attempt>allowed_attempt:
+                    allowed_attempt=attempt
+                    deadline=min(clock()+435,cycle_deadline)
                 wait(3)
             else:
                 raise ValueError('runtime restart readiness failed')
@@ -218,13 +269,16 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             return {'status':'PASS','backup_created':True,'generation':generation.name,
                 'quarantined':retention['quarantined'],'runtime_ready':True}
         except BaseException:
+            failed_phase=phase_name
             hold_proven=False
             try:
                 managed.hold_admission(backups,config['ownership'])
                 hold_proven=True
             except Exception: pass
             cleanup_proven=_cleanup(config,clock,wait)
-            record('failed_operator_required',admission_hold=hold_proven,cleanup_proven=cleanup_proven)
+            record('failed_operator_required',admission_hold=hold_proven,cleanup_proven=cleanup_proven,
+                   failed_phase=failed_phase,cycle_status='FAIL',runtime_status='NOT_READY',
+                   failure_class='restart_not_ready' if failed_phase=='starting' else 'cycle_operation_failed')
             raise
 
 
