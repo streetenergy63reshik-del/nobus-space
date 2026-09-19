@@ -7,7 +7,6 @@ import hashlib
 import ctypes
 import os
 from pathlib import Path
-import socket
 import subprocess
 import time
 from uuid import UUID, uuid4
@@ -29,6 +28,19 @@ def boot_identity():
     return "sha256:" + hashlib.sha256(identifier).hexdigest()
 
 
+def listener_absent(port=8765):
+    # Windows connect timeout10035 is not absence. Read the listener inventory.
+    if type(port) is not int or not 1 <= port <= 65535:
+        raise ValueError("listener port invalid")
+    script = ("$ErrorActionPreference='Stop'; "
+              "@(Get-NetTCPConnection -ErrorAction Stop | Where-Object { "
+              "$_.State -eq 'Listen' -and $_.LocalPort -eq " + str(port) + " }).Count")
+    result = subprocess.run([str(Path(os.environ["SYSTEMROOT"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"),
+        "-NoProfile", "-NonInteractive", "-Command", script], capture_output=True, timeout=15,
+        creationflags=subprocess.CREATE_NO_WINDOW, check=True)
+    return result.stdout.strip() == b"0"
+
+
 def children_absent(worktree, reverse_binding):
     # No process details are emitted. Unknown inspection outcome is never absence.
     script = """& { param($root,$binding)
@@ -46,10 +58,7 @@ $items.Count
                             capture_output=True, timeout=15, creationflags=subprocess.CREATE_NO_WINDOW, check=True)
     if result.stdout.strip() != b"0":
         return False
-    with socket.socket() as sock:
-        sock.settimeout(1)
-        # Connection refused is evidence of no listener; timeout/access error is not.
-        return sock.connect_ex(("127.0.0.1", 8765)) in {10061, 111}
+    return listener_absent()
 
 
 class PreviousPollingLease(ValueError):

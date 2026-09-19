@@ -419,3 +419,24 @@ def test_reboot_rechecks_native_boot_proof_before_commit(tmp_path,no_native_mute
         assert (tmp_path/s.RUNTIME_EVENT_LOG_NAME).read_bytes()==before
     else:
         assert reboot.reconcile(s,SimpleNamespace(),root=tmp_path,binding=_BINDING,validate=lambda:None,absent=lambda:True)
+
+
+def test_windows_listener_inventory_proves_absence_on_isolated_port():
+    import socket
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
+        listener.listen(1)
+        assert reboot.listener_absent(port) is False
+    assert reboot.listener_absent(port) is True
+
+
+@pytest.mark.parametrize('output',[b'1\r\n',b'',b'unknown',b'0\r\nwarning'])
+def test_listener_unknown_inventory_never_proves_absence(monkeypatch,output):
+    monkeypatch.setattr(reboot.subprocess,'run',lambda *a,**kw:SimpleNamespace(stdout=output))
+    assert reboot.listener_absent(23456) is False
+
+
+def test_listener_inventory_failure_stops(monkeypatch):
+    def denied(*a,**kw):raise PermissionError('synthetic')
+    monkeypatch.setattr(reboot.subprocess,'run',denied)
+    with pytest.raises(PermissionError):reboot.listener_absent(23456)
