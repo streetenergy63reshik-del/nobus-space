@@ -1,6 +1,6 @@
 # Gate index
 
-**16 сентября 2026:** C0–C6 и релиз v1.0.2 приняты; текущий Gate — [M1-S1](mvp1-maintenance/HANDOFF.md). Source/deployed `0bd63db`, merge/main `26860ad`; реальная задача/TXT PASS, 72-часовая устойчивость ещё не доказана. [Текущий runtime-статус](../handoffs/CURRENT-STATUS.md). Публикация релиза и доступность runtime — отдельные состояния.
+**19 сентября 2026:** MVP1 ACCEPTED, C0–C6 завершены; [M1-S1](mvp1-maintenance/REPAIR-ACCEPTANCE.md) CLOSED / ACCEPTED после ремонта и сокращённой приёмки. Историческое окно 72 часов остаётся NOT PASS. [Точные версии и последняя проверка](../handoffs/CURRENT-STATUS.md). [MVP2](mvp2/REGISTRY.md) — только предложенный план, NOT STARTED.
 
 Gate 0–8 package сохраняется как исследовательский и digest-bound historical
 baseline. Он не является active Definition of Done MVP-1. Полный
@@ -8,11 +8,11 @@ baseline. Он не является active Definition of Done MVP-1. Полны
 Тонкий MVP-1 Telegram Mini App и один существующий Core по-прежнему задаёт
 [ADR 0022](../adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md).
 
-**Один Gate = одна Codex-задача = один пользовательский чат.** Active
+**Один Gate = одна Codex-задача = один пользовательский чат.** Принятая
 closure-roadmap содержит ровно C0–C6; Txx/Cxx и R01–R47 — внутренние
 checkpoints, не отдельные пользовательские чаты.
 
-## Active closure package
+## Принятые этапы MVP1
 
 | Gate | Статус | Package / boundary |
 |---|---|---|
@@ -23,7 +23,7 @@ checkpoints, не отдельные пользовательские чаты.
 | C4 — завершённый frontend/user journey | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c4-frontend-journey/ACCEPTANCE.md), [передача](gate-c4-frontend-journey/HANDOFF.md) |
 | C5 — operations/recovery/security | ACCEPTED / PASS / PUBLISHED | [приёмка](gate-c5-mvp1-operations-security/ACCEPTANCE.md), [передача](gate-c5-mvp1-operations-security/HANDOFF.md) |
 | C6 — release и owner acceptance | ACCEPTED / PUBLISHED; исторический release | [принятый пакет](gate-c6-release/HANDOFF.md), [восемь критериев своей ревизии](gate-c6-release/OPERATIONAL-STATUS-14.md) |
-| M1-S1 — эксплуатационная стабилизация MVP1 | OPEN; candidate ACCEPTED / MERGED / DEPLOYED, stability NOT PASS | [handoff](mvp1-maintenance/HANDOFF.md), [evidence](mvp1-maintenance/EVIDENCE.json); одна задача, без повторной приёмки C6 |
+| M1-S1 — эксплуатационная стабилизация MVP1 | CLOSED / ACCEPTED; историческое окно NOT PASS сохранено | [handoff](mvp1-maintenance/HANDOFF.md), [evidence](mvp1-maintenance/EVIDENCE.json); одна задача, без повторной приёмки C6 |
 
 ## Historical status map
 
@@ -86,4 +86,4 @@ Research и Architecture объясняют старый TARGET, но не оп�
 Active implementation truth находится в
 [CURRENT-STATUS](../handoffs/CURRENT-STATUS.md), а не в исторических Gate-файлах.
 Published source/history остаются evidence только в своих revision/digest
-границах. Итоговая приёмка MVP1 версии 82003c03 получена; C6 перешёл в постоянную эксплуатацию. Точное состояние публикации находится в CURRENT-STATUS.
+границах. Первоначальная приёмка C6 относится к 82003c03; окончательная эксплуатационная приёмка после ремонта M1-S1 — к 0c9b778. Точные версии и даты находятся в CURRENT-STATUS.
