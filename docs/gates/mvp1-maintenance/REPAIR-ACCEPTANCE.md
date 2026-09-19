@@ -1,6 +1,6 @@
 # M1-S1 — ремонт и сокращённая эксплуатационная приёмка
 
-Статус: WIP, не принят. Решение владельца от 19.09.2026 в текущей задаче.
+Статус: ремонт опубликован и развёрнут; M1-S1 OPEN, text/TXT квалификация не выполнена. Решение владельца от 19.09.2026 в текущей задаче.
 
 Историческое окно 16–19 сентября сохраняет NOT PASS. Новая приёмка относится
 только к исправленной ревизии: независимые проверки единого кандидата, штатное
@@ -16,16 +16,16 @@ ASR 0), сохранность четырёх БД и отсутствие не�
 
 | Инцидент | Подтверждённый механизм / пробел | Исправление | Проверка | Результат |
 |---|---|---|---|---|
-| I01 | Public FAIL без исходной причины; падение не доказано | Типизированные bounded probes | HTTP/error/deadline/body | WIP |
-| I02 | Public terminal, безопасный retry; внешний триггер UNKNOWN | Диагностика и сохранение порогов | Краткий и длительный отказ | WIP |
-| I03 | Public terminal и незавершённая проверка старта | Стадия и отдельные результаты | Startup против steady | WIP |
-| I04 | Startup relay STOP, backup restart78 и вторичный cleanup70 | Классификация relay, backup failure state | Copy→restart reject→cleanup→recovery | WIP |
-| I05 | Scheduler сработал; starting без terminal блокирует reboot | Доказанное boot reconciliation | Безопасное продолжение и запреты | WIP |
-| I06 | Health1 без причины при доступном runtime | Раздельные Health результаты | DB/route/probe failure | WIP |
-| I07 | Relay_start255 STOP до бюджета; SSH причина UNKNOWN | Bounded transport retry | transient/permanent/UNKNOWN, budget | WIP |
-| V01 | Неверный Host в диагностическом запросе | Единый local probe | Host/body/deadline | WIP |
-| V02 | Console identity вместо production pythonw | Проверка эквивалентной identity | Несовпадение должно отклоняться | WIP |
-| Наблюдение | Hold прерывал составную проверку; gaps не доказывают uptime | Независимые PASS/FAIL/NOT CHECKED | Hold и частичный отказ | WIP |
+| I01 | Public FAIL без исходной причины; падение не доказано | [Типизированные bounded probes](../../../scripts/runtime_diagnostics.py) | [HTTP/error/deadline/body](../../../tests/test_m1_s1_operational_repair.py#L125) | Регрессии и live probes PASS; историческая причина UNKNOWN |
+| I02 | Public terminal, безопасный retry; внешний триггер UNKNOWN | [Диагностика и сохранение порогов](../../../scripts/run_nobus_space_live.py) | [Порог длительного отказа](../../../tests/test_m1_s1_runtime_supervisor.py#L138) | Принятые supervisor-регрессии PASS; прежние пороги сохранены; внешняя причина UNKNOWN |
+| I03 | Public terminal и незавершённая проверка старта | [Стадия и отдельные результаты](../../../scripts/run_nobus_space_live.py) | [Startup против steady](../../../tests/test_m1_s1_runtime_supervisor.py#L167) | PASS; live startup FAIL11:40:59 сохранён отдельно от ready11:41:51 |
+| I04 | Startup relay STOP, backup restart78 и вторичный cleanup70 | [Классификация relay, backup failure state](../../../scripts/run_telegram_backup_cycle.py) | [Copy→restart reject→cleanup→recovery](../../../tests/test_m1_s1_operational_repair.py#L169) | Негативная регрессия PASS; полный live cycle complete/VERIFIED/ready PASS |
+| I05 | Scheduler сработал; starting без terminal блокирует reboot | [Доказанное boot reconciliation](../../../scripts/reboot_recovery.py) | [Безопасное продолжение и запреты](../../../tests/test_m1_s1_operational_repair.py#L71) | Положительные и STOP-сценарии PASS; ПК не перезагружался |
+| I06 | Health1 без причины при доступном runtime | [Раздельные Health результаты](../../../scripts/check_nobus_space_health.py) | [DB/route/probe failure](../../../tests/test_m1_s1_operational_repair.py#L253) | Регрессии и два live Health PASS; старый FAIL не отменён |
+| I07 | Relay_start255 STOP до бюджета; SSH причина UNKNOWN | [Bounded transport retry](../../../scripts/runtime_diagnostics.py) | [transient/permanent/UNKNOWN, budget](../../../tests/test_m1_s1_operational_repair.py#L38) | Transient/permanent/UNKNOWN и budget PASS; внешняя причина UNKNOWN |
+| V01 | Неверный Host в диагностическом запросе | [Единый local probe](../../../scripts/run_nobus_space_live.py) | [Host/body/deadline](../../../tests/test_m1_s1_operational_repair.py#L125) | PASS; live HTTP200 с точным телом; старый verifier FAIL сохранён |
+| V02 | Console identity вместо production pythonw | [Проверка эквивалентной identity](../../../scripts/run_nobus_space_live.py) | [Несовпадение должно отклоняться](../../../tests/test_m1_s1_operational_repair.py#L116) | PASS; live pythonw binding098ef3f2; identity не ослаблялась |
+| Наблюдение | Hold прерывал составную проверку; gaps не доказывают uptime | [Независимые PASS/FAIL/NOT CHECKED](../../../scripts/observe_nobus_runtime.py) | [Hold и частичный отказ](../../../tests/test_m1_s1_operational_repair.py#L194) | Hold/partial failure PASS; NOT CHECKED не подменяется нулём; gaps сохранены |
 
 Исторические внешние первопричины могут остаться UNKNOWN. Ремонт должен доказать
 устранение технических пробелов, а не задним числом объяснять потерянные данные.
@@ -109,7 +109,7 @@ Source, merge и deployed фиксируются раздельно. Новые 
 одноразовые квитанции; операторы PR32/18 сентября не повторяются.
 
 Прямой возврат на 0bd63db несовместим с schema4. Для возврата подготовлен
-[патч reader-совместимости](../../../../ops/windows/m1-s1-rollback-compat.patch):
+[патч reader-совместимости](../../../ops/windows/m1-s1-rollback-compat.patch):
 он применяется только к 0bd63db, сохраняет прежний executable behavior и добавляет
 чтение/валидацию новой истории и её recovery disposition. Автоматическое boot
 reconciliation, новые probes и relay capture в rollback не включаются. Перед
@@ -152,3 +152,63 @@ listener на порту остаются STOP. Core/process/mutex провер�
 deadlines2/5с не изменены. Изолированная регрессия использует выделенный ephemeral
 порт и проверяет оба состояния: listener есть/закрыт. Требуется адресное closure
 тем же L2/L3 и отдельная штатная публикация delta перед следующим переключением.
+
+## Фактическое развёртывание 19.09.2026
+
+Ремонт принят теми же независимыми L2/L3: пакет5425db8, затем точечный
+Windows delta0c9b778. [PR33](https://github.com/streetenergy63reshik-del/nobus-space/pull/33)
+и [PR34](https://github.com/streetenergy63reshik-del/nobus-space/pull/34) штатно слиты.
+Source и deployed: `0c9b778ef59eb4cc01d3ab0c2ef9a14969801d83`;
+merge: `8af1309af36eb3ab591186906975dd8cd3ac9880`. Их деревья одинаковы.
+Совместимый код возврата: `220b396ba992a8b2668b5ea3fa632da6f10b7853`;
+возврат БД не выполнялся и не разрешён. v1.0.2 не перемещался.
+
+Дополнительно после пакетных замечаний:98 PASS и4 PASS затронутых ветвей;
+Windows listener delta:8 PASS, включая реальный выделенный ephemeral port.
+Хэши точных квитанций и полный deployment readback находятся в
+`EVIDENCE.post_window_repair_20260919`; старые разделы evidence не изменены.
+
+Перед переключением сохранены Scheduler XML, launcher/config и baseline.
+Проверенная prechange-копия старого source создана11:33, копия с binding нового
+кода —11:39. В разовом операторе обнаружены два невыполненных предусловия:
+папка rollback до installer и новая code-bound копия до снятия hold.
+Оба STOP сохранены; после readback продолжены только незавершённые шаги.
+История, данные и старые копии сохранены; неизвестные внешние эффекты не повторены.
+
+Запуск выдан11:40:14. Health11:40:59 сохранил FAIL: local deadline/public503
+во время startup до readiness. Это не steady outage; последующий PASS не стирает
+первоначальный результат. Health11:41:51 и11:42:52: все6 проверок PASS.
+Отдельный probe11:42:07: local/public200, точное тело,265/688мс при2000/5000мс.
+
+Единственный controlled backup запущен11:42:35; complete11:46:03,
+Scheduler0, copy VERIFIED, hold снят, runtime ready. Generation:
+`daily-20260919T114339-d3bc57fd7b6046b388022492ac5b40f1`.
+Это полный успешный цикл, отдельно от двух prechange-копий.
+Windowed verifier11:46:54 подтвердил production binding
+`sha256:098ef3f231d54244f2d8fe35cfb6f2fb1de87a5d6fbbc367dea11abe1c044f25`.
+
+Срез11:48:40: local/public PASS; одна цепочка supervisor/Core/relay, один
+loopback listener8765 и active lease. Четыре БД PASS, все прежние строки
+сохранены по хэшам, offset375633520 не уменьшился, revision65740.
+Pending/leased/unknown/failed deliveries0, reconciliation=false.
+Сохранённый `starting` относится к действующему здоровому runtime;
+он не интерпретируется как брошенная попытка.
+
+## Единственный незавершённый критерий
+
+Text/TXT квалификация — NOT CHECKED. Задача не отправлена; вызовы исполнителя0,
+semantic provider0, ASR0. Обычный включённый маршрут сначала вызывает semantic
+compiler, затем исполнитель задачи. Буквальный лимит «один вызов модели суммарно»
+не позволяет выполнить обе стадии. См.
+[вход text-задачи](../../../src/application/telegram_product.py#L1311) и
+[вызов compiler](../../../src/application/semantic_admission.py#L1872).
+Владельцу задан вопрос: разрешён ли один вызов исполнителя со штатным отдельным
+разбором запроса. До ответа реальные вызовы и изменение admission не выполняются.
+
+Подготовлен один простой запрос: «Вычисли17+25 и верни только число42».
+После уточнения требуется одна реальная owner-задача, правильный результат,
+доступный TXT, подтверждённая доставка без дублей и целевой readback её effects.
+Успешные неизменные L1–L3 и полный backup-цикл повторять не нужно.
+
+Итоговую эксплуатационную приёмку и MVP1 ACCEPTED пока не объявлять.
+Исторический JOURNAL-72H.md остаётся NOT PASS; heartbeat PAUSED; MVP2 не запущен.
