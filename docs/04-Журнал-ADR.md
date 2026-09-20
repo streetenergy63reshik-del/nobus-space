@@ -93,4 +93,4 @@ quality-L4. Product/runtime `ApprovalRequest/ApprovalDecision` и внешние
 
 ## Эксплуатационный кандидат после приёмки MVP1
 
-[ADR 0028](adr/0028-post-mvp1-power-transition-recovery.md) фиксирует узкое согласование прерванного `starting` после гибридного выключения Windows с прежним BootIdentifier и различение истёкшей Telegram-кнопки от исполняемого эффекта. Это отдельный maintenance-кандидат 20 сентября; он не меняет историческую приёмку M1-S1 и не запускает MVP2.
+[ADR 0028](adr/0028-post-mvp1-power-transition-recovery.md) фиксирует узкое согласование прерванного `starting` после перехода питания Windows с прежним BootIdentifier и различение истёкшей Telegram-кнопки от исполняемого эффекта. Принято PR №38, развёрнуто как `9065cfc` 20 сентября; историческая приёмка M1-S1 не меняется, MVP2 не запущен.
