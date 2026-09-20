@@ -82,6 +82,7 @@ RUNTIME_EVENT_KEYS = frozenset({
 })
 RUNTIME_RECORDED_KEYS = RUNTIME_EVENT_KEYS | {"at", "authentication"}
 RUNTIME_V4_KEYS = frozenset({"boot_id", "previous_boot_id", "relay_cause"})
+RUNTIME_V5_KEYS = RUNTIME_V4_KEYS | {"power_evidence_digest"}
 _EVENT_STAGES = frozenset({
     "input_validation", "setup", "job_setup", "relay_start", "core_start",
     "startup", "steady", "cleanup", "complete", "recovery_wait",
@@ -606,11 +607,14 @@ def _terminal_state_valid(value) -> bool:
 
 def _validate_runtime_event(value, *, recorded: bool = False):
     keys = RUNTIME_EVENT_KEYS | ({"at"} if recorded else set())
-    if type(value) is dict and value.get("schema") == "nobus-runtime-event-4":
-        keys |= RUNTIME_V4_KEYS
+    if type(value) is dict:
+        if value.get("schema") == "nobus-runtime-event-4":
+            keys |= RUNTIME_V4_KEYS
+        elif value.get("schema") == "nobus-runtime-event-5":
+            keys |= RUNTIME_V5_KEYS
     if type(value) is not dict or set(value) != keys:
         raise ValueError("runtime event fields are invalid")
-    if (value["schema"] not in {"nobus-runtime-event-3", "nobus-runtime-event-4"}
+    if (value["schema"] not in {"nobus-runtime-event-3", "nobus-runtime-event-4", "nobus-runtime-event-5"}
             or re.fullmatch(r"[0-9a-f]{32}", value["series_id"]) is None
             or re.fullmatch(r"[0-9a-f]{32}", value["run_id"]) is None
             or not _digest(value["activation_binding"])
@@ -625,7 +629,7 @@ def _validate_runtime_event(value, *, recorded: bool = False):
                 "control_closing", "control_closed", "control_failure",
                 "starting", "terminal", "retry_waiting", "retry_elapsed",
                 "recovery_wait_stopped", "recovery_reset", "activation_rebind",
-                "history_checkpoint", "reboot_reconciled",
+                "history_checkpoint", "reboot_reconciled", "power_reconciled",
             }
             or value["stage"] not in _EVENT_STAGES
             or value["error_class"] not in _EVENT_ERRORS
@@ -633,7 +637,7 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             or value["core_outcome_error"] not in _CORE_OUTCOME_ERRORS
             or value["cleanup_outcome"] not in {"not_started", "proven", "failed"}):
         raise ValueError("runtime event value is invalid")
-    if value["schema"] == "nobus-runtime-event-4":
+    if value["schema"] in {"nobus-runtime-event-4", "nobus-runtime-event-5"}:
         for key in ("boot_id", "previous_boot_id"):
             if value[key] is not None and not _digest(value[key]):
                 raise ValueError("boot identity invalid")
@@ -642,10 +646,14 @@ def _validate_runtime_event(value, *, recorded: bool = False):
         semantic_event = value["checkpoint_event"] or value["event"]
         if value["relay_cause"] is not None and (semantic_event != "terminal" or value["error_class"] not in {"relay_exit", "core_and_relay_exit"}):
             raise ValueError("relay cause misplaced")
-        if value["previous_boot_id"] is not None and semantic_event != "reboot_reconciled":
+        if value["previous_boot_id"] is not None and semantic_event not in {"reboot_reconciled", "power_reconciled"}:
             raise ValueError("previous boot misplaced")
-        if value["boot_id"] is not None and semantic_event not in {"starting", "reboot_reconciled"}:
+        if value["boot_id"] is not None and semantic_event not in {"starting", "reboot_reconciled", "power_reconciled"}:
             raise ValueError("boot identity misplaced")
+        if (value["schema"] == "nobus-runtime-event-5"
+                and (semantic_event != "power_reconciled"
+                     or not _digest(value["power_evidence_digest"]))):
+            raise ValueError("power evidence misplaced")
     if recorded and re.fullmatch(
         r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
         value["at"],
@@ -688,7 +696,7 @@ def _validate_runtime_event(value, *, recorded: bool = False):
                 "control_starting", "control_ready", "control_closing",
                 "control_closed", "control_failure", "starting", "terminal",
                 "retry_waiting", "retry_elapsed", "recovery_wait_stopped",
-                "recovery_reset", "activation_rebind", "reboot_reconciled",
+                "recovery_reset", "activation_rebind", "reboot_reconciled", "power_reconciled",
             } or not _digest(value["anchor_of_digest"])):
             raise ValueError("runtime history checkpoint is invalid")
         semantic = dict(value)
@@ -799,11 +807,11 @@ def _validate_runtime_event(value, *, recorded: bool = False):
             and value["reset_of_digest"] is None
             and empty_process_fields
         )
-    elif event == "reboot_reconciled":
+    elif event in {"reboot_reconciled", "power_reconciled"}:
         valid = (
-            value["schema"] == "nobus-runtime-event-4"
+            value["schema"] == ("nobus-runtime-event-4" if event == "reboot_reconciled" else "nobus-runtime-event-5")
             and _digest(value.get("boot_id")) and _digest(value.get("previous_boot_id"))
-            and value["boot_id"] != value["previous_boot_id"]
+            and ((value["boot_id"] != value["previous_boot_id"]) == (event == "reboot_reconciled"))
             and value["stage"] == "recovery_control" and value["error_class"] is None
             and value["supervisor_exit_code"] == 0 and value["cleanup_outcome"] == "proven"
             and value["recovery_disposition"] == "retry" and value["attempt"] <= value["retry_budget"]
@@ -892,7 +900,7 @@ def _validate_transition(previous, current, previous_digest):
         return
     if current["activation_binding"] != previous["activation_binding"]:
         raise ValueError("runtime history activation binding is invalid")
-    if event == "reboot_reconciled":
+    if event in {"reboot_reconciled", "power_reconciled"}:
         if not (prior == "starting" and same_series_attempt
                 and _digest(previous.get("boot_id"))
                 and current["previous_boot_id"] == previous["boot_id"]
@@ -921,7 +929,7 @@ def _validate_transition(previous, current, previous_digest):
             "recovery_wait_stopped",
         } and same_series_attempt
         next_attempt_after_wait = (
-            prior in {"retry_elapsed", "reboot_reconciled"}
+            prior in {"retry_elapsed", "reboot_reconciled", "power_reconciled"}
             and current["series_id"] == previous["series_id"]
             and current["attempt"] == previous["attempt"] + 1
             and current["retry_budget"] == previous["retry_budget"]
@@ -974,7 +982,7 @@ def _validate_transition(previous, current, previous_digest):
         valid = event == "retry_waiting" and same_series_attempt
     elif prior == "retry_waiting":
         valid = event in {"retry_elapsed", "recovery_wait_stopped"} and same_series_attempt
-    elif prior in {"retry_elapsed", "reboot_reconciled"}:
+    elif prior in {"retry_elapsed", "reboot_reconciled", "power_reconciled"}:
         valid = (
             event in {"starting", "control_starting"}
             and current["series_id"] == previous["series_id"]
@@ -1019,7 +1027,11 @@ def _decode_runtime_event(line: bytes):
         recorded = json.loads(
             line[:-1].decode("ascii"), object_pairs_hook=_unique_json_object
         )
-        if type(recorded) is not dict or set(recorded) != (RUNTIME_RECORDED_KEYS | (RUNTIME_V4_KEYS if recorded.get("schema") == "nobus-runtime-event-4" else set())):
+        if type(recorded) is not dict:
+            raise ValueError
+        extra = (RUNTIME_V4_KEYS if recorded.get("schema") == "nobus-runtime-event-4"
+                 else RUNTIME_V5_KEYS if recorded.get("schema") == "nobus-runtime-event-5" else set())
+        if set(recorded) != (RUNTIME_RECORDED_KEYS | extra):
             raise ValueError
         authentication = recorded.pop("authentication")
         _verify_authentication(
@@ -1378,7 +1390,8 @@ def _runtime_record(series_id: str, run_id: str, event: str, *,
                     local_ready=None, public_ready=None, readiness_failures=0,
                     core_outcome=None, core_outcome_error=None,
                     cleanup_outcome="not_started", reset_of_digest=None,
-                    boot_id=None, previous_boot_id=None, relay_cause=None):
+                    boot_id=None, previous_boot_id=None, relay_cause=None,
+                    power_evidence_digest=None):
     result = {
         "schema": "nobus-runtime-event-3", "series_id": series_id,
         "run_id": run_id, "event": event, "activation_binding": activation_binding,
@@ -1394,7 +1407,11 @@ def _runtime_record(series_id: str, run_id: str, event: str, *,
         "core_outcome": core_outcome, "core_outcome_error": core_outcome_error,
         "cleanup_outcome": cleanup_outcome,
     }
-    if any(item is not None for item in (boot_id, previous_boot_id, relay_cause)):
+    if power_evidence_digest is not None:
+        result.update(schema="nobus-runtime-event-5", boot_id=boot_id,
+                      previous_boot_id=previous_boot_id, relay_cause=relay_cause,
+                      power_evidence_digest=power_evidence_digest)
+    elif any(item is not None for item in (boot_id, previous_boot_id, relay_cause)):
         result.update(schema="nobus-runtime-event-4", boot_id=boot_id,
                       previous_boot_id=previous_boot_id, relay_cause=relay_cause)
     return result
@@ -1662,7 +1679,7 @@ def _recovery_state(*, root: Path = LOG_ROOT, activation_binding=None):
                 "series_id": event["series_id"], "next_attempt": None,
                 "last_digest": digest}
     disposition = event["recovery_disposition"]
-    if event["event"] in {"retry_elapsed", "reboot_reconciled"} and event["attempt"] <= event["retry_budget"]:
+    if event["event"] in {"retry_elapsed", "reboot_reconciled", "power_reconciled"} and event["attempt"] <= event["retry_budget"]:
         return {"state": "resume", "reason": None,
                 "series_id": event["series_id"],
                 "next_attempt": event["attempt"] + 1, "last_digest": digest}

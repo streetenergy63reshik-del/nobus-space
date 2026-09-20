@@ -1,5 +1,6 @@
 """Synthetic acceptance of the 19 September repair; no production names/state."""
 from contextlib import nullcontext
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 import io
@@ -83,6 +84,89 @@ def test_reboot_preserves_history_and_consumes_budget(tmp_path,no_native_mutex):
     _record(tmp_path,'b'*32,'f'*32,'control_starting',attempt=2,stage='recovery_control')
 
 
+def test_recent_power_transition_can_reconcile_same_boot_once(tmp_path,no_native_mutex):
+    boot = 'sha256:' + 'a' * 64
+    evidence = 'sha256:' + 'f' * 64
+    started(tmp_path, boot=boot)
+    assert reboot.reconcile(s, SimpleNamespace(), root=tmp_path, binding=_BINDING,
+                            current_boot=boot, power_evidence=lambda _: evidence,
+                            validate=lambda: None, absent=lambda: True)
+    rows, digests = s._runtime_history(root=tmp_path, activation_binding=_BINDING)
+    assert rows[-1]['event'] == 'power_reconciled'
+    assert rows[-1]['power_evidence_digest'] == evidence
+    assert rows[-1]['reset_of_digest'] == digests[-2]
+    assert rows[-1]['boot_id'] == rows[-1]['previous_boot_id'] == boot
+    assert s._recovery_state(root=tmp_path, activation_binding=_BINDING)['next_attempt'] == 2
+    assert not reboot.reconcile(s, SimpleNamespace(), root=tmp_path, binding=_BINDING,
+                                current_boot=boot, power_evidence=lambda _: evidence,
+                                validate=lambda: None, absent=lambda: True)
+
+
+def test_power_transition_proof_requires_recent_paired_system_events():
+    start = datetime(2026, 9, 19, 20, 0, tzinfo=UTC)
+    sleep = '2026-09-19T20:06:23Z'
+    wake = '2026-09-20T04:38:48Z'
+    now = datetime(2026, 9, 20, 4, 39, tzinfo=UTC)
+    events = {
+        'resumes': [{'record_id': 120, 'sleep': sleep, 'wake': wake,
+                     'recorded': '2026-09-20T04:38:49Z'}],
+        'suspends': [{'record_id': 100, 'recorded': '2026-09-19T20:06:24Z'}],
+    }
+    assert reboot.validate_power_transition(start.isoformat(), events, now=now)
+    assert reboot.validate_power_transition(start.isoformat(), events,
+                                            now=now + timedelta(minutes=16)) is None
+    assert reboot.validate_power_transition('2026-09-19T20:07:00Z', events, now=now) is None
+    assert reboot.validate_power_transition(start.isoformat(),
+                                            {**events, 'suspends': []}, now=now) is None
+    assert reboot.validate_power_transition(start.isoformat(),
+                                            {**events, 'suspends': [{'record_id': 121,
+                                                'recorded': '2026-09-19T20:06:24Z'}]}, now=now) is None
+    assert reboot.validate_power_transition(start.isoformat(),
+                                            {**events, 'resumes': [{'record_id': 120,
+                                                'sleep': sleep, 'wake': wake,
+                                                'recorded': '2026-09-20T03:00:00Z'}]}, now=now) is None
+
+
+@pytest.mark.parametrize('cause', ['evidence_changed', 'children', 'effects'])
+def test_same_boot_power_reconciliation_stops_on_new_unknown(tmp_path,no_native_mutex,cause):
+    boot = 'sha256:' + 'a' * 64
+    started(tmp_path, boot=boot)
+    before = (tmp_path / s.RUNTIME_EVENT_LOG_NAME).read_bytes()
+    calls = [0]
+    def proof(_):
+        calls[0] += 1
+        return 'sha256:' + ('f' if calls[0] == 1 else 'e') * 64
+    def validate():
+        if cause == 'effects':
+            raise ValueError('synthetic unknown effect')
+    if cause in {'evidence_changed', 'effects'}:
+        with pytest.raises(ValueError):
+            reboot.reconcile(s, SimpleNamespace(), root=tmp_path, binding=_BINDING,
+                             current_boot=boot, power_evidence=proof,
+                             validate=validate, absent=lambda: True)
+    else:
+        assert not reboot.reconcile(s, SimpleNamespace(), root=tmp_path, binding=_BINDING,
+                                    current_boot=boot, power_evidence=proof,
+                                    validate=validate, absent=lambda: False)
+    assert (tmp_path / s.RUNTIME_EVENT_LOG_NAME).read_bytes() == before
+
+
+def test_power_reconciled_event_rejects_mismatched_boot_and_proof():
+    boot = 'sha256:' + 'a' * 64
+    record = s._runtime_record('b' * 32, 'c' * 32, 'power_reconciled',
+                               activation_binding=_BINDING, attempt=1, retry_budget=10,
+                               recovery_disposition='retry', stage='recovery_control',
+                               supervisor_exit_code=0, cleanup_outcome='proven',
+                               reset_of_digest='sha256:' + 'd' * 64,
+                               boot_id=boot, previous_boot_id=boot,
+                               power_evidence_digest='sha256:' + 'f' * 64)
+    s._validate_runtime_event(record)
+    with pytest.raises(ValueError):
+        s._validate_runtime_event({**record, 'boot_id': 'sha256:' + 'e' * 64})
+    with pytest.raises(ValueError):
+        s._validate_runtime_event({**record, 'power_evidence_digest': None})
+
+
 @pytest.mark.parametrize('case',['same_boot','children','effects','legacy','corrupt','binding'])
 def test_reboot_denies_unsafe_continuation(tmp_path,no_native_mutex,case):
     started(tmp_path,boot=None if case=='legacy' else 'sha256:'+'a'*64)
@@ -95,6 +179,7 @@ def test_reboot_denies_unsafe_continuation(tmp_path,no_native_mutex,case):
         result=reboot.reconcile(s,SimpleNamespace(),root=tmp_path,
             binding='sha256:'+'0'*64 if case=='binding' else _BINDING,
             current_boot='sha256:'+('a' if case=='same_boot' else 'e')*64,
+            power_evidence=lambda _:None,
             validate=validate,absent=lambda:case!='children')
         assert result is False
     except ValueError:
@@ -111,6 +196,61 @@ def test_reboot_effect_validation_is_readonly_and_rejects_unknown_capability(tmp
     token=vault.issue(kind=ProductEffectKind.ARTIFACT,tenant_id='synthetic',user_id=1,chat_id=1,payload={'synthetic':True})
     with pytest.raises(ValueError,match='effect capability'):
         reboot.validate_effects(runtime)
+
+
+def test_reboot_accepts_only_expired_owner_telegram_callback(tmp_path):
+    from src.application.durable_confirmations import DurableTelegramActionStore
+    from src.application.telegram_actions import TelegramAction
+
+    runtime = tmp_path / 'state'
+    _, queue, _, _ = fixture_runtime(runtime)
+    actions = DurableTelegramActionStore(queue)
+    actions.issue(action=TelegramAction.CONFIRM_DURABLE_VOICE,
+                  capability_token='synthetic', user_id=1, chat_id=1, ttl_seconds=60)
+    path = runtime / 'telegram-state.sqlite3'
+    with sqlite3.connect(path) as connection:
+        expires = datetime.fromisoformat(connection.execute(
+            "SELECT expires_at FROM telegram_capabilities WHERE kind='action'"
+        ).fetchone()[0])
+    with pytest.raises(ValueError, match='callback requires reconciliation'):
+        reboot.validate_effects(runtime, now=expires - timedelta(seconds=1))
+    before = path.read_bytes()
+    reboot.validate_effects(runtime, now=expires + timedelta(seconds=1))
+    assert path.read_bytes() == before
+
+    with sqlite3.connect(path) as connection:
+        connection.execute("UPDATE telegram_capabilities SET tenant_id='other' WHERE kind='action'")
+    with pytest.raises(ValueError, match='callback requires reconciliation'):
+        reboot.validate_effects(runtime, now=expires + timedelta(seconds=1))
+
+
+def test_reboot_rejects_callback_payload_digest_mismatch(tmp_path):
+    from src.application.durable_confirmations import DurableTelegramActionStore
+    from src.application.telegram_actions import TelegramAction
+
+    runtime = tmp_path / 'state'
+    _, queue, _, _ = fixture_runtime(runtime)
+    DurableTelegramActionStore(queue).issue(
+        action=TelegramAction.CONFIRM_DURABLE_VOICE,
+        capability_token='synthetic', user_id=1, chat_id=1, ttl_seconds=60)
+    with sqlite3.connect(runtime / 'telegram-state.sqlite3') as connection:
+        connection.execute("UPDATE telegram_capabilities SET payload_digest=? WHERE kind='action'",
+                           ('sha256:' + '0' * 64,))
+    with pytest.raises(RuntimeError, match='runtime capability row is invalid'):
+        reboot.validate_effects(runtime, now=datetime.now(UTC) + timedelta(minutes=2))
+
+
+def test_reboot_keeps_extended_action_callback_as_unknown(tmp_path):
+    from src.application.durable_confirmations import DurableTelegramActionStore
+    from src.application.telegram_actions import TelegramAction
+
+    runtime = tmp_path / 'state'
+    _, queue, _, _ = fixture_runtime(runtime)
+    DurableTelegramActionStore(queue).issue(
+        action=TelegramAction.APPLY_PATCH,
+        capability_token='synthetic', user_id=1, chat_id=1, ttl_seconds=60)
+    with pytest.raises(ValueError, match='callback requires reconciliation'):
+        reboot.validate_effects(runtime, now=datetime.now(UTC) + timedelta(minutes=2))
 
 
 def test_production_verifier_identity_does_not_normalize_binding(monkeypatch):
@@ -279,6 +419,7 @@ def test_rollback_reader_preserves_new_history_without_data_restore(tmp_path,no_
     legacy.parent.mkdir(parents=True)
     content=subprocess.check_output(['git','show','0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c:scripts/run_nobus_space_live.py'],cwd=root)
     legacy.write_bytes(content)
+    subprocess.run(['git','init','-q'],cwd=tmp_path/'rollback',check=True,capture_output=True)
     subprocess.run(['git','apply',str(root/'ops/windows/m1-s1-rollback-compat.patch')],cwd=tmp_path/'rollback',check=True,capture_output=True)
     spec=importlib.util.spec_from_file_location('rollback_supervisor',legacy)
     old=importlib.util.module_from_spec(spec);spec.loader.exec_module(old)
@@ -302,6 +443,50 @@ def test_rollback_reader_preserves_new_history_without_data_restore(tmp_path,no_
     old._rebind_recovery(digests[-1],root=history,activation_binding='sha256:'+'f'*64)
     after,_=s._runtime_history(root=history)
     assert after[:-1]==before
+
+
+def test_power_rollback_reader_preserves_v5_history(tmp_path,no_native_mutex):
+    import importlib.util
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    rollback = tmp_path / 'rollback'
+    legacy = rollback / 'scripts' / 'run_nobus_space_live.py'
+    legacy.parent.mkdir(parents=True)
+    legacy.write_bytes(subprocess.check_output([
+        'git', 'show', '0bd63db06fd9f6e73f6a5ed174b4b8da2859ee5c:scripts/run_nobus_space_live.py'
+    ], cwd=root))
+    subprocess.run(['git', 'init', '-q'], cwd=rollback, check=True, capture_output=True)
+    for name in ('m1-s1-rollback-compat.patch', 'm1-s1-power-rollback-compat.patch'):
+        subprocess.run(['git', 'apply', str(root / 'ops/windows' / name)],
+                       cwd=rollback, check=True, capture_output=True)
+    spec = importlib.util.spec_from_file_location('power_rollback_supervisor', legacy)
+    old = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(old)
+
+    history = tmp_path / 'history'
+    boot = 'sha256:' + 'a' * 64
+    started(history, boot=boot)
+    assert reboot.reconcile(s, SimpleNamespace(), root=history, binding=_BINDING,
+                            current_boot=boot, power_evidence=lambda _: 'sha256:' + 'f' * 64,
+                            validate=lambda: None, absent=lambda: True)
+    assert old._runtime_history(root=history) == s._runtime_history(root=history)
+    assert old._recovery_state(root=history, activation_binding=_BINDING)['next_attempt'] == 2
+    for event in ('control_starting', 'control_ready'):
+        _record(history, 'b' * 32, 'f' * 32, event, attempt=2, stage='recovery_control',
+                supervisor_exit_code=0 if event == 'control_ready' else None)
+    _record(history, 'b' * 32, 'd' * 32, 'starting', attempt=2, boot_id=boot)
+    _record(history, 'b' * 32, 'd' * 32, 'terminal', attempt=2, stage='steady',
+            error_class='planned_stop', supervisor_exit_code=0,
+            core_outcome={'status': 'STOPPED'}, cleanup_outcome='proven',
+            recovery_disposition='stop_planned')
+    for event in ('control_closing', 'control_closed'):
+        _record(history, 'b' * 32, 'f' * 32, event, attempt=2,
+                stage='recovery_control', supervisor_exit_code=0,
+                cleanup_outcome='proven', recovery_disposition='stop_planned')
+    old._rebind_recovery(s._last_runtime_event(root=history)[1], root=history,
+                         activation_binding='sha256:' + 'e' * 64)
+    assert s._recovery_state(root=history, activation_binding='sha256:' + 'e' * 64)['state'] == 'new'
 
 
 def test_reboot_waits_for_same_lease_then_continues_once(tmp_path,no_native_mutex):
