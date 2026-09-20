@@ -90,3 +90,7 @@ quality-L4. Product/runtime `ApprovalRequest/ApprovalDecision` и внешние
 ## Forward supersession by ADR 0027
 
 [ADR 0027](adr/0027-miniapp-bounded-admission-reconciliation.md) принят для исправления подтверждённого зависания C6. Он заменяет только отсутствие срока согласования `pending` и запрет его отмены из ADR 0025. Общая SQLite-транзакция сериализует закрытие заявки и claim; уже принятая задача имеет приоритет. Остальные C0–C5 контракты и ровно восемь критериев C6 сохраняются.
+
+## Эксплуатационный кандидат после приёмки MVP1
+
+[ADR 0028](adr/0028-post-mvp1-power-transition-recovery.md) фиксирует узкое согласование прерванного `starting` после гибридного выключения Windows с прежним BootIdentifier и различение истёкшей Telegram-кнопки от исполняемого эффекта. Это отдельный maintenance-кандидат 20 сентября; он не меняет историческую приёмку M1-S1 и не запускает MVP2.

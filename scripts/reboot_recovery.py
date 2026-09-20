@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from contextlib import closing
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import hashlib
 import ctypes
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -61,6 +62,89 @@ $items.Count
     return listener_absent()
 
 
+def validate_power_transition(started_at, events, *, now):
+    """Bind a recent System suspend/resume pair after an authenticated starting."""
+    def utc(value):
+        if type(value) is not str:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value)
+            return parsed.astimezone(UTC) if parsed.tzinfo is not None else None
+        except ValueError:
+            return None
+
+    started = utc(started_at)
+    if (started is None or type(events) is not dict
+            or set(events) != {"resumes", "suspends"}
+            or type(events["resumes"]) is not list or type(events["suspends"]) is not list
+            or len(events["resumes"]) > 64 or len(events["suspends"]) > 64
+            or now.tzinfo is None):
+        return None
+    now = now.astimezone(UTC)
+    for resumed in events["resumes"]:
+        if type(resumed) is not dict or set(resumed) != {"record_id", "sleep", "wake", "recorded"}:
+            continue
+        sleep, wake, recorded = (utc(resumed.get(key)) for key in ("sleep", "wake", "recorded"))
+        if (type(resumed["record_id"]) is not int or resumed["record_id"] <= 0
+                or sleep is None or wake is None or recorded is None
+                or not started < sleep < wake <= recorded <= now
+                or wake - sleep > timedelta(days=2)
+                or recorded - wake > timedelta(minutes=2)
+                or now - wake > timedelta(minutes=15)):
+            continue
+        for suspended in events["suspends"]:
+            if (type(suspended) is not dict
+                    or set(suspended) != {"record_id", "recorded"}
+                    or type(suspended["record_id"]) is not int
+                    or not 0 < suspended["record_id"] < resumed["record_id"]):
+                continue
+            suspend_at = utc(suspended["recorded"])
+            if suspend_at is None or not sleep <= suspend_at <= sleep + timedelta(minutes=2):
+                continue
+            from src.contracts.models import canonical_json_digest
+            return canonical_json_digest({
+                "resume_record_id": resumed["record_id"],
+                "suspend_record_id": suspended["record_id"],
+                "sleep": sleep.isoformat(), "wake": wake.isoformat(),
+            })
+    return None
+
+
+def power_transition_evidence(started_at, *, now=None):
+    """Read only bounded System event metadata; missing evidence is STOP."""
+    script = r"""
+$ErrorActionPreference='Stop'
+$resumes=@(Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Microsoft-Windows-Power-Troubleshooter';Id=1} -MaxEvents 64 -ErrorAction Stop | ForEach-Object {
+    $entry=$_; [xml]$xml=$entry.ToXml(); $data=@{}
+    foreach($item in @($xml.Event.EventData.Data)) {
+        if($item.Name -in @('SleepTime','WakeTime')) {$data[$item.Name]=[string]$item.'#text'}
+    }
+    [pscustomobject]@{record_id=[long]$entry.RecordId;sleep=$data.SleepTime;wake=$data.WakeTime;recorded=[string]$xml.Event.System.TimeCreated.SystemTime}
+})
+$suspends=@(Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Microsoft-Windows-Kernel-Power';Id=42} -MaxEvents 64 -ErrorAction Stop | ForEach-Object {
+    $entry=$_; [xml]$xml=$entry.ToXml()
+    [pscustomobject]@{record_id=[long]$entry.RecordId;recorded=[string]$xml.Event.System.TimeCreated.SystemTime}
+})
+[pscustomobject]@{resumes=$resumes;suspends=$suspends} | ConvertTo-Json -Compress -Depth 4
+"""
+    try:
+        system_root = Path(os.environ["SYSTEMROOT"])
+        child_env = dict(os.environ)
+        child_env["PSModulePath"] = str(system_root / "System32/WindowsPowerShell/v1.0/Modules")
+        result = subprocess.run(
+            [str(system_root / "System32/WindowsPowerShell/v1.0/powershell.exe"),
+             "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True, timeout=15, creationflags=subprocess.CREATE_NO_WINDOW,
+            env=child_env, check=True,
+        )
+        if len(result.stdout) > 65536:
+            return None
+        return validate_power_transition(started_at, json.loads(result.stdout),
+                                         now=now or datetime.now(UTC))
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+        return None
+
+
 class PreviousPollingLease(ValueError):
     def __init__(self, seconds, binding):
         super().__init__("polling lease active")
@@ -86,14 +170,44 @@ def validate_effects(runtime, *, now=None):
             raise ValueError("unfinished task requires reconciliation")
         from src.application.durable_telegram_state import DpapiJsonCodec
         from src.application.product_effects import ProductEffectKind
+        from src.application.telegram_actions import TelegramAction
         from src.contracts.models import canonical_json_digest
-        for token_digest, tenant, protected in con.execute("SELECT token_digest,tenant_id,payload FROM telegram_capabilities WHERE kind='action'"):
+        for token_digest, tenant, payload_digest, protected, expires in con.execute(
+            "SELECT token_digest,tenant_id,payload_digest,payload,expires_at "
+            "FROM telegram_capabilities WHERE kind='action'"
+        ):
             value = DpapiJsonCodec().decode(bytes(protected))
+            if canonical_json_digest(value) != payload_digest:
+                raise ValueError("action capability digest invalid")
+            token = value.get("token")
+            if (type(token) is not str or not token
+                    or "sha256:" + hashlib.sha256(token.encode()).hexdigest() != token_digest):
+                raise ValueError("action capability token invalid")
+            # A Telegram callback shares kind='action' with effect capabilities.
+            # Only an authentic, expired owner callback is inert after a crash.
+            if set(value) == {"token", "action", "capability_token", "user_id", "chat_id", "expires_at"}:
+                try:
+                    deadline = datetime.fromisoformat(value["expires_at"])
+                    column_deadline = datetime.fromisoformat(expires)
+                except (TypeError, ValueError):
+                    raise ValueError("Telegram callback expiry invalid") from None
+                mvp1_actions = {
+                    TelegramAction.CONFIRM_VOICE.value,
+                    TelegramAction.CANCEL_VOICE.value,
+                    TelegramAction.CONFIRM_DURABLE_VOICE.value,
+                    TelegramAction.REPLACE_DURABLE_VOICE.value,
+                }
+                if (tenant != "owner" or type(value["action"]) is not str
+                        or value["action"] not in mvp1_actions
+                        or type(value["capability_token"]) is not str or not value["capability_token"]
+                        or type(value["user_id"]) is not int or type(value["chat_id"]) is not int
+                        or deadline.tzinfo is None or column_deadline.tzinfo is None
+                        or deadline != column_deadline or deadline > (now or datetime.now(UTC))):
+                    raise ValueError("Telegram callback requires reconciliation")
+                continue
             # A delivered capability is inert. All unfinished/unknown effects STOP.
             if (set(value) != {"token", "kind", "tenant_id", "user_id", "chat_id", "payload", "effect_digest", "state", "result"}
                     or value["state"] != "delivered" or value["tenant_id"] != tenant
-                    or type(value["token"]) is not str
-                    or "sha256:" + hashlib.sha256(value["token"].encode()).hexdigest() != token_digest
                     or value["kind"] not in {kind.value for kind in ProductEffectKind}
                     or type(value["user_id"]) is not int or type(value["chat_id"]) is not int
                     or type(value["result"]) is not dict
@@ -116,7 +230,7 @@ def validate_effects(runtime, *, now=None):
 
 
 def reconcile(s, values, *, root, binding, current_boot=None, validate=None, absent=None,
-              clock=time.monotonic, wait=time.sleep):
+              power_evidence=None, clock=time.monotonic, wait=time.sleep):
     """Caller owns the supervisor mutex. Hold Core + backup exclusion to commit."""
     from src.application.windows_singleton import WindowsNamedMutex
     state = s._recovery_state(root=root, activation_binding=binding)
@@ -126,7 +240,12 @@ def reconcile(s, values, *, root, binding, current_boot=None, validate=None, abs
     event = s._effective_event(event)
     boot = current_boot if current_boot is not None else boot_identity()
     if (not s._digest(event.get("boot_id")) or not s._digest(boot)
-            or event["boot_id"] == boot or event["attempt"] > event["retry_budget"]):
+            or event["attempt"] > event["retry_budget"]):
+        return False
+    same_boot = event["boot_id"] == boot
+    proof_reader = power_evidence or power_transition_evidence
+    proof = proof_reader(event["at"]) if same_boot else None
+    if same_boot and not s._digest(proof):
         return False
     with WindowsNamedMutex(r"Global\NobusSpaceBackupCycle"), WindowsNamedMutex():
         if not (absent or (lambda: children_absent(s.WORKTREE, s.REVERSE_BINDING)))():
@@ -149,14 +268,18 @@ def reconcile(s, values, *, root, binding, current_boot=None, validate=None, abs
             return False
         if current_boot is None and boot_identity() != boot:
             raise ValueError("boot identity changed")
+        if same_boot and proof_reader(event["at"]) != proof:
+            raise ValueError("power evidence changed")
         again, head = s._last_runtime_event(root=root, activation_binding=binding)
         if head != digest or s._effective_event(again) != event:
             raise ValueError("recovery history changed")
         s._write_runtime_event(s._runtime_record(
-            event["series_id"], uuid4().hex, "reboot_reconciled", activation_binding=binding,
+            event["series_id"], uuid4().hex,
+            "power_reconciled" if same_boot else "reboot_reconciled", activation_binding=binding,
             attempt=event["attempt"], retry_budget=event["retry_budget"],
             recovery_disposition="retry", stage="recovery_control", supervisor_exit_code=0,
             cleanup_outcome="proven", reset_of_digest=digest,
             boot_id=boot, previous_boot_id=event["boot_id"],
+            power_evidence_digest=proof,
         ), root=root)
     return True

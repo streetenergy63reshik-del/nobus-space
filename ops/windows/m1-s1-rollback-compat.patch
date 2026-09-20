@@ -1,3 +1,4 @@
+diff --git a/scripts/run_nobus_space_live.py b/scripts/run_nobus_space_live.py
 --- a/scripts/run_nobus_space_live.py
 +++ b/scripts/run_nobus_space_live.py
 @@ -75,6 +75,9 @@
