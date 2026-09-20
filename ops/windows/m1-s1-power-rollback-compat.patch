@@ -113,18 +113,20 @@ diff --git a/scripts/run_nobus_space_live.py b/scripts/run_nobus_space_live.py
          valid = (
              event in {"starting", "control_starting"}
              and current["series_id"] == previous["series_id"]
-@@ -1015,7 +1023,9 @@
+@@ -1015,7 +1023,11 @@
          recorded = json.loads(
              line[:-1].decode("ascii"), object_pairs_hook=_unique_json_object
          )
 -        if type(recorded) is not dict or set(recorded) != (RUNTIME_RECORDED_KEYS | (RUNTIME_V4_KEYS if recorded.get("schema") == "nobus-runtime-event-4" else set())):
++        if type(recorded) is not dict:
++            raise ValueError
 +        extra = (RUNTIME_V4_KEYS if recorded.get("schema") == "nobus-runtime-event-4"
 +                 else RUNTIME_V5_KEYS if recorded.get("schema") == "nobus-runtime-event-5" else set())
-+        if type(recorded) is not dict or set(recorded) != (RUNTIME_RECORDED_KEYS | extra):
++        if set(recorded) != (RUNTIME_RECORDED_KEYS | extra):
              raise ValueError
          authentication = recorded.pop("authentication")
          _verify_authentication(
-@@ -1653,7 +1663,7 @@
+@@ -1653,7 +1665,7 @@
                  "series_id": event["series_id"], "next_attempt": None,
                  "last_digest": digest}
      disposition = event["recovery_disposition"]

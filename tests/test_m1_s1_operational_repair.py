@@ -464,6 +464,10 @@ def test_power_rollback_reader_preserves_v5_history(tmp_path,no_native_mutex):
     old = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(old)
 
+    for malformed in (b'[]\n', b'null\n', b'1\n'):
+        with pytest.raises(ValueError, match='runtime history is invalid'):
+            old._decode_runtime_event(malformed)
+
     history = tmp_path / 'history'
     boot = 'sha256:' + 'a' * 64
     started(history, boot=boot)
@@ -472,6 +476,15 @@ def test_power_rollback_reader_preserves_v5_history(tmp_path,no_native_mutex):
                             validate=lambda: None, absent=lambda: True)
     assert old._runtime_history(root=history) == s._runtime_history(root=history)
     assert old._recovery_state(root=history, activation_binding=_BINDING)['next_attempt'] == 2
+    compacted = tmp_path / 'compacted'
+    compacted.mkdir()
+    rows, digests = s._runtime_history(root=history)
+    s._write_compacted_previous(compacted, rows[0], rows[-1], digests[-1])
+    segment = compacted / (s.RUNTIME_EVENT_LOG_NAME + '.previous')
+    identity = s._plain_root(compacted, create=False)
+    parsed = s._read_runtime_segment(segment, root=compacted, identity=identity)
+    assert parsed[0][1]['checkpoint_event'] == 'power_reconciled'
+    assert old._read_runtime_segment(segment, root=compacted, identity=identity) == parsed
     for event in ('control_starting', 'control_ready'):
         _record(history, 'b' * 32, 'f' * 32, event, attempt=2, stage='recovery_control',
                 supervisor_exit_code=0 if event == 'control_ready' else None)
