@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from src.integrations.codex_desktop_uia import (
+    CodexDesktopUiAutomation,
     UiBootstrapStatus,
     UiElementSnapshot,
     assess_ui_automation,
@@ -132,5 +135,48 @@ def test_powershell_adapter_uses_semantic_uia_without_input_fallbacks() -> None:
     assert "InvokePattern" in script
     assert "ValuePattern" in script
     assert "ExpandCollapsePattern" in script
+    assert "Create task is offscreen without ScrollItem" in script
+    assert "scrolled-create-task" in script
     for forbidden in ("SendKeys", "SetCursorPos", "mouse_event", "Clipboard"):
         assert forbidden not in script
+
+
+@pytest.mark.asyncio
+async def test_snapshot_passes_a_normal_powershell_parameter_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = tmp_path / "uia.ps1"
+    shell = tmp_path / "powershell.exe"
+    script.write_text("# fixture", encoding="utf-8")
+    shell.write_bytes(b"fixture")
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        captured["command"] = command
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=json.dumps(
+                {
+                    "action": "Snapshot",
+                    "desktop_version": "26.915.4065.0",
+                    "process_id": 123,
+                    "mutations": [],
+                }
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    automation = CodexDesktopUiAutomation(
+        script_path=script,
+        runtime_root=tmp_path / "runtime",
+        powershell_path=shell,
+    )
+
+    receipt = await automation.snapshot()
+
+    command = captured["command"]
+    project_index = command.index("-ProjectName")
+    assert command[project_index + 1] == "snapshot"
+    assert receipt.mutations == ()

@@ -182,6 +182,11 @@ try {
                 $project.Pattern.Expand(); $result.mutations += 'expanded-project'; Start-Sleep -Milliseconds 300
             }
             $create = Wait-Exact $document "Начать новый чат в папке $ProjectName" ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.InvokePattern]::Pattern) -TimeoutMs 5000
+            if ($create.Element.Current.IsOffscreen) {
+                $scroll = Get-Pattern $create.Element ([System.Windows.Automation.ScrollItemPattern]::Pattern)
+                if ($null -eq $scroll) { throw 'Create task is offscreen without ScrollItem' }
+                $scroll.ScrollIntoView(); $result.mutations += 'scrolled-create-task'; Start-Sleep -Milliseconds 300
+            }
             $create.Pattern.Invoke(); $result.mutations += 'invoked-create-task'; Start-Sleep -Milliseconds 500
         } else {
             if ([string]::IsNullOrWhiteSpace($TaskTitle)) { throw 'TaskTitle is required' }

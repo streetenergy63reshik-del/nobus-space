@@ -193,7 +193,12 @@ class CodexDesktopUiAutomation:
         self._timeout_seconds = timeout_seconds
 
     async def snapshot(self) -> DesktopUiActionReceipt:
-        return await self._run("Snapshot", project_name="-")
+        # A bare "-" is parsed as a switch boundary by Windows PowerShell
+        # when passed as the value of -ProjectName and exits before the script
+        # runs.  Snapshot does not use this selector, but it still needs a
+        # normal argument so the read-only health probe exercises the real
+        # wrapper successfully.
+        return await self._run("Snapshot", project_name="snapshot")
 
     async def create_and_submit(
         self, *, project_name: str, prompt: str
