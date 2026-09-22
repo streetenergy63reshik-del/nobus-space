@@ -59,6 +59,57 @@ def test_main_reports_only_allowlisted_startup_stage(
     assert "token" not in output
 
 
+@pytest.mark.asyncio
+async def test_runtime_schema_migration_precedes_candidate_backup_admission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An additive schema upgrade must make a fresh candidate backup possible."""
+    from src.application import managed_backups
+
+    events: list[str] = []
+    state = object()
+    backup_root = tmp_path / "backups"
+    backup_root.mkdir()
+
+    monkeypatch.setattr(
+        runner,
+        "SQLiteTelegramState",
+        lambda path: events.append("telegram_schema") or state,
+    )
+    monkeypatch.setattr(
+        runner,
+        "SQLiteDesktopBridgeState",
+        lambda path: events.append("desktop_schema") or object(),
+    )
+    monkeypatch.setattr(
+        runner,
+        "DurableTelegramActionStore",
+        lambda actual: events.append("action_store") or object(),
+    )
+
+    def reject_stale_backup(*args: object, **kwargs: object) -> None:
+        events.append("backup_admission")
+        raise ValueError("backup application version mismatch")
+
+    monkeypatch.setattr(managed_backups, "assert_recent", reject_stale_backup)
+    values = SimpleNamespace(
+        runtime_root=tmp_path,
+        semantic_admission=False,
+        backup_root=backup_root,
+        backup_ownership="sha256:" + "a" * 64,
+    )
+
+    with pytest.raises(ValueError, match="backup application version mismatch"):
+        await runner._run(values)
+
+    assert events == [
+        "telegram_schema",
+        "desktop_schema",
+        "action_store",
+        "backup_admission",
+    ]
+
+
 def _bundled_cli(home: Path, version: str) -> Path:
     path = (
         home

@@ -431,6 +431,14 @@ async def _run(
     artifacts = runtime_root / "artifacts" if isolated else _TELEGRAM_PROJECTS_ROOT
     poll_health = {"last_success": 0.0}
     backup_root = getattr(values, "backup_root", None)
+    # Schema creation is the supported additive migration boundary. It must
+    # precede the fresh-backup admission check: after an application upgrade,
+    # the previous backup is intentionally bound to the previous schema and a
+    # candidate backup cannot be produced until the new tables exist.
+    telegram_state = SQLiteTelegramState(telegram_state_path)
+    desktop_bridge_state = SQLiteDesktopBridgeState(telegram_state_path)
+    action_store = DurableTelegramActionStore(telegram_state)
+
     def admission_readiness(*, for_admission):
         if backup_root is not None:
             from src.application.managed_backups import assert_recent
@@ -495,9 +503,6 @@ async def _run(
         )
         if values.bootstrap_next_offset is not None:
             _bootstrap_checkpoint(checkpoint, values.bootstrap_next_offset)
-        telegram_state = SQLiteTelegramState(telegram_state_path)
-        desktop_bridge_state = SQLiteDesktopBridgeState(telegram_state_path)
-        action_store = DurableTelegramActionStore(telegram_state)
         gateway = TelegramGateway(
             actor_bindings=bindings,
             update_id_store=PollingCheckpointUpdateIdStore(),
