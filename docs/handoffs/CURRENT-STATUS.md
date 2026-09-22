@@ -1,5 +1,31 @@
 # Nobus Space: текущий принятый статус
 
+## Пауза M2-DESKTOP для независимого аудита — 22 сентября, 12:29 МСК
+
+По прямому запросу владельца разработка и live-проверки M2-DESKTOP безопасно
+остановлены. Production checkout сейчас detached на локальном commit
+`3ea243893a2647dc631662c2a2030de7679ae0e1`; связанная backup-конфигурация
+изменена под этот revision, но запуск не достиг readiness. После успешного
+activation rebind штатный cold-start backup cycle завершился Scheduler result
+`1`, точная failing boundary ещё не локализована. Все три задания
+`NobusSpaceBot`, `NobusSpaceBot-Health` и `NobusSpaceBot-Backup` остановлены и
+Disabled. Бот намеренно недоступен до аудита и контролируемого восстановления.
+
+Один подтверждённый Telegram request в «Заметки бизнеса» → «Codex work»
+(message `2150`, request
+`e18a5ca3-95d3-4be8-8453-630d88e97a50`) завершён как `unknown_dispatch` без
+Desktop thread/turn; read-only проверка показала, что новая задача Desktop не
+создана. Запрос не повторять. UIA root cause исправлен локально в `3ea2438`, но
+post-fix live journey не выполнялся. Gate остаётся WIP, не опубликован и не
+принят; полный L1/L2/L3 не запускался. Точная передача — в
+[handoff](../gates/mvp2/m2-desktop/HANDOFF.md),
+[журнале аудита](../gates/mvp2/m2-desktop/AUDIT-JOURNAL.md) и
+[evidence](../gates/mvp2/m2-desktop/EVIDENCE.json).
+
+Этот текущий операционный снимок не отменяет историческую приёмку MVP1 ниже,
+но заменяет старое утверждение, что production продолжает работать на принятом
+MVP1 revision.
+
 **M1-S1 CLOSED / ACCEPTED; MVP1 ACCEPTED — 19 сентября 2026, 17:50 МСК.**
 
 Устойчивость принята по сокращённым критериям владельца от 19.09.2026 после исправлений и целевой проверки работающего бота. Повторное 72-часовое наблюдение не проводилось.
@@ -43,7 +69,12 @@
 
 Историческое окно 16–19 сентября сохраняет **NOT PASS**. Неизвестные исторические причины public/SSH/Health не объявлены установленными. Исправления закрыли доказанные пробелы восстановления и диагностики; прежние FAIL сохранены.
 
-Heartbeat Codex остаётся **PAUSED**. Три штатных задания production продолжают обслуживать бот независимо от чата; их текущее состояние при необходимости проверяется отдельно. C6 не переоткрывается. **MVP2 M2-DESKTOP — WIP / DESKTOP IPC ADAPTER CHECKPOINT**: задача Gate продолжается в прежнем worktree; production-конфигурация не менялась. Новый live-turn не выполнялся.
+Heartbeat Codex остаётся **PAUSED**. На текущем снимке три штатных задания
+production намеренно остановлены и Disabled, как зафиксировано выше; это
+перекрывает прежний эксплуатационный снимок 20 сентября. C6 не переоткрывается.
+**MVP2 M2-DESKTOP — WIP / PAUSED FOR INDEPENDENT AUDIT**: задача Gate остаётся
+в прежнем worktree; production checkout и backup-config были изменены на
+локальный revision, но readiness не достигнута.
 
 21 сентября владелец задал новую цель MVP2: один M2-DESKTOP — Telegram ↔ настоящий Codex Desktop, все участники «Заметок бизнеса», полный ответ и файлы, уточнения автору и разрешения владельцу. Исторический эксперимент отдельного App Server сохраняет положительные create/visibility/readback и конкретный отрицательный результат `already has an active writer`; этот блокер относится к тому транспорту. Новое read-only доказательство на Desktop `26.915.4065.0`: `initialize` и `thread-owner-discovery` через `\\.\pipe\codex-ipc` прошли, владелец существующей задачи найден, но turn/approvals не отправлялись. Bundle содержит follower start/history/question/approval handlers. Read-only UI Automation обнаружил точные semantic controls проекта, создания и открытия задач без координат. Реализован локальный version-bound IPC/UIA adapter; 13 offline-тестов прошли, но fixtures не заменяют live. Текущий notifier по-прежнему не имеет per-task opt-out; исторические два сообщения в «Codex work» сохранены. Следующий шаг — точно разрешённый bounded smoke одной новой задачи, до пяти turn и ожидаемых notifier-summary; notifier/config/ledger не менять. Установка daemon не является следующим шагом. Подробности — в [исследовании](../gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md), [handoff](../gates/mvp2/m2-desktop/HANDOFF.md) и [evidence](../gates/mvp2/m2-desktop/EVIDENCE.json). Прежние M2-G0…G4 заменены и не запускаются; MVP1/C6 не переоткрывались.
 

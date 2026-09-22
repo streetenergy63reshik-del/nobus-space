@@ -1,19 +1,22 @@
 # Реестр Gate MVP2
 
-21 сентября 2026. Функциональная цель задана владельцем: Telegram ↔ Codex Desktop.
-Gate запущен. Прежний blocker локализован на отдельном App Server: owner IPC
-работающего Desktop принял initialize и нашёл владельца существующей задачи.
-Минимальный adapter и 13 offline-тестов готовы; UIA semantic selectors доступны
-read-only. Изменяющий Desktop smoke ещё не разрешён и не выполнен. Один Gate =
-одна задача.
+22 сентября 2026, 12:29 МСК. Функциональная цель: Telegram ↔ Codex Desktop.
+Gate остаётся одной задачей, но разработка и live-контур поставлены владельцем
+на безопасную паузу для независимого аудита. Один Telegram request дошёл до
+bridge и завершился `unknown_dispatch` до создания Desktop task; UIA root cause
+исправлен локально. Активация revision выполнена не полностью: recovery rebind
+прошёл, cold-start backup cycle завершился result `1`, readiness не достигнута.
+Все три production Scheduled Tasks остановлены и Disabled. Gate не принят.
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | WIP / DESKTOP IPC ADAPTER CHECKPOINT; live mutation awaiting permission | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | `f3fdb2d22a41b6a5b84fec06544447014c7bb35c` / `b604fcb6591ae11c4280d3a7d41a7261c2383305` | NOT COMMITTED | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | WIP / PAUSED FOR INDEPENDENT AUDIT; production disabled, backup-cycle blocker open | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | `f3fdb2d22a41b6a5b84fec06544447014c7bb35c` / `b604fcb6591ae11c4280d3a7d41a7261c2383305` | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
 
-Реальные task id и title внесены после запуска. В Gate создан ровно один
-`m2-desktop/HANDOFF.md` и один `m2-desktop/EVIDENCE.json`. Внутренние checkpoints,
-проверки и разрешённая активация остаются в этой задаче.
+Реальные task id и title внесены после запуска. В Gate сохраняются один
+`m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал
+независимого аудита. Внутренние checkpoints, проверки и незавершённая
+активация остаются в этой задаче. Локальный result SHA не опубликован и не
+означает FROZEN, VERIFIED, ACTIVE или ACCEPTED.
 
 Статусы: NOT STARTED → WIP → CHECKPOINT → FROZEN → CANDIDATE VERIFIED →
 ACCEPTED; при доказанных препятствиях BLOCKED/REWORK. Публикация и активация —

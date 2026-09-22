@@ -1,10 +1,76 @@
 # M2-DESKTOP — рабочая передача
 
-**Gate:** M2-DESKTOP  
-**Стадия:** WIP_ITERATION / DESKTOP IPC ADAPTER CHECKPOINT  
-**Дата наблюдения:** 21 сентября 2026 года  
-**Ветка:** `codex/m2-desktop`  
+**Gate:** M2-DESKTOP
+**Стадия:** PAUSED FOR INDEPENDENT AUDIT / SAFE STOP
+
+**Дата наблюдения:** 22 сентября 2026 года, 12:29 МСК
+**Ветка:** `codex/m2-desktop`
 **База:** `f3fdb2d22a41b6a5b84fec06544447014c7bb35c`, tree `b604fcb6591ae11c4280d3a7d41a7261c2383305`
+
+## Снимок остановки для независимого аудита — 22 сентября
+
+Разработка и live-проверки остановлены по прямому запросу владельца из-за
+лимита. Не отправлять новые Telegram-сообщения, не запускать Desktop turn и не
+возобновлять production до завершения независимого аудита и нового явного
+продолжения владельца. Подробная хронология, баги, блокеры, тесты и решения
+вынесены в [AUDIT-JOURNAL.md](AUDIT-JOURNAL.md). Нижележащие разделы этого
+документа сохраняют checkpoint 21 сентября; их утверждения «не выполнялось» и
+«ожидает разрешения» являются историческими и не переопределяют этот снимок.
+
+Точный Git-снимок разработки:
+
+- HEAD `3ea243893a2647dc631662c2a2030de7679ae0e1`, ветка
+  `codex/m2-desktop`, рабочая копия была чистой перед документированием;
+- локальные commits: `3d6514d` (единый Telegram↔Desktop bridge), `3ac1cac`
+  (миграция bridge schema до backup admission), `3ea2438` (UIA scroll перед
+  созданием задачи);
+- код не опубликован и не слит в `main`; полный независимый L1/L2/L3 по
+  замороженному кандидату не выполнялся, Gate не принят.
+
+Фактическое состояние live-контура при остановке:
+
+- production checkout `Code\worktrees\telegram-live` находится detached на
+  `3ea243893a2647dc631662c2a2030de7679ae0e1`; связанная backup-конфигурация и
+  действие Scheduled Task были переведены на этот revision;
+- подписанный activation rebind на новый код прошёл; binding
+  `sha256:fddb39bbdfb5d2cd6403a9a19f89ff8805154eb0d41967890e084d391913f3fb`;
+- непосредственный запуск Core остановился fail-closed до Telegram-сессии:
+  новая application binding не имела свежей совместимой backup generation;
+- штатный recovery reset для точного terminal event прошёл, а проверка тем же
+  `pythonw.exe` вернула `PASS`, state `new`, last digest
+  `sha256:e911277e820fa2244266d9914e9562403be2cfc37383479ec4a1ce9adbc51885`;
+- последующий backup cycle завершился Scheduler result `1`. Его post-failure
+  inspection показал только прежний/непривязанный `phase=complete`, digest
+  `sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c`,
+  тогда как отдельная read-only `load_config` тем же production `pythonw.exe`
+  прошла. Точная граница этого отказа пока не установлена; цикл не повторять;
+- на 12:29 МСК все три задания `NobusSpaceBot`, `NobusSpaceBot-Health` и
+  `NobusSpaceBot-Backup` остановлены и Disabled. Это намеренная безопасная
+  пауза, а не рабочий production-статус.
+
+Live Telegram-факт текущей итерации:
+
+- в «Заметки бизнеса» → «Codex work» после подтверждения владельца отправлен
+  ровно один тестовый запрос, Telegram message id `2150`; бот ответил
+  «Задача принята и передаётся в Codex Desktop.»;
+- bridge request `e18a5ca3-95d3-4be8-8453-630d88e97a50` завершён как
+  `unknown_dispatch`, без `desktop_thread_id` и `turn_id`;
+- read-only список задач Desktop подтвердил, что новая задача не появилась.
+  Запрос не исполнился и не должен повторяться автоматически;
+- причина локализована в UIA: точная кнопка создания была `offscreen=true`,
+  хотя поддерживала `ScrollItemPattern`. Исправление вызывает
+  `ScrollIntoView()` перед `Invoke`, fail-closed при отсутствии pattern; 29
+  целевых тестов прошли за 2,04 с, read-only wrapper snapshot прошёл;
+- после исправления новый Telegram-запрос не отправлялся. Следующая попытка —
+  только как новый request после аудита, восстановления production и нового
+  подтверждения действия.
+
+Не завершено: реальный Desktop create/start через исправленный путь, IPC ACK и
+turn id, двустороннее продолжение, полный финал, question/approval approve и
+deny, файл, reconnect, голос, две темы, реальный Артур младший и полный D01–D17.
+DOCX-памятка пользователя не изменялась. Исторический отдельный App Server
+writer-блокер и положительные read/visibility-доказательства сохраняются без
+повторения.
 
 ## Контракт результата
 

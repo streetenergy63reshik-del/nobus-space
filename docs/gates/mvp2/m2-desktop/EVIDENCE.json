@@ -257,6 +257,96 @@
       "evidence_ref": "health READY via official-cli, vault read verified, allowed scope project:nobus-space, write_mode limited_auto; current scoped search returned MEMORY_OPERATION_FAILED",
       "evidence_hash": null,
       "scope": "Only memory restoration is blocked. No unchanged retry, fallback, cross-scope read or memory write was attempted; project:prostranstvo required by Vibecoding is not allowed on this route."
+    },
+    {
+      "id": "LIVE-TELEGRAM-BRIDGE-REQUEST-20260922",
+      "status": "PARTIAL",
+      "tool": "Nobus Space Bot Telegram ingress and durable desktop bridge state",
+      "version": "source commit 3ea243893a2647dc631662c2a2030de7679ae0e1",
+      "subject_digest": null,
+      "evidence_ref": "Telegram business_notes/Codex work message 2150; request e18a5ca3-95d3-4be8-8453-630d88e97a50; bot acknowledgement observed",
+      "evidence_hash": null,
+      "scope": "Exactly one owner-confirmed live request reached ingress. It did not produce a Desktop thread or turn and must not be replayed automatically."
+    },
+    {
+      "id": "LIVE-DESKTOP-DISPATCH-20260922",
+      "status": "UNKNOWN_DISPATCH",
+      "tool": "desktop bridge durable state plus read-only Desktop task listing",
+      "version": "Desktop 26.915.4065.0",
+      "subject_digest": null,
+      "evidence_ref": "request e18a5ca3-95d3-4be8-8453-630d88e97a50 ended unknown_dispatch without desktop_thread_id or turn_id; no new Desktop task was present",
+      "evidence_hash": null,
+      "scope": "No duplicate execution was observed. The old request is terminal and no blind retry is permitted."
+    },
+    {
+      "id": "LIVE-UIA-OFFSCREEN-ROOT-CAUSE",
+      "status": "PASS",
+      "tool": "targeted read-only Windows UI Automation selector probe",
+      "version": "Desktop 26.915.4065.0",
+      "subject_digest": null,
+      "evidence_ref": "exact project and create controls found; Create task enabled and Invoke-capable, offscreen=true, ScrollItemPattern available; composer found",
+      "evidence_hash": null,
+      "scope": "Localizes the dispatch failure before Desktop task creation. No coordinate click, arbitrary-window input or second task was performed."
+    },
+    {
+      "id": "LOCAL-UIA-SCROLL-REGRESSION",
+      "status": "PASS",
+      "tool": "pytest targeted UIA suite and read-only wrapper snapshot",
+      "version": "commit 3ea243893a2647dc631662c2a2030de7679ae0e1",
+      "subject_digest": null,
+      "evidence_ref": "29 passed in 2.04s; wrapper snapshot returned the exact Desktop window with zero mutations",
+      "evidence_hash": null,
+      "scope": "Proves ScrollIntoView fail-closed behavior and the snapshot argument fix locally. No post-fix Telegram or Desktop create was run."
+    },
+    {
+      "id": "LIVE-ACTIVATION-REBIND-20260922",
+      "status": "PASS",
+      "tool": "signed runtime supervisor recovery control using production pythonw.exe",
+      "version": "commit 3ea243893a2647dc631662c2a2030de7679ae0e1",
+      "subject_digest": "sha256:fddb39bbdfb5d2cd6403a9a19f89ff8805154eb0d41967890e084d391913f3fb",
+      "evidence_ref": "activation_rebind completed with exit 0 after all three Scheduled Tasks were stopped and disabled",
+      "evidence_hash": null,
+      "scope": "Binds the live checkout and config to the new application bytes. It does not prove runtime readiness."
+    },
+    {
+      "id": "LIVE-POST-REBIND-STARTUP-20260922",
+      "status": "FAIL_CLOSED",
+      "tool": "NobusSpaceBot supervisor and signed recovery history",
+      "version": "commit 3ea243893a2647dc631662c2a2030de7679ae0e1",
+      "subject_digest": "sha256:3b9e354a613fc3cc7b4063f685630e14a78ce2bd12924b4185da7728cd263fce",
+      "evidence_ref": "Core outcome telegram_mvp1_failed; recovery disposition stop_non_retryable; no fresh backup existed for the new application binding",
+      "evidence_hash": null,
+      "scope": "The service stopped before establishing the normal Telegram runtime. The exact stop was subsequently acknowledged through the signed recovery path."
+    },
+    {
+      "id": "LIVE-RECOVERY-RESET-20260922",
+      "status": "PASS",
+      "tool": "run_nobus_space_live.py --acknowledge-recovery-stop and --inspect-recovery through production pythonw.exe",
+      "version": "commit 3ea243893a2647dc631662c2a2030de7679ae0e1",
+      "subject_digest": "sha256:e911277e820fa2244266d9914e9562403be2cfc37383479ec4a1ce9adbc51885",
+      "evidence_ref": "acknowledgement exit 0; exact-interpreter inspection returned PASS, state new, next_attempt 1",
+      "evidence_hash": null,
+      "scope": "Acknowledges the diagnosed stop only. It does not authorize startup without a compatible verified backup."
+    },
+    {
+      "id": "LIVE-BACKUP-COLD-START-20260922",
+      "status": "BLOCKED",
+      "tool": "NobusSpaceBot-Backup Scheduled Task and exact-interpreter diagnostics",
+      "version": "config digest sha256:7c3876a3f7e011c2e62ab77c67516bd033db889a2c8f235d1b81cf8de0337d79",
+      "subject_digest": null,
+      "evidence_ref": "Scheduled Task result 1; post-failure inspect returned an unbound phase=complete journal digest sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c; separate production-pythonw load_config passed",
+      "evidence_hash": null,
+      "scope": "The failing boundary is not localized and the phase=complete journal is not evidence for the failed attempt. The cycle must not be repeated without a new diagnostic hypothesis."
+    },
+    {
+      "id": "LIVE-SAFE-STOP-20260922",
+      "status": "PASS",
+      "tool": "Windows Task Scheduler state inspection",
+      "version": "2026-09-22T12:29:39+03:00",
+      "subject_digest": null,
+      "evidence_ref": "NobusSpaceBot, NobusSpaceBot-Health and NobusSpaceBot-Backup all stopped and Disabled",
+      "evidence_hash": null,
+      "scope": "Intentional audit pause. No background bot, health or backup run should occur until an audited recovery is explicitly resumed."
     }
   ],
   "acceptance": {
@@ -348,6 +438,34 @@
       "class": "QUESTION_AND_APPROVAL_EVENTS",
       "status": "OPEN",
       "summary": "Response methods exist and are covered by offline owner-targeting tests, but receipt and correlation of every pending question/approval family, expiry and Desktop race are not proven on the running app."
+    },
+    {
+      "id": "F-011",
+      "owner": "M2-DESKTOP",
+      "class": "LIVE_UIA_DISPATCH",
+      "status": "FIXED_LOCALLY_LIVE_NOT_REPEATED",
+      "summary": "The first Telegram-driven create attempt ended unknown_dispatch because the exact Create task control was offscreen. Commit 3ea2438 scrolls it into view before Invoke and fails closed without ScrollItem; the post-fix live create was not run."
+    },
+    {
+      "id": "F-012",
+      "owner": "M2-DESKTOP operations",
+      "class": "BACKUP_ADMISSION",
+      "status": "OPEN_BLOCKER",
+      "summary": "After application rebind, startup correctly rejected backups bound to the previous code. The recovery reset passed, but the scheduled cold-start backup cycle returned 1 and its exact failing boundary remains unknown."
+    },
+    {
+      "id": "F-013",
+      "owner": "M2-DESKTOP",
+      "class": "UNKNOWN_OUTCOME",
+      "status": "CLOSED_NO_RETRY",
+      "summary": "Telegram request e18a5ca3-95d3-4be8-8453-630d88e97a50 is terminal unknown_dispatch. Read-only Desktop inspection found no created task; the request remains preserved and must not be replayed or edited manually."
+    },
+    {
+      "id": "F-014",
+      "owner": "M2-DESKTOP audit",
+      "class": "RELEASE_READINESS",
+      "status": "OPEN",
+      "summary": "The three-commit candidate has not completed post-fix live D01-D17 or one frozen independent L1/L2/L3. Local implementation, deployment attempt, activation, publication and acceptance remain separate states."
     }
   ],
   "publication": {
@@ -355,9 +473,17 @@
     "remote_ref": null
   },
   "deployment": {
-    "status": "NOT_ACTIVE",
-    "live_revision": null,
-    "config_changed": false
+    "status": "PAUSED_AFTER_FAILED_ACTIVATION",
+    "live_revision": "3ea243893a2647dc631662c2a2030de7679ae0e1",
+    "config_changed": true,
+    "activation_binding": "sha256:fddb39bbdfb5d2cd6403a9a19f89ff8805154eb0d41967890e084d391913f3fb",
+    "scheduled_tasks": {
+      "NobusSpaceBot": "DISABLED",
+      "NobusSpaceBot-Health": "DISABLED",
+      "NobusSpaceBot-Backup": "DISABLED"
+    },
+    "ready": false,
+    "note": "The checkout and backup config point at the local M2-DESKTOP commit, but startup did not reach readiness. All tasks were deliberately disabled for independent audit."
   },
   "live_probe": {
     "thread_id": "01a0c45d-e9f8-7f81-a7b5-eb29818e33a5",
@@ -395,8 +521,27 @@
       "size": 159,
       "sha256": "e8f15053821c09313dbcb61b6cae404cd64c931b28a87b2b2ed2d7b9ab332b88",
       "used": false
+    },
+    "telegram_bridge_20260922": {
+      "message_id": 2150,
+      "request_id": "e18a5ca3-95d3-4be8-8453-630d88e97a50",
+      "status": "unknown_dispatch",
+      "desktop_thread_id": null,
+      "turn_id": null,
+      "new_desktop_task_observed": false,
+      "automatic_retry_allowed": false,
+      "post_fix_retry_run": false
     }
   },
+  "audit_pause": {
+    "at": "2026-09-22T12:29:39+03:00",
+    "reason": "Owner requested a safe stop for an independent development audit and usage-limit reset.",
+    "audit_journal": "AUDIT-JOURNAL.md",
+    "gate_status": "WIP_PAUSED",
+    "full_l1_l2_l3": "NOT_RUN",
+    "publication": "NOT_PUBLISHED",
+    "acceptance": "NOT_ACCEPTED"
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Obtain exact permission for the prepared owner-IPC/UIA smoke: one new task in nobus-orchestrator-dev, at most five turns, semantic UIA create/open and at most one initial composer submission if owner is not yet discoverable, owner-targeted IPC start/history/question responses, controlled reconnect, one approved HEAD to example.com, one denied Calculator launch request, files only in .runtime/m2-desktop-live-probe, and up to five expected existing-notifier summaries in business_notes/Codex work. Do not change notifier, Desktop, BotFather, ACL, PATH, credentials or config, and do not run product Telegram ingress yet."
+  "next_step": "Keep all three production tasks disabled. Conduct an independent audit of f3fdb2d..3ea2438 and AUDIT-JOURNAL.md. On explicit resume, first localize the backup Scheduled Task result 1 without repeating the cycle, create and verify one backup generation for the new application binding, and prove runtime readiness. Do not replay Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Any post-fix live journey must be a new request with a fresh action-time confirmation."
 }
