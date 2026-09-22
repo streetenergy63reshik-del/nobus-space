@@ -233,6 +233,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 "Не удалось подтвердить приём задачи. " + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label)
 
     async def start(self) -> None:
+        desktop_bridge = getattr(self, "_desktop_bridge", None)
+        if desktop_bridge is not None:
+            await desktop_bridge.start()
         if self._execution_workers or self._closing or self._closed:
             return
         start_worker = getattr(getattr(self._product_runtime, "_worker", None), "start", None)
@@ -260,6 +263,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 raise RuntimeError("durable Telegram worker stopped")
         if self._worker_error is not None:
             raise RuntimeError("durable Telegram recovery required")
+        desktop_bridge = getattr(self, "_desktop_bridge", None)
+        if desktop_bridge is not None:
+            desktop_bridge.assert_healthy()
         self._telegram_state.queue_snapshot()
         if not getattr(getattr(self._product_runtime, "_worker", None), "generation_available", True):
             raise RuntimeError("durable Telegram worker unavailable")
@@ -540,6 +546,12 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 worker.cancel()
             done, pending = await asyncio.wait(owned, timeout=_SHUTDOWN_SECONDS) if owned else (set(), set())
             results = [worker.exception() for worker in done if not worker.cancelled()]
+            desktop_bridge = getattr(self, "_desktop_bridge", None)
+            if desktop_bridge is not None:
+                try:
+                    await desktop_bridge.close()
+                except BaseException as error:
+                    results.append(error)
             effects = getattr(self, "_product_effects", None)
             if effects is not None:
                 cleanup = asyncio.create_task(effects.close())

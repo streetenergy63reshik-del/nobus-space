@@ -59,6 +59,8 @@ class ActorBoundIngress(IngressModel):
     actor_role: str
     auth_context_ref: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     user_id: int
+    is_bot: bool = False
+    is_forwarded: bool = False
     chat_id: int
     message_thread_id: int | None = Field(default=None, gt=0)
     reply_to_message_id: int | None = Field(default=None, gt=0)
@@ -72,6 +74,13 @@ class ActorBoundIngress(IngressModel):
         if not isinstance(value, str) or not value.strip():
             raise ValueError("identity values must be non-empty strings")
         return value.strip()
+
+    @field_validator("is_bot", "is_forwarded", mode="before")
+    @classmethod
+    def strict_bot_flag(cls, value: Any) -> bool:
+        if type(value) is not bool:
+            raise ValueError("Telegram origin flags must be boolean")
+        return value
 
 
 class TextMessage(ActorBoundIngress):
@@ -144,6 +153,10 @@ def _telegram_payload_facts(payload: TelegramPayload) -> dict[str, object]:
 
     if payload.reply_to_message_id is not None:
         content["reply_to_message_id"] = payload.reply_to_message_id
+    if payload.is_bot:
+        content["is_bot"] = True
+    if payload.is_forwarded:
+        content["is_forwarded"] = True
 
     if payload.binding_purpose == "business_notes":
         external_message_id += ":purpose:business_notes"

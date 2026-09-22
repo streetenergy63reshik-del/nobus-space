@@ -39,6 +39,7 @@ semantic composition. Реализованные исторические ADR001
 | [0024](adr/0024-core-durable-recovery-and-part-delivery.md) | Durable admission/recovery, lease fencing, sealed answer и part receipts | ACCEPTED IN C3 | CURRENT; PERMANENT ACTIVE |
 | [0025](adr/0025-miniapp-session-and-request-recovery.md) | Core-owned session rotation и восстановление запроса Mini App без повторного admission | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; ACTIVE IN MVP1 |
 | [0026](adr/0026-channel-neutral-product-projection.md) | Общие состояния, причины, действия и безопасное представление результата в Telegram и Mini App | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; ACTIVE IN MVP1 |
+| [0029](adr/0029-telegram-desktop-owner-tunnel.md) | Доверенная Telegram-группа управляет владельцем задачи установленного Codex Desktop через version-bound owner IPC; разрешения остаются у numeric владельца | ACCEPTED FOR M2-DESKTOP IMPLEMENTATION | M2-DESKTOP WIP |
 
 ## Правила статусов ADR
 

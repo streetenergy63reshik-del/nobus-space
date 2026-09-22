@@ -467,7 +467,7 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
         "TelegramBindingConfig",
         SimpleNamespace(
             model_validate=lambda value: SimpleNamespace(
-                bindings=(SimpleNamespace(purpose="owner_private"),)
+                bindings=(SimpleNamespace(purpose="owner_private", user_id=1, chat_id=1),)
             )
         ),
     )
@@ -484,6 +484,9 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     telegram_state = object()
     monkeypatch.setattr(
         runner, "SQLiteTelegramState", lambda *args, **kwargs: telegram_state
+    )
+    monkeypatch.setattr(
+        runner, "SQLiteDesktopBridgeState", lambda *args, **kwargs: object()
     )
     monkeypatch.setattr(
         runner,

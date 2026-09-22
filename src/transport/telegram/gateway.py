@@ -132,6 +132,24 @@ def _is_non_empty_str(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _trusted_group_bindings(
+    bindings: Mapping[tuple[int, int], ActorBinding],
+) -> MappingProxyType[int, ActorBinding]:
+    groups: dict[int, ActorBinding] = {}
+    for (_, chat_id), binding in bindings.items():
+        if (
+            chat_id >= 0
+            or binding.purpose != "business_notes"
+            or binding.role != "owner"
+        ):
+            continue
+        existing = groups.get(chat_id)
+        if existing is not None and existing != binding:
+            raise ValueError("trusted Telegram group binding is ambiguous")
+        groups[chat_id] = binding
+    return MappingProxyType(groups)
+
+
 def _rejected(update_id: int | None, reason: str) -> IngressResult:
     return IngressResult(status=IngressStatus.REJECTED, update_id=update_id, reason=reason)
 
@@ -178,6 +196,7 @@ class TelegramGateway:
         ):
             raise ValueError("max_voice_duration must be a positive integer")
         self._actor_bindings = MappingProxyType(normalized)
+        self._group_bindings = _trusted_group_bindings(normalized)
         self._update_id_store = update_id_store
         self._callback_token_store = callback_token_store
         self._max_text_length = max_text_length
@@ -202,6 +221,7 @@ class TelegramGateway:
         if not normalized:
             raise ValueError("at least one actor binding is required")
         self._actor_bindings = MappingProxyType(normalized)
+        self._group_bindings = _trusted_group_bindings(normalized)
 
     def process_update(self, update: dict[str, Any]) -> TrustedIngressResult:
         """Claim one raw update and atomically mint its trusted envelope."""
@@ -316,7 +336,26 @@ class TelegramGateway:
         return _ignored(update_id, "unknown update type")
 
     def _binding(self, user_id: int, chat_id: int) -> ActorBinding | None:
-        return self._actor_bindings.get((user_id, chat_id))
+        exact = self._actor_bindings.get((user_id, chat_id))
+        if exact is not None:
+            return exact
+        group = self._group_bindings.get(chat_id)
+        if group is None or user_id <= 0:
+            return None
+        return ActorBinding(
+            tenant_id=group.tenant_id,
+            actor_identity=f"telegram:participant:{user_id}",
+            role="participant",
+            auth_context_ref=canonical_json_digest(
+                {
+                    "schema": "telegram-trusted-group-participant-v1",
+                    "group_auth_context_ref": group.auth_context_ref,
+                    "chat_id": chat_id,
+                    "user_id": user_id,
+                }
+            ),
+            purpose="business_notes",
+        )
 
     def _handle_message(self, update_id: int, message: Any) -> IngressResult:
         if not _is_dict(message):
@@ -326,8 +365,25 @@ class TelegramGateway:
         if not _is_dict(from_obj) or not _is_dict(chat_obj):
             return _rejected(update_id, "malformed message")
         user_id = from_obj.get("id")
+        is_bot = from_obj.get("is_bot", False)
+        is_forwarded = any(
+            key in message
+            for key in (
+                "forward_origin",
+                "forward_from",
+                "forward_from_chat",
+                "forward_sender_name",
+                "forward_date",
+                "is_automatic_forward",
+                "external_reply",
+                "via_bot",
+                "sender_chat",
+                "guest_bot_caller_user",
+                "guest_bot_caller_chat",
+            )
+        )
         chat_id = chat_obj.get("id")
-        if not _is_int(user_id) or not _is_int(chat_id):
+        if not _is_int(user_id) or type(is_bot) is not bool or not _is_int(chat_id):
             return _rejected(update_id, "missing or invalid user_id/chat_id")
         binding = self._binding(user_id, chat_id)
         if binding is None:
@@ -338,9 +394,9 @@ class TelegramGateway:
         if has_text and has_voice:
             return _rejected(update_id, "ambiguous message")
         if has_text:
-            return self._handle_text(update_id, message, user_id, chat_id, binding)
+            return self._handle_text(update_id, message, user_id, is_bot, is_forwarded, chat_id, binding)
         if has_voice:
-            result = self._handle_voice(update_id, message, user_id, chat_id, binding)
+            result = self._handle_voice(update_id, message, user_id, is_bot, is_forwarded, chat_id, binding)
             if result.status is IngressStatus.REJECTED and binding.purpose == 'owner_private':
                 thread = message.get('message_thread_id')
                 return result.model_copy(update={'rejection_chat_id':chat_id,
@@ -353,6 +409,8 @@ class TelegramGateway:
         update_id: int,
         message: dict[str, Any],
         user_id: int,
+        is_bot: bool,
+        is_forwarded: bool,
         chat_id: int,
         binding: ActorBinding,
     ) -> IngressResult:
@@ -390,6 +448,8 @@ class TelegramGateway:
                 actor_role=binding.role,
                 auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
+                is_bot=is_bot,
+                is_forwarded=is_forwarded,
                 chat_id=chat_id,
                 message_thread_id=thread_id,
                 reply_to_message_id=reply_id,
@@ -404,6 +464,8 @@ class TelegramGateway:
         update_id: int,
         message: dict[str, Any],
         user_id: int,
+        is_bot: bool,
+        is_forwarded: bool,
         chat_id: int,
         binding: ActorBinding,
     ) -> IngressResult:
@@ -453,6 +515,8 @@ class TelegramGateway:
                 actor_role=binding.role,
                 auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
+                is_bot=is_bot,
+                is_forwarded=is_forwarded,
                 chat_id=chat_id,
                 message_thread_id=thread_id,
                 reply_to_message_id=reply_id,
@@ -479,6 +543,23 @@ class TelegramGateway:
         if not _is_dict(chat_obj):
             return _rejected(update_id, "malformed callback_query")
         user_id = from_obj.get("id")
+        is_bot = from_obj.get("is_bot", False)
+        is_forwarded = any(
+            key in message_obj
+            for key in (
+                "forward_origin",
+                "forward_from",
+                "forward_from_chat",
+                "forward_sender_name",
+                "forward_date",
+                "is_automatic_forward",
+                "external_reply",
+                "via_bot",
+                "sender_chat",
+                "guest_bot_caller_user",
+                "guest_bot_caller_chat",
+            )
+        )
         chat_id = chat_obj.get("id")
         message_id = message_obj.get("message_id")
         thread_id = message_obj.get("message_thread_id")
@@ -488,6 +569,7 @@ class TelegramGateway:
             return _rejected(update_id, "invalid message_thread_id")
         if (
             not _is_int(user_id)
+            or type(is_bot) is not bool
             or not _is_int(chat_id)
             or not _is_int(message_id)
         ):
@@ -515,6 +597,8 @@ class TelegramGateway:
                 actor_role=binding.role,
                 auth_context_ref=binding.auth_context_ref,
                 user_id=user_id,
+                is_bot=is_bot,
+                is_forwarded=is_forwarded,
                 chat_id=chat_id,
                 message_thread_id=thread_id,
                 binding_purpose=binding.purpose,

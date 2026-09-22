@@ -75,6 +75,16 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "b1f338e3deff32d9507eda30384864f4a1baabce6b56d7f59cfdeffe65b5aef4",
     },
     "telegram-state.sqlite3": {
+        "index:idx_desktop_bridge_delivery_status":
+            "c497075661b24cf7ce2c4fd933d8880358b460792c5b19108d9e6fe22c3ff1b4",
+        "index:idx_desktop_bridge_interaction_message":
+            "f8633e63e8741dd1183ea6a361055eaca95d8371db6d9fe781c885f5accbc511",
+        "index:idx_desktop_bridge_interaction_pending":
+            "67ff2d3c6a62164e97e804bafbe9b03a5b314808877c2cd047592544ab90cbbd",
+        "index:idx_desktop_bridge_requests_status":
+            "f5c3fb41f155010bef79a3a916a0f9755025bf849cb3c4cd7def1712aba3c62e",
+        "index:idx_desktop_bridge_requests_topic":
+            "5ebe866c0a64dcfd97e14eaaae86b53a13ad997a8b033a5958292bbb2b53c41c",
         "index:idx_semantic_clarification_expiry":
             "39cb81c8d32e7ca047b8a0f738441ec28cea8aeaa391ba242d2894e161310719",
         "index:idx_telegram_capability_expiry":
@@ -89,6 +99,12 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "ce29f038e79e8b2c0e27fbd313a1f60e1a5a4277eba8d2d641cf20d90a0949e7",
         "table:telegram_progress":
             "93178455126f5edaeaa6ed3af42141e688b34d9d481bfa205900d4e9127e434b",
+        "table:desktop_bridge_deliveries":
+            "a83b734394337d69704741af2c3e11c7ddac7f5d93733ca8140c59d68ac68976",
+        "table:desktop_bridge_interactions":
+            "9d802219fdd8c1afd0daf983c23537a838b7e7c79be9b4a6515aebc6fed0a67f",
+        "table:desktop_bridge_requests":
+            "c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6",
     },
 }
 
@@ -551,6 +567,15 @@ def _validate_telegram_state_rows(path: Path) -> None:
         clarifications = connection.execute(
             "SELECT * FROM semantic_clarifications"
         ).fetchall()
+        bridge_requests = connection.execute(
+            "SELECT * FROM desktop_bridge_requests"
+        ).fetchall()
+        bridge_interactions = connection.execute(
+            "SELECT * FROM desktop_bridge_interactions"
+        ).fetchall()
+        bridge_deliveries = connection.execute(
+            "SELECT * FROM desktop_bridge_deliveries"
+        ).fetchall()
     for row in jobs:
         created = _aware(row["created_at"])
         updated = _aware(row["updated_at"])
@@ -646,6 +671,85 @@ def _validate_telegram_state_rows(path: Path) -> None:
             or not created < expires <= created + timedelta(minutes=30)
         ):
             raise RuntimeError("semantic clarification row is invalid")
+    bridge_statuses = {
+        "received", "needs_target", "needs_voice_confirmation", "dispatching",
+        "running", "waiting_author", "waiting_owner", "execution_completed",
+        "delivering", "delivered", "waiting_pc", "unknown_dispatch",
+        "delivery_partial", "delivery_unknown", "failed", "cancelled",
+    }
+    for row in bridge_requests:
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        UUID(row["request_id"])
+        if (
+            not _runtime_digest(row["ingress_key"])
+            or not _runtime_text(row["tenant_id"], 128)
+            or type(row["author_user_id"]) is not int
+            or row["author_user_id"] <= 0
+            or not _runtime_text(row["author_identity"], 256)
+            or type(row["chat_id"]) is not int
+            or row["chat_id"] == 0
+            or (row["topic_id"] is not None and (type(row["topic_id"]) is not int or row["topic_id"] <= 0))
+            or type(row["source_message_id"]) is not int
+            or row["source_message_id"] <= 0
+            or row["operation"] not in {"create", "continue", "redeliver"}
+            or row["status"] not in bridge_statuses
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or updated < created
+        ):
+            raise RuntimeError("desktop bridge request row is invalid")
+    for row in bridge_interactions:
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        expires = _aware(row["expires_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        UUID(row["request_id"])
+        if (
+            not _runtime_text(row["interaction_id"], 256)
+            or row["kind"] not in {
+                "voice_confirmation", "question", "command_approval",
+                "file_approval", "permissions_approval", "mcp_elicitation", "unknown",
+            }
+            or not _runtime_text(row["desktop_request_id"], 256)
+            or not _runtime_text(row["desktop_turn_id"], 256)
+            or type(row["target_user_id"]) is not int
+            or row["target_user_id"] <= 0
+            or (
+                row["telegram_chat_id"] is not None
+                and (type(row["telegram_chat_id"]) is not int or row["telegram_chat_id"] == 0)
+            )
+            or (row["telegram_message_id"] is not None and row["telegram_message_id"] <= 0)
+            or ((row["telegram_chat_id"] is None) != (row["telegram_message_id"] is None))
+            or type(row["connection_generation"]) is not int
+            or row["connection_generation"] <= 0
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or row["status"] not in {"pending", "answered", "expired", "superseded", "unknown"}
+            or updated < created
+            or expires <= created
+        ):
+            raise RuntimeError("desktop bridge interaction row is invalid")
+    for row in bridge_deliveries:
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        UUID(row["request_id"])
+        if (
+            not _runtime_digest(row["operation_key"])
+            or row["kind"] not in {"text", "artifact", "manifest"}
+            or type(row["ordinal"]) is not int
+            or row["ordinal"] < 0
+            or not _runtime_digest(row["source_digest"])
+            or not _runtime_text(row["destination_ref"], 512)
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or row["status"] not in {"claimed", "sent", "unknown", "failed"}
+            or (row["status"] == "sent") != (row["telegram_message_id"] is not None)
+            or updated < created
+        ):
+            raise RuntimeError("desktop bridge delivery row is invalid")
 
 
 

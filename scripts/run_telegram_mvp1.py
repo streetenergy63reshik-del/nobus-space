@@ -52,6 +52,8 @@ from src.application.durable_semantic import (  # noqa: E402
     DurableSemanticClarificationStore,
 )
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
+from src.application.desktop_bridge import DesktopBridgeService  # noqa: E402
+from src.application.desktop_bridge_state import SQLiteDesktopBridgeState  # noqa: E402
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
@@ -91,6 +93,8 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointStore,
 )
 from src.transport.miniapp import BoundedH11Protocol, create_miniapp_app  # noqa: E402
+from src.integrations.codex_desktop_uia import CodexDesktopUiAutomation  # noqa: E402
+from src.integrations.nobus_document_delivery import NobusDocumentDelivery  # noqa: E402
 from src.storage import SQLiteStore  # noqa: E402
 from src.voice import IsolatedFasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
@@ -492,6 +496,7 @@ async def _run(
         if values.bootstrap_next_offset is not None:
             _bootstrap_checkpoint(checkpoint, values.bootstrap_next_offset)
         telegram_state = SQLiteTelegramState(telegram_state_path)
+        desktop_bridge_state = SQLiteDesktopBridgeState(telegram_state_path)
         action_store = DurableTelegramActionStore(telegram_state)
         gateway = TelegramGateway(
             actor_bindings=bindings,
@@ -544,6 +549,45 @@ async def _run(
             ),
         )
         report_stage("control_construction")
+        voice_service = VoicePreviewService(
+            voice_transcriber,
+            temp_root=voice_temp,
+            max_bytes=10 * 1024 * 1024,
+            max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
+        )
+        desktop_bridge = DesktopBridgeService(
+            api=api,
+            state=desktop_bridge_state,
+            uia=CodexDesktopUiAutomation(
+                script_path=ROOT / "scripts" / "codex_desktop_uia.ps1",
+                runtime_root=runtime_root / "desktop-bridge",
+            ),
+            projects={
+                "nobus-orchestrator-dev": (
+                    _ORCHESTRATOR_ROOT / "Code" / "nobus-orchestrator-dev"
+                )
+            },
+            owner_user_id=owner_binding.user_id,
+            owner_private_chat_id=owner_binding.chat_id,
+            bot_username=identity.username,
+            voice_service=voice_service,
+            document_delivery=NobusDocumentDelivery(
+                runtime_path=(
+                    Path.home()
+                    / ".codex"
+                    / "skills"
+                    / "nobus-send-results"
+                    / "scripts"
+                    / "telegram_delivery_runtime.py"
+                ),
+                ledger_path=(
+                    _ORCHESTRATOR_ROOT
+                    / "Code"
+                    / "nobus-orchestrator-dev"
+                    / "telegram-document-delivery.local.sqlite3"
+                ),
+            ),
+        )
         control = DurableProductTelegramControlPlane(
             gateway,
             api,
@@ -551,12 +595,8 @@ async def _run(
             task_confirmations=DurableTaskConfirmationStore(telegram_state),
             patch_confirmations=DurablePatchConfirmationStore(telegram_state),
             action_store=action_store,
-            voice_service=VoicePreviewService(
-                voice_transcriber,
-                temp_root=voice_temp,
-                max_bytes=10 * 1024 * 1024,
-                max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
-            ),
+            voice_service=voice_service,
+            desktop_bridge=desktop_bridge,
             limit_provider=limit_provider,
             semantic_admission=(
                 SemanticAdmissionService(runtime)

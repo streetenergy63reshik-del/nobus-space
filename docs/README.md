@@ -9,11 +9,12 @@
 | Задача | Документ |
 |---|---|
 | Узнать принятый статус и время проверки | [CURRENT-STATUS](handoffs/CURRENT-STATUS.md) |
+| Продолжить планирование после новых вводных | [Полная передача архитектору](handoffs/ARCHITECT-HANDOFF.md): Git, эксплуатация, решения Hermes, границы и расхождения источников |
 | Пользоваться ботом | [Инструкция владельца](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) |
 | Сопровождать работающий экземпляр | [Runbook](08-Runbook-эксплуатации.md), [рабочие каталоги](handoffs/WORKSPACE-INVENTORY.md) |
 | Проверить устранение инцидентов | [Таблица и приёмка M1-S1](gates/mvp1-maintenance/REPAIR-ACCEPTANCE.md), [EVIDENCE](gates/mvp1-maintenance/EVIDENCE.json) |
 | Найти архитектурный контракт | [Обзор](03-Архитектурный-обзор.md), [журнал ADR](04-Журнал-ADR.md) |
-| Посмотреть будущие планы | [Дорожная карта](15-Продуктовая-дорожная-карта.md), [HTML-представление](16-Управленческая-карта-разработки.html) — PROPOSED, MVP2 NOT STARTED |
+| Продолжить MVP2 | [Дорожная карта](15-Продуктовая-дорожная-карта.md), [HTML-представление](16-Управленческая-карта-разработки.html): один M2-DESKTOP, DESKTOP IPC ADAPTER CHECKPOINT |
 | Найти старую проверку или передачу | [Gate](gates/README.md), [передачи](handoffs/README.md), [аудиты](audits/README.md) |
 
 ## Действующая документация
@@ -27,11 +28,15 @@
 | Контекст работающего продукта | [11 — Контекст продукта](11-Контекст-продукта.md): принятый вход activation binding; историческая строка статуса не заменяет CURRENT |
 | Git и рабочие копии | [Роли каталогов](handoffs/WORKSPACE-INVENTORY.md), [итог упорядочивания](handoffs/REPOSITORY-MAINTENANCE.md) |
 
-Telegram и Mini App используют один локальный Core. Действующие решения: [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md), [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md), [0024](adr/0024-core-durable-recovery-and-part-delivery.md), [0025](adr/0025-miniapp-session-and-request-recovery.md), [0026](adr/0026-channel-neutral-product-projection.md), [0027](adr/0027-miniapp-bounded-admission-reconciliation.md). Полный распределённый Gate 2A остаётся FROZEN / NOT CURRENT.
+Telegram и Mini App используют один локальный Core. Действующие решения: [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md), [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md), [0024](adr/0024-core-durable-recovery-and-part-delivery.md), [0025](adr/0025-miniapp-session-and-request-recovery.md), [0026](adr/0026-channel-neutral-product-projection.md), [0027](adr/0027-miniapp-bounded-admission-reconciliation.md), [0029](adr/0029-telegram-desktop-owner-tunnel.md). Полный распределённый Gate 2A остаётся FROZEN / NOT CURRENT.
 
-## Планы, ещё не принятые к реализации
+## Следующий функциональный Gate
 
-[Документ 15](15-Продуктовая-дорожная-карта.md) — единственный источник предложенного продуктового плана. [Документ 16](16-Управленческая-карта-разработки.html) генерируется из него и содержит хэш исходника. [Реестр MVP2](gates/mvp2/REGISTRY.md) хранит статусы пяти незапущенных Gate; [порядок ведения документов](mvp2/DOCUMENTATION.md) — механизм обновления. Публикация этих материалов не утверждает scope, не запускает MVP2 и не меняет production.
+[Документ 15](15-Продуктовая-дорожная-карта.md) отражает вводные владельца от 21 сентября: один Gate M2-DESKTOP — создание и продолжение задач настоящего Codex Desktop из любой темы «Заметок бизнеса», полный ответ и файлы, уточнения автору, разрешения владельцу. [Архитектура](gates/mvp2/M2-DESKTOP-ARCHITECTURE.md) и [промпт](gates/mvp2/M2-DESKTOP-PROMPT.md) ведутся в одной задаче разработки. В WIP подтверждены read-only owner discovery через IPC работающего Desktop, семантические UIA-селекторы и локальный адаптер; изменяющий live-smoke ещё не выполнялся. Старые M2-G0…G4 заменены. Направление Hermes сохраняет отдельный статус в [handoff архитектора](handoffs/ARCHITECT-HANDOFF.md).
+
+[Документ 16](16-Управленческая-карта-разработки.html) генерируется из docs15 и содержит хэш исходника. [Реестр MVP2](gates/mvp2/REGISTRY.md) хранит статус M2-DESKTOP и историю заменённых Gate; [исследование транспорта](gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md) отделяет owner IPC от неработающего способа через отдельный App Server; [порядок ведения документов](mvp2/DOCUMENTATION.md) — механизм обновления. Полная совместимость ещё не доказана: следующий рубеж — ограниченный live-smoke после точного разрешения. Локальный checkpoint не меняет production.
+
+Заголовки реализации в ADR0022–0027 и ранние CURRENT-разделы docs05/07 местами отражают свой исторический срез. Точный перечень расхождений есть в handoff; за нынешним составом возможностей и приёмкой обращаться к CURRENT и позднейшим Gate evidence. Документы 06/07 описывают продуктовые контракты, а не полномочия каждой команды процесса разработки.
 
 ## Сохранённые исторические материалы
 

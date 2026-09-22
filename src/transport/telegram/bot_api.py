@@ -63,6 +63,15 @@ class TelegramBotIdentity:
 
 
 @dataclass(frozen=True)
+class TelegramChatAdministrator:
+    user_id: int
+    is_bot: bool
+    username: str | None
+    first_name: str
+    status: str
+
+
+@dataclass(frozen=True)
 class PollingLease:
     lease_id: UUID
     owner_id: UUID
@@ -139,6 +148,40 @@ class TelegramBotApi:
             username=result["username"].strip(),
             first_name=result["first_name"].strip(),
         )
+
+    async def get_chat_administrators(
+        self, chat_id: int
+    ) -> tuple[TelegramChatAdministrator, ...]:
+        """Read exact administrator identities without consuming updates."""
+        if type(chat_id) is not int or chat_id == 0:
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        result = await self._call("getChatAdministrators", {"chat_id": chat_id})
+        if not isinstance(result, list) or len(result) > 256:
+            raise TelegramBotApiError("telegram_protocol_error")
+        administrators: list[TelegramChatAdministrator] = []
+        for item in result:
+            user = item.get("user") if type(item) is dict else None
+            username = user.get("username") if type(user) is dict else None
+            if (
+                type(user) is not dict
+                or not _positive_int(user.get("id"))
+                or type(user.get("is_bot")) is not bool
+                or not _bounded_text(user.get("first_name"), 128)
+                or username is not None
+                and not _bounded_text(username, 64)
+                or item.get("status") not in {"creator", "administrator"}
+            ):
+                raise TelegramBotApiError("telegram_protocol_error")
+            administrators.append(
+                TelegramChatAdministrator(
+                    user_id=user["id"],
+                    is_bot=user["is_bot"],
+                    username=None if username is None else username.strip(),
+                    first_name=user["first_name"].strip(),
+                    status=item["status"],
+                )
+            )
+        return tuple(administrators)
 
     async def configure_profile(
         self,
@@ -273,6 +316,7 @@ class TelegramBotApi:
         *,
         buttons: tuple[tuple[str, str], ...] = (),
         message_thread_id: int | None = None,
+        reply_to_message_id: int | None = None,
     ) -> int:
         if (
             type(chat_id) is not int
@@ -285,11 +329,20 @@ class TelegramBotApi:
                     or message_thread_id <= 0
                 )
             )
+            or (
+                reply_to_message_id is not None
+                and (type(reply_to_message_id) is not int or reply_to_message_id <= 0)
+            )
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
-        payload: dict[str, Any] = {"chat_id": chat_id, "text": text.strip()}
+        payload: dict[str, Any] = {"chat_id": chat_id, "text": text}
         if message_thread_id is not None:
             payload["message_thread_id"] = message_thread_id
+        if reply_to_message_id is not None:
+            payload["reply_parameters"] = {
+                "message_id": reply_to_message_id,
+                "allow_sending_without_reply": False,
+            }
         if buttons:
             payload["reply_markup"] = {
                 "inline_keyboard": [[
@@ -335,7 +388,7 @@ class TelegramBotApi:
         payload: dict[str, Any] = {
             "chat_id": chat_id,
             "message_id": message_id,
-            "text": text.strip(),
+            "text": text,
         }
         if buttons is not None:
             payload["reply_markup"] = {
@@ -352,7 +405,13 @@ class TelegramBotApi:
             raise TelegramBotApiError("telegram_protocol_error")
 
     async def send_document(
-        self, chat_id: int, filename: str, content: bytes
+        self,
+        chat_id: int,
+        filename: str,
+        content: bytes,
+        *,
+        message_thread_id: int | None = None,
+        reply_to_message_id: int | None = None,
     ) -> int:
         """Upload one bounded in-memory document to one exact chat."""
         if (
@@ -360,6 +419,14 @@ class TelegramBotApi:
             or not _safe_upload_filename(filename)
             or type(content) is not bytes
             or not content
+            or (
+                message_thread_id is not None
+                and (type(message_thread_id) is not int or message_thread_id <= 0)
+            )
+            or (
+                reply_to_message_id is not None
+                and (type(reply_to_message_id) is not int or reply_to_message_id <= 0)
+            )
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
         if len(content) > _MAX_UPLOAD_LIMIT:
@@ -371,7 +438,27 @@ class TelegramBotApi:
             async with self._client.stream(
                 "POST",
                 self._method_url("sendDocument"),
-                data={"chat_id": str(chat_id)},
+                data={
+                    "chat_id": str(chat_id),
+                    **(
+                        {"message_thread_id": str(message_thread_id)}
+                        if message_thread_id is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            "reply_parameters": json.dumps(
+                                {
+                                    "message_id": reply_to_message_id,
+                                    "allow_sending_without_reply": False,
+                                },
+                                separators=(",", ":"),
+                            )
+                        }
+                        if reply_to_message_id is not None
+                        else {}
+                    ),
+                },
                 files={
                     "document": (
                         filename,
@@ -404,6 +491,10 @@ class TelegramBotApi:
             or type(chat) is not dict
             or type(chat.get("id")) is not int
             or chat["id"] != chat_id
+            or (
+                message_thread_id is not None
+                and result.get("message_thread_id") != message_thread_id
+            )
             or type(document) is not dict
             or not _bounded_text(document.get("file_id"), 512)
             or not _bounded_text(document.get("file_unique_id"), 512)
@@ -505,6 +596,7 @@ class TelegramBotApi:
             "deleteMessage",
             "editMessageText",
             "getFile",
+            "getChatAdministrators",
             "getMe",
             "getUpdates",
             "sendMessage",

@@ -469,6 +469,7 @@ class ProductTelegramApi(Protocol):
         *,
         buttons: tuple[tuple[str, str], ...] = (),
         message_thread_id: int | None = None,
+        reply_to_message_id: int | None = None,
     ) -> int: ...
 
     async def answer_callback_query(
@@ -486,7 +487,13 @@ class ProductTelegramApi(Protocol):
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes: ...
 
     async def send_document(
-        self, chat_id: int, filename: str, content: bytes
+        self,
+        chat_id: int,
+        filename: str,
+        content: bytes,
+        *,
+        message_thread_id: int | None = None,
+        reply_to_message_id: int | None = None,
     ) -> int: ...
 
 
@@ -617,6 +624,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         google_drive_planner: Any | None = None,
         google_drive_service: Any | None = None,
         business_notes: BusinessNotesService | None = None,
+        desktop_bridge: Any | None = None,
         nobus_memory: NobusMemory | None = None,
         semantic_admission: SemanticAdmissionService | None = None,
         semantic_clarifications: SemanticClarificationStore | None = None,
@@ -731,6 +739,13 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 )
             )
             or (
+                desktop_bridge is not None
+                and not all(
+                    callable(getattr(desktop_bridge, name, None))
+                    for name in ("start", "close", "handle", "assert_healthy")
+                )
+            )
+            or (
                 nobus_memory is not None
                 and not all(
                     callable(getattr(nobus_memory, name, None))
@@ -777,6 +792,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         self._google_drive_planner = google_drive_planner
         self._google_drive_service = google_drive_service
         self._business_notes = business_notes
+        self._desktop_bridge = desktop_bridge
         self._nobus_memory = nobus_memory
         self._semantic_admission = semantic_admission
         self._semantic_clarifications = semantic_clarifications
@@ -798,6 +814,8 @@ class ProductTelegramControlPlane(TelegramControlPlane):
 
     async def start(self) -> None:
         """Start background executors without coupling them to Telegram polling."""
+        if self._desktop_bridge is not None:
+            await self._desktop_bridge.start()
         if (
             self._execution_queue is None
             or self._execution_workers
@@ -821,6 +839,11 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 return
             self._closing = True
             failures: list[BaseException] = []
+            if self._desktop_bridge is not None:
+                try:
+                    await self._desktop_bridge.close()
+                except BaseException as error:
+                    failures.append(error)
             workers, self._execution_workers = self._execution_workers, ()
             for worker in workers:
                 worker.cancel()
@@ -1011,6 +1034,16 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         ):
             return True
         payload = ingress.payload
+        if (
+            self._desktop_bridge is not None
+            and isinstance(payload, (TextMessage, VoiceMessage))
+            and (
+                payload.binding_purpose == "business_notes"
+                or payload.reply_to_message_id is not None
+            )
+            and await self._desktop_bridge.handle(payload, ingress.envelope)
+        ):
+            return True
         if payload.binding_purpose == "business_notes":
             if self._enable_extended_routes:
                 return await self._handle_business_notes(payload)

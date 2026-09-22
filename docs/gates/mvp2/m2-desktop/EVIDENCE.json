@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "gate_id": "M2-DESKTOP",
+  "stage": "WIP_ITERATION",
+  "observed_at_utc": "2026-09-21T17:50:52.7917281Z",
+  "base_commit": "f3fdb2d22a41b6a5b84fec06544447014c7bb35c",
+  "base_tree": "b604fcb6591ae11c4280d3a7d41a7261c2383305",
+  "candidate_commit": null,
+  "candidate_tree": null,
+  "content_digest": "sha256:4ac7cb07ff94ebae4dcfd10f1467ac0c93c843057b3c83c8c809ea1103b0da2d",
+  "content_digest_scope": [
+    "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
+    "docs/gates/mvp2/M2-DESKTOP-PROMPT.md",
+    "docs/gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md",
+    "docs/gates/mvp2/m2-desktop/HANDOFF.md",
+    "docs/gates/mvp2/REGISTRY.md",
+    "docs/handoffs/CURRENT-STATUS.md",
+    "docs/mvp2/DOCUMENTATION.md",
+    "src/integrations/codex_desktop_ipc.py",
+    "src/integrations/codex_desktop_uia.py",
+    "tests/test_codex_desktop_ipc.py",
+    "tests/test_codex_desktop_uia.py"
+  ],
+  "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact file bytes + LF",
+  "candidate_note": "Local Desktop-owner IPC adapter checkpoint; no live mutating IPC/UIA action has been run and this is not a frozen candidate. EVIDENCE.json is excluded from the non-recursive content digest.",
+  "environment": {
+    "desktop_package_version": "26.915.4065.0",
+    "desktop_executable_version": "153.0.8010.48",
+    "codex_app_server_version": "0.155.0-alpha.9.2",
+    "repo_sdk_version": "0.144.4",
+    "transport_observed": "running Windows Desktop owner router at \\\\.\\pipe\\codex-ipc plus the historical private-child/separate-app-server stdio observations",
+    "desktop_ipc_protocol_profile": "codex-desktop-26.915.4065.0",
+    "desktop_ipc_readonly": "initialize v0 success; thread-owner-discovery v1 success; existing task owner found; no task or approval mutation",
+    "desktop_uia_readonly": "one Chrome_WidgetWin_1 window; 600 accessible descendants; exact project/create/open controls expose semantic patterns; no invoke, focus or input",
+    "desktop_transport_selection": "version-bound static evidence: the observed unmodified Windows local host uses private stdio; the built-in managed-daemon control-socket branch is non-Windows only",
+    "managed_daemon": "not_running",
+    "managed_control_socket": "absent",
+    "foreground_remote_control": "ephemeral connected then explicitly disabled"
+  },
+  "checks": [
+    {
+      "id": "PREFLIGHT-DESKTOP-APP",
+      "status": "PASS",
+      "tool": "Codex Desktop native project/task API",
+      "version": "26.915.4065.0",
+      "subject_digest": null,
+      "evidence_ref": "sanitized observation: current saved project and task were visible",
+      "evidence_hash": null,
+      "scope": "Read-only presence check; not an external bridge API and not D01/D03/D13."
+    },
+    {
+      "id": "PREFLIGHT-DESKTOP-OWNER-IPC",
+      "status": "PASS",
+      "tool": "bounded read-only Windows named-pipe probe",
+      "version": "Desktop 26.915.4065.0 / IPC initialize 0 / owner discovery 1",
+      "subject_digest": "sha256:dfe2bdd2faa7af5ef6adfa5deffda0dc7eddae9e3bb553efbe00f48d2f7648de",
+      "evidence_ref": "2026-09-21T16:20:01.4816033Z: connection and initialize succeeded; owner of the existing development task was found; supportsUntrustedAppInput was true",
+      "evidence_hash": null,
+      "scope": "Positive connectivity and owner-routing evidence only. The allowed methods were initialize and thread-owner-discovery; no turn, question or approval mutation was sent, and the successful probe was not repeated."
+    },
+    {
+      "id": "PREFLIGHT-DESKTOP-IPC-METHOD-PROFILE",
+      "status": "PASS",
+      "tool": "installed Desktop app.asar targeted static inspection",
+      "version": "Desktop 26.915.4065.0",
+      "subject_digest": "sha256:b8aeb817cd1ee6ef50efe8a97985d3be41de89688a5addfe0a444e1e52348096",
+      "evidence_ref": "owner/follower handlers and version table for start-turn, complete history, questions, approvals and stream-state broadcast",
+      "evidence_hash": null,
+      "scope": "Presence and version evidence only. It does not prove that all pending-request events are emitted or that responses are accepted end to end."
+    },
+    {
+      "id": "PREFLIGHT-WINDOWS-UIA-READONLY",
+      "status": "PASS",
+      "tool": ".NET UIAutomationClient read-only element inspection",
+      "version": "Desktop 26.915.4065.0 / locale ru-RU",
+      "subject_digest": null,
+      "evidence_ref": "2026-09-21T16:52:45.0748034Z: one Chrome_WidgetWin_1 window, 600 descendants, 22 AutomationIds; exact project, create-task and existing-task controls expose ExpandCollapse/Invoke and composer exposes Value/Text",
+      "evidence_hash": null,
+      "scope": "Availability of semantic selectors only. No element was focused, invoked or changed; create/open behavior and thread-id discovery remain untested."
+    },
+    {
+      "id": "LOCAL-DESKTOP-IPC-UIA-ADAPTER",
+      "status": "PASS",
+      "tool": "pytest offline protocol fixtures",
+      "version": "Python 3.12.14 / protocol profile codex-desktop-26.915.4065.0",
+      "subject_digest": null,
+      "evidence_ref": "13 passed: bounded fragmented frames, exact owner routing, question/approval targeting, no fallback, version mismatch, reconnect and readback-first unknown-outcome recovery plus exact UIA selector rules",
+      "evidence_hash": null,
+      "scope": "Local implementation evidence for src/integrations/codex_desktop_ipc.py and codex_desktop_uia.py. Fixtures are not a real Desktop, Telegram or D01-D17 integration test."
+    },
+    {
+      "id": "LOCAL-DOCUMENTATION-CHECKPOINT",
+      "status": "PARTIAL",
+      "tool": "pytest documentation checks plus scoped relative-link and generated-roadmap checks",
+      "version": "Python 3.12.14",
+      "subject_digest": null,
+      "evidence_ref": "tests/test_documentation.py: 3/4 passed; its repository-wide link test found a preserved ARCHITECT-HANDOFF reference whose source exists only in the separate canonical WIP plus ignored historical .runtime/m1-s1 receipts absent from this worktree. M2-DESKTOP checkpoint links and render_roadmap.py --check passed.",
+      "evidence_hash": null,
+      "scope": "No unrelated WIP was copied and the existing test was not weakened. This limits repository-wide documentation closure, not the local IPC/UIA implementation evidence."
+    },
+    {
+      "id": "LOCAL-LIVE-SCENARIO-INPUT",
+      "status": "PASS",
+      "tool": "Get-FileHash SHA256",
+      "version": "PowerShell",
+      "subject_digest": "sha256:e8f15053821c09313dbcb61b6cae404cd64c931b28a87b2b2ed2d7b9ab332b88",
+      "evidence_ref": ".runtime/m2-desktop-live-probe/source-v1.txt; 159 bytes",
+      "evidence_hash": null,
+      "scope": "Prepared local-only input. It has not been supplied to Desktop or Telegram."
+    },
+    {
+      "id": "PREFLIGHT-STDIO-READBACK",
+      "status": "PASS",
+      "tool": "installed Codex App Server read-only probe",
+      "version": "0.155.0-alpha.9.2",
+      "subject_digest": "sha256:d5d2fb81a8de1af8c73ffe6e22319adcdb11ba943ab416fc11459c1325211623",
+      "evidence_ref": "separate stdio process listed the matching project root and read the exact Desktop-created task",
+      "evidence_hash": null,
+      "scope": "Positive read-path evidence only: the probe found the real Desktop task by cwd and exact thread/read succeeded. Create and bidirectional continuation remain unproven; projectId parity is not a contracted requirement."
+    },
+    {
+      "id": "PREFLIGHT-PROTOCOL-SCHEMA",
+      "status": "PASS",
+      "tool": "codex app-server generate-json-schema",
+      "version": "0.155.0-alpha.9.2",
+      "subject_digest": "sha256:7efd35036f66a26f52ce208e64e5974408685206fd621bc46436591981ed5d7a",
+      "evidence_ref": "435 generated schema files; aggregate is path plus per-file SHA256",
+      "evidence_hash": null,
+      "scope": "Method availability only; no behavioral or Desktop-host parity claim."
+    },
+    {
+      "id": "PREFLIGHT-NOTIFIER-SKILL-MANIFEST",
+      "status": "PASS",
+      "tool": "Get-FileHash SHA256",
+      "version": "PowerShell",
+      "subject_digest": "sha256:21ccfacf25cadb169b847ae71d63b4bc218ea7060a87f1fd9ecf19574ae84910",
+      "evidence_ref": "CURRENT_MANIFEST.json: all four notifier and all four send-results entries matched",
+      "evidence_hash": null,
+      "scope": "Read-only bytes check; no Telegram send and no global configuration change."
+    },
+    {
+      "id": "LIVE-GLOBAL-NOTIFIER-SIDE-EFFECT",
+      "status": "UNEXPECTED_EXTERNAL_EFFECT",
+      "tool": "existing Nobus Codex notifier one-shot SQLite ledger",
+      "version": "manifest sha256:21ccfacf25cadb169b847ae71d63b4bc218ea7060a87f1fd9ecf19574ae84910",
+      "subject_digest": null,
+      "evidence_ref": "exact event keys for both probe turns have status sent",
+      "evidence_hash": "sha256:df721a63d288c0c2ba70e6e9f6a07293a320c45b24c6489e888c6c9c18cae76e",
+      "scope": "Two automatic final notifications were sent to business_notes/Codex work, one per turn and without duplicate. No bridge send or send-results call was made, but the authorized no-Telegram constraint was not met. No notifier settings, ledger rows, or messages were changed or removed."
+    },
+    {
+      "id": "PREFLIGHT-MANAGED-DAEMON",
+      "status": "BLOCKED",
+      "tool": "codex app-server daemon version",
+      "version": "0.155.0-alpha.9.2",
+      "subject_digest": null,
+      "evidence_ref": "managed app-server control socket was not available; two authorized start attempts stopped before launch because no complete local package exists",
+      "evidence_hash": null,
+      "scope": "Route-specific result only: the tested managed-daemon launch needs a complete local package. It does not prove that daemon installation is required for MVP2. Standalone package and control socket are absent, daemon is not running, and no test task was created by these attempts. Later version-bound Desktop bundle evidence shows this Windows Desktop would not select the daemon socket even if the daemon existed."
+    },
+    {
+      "id": "PREFLIGHT-WINDOWS-DESKTOP-TRANSPORT",
+      "status": "PASS",
+      "tool": "installed Desktop app.asar static inspection plus bundled codex app-server CLI help",
+      "version": "Desktop 26.915.4065.0 / App Server 0.155.0-alpha.9.2",
+      "subject_digest": "sha256:b8aeb817cd1ee6ef50efe8a97985d3be41de89688a5addfe0a444e1e52348096",
+      "evidence_ref": "Desktop local-host transport selects the daemon control socket only when process.platform is not win32 and CODEX_APP_SERVER_USE_LOCAL_DAEMON=1; Windows falls through to a spawned app-server with the default stdio transport. The CLI proxy targets a running control socket, and the user-level default socket is absent.",
+      "evidence_hash": "sha256:bc45017e8239dc150258f69309ced9df6bbcdf5b8e4f346decf780ac0999e226",
+      "scope": "Version-specific evidence for the installed Windows Desktop, not a public compatibility promise. It falsifies the hypothesis that installing the current managed daemon alone would make Desktop and the adapter share one writer."
+    },
+    {
+      "id": "PREFLIGHT-SUPPORTED-EXTERNAL-INTERFACE",
+      "status": "BLOCKED",
+      "tool": "official OpenAI App Server and Remote Connections documentation",
+      "version": "checked 2026-09-21",
+      "subject_digest": null,
+      "evidence_ref": "App Server documents transports, per-connection initialization, thread/resume and thread/unsubscribe; it does not document cross-process writer handoff. Remote Connections documents ChatGPT mobile and supported desktop clients and the host capabilities they preserve; no third-party Remote client API is documented.",
+      "evidence_hash": null,
+      "scope": "Public documented interface check only. It still blocks treating separate App Server or Remote as a supported third-party bridge, but it does not negate the newly observed private owner-follower IPC route. Tools available only inside the current Desktop agent were not treated as an external API."
+    },
+    {
+      "id": "PREFLIGHT-NOTIFIER-PER-TASK-EXCLUSION",
+      "status": "BLOCKED",
+      "tool": "installed and canonical nobus-task-notifier source and tests",
+      "version": "manifest sha256:21ccfacf25cadb169b847ae71d63b4bc218ea7060a87f1fd9ecf19574ae84910",
+      "subject_digest": "sha256:21ccfacf25cadb169b847ae71d63b4bc218ea7060a87f1fd9ecf19574ae84910",
+      "evidence_ref": "settings expose only global enabled, wrapper accepts every exactly registered root task final including the unmarked fallback, and reconciler discovers every registered root rollout; no per-thread exclusion field or predicate exists",
+      "evidence_hash": null,
+      "scope": "Read-only contract inspection. No notifier files, settings, ledger, cursor, scheduled task, or Telegram state were changed."
+    },
+    {
+      "id": "PREFLIGHT-CODEX-DOCTOR",
+      "status": "PASS",
+      "tool": "codex doctor --summary --ascii",
+      "version": "0.155.0-alpha.9.2",
+      "subject_digest": null,
+      "evidence_ref": "desktop installed, desktop app-server initialized, auth configured, background app-server idle; 0 failed checks",
+      "evidence_hash": null,
+      "scope": "Redacted diagnostic only; warnings unrelated to Remote Control were not treated as Gate failures."
+    },
+    {
+      "id": "LIVE-APP-SERVER-CREATE-DESKTOP-VISIBILITY",
+      "status": "PASS",
+      "tool": "installed Codex App Server plus Codex Desktop native task surface",
+      "version": "0.155.0-alpha.9.2 / Desktop 26.915.4065.0",
+      "subject_digest": "sha256:41cd2216bcb1dee858979acf5b0db80db98f18eb9d4c8920e21178d73eeeb69a",
+      "evidence_ref": "one persistent thread 01a0c45d-e9f8-7f81-a7b5-eb29818e33a5 named M2-DESKTOP live probe was created by stdio App Server; Desktop listed and read the exact thread and cwd with the complete first final answer",
+      "evidence_hash": null,
+      "scope": "Positive create/visibility/full-read evidence for the authorized single task. It is partial D01 because Telegram ingress and the full selected-project product journey were not run; projectId equality is not required."
+    },
+    {
+      "id": "LIVE-DESKTOP-CONTINUATION-APP-SERVER-READBACK",
+      "status": "PASS",
+      "tool": "Codex Desktop send/wait plus installed App Server raw thread/read",
+      "version": "0.155.0-alpha.9.2 / Desktop 26.915.4065.0",
+      "subject_digest": null,
+      "evidence_ref": "Desktop completed turn 01a0c45e-8dae-7b71-bd0c-a04cc9937ac4 in the same thread; a separate read-only App Server process read both complete agent messages and preserved the Desktop continuation marker",
+      "evidence_hash": null,
+      "scope": "Positive Desktop-to-history direction only. It does not prove that an external writer can resume after Desktop owns the thread."
+    },
+    {
+      "id": "LIVE-EXTERNAL-RESUME-AFTER-DESKTOP",
+      "status": "BLOCKED",
+      "tool": "installed Codex App Server thread/resume and turn/start",
+      "version": "0.155.0-alpha.9.2",
+      "subject_digest": null,
+      "evidence_ref": "thread/resume failed with 'already has an active writer'; a targeted direct turn/start without resume failed with 'thread not found'",
+      "evidence_hash": null,
+      "scope": "Concrete shared-writer blocker for a short-lived separate stdio adapter. The successful create/read checks were not repeated."
+    },
+    {
+      "id": "LIVE-FOREGROUND-REMOTE-CONTROL",
+      "status": "PASS",
+      "tool": "installed App Server remoteControl enable/status/disable",
+      "version": "0.155.0-alpha.9.2",
+      "subject_digest": null,
+      "evidence_ref": "ephemeral status transitioned disabled -> connected with an environment id -> disabled",
+      "evidence_hash": null,
+      "scope": "Proves the foreground binary can reach the supported Remote relay without daemon installation. No pairing occurred, no documented third-party client was proved, and this did not attach the adapter to Desktop's private writer."
+    },
+    {
+      "id": "LIVE-SDK-SERVER-SCHEMA-COMPATIBILITY",
+      "status": "BLOCKED",
+      "tool": "openai-codex Python SDK typed thread/read",
+      "version": "SDK 0.144.4 against App Server 0.155.0-alpha.9.2",
+      "subject_digest": null,
+      "evidence_ref": "typed read rejected the Desktop-emitted functionCallOutput item; raw request using the installed server schema returned both turns completely",
+      "evidence_hash": null,
+      "scope": "Version-contract issue for a future adapter, not the cause of the active-writer failure."
+    },
+    {
+      "id": "PREFLIGHT-MEMORY",
+      "status": "BLOCKED",
+      "tool": "Nobus Memory scoped read/search",
+      "version": null,
+      "subject_digest": null,
+      "evidence_ref": "health READY via official-cli, vault read verified, allowed scope project:nobus-space, write_mode limited_auto; current scoped search returned MEMORY_OPERATION_FAILED",
+      "evidence_hash": null,
+      "scope": "Only memory restoration is blocked. No unchanged retry, fallback, cross-scope read or memory write was attempted; project:prostranstvo required by Vibecoding is not allowed on this route."
+    }
+  ],
+  "acceptance": {
+    "D01": "PARTIAL",
+    "D02": "NOT_RUN",
+    "D03": "PARTIAL",
+    "D04": "NOT_RUN",
+    "D05": "NOT_RUN",
+    "D06": "NOT_RUN",
+    "D07": "NOT_RUN",
+    "D08": "NOT_RUN",
+    "D09": "PARTIAL",
+    "D10": "NOT_RUN",
+    "D11": "NOT_RUN",
+    "D12": "NOT_RUN",
+    "D13": "NOT_RUN",
+    "D14": "NOT_RUN",
+    "D15": "NOT_RUN",
+    "D16": "NOT_RUN",
+    "D17": "NOT_RUN"
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "owner": "M2-DESKTOP",
+      "class": "ROUTE_LIMIT",
+      "status": "CLOSED",
+      "summary": "The separate stdio App Server route cannot resume the thread after Desktop becomes active writer. That route is rejected for the product contract. The finding does not apply automatically to the newly observed owner-follower IPC route, which delegates to Desktop rather than attempting writer handoff."
+    },
+    {
+      "id": "F-002",
+      "owner": "M2-DESKTOP",
+      "class": "OBSERVATION",
+      "status": "CLOSED",
+      "summary": "The read response omitted projectId and project-filtered listing did not find the task, but cwd lookup and exact thread/read succeeded. No documented contract requires identifier equality, so this is not evidence of project incompatibility."
+    },
+    {
+      "id": "F-003",
+      "owner": "M2-DESKTOP",
+      "class": "DELIVERY",
+      "status": "OPEN",
+      "summary": "Existing artifact dedupe key lacks bridge request/turn identity and cannot serve M2-DESKTOP unchanged."
+    },
+    {
+      "id": "F-004",
+      "owner": "M2-DESKTOP",
+      "class": "ROUTE_LIMIT",
+      "status": "CLOSED",
+      "summary": "The tested managed-daemon startup route cannot start from the installed binaries without a complete local package. This limits that route only and creates no requirement to install a daemon for MVP2."
+    },
+    {
+      "id": "F-005",
+      "owner": "M2-DESKTOP",
+      "class": "VERSION_COMPATIBILITY",
+      "status": "CLOSED",
+      "summary": "The pinned Python SDK 0.144.4 cannot parse a functionCallOutput item emitted by installed App Server 0.155.0-alpha.9.2. The owner-IPC adapter therefore does not use that SDK and validates the pinned raw JSON profile directly; live compatibility is still tracked separately."
+    },
+    {
+      "id": "F-006",
+      "owner": "OpenAI Remote contract",
+      "class": "SUPPORTED_INTERFACE",
+      "status": "OPEN",
+      "summary": "Foreground Remote Control connects without daemon installation, but official documentation exposes Remote Connections to ChatGPT mobile and supported desktop clients and does not provide a third-party Telegram client contract or attachment to Desktop's private writer."
+    },
+    {
+      "id": "F-007",
+      "owner": "product decision plus notifier extension",
+      "class": "SPECIFICATION_CONFLICT",
+      "status": "OPEN",
+      "summary": "The existing global notifier automatically sent two probe-turn completion messages despite the no-Telegram experiment boundary, and its current contract has no per-task exclusion. Further live turns require an authorized compatible notifier extension or exact permission for the expected notification; global notifier state must not be disabled or cleared."
+    },
+    {
+      "id": "F-008",
+      "owner": "M2-DESKTOP",
+      "class": "PRIVATE_PROTOCOL_COMPATIBILITY",
+      "status": "OPEN",
+      "summary": "Desktop owner IPC connectivity and owner discovery are proven for 26.915.4065.0, but a real follower start-turn ACK, history/event completeness and reconnect have not been run. The protocol is private and version-bound; mismatch must fail closed without another executor."
+    },
+    {
+      "id": "F-009",
+      "owner": "M2-DESKTOP",
+      "class": "UI_BOOTSTRAP",
+      "status": "OPEN",
+      "summary": "Read-only UIA exposes exact semantic project/create/open controls, but it is unproven whether invoking new task yields a conversation owner before the first prompt. The live probe must resolve this without coordinates or arbitrary active-window input."
+    },
+    {
+      "id": "F-010",
+      "owner": "M2-DESKTOP",
+      "class": "QUESTION_AND_APPROVAL_EVENTS",
+      "status": "OPEN",
+      "summary": "Response methods exist and are covered by offline owner-targeting tests, but receipt and correlation of every pending question/approval family, expiry and Desktop race are not proven on the running app."
+    }
+  ],
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "remote_ref": null
+  },
+  "deployment": {
+    "status": "NOT_ACTIVE",
+    "live_revision": null,
+    "config_changed": false
+  },
+  "live_probe": {
+    "thread_id": "01a0c45d-e9f8-7f81-a7b5-eb29818e33a5",
+    "desktop_turn_id": "01a0c45e-8dae-7b71-bd0c-a04cc9937ac4",
+    "project_cwd": "C:\\Хранилище\\АГЕНТ\\PROстранство\\ОРКЕСТРАТОР\\Code\\nobus-orchestrator-dev",
+    "test_task_count": 1,
+    "executed_probe_harness_digest": "sha256:41cd2216bcb1dee858979acf5b0db80db98f18eb9d4c8920e21178d73eeeb69a",
+    "current_probe_harness_digest": "sha256:078d92f86626b1d04f38b3e6f1b87b1f1d9908808ee417a6ade18f07b6865a33",
+    "probe_harness_note": "The current ignored harness was hardened after the live turns; no new live turn was run after that local-only change.",
+    "telegram_used": true,
+    "telegram_effect": "two automatic existing-notifier completion messages to business_notes/Codex work; no product ingress, bridge delivery, file send, or bot-to-bot action",
+    "artifact_created": false,
+    "reason_remaining_scenarios_not_run": "The historical separate-App-Server route stopped at writer ownership. The new owner-IPC route has only read-only connectivity evidence; its bounded mutating smoke awaits exact permission for the Desktop actions and expected notifier summaries.",
+    "owner_ipc_readonly": {
+      "checked_at_utc": "2026-09-21T16:20:01.4816033Z",
+      "connected": true,
+      "initialized": true,
+      "owner_found": true,
+      "supports_untrusted_app_input": true,
+      "task_or_approval_mutations": false,
+      "probe_digest": "sha256:dfe2bdd2faa7af5ef6adfa5deffda0dc7eddae9e3bb553efbe00f48d2f7648de"
+    },
+    "uia_readonly": {
+      "checked_at_utc": "2026-09-21T16:52:45.0748034Z",
+      "window_class": "Chrome_WidgetWin_1",
+      "accessible_descendants": 600,
+      "automation_id_count": 22,
+      "project_selector": "READY",
+      "create_task_selector": "READY",
+      "open_existing_task_selector": "READY",
+      "ui_mutations": false
+    },
+    "prepared_input": {
+      "path": ".runtime/m2-desktop-live-probe/source-v1.txt",
+      "size": 159,
+      "sha256": "e8f15053821c09313dbcb61b6cae404cd64c931b28a87b2b2ed2d7b9ab332b88",
+      "used": false
+    }
+  },
+  "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
+  "next_step": "Obtain exact permission for the prepared owner-IPC/UIA smoke: one new task in nobus-orchestrator-dev, at most five turns, semantic UIA create/open and at most one initial composer submission if owner is not yet discoverable, owner-targeted IPC start/history/question responses, controlled reconnect, one approved HEAD to example.com, one denied Calculator launch request, files only in .runtime/m2-desktop-live-probe, and up to five expected existing-notifier summaries in business_notes/Codex work. Do not change notifier, Desktop, BotFather, ACL, PATH, credentials or config, and do not run product Telegram ingress yet."
+}
