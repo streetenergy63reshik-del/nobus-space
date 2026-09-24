@@ -627,6 +627,43 @@ class SQLiteDesktopBridgeState:
         except (OSError, sqlite3.DatabaseError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
+    def claim_interaction_delivery(self, interaction_id: str) -> bool:
+        """Reserve the card before Telegram I/O; an unconfirmed send is not replayed."""
+        identifier = _text(interaction_id, 256)
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE desktop_bridge_interactions
+                       SET status='unknown',updated_at=?
+                       WHERE interaction_id=? AND status='pending'
+                         AND telegram_message_id IS NULL""",
+                    (self._now().isoformat(), identifier),
+                )
+                return cursor.rowcount == 1
+        except (OSError, sqlite3.DatabaseError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def finish_interaction_delivery(
+        self, interaction_id: str, *, telegram_chat_id: int, telegram_message_id: int
+    ) -> bool:
+        """Make the exact ACKed card replyable after all Telegram parts arrive."""
+        identifier = _text(interaction_id, 256)
+        chat_id = _nonzero_int(telegram_chat_id)
+        message_id = _positive_int(telegram_message_id)
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE desktop_bridge_interactions
+                       SET status='pending',telegram_chat_id=?,telegram_message_id=?,
+                           updated_at=?
+                       WHERE interaction_id=? AND status='unknown'
+                         AND telegram_message_id IS NULL""",
+                    (chat_id, message_id, self._now().isoformat(), identifier),
+                )
+                return cursor.rowcount == 1
+        except (OSError, sqlite3.DatabaseError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
     def pending_interaction_for_reply(
         self, *, chat_id: int, telegram_message_id: int
     ) -> PendingDesktopInteraction | None:

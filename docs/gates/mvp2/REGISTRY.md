@@ -12,7 +12,7 @@ Read-only диагностика 24.09 локализовала отказ: comp
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | WIP / 24.09 checkpoint; sender + confirmed notifier v4 installed; supervisor/backup migration repaired locally; 301 passed, 1 skipped in related/affected checks; production bot disabled; live A09/A13 and D01–D17 open | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | `31df0d00a0a74de920a7a7367d3b662566a653ff` + uncommitted WIP; no frozen tree | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | WIP / 24.09; checkpoint `9cefc58` plus local D08 card hardening; latest related check 206 passed, 1 skipped; production bot disabled; live A09/A13 and D01–D17 open | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | `31df0d00a0a74de920a7a7367d3b662566a653ff` → local checkpoint `9cefc58de4ba1bd5cd43f611a072ede9cca9b8e4` + uncommitted WIP; no frozen tree | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
 
 Реальные task id и title внесены после запуска. В Gate сохраняются один
 `m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал

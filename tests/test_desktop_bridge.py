@@ -1126,6 +1126,42 @@ async def test_forwarded_owner_reply_cannot_answer_approval(tmp_path: Path) -> N
 
 
 @pytest.mark.asyncio
+async def test_permission_worded_user_input_goes_to_owner_for_manual_review(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "nobus-orchestrator-dev"
+    project.mkdir()
+    api = _Api()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "f" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.RUNNING,
+    )
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(),
+        projects={project.name: project}, owner_user_id=99,
+        owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1",
+        status="inProgress", user_text=("test",), agent_messages=(),
+        plan_items=(), text_outputs=(),
+    )
+    pending = [DesktopPendingRequest(
+        request_id=3, method="item/tool/requestUserInput",
+        payload={"params": {"questions": [{"id": "q", "question": "Разрешаете удалить файл?"}]}},
+    )]
+    await service._publish_interactions(request, turn, pending, 1)
+    assert 'tg://user?id=99' in api.messages[0][1]
+    assert 'tg://user?id=41' not in api.messages[0][1]
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.WAITING_OWNER
+    assert state.pending_interaction_for_reply(
+        chat_id=-1001, telegram_message_id=api.messages[-1][2]["reply_to_message_id"]
+    ) is None
+
+
+@pytest.mark.asyncio
 async def test_mixed_question_and_approval_stay_in_source_topic_with_numeric_mentions(
     tmp_path: Path,
 ) -> None:
@@ -1188,6 +1224,66 @@ async def test_mixed_question_and_approval_stay_in_source_topic_with_numeric_men
     assert api.messages[3][2].get("parse_mode") is None
     assert "echo **literal**" in api.messages[3][1]
     assert state.read_request(request.request_id).status is BridgeRequestStatus.WAITING_OWNER
+
+
+@pytest.mark.asyncio
+async def test_lost_card_ack_does_not_resend_interaction(tmp_path: Path) -> None:
+    class _LostAckApi(_Api):
+        async def send_message(self, *args, **kwargs):
+            receipt = await super().send_message(*args, **kwargs)
+            if len(self.messages) == 1:
+                raise RuntimeError("telegram-ack-lost")
+            return receipt
+
+    project = tmp_path / "project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "e" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.RUNNING,
+    )
+    api = _LostAckApi()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1",
+        status="inProgress", user_text=("test",), agent_messages=(),
+        plan_items=(), text_outputs=(),
+    )
+    pending = [DesktopPendingRequest(
+        request_id=8, method="item/commandExecution/requestApproval",
+        payload={"params": {"turnId": "turn-1", "command": "echo safe"}},
+    )]
+    await service._publish_interactions(request, turn, pending, 1)
+    await service._publish_interactions(request, turn, pending, 1)
+    assert len(api.messages) == 1
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.UNKNOWN_DISPATCH
+
+
+def test_unconfirmed_interaction_card_survives_store_reopen(tmp_path: Path) -> None:
+    path = tmp_path / "telegram-state.sqlite3"
+    state = _state(path)
+    request = _request(state, ingress="sha256:" + "0" * 64)
+    interaction = state.put_interaction(
+        interaction_id="card-crash", request_id=request.request_id,
+        kind=InteractionKind.QUESTION, desktop_request_id=3,
+        desktop_turn_id="turn-1", target_user_id=41, generation=1,
+        payload={"params": {"questions": [{"id": "q", "question": "Уточнить?"}]}},
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    assert state.claim_interaction_delivery(interaction.interaction_id)
+    reopened = _state(path).put_interaction(
+        interaction_id="card-crash", request_id=request.request_id,
+        kind=InteractionKind.QUESTION, desktop_request_id=3,
+        desktop_turn_id="turn-1", target_user_id=41, generation=1,
+        payload={"params": {"questions": [{"id": "q", "question": "Уточнить?"}]}},
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    assert reopened.status == "unknown"
+    assert not _state(path).claim_interaction_delivery(interaction.interaction_id)
 
 
 @pytest.mark.asyncio

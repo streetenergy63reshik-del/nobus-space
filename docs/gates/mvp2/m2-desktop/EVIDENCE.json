@@ -2,12 +2,12 @@
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
   "stage": "WIP_ITERATION",
-  "observed_at_utc": "2026-09-24T10:46:45Z",
+  "observed_at_utc": "2026-09-24T11:25:06Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:524d6cfc99dd367ea9948489410dbaf43ec7cb4ec4481d8e5e8ae8c823278261",
+  "content_digest": "sha256:8b5cb6acc867065c33661da3675e7a85dfef315b1188717e9d9824234f5a3a7a",
   "content_digest_scope": [
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
     "docs/adr/0029-telegram-desktop-owner-tunnel.md",
@@ -56,7 +56,7 @@
     ,"docs/gates/mvp2/m2-desktop/RELEASE-PLAN-20260924.md"
   ],
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact file bytes + LF",
-  "candidate_note": "24 September WIP after independent audit: three Grok modules integrated; sender and exact-confirmed notifier v4 installed. Scheduler-supervisor-Core bridge flags and exact backup schema migration repaired locally. 301 related/affected tests passed, one skipped on latest code bytes; no new product Telegram request or Desktop turn. No frozen candidate or independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
+  "candidate_note": "24 September WIP after independent audit: three Grok modules integrated; sender and exact-confirmed notifier v4 installed. Scheduler-supervisor-Core bridge flags and exact backup schema migration repaired locally. Checkpoint 9cefc58 had 301 related/affected tests and separate clean export 296 passed, one skipped. Subsequent D08 card fixes passed 206 related tests, one skipped on current WIP bytes; no new product Telegram request or Desktop turn. No frozen candidate or complete independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
     "desktop_executable_version": "153.0.8010.48",
@@ -676,6 +676,19 @@
     "new_desktop_turn": false,
     "new_product_telegram_send": false,
     "full_l1_l2_l3": "NOT_RUN",
+    "d01_d17_accepted": false
+  },
+  "checkpoint_20260924_card_safety": {
+    "prior_checkpoint_commit": "9cefc58de4ba1bd5cd43f611a072ede9cca9b8e4",
+    "prior_checkpoint_tree": "86f736dbb268dd264a78273f138de48550c1fe21",
+    "clean_export_zip_sha256": "f1ed957a6858dffe78ace764662eca4a633c22b52910c8aab4f3c8839bcce7d5",
+    "clean_export_check": "compileall PASS; 296 passed, 1 skipped across 13 M2 test files; applies only to prior checkpoint bytes",
+    "m2b015": "Red test routed a permission-worded requestUserInput to author 41; current WIP routes explicit side-effect/consent wording to numeric owner 99 for manual Desktop review. Generic App/MCP provenance is not proven and D08 remains open.",
+    "m2b016": "Red test reproduced lost Telegram ACK on card introduction; durable pre-send reservation and post-ACK reply binding now prevent automatic card replay after exception or store reopen. Actual Telegram receipt remains unknown until checked.",
+    "current_wip_related_tests": "206 passed, 1 skipped across 13 related M2 files; bridge-only 39 passed",
+    "production_checkout_changed": false,
+    "new_desktop_turn": false,
+    "new_product_telegram_send": false,
     "d01_d17_accepted": false
   },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",

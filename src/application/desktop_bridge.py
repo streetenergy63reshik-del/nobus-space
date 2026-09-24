@@ -80,6 +80,20 @@ _SENSITIVE_OUTPUT = re.compile(
     r"\b\d{6,12}:[A-Za-z0-9_-]{20,}\b)"
 )
 _INTERACTION_TTL = timedelta(hours=12)
+# requestUserInput is not a proof that Desktop asks for a mere clarification:
+# Apps and agents can phrase a permission as a question. Ambiguous consent or
+# side-effect prompts go to the owner for manual handling in Desktop.
+_OWNER_REVIEW_QUESTION = re.compile(
+    r"разреш|одобр|подтвер|соглас|доступ|прав[ао]|удал|измен|запис|"
+    r"установ|публи|отправ|запуст|выполн|оплат|плат[её]ж|"
+    r"авториз|секрет|ключ|токен|можно\s*\?|продолж|отмен|"
+    r"\b(?:да|нет)\b|"
+    r"\b(?:approve|permission|consent|grant|allow|delete|remove|"
+    r"install|publish|deploy|send|write|overwrite|execute|run|"
+    r"pay|payment|access|credential|token|secret|oauth|"
+    r"continue|proceed|cancel|yes|no|can i)\b",
+    re.IGNORECASE,
+)
 _BOT_REQUEST_WINDOW = timedelta(minutes=10)
 _BOT_REQUEST_LIMIT = 4
 _RUNNING_STATUSES = frozenset(
@@ -1290,6 +1304,13 @@ class DesktopBridgeService:
                 target_user_id=target, generation=generation,
                 payload=dict(item.payload), expires_at=self._now() + _INTERACTION_TTL,
             )
+            if interaction.status == "unknown" and interaction.telegram_message_id is None:
+                self._state.transition(
+                    request.request_id,
+                    expected=frozenset({BridgeRequestStatus.RUNNING, BridgeRequestStatus.WAITING_AUTHOR, BridgeRequestStatus.WAITING_OWNER}),
+                    status=BridgeRequestStatus.UNKNOWN_DISPATCH,
+                )
+                return
             if interaction.status != "pending" or interaction.telegram_message_id is not None:
                 continue
             view_kind = "user_input" if kind is InteractionKind.QUESTION else kind.value
@@ -1306,29 +1327,44 @@ class DesktopBridgeService:
             )
             label = "Автор запроса" if kind is InteractionKind.QUESTION else "Владелец"
             mention = f'<a href="tg://user?id={target}">{label}</a>'
-            message_id = await self._api.send_message(
-                request.chat_id,
-                f"{mention}: {html.escape(intro)}",
-                message_thread_id=request.topic_id,
-                reply_to_message_id=request.source_message_id,
-                parse_mode="HTML",
-            )
             if view.reply_example is not None and not manual_review:
                 card += "\n\nПример ответа: " + view.reply_example
-            for part in telegram_text_parts(card):
+            if not self._state.claim_interaction_delivery(interaction.interaction_id):
+                continue
+            try:
                 message_id = await self._api.send_message(
-                    request.chat_id, part,
+                    request.chat_id,
+                    f"{mention}: {html.escape(intro)}",
                     message_thread_id=request.topic_id,
-                    reply_to_message_id=message_id,
+                    reply_to_message_id=request.source_message_id,
+                    parse_mode="HTML",
                 )
+                for part in telegram_text_parts(card):
+                    message_id = await self._api.send_message(
+                        request.chat_id, part,
+                        message_thread_id=request.topic_id,
+                        reply_to_message_id=message_id,
+                    )
+            except Exception:
+                self._state.transition(
+                    request.request_id,
+                    expected=frozenset({BridgeRequestStatus.RUNNING, BridgeRequestStatus.WAITING_AUTHOR, BridgeRequestStatus.WAITING_OWNER}),
+                    status=BridgeRequestStatus.UNKNOWN_DISPATCH,
+                )
+                return
+            if not self._state.finish_interaction_delivery(
+                interaction.interaction_id,
+                telegram_chat_id=request.chat_id,
+                telegram_message_id=message_id,
+            ):
+                self._state.transition(
+                    request.request_id,
+                    expected=frozenset({BridgeRequestStatus.RUNNING, BridgeRequestStatus.WAITING_AUTHOR, BridgeRequestStatus.WAITING_OWNER}),
+                    status=BridgeRequestStatus.UNKNOWN_DISPATCH,
+                )
+                return
             if manual_review:
                 self._state.close_interaction(interaction.interaction_id, status="unknown")
-            else:
-                self._state.bind_interaction_message(
-                    interaction.interaction_id,
-                    telegram_chat_id=request.chat_id,
-                    telegram_message_id=message_id,
-                )
         waiting = (
             BridgeRequestStatus.WAITING_OWNER
             if has_owner_interaction
@@ -1854,6 +1890,12 @@ def _interaction_kind(
             or not set(params).issubset(
                 {"questions", "threadId", "turnId", "itemId"}
             )
+        ):
+            return InteractionKind.UNKNOWN
+        # There is no trusted origin/authority field in this pinned IPC shape.
+        # Never turn a consent-like question into a member-addressed approval.
+        if set(payload) - {"id", "method", "params"} or _OWNER_REVIEW_QUESTION.search(
+            json.dumps(params["questions"], ensure_ascii=False)
         ):
             return InteractionKind.UNKNOWN
         return InteractionKind.QUESTION
