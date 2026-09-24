@@ -644,3 +644,26 @@ Production checkout и три Disabled Scheduled Tasks не менялись.
 сверять отдельно. Схема SQLite не менялась. Регрессии bridge — `39 passed`,
 связанный набор 13 файлов после обеих правок — `206 passed, 1 skipped`.
 Это новые WIP bytes; прежний чистый экспорт не подтверждает их.
+
+Checkpoint после этих правок — `007c6540408fb446634e10d26eb01bffed1ca050`,
+tree `b1331e4a22d754128e76191a47211d106011f9ee`, worktree clean.
+Отдельный Git ZIP-export этого exact commit имеет SHA-256
+`611cd804108a3ac0dc951f78bf0f4b2fdcffd932a5a7ac62df2e510745ec5d49`;
+`compileall` и тот же связанный набор в нём прошли (`206 passed,
+1 skipped`). На Windows `git archive --format=zip` применил CRLF к ряду
+текстовых файлов, тогда как source worktree и Git index хранят LF. Поэтому
+`content_digest` в EVIDENCE относится к точным байтам source worktree;
+отдельный `clean_export_content_digest` — к распакованному ZIP. Равенство
+этих двух digest не ожидается; точный Git tree связывает кодовый снимок.
+Production пока остаётся на прежней ревизии и выключен.
+
+Перед возможным выпуском повторно сверены exact XML SHA трёх Disabled
+Scheduled Tasks и health launcher — значения не изменились относительно
+[плана](RELEASE-PLAN-20260924.md). `Install-NobusSpaceBot.ps1 -WhatIf`
+из M2 worktree на точных старых main/Health signatures и текущем каталоге
+проектов завершился exit 0, вывел только ShouldProcess; задания не заменены.
+Подготовлен игнорируемый одноразовый генератор нового backup config в
+`.runtime/m2-desktop-release-20260924/prepare_backup_config.py` (SHA-256
+`2b690c2a967b1570ed0324809b3530a04ef9a5c940231432900704f736e7e61e`),
+его `py_compile` прошёл. На production он не запускался; новый config не
+создан. Штатный signed journal и runtime SQLite не менялись.

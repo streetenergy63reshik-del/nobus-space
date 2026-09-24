@@ -51,6 +51,11 @@
    `-SemanticAdmission`, `-DesktopBridge`, точный
    `-DesktopProjectsFile`. Проверить, что оба задания остались Disabled и
    main action передаёт эти флаги supervisor.
+   Предварительный `-WhatIf` из M2 worktree 24.09 вернул только ожидаемый
+   ShouldProcess и exit 0 при точных старых main/Health XML и launcher SHA,
+   текущем каталоге 10 проектов и исходных runtime/backup параметрах.
+   Он ничего не установил; после переключения production checkout нужен
+   повторный exact drift check для действительной операции.
 5. Подготовить НОВЫЙ backup config `c6-backup-cycle-1` под новым именем в
    ТОЙ ЖЕ папке, где прежние config и `backup-cycle-state.dpapi`: journal
    привязан к `config.parent`, иначе точная сверка старого завершённого
@@ -60,6 +65,12 @@
    `desktop-projects.local.json`.
    Штатно stage заменить Backup Task с exact старым digest и новым config
    digest; проверить все три Disabled и сам config через `load_config`.
+   Одноразовый генератор в игнорируемой
+   `.runtime/m2-desktop-release-20260924/prepare_backup_config.py`
+   принимает только старый config/digest и signed journal digest,
+   проверяет Disabled task signatures, создаёт новый файл через `O_EXCL`
+   и вызывает штатный `load_config`. Его syntax check прошёл; на production
+   он не запускался. Исходный config и journal не перезаписывать.
 6. Проверить signed recovery history и выполнить только exact activation
    rebind с предыдущего latest event digest на новый binding. После readback
    выполнить один `run_telegram_backup_cycle.py --reconcile-complete-digest`

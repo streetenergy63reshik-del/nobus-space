@@ -7,7 +7,7 @@
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:8b5cb6acc867065c33661da3675e7a85dfef315b1188717e9d9824234f5a3a7a",
+  "content_digest": "sha256:a7a68c426fb484ce806a45c94c3be85b96ba1d05b59134cb42d7611609477230",
   "content_digest_scope": [
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
     "docs/adr/0029-telegram-desktop-owner-tunnel.md",
@@ -55,7 +55,9 @@
     ,"tests/test_desktop_supervisor_wiring.py"
     ,"docs/gates/mvp2/m2-desktop/RELEASE-PLAN-20260924.md"
   ],
-  "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact file bytes + LF",
+  "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
+  "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
+  "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
   "candidate_note": "24 September WIP after independent audit: three Grok modules integrated; sender and exact-confirmed notifier v4 installed. Scheduler-supervisor-Core bridge flags and exact backup schema migration repaired locally. Checkpoint 9cefc58 had 301 related/affected tests and separate clean export 296 passed, one skipped. Subsequent D08 card fixes passed 206 related tests, one skipped on current WIP bytes; no new product Telegram request or Desktop turn. No frozen candidate or complete independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
@@ -679,6 +681,10 @@
     "d01_d17_accepted": false
   },
   "checkpoint_20260924_card_safety": {
+    "checkpoint_commit": "007c6540408fb446634e10d26eb01bffed1ca050",
+    "checkpoint_tree": "b1331e4a22d754128e76191a47211d106011f9ee",
+    "checkpoint_zip_sha256": "611cd804108a3ac0dc951f78bf0f4b2fdcffd932a5a7ac62df2e510745ec5d49",
+    "checkpoint_clean_export_check": "compileall PASS; 206 passed, 1 skipped in 13 related M2 files; source-worktree and archive exact bytes have distinct EOL-bound digests",
     "prior_checkpoint_commit": "9cefc58de4ba1bd5cd43f611a072ede9cca9b8e4",
     "prior_checkpoint_tree": "86f736dbb268dd264a78273f138de48550c1fe21",
     "clean_export_zip_sha256": "f1ed957a6858dffe78ace764662eca4a633c22b52910c8aab4f3c8839bcce7d5",
@@ -690,6 +696,15 @@
     "new_desktop_turn": false,
     "new_product_telegram_send": false,
     "d01_d17_accepted": false
+  },
+  "release_preparation_20260924": {
+    "production_checkout_commit": "3ea243893a2647dc631662c2a2030de7679ae0e1",
+    "production_checkout_clean": true,
+    "scheduled_tasks": "NobusSpaceBot, Health and Backup all Disabled; exact XML SHA and health launcher SHA match RELEASE-PLAN-20260924.md at read-only recheck",
+    "installer_whatif": "M2 worktree installer -WhatIf with exact old main/Health XML, launcher SHA, 10-project inventory and existing runtime/backup parameters: exit 0, only ShouldProcess output, no task replacement",
+    "backup_config_generator": "Ignored .runtime/m2-desktop-release-20260924/prepare_backup_config.py sha256:2b690c2a967b1570ed0324809b3530a04ef9a5c940231432900704f736e7e61e; py_compile PASS; not run on production",
+    "new_backup_config_created": false,
+    "production_activated": false
   },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
   "next_step": "Keep production bot tasks disabled until the coherent candidate, exact staged scheduler/backup binding, isolated recovery and independent L1/L2/L3 are checked. Then run controlled Desktop/Telegram D01-D17 with exact receipts, including positive notifier opt-out. Do not replay Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50."
