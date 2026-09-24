@@ -223,13 +223,22 @@ def test_installer_atomic_replace_on_fake_skill_home(tmp_path: Path) -> None:
     repo_root = Path(__file__).parents[1]
     installer = repo_root / "ops/windows/Install-NobusSendResultsGuard.ps1"
     patch = repo_root / "docs/gates/mvp2/m2-desktop/send-results-bridge-owner.patch"
+    source_root = tmp_path / "source-repo"
+    (source_root / "ops/windows").mkdir(parents=True)
+    (source_root / "docs/gates/mvp2/m2-desktop").mkdir(parents=True)
+    shutil.copyfile(repo_root / "ops/windows/nobus_send_results_guard.py",
+                    source_root / "ops/windows/nobus_send_results_guard.py")
+    shutil.copyfile(patch,
+                    source_root / "docs/gates/mvp2/m2-desktop/send-results-bridge-owner.patch")
+    subprocess.run(["git", "init", "-q", str(source_root)],
+                   check=True, capture_output=True)
     target.write_bytes(_old_sender_bytes(source))
     environment = os.environ.copy()
     environment["USERPROFILE"] = str(fake_home)
     command = [
         r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-        "-File", str(installer), "-SourceRoot", str(repo_root),
+        "-File", str(installer), "-SourceRoot", str(source_root),
     ]
     installed = subprocess.run(command, env=environment, capture_output=True,
                                text=True, encoding="utf-8", check=False)
