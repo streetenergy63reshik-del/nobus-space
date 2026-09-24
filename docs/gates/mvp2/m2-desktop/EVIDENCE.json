@@ -2,13 +2,14 @@
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
   "stage": "WIP_ITERATION",
-  "observed_at_utc": "2026-09-24T11:25:06Z",
+  "observed_at_utc": "2026-09-24T17:35:00Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:a7a68c426fb484ce806a45c94c3be85b96ba1d05b59134cb42d7611609477230",
+  "content_digest": "sha256:1cf31ccb784718fda012f45a00266f1c2881f7d814fd913cbc3885920bc68e20",
   "content_digest_scope": [
+    ".gitattributes",
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
     "docs/adr/0029-telegram-desktop-owner-tunnel.md",
     "docs/gates/mvp2/M2-DESKTOP-PROMPT.md",
@@ -54,11 +55,18 @@
     ,"src/application/runtime_maintenance.py"
     ,"tests/test_desktop_supervisor_wiring.py"
     ,"docs/gates/mvp2/m2-desktop/RELEASE-PLAN-20260924.md"
+    ,"tests/fixtures/desktop_bridge_requests_3ea2438.sql"
+    ,"docs/gates/mvp2/m2-desktop/SECURITY-TRIAGE-20260924.md"
+    ,"ops/windows/nobus_send_results_guard.py"
+    ,"tests/test_nobus_send_results_guard.py"
+    ,"docs/gates/mvp2/m2-desktop/send-results-bridge-owner.patch"
+    ,"ops/windows/Install-NobusSendResultsGuard.ps1"
   ],
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "24 September WIP after independent audit: three Grok modules integrated; sender and exact-confirmed notifier v4 installed. Scheduler-supervisor-Core bridge flags and exact backup schema migration repaired locally. Checkpoint 9cefc58 had 301 related/affected tests and separate clean export 296 passed, one skipped. Subsequent D08 card fixes passed 206 related tests, one skipped on current WIP bytes; no new product Telegram request or Desktop turn. No frozen candidate or complete independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
+  "candidate_note": "24 September WIP: real Desktop UIA/owner IPC create and bidirectional continuation succeeded; isolated DesktopBridgeService/fake Telegram delivered short and 6243-character/file output. Isolated real-Desktop async-question and owner approve/deny cycles succeeded with wrong numeric IDs rejected. Installed notifier read-only exact bridge opt-out succeeded. Linked M2 run 237 passed, 1 skipped. Broad all-repo diagnostic stopped after 44 successes on historical Gate 0 dirty-manifest fixture. No product Telegram request, full D01-D17, frozen candidate or complete independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
+  "environment_scope_note": "The environment block below records the initial 21 September Desktop 26.915 read-only probe. The current 24 September real-turn observations are separately bound to Desktop 26.917.9434.0 in a06_live_owner_transport_20260924 and isolated_question_approval_real_desktop_20260924.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
     "desktop_executable_version": "153.0.8010.48",
@@ -706,6 +714,214 @@
     "new_backup_config_created": false,
     "production_activated": false
   },
+  "audit_20260924_wip": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "source_head_before_changes": "696fe2ca34865047276fdb7734f296a0616ee73c",
+    "r01": "Natural text/voice create cannot silently become topic continuation; unknown project requires a durable author-bound choice, voice transcript confirmation precedes project choice; exact-project and wrong-bot cases tested. This is a deterministic subset, not full Nobus Core semantic intent parity.",
+    "r02": "Ordinary report-color question routes to author; explicit consent and unsupported App/MCP shapes fail closed to owner/Desktop. Universal question provenance and live D08 remain open.",
+    "r03": "Exact pending interaction can rebind across connection generation while owner/request/turn/payload remain equal and not expired; no new card is emitted by state replay. Live reconnect remains open.",
+    "r04": "Ordered artifact references and immutable snapshots are recorded before send; stable slots let a previously absent file be delivered after partial retry without resending an already sent file. Changed bytes become delivery_unknown; offline regression passes.",
+    "r05": "A real Git-registered worktree sharing the selected project's common-dir is accepted; unrelated or nested cwd fails closed. Live Desktop managed-worktree continuation remains open.",
+    "uia_targeted_readonly": "Desktop 26.917.9434.0 process 8312: owner manually opened empty new task; Chromium exposed 3-5 RootWebArea elements, with unique AutomationId=root app document. Read-only exact predicate returned new_task_project_context_verified=true with one active project button outside sidebar and New Chat button. Owner then manually opened an existing task in the same project; sidebar project remained, active project button disappeared and the identical predicate returned false. No input/send. Diagnostic main-view label output was removed after observing it could include task content. Real create/send/IPC correlation remain untested; A06 partial.",
+    "a01_isolated_previous_schema": "DDL from live checkout revision 3ea2438 reproduces pinned c9b10b0f... digest and migrates once on isolated SQLite. Direct read-only access to actual production SQLite was denied by sandbox; no bypass, no production copy or backup cycle.",
+    "a13_notifier": "Installed v4 source was read: exact marker is corroborated by read-only durable request/thread/turn binding with bounded fast-turn wait. Package receipt 91 passed, 54 subtests is historical. Positive bridge suppression and ordinary-task coexistence are not live-proven.",
+    "linked_test_selection": "tests/test_desktop_bridge.py tests/test_codex_desktop_uia.py tests/test_codex_desktop_ipc.py tests/test_desktop_output.py tests/test_desktop_artifact_refs.py tests/test_desktop_interaction_view.py tests/test_desktop_grok_contract.py tests/test_telegram_mvp1_runner.py tests/test_documentation.py tests/test_nobus_document_delivery.py tests/test_desktop_supervisor_wiring.py tests/test_desktop_notifier_patch.py tests/test_business_notes_ingress.py tests/test_nobus_send_results_guard.py",
+    "linked_tests": "226 passed, 1 skipped in 18.33s across 14 files after A06 positive/negative read-only observations and diagnostic-label removal; Windows PowerShell 5.1 parser passed. These are local checks, not live send or independent L1/L2/L3.",
+    "powershell_parser": "0 errors for modified scripts/codex_desktop_uia.ps1 under Windows PowerShell 5.1",
+    "security_triage": "Prior 42 heuristic findings classified in SECURITY-TRIAGE-20260924.md; changed-file secret-pattern scan negative; pip check clean; CVE audit not performed.",
+    "a09_skill_guard": "Exact approved installation succeeded: installed send_result.py SHA-256 d38d9809dda89a088eb9e4415f4a834bb47d58cc804b14fa2fa9cc523c9d9f2e; installed guard SHA-256 e20cd35d1d09fc5c90ee91fe37bf80b4057de86ab4bb9e117d2ae0f0e6e6fe20. Original sender backup SHA-256 595f4db569519d1bb545b16320dbf8aabee3277d46263fe3f0d3efa04476a4df. First staging failed before skill change on Git dubious ownership; exact-hash text staging replaced git apply without changing target bytes. Eight focused tests and read-only AST parse passed. Positive live single-sender/opt-out and rollback remain open.",
+    "a09_backup_path": "C:\\Хранилище\\АГЕНТ\\PROстранство\\ОРКЕСТРАТОР\\Code\\nobus-orchestrator-dev\\.runtime\\m2-send-results-guard-install\\0cda3129365743cfb369473dcc7cb596\\send_result.before.py",
+    "external_change_this_iteration": "Only two exact-SHA files in installed nobus-send-results skill; no settings, credentials, Telegram send, Desktop turn or production Scheduled Task change",
+    "production_change_this_iteration": false,
+    "desktop_turn_or_telegram_send_this_iteration": false,
+    "candidate_commit": null,
+    "candidate_tree": null,
+    "full_l1_l2_l3": "NOT_RUN",
+    "d01_d17_accepted": false
+  },
+  "a06_one_shot_20260924": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "authorization": "one safe text task via installed Desktop UIA in existing nobus-orchestrator-dev project; then read-only IPC; no Desktop-task file or network actions; no retry after unknown acknowledgement",
+    "marker": "M2A06-20260924-ONE-SHOT-8E5317A0",
+    "ignored_probe_script_sha256": "7a3dbb2a609aee992fc41ca9206d773d897418ab5d14fe9146f5c36032cbc44b",
+    "uia_create_and_submit_calls": 1,
+    "uia_receipt": null,
+    "uia_failure": "PowerShell nonzero; localized stderr triggered UnicodeDecodeError in Python reader; wrapper reported desktop-uia-action-failed; underlying UIA failure stage not established",
+    "ipc_observation": "client listening before UIA; zero new thread-stream-following-status-requested candidates over 30 seconds; no owner/history correlation possible",
+    "desktop_readonly_after": "Installed 26.917.9434.0 PID 8312; project found and expanded; new_task_project_context_verified=false on prior task view. Recent Desktop task list did not show a test task.",
+    "outcome": "UNKNOWN; observations favor no submission but do not prove absence",
+    "retry_performed": false,
+    "new_product_telegram_send": false,
+    "local_diagnostic_fix": "PowerShell subprocess stderr now uses errors=replace so a legacy codepage does not obscure nonzero status; exact UIA failure remains unresolved",
+    "targeted_tests": "6 passed in tests/test_codex_desktop_uia.py using a new workspace-local basetemp; initial default-temp run had 5 passed and one sandbox PermissionError, not a product failure",
+    "a06_closed": false,
+    "d01_d17_accepted": false
+  },
+  "a06_followup_20260924": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "authorization": "owner granted necessary tests and PC/Desktop window actions for full M2-DESKTOP development",
+    "unique_followup_markers": [
+      "M2A06-20260924-SECOND-5FD883B1",
+      "M2A06-20260924-BOM-3B7B2E91",
+      "M2A06-20260924-REFRESH-7A88C26D",
+      "M2A06-20260924-COUNT-2F9B809C",
+      "M2A06-20260924-SPLIT-BAE84D03"
+    ],
+    "each_marker_invoked_once": true,
+    "second_probe": "pre-send find-create-control failure; Windows PowerShell 5.1 -File misread BOM-less UTF-8 localized selector as ANSI",
+    "encoding_fix": "UIA PowerShell script now begins EF BB BF; native PS5 parser 0 errors, read-only installed Desktop UIA found exact enabled create button with InvokePattern",
+    "later_probe_results": "BOM probe invoked create view then stopped before composer write; remaining three probes also stopped before send; IPC observed zero new candidates for each",
+    "composer_readonly": "one visible enabled Edit named Поручите что угодно with ValuePattern; direct Find-Exact and Wait-Exact succeeded; draft_empty=false; no known probe marker in draft; draft contents never printed, stored or changed",
+    "root_cause": "existing unrelated nonempty Desktop composer draft triggers fail-closed guard; broad find-composer stage has been split with check-draft-empty",
+    "disproved_hypothesis": "stale UIA root refresh did not resolve failure and was removed; speculative split submit route removed",
+    "owner_action_requested": "owner replied saved/cleared; second read-only preflight still saw 20 non-whitespace characters with equal ValuePattern/TextPattern, not the accessible name or any probe marker. Owner was asked to inspect this exact current editor or report visual emptiness; no automated overwrite",
+    "bridge_draft_notice": "exact allowlisted existing-draft diagnostic sends author a preservation/no-auto-retry notice; other failures remain generic unknown; no live product Telegram send",
+    "targeted_tests": "60 passed across tests/test_desktop_bridge.py and tests/test_codex_desktop_uia.py on current WIP; native PowerShell 5.1 parser 0 errors",
+    "confirmed_new_desktop_turn": false,
+    "full_answer_verified": false,
+    "d01_d17_accepted": false
+  },
+  "a06_live_owner_transport_20260924": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "installed_desktop_version": "26.917.9434.0",
+    "desktop_process_id_at_probe": 36332,
+    "project": "nobus-orchestrator-dev",
+    "project_context": "UIA single active project button verified before exact send; Desktop task list cwd equals saved project root",
+    "prior_draft_hypothesis": "superseded: visually empty Chromium composer exposes LF plus its 19-character accessible placeholder via both ValuePattern and TextPattern; not a user draft",
+    "pre_send_false_stops": [
+      "PLACEHOLDER-C6F91304: two visible New Chat buttons, no prompt write or send",
+      "CONTEXT-5CFBE207: SetValue wrote exact prompt, immediate UIA readback lagged, no send at that point"
+    ],
+    "recovery": "Read-only UIA verified exact current prompt and selected project; one-shot SubmitExactDraft performed no create or SetValue, rechecked both before semantic send",
+    "desktop_thread_id": "01a0d432-e0c9-7280-bcd5-4350a8c7843f",
+    "create_turn": {
+      "marker": "M2A06-20260924-CONTEXT-5CFBE207",
+      "turn_id": "01a0d432-e6b6-7aa0-8e55-fc2a6445aa11",
+      "status": "completed",
+      "complete_final_text": "M2A06-20260924-CONTEXT-5CFBE207 OK",
+      "readback_revision": 3,
+      "probe_script_sha256": "1d283ae5ac0b2772d2019f0c27aeddcf637bd5a2ac5b92a62758e80e1d9fd055"
+    },
+    "ipc_continuation": {
+      "marker": "M2A06-20260924-IPC-159C7A42",
+      "turn_id": "01a0d434-ab36-7c40-aada-f815b814d0dc",
+      "status": "completed",
+      "complete_final_text": "M2A06-20260924-IPC-159C7A42 OK",
+      "readback_revision": 29,
+      "probe_script_sha256": "99363f8dfb5edab0cc8454457f7aa592d78da2136c207ac26fd588c39d8b9e32"
+    },
+    "ui_continuation": {
+      "marker": "M2A06-20260924-UI-927EA64C",
+      "turn_id": "01a0d435-e430-7d03-bd48-114f93d7aacb",
+      "status": "completed",
+      "complete_final_text": "M2A06-20260924-UI-927EA64C OK",
+      "readback_revision": 54,
+      "probe_script_sha256": "be51a8fdec6928f55df002cac6b62d8ca919dac8b6239b027da99d54c1cf66c9"
+    },
+    "native_desktop_visibility": "list_threads returned exact thread id, idle, cwd of saved project; projectId null is not interpreted as project incompatibility",
+    "focused_local_tests": "60 passed in test_codex_desktop_uia.py and test_desktop_bridge.py; Windows PowerShell 5.1 parser 0 errors",
+    "notifier_delivery_receipts_checked": "Read-only one-shot SQLite notifications table: status sent for each of the three exact thread/turn event keys; Telegram message bodies/IDs not independently checked",
+    "product_telegram_bridge_tested": false,
+    "pending_questions_approvals_tested_in_this_thread": false,
+    "full_desktop_capability_parity_tested": false,
+    "d01_d17_accepted": false
+  },
+  "isolated_bridge_real_desktop_20260924": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "scope": "real Desktop UIA and owner IPC; full DesktopBridgeService; isolated SQLite and fake Telegram/document delivery only",
+    "create": {
+      "request_id": "0d9b968f-4ffc-469a-870e-28a975647353",
+      "thread_id": "01a0d43f-edb8-70e2-85ae-5434cc992228",
+      "turn_id": "01a0d440-6796-7cf1-b932-bd15d0164c82",
+      "status": "delivered",
+      "fake_delivery": "one exact full final, chat=-1001, topic=7, reply=12",
+      "script_sha256": "b696fc65d7309b20c2e749b28f769bf2695506e1af5278b2370a2484a96707e5"
+    },
+    "long_file_continuation": {
+      "request_id": "fbec884c-52bf-45c7-ac00-9889338e20ce",
+      "same_thread_id": "01a0d43f-edb8-70e2-85ae-5434cc992228",
+      "turn_id": "01a0d442-da65-76b3-842f-ce49f2d939b9",
+      "status": "delivered",
+      "visible_final_characters": 6243,
+      "fake_text_parts": 2,
+      "answer_md_digest": "sha256:2203b38ac6864140e5e2808f81944bcfbdfe3d7d974bbafe9126578c085f0a52",
+      "answer_md_matches_visible_final": true,
+      "artifact_digest": "sha256:b326ff2bfa5d4f34549dccf23ba7b494a92384576fafade12451c0254ee7bd07",
+      "artifact_bytes_match": true,
+      "delivery_slots": "4/4 sent in isolated SQLite: two text, answer.md, test artifact",
+      "fake_destination": "chat=-1001, topic=9, first reply=13",
+      "script_sha256": "3da7543d3b7f65030403ec9605593b1081c5632a363dd3981d03ba7df55ef4f8"
+    },
+    "diagnostic_correction": "First harness reported answer_md_exact=false because it compared final-only answer.md with complete_text_output containing a separate commentary message. Read-only IPC+SQLite reconciliation confirmed exact digest of the final_answer text; notifier marker was absent in this final.",
+    "readback_script_sha256": "356b8df7981d0dedf4773e9e05c449390f5154aeef47ea831040fbe7d7b49ec0",
+    "global_notifier_ledger": "read-only status sent for bootstrap and both user turns; isolated DB was not notifier's production bridge_state_path, so positive bridge suppression remains unproven",
+    "installed_sender_called": false,
+    "real_telegram_api_called_by_bridge": false,
+    "production_checkout_changed": false,
+    "product_acceptance": "D09/D10 have real Desktop plus local fake-delivery evidence only; actual Telegram, sender and single-owner checks remain open",
+    "linked_tests": "230 passed, 1 skipped across 14 related M2 files on current WIP"
+  },
+  "isolated_question_approval_real_desktop_20260924": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "desktop_version": "26.917.9434.0",
+    "desktop_thread_id": "01a0d43f-edb8-70e2-85ae-5434cc992228",
+    "transport": "running Desktop owner IPC; no separate CLI/App Server executor",
+    "telegram": "isolated fake API and SQLite only; no real Telegram product request",
+    "async_question_shape": "agentMessage delivery=async with questions; answer uses thread-follower-steer-turn plus exact questionItemId and restoreMessage",
+    "first_async_answer": "pre-effect failure without restoreMessage; interaction unknown; read-only pending=1, steeringUserMessage=0 before one guarded correction with same clientUserMessageId",
+    "corrected_answer": {
+      "request_id": "e828568b-1386-42e3-8488-c61487e1af38",
+      "turn_id": "01a0d45d-6c0e-7351-a712-eea280f16cca",
+      "ack": "DesktopIpcAck",
+      "steering_user_messages": 1,
+      "pending_after": 0,
+      "complete_final": "M2A08-20260924-STEER-4B78A2D0 синий",
+      "isolated_recovery": "delivered once to fake topic=12/reply=16; async question card excluded from final",
+      "corrective_script_sha256": "9ac4a8649d75374783cd8dfbaa1b7149846bbc6818f95806f625ec0e405e3aec",
+      "recovery_script_sha256": "a027f1c3c69653daeeeae98d78e1b184fbbf871b904d3a6b41c7a825f2f2002c"
+    },
+    "full_async_bridge": {
+      "request_id": "27273ac4-33da-41c6-8a81-a5c8b33c46af",
+      "card_count": 1,
+      "author_numeric_user_id": 41,
+      "wrong_numeric_user_id_denied": 55,
+      "status": "delivered",
+      "exact_final_count": 1,
+      "fake_topic_id": 13,
+      "script_sha256": "60f0d9e760c48d886e258e3caa34d78645b0ed6cf442a3d38e3798c74f24c9a8"
+    },
+    "command_approval": {
+      "installed_extra_fields": ["availableDecisions", "commandActions", "environmentId", "kind", "proposedExecpolicyAmendment", "startedAtMs"],
+      "safe_allow_request_id": "4caa42b0-69ae-49e4-8a3c-32e75c7dc392",
+      "safe_allow": "numeric non-owner 41 denied; owner 99 accepted only Write-Output; delivered one exact final in fake topic=15",
+      "safe_allow_recovery_script_sha256": "d4d66c3b5fa2b5764381e7ca8844900df22fa67cd30f8433a1751b54254c296f",
+      "deny_request_id": "fe3376c7-e2cd-4f2d-bfd2-197be59785f8",
+      "deny": "owner 99 selected advertised cancel on Start-Process calc.exe; Desktop turn interrupted with no commandExecution item; isolated request failed with notice in fake topic=16",
+      "deny_script_sha256": "2633c6a995e14e790028211ae7b8a23d71cd50ec3419a48684b5b384d178e6f4",
+      "known_harness_corrections": "initial renderer manual fallback on new fields; separate allow harness used mention-message ID instead of last card ID; both diagnosed read-only and recovered without repeating Desktop turn"
+    },
+    "tests": "68 focused async/IPC/bridge passed; 83 bridge+renderer passed; post-claim unknown-dispatch regression passed; first linked 14-file run 236 passed, 1 skipped, one installer fixture failure; affected guard file 8 passed after exact-anchor fix; unified linked rerun 237 passed, 1 skipped",
+    "real_telegram_acceptance": false,
+    "d01_d17_accepted": false
+  },
+  "installed_notifier_exact_opt_out_readonly_20260924": {
+    "scope": "installed notifier source against real Desktop session marker and isolated bridge SQLite; no Telegram API",
+    "thread_id": "01a0d43f-edb8-70e2-85ae-5434cc992228",
+    "turn_id": "01a0d46a-dd30-7a11-a963-5ead2fcb8ee3",
+    "exact_bridge_turn_suppressed": true,
+    "unbound_turn_not_suppressed": true,
+    "no_bridge_state_not_suppressed": true,
+    "script_sha256": "74b2ec03204afa5a0f4f33ac7fb9f2281d8a94dbfac69d461e712851c46631cf",
+    "live_telegram_duplicate_absence_verified": false
+  },
+  "broad_suite_diagnostic_20260924": {
+    "scope": "all historical repository tests; not the selected M2 gate suite",
+    "inside_repo_temp": "many nested Git-fixture failures; stopped diagnostic early",
+    "outside_repo_temp": "44 passed, then pytest -x stopped at tests/gate0/test_gate0_normative.py::test_dirty_manifest_preserves_preexisting_ownership",
+    "cause": "historical Gate 0 assertion expects a preexisting dirty manifest including .nobus-quality/cases.ndjson, absent from the current M2 worktree changes",
+    "m2_linked_selection": "237 passed, 1 skipped across 14 related files on current source bytes",
+    "all_repo_green": false
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Keep production bot tasks disabled until the coherent candidate, exact staged scheduler/backup binding, isolated recovery and independent L1/L2/L3 are checked. Then run controlled Desktop/Telegram D01-D17 with exact receipts, including positive notifier opt-out. Do not replay Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50."
+  "next_step": "Owner IPC plus semantic Desktop UI create/visibility and bidirectional continuation are proven. Isolated Bridge with real Desktop and fake Telegram delivered short/long/file output and completed async question and owner approve/deny cycles; installed notifier exact opt-out was read-only positive. These are not real Telegram receipts. Do not replay any one-shot probe marker, Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Finish frozen-candidate checks and backup/release preflight, then controlled real Telegram D01-D17 with live duplicate check. Keep production Scheduled Tasks Disabled until safe staged binding and independent L1/L2/L3 are complete."
 }

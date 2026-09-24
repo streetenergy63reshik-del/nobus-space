@@ -182,6 +182,8 @@ class DesktopAgentMessage:
     item_id: str
     text: str
     phase: str | None
+    delivery: str | None = None
+    questions: tuple[Mapping[str, Any], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -575,6 +577,43 @@ class CodexDesktopIpcClient:
             turn_id=turn_id,
             status=status,
         )
+
+    async def steer_turn(
+        self,
+        conversation_id: str,
+        *,
+        input_items: list[Mapping[str, Any]],
+        client_user_message_id: str,
+        restore_message: Mapping[str, Any],
+        owner: OwnerBinding,
+    ) -> DesktopIpcAck:
+        """Steer one active owner turn; never retry after an unknown ACK."""
+        conversation_id = _bounded_text(conversation_id, "conversation id")
+        if owner.conversation_id != conversation_id:
+            raise ValueError("desktop IPC owner binding conflicts")
+        if not input_items or not all(isinstance(item, Mapping) for item in input_items):
+            raise ValueError("desktop IPC steering input is invalid")
+        message_id = _bounded_text(client_user_message_id, "client message id")
+        if (
+            not isinstance(restore_message, Mapping)
+            or restore_message.get("id") != message_id
+            or not isinstance(restore_message.get("cwd"), str)
+            or not isinstance(restore_message.get("context"), Mapping)
+        ):
+            raise ValueError("desktop IPC steering restore message is invalid")
+        envelope = await self._request_mutation(
+            "thread-follower-steer-turn",
+            {
+                "conversationId": conversation_id,
+                "input": [dict(item) for item in input_items],
+                "clientUserMessageId": message_id,
+                "restoreMessage": dict(restore_message),
+                "attachments": [],
+            },
+            target_client_id=owner.owner_client_id,
+            return_envelope=True,
+        )
+        return _ack_from_envelope("thread-follower-steer-turn", envelope)
 
     async def answer_command_approval(
         self,
@@ -1106,6 +1145,38 @@ class CodexDesktopIpcClient:
                 pending.future.set_exception(error)
 
 
+def _answered_async_question_ids(items: list[Any]) -> frozenset[str]:
+    """Find only Desktop's exact steered async-question reply envelope."""
+    opening = "<send_user_message_question_reply>"
+    closing = "</send_user_message_question_reply>"
+    found: set[str] = set()
+    for raw_item in items:
+        if not isinstance(raw_item, dict) or raw_item.get("type") != "steeringUserMessage":
+            continue
+        parts = raw_item.get("input")
+        if not isinstance(parts, list) or len(parts) != 1 or not isinstance(parts[0], dict):
+            continue
+        text = parts[0].get("text") if parts[0].get("type") == "text" else None
+        if not isinstance(text, str):
+            continue
+        value = text.strip()
+        if not value.startswith(opening) or not value.endswith(closing):
+            continue
+        try:
+            answers = json.loads(value[len(opening):-len(closing)].strip())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(answers, list):
+            continue
+        for answer in answers:
+            if not isinstance(answer, dict):
+                continue
+            question_id = answer.get("questionItemId")
+            if isinstance(question_id, str) and isinstance(answer.get("answer"), str):
+                found.add(question_id)
+    return frozenset(found)
+
+
 def project_desktop_conversation(
     snapshot: DesktopHistorySnapshot,
 ) -> DesktopConversationProjection:
@@ -1161,6 +1232,7 @@ def project_desktop_conversation(
         )
 
     turns: list[DesktopTurnState] = []
+    async_questions: list[DesktopPendingRequest] = []
     for entity_key in ordered_entity_keys:
         entity = _json_object(entities[entity_key], "history turn")
         params = _json_object(entity.get("params"), "history turn params")
@@ -1171,6 +1243,7 @@ def project_desktop_conversation(
         agent_messages: list[DesktopAgentMessage] = []
         plan_items: list[DesktopAgentMessage] = []
         text_outputs: list[DesktopAgentMessage] = []
+        answered_async_ids = _answered_async_question_ids(items)
         for raw_item in items:
             item = _json_object(raw_item, "history item")
             item_type = item.get("type")
@@ -1195,13 +1268,59 @@ def project_desktop_conversation(
                     raise DesktopIpcProtocolError(
                         "desktop IPC agent message text is invalid"
                     )
+                delivery = _optional_text(item.get("delivery"))
+                raw_questions = item.get("questions")
+                if raw_questions is None:
+                    questions: tuple[Mapping[str, Any], ...] = ()
+                elif isinstance(raw_questions, list) and all(
+                    isinstance(question, dict) for question in raw_questions
+                ):
+                    questions = tuple(dict(question) for question in raw_questions)
+                else:
+                    raise DesktopIpcProtocolError(
+                        "desktop IPC async questions are invalid"
+                    )
                 output = DesktopAgentMessage(
                     item_id=_bounded_text(item.get("id"), "agent item id"),
                     text=text,
                     phase=_optional_text(item.get("phase")),
+                    delivery=delivery,
+                    questions=questions,
                 )
                 agent_messages.append(output)
                 text_outputs.append(output)
+                if delivery == "async" and questions and entity.get("status") == "inProgress":
+                    pending_questions: list[dict[str, Any]] = []
+                    for index, question in enumerate(questions):
+                        title = _bounded_text(question.get("title"), "async question title")
+                        question_id = json.dumps(
+                            ["request_user_input_async", output.item_id, index],
+                            separators=(",", ":"),
+                        )
+                        if question_id in answered_async_ids:
+                            continue
+                        options = question.get("options", [])
+                        if not isinstance(options, list):
+                            raise DesktopIpcProtocolError("desktop IPC async question options are invalid")
+                        pending_questions.append({
+                            "id": question_id, "question": title,
+                            "options": options,
+                        })
+                    if pending_questions:
+                        async_questions.append(DesktopPendingRequest(
+                            request_id=output.item_id,
+                            method="item/tool/requestUserInputAsync",
+                            payload={
+                                "id": output.item_id,
+                                "method": "item/tool/requestUserInputAsync",
+                                "params": {
+                                    "threadId": snapshot.conversation_id,
+                                    "turnId": entity.get("turnId"),
+                                    "itemId": output.item_id,
+                                    "questions": pending_questions,
+                                },
+                            },
+                        ))
             elif item_type == "plan":
                 text = item.get("text")
                 if not isinstance(text, str):
@@ -1253,6 +1372,11 @@ def project_desktop_conversation(
                 payload=MappingProxyType(dict(request)),
             )
         )
+    for pending in async_questions:
+        if pending.request_id in seen_request_ids:
+            raise DesktopIpcProtocolError("desktop IPC async question id is duplicated")
+        seen_request_ids.add(pending.request_id)
+        pending_requests.append(pending)
 
     runtime_status_value = state.get("threadRuntimeStatus")
     if isinstance(runtime_status_value, dict):

@@ -240,7 +240,10 @@ class SQLiteDesktopBridgeState:
                     or request.source_message_id != source_message_id
                     or request.operation != operation
                     or request.project_name != values["project_name"]
-                    or canonical_json_digest(request.payload) != payload_digest
+                    or canonical_json_digest({
+                        key: value for key, value in request.payload.items()
+                        if key != "_delivery_plan"
+                    }) != payload_digest
                 ):
                     raise DesktopBridgeStateError("desktop_bridge_ingress_conflict")
                 return request
@@ -262,6 +265,53 @@ class SQLiteDesktopBridgeState:
         except DesktopBridgeStateError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def record_delivery_plan(
+        self, request_id: UUID, *, final_digest: str,
+        references: list[dict[str, Any]], snapshots: list[dict[str, Any]],
+    ) -> None:
+        """Bind ordered references and immutable file bytes before any Telegram send."""
+        digest = _digest(final_digest)
+        if not isinstance(request_id, UUID) or not isinstance(references, list) or not isinstance(snapshots, list):
+            raise ValueError("desktop delivery plan is invalid")
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM desktop_bridge_requests WHERE request_id=?", (str(request_id),)
+                ).fetchone()
+                if row is None or row["status"] not in {"delivering", "delivery_partial"}:
+                    raise DesktopBridgeStateError("desktop_bridge_delivery_plan_state")
+                request = self._request_from_row(row)
+                payload = dict(request.payload)
+                existing = payload.get("_delivery_plan")
+                if existing is not None:
+                    if existing.get("final_digest") != digest or existing.get("references") != references:
+                        raise DesktopBridgeStateError("desktop_bridge_delivery_plan_conflict")
+                    known = {item["index"]: item for item in existing["snapshots"]}
+                    for item in snapshots:
+                        old = known.get(item["index"])
+                        if old is not None and old != item:
+                            raise DesktopBridgeStateError("desktop_bridge_artifact_changed")
+                        known[item["index"]] = item
+                    merged = [known[key] for key in sorted(known)]
+                    if merged == existing["snapshots"]:
+                        return
+                else:
+                    merged = snapshots
+                payload["_delivery_plan"] = {
+                    "final_digest": digest, "references": references,
+                    "snapshots": merged,
+                }
+                connection.execute(
+                    """UPDATE desktop_bridge_requests SET payload=?,payload_digest=?,updated_at=?
+                       WHERE request_id=?""",
+                    (self._encode(payload), canonical_json_digest(payload),
+                     self._now().isoformat(), str(request_id)),
+                )
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError, KeyError, AttributeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
     def list_requests(
@@ -581,10 +631,30 @@ class SQLiteDesktopBridgeState:
                     or interaction.desktop_request_id != desktop_identifier
                     or interaction.desktop_turn_id != turn
                     or interaction.target_user_id != target
-                    or interaction.generation != generation
                     or interaction.payload_digest != digest
                 ):
                     raise DesktopBridgeStateError("desktop_bridge_interaction_conflict")
+                if interaction.generation != generation:
+                    if (
+                        generation < interaction.generation
+                        or interaction.status != "pending"
+                        or interaction.expires_at <= self._now()
+                    ):
+                        raise DesktopBridgeStateError("desktop_bridge_interaction_conflict")
+                    connection.execute(
+                        """UPDATE desktop_bridge_interactions
+                           SET connection_generation=?,updated_at=?
+                           WHERE interaction_id=? AND connection_generation=?
+                             AND status='pending' AND expires_at>?""",
+                        (generation, now, identifier, interaction.generation, now),
+                    )
+                    row = connection.execute(
+                        "SELECT * FROM desktop_bridge_interactions WHERE interaction_id=?",
+                        (identifier,),
+                    ).fetchone()
+                    interaction = self._interaction_from_row(row)
+                    if interaction.generation != generation:
+                        raise DesktopBridgeStateError("desktop_bridge_interaction_conflict")
                 return interaction
         except DesktopBridgeStateError:
             raise
@@ -844,6 +914,13 @@ class SQLiteDesktopBridgeState:
         now = self._now().isoformat()
         try:
             with self._transaction() as connection:
+                occupied = connection.execute(
+                    """SELECT operation_key FROM desktop_bridge_deliveries
+                       WHERE request_id=? AND kind=? AND ordinal=?""",
+                    (str(request_id), kind, ordinal),
+                ).fetchone()
+                if occupied is not None and occupied["operation_key"] != operation_key:
+                    raise DesktopBridgeStateError("desktop_bridge_delivery_conflict")
                 inserted = connection.execute(
                     """INSERT INTO desktop_bridge_deliveries
                        (operation_key,request_id,kind,ordinal,source_digest,
@@ -888,6 +965,20 @@ class SQLiteDesktopBridgeState:
         except DesktopBridgeStateError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def delivery_slot_status(self, request_id: UUID, *, kind: str, ordinal: int) -> str | None:
+        if not isinstance(request_id, UUID) or kind not in _DELIVERY_KINDS or type(ordinal) is not int or ordinal < 0:
+            raise ValueError("desktop delivery slot is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT status FROM desktop_bridge_deliveries
+                       WHERE request_id=? AND kind=? AND ordinal=?""",
+                    (str(request_id), kind, ordinal),
+                ).fetchone()
+                return None if row is None else str(row["status"])
+        except (OSError, sqlite3.DatabaseError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
     def finish_delivery(

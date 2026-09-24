@@ -61,6 +61,12 @@ _PARAMS_KNOWN_BY_KIND: dict[str, frozenset[str]] = {
             "env",
             "working_directory",
             "workingDirectory",
+            "availableDecisions",
+            "commandActions",
+            "environmentId",
+            "kind",
+            "proposedExecpolicyAmendment",
+            "startedAtMs",
         }
     ),
     "file_approval": frozenset(
@@ -697,6 +703,16 @@ def _render_command(
     if env is not None:
         lines.append("env:")
         lines.append(_render_json_value(env, indent=2))
+
+    # Desktop 26.917 supplies these approval details. Show all of them to the
+    # owner; a new unrecognised field still forces manual review above.
+    for key in (
+        "availableDecisions", "commandActions", "environmentId", "kind",
+        "proposedExecpolicyAmendment", "startedAtMs",
+    ):
+        if key in params:
+            lines.append(f"{key}:")
+            lines.append(_render_json_value(params[key], indent=2))
 
     if not lines:
         issues.append("command-approval-empty")

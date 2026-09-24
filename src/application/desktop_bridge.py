@@ -9,6 +9,7 @@ import json
 import os
 import re
 import stat
+import subprocess
 from contextlib import contextmanager
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -49,8 +50,14 @@ from src.integrations.codex_desktop_uia import (
 from src.transport.telegram.models import TextMessage, VoiceMessage
 
 
-_COMMAND = re.compile(r"^/codex(?:@[A-Za-z0-9_]+)?(?:\s+|$)", re.IGNORECASE)
+_COMMAND = re.compile(r"^/codex(?:@(?P<username>[A-Za-z0-9_]+))?(?:\s+|$)", re.IGNORECASE)
 _MENTION = re.compile(r"^@(?P<username>[A-Za-z0-9_]+)(?:\s+|$)", re.IGNORECASE)
+_NAME_ADDRESS = re.compile(r"^(?:Нобус(?:\s+Спейс)?|Nobus(?:\s+Space)?)\s*[,!:]\s*", re.IGNORECASE)
+_NATURAL_CREATE = re.compile(
+    r"^(?:создай|создать|начни|заведи)\s+(?:новую\s+)?задачу"
+    r"(?:\s+в\s+проекте\s+(?P<project>[^:\r\n]+))?\s*[:\r\n]\s*"
+    r"(?P<instruction>.+)$", re.IGNORECASE | re.DOTALL,
+)
 _PARTICIPANT_BIND_MARKER = re.compile(
     r"^@Nobusspacebot #NOBUS-BIND-PARTICIPANT:[A-Za-z0-9_-]{12,80}$",
     re.IGNORECASE,
@@ -65,6 +72,7 @@ _NOTIFIER_MARKER = re.compile(
 _TEXT_PART_BYTES = 3_600
 _ARTIFACT_PART_BYTES = 45 * 1024 * 1024
 _MAX_ARTIFACT_BYTES = 400 * 1024 * 1024
+_ARTIFACT_SLOT_WIDTH = (_MAX_ARTIFACT_BYTES + _ARTIFACT_PART_BYTES - 1) // _ARTIFACT_PART_BYTES
 _SENSITIVE_ARTIFACT_NAME = re.compile(
     r"(?i)(?:^|[._-])(?:\.env|credentials?|secrets?|private[-_]?key|"
     r"id_(?:rsa|dsa|ecdsa|ed25519)|cookies?)(?:$|[._-])|"
@@ -84,14 +92,12 @@ _INTERACTION_TTL = timedelta(hours=12)
 # Apps and agents can phrase a permission as a question. Ambiguous consent or
 # side-effect prompts go to the owner for manual handling in Desktop.
 _OWNER_REVIEW_QUESTION = re.compile(
-    r"разреш|одобр|подтвер|соглас|доступ|прав[ао]|удал|измен|запис|"
-    r"установ|публи|отправ|запуст|выполн|оплат|плат[её]ж|"
-    r"авториз|секрет|ключ|токен|можно\s*\?|продолж|отмен|"
-    r"\b(?:да|нет)\b|"
-    r"\b(?:approve|permission|consent|grant|allow|delete|remove|"
-    r"install|publish|deploy|send|write|overwrite|execute|run|"
-    r"pay|payment|access|credential|token|secret|oauth|"
-    r"continue|proceed|cancel|yes|no|can i)\b",
+    r"\b(?:разреш(?:аете|ите|аю|ение)|одобр(?:яете|ите|ение)|"
+    r"подтвержда(?:ете|ете ли)|соглас(?:ны|ие)|дать\s+доступ|"
+    r"предоставить\s+прав[ао]|можно\s+(?:ли\s+)?(?:мне\s+)?"
+    r"(?:удал|измен|запис|установ|публи|отправ|запуст|выполн|оплат)|"
+    r"могу\s+ли\s+(?:я\s+)?(?:удал|измен|запис|установ|публи|отправ|запуст|выполн|оплат)|"
+    r"(?:approve|permission|consent|grant|allow|can\s+i))",
     re.IGNORECASE,
 )
 _BOT_REQUEST_WINDOW = timedelta(minutes=10)
@@ -296,7 +302,7 @@ class DesktopBridgeService:
                 telegram_message_id=message.reply_to_message_id,
             )
             if interaction is not None:
-                await self._answer_interaction(message, interaction)
+                await self._answer_interaction(message, interaction, envelope)
                 return True
         if message.binding_purpose != "business_notes":
             return False
@@ -328,14 +334,33 @@ class DesktopBridgeService:
             return None
         command = _COMMAND.match(text)
         if command is not None:
+            if command.group("username") is not None and command.group("username").casefold() != self._bot_username:
+                return None
             body = text[command.end() :].strip()
         else:
             mention = _MENTION.match(text)
-            if mention is None or mention.group("username").casefold() != self._bot_username:
-                return None
-            body = text[mention.end() :].strip()
+            if mention is not None:
+                if mention.group("username").casefold() != self._bot_username:
+                    return None
+                body = text[mention.end() :].strip()
+            else:
+                address = _NAME_ADDRESS.match(text)
+                if address is not None:
+                    body = text[address.end() :].strip()
+                elif message.reply_to_message_id is not None and self._topic_predecessor(message) is not None:
+                    body = text
+                else:
+                    return None
         if not body or body.casefold() in {"help", "помощь"}:
             return ParsedDesktopCommand("help", None, None, "")
+        natural_create = _NATURAL_CREATE.match(body)
+        if natural_create is not None:
+            return ParsedDesktopCommand(
+                "create", (natural_create.group("project") or "").strip() or None,
+                None, natural_create.group("instruction").strip(),
+            )
+        if re.match(r"^(?:создай|создать|начни|заведи)\s+(?:новую\s+)?задачу\b", body, re.I):
+            return ParsedDesktopCommand("create", None, None, body)
         first, separator, remainder = body.partition("\n")
         fields = first.split(maxsplit=2)
         verb = fields[0].casefold()
@@ -452,11 +477,7 @@ class DesktopBridgeService:
         if operation == "create":
             project = self._projects.get((project_name or "").casefold())
             if project is None:
-                await self._reply(
-                    message,
-                    "Неизвестный проект. Доступны: "
-                    + ", ".join(project.name for project in self._projects.values()),
-                )
+                await self._request_project_target(message, envelope, parsed)
                 return
             project_name = project.name
         elif operation == "topic":
@@ -518,6 +539,60 @@ class DesktopBridgeService:
             )
             self._schedule(request.request_id)
 
+    async def _request_project_target(
+        self, message: TextMessage, envelope: TrustedIngressEnvelope,
+        parsed: ParsedDesktopCommand,
+    ) -> None:
+        request_id = _request_uuid(envelope.idempotency_key)
+        request = self._state.create_request(
+            request_id=request_id, ingress_key=envelope.idempotency_key,
+            tenant_id=message.tenant_id, author_user_id=message.user_id,
+            author_identity=message.actor_identity, chat_id=message.chat_id,
+            topic_id=message.message_thread_id, source_message_id=message.message_id,
+            operation="create", project_name=None,
+            payload={"instruction": parsed.instruction,
+                     "requested_project": parsed.project_name},
+        )
+        if not self._state.transition(
+            request.request_id, expected=frozenset({BridgeRequestStatus.RECEIVED}),
+            status=BridgeRequestStatus.NEEDS_TARGET,
+        ):
+            return
+        await self._publish_project_target(message, request)
+
+    async def _publish_project_target(
+        self, message: TextMessage, request: BridgeRequest,
+    ) -> None:
+        projects = tuple(project.name for project in self._projects.values())
+        interaction = self._state.put_interaction(
+            interaction_id=_interaction_id(request.request_id, "target"),
+            request_id=request.request_id, kind=InteractionKind.QUESTION,
+            desktop_request_id="target", desktop_turn_id="target",
+            target_user_id=message.user_id, generation=1,
+            payload={"method": "bridge/target", "projects": projects},
+            expires_at=self._now() + _INTERACTION_TTL,
+        )
+        if not self._state.claim_interaction_delivery(interaction.interaction_id):
+            return
+        mention = f'<a href="tg://user?id={message.user_id}">Автор запроса</a>'
+        requested_project = request.payload.get("requested_project")
+        requested = f" (запрошено: {html.escape(str(requested_project))})" if requested_project else ""
+        try:
+            card_id = await self._api.send_message(
+                message.chat_id,
+                f"{mention}, выберите существующий проект{requested}. "
+                "Ответьте на эту карточку точным названием:\n"
+                + "\n".join(html.escape(name) for name in projects),
+                message_thread_id=message.message_thread_id,
+                reply_to_message_id=message.message_id, parse_mode="HTML",
+            )
+        except Exception:
+            return  # Unknown Telegram ACK: never send a second card automatically.
+        self._state.finish_interaction_delivery(
+            interaction.interaction_id,
+            telegram_chat_id=message.chat_id, telegram_message_id=card_id,
+        )
+
     async def _handle_voice(
         self, message: VoiceMessage, envelope: TrustedIngressEnvelope
     ) -> bool:
@@ -548,15 +623,9 @@ class DesktopBridgeService:
         if operation == "create":
             project = self._projects.get((project_name or "").casefold())
             if project is None:
-                await self._reply(
-                    message,
-                    "Неизвестный проект. Доступны: "
-                    + ", ".join(
-                        project.name for project in self._projects.values()
-                    ),
-                )
-                return True
-            project_name = project.name
+                project_name = None
+            else:
+                project_name = project.name
         elif operation == "continue":
             try:
                 thread_id = _parse_thread_ref(thread_id)
@@ -612,6 +681,7 @@ class DesktopBridgeService:
                 payload={
                     "instruction": instruction,
                     "requested_thread_id": thread_id,
+                    "requested_project": parsed.project_name,
                     "voice": True,
                 },
             )
@@ -645,13 +715,18 @@ class DesktopBridgeService:
             desktop_turn_id="voice", target_user_id=message.user_id, generation=1,
             payload={"transcript": transcript}, expires_at=self._now() + _INTERACTION_TTL,
         )
-        sent = await self._api.send_message(
-            message.chat_id,
-            f"Распознано:\n\n{transcript}\n\nID запроса: {request.request_id}. Ответьте на это сообщение «да» для запуска или «отмена».",
-            message_thread_id=message.message_thread_id,
-            reply_to_message_id=message.message_id,
-        )
-        self._state.bind_interaction_message(
+        if not self._state.claim_interaction_delivery(interaction.interaction_id):
+            return True
+        try:
+            sent = await self._api.send_message(
+                message.chat_id,
+                f"Распознано:\n\n{transcript}\n\nID запроса: {request.request_id}. Ответьте на это сообщение «да» для запуска или «отмена».",
+                message_thread_id=message.message_thread_id,
+                reply_to_message_id=message.message_id,
+            )
+        except Exception:
+            return True  # Unknown Telegram ACK: do not resend the preview blindly.
+        self._state.finish_interaction_delivery(
             interaction.interaction_id,
             telegram_chat_id=message.chat_id,
             telegram_message_id=sent,
@@ -663,9 +738,9 @@ class DesktopBridgeService:
     ) -> ParsedDesktopCommand:
         normalized = transcript.strip()
         first = normalized.split(maxsplit=1)[0].casefold() if normalized else ""
-        if first in {"new", "новая", "continue", "продолжить"}:
+        if first in {"new", "новая", "continue", "продолжить", "создай", "создать", "начни", "заведи"}:
             text = "/codex " + normalized
-        elif _COMMAND.match(normalized) or _MENTION.match(normalized):
+        elif _COMMAND.match(normalized) or _MENTION.match(normalized) or _NAME_ADDRESS.match(normalized):
             text = normalized
         else:
             return ParsedDesktopCommand("topic", None, None, normalized)
@@ -690,7 +765,8 @@ class DesktopBridgeService:
         )
 
     async def _answer_interaction(
-        self, message: TextMessage, interaction: PendingDesktopInteraction
+        self, message: TextMessage, interaction: PendingDesktopInteraction,
+        envelope: TrustedIngressEnvelope | None = None,
     ) -> None:
         if message.user_id != interaction.target_user_id:
             await self._reply(message, "Этот ответ может дать только назначенный адресат.")
@@ -713,6 +789,29 @@ class DesktopBridgeService:
             await self._reply(message, "Ответ принимается только в исходной теме запроса.")
             return
         answer = message.text.strip()
+        if interaction.payload.get("method") == "bridge/target":
+            project = self._projects.get(answer.casefold())
+            if project is None or project.name not in interaction.payload.get("projects", ()):
+                await self._reply(message, "Выберите точное название проекта из карточки.")
+                return
+            if request.status is not BridgeRequestStatus.NEEDS_TARGET or envelope is None:
+                await self._reply(message, "Уточнение уже закрыто или не связано с этим сообщением.")
+                return
+            if not self._state.resolve_interaction(
+                interaction.interaction_id, responder_user_id=message.user_id,
+            ):
+                await self._reply(message, "Выбор проекта уже обработан или истёк.")
+                return
+            self._state.transition(
+                request.request_id, expected=frozenset({BridgeRequestStatus.NEEDS_TARGET}),
+                status=BridgeRequestStatus.CANCELLED,
+            )
+            await self._admit(
+                message, envelope,
+                ParsedDesktopCommand("create", project.name, None,
+                                     str(request.payload["instruction"])),
+            )
+            return
         if interaction.kind is InteractionKind.VOICE_CONFIRMATION:
             normalized = answer.casefold()
             if normalized in {"отмена", "нет", "cancel"}:
@@ -730,13 +829,19 @@ class DesktopBridgeService:
             if not self._state.resolve_interaction(interaction.interaction_id, responder_user_id=message.user_id):
                 await self._reply(message, "Подтверждение уже обработано или истекло.")
                 return
+            needs_target = request.operation == "create" and request.project_name is None
             if self._state.transition(
                 request.request_id,
                 expected=frozenset({BridgeRequestStatus.NEEDS_VOICE_CONFIRMATION}),
-                status=BridgeRequestStatus.RECEIVED,
+                status=(BridgeRequestStatus.NEEDS_TARGET if needs_target
+                        else BridgeRequestStatus.RECEIVED),
             ):
-                self._schedule(request.request_id)
-                await self._reply(message, "Голосовая задача подтверждена.")
+                if needs_target:
+                    await self._publish_project_target(message, request)
+                    await self._reply(message, "Распознанная задача подтверждена; выберите проект в карточке. До выбора Desktop не запускается.")
+                else:
+                    self._schedule(request.request_id)
+                    await self._reply(message, "Голосовая задача подтверждена.")
             return
         if request.desktop_thread_id is None:
             await self._reply(message, "Связь с задачей Desktop потеряна; ответ не отправлен.")
@@ -809,7 +914,8 @@ class DesktopBridgeService:
                 return
             try:
                 await self._submit_interaction_answer(
-                    client, owner, request, interaction, pending[0], answer
+                    client, owner, request, interaction, pending[0], answer,
+                    desktop_cwd=projection.cwd,
                 )
             except DesktopIpcUnknownOutcome:
                 check = project_desktop_conversation(
@@ -862,6 +968,14 @@ class DesktopBridgeService:
                 self._state.finish_interaction_answer(
                     interaction.interaction_id, status="unknown"
                 )
+                self._state.transition(
+                    request.request_id,
+                    expected=frozenset({
+                        BridgeRequestStatus.WAITING_AUTHOR,
+                        BridgeRequestStatus.WAITING_OWNER,
+                    }),
+                    status=BridgeRequestStatus.UNKNOWN_DISPATCH,
+                )
             if str(error) in {
                 "approval-answer-invalid",
                 "multi-question-answer-needs-json",
@@ -887,16 +1001,49 @@ class DesktopBridgeService:
         interaction: PendingDesktopInteraction,
         pending: DesktopPendingRequest,
         answer: str,
+        *,
+        desktop_cwd: str | None = None,
     ) -> None:
         thread_id = request.desktop_thread_id
         assert thread_id is not None
         if interaction.kind is InteractionKind.QUESTION:
-            question_ids = _question_ids(pending.payload)
-            answers = _question_answers(question_ids, answer)
-            await client.submit_user_input(
-                thread_id, pending.request_id,
-                {"answers": answers}, owner=owner,
-            )
+            if pending.method == "item/tool/requestUserInputAsync":
+                project = self._projects.get((request.project_name or "").casefold())
+                if (
+                    project is None or not desktop_cwd
+                    or not _desktop_cwd_belongs_to_project(desktop_cwd, project.cwd)
+                ):
+                    raise DesktopIpcError("async-question-project-context-invalid")
+                reply_text = _async_question_reply_text(pending.payload, answer)
+                message_id = f"nobus:question:{interaction.interaction_id}"
+                restore_message = {
+                    "id": message_id,
+                    "text": answer,
+                    "createdAt": int(self._now().timestamp() * 1000),
+                    "cwd": desktop_cwd,
+                    "context": {
+                        "prompt": answer,
+                        "turnTrigger": "send_user_message_async_question",
+                        "addedFiles": [],
+                        "fileAttachments": [],
+                        "ideContext": None,
+                        "imageAttachments": [],
+                    },
+                }
+                await client.steer_turn(
+                    thread_id,
+                    owner=owner,
+                    input_items=[{"type": "text", "text": reply_text, "text_elements": []}],
+                    client_user_message_id=message_id,
+                    restore_message=restore_message,
+                )
+            else:
+                question_ids = _question_ids(pending.payload)
+                answers = _question_answers(question_ids, answer)
+                await client.submit_user_input(
+                    thread_id, pending.request_id,
+                    {"answers": answers}, owner=owner,
+                )
             return
         if interaction.kind is InteractionKind.MCP_ELICITATION:
             decision = _approval_decision(answer)
@@ -918,7 +1065,10 @@ class DesktopBridgeService:
         if decision is None:
             raise DesktopIpcError("approval-answer-invalid")
         if interaction.kind is InteractionKind.COMMAND_APPROVAL:
-            await client.answer_command_approval(thread_id, pending.request_id, decision, owner=owner)
+            await client.answer_command_approval(
+                thread_id, pending.request_id,
+                _command_approval_decision(pending.payload, answer), owner=owner,
+            )
         elif interaction.kind is InteractionKind.FILE_APPROVAL:
             await client.answer_file_approval(thread_id, pending.request_id, decision, owner=owner)
         elif interaction.kind is InteractionKind.PERMISSIONS_APPROVAL:
@@ -999,6 +1149,14 @@ class DesktopBridgeService:
                 chat_id = request.chat_id
                 topic_id = request.topic_id
                 reply_id = request.source_message_id
+            elif interaction.payload.get("method") == "bridge/target":
+                text = (
+                    "Срок выбора проекта истёк. Задача в Codex Desktop не запускалась; "
+                    "отправьте новое поручение с точным названием проекта."
+                )
+                chat_id = request.chat_id
+                topic_id = request.topic_id
+                reply_id = request.source_message_id
             elif interaction.kind is InteractionKind.QUESTION:
                 text = (
                     "Срок ответа на уточнение истёк. Автоматический ответ не отправлен; "
@@ -1046,13 +1204,21 @@ class DesktopBridgeService:
                     status=BridgeRequestStatus.UNKNOWN_DISPATCH,
                 )
                 await self._notify_request(request, "Desktop получил команду, но подтверждение потеряно. Повтор не выполнен; нужна сверка истории.")
-            except DesktopUiAutomationError:
+            except DesktopUiAutomationError as exc:
                 self._state.transition(
                     request_id,
                     expected=_RUNNING_STATUSES | frozenset({BridgeRequestStatus.RECEIVED}),
                     status=BridgeRequestStatus.UNKNOWN_DISPATCH,
                 )
-                await self._notify_request(request, "UI Automation не подтвердил исход создания задачи. Повтор не выполнен, чтобы не создать дубль.")
+                if exc.reason == "desktop-uia-existing-draft":
+                    await self._notify_request(
+                        request,
+                        "В Codex Desktop уже есть несохранённый черновик. "
+                        "Он не изменён, задача не отправлена автоматически. "
+                        "Сохраните или очистите черновик в Desktop; повтор требует сверки запроса.",
+                    )
+                else:
+                    await self._notify_request(request, "UI Automation не подтвердил исход создания задачи. Повтор не выполнен, чтобы не создать дубль.")
             except (DesktopIpcUnavailableError, DesktopIpcTimeoutError):
                 self._state.transition(
                     request_id,
@@ -1164,7 +1330,9 @@ class DesktopBridgeService:
             except DesktopIpcError:
                 continue
             turns = [turn for turn in projection.turns if any(marker in text for text in turn.user_text)]
-            if len(turns) == 1 and Path(projection.cwd).resolve() == project.cwd:
+            if len(turns) == 1 and _desktop_cwd_belongs_to_project(
+                projection.cwd, project.cwd,
+            ):
                 matches.append((owner, projection, turns[0]))
         if len(matches) != 1:
             raise DesktopIpcUnknownOutcome(
@@ -1202,9 +1370,8 @@ class DesktopBridgeService:
         before = await client.load_complete_history_snapshot(thread_id, owner=owner)
         projection = project_desktop_conversation(before)
         actual_projects = tuple(
-            project
-            for project in self._projects.values()
-            if Path(projection.cwd).resolve() == project.cwd
+            project for project in self._projects.values()
+            if _desktop_cwd_belongs_to_project(projection.cwd, project.cwd)
         )
         if len(actual_projects) != 1:
             raise DesktopIpcError("desktop-project-context-not-allowed")
@@ -1391,6 +1558,30 @@ class DesktopBridgeService:
         full_text = "\n\n".join(final_blocks)
         if _SENSITIVE_OUTPUT.search(full_text) is not None:
             raise ValueError("desktop-final-output-sensitive")
+        inspection = inspect_artifacts(
+            full_text, allowed_root=Path(projection.cwd),
+            additional_roots=self._artifact_roots,
+        )
+        references = [
+            {"index": index, "kind": item.kind,
+             "path_digest": "sha256:" + hashlib.sha256((item.path or item.raw).encode()).hexdigest()}
+            for index, item in enumerate(extract_artifact_references(full_text).references)
+        ]
+        snapshots = [
+            {"index": item.reference_index, "digest": item.sha256,
+             "size": len(item.content),
+             "parts": (len(item.content) + _ARTIFACT_PART_BYTES - 1) // _ARTIFACT_PART_BYTES}
+            for item in inspection.snapshots
+        ]
+        try:
+            self._state.record_delivery_plan(
+                request.request_id,
+                final_digest="sha256:" + hashlib.sha256(full_text.encode()).hexdigest(),
+                references=references, snapshots=snapshots,
+            )
+        except DesktopBridgeStateError:
+            self._mark_delivery_unknown(request)
+            return
         formatted = format_final_blocks(final_blocks)
         parts = formatted.parts
         destination = _destination_ref(request)
@@ -1423,21 +1614,15 @@ class DesktopBridgeService:
             ):
                 self._mark_delivery_unknown(request)
                 return
-        ordinal = len(parts)
         if len(parts) > 1:
             if not await self._deliver_artifact(
                 request,
                 destination,
-                ordinal,
+                0,
                 "answer.md",
                 full_text.encode("utf-8"),
             ):
                 return
-            ordinal += 1
-        inspection = inspect_artifacts(
-            full_text, allowed_root=Path(projection.cwd),
-            additional_roots=self._artifact_roots,
-        )
         artifacts = inspection.snapshots
         for artifact in artifacts:
             chunks = tuple(
@@ -1462,13 +1647,15 @@ class DesktopBridgeService:
                 ).encode("utf-8")
             for chunk_index, content in enumerate(chunks):
                 filename = artifact.filename if len(chunks) == 1 else f"{artifact.filename}.part{chunk_index + 1:03d}"
-                if not await self._deliver_artifact(request, destination, ordinal, filename, content):
+                slot = 1 + artifact.reference_index * _ARTIFACT_SLOT_WIDTH + chunk_index
+                if not await self._deliver_artifact(
+                    request, destination, slot, filename, content,
+                    source_file_digest=artifact.sha256, part_count=len(chunks),
+                ):
                     return
-                ordinal += 1
             if manifest is not None:
-                if not await self._deliver_artifact(request, destination, ordinal, artifact.filename + ".manifest.json", manifest, kind="manifest"):
+                if not await self._deliver_artifact(request, destination, 1 + artifact.reference_index, artifact.filename + ".manifest.json", manifest, kind="manifest"):
                     return
-                ordinal += 1
         if inspection.failures:
             failure_manifest = json.dumps(
                 {
@@ -1481,10 +1668,12 @@ class DesktopBridgeService:
                 ensure_ascii=False,
                 indent=2,
             ).encode("utf-8")
-            if not await self._deliver_artifact(
+            if self._state.delivery_slot_status(
+                request.request_id, kind="manifest", ordinal=0
+            ) != "sent" and not await self._deliver_artifact(
                 request,
                 destination,
-                ordinal,
+                0,
                 "artifact-delivery-manifest.json",
                 failure_manifest,
                 kind="manifest",
@@ -1511,13 +1700,22 @@ class DesktopBridgeService:
         content: bytes,
         *,
         kind: str = "artifact",
+        source_file_digest: str | None = None,
+        part_count: int | None = None,
     ) -> bool:
         digest = "sha256:" + hashlib.sha256(content).hexdigest()
-        claim = self._state.claim_delivery(
-            request_id=request.request_id, kind=kind, ordinal=ordinal,
-            source_digest=digest, destination_ref=destination,
-            payload={"filename": filename, "bytes": len(content)},
-        )
+        payload = {"filename": filename, "bytes": len(content)}
+        if source_file_digest is not None:
+            payload.update(source_file_digest=source_file_digest, part_count=part_count)
+        try:
+            claim = self._state.claim_delivery(
+                request_id=request.request_id, kind=kind, ordinal=ordinal,
+                source_digest=digest, destination_ref=destination,
+                payload=payload,
+            )
+        except DesktopBridgeStateError:
+            self._mark_delivery_unknown(request)
+            return False
         if claim.status == "sent":
             return True
         if claim.status == "unknown":
@@ -1591,6 +1789,7 @@ class ArtifactSnapshot:
     filename: str
     content: bytes
     sha256: str
+    reference_index: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -1654,6 +1853,7 @@ def _desktop_final_blocks(turn: DesktopTurnState) -> tuple[str, ...]:
         telegram_visible_final(item.text)
         for item in turn.agent_messages
         if item.phase == "final_answer"
+        and not (item.delivery == "async" and item.questions)
     )
     if not finals:
         raise DesktopIpcError("desktop-final-output-missing")
@@ -1713,7 +1913,7 @@ def _bridge_turn_text(request: BridgeRequest) -> str:
 
 
 def _desktop_execution_settings(state: Mapping[str, Any]) -> dict[str, Any]:
-    """Preserve the owner's selected mode and approval policy, or stop."""
+    """Preserve Desktop mode/policy, but route bridge approvals to the owner."""
     settings = state.get("latestThreadSettings")
     mode = settings.get("collaborationMode") if isinstance(settings, dict) else None
     if not isinstance(settings, dict) or not isinstance(mode, dict):
@@ -1734,13 +1934,16 @@ def _desktop_execution_settings(state: Mapping[str, Any]) -> dict[str, Any]:
     approvals_reviewer = settings.get("approvalsReviewer")
     if (
         not isinstance(approval_policy, str) or not approval_policy
-        or not isinstance(approvals_reviewer, str) or not approvals_reviewer
+        or approvals_reviewer not in {"auto_review", "user"}
         or not isinstance(settings.get("sandboxPolicy"), dict)
     ):
         raise DesktopIpcError("desktop-permission-settings-missing")
     return {
         "approvalPolicy": approval_policy,
-        "approvalsReviewer": approvals_reviewer,
+        # The installed Desktop auto-reviewer can decide before Telegram sees
+        # a pending approval. Bridge turns need the normal user-review path so
+        # only the verified numeric Telegram owner can answer that request.
+        "approvalsReviewer": "user",
         "collaborationMode": mode,
     }
 
@@ -1748,6 +1951,39 @@ def _desktop_execution_settings(state: Mapping[str, Any]) -> dict[str, Any]:
 def snapshot_artifacts(text: str, *, allowed_root: Path) -> tuple[ArtifactSnapshot, ...]:
     """Snapshot only explicit regular files below the confirmed project cwd."""
     return inspect_artifacts(text, allowed_root=allowed_root).snapshots
+
+
+def _desktop_cwd_belongs_to_project(cwd: str, project_root: Path) -> bool:
+    """Accept only the saved root or a Git-registered worktree of that root."""
+    try:
+        candidate = Path(cwd)
+        resolved = candidate.resolve(strict=True)
+        if not resolved.is_dir() or resolved != candidate.absolute():
+            return False
+        if resolved == project_root:
+            return True
+        def git(at: Path, *args: str) -> str:
+            result = subprocess.run(
+                ["git", "-C", str(at), *args], capture_output=True,
+                text=True, encoding="utf-8", timeout=5, check=True,
+            )
+            return result.stdout.strip()
+        if Path(git(project_root, "rev-parse", "--show-toplevel")).resolve() != project_root:
+            return False
+        if Path(git(resolved, "rev-parse", "--show-toplevel")).resolve() != resolved:
+            return False
+        original_common = (project_root / git(project_root, "rev-parse", "--git-common-dir")).resolve()
+        candidate_common = (resolved / git(resolved, "rev-parse", "--git-common-dir")).resolve()
+        if original_common != candidate_common:
+            return False
+        registered = git(project_root, "worktree", "list", "--porcelain", "-z")
+        return any(
+            Path(record[9:]).resolve() == resolved
+            for record in registered.split("\0")
+            if record.startswith("worktree ")
+        )
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
 
 
 def inspect_artifacts(
@@ -1762,7 +1998,7 @@ def inspect_artifacts(
     parsed = extract_artifact_references(text)
     for issue in parsed.issues:
         failures.append(ArtifactFailure("artifact-reference", issue))
-    for reference in parsed.references:
+    for reference_index, reference in enumerate(parsed.references):
         if reference.kind == "remote_url":
             continue
         if reference.kind != "windows_absolute" or reference.path is None:
@@ -1816,6 +2052,7 @@ def inspect_artifacts(
                 filename=resolved.name,
                 content=content,
                 sha256="sha256:" + hashlib.sha256(content).hexdigest(),
+                reference_index=reference_index,
             )
         )
     return ArtifactInspection(tuple(found), tuple(failures))
@@ -1881,7 +2118,7 @@ def _interaction_id(request_id: UUID, desktop_request_id: str) -> str:
 def _interaction_kind(
     method: str, payload: Mapping[str, Any]
 ) -> InteractionKind:
-    if method == "item/tool/requestUserInput":
+    if method in {"item/tool/requestUserInput", "item/tool/requestUserInputAsync"}:
         params = payload.get("params")
         if (
             not isinstance(params, Mapping)
@@ -1937,7 +2174,10 @@ def _prevalidate_interaction_answer(
 ) -> None:
     """Reject malformed replies before reserving the one response attempt."""
     if kind is InteractionKind.QUESTION:
-        _question_answers(_question_ids(pending.payload), answer)
+        if pending.method == "item/tool/requestUserInputAsync":
+            _async_question_reply_text(pending.payload, answer)
+        else:
+            _question_answers(_question_ids(pending.payload), answer)
         return
     if kind is InteractionKind.MCP_ELICITATION:
         if _approval_decision(answer) == "decline":
@@ -1951,6 +2191,8 @@ def _prevalidate_interaction_answer(
         return
     if _approval_decision(answer) is None:
         raise DesktopIpcError("approval-answer-invalid")
+    if kind is InteractionKind.COMMAND_APPROVAL:
+        _command_approval_decision(pending.payload, answer)
     if kind is InteractionKind.PERMISSIONS_APPROVAL:
         params = pending.payload.get("params")
         if not isinstance(params, Mapping) or not isinstance(
@@ -2011,6 +2253,45 @@ def _question_answers(question_ids: tuple[str, ...], answer: str) -> dict[str, d
     return result
 
 
+def _async_question_reply_text(payload: Mapping[str, Any], answer: str) -> str:
+    """Build the installed Desktop's exact steered async-question envelope."""
+    params = payload.get("params")
+    questions = params.get("questions") if isinstance(params, Mapping) else None
+    item_id = params.get("itemId") if isinstance(params, Mapping) else None
+    if (
+        not isinstance(item_id, str) or not item_id
+        or not isinstance(questions, list) or not 1 <= len(questions) <= 3
+    ):
+        raise DesktopIpcError("async-question-shape-invalid")
+    ids = _question_ids(payload)
+    if len(ids) != len(questions):
+        raise DesktopIpcError("async-question-shape-invalid")
+    answers = _question_answers(ids, answer)
+    reply_records = []
+    for index, question in enumerate(questions):
+        if not isinstance(question, Mapping):
+            raise DesktopIpcError("async-question-shape-invalid")
+        expected_id = json.dumps(
+            ["request_user_input_async", item_id, index], separators=(",", ":")
+        )
+        title = question.get("question")
+        if question.get("id") != expected_id or not isinstance(title, str) or not title:
+            raise DesktopIpcError("async-question-shape-invalid")
+        chosen = answers[expected_id]["answers"]
+        if len(chosen) != 1:
+            raise DesktopIpcError("async-question-answer-invalid")
+        reply_records.append({
+            "questionItemId": expected_id,
+            "question": title,
+            "answer": chosen[0],
+        })
+    return (
+        "<send_user_message_question_reply>\n"
+        + json.dumps(reply_records, ensure_ascii=False, separators=(",", ":"))
+        + "\n</send_user_message_question_reply>"
+    )
+
+
 def _approval_text(payload: Mapping[str, Any]) -> str:
     params = payload.get("params")
     lines = ["Codex Desktop запрашивает разрешение. Ответьте «разрешаю» или «отказать». "]
@@ -2029,6 +2310,28 @@ def _approval_decision(answer: str) -> str | None:
     if value in {"отказать", "отклонить", "нет", "deny", "decline"}:
         return "decline"
     return None
+
+
+def _command_approval_decision(payload: Mapping[str, Any], answer: str) -> str:
+    """Use a decision advertised by this exact Desktop approval request."""
+    decision = _approval_decision(answer)
+    if decision is None:
+        raise DesktopIpcError("approval-answer-invalid")
+    params = payload.get("params")
+    available = params.get("availableDecisions") if isinstance(params, Mapping) else None
+    if available is None:
+        return decision  # Older owner protocol, previously proven with decline.
+    if not isinstance(available, list):
+        raise DesktopIpcError("approval-decisions-invalid")
+    allowed = {item for item in available if isinstance(item, str)}
+    if decision == "accept" and "accept" in allowed:
+        return "accept"
+    if decision == "decline":
+        if "decline" in allowed:
+            return "decline"
+        if "cancel" in allowed:
+            return "cancel"
+    raise DesktopIpcError("approval-decision-unavailable")
 
 
 def _destination_ref(request: BridgeRequest) -> str:

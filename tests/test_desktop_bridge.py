@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import subprocess
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,6 +23,7 @@ from src.application.desktop_bridge import (
     _pending_matches_interaction,
     _interprocess_bootstrap_lock,
     _parse_thread_ref,
+    _desktop_cwd_belongs_to_project,
 )
 from src.application.desktop_bridge_state import (
     BridgeRequestStatus,
@@ -33,8 +35,10 @@ from src.integrations.codex_desktop_ipc import (
     DesktopAgentMessage,
     DesktopPendingRequest,
     DesktopTurnState,
+    DesktopIpcError,
     DesktopIpcUnavailableError,
 )
+from src.integrations.codex_desktop_uia import DesktopUiAutomationError
 from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
 from src.transport.telegram.models import TextMessage, VoiceMessage, VoiceMetadata
 
@@ -196,6 +200,147 @@ def test_pending_interaction_capacity_is_per_request_and_idempotent(
         interaction_id="question-capacity-2",
         **{**kwargs, "desktop_request_id": 2},
     )
+
+
+def test_pending_interaction_rebinds_exact_request_after_reconnect(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "d" * 64)
+    kwargs = dict(
+        interaction_id="same-pending", request_id=request.request_id,
+        kind=InteractionKind.QUESTION, desktop_request_id=10,
+        desktop_turn_id="turn-1", target_user_id=41,
+        payload={"method": "item/tool/requestUserInput", "params": {"questions": [{"id": "color"}]}},
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    first = state.put_interaction(generation=1, **kwargs)
+    rebound = state.put_interaction(generation=2, **kwargs)
+    assert rebound.generation == 2
+    assert rebound.expires_at == first.expires_at
+    with pytest.raises(DesktopBridgeStateError, match="interaction_conflict"):
+        state.put_interaction(generation=3, **{**kwargs, "target_user_id": 99})
+    with pytest.raises(DesktopBridgeStateError, match="interaction_conflict"):
+        state.put_interaction(generation=3, **{**kwargs, "payload": {"changed": True}})
+    with pytest.raises(DesktopBridgeStateError, match="interaction_conflict"):
+        state.put_interaction(generation=1, **kwargs)
+
+
+def test_request_user_input_routes_data_question_but_not_consent() -> None:
+    method = "item/tool/requestUserInput"
+    def payload(question: str):
+        return {"id": 10, "method": method, "params": {
+            "questions": [{"id": "choice", "question": question,
+                           "options": [{"label": "Да"}, {"label": "Нет"}]}]
+        }}
+    assert desktop_bridge_module._interaction_kind(
+        method, payload("Какой цвет записать в отчёт?")) is InteractionKind.QUESTION
+    assert desktop_bridge_module._interaction_kind(
+        method, payload("Нужен заголовок в отчёте?")) is InteractionKind.QUESTION
+    assert desktop_bridge_module._interaction_kind(
+        method, payload("Разрешаете удалить файл?")) is InteractionKind.UNKNOWN
+    assert desktop_bridge_module._interaction_kind(
+        method, payload("Можно ли мне отправить документ наружу?")) is InteractionKind.UNKNOWN
+    assert desktop_bridge_module._interaction_kind(
+        method, {**payload("Какой цвет?"), "origin": "app"}
+    ) is InteractionKind.UNKNOWN
+
+
+def test_async_question_is_not_a_final_and_uses_same_authority_classifier() -> None:
+    question = DesktopAgentMessage(
+        "call-question-1", "Какой цвет записать в отчёт?", "final_answer",
+        delivery="async",
+        questions=({"title": "Какой цвет записать в отчёт?"},),
+    )
+    final = DesktopAgentMessage("msg-final-1", "Синий.", "final_answer")
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="nobus:request-1",
+        status="completed", user_text=("test",),
+        agent_messages=(question, final), plan_items=(), text_outputs=(question, final),
+    )
+    assert _desktop_final_text(turn) == "Синий."
+    payload = {
+        "id": "call-question-1", "method": "item/tool/requestUserInputAsync",
+        "params": {"threadId": "thread-1", "turnId": "turn-1",
+                   "itemId": "call-question-1", "questions": [
+                       {"id": '["request_user_input_async","call-question-1",0]',
+                        "question": "Какой цвет записать в отчёт?"},
+                   ]},
+    }
+    assert desktop_bridge_module._interaction_kind(
+        "item/tool/requestUserInputAsync", payload,
+    ) is InteractionKind.QUESTION
+    assert not desktop_bridge_module.render_interaction(
+        "user_input", payload,
+    ).requires_manual_review
+    reply = desktop_bridge_module._async_question_reply_text(payload, "синий")
+    assert reply == (
+        '<send_user_message_question_reply>\n'
+        '[{"questionItemId":"[\\"request_user_input_async\\",\\"call-question-1\\",0]",'
+        '"question":"Какой цвет записать в отчёт?","answer":"синий"}]\n'
+        '</send_user_message_question_reply>'
+    )
+    payload["params"]["questions"][0]["question"] = "Разрешаете удалить файл?"
+    assert desktop_bridge_module._interaction_kind(
+        "item/tool/requestUserInputAsync", payload,
+    ) is InteractionKind.UNKNOWN
+
+
+def test_command_approval_uses_advertised_installed_desktop_decisions() -> None:
+    payload = {"params": {"availableDecisions": ["accept", {"acceptWithExecpolicyAmendment": {}}, "cancel"]}}
+    assert desktop_bridge_module._command_approval_decision(payload, "разрешаю") == "accept"
+    assert desktop_bridge_module._command_approval_decision(payload, "отказать") == "cancel"
+    with pytest.raises(DesktopIpcError, match="approval-decision-unavailable"):
+        desktop_bridge_module._command_approval_decision(
+            {"params": {"availableDecisions": ["cancel"]}}, "разрешаю",
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_question_answer_uses_owner_steering_not_sync_input(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "e" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RUNNING,
+    )
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(), projects={"nobus-orchestrator-dev": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    payload = {
+        "id": "call-question-1", "method": "item/tool/requestUserInputAsync",
+        "params": {"threadId": "thread-1", "turnId": "turn-1",
+                   "itemId": "call-question-1", "questions": [
+                       {"id": '["request_user_input_async","call-question-1",0]',
+                        "question": "Какой цвет записать в отчёт?"},
+                   ]},
+    }
+    pending = DesktopPendingRequest("call-question-1", payload["method"], payload)
+    calls = []
+
+    class Client:
+        async def steer_turn(self, *args, **kwargs):
+            calls.append((args, kwargs))
+
+        async def submit_user_input(self, *args, **kwargs):
+            raise AssertionError("sync input must not handle async question")
+
+    await service._submit_interaction_answer(
+        Client(), object(), request,
+        SimpleNamespace(kind=InteractionKind.QUESTION, interaction_id="interaction-1"),
+        pending, "синий", desktop_cwd=str(project.resolve()),
+    )
+    assert len(calls) == 1
+    assert calls[0][0] == ("thread-1",)
+    assert calls[0][1]["client_user_message_id"] == "nobus:question:interaction-1"
+    assert "<send_user_message_question_reply>" in calls[0][1]["input_items"][0]["text"]
+    restore = calls[0][1]["restore_message"]
+    assert restore["id"] == "nobus:question:interaction-1"
+    assert restore["cwd"] == str(project.resolve())
+    assert restore["text"] == "синий"
+    assert restore["context"]["turnTrigger"] == "send_user_message_async_question"
 
 
 def test_delivery_key_scopes_same_bytes_to_request(tmp_path: Path) -> None:
@@ -448,6 +593,62 @@ async def test_changed_or_expired_approval_never_calls_desktop_answer(
     )
 
 
+@pytest.mark.asyncio
+async def test_error_after_claim_stops_request_as_unknown_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "8" * 64)
+    state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.WAITING_OWNER,
+    )
+    payload = {
+        "id": 23, "method": "item/commandExecution/requestApproval",
+        "params": {"threadId": "thread-1", "turnId": "turn-1", "command": "safe"},
+    }
+    interaction = state.put_interaction(
+        interaction_id="approval-post-claim-error", request_id=request.request_id,
+        kind=InteractionKind.COMMAND_APPROVAL, desktop_request_id=23,
+        desktop_turn_id="turn-1", target_user_id=99, generation=1,
+        payload=payload, expires_at=datetime.now(UTC) + timedelta(minutes=5),
+    )
+    monkeypatch.setattr(
+        desktop_bridge_module, "project_desktop_conversation",
+        lambda _snapshot: SimpleNamespace(
+            pending_requests=(DesktopPendingRequest(23, payload["method"], payload),),
+            cwd=str(tmp_path),
+        ),
+    )
+
+    class Client:
+        async def find_thread_owner(self, _thread_id):
+            return object()
+
+        async def load_complete_history_snapshot(self, _thread_id, *, owner):
+            return object()
+
+        async def close(self):
+            pass
+
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(),
+        projects={"nobus-orchestrator-dev": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        ipc_factory=Client,
+    )
+
+    async def failed_after_claim(*args, **kwargs):
+        raise DesktopIpcError("desktop IPC owner rejected mutation")
+
+    monkeypatch.setattr(service, "_submit_interaction_answer", failed_after_claim)
+    await service._answer_interaction(_origin_message("разрешаю", user_id=99), interaction)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.UNKNOWN_DISPATCH
+    assert not state.claim_interaction_answer(interaction, responder_user_id=99)
+
+
 def test_approval_reply_is_bound_to_owner_private_chat(tmp_path: Path) -> None:
     state = _state(tmp_path / "telegram-state.sqlite3")
     request = _request(state, ingress="sha256:" + "a" * 64)
@@ -595,6 +796,93 @@ async def test_delivery_formats_visible_final_as_telegram_html(tmp_path: Path) -
     assert "<code>код</code>" in api.messages[0][1]
 
 
+@pytest.mark.asyncio
+async def test_partial_artifact_retry_keeps_original_slots_and_receipts(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    a, b = project / "a.txt", project / "b.txt"
+    b.write_bytes(b"B")
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "e" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.EXECUTION_COMPLETED,
+    )
+    class Delivery:
+        def __init__(self):
+            self.calls = []
+        async def deliver(self, **kwargs):
+            self.calls.append((kwargs["filename"], kwargs["operation_id"]))
+            return SimpleNamespace(status="sent", message_id=100 + len(self.calls))
+    delivery = Delivery()
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        document_delivery=delivery,
+    )
+    final = f"[A]({a.as_posix()})\n[B]({b.as_posix()})"
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1", status="completed",
+        user_text=("request",),
+        agent_messages=(DesktopAgentMessage("final-1", final, "final_answer"),),
+        plan_items=(), text_outputs=(),
+    )
+    await service._deliver(request, SimpleNamespace(cwd=str(project)), turn)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.DELIVERY_PARTIAL
+    a.write_bytes(b"A")
+    await service._deliver(state.read_request(request.request_id), SimpleNamespace(cwd=str(project)), turn)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.DELIVERED
+    assert [name for name, _ in delivery.calls].count("a.txt") == 1
+    assert [name for name, _ in delivery.calls].count("b.txt") == 1
+    assert len(api.messages) == 1
+    assert state.read_request(request.request_id).payload["_delivery_plan"]["snapshots"]
+    assert _request(
+        state, ingress="sha256:" + "e" * 64, request_id=request.request_id
+    ).request_id == request.request_id
+
+
+@pytest.mark.asyncio
+async def test_changed_artifact_after_partial_delivery_stops_before_repeat(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    missing, stable = project / "missing.txt", project / "stable.txt"
+    stable.write_bytes(b"old")
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "f" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.EXECUTION_COMPLETED,
+    )
+    class Delivery:
+        def __init__(self):
+            self.calls = []
+        async def deliver(self, **kwargs):
+            self.calls.append(kwargs["filename"])
+            return SimpleNamespace(status="sent", message_id=100 + len(self.calls))
+    delivery = Delivery()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        document_delivery=delivery,
+    )
+    final = f"[M]({missing.as_posix()})\n[S]({stable.as_posix()})"
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1", status="completed",
+        user_text=("request",),
+        agent_messages=(DesktopAgentMessage("final-1", final, "final_answer"),),
+        plan_items=(), text_outputs=(),
+    )
+    await service._deliver(request, SimpleNamespace(cwd=str(project)), turn)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.DELIVERY_PARTIAL
+    stable.write_bytes(b"changed")
+    missing.write_bytes(b"now")
+    await service._deliver(state.read_request(request.request_id), SimpleNamespace(cwd=str(project)), turn)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.DELIVERY_UNKNOWN
+    assert delivery.calls.count("stable.txt") == 1
+    assert "missing.txt" not in delivery.calls
+
+
 def test_bridge_turn_contains_exact_durable_request_marker(tmp_path: Path) -> None:
     state = _state(tmp_path / "telegram-state.sqlite3")
     request = _request(state, ingress="sha256:" + "8" * 64)
@@ -604,7 +892,7 @@ def test_bridge_turn_contains_exact_durable_request_marker(tmp_path: Path) -> No
     assert text.endswith("\nПроверь задачу")
 
 
-def test_desktop_turn_preserves_plan_and_owner_permission_policy() -> None:
+def test_desktop_turn_preserves_plan_and_requires_owner_review() -> None:
     mode = {
         "mode": "plan",
         "settings": {
@@ -623,7 +911,7 @@ def test_desktop_turn_preserves_plan_and_owner_permission_policy() -> None:
     }
     assert _desktop_execution_settings(state) == {
         "approvalPolicy": "on-request",
-        "approvalsReviewer": "auto_review",
+        "approvalsReviewer": "user",
         "collaborationMode": mode,
     }
     state["latestCollaborationMode"] = {
@@ -634,6 +922,13 @@ def test_desktop_turn_preserves_plan_and_owner_permission_policy() -> None:
         **state["latestThreadSettings"], "collaborationMode": {**mode, "mode": "unknown"}
     }
     with pytest.raises(Exception, match="desktop-collaboration-mode-unsupported"):
+        _desktop_execution_settings(state)
+    state["latestThreadSettings"] = {
+        **state["latestThreadSettings"],
+        "collaborationMode": mode,
+        "approvalsReviewer": "new-unknown-reviewer",
+    }
+    with pytest.raises(Exception, match="desktop-permission-settings-missing"):
         _desktop_execution_settings(state)
 
 
@@ -719,6 +1014,40 @@ class _Uia:
     pass
 
 
+@pytest.mark.asyncio
+async def test_existing_desktop_draft_is_reported_without_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Client:
+        async def start(self):
+            pass
+
+        async def close(self):
+            pass
+
+    project = tmp_path / "nobus-orchestrator-dev"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "d" * 64)
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={project.name: project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        ipc_factory=Client,
+    )
+
+    async def fail_before_send(*_args):
+        raise DesktopUiAutomationError("desktop-uia-existing-draft")
+
+    monkeypatch.setattr(service, "_create_desktop_task", fail_before_send)
+    await service._run_request(request.request_id)
+
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.UNKNOWN_DISPATCH
+    assert len(api.messages) == 1
+    assert "несохранённый черновик" in api.messages[0][1]
+    assert "повтор требует сверки" in api.messages[0][1]
+
+
 class _Voice:
     def __init__(self, transcript: str) -> None:
         self._transcript = transcript
@@ -766,6 +1095,183 @@ def test_project_name_with_spaces_and_task_link_are_parsed(tmp_path: Path) -> No
     assert link is not None and link.thread_id == f"codex://threads/{task_id}"
     assert _parse_thread_ref(link.thread_id) == task_id
     assert _parse_thread_ref(task_id) == task_id
+
+
+@pytest.mark.asyncio
+async def test_natural_create_missing_project_waits_for_bound_author_choice(tmp_path: Path) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    scheduled = []
+    service._schedule = scheduled.append
+    initial = _message("@Nobusspacebot создай задачу: составь план")
+    assert await service.handle(initial, _envelope())
+    assert scheduled == []
+    assert "Business Project" in api.messages[0][1]
+    pending = state.pending_interaction_for_reply(chat_id=-1001, telegram_message_id=1)
+    assert pending is not None
+    stranger = _origin_message("Business Project", user_id=55, reply=1).model_copy(update={"message_id": 13})
+    await service.handle(stranger, _envelope().model_copy(update={"idempotency_key": "sha256:" + "c" * 64}))
+    assert scheduled == []
+    answer = _message("Business Project", reply=1).model_copy(update={"message_id": 14, "update_id": 3})
+    await service.handle(answer, _envelope().model_copy(update={
+        "idempotency_key": "sha256:" + "d" * 64, "external_message_id": "message:14",
+    }))
+    assert len(scheduled) == 1
+    created = state.read_request(scheduled[0])
+    assert created.project_name == "Business Project"
+    assert created.payload["instruction"] == "составь план"
+    assert state.read_request(pending.request_id).status is BridgeRequestStatus.CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_natural_voice_create_requires_transcript_and_project_choice(tmp_path: Path) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        voice_service=_Voice("Создай задачу: составь план"),
+    )
+    scheduled = []
+    service._schedule = scheduled.append
+    assert await service.handle(_voice_message(), _envelope())
+    voice = state.list_requests(statuses=frozenset({BridgeRequestStatus.NEEDS_VOICE_CONFIRMATION}))
+    assert len(voice) == 1 and voice[0].operation == "create"
+    assert voice[0].project_name is None and scheduled == []
+    confirm = _message("да", reply=1).model_copy(update={"message_id": 14})
+    await service.handle(confirm, _envelope())
+    assert state.read_request(voice[0].request_id).status is BridgeRequestStatus.NEEDS_TARGET
+    assert scheduled == []
+    target_card_id = next(index for index, item in enumerate(api.messages, 1)
+                          if "выберите существующий проект" in item[1])
+    choose = _message("Business Project", reply=target_card_id).model_copy(
+        update={"message_id": 15, "update_id": 4})
+    await service.handle(choose, _envelope().model_copy(update={
+        "idempotency_key": "sha256:" + "e" * 64, "external_message_id": "message:15",
+    }))
+    assert len(scheduled) == 1
+    launched = state.read_request(scheduled[0])
+    assert launched.project_name == "Business Project"
+    assert launched.payload["instruction"] == "составь план"
+
+
+def test_natural_create_with_exact_project_never_becomes_topic(tmp_path: Path) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=_state(tmp_path / "telegram-state.sqlite3"),
+        uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    parsed = service._parse_command(_message(
+        "@Nobusspacebot создай задачу в проекте Business Project: составь план"
+    ))
+    assert (parsed.operation, parsed.project_name, parsed.instruction) == (
+        "create", "Business Project", "составь план",
+    )
+
+
+def test_name_address_and_wrong_bot_command_are_not_ambient_commands(tmp_path: Path) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=_state(tmp_path / "telegram-state.sqlite3"),
+        uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    addressed = service._parse_command(_message(
+        "Нобус, создай задачу в проекте Business Project: составь план"
+    ))
+    assert addressed is not None and addressed.operation == "create"
+    assert service._parse_command(_message("/codex@OtherBot new Business Project\nТест")) is None
+    assert service._parse_command(_message("@OtherBot создай задачу: тест")) is None
+    assert service._parse_command(_message("Обычная заметка")) is None
+
+
+def test_reply_to_bound_result_continues_without_command_prefix(tmp_path: Path) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    previous = state.create_request(
+        request_id=uuid4(), ingress_key="sha256:" + "f" * 64,
+        tenant_id="owner", author_user_id=41,
+        author_identity="telegram:member:41", chat_id=-1001, topic_id=7,
+        source_message_id=12, operation="create", project_name="Business Project",
+        payload={"instruction": "первое поручение"},
+    )
+    state.bind_desktop(previous.request_id, thread_id=str(uuid4()), turn_id="turn-1",
+                       client_message_id="nobus:" + str(previous.request_id),
+                       status=BridgeRequestStatus.DELIVERED)
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    parsed = service._parse_command(_message("Продолжи анализ", reply=12))
+    assert parsed is not None and parsed.operation == "topic"
+    assert parsed.instruction == "Продолжи анализ"
+
+
+def test_only_registered_git_worktree_belongs_to_saved_desktop_project(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    def git(*args: str) -> None:
+        subprocess.run(["git", *args], check=True, capture_output=True, text=True)
+    git("-C", str(project), "init")
+    git("-C", str(project), "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+        "commit", "--allow-empty", "-m", "test")
+    managed = tmp_path / "managed"
+    git("-C", str(project), "worktree", "add", "--detach", str(managed))
+    other = tmp_path / "other"
+    other.mkdir()
+    git("-C", str(other), "init")
+    assert _desktop_cwd_belongs_to_project(str(project), project)
+    assert _desktop_cwd_belongs_to_project(str(managed), project)
+    assert not _desktop_cwd_belongs_to_project(str(other), project)
+    assert not _desktop_cwd_belongs_to_project(str(managed / "subdir"), project)
+
+
+def test_backup_rebind_migrates_exact_previous_bridge_schema_on_isolated_copy(tmp_path: Path) -> None:
+    from scripts.run_telegram_backup_cycle import _migrate_exact_previous_desktop_schema
+
+    runtime = tmp_path / "isolated-old-runtime"
+    runtime.mkdir()
+    database = runtime / "telegram-state.sqlite3"
+    old_ddl = (Path(__file__).parent / "fixtures" /
+               "desktop_bridge_requests_3ea2438.sql").read_text(encoding="utf-8")
+    with sqlite3.connect(database) as connection:
+        connection.executescript(old_ddl)
+        before = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE name='desktop_bridge_requests'"
+        ).fetchone()[0]
+    from src.application.runtime_maintenance import _ddl_digest
+    assert _ddl_digest(before) == (
+        "c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6"
+    )
+    assert _migrate_exact_previous_desktop_schema(runtime)
+    with sqlite3.connect(database) as connection:
+        columns = [row[1] for row in connection.execute(
+            "PRAGMA table_info(desktop_bridge_requests)"
+        )]
+    assert "bootstrap_turn_id" in columns
+    assert not _migrate_exact_previous_desktop_schema(runtime)
+
+
+def test_migration_rejects_untrusted_table_identifier_before_sql_interpolation(tmp_path: Path) -> None:
+    from scripts.migrate_telegram_runtime import _rows
+
+    database = tmp_path / "identifier.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute('CREATE TABLE "bad-name" (value TEXT)')
+        with pytest.raises(ValueError, match="invalid migration schema"):
+            _rows(connection)
 
 
 def test_reply_resolves_older_task_and_ambiguous_topic_stops(tmp_path: Path) -> None:

@@ -152,6 +152,37 @@ def test_command_string_preserved() -> None:
     assert "разрешаю" not in text.lower() or "не предлагает" in text.lower()
 
 
+def test_installed_desktop_command_approval_fields_are_visible_without_manual_fallback() -> None:
+    payload = {
+        "id": 28,
+        "method": "item/commandExecution/requestApproval",
+        "params": {
+            "availableDecisions": ["accept", {"acceptWithExecpolicyAmendment": {
+                "execpolicy_amendment": ["Write-Output", "SAFE"]}}, "cancel"],
+            "command": "pwsh -Command 'Write-Output SAFE'",
+            "commandActions": [{"command": "Write-Output SAFE", "type": "unknown"}],
+            "cwd": "C:\\project",
+            "environmentId": "local",
+            "itemId": "exec-1",
+            "kind": "command",
+            "proposedExecpolicyAmendment": ["Write-Output", "SAFE"],
+            "reason": "Разрешить безопасный вывод?",
+            "startedAtMs": 1790270322141,
+            "threadId": "thread-1",
+            "turnId": "turn-1",
+        },
+    }
+    view = render_interaction("command_approval", payload)
+    visible = _joined(view)
+    assert not view.requires_manual_review
+    assert not view.issues
+    for field in ("availableDecisions", "commandActions", "environmentId", "kind",
+                  "proposedExecpolicyAmendment", "startedAtMs"):
+        assert field in visible
+    assert "Write-Output SAFE" in visible
+    assert view.reply_example is None
+
+
 def test_command_argv_no_lossy_join() -> None:
     argv = ["git", "commit", "-m", "fix: a b\nc"]
     payload = {"params": {"argv": argv, "shell": "/bin/bash"}}

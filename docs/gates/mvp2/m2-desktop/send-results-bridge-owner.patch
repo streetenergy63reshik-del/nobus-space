@@ -1,0 +1,32 @@
+diff --git a/scripts/send_result.py b/scripts/send_result.py
+--- a/scripts/send_result.py
++++ b/scripts/send_result.py
+@@ -4,6 +4,7 @@ import argparse
+ import asyncio
+ import hashlib
+ import json
++import os
+ import re
+ import sys
+ import tempfile
+@@ -209,6 +210,20 @@ def resolve_destination(
+ 
+ 
+ async def deliver(args: argparse.Namespace) -> None:
++    if args.send:
++        try:
++            from nobus_send_results_guard import (
++                DeliveryOwnerGuardError,
++                assert_skill_delivery_allowed,
++            )
++            assert_skill_delivery_allowed(
++                settings_path=Path.home() / ".codex" / "nobus-task-notifier.json",
++                codex_thread_id=os.environ.get("CODEX_THREAD_ID"),
++            )
++        except ImportError:
++            fail("bridge_owner_guard_unavailable")
++        except DeliveryOwnerGuardError as error:
++            fail(str(error))
+     content = stable_read(
+         Path(args.file), Path(args.project_root), OWNER_ROOT
+     )

@@ -108,6 +108,49 @@ def canonical_snapshot() -> DesktopHistorySnapshot:
     )
 
 
+def test_async_desktop_question_is_pending_until_exact_steering_reply() -> None:
+    snapshot = canonical_snapshot()
+    snapshot.conversation_state["requests"] = []
+    entity = next(iter(snapshot.conversation_state["turnHistory"]["history"]["entitiesByKey"].values()))
+    entity["status"] = "inProgress"
+    entity["items"] = [
+        entity["items"][0],
+        {
+            "id": "call-question-1",
+            "type": "agentMessage",
+            "phase": "final_answer",
+            "delivery": "async",
+            "text": "Какой цвет записать в отчёт?",
+            "questions": [{
+                "title": "Какой цвет записать в отчёт?",
+                "options": [{"label": "синий"}, {"label": "зелёный"}],
+            }],
+        },
+    ]
+    pending = project_desktop_conversation(snapshot).pending_requests
+    assert len(pending) == 1
+    assert pending[0].method == "item/tool/requestUserInputAsync"
+    assert pending[0].request_id == "call-question-1"
+    question = pending[0].payload["params"]["questions"][0]
+    assert question["id"] == '["request_user_input_async","call-question-1",0]'
+    assert question["question"] == "Какой цвет записать в отчёт?"
+
+    entity["items"].append({
+        "id": "steer-1",
+        "type": "steeringUserMessage",
+        "input": [{
+            "type": "text",
+            "text": (
+                '<send_user_message_question_reply>\n'
+                '[{"questionItemId":"[\\"request_user_input_async\\",\\"call-question-1\\",0]",'
+                '"question":"Какой цвет записать в отчёт?","answer":"синий"}]\n'
+                '</send_user_message_question_reply>'
+            ),
+        }],
+    })
+    assert project_desktop_conversation(snapshot).pending_requests == ()
+
+
 def decode_frame(frame: bytes) -> dict[str, Any]:
     size = struct.unpack("<I", frame[:4])[0]
     assert size == len(frame) - 4
@@ -330,6 +373,46 @@ async def test_start_turn_routes_to_discovered_desktop_owner() -> None:
                 },
                 "context": {"attachments": [], "commentAttachments": []},
             },
+        }
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_steer_turn_uses_exact_owner_and_version_one() -> None:
+    def route(writer: FakeWriter, message: dict[str, Any]) -> None:
+        if message.get("method") == "thread-follower-steer-turn":
+            success(writer, message, {"result": {}}, owner="desktop-owner-1")
+            return
+        standard_route(writer, message)
+
+    connector = FakeConnector(route)
+    client = CodexDesktopIpcClient(
+        connector=connector,
+        connect_timeout_ms=100,
+        request_timeout_ms=100,
+        owner_discovery_timeout_ms=100,
+        reconnect_delays_ms=(),
+    )
+    try:
+        owner = await client.find_thread_owner("thread-1")
+        await client.steer_turn(
+            "thread-1",
+            owner=owner,
+            input_items=[{"type": "text", "text": "safe answer", "text_elements": []}],
+            client_user_message_id="nobus:question:1",
+            restore_message={"id": "nobus:question:1", "cwd": "C:\\project", "context": {"prompt": "safe answer"}},
+        )
+        message = connector.writers[0].messages[-1]
+        assert message["method"] == "thread-follower-steer-turn"
+        assert message["version"] == 1
+        assert message["targetClientId"] == "desktop-owner-1"
+        assert message["params"] == {
+            "conversationId": "thread-1",
+            "input": [{"type": "text", "text": "safe answer", "text_elements": []}],
+            "clientUserMessageId": "nobus:question:1",
+            "restoreMessage": {"id": "nobus:question:1", "cwd": "C:\\project", "context": {"prompt": "safe answer"}},
+            "attachments": [],
         }
     finally:
         await client.close()

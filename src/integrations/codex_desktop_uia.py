@@ -22,6 +22,27 @@ from uuid import uuid4
 TESTED_DESKTOP_VERSION = "26.917.9434.0"
 TESTED_UI_LOCALE = "ru-RU"
 DEFAULT_UIA_TIMEOUT_SECONDS = 45
+_SAFE_FAILURE_STAGES = frozenset(
+    {
+        "prepare-action",
+        "acquire-bootstrap-lock",
+        "read-prompt",
+        "find-project",
+        "find-create-control",
+        "invoke-create-control",
+        "find-task",
+        "invoke-open-control",
+        "submit-prompt",
+        "check-active-context",
+        "find-composer",
+        "check-draft-empty",
+        "check-exact-draft",
+        "set-composer",
+        "find-send-control",
+        "recheck-active-context",
+        "invoke-send-control",
+    }
+)
 
 
 class DesktopUiAutomationError(RuntimeError):
@@ -219,6 +240,16 @@ class CodexDesktopUiAutomation:
             prompt=_prompt_text(prompt),
         )
 
+    async def submit_exact_draft(
+        self, *, project_name: str, prompt: str
+    ) -> DesktopUiActionReceipt:
+        """Send only a pre-existing exact draft in the verified new project view."""
+        return await self._run(
+            "SubmitExactDraft",
+            project_name=_selector_text(project_name, "project"),
+            prompt=_prompt_text(prompt),
+        )
+
     async def _run(
         self,
         action: str,
@@ -267,6 +298,10 @@ class CodexDesktopUiAutomation:
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
+                # Windows PowerShell 5.1 can emit localized errors to stderr
+                # in a legacy code page. A decoder failure must not obscure
+                # the subprocess exit status or interrupt lost-ACK recovery.
+                errors="replace",
                 timeout=self._timeout_seconds,
                 check=False,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
@@ -282,7 +317,30 @@ class CodexDesktopUiAutomation:
         if cleanup_failed:
             raise DesktopUiAutomationError("desktop-uia-prompt-cleanup-failed")
         if completed.returncode != 0:
-            raise DesktopUiAutomationError("desktop-uia-action-failed")
+            stage: str | None = None
+            selector_count: int | None = None
+            existing_draft = False
+            try:
+                diagnostic = json.loads(completed.stdout.splitlines()[-1])
+                if isinstance(diagnostic, dict) and diagnostic.get("action") == action:
+                    candidate = diagnostic.get("failure_stage")
+                    if candidate in _SAFE_FAILURE_STAGES:
+                        stage = candidate
+                        existing_draft = (
+                            stage == "check-draft-empty"
+                            and diagnostic.get("failure_code") == "existing-draft"
+                        )
+                        count = diagnostic.get("selector_match_count")
+                        if type(count) is int and 0 <= count <= 1000:
+                            selector_count = count
+            except (IndexError, TypeError, ValueError, json.JSONDecodeError):
+                pass
+            reason = "desktop-uia-existing-draft" if existing_draft else "desktop-uia-action-failed"
+            if stage is not None and not existing_draft:
+                reason += f":{stage}"
+                if selector_count is not None:
+                    reason += f":matches={selector_count}"
+            raise DesktopUiAutomationError(reason)
         try:
             result = json.loads(completed.stdout)
             process_id = result["process_id"]
