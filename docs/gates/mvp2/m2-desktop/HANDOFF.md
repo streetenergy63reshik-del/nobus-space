@@ -7,6 +7,36 @@
 **Ветка:** `codex/m2-desktop`
 **HEAD до локальных правок:** `696fe2ca34865047276fdb7734f296a0616ee73c`, tree `a11a806d363e0a9786644be34745e391624a067b`
 
+## Локальный code checkpoint и read-only release preflight, около 21:00 МСК
+
+В той же ветке созданы только локальные commits `7022186` и `55297db`;
+точный второй commit `55297db440b502292159f2612c579f588e37c323`, Git tree
+`e0cde457c7993791311a6e9249ddb6fb382626e3`. Второй commit исправил
+исключительно тестовую среду установщика: он требует Git checkout, поэтому
+тест создаёт минимальный временный Git-источник вне репозитория. В рабочей
+копии `8 passed`; чистый `git archive` этого commit, ZIP SHA-256
+`13f2cf38805de7b9d457bcb8f9a5db96c707c1e3d1466300a20748a3e7e2c18c`,
+прошёл все 14 связанных M2-файлов: `237 passed, 1 skipped`. Перед ним
+экспорт `7022186` дал 236 успехов и только этот test-fixture отказ; файл
+installed sender и production не менялись. В чистом ZIP guard и patch
+сохранили exact утверждённые SHA `e20cd35…` / `0ad0f132…` благодаря
+адресным `eol=lf` атрибутам. Это положительное L1/L2-кодовое доказательство,
+не полный независимый L1/L2/L3 Gate и не Telegram-приёмка.
+
+Read-only preflight трёх Scheduled Tasks подтвердил `Disabled` и точное
+совпадение XML SHA с release plan: main `0c911d18…`, Health `e03aeb76…`,
+Backup `79d26acc…`. Действующий backup config существует, его заявленный
+canonical digest остаётся `sha256:7c3876a3…`. Попытка read-only
+`--inspect-failure` из новой ветки получила общий отказ из-за несовпадения
+application binding, без эффекта. Тот же read-only инспектор из текущего
+`telegram-live` вернул `phase=complete` и прежний signed journal digest
+`sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c`.
+Новый config, staging Task, backup cycle и activation не выполнялись.
+Для восьми изменённых исполняемых файлов адресный поиск типовых
+OpenAI/GitHub/AWS/PEM ключей дал 0 файлов; новых зависимостей нет.
+Исторический all-repo Gate 0 dirty-manifest тест остаётся отдельным
+несоответствием окружения и не подменяет M2-критерии.
+
 ## Текущий checkpoint — вопросы и разрешения на Desktop 26.917
 
 В том же настоящем Desktop thread

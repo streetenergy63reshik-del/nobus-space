@@ -6,6 +6,14 @@
 или считать Gate принятым. Точные значения ниже сняты 24.09.2026;
 перед любым изменением повторно сверить drift только у затрагиваемых целей.
 
+Локальный code checkpoint `55297db440b502292159f2612c579f588e37c323`
+(tree `e0cde457c7993791311a6e9249ddb6fb382626e3`) прошёл в чистом
+Git-экспорте связанный набор `237 passed, 1 skipped`; он ещё не является
+утверждённым release commit или замороженным Gate. Read-only preflight после
+этого подтвердил все три Scheduled Tasks Disabled, совпадение XML-хэшей ниже
+и `phase=complete` у подписанного журнала. Новый backup config, staging Task,
+backup cycle и activation не выполнялись.
+
 ## Исходная граница
 
 - `Code\worktrees\telegram-live`: clean detached HEAD

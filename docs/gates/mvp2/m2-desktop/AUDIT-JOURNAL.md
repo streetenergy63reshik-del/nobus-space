@@ -752,3 +752,23 @@ API не вызывался, рабочая notifier-конфигурация н
 который ожидает другой предсуществующий WIP. Это ограничение общего
 набора не маскируется и не объявляется дефектом M2-моста; старые Gate 0
 fixtures не правились.
+
+### Локальный code checkpoint 55297db и release preflight
+
+После test-fixture исправления чистый ZIP-экспорт точного commit
+`55297db440b502292159f2612c579f588e37c323` (tree `e0cde457…`, ZIP
+SHA-256 `13f2cf38805de7b9d457bcb8f9a5db96c707c1e3d1466300a20748a3e7e2c18c`)
+прошёл `237 passed, 1 skipped` в 14 M2-файлах. Guard и patch в архиве
+сохранили exact SHA благодаря `eol=lf`. Негативные сценарии owner ID,
+stale/expired approval, lost ACK, replay, reconnect, partial/changed file
+и неизвестный исход входят в этот набор; отдельная живая Telegram-приёмка
+ими не заменяется. Адресный поиск типовых ключей в восьми изменённых
+исполняемых файлах — 0 совпавших файлов; новых зависимостей нет.
+
+Три конкретных Scheduled Tasks read-only подтверждены Disabled с точными
+старыми XML SHA из release plan. Backup journal read-only инспектором
+текущего live checkout дал `phase=complete` и прежний confirmation digest
+`sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c`.
+Инспектор новой ветки закономерно отказал до чтения журнала из-за другого
+application binding; отказ не обходился изменением config. Staging,
+backup cycle, production и Telegram не запускались.

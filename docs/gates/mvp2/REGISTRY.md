@@ -23,7 +23,9 @@ owner-транспорт: новая задача в `nobus-orchestrator-dev` с
 Позднее в той же задаче проверены async-уточнение автору и два решения
 владельца (безопасное approve, отказ на запуск Calculator) с отказом
 чужому numeric ID; всё ещё с fake Telegram, не live приёмка D06/D07.
-Последний связанный запуск на текущих bytes — `237 passed, 1 skipped`;
+Локальный code checkpoint `55297db440b502292159f2612c579f588e37c323`
+(tree `e0cde457c7993791311a6e9249ddb6fb382626e3`) проверен в чистом
+Git-экспорте: `237 passed, 1 skipped` в 14 связанных M2-файлах;
 общий исторический набор отдельно остановился на Gate 0 dirty-manifest
 fixture, не относящемся к M2.
 Установленный notifier read-only подавил точный реальный Desktop bridge-turn
@@ -32,7 +34,7 @@ fixture, не относящемся к M2.
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | WIP / 24.09; R01–R05 исправлены локально; реальный create/visibility/UI↔IPC и изолированные full-answer/file, async question, owner approve/deny прошли на установленном Desktop. Установленный notifier read-only подтвердил exact opt-out; live отсутствие дубля и Telegram D01–D17, A01, голос/агент/две темы, паритет и независимый L1/L2/L3 открыты. Связанный набор `237 passed, 1 skipped`; all-repo диагностика упёрлась в исторический Gate 0 dirty-manifest fixture. Production bot Disabled по последней квитанции | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | база WIP `696fe2ca34865047276fdb7734f296a0616ee73c` + незакоммиченные изменения; frozen tree отсутствует | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | WIP / 24.09; R01–R05 исправлены локально; реальный create/visibility/UI↔IPC и изолированные full-answer/file, async question, owner approve/deny прошли на установленном Desktop. Установленный notifier read-only подтвердил exact opt-out; live отсутствие дубля и Telegram D01–D17, A01, голос/агент/две темы, паритет и независимый L1/L2/L3 открыты. Чистый Git-экспорт code checkpoint `55297db` прошёл связанный набор `237 passed, 1 skipped`; all-repo диагностика упёрлась в исторический Gate 0 dirty-manifest fixture. Production bot Disabled по точному read-only preflight | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | code checkpoint `55297db440b502292159f2612c579f588e37c323` / `e0cde457c7993791311a6e9249ddb6fb382626e3`; frozen Gate tree отсутствует | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
 
 Реальные task id и title внесены после запуска. В Gate сохраняются один
 `m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал
