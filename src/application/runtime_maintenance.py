@@ -31,7 +31,7 @@ REQUIRED_RUNTIME_DATABASE_NAMES = RUNTIME_DATABASE_NAMES - {"business-notes.sqli
 # Local MVP bound: DPAPI JSON adds base64 and uses the existing 80 MiB codec.
 MAX_BACKUP_DATABASE_BYTES = 48 * 1024 * 1024
 BACKUP_SCHEMA_VERSION = 3
-EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
+EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str | tuple[str, ...]]] = {
     "business-notes.sqlite3": {
         "index:idx_business_notes_topic":
             "05fcb014bb5a54c2220f990ce2c1b211c2dc6d3e7f5e0b490defb656b74307fc",
@@ -103,8 +103,11 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "a83b734394337d69704741af2c3e11c7ddac7f5d93733ca8140c59d68ac68976",
         "table:desktop_bridge_interactions":
             "9d802219fdd8c1afd0daf983c23537a838b7e7c79be9b4a6515aebc6fed0a67f",
-        "table:desktop_bridge_requests":
-            "c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6",
+        # Fresh schema and the additive migration of the exact prior schema.
+        "table:desktop_bridge_requests": (
+            "ac852e263ff57953bab96946b3b37f8110cdf1993f39640e6f2e7c2c17b37c6e",
+            "cc37addb9c0055f0eeaab4b69ffda56beabe5af1313c242357fc8e9259e6efe8",
+        ),
     },
 }
 
@@ -330,7 +333,10 @@ def validate_runtime_database(path: Path, *, content: bool = True) -> None:
                    WHERE name NOT LIKE 'sqlite_%'"""
             )
         }
-    if actual != expected:
+    if set(actual) != set(expected) or any(
+        actual[name] not in (allowed if isinstance(allowed, tuple) else (allowed,))
+        for name, allowed in expected.items()
+    ):
         raise RuntimeError("runtime database schema mismatch")
     quick_check(path)
     if not content:
@@ -694,6 +700,11 @@ def _validate_telegram_state_rows(path: Path) -> None:
             or type(row["source_message_id"]) is not int
             or row["source_message_id"] <= 0
             or row["operation"] not in {"create", "continue", "redeliver"}
+            or (row["bootstrap_turn_id"] is not None and (
+                row["operation"] != "create"
+                or not _runtime_text(row["bootstrap_turn_id"], 256)
+                or not _runtime_text(row["desktop_thread_id"], 256)
+            ))
             or row["status"] not in bridge_statuses
             or not _runtime_digest(row["payload_digest"])
             or canonical_json_digest(payload) != row["payload_digest"]

@@ -1,0 +1,92 @@
+diff --git a/notify_codex_completion.py b/notify_codex_completion.py
+--- a/notify_codex_completion.py
++++ b/notify_codex_completion.py
+@@ -9,6 +9,7 @@ import re
+ import sqlite3
+ import subprocess
+ import sys
++import time
+ from dataclasses import dataclass
+ from pathlib import Path
+ from typing import Any, Callable, Mapping, Sequence
+@@ -63,13 +64,13 @@ class Settings:
+     bridge_state_path: Path | None = None
+ 
+ 
+-_BRIDGE_CLIENT_MESSAGE = re.compile(r"nobus:[0-9a-f-]{36}\Z")
+-
+-
+ def registered_bridge_turn(
+-    state_path: Path, *, request_id: str, thread_id: str, turn_id: str
++    state_path: Path, *, request_id: str, thread_id: str, turn_id: str,
++    wait_seconds: float = 45.0,
++    pause: Callable[[float], None] = time.sleep,
++    clock: Callable[[], float] = time.monotonic,
+ ) -> bool:
+-    """Read-only exact binding; a copied marker never authenticates a turn."""
++    """Wait briefly for a fast turn's durable binding; never trust its marker."""
+     try:
+         identifier = str(UUID(request_id))
+         thread = str(UUID(thread_id))
+@@ -78,27 +79,40 @@ def registered_bridge_turn(
+         path = Path(state_path)
+         if not path.is_absolute() or not path.is_file() or path.is_symlink():
+             return False
+-        with contextlib.closing(
+-            sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
+-        ) as connection:
+-            connection.execute("PRAGMA query_only=ON")
+-            row = connection.execute(
+-                """SELECT desktop_thread_id,desktop_turn_id,client_message_id,
+-                          status,chat_id,topic_id
+-                   FROM desktop_bridge_requests WHERE request_id=?""",
+-                (identifier,),
+-            ).fetchone()
+-        return bool(
+-            row is not None
+-            and row[0] == thread
+-            and row[1] == turn_id
+-            and isinstance(row[2], str)
+-            and _BRIDGE_CLIENT_MESSAGE.fullmatch(row[2]) is not None
+-            and row[2] == f"nobus:{identifier}"
+-            and row[3] not in {"cancelled", "failed"}
+-            and type(row[4]) is int and row[4] < 0
+-            and (row[5] is None or type(row[5]) is int and row[5] > 0)
+-        )
++        deadline = clock() + max(0.0, min(wait_seconds, 45.0))
++        while True:
++            with contextlib.closing(
++                sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
++            ) as connection:
++                connection.execute("PRAGMA query_only=ON")
++                row = connection.execute(
++                    """SELECT desktop_thread_id,desktop_turn_id,bootstrap_turn_id,
++                              client_message_id,status,chat_id,topic_id,operation
++                       FROM desktop_bridge_requests WHERE request_id=?""",
++                    (identifier,),
++                ).fetchone()
++            if row is None or row[4] in {"cancelled", "failed"}:
++                return False
++            if type(row[5]) is not int or row[5] >= 0:
++                return False
++            if row[6] is not None and (type(row[6]) is not int or row[6] <= 0):
++                return False
++            if row[0] not in {None, thread} or row[3] not in {None, f"nobus:{identifier}"}:
++                return False
++            if row[0] == thread and turn_id in {row[1], row[2]}:
++                return row[3] == f"nobus:{identifier}"
++            binding_pending = (
++                row[0] is None and row[4] in {"received", "dispatching"}
++                or row[0] == thread and row[1] is None
++                or row[0] == thread and row[7] == "create" and row[2] is None
++            )
++            if (
++                row[4] not in {"received", "dispatching", "running"}
++                or not binding_pending
++                or clock() >= deadline
++            ):
++                return False
++            pause(min(0.25, max(0.0, deadline - clock())))
+     except (OSError, ValueError, sqlite3.Error):
+         return False
+ 

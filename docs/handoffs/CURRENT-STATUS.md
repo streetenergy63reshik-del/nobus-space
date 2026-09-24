@@ -1,6 +1,39 @@
 # Nobus Space: текущий принятый статус
 
-## Пауза M2-DESKTOP для независимого аудита — 22 сентября, 12:29 МСК
+## M2-DESKTOP: локальный checkpoint — 24 сентября
+
+В той же задаче и worktree `codex/m2-desktop` продолжается локальная
+разработка. Три поставки Grok интегрированы адресно, исправлены дефекты
+форматирования/путей/карточек; bridge получил numeric-адресацию в исходной
+теме, защиту stale approval, UIA bootstrap lock, opt-in-флаг в общем runner и
+начальные offline-пути восстановления. Backup rebind для завершённого старого
+журнала проверен только на изолированном тесте. Существующий sender runtime
+расширен request-scoped ключом, notifier штатно обновлён до подтверждённого
+SHA `e6e08ba29097b3a35e58f43cf2a7619778b95bf72561d23499c31e91a6479eda`;
+ему добавлен только read-only путь к SQLite-привязкам. Настройки Telegram,
+credentials и три Disabled production-задачи не менялись. Desktop обновился
+до `26.917.9434.0`: read-only IPC/UIA preflight пройден, новых turn не было.
+Причина прежнего Backup result `1` уточнена read-only: завершённый
+подписанный журнал привязан к прежнему config digest, production-скрипт
+отказывает на новом digest до запуска цикла. Локальный A01 reconcile
+проверен только на изолированном тесте и не развернут.
+Один отдельно разрешённый обычный тестовый итог в существующей Desktop-задаче
+завершился; exact notifier ledger key имеет `sent`. Это не проверка
+подавления bridge-уведомления и не приёмка продуктовой доставки.
+Обнаружены и локально исправлены гонка bootstrap turn с notifier,
+отсутствовавшая передача `--desktop-bridge` через Scheduled Task/supervisor и
+несовместимость backup exact-schema после аддитивной миграции. Новый
+notifier v4 установлен по точному подтверждению SHA, без Telegram-вызова;
+production bot по-прежнему выключен. Связанный набор на последних кодовых
+bytes вместе с четырьмя адресными совместимостями дал `301 passed, 1 skipped`.
+Кандидат ещё не заморожен, полный Gate suite и L1/L2/L3 не пройдены. A09/A13 установлены, но их живой цикл и
+отсутствие дублей не доказаны; A06–A08 и D01–D17 открыты. Старые
+live-квитанции owner IPC сохранены как история, не как приёмка нового
+продукта. Подробности и точные результаты — в
+[handoff](../gates/mvp2/m2-desktop/HANDOFF.md) и
+[журнале](../gates/mvp2/m2-desktop/AUDIT-JOURNAL.md).
+
+## Историческая пауза M2-DESKTOP для независимого аудита — 22 сентября, 12:29 МСК
 
 По прямому запросу владельца разработка и live-проверки M2-DESKTOP безопасно
 остановлены. Production checkout сейчас detached на локальном commit
@@ -72,11 +105,11 @@ MVP1 revision.
 Heartbeat Codex остаётся **PAUSED**. На текущем снимке три штатных задания
 production намеренно остановлены и Disabled, как зафиксировано выше; это
 перекрывает прежний эксплуатационный снимок 20 сентября. C6 не переоткрывается.
-**MVP2 M2-DESKTOP — WIP / PAUSED FOR INDEPENDENT AUDIT**: задача Gate остаётся
+**MVP2 M2-DESKTOP — WIP / LOCAL DEVELOPMENT RESUMED 24.09**: задача Gate остаётся
 в прежнем worktree; production checkout и backup-config были изменены на
 локальный revision, но readiness не достигнута.
 
-21 сентября владелец задал новую цель MVP2: один M2-DESKTOP — Telegram ↔ настоящий Codex Desktop, все участники «Заметок бизнеса», полный ответ и файлы, уточнения автору и разрешения владельцу. Исторический эксперимент отдельного App Server сохраняет положительные create/visibility/readback и конкретный отрицательный результат `already has an active writer`; этот блокер относится к тому транспорту. Новое read-only доказательство на Desktop `26.915.4065.0`: `initialize` и `thread-owner-discovery` через `\\.\pipe\codex-ipc` прошли, владелец существующей задачи найден, но turn/approvals не отправлялись. Bundle содержит follower start/history/question/approval handlers. Read-only UI Automation обнаружил точные semantic controls проекта, создания и открытия задач без координат. Реализован локальный version-bound IPC/UIA adapter; 13 offline-тестов прошли, но fixtures не заменяют live. Текущий notifier по-прежнему не имеет per-task opt-out; исторические два сообщения в «Codex work» сохранены. Следующий шаг — точно разрешённый bounded smoke одной новой задачи, до пяти turn и ожидаемых notifier-summary; notifier/config/ledger не менять. Установка daemon не является следующим шагом. Подробности — в [исследовании](../gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md), [handoff](../gates/mvp2/m2-desktop/HANDOFF.md) и [evidence](../gates/mvp2/m2-desktop/EVIDENCE.json). Прежние M2-G0…G4 заменены и не запускаются; MVP1/C6 не переоткрывались.
+Исторический срез 21 сентября: отдельный App Server создал видимую задачу, но после продолжения из Desktop получил `already has an active writer`; это блокер только того транспорта. Owner IPC через `\\.\pipe\codex-ipc` затем подтвердил общий Desktop-владелец и ограниченные live turn/question/approval; детали и границы — в [исследовании](../gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md) и [handoff](../gates/mvp2/m2-desktop/HANDOFF.md). Старое утверждение «turn/approvals не отправлялись» относится только к первоначальному read-only probe. Актуальный следующий шаг описан выше; прежние M2-G0…G4 заменены, MVP1/C6 не переоткрывались.
 
 ## Доказательства и навигация
 

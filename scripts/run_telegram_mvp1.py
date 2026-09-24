@@ -204,6 +204,9 @@ _RUN_STAGES = frozenset(
 def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--semantic-admission", action="store_true")
+    parser.add_argument("--desktop-bridge", action="store_true")
+    parser.add_argument("--desktop-projects-file", type=Path)
+    parser.add_argument("--desktop-artifact-root", action="append", type=Path, default=[])
     parser.add_argument("--shutdown-stdin", action="store_true")
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--voice-model-directory", type=Path)
@@ -224,7 +227,64 @@ def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
                 if candidate.is_symlink() or candidate.is_junction():
                     parser.error("runtime composition directory is invalid")
             setattr(values, name, value.resolve(strict=True))
+    resolved_roots = []
+    owner_root = _OWNER_READ_ROOT.resolve(strict=True)
+    for value in values.desktop_artifact_root:
+        if not value.is_absolute() or not value.is_dir():
+            parser.error("desktop artifact root is invalid")
+        current = value
+        while current != owner_root and current != current.parent:
+            if current.is_symlink() or current.is_junction():
+                parser.error("desktop artifact root is reparse-linked")
+            current = current.parent
+        resolved = value.resolve(strict=True)
+        if not resolved.is_relative_to(owner_root):
+            parser.error("desktop artifact root is outside owner workspace")
+        resolved_roots.append(resolved)
+    values.desktop_artifact_root = tuple(resolved_roots)
     return values
+
+
+def _load_desktop_projects(path: Path) -> dict[str, Path]:
+    """Operator inventory only; UIA still proves each saved project on use."""
+    if not isinstance(path, Path) or not path.is_absolute() or not path.is_file() or path.is_symlink():
+        raise ValueError("desktop project inventory unavailable")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        raise ValueError("desktop project inventory invalid") from None
+    if (type(data) is not dict or set(data) != {"version", "projects"}
+            or type(data["version"]) is not int or data["version"] != 1):
+        raise ValueError("desktop project inventory invalid")
+    items = data["projects"]
+    if type(items) is not list or not 1 <= len(items) <= 128:
+        raise ValueError("desktop project inventory invalid")
+    projects: dict[str, Path] = {}
+    owner_root = _OWNER_READ_ROOT.resolve(strict=True)
+    for item in items:
+        if type(item) is not dict or set(item) != {"name", "cwd"}:
+            raise ValueError("desktop project inventory invalid")
+        name, raw_cwd = item["name"], item["cwd"]
+        if (
+            type(name) is not str or not name.strip() or len(name) > 256
+            or type(raw_cwd) is not str or "\x00" in raw_cwd
+        ):
+            raise ValueError("desktop project inventory invalid")
+        cwd = Path(raw_cwd)
+        if not cwd.is_absolute() or not cwd.is_dir():
+            raise ValueError("desktop project inventory invalid")
+        current = cwd
+        while current != owner_root and current != current.parent:
+            if current.is_symlink() or current.is_junction():
+                raise ValueError("desktop project inventory reparse-linked")
+            current = current.parent
+        resolved = cwd.resolve(strict=True)
+        if not resolved.is_relative_to(owner_root) or any(
+            existing.casefold() == name.casefold() for existing in projects
+        ):
+            raise ValueError("desktop project inventory invalid")
+        projects[name] = resolved
+    return projects
 
 
 def _semantic_enabled(values: argparse.Namespace) -> bool:
@@ -422,6 +482,10 @@ async def _run(
     report_stage: Callable[[str], None] = lambda stage: None,
 ) -> dict[str, object]:
     semantic_enabled = _semantic_enabled(values)
+    desktop_projects = (
+        _load_desktop_projects(getattr(values, "desktop_projects_file", None))
+        if getattr(values, "desktop_bridge", False) is True else {}
+    )
     runtime_root = getattr(values, "runtime_root", None) or _RUNTIME_ROOT
     isolated = runtime_root != _RUNTIME_ROOT
     checkpoint_path = runtime_root / _CHECKPOINT_PATH.name
@@ -487,6 +551,15 @@ async def _run(
             for item in binding_config.bindings
             if item.purpose == "owner_private"
         )
+        group_binding = None
+        if getattr(values, "desktop_bridge", False) is True:
+            group_bindings = [
+                item for item in binding_config.bindings
+                if item.purpose == "business_notes"
+            ]
+            if len(group_bindings) != 1:
+                raise ValueError("desktop group binding is not unique")
+            group_binding = group_bindings[0]
         bindings = load_telegram_bindings(
             _BINDING_PATH,
             expected_bot_id=identity.bot_id,
@@ -567,15 +640,12 @@ async def _run(
                 script_path=ROOT / "scripts" / "codex_desktop_uia.ps1",
                 runtime_root=runtime_root / "desktop-bridge",
             ),
-            projects={
-                "nobus-orchestrator-dev": (
-                    _ORCHESTRATOR_ROOT / "Code" / "nobus-orchestrator-dev"
-                )
-            },
+            projects=desktop_projects,
             owner_user_id=owner_binding.user_id,
             owner_private_chat_id=owner_binding.chat_id,
             bot_username=identity.username,
             voice_service=voice_service,
+            artifact_roots=getattr(values, "desktop_artifact_root", ()),
             document_delivery=NobusDocumentDelivery(
                 runtime_path=(
                     Path.home()
@@ -591,8 +661,13 @@ async def _run(
                     / "nobus-orchestrator-dev"
                     / "telegram-document-delivery.local.sqlite3"
                 ),
+                bot_id=identity.bot_id,
+                bot_username=identity.username,
+                group_binding_ref=group_binding.auth_context_ref,
+                group_chat_id=group_binding.chat_id,
+                group_tenant_id=group_binding.tenant_id,
             ),
-        )
+        ) if getattr(values, "desktop_bridge", False) is True else None
         control = DurableProductTelegramControlPlane(
             gateway,
             api,

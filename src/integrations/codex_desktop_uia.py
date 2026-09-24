@@ -19,7 +19,7 @@ from typing import Iterable
 from uuid import uuid4
 
 
-TESTED_DESKTOP_VERSION = "26.915.4065.0"
+TESTED_DESKTOP_VERSION = "26.917.9434.0"
 TESTED_UI_LOCALE = "ru-RU"
 DEFAULT_UIA_TIMEOUT_SECONDS = 45
 

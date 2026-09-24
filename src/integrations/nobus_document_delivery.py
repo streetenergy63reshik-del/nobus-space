@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import inspect
+import json
+import re
 import stat
 import sys
 from dataclasses import dataclass
@@ -13,6 +16,9 @@ from typing import Any
 from uuid import UUID
 
 from src.contracts.models import canonical_json_digest
+
+
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 
 class NobusDocumentDeliveryError(RuntimeError):
@@ -29,7 +35,11 @@ class NobusDocumentDeliveryReceipt:
 class NobusDocumentDelivery:
     """Use the installed skill runtime and its one shared one-shot ledger."""
 
-    def __init__(self, *, runtime_path: Path, ledger_path: Path) -> None:
+    def __init__(
+        self, *, runtime_path: Path, ledger_path: Path,
+        bot_id: int, bot_username: str, group_binding_ref: str,
+        group_chat_id: int, group_tenant_id: str,
+    ) -> None:
         path = Path(runtime_path).resolve(strict=True)
         ledger = Path(ledger_path).resolve(strict=False)
         if (
@@ -50,8 +60,28 @@ class NobusDocumentDelivery:
         )
         if not all(hasattr(module, name) for name in required):
             raise ValueError("Nobus document delivery runtime is incompatible")
+        if (
+            "operation_key" not in inspect.signature(module.delivery_key_for).parameters
+            or "operation_key" not in inspect.signature(module.deliver_document_once).parameters
+            or not hasattr(module.SQLiteTelegramDocumentDeliveryLedger, "receipt")
+        ):
+            raise ValueError("Nobus document delivery runtime lacks operation receipts")
+        if (
+            type(bot_id) is not int or bot_id <= 0
+            or not isinstance(bot_username, str) or not bot_username.strip()
+            or not isinstance(group_binding_ref, str)
+            or _DIGEST.fullmatch(group_binding_ref) is None
+            or type(group_chat_id) is not int or group_chat_id >= 0
+            or not isinstance(group_tenant_id, str) or not group_tenant_id.strip()
+        ):
+            raise ValueError("Nobus document destination proof is invalid")
         self._module = module
         self._ledger = module.SQLiteTelegramDocumentDeliveryLedger(ledger)
+        self._bot_id = bot_id
+        self._bot_username = bot_username
+        self._group_binding_ref = group_binding_ref
+        self._group_chat_id = group_chat_id
+        self._group_tenant_id = group_tenant_id
 
     async def deliver(
         self,
@@ -68,12 +98,12 @@ class NobusDocumentDelivery:
         if (
             not isinstance(request_id, UUID)
             or not isinstance(operation_id, str)
-            or not operation_id.startswith("sha256:")
-            or len(operation_id) != 71
+            or _DIGEST.fullmatch(operation_id) is None
             or not isinstance(tenant_id, str)
             or not tenant_id.strip()
+            or tenant_id != self._group_tenant_id
             or type(chat_id) is not int
-            or chat_id == 0
+            or chat_id != self._group_chat_id
             or (topic_id is not None and (type(topic_id) is not int or topic_id <= 0))
             or not isinstance(filename, str)
             or type(content) is not bytes
@@ -81,25 +111,37 @@ class NobusDocumentDelivery:
         ):
             raise ValueError("Nobus document delivery request is invalid")
         artifact_digest = "sha256:" + hashlib.sha256(content).hexdigest()
-        # Existing v1 keying remains unchanged for the skill CLI.  M2 makes the
-        # verified destination reference request/operation scoped, so a replay
-        # of one operation dedupes while a new request for identical bytes sends.
-        destination_ref = canonical_json_digest(
-            {
-                "schema": "nobus-desktop-document-destination-v1",
-                "request_id": str(request_id),
-                "operation_id": operation_id,
-                "tenant_id": tenant_id.strip(),
-                "chat_id": chat_id,
-                "topic_id": topic_id,
-            }
+        # Match the established proof-bound alias semantics: destination_ref
+        # identifies only the bot, verified group binding and exact topic.
+        destination_payload = {
+            "alias": "business_notes.prostranstvo",
+            "binding_auth_context_ref": self._group_binding_ref,
+            "binding_purpose": "business_notes",
+            "bot_id": self._bot_id,
+            "bot_username": self._bot_username,
+            "message_thread_id": topic_id,
+            "schema_version": 1,
+            "tenant_id": tenant_id,
+        }
+        destination_ref = "sha256:" + hashlib.sha256(
+            json.dumps(
+                destination_payload, ensure_ascii=True, sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        scoped_operation = canonical_json_digest({
+            "schema": "nobus-desktop-delivery-operation-v1",
+            "request_id": str(request_id),
+            "operation_id": operation_id,
+        })
+        delivery_key = self._module.delivery_key_for(
+            destination_ref, artifact_digest, operation_key=scoped_operation
         )
-        delivery_key = self._module.delivery_key_for(destination_ref, artifact_digest)
-        existing = self._ledger.status(delivery_key)
+        existing = self._ledger.receipt(delivery_key)
         if existing is not None:
             return NobusDocumentDeliveryReceipt(
-                status="sent_existing" if existing == "sent" else "unknown_existing",
-                message_id=None,
+                status="sent_existing" if existing[0] == "sent" and type(existing[1]) is int else "unknown_existing",
+                message_id=existing[1] if existing[0] == "sent" and type(existing[1]) is int else None,
                 delivery_key=delivery_key,
             )
         destination = self._module.TelegramDocumentDestination(
@@ -117,13 +159,14 @@ class NobusDocumentDelivery:
                 filename=filename,
                 content=content,
                 artifact_digest=artifact_digest,
+                operation_key=scoped_operation,
             )
         except self._module.TelegramDocumentDeliveryError as error:
-            status = self._ledger.status(delivery_key)
-            if status is not None:
+            outcome = self._ledger.receipt(delivery_key)
+            if outcome is not None:
                 return NobusDocumentDeliveryReceipt(
-                    status="sent_existing" if status == "sent" else "unknown_existing",
-                    message_id=None,
+                    status="sent_existing" if outcome[0] == "sent" and type(outcome[1]) is int else "unknown_existing",
+                    message_id=outcome[1] if outcome[0] == "sent" and type(outcome[1]) is int else None,
                     delivery_key=delivery_key,
                 )
             raise NobusDocumentDeliveryError(getattr(error, "code", "delivery-failed")) from None

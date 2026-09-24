@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import argparse
 import json
 import socket
 from contextlib import nullcontext
@@ -13,6 +14,46 @@ import pytest
 import httpx
 
 from scripts import run_telegram_mvp1 as runner
+
+
+def test_desktop_bridge_is_opt_in_for_mvp1_runner(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(runner, "_control_arguments", lambda _remaining: argparse.Namespace())
+    monkeypatch.setattr(runner, "_OWNER_READ_ROOT", tmp_path)
+    assert runner._arguments([]).desktop_bridge is False
+    assert runner._arguments(["--desktop-bridge"]).desktop_bridge is True
+    allowed = tmp_path / "documents"
+    allowed.mkdir()
+    values = runner._arguments(["--desktop-artifact-root", str(allowed)])
+    assert values.desktop_artifact_root == (allowed,)
+    with pytest.raises(SystemExit):
+        runner._arguments(["--desktop-artifact-root", str(tmp_path.parent)])
+
+
+def test_desktop_project_inventory_preserves_names_and_rejects_outside_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(runner, "_OWNER_READ_ROOT", tmp_path)
+    one = tmp_path / "Business Project"
+    two = tmp_path / "Research"
+    one.mkdir()
+    two.mkdir()
+    inventory = tmp_path / "projects.json"
+    inventory.write_text(json.dumps({
+        "version": 1,
+        "projects": [
+            {"name": "Business Project", "cwd": str(one)},
+            {"name": "Research", "cwd": str(two)},
+        ],
+    }), encoding="utf-8")
+    assert runner._load_desktop_projects(inventory) == {
+        "Business Project": one, "Research": two,
+    }
+    inventory.write_text(json.dumps({
+        "version": 1,
+        "projects": [{"name": "Other", "cwd": str(tmp_path.parent)}],
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="desktop project inventory invalid"):
+        runner._load_desktop_projects(inventory)
 
 
 def test_missing_pinned_asr_never_falls_back_to_download(tmp_path, monkeypatch):

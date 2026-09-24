@@ -317,11 +317,13 @@ class TelegramBotApi:
         buttons: tuple[tuple[str, str], ...] = (),
         message_thread_id: int | None = None,
         reply_to_message_id: int | None = None,
+        parse_mode: str | None = None,
     ) -> int:
         if (
             type(chat_id) is not int
             or not _bounded_text(text, 4096)
             or not _valid_buttons(buttons)
+            or parse_mode not in {None, "HTML"}
             or (
                 message_thread_id is not None
                 and (
@@ -336,6 +338,8 @@ class TelegramBotApi:
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
         payload: dict[str, Any] = {"chat_id": chat_id, "text": text}
+        if parse_mode is not None:
+            payload["parse_mode"] = parse_mode
         if message_thread_id is not None:
             payload["message_thread_id"] = message_thread_id
         if reply_to_message_id is not None:

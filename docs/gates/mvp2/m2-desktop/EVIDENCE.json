@@ -2,14 +2,15 @@
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
   "stage": "WIP_ITERATION",
-  "observed_at_utc": "2026-09-21T17:50:52.7917281Z",
-  "base_commit": "f3fdb2d22a41b6a5b84fec06544447014c7bb35c",
-  "base_tree": "b604fcb6591ae11c4280d3a7d41a7261c2383305",
+  "observed_at_utc": "2026-09-24T10:46:45Z",
+  "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
+  "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:4ac7cb07ff94ebae4dcfd10f1467ac0c93c843057b3c83c8c809ea1103b0da2d",
+  "content_digest": "sha256:524d6cfc99dd367ea9948489410dbaf43ec7cb4ec4481d8e5e8ae8c823278261",
   "content_digest_scope": [
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
+    "docs/adr/0029-telegram-desktop-owner-tunnel.md",
     "docs/gates/mvp2/M2-DESKTOP-PROMPT.md",
     "docs/gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md",
     "docs/gates/mvp2/m2-desktop/HANDOFF.md",
@@ -20,9 +21,42 @@
     "src/integrations/codex_desktop_uia.py",
     "tests/test_codex_desktop_ipc.py",
     "tests/test_codex_desktop_uia.py"
+    ,"docs/README.md"
+    ,"docs/15-Продуктовая-дорожная-карта.md"
+    ,"docs/16-Управленческая-карта-разработки.html"
+    ,"docs/gates/mvp2/m2-desktop/AUDIT-JOURNAL.md"
+    ,"scripts/codex_desktop_uia.ps1"
+    ,"scripts/run_telegram_backup_cycle.py"
+    ,"scripts/run_telegram_mvp1.py"
+    ,"src/application/desktop_bridge.py"
+    ,"src/application/desktop_bridge_state.py"
+    ,"src/application/desktop_output.py"
+    ,"src/application/desktop_artifact_refs.py"
+    ,"src/application/desktop_interaction_view.py"
+    ,"src/integrations/nobus_document_delivery.py"
+    ,"src/transport/telegram/bot_api.py"
+    ,"tests/test_desktop_bridge.py"
+    ,"tests/test_desktop_output.py"
+    ,"tests/test_desktop_artifact_refs.py"
+    ,"tests/test_desktop_interaction_view.py"
+    ,"tests/test_desktop_grok_contract.py"
+    ,"tests/test_telegram_mvp1_runner.py"
+    ,"tests/test_c6_managed_backups.py"
+    ,"tests/test_documentation.py"
+    ,"tests/test_nobus_document_delivery.py"
+    ,"docs/gates/mvp2/m2-desktop/telegram-delivery-runtime-v2.patch"
+    ,"docs/gates/mvp2/m2-desktop/notifier-auth-v2.patch"
+    ,"tests/test_desktop_notifier_patch.py"
+    ,"docs/gates/mvp2/m2-desktop/notifier-auth-v3.patch"
+    ,"docs/gates/mvp2/m2-desktop/notifier-auth-v4.patch"
+    ,"scripts/run_nobus_space_live.py"
+    ,"ops/windows/Install-NobusSpaceBot.ps1"
+    ,"src/application/runtime_maintenance.py"
+    ,"tests/test_desktop_supervisor_wiring.py"
+    ,"docs/gates/mvp2/m2-desktop/RELEASE-PLAN-20260924.md"
   ],
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact file bytes + LF",
-  "candidate_note": "Local Desktop-owner IPC adapter checkpoint; no live mutating IPC/UIA action has been run and this is not a frozen candidate. EVIDENCE.json is excluded from the non-recursive content digest.",
+  "candidate_note": "24 September WIP after independent audit: three Grok modules integrated; sender and exact-confirmed notifier v4 installed. Scheduler-supervisor-Core bridge flags and exact backup schema migration repaired locally. 301 related/affected tests passed, one skipped on latest code bytes; no new product Telegram request or Desktop turn. No frozen candidate or independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
     "desktop_executable_version": "153.0.8010.48",
@@ -542,6 +576,108 @@
     "publication": "NOT_PUBLISHED",
     "acceptance": "NOT_ACCEPTED"
   },
+  "local_resume_20260924": {
+    "status": "WIP_ITERATION",
+    "worktree_head": "31df0d00a0a74de920a7a7367d3b662566a653ff",
+    "worktree_dirty": true,
+    "source_audit": "canonical docs/audits/M2-DESKTOP-AUDIT.md and M2-DESKTOP-GROK-REVIEW.md",
+    "grok_zip_sha256": {
+      "A": "90998d494d1cf24fe1b0a35583417b2beba6c90863a94e502ee17493811be1fe",
+      "B": "9c5ce6689765affd447be085404c771bc415ccc4396eaebc9334618474fa5bb7",
+      "C": "16733f17112c27ede09509452519a95a3dbf5f98bf49510ff7846f066b05af24"
+    },
+    "checks": [
+      {"id": "GROK-CONTRACT-WIP", "result": "100 passed", "scope": "GA/GB/GC/IN modules and adapted contract checks before product integration; not current frozen tree"},
+      {"id": "BRIDGE-INTEGRATION-WIP", "result": "232 passed", "scope": "bridge/UIA/Telegram API plus Grok modules on an earlier changing WIP tree"},
+      {"id": "RUNNER-BRIDGE-DOC-WIP", "result": "63 passed", "scope": "runner, bridge, notifier auth, docs on an earlier changing WIP tree"},
+      {"id": "INVENTORY-BRIDGE-WIP", "result": "59 passed", "scope": "project inventory and bridge on an earlier changing WIP tree"},
+      {"id": "BRIDGE-REDELIVERY-WIP", "result": "32 passed", "scope": "bridge after known-partial redelivery; not full gate suite"},
+      {"id": "PREVIOUS-NONC6-REGRESSION-WIP", "result": "287 passed in 22.75s", "scope": "earlier WIP bytes; not current candidate"},
+      {"id": "CURRENT-NONC6-REGRESSION-WIP", "result": "187 passed in 20.08s", "scope": "12 related files on current WIP after sender/notifier patches and single delivery-owner instruction; no live or independent L2/L3"},
+      {"id": "SENDER-V2-LOCAL-PATCH", "result": "PATCH_CHECK_PASS / 63 related tests passed", "scope": "patch applied only to ignored test copy; v1 key unchanged, request-scoped key and receipt checked; installed skill not changed"},
+      {"id": "NOTIFIER-AUTH-V2-LOCAL-PATCH", "result": "PATCH_CHECK_PASS / 2 focused tests passed", "scope": "functional test on patched ignored copy checks exact durable binding and false markers; git apply write to second ignored copy denied; installed notifier/config unchanged"},
+      {"id": "A01-ADDRESS-TARGET", "result": "1 passed", "scope": "synthetic completed-journal rebind; no live backup cycle"},
+      {"id": "C6-FILE-TESTS", "result": "NOT_RUN_AUTO_REVIEW_REJECTED", "scope": "full C6 backup test file was not retried after auto-review rejected it as out of scope"},
+      {"id": "FULL-L1-L2-L3", "result": "NOT_RUN", "scope": "candidate not frozen"}
+    ],
+    "remaining": [
+      "A09 install/verify shared sender extension and prevent skill second-owner send",
+      "A13 install/verify notifier durable binding extension",
+      "A06 manual UI switch verification",
+      "A07 saved project catalog/worktree parity",
+      "A08 Plan/Default and pending-family parity",
+      "A12 isolated rollback and backup generation",
+      "D01-D17 product live matrix"
+    ],
+    "external_mutations_this_resume": false,
+    "production_changed_this_resume": false,
+    "accepted": false
+  },
+  "checkpoint_20260924_later": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "desktop_version": "26.917.9434.0",
+    "desktop_ipc_readonly": "initialize/owner/history of existing current task succeeded; no new turn or pending response",
+    "desktop_uia_readonly": "visible window and exact existing project selector found without mutation",
+    "follower_settings": "latestThreadSettings default/on-request/auto_review/workspaceWrite read from real owner; Plan covered only by local fixture",
+    "sender_installed_sha256": "72b7cff9c49a925d6bb6030b8c976b434e43e96f1d9dd98f7d5b05463c9d5207",
+    "sender_verification": "original installed hash matched manifest; patch applied; installed bytes match test copy; self-test and legacy regression passed; no live Telegram send",
+    "notifier_release_sha256": "3befa848059448783b2f5f2b270078a4240226485390d9b76c9eb93e7bfef08a",
+    "notifier_file_sha256": {
+      "notify_codex_completion_core.py": "0195498392aa34a877fb9ebbd50d32c33d4a1491ff89be97fe921ca52b97731d",
+      "notify_codex_completion.py": "d9c35838d420ac0aab75a4af24d474ce611b58e362d7d259afad6b60b566177b"
+    },
+    "notifier_verification": "confirmed exact SHA installed via existing scheduled-task Python; v3 patch reproduces installed bytes from saved clean source; only bridge_state_path added to JSON; bot_repo/credentials/destination unchanged; installed read-only verifier rejects nonexistent binding",
+    "installation_failures_resolved": [
+      "one-character typo in first requested SHA: installer refused before applying",
+      "wrong interpreter relative to existing scheduled task: installer refused before applying"
+    ],
+    "tests": "187 passed, 1 skipped in 19.30s across 12 related non-C6 files on current WIP; full L1/L2/L3 not run",
+    "backup_readonly_diagnosis": {
+      "production_inspect_phase": "complete",
+      "journal_config_digest": "sha256:2051b0e91632e48312ff5b5f9e2506faa4a75d69ebfd50fccddf73b9e222b143",
+      "scheduled_task_config_digest": "sha256:7c3876a3f7e011c2e62ab77c67516bd033db889a2c8f235d1b81cf8de0337d79",
+      "cause": "production script refuses completed journal bound to previous config digest before performing backup; isolated A01 reconcile exists only in WIP",
+      "backup_cycle_rerun": false
+    },
+    "production_bot_tasks": "NobusSpaceBot, Health and Backup remain Disabled",
+    "new_desktop_turn": false,
+    "new_product_telegram_send": false,
+    "a09_live_closed": false,
+    "a13_live_closed": false,
+    "d01_d17_accepted": false
+  },
+  "local_duplicate_note": "The previously unused local verifier and its sole test were deleted by exact paths after apply_patch could not delete them in this worktree. The installed notifier and settings were not changed by that cleanup.",
+  "notifier_smoke_20260924": {
+    "scope": "one separately approved ordinary final in existing Desktop test task; not product bridge",
+    "thread_id": "01a0c45d-e9f8-7f81-a7b5-eb29818e33a5",
+    "turn_id": "01a0d2d7-7499-7e73-83fe-591580c11061",
+    "rollout_task_complete_count": 1,
+    "expected_phrase_present": true,
+    "notifier_ledger_status": "sent",
+    "bridge_suppression_proved": false,
+    "full_telegram_product_delivery_proved": false
+  },
+  "checkpoint_20260924_bridge_release_wiring": {
+    "stage": "WIP_ITERATION_NOT_FROZEN",
+    "notifier_v4_release_sha256": "e6e08ba29097b3a35e58f43cf2a7619778b95bf72561d23499c31e91a6479eda",
+    "notifier_v4_confirmed_by_owner": true,
+    "notifier_v4_install_result": "installed; task_created=false; settings_changed=false; credentials_changed=false; telegram_called=false",
+    "notifier_v4_core_file_sha256": "41a96251bd33ea3f2aa1a3f53fcc266c8b061383686f7e092fb60045297c9361",
+    "notifier_v4_package_tests": "91 passed, 54 subtests",
+    "bootstrap_binding": "Additive bootstrap_turn_id migration and exact durable request/thread/turn check; focused migration/correlation tests pass; no positive live bridge suppression yet",
+    "scheduler_wiring": "--desktop-bridge, exact worktree project inventory and explicit owner-workspace artifact roots now traverse installer-supervisor-Core only when opted in; PowerShell parser 0 errors",
+    "local_project_inventory": "10 saved Desktop local projects were listed read-only; ignored desktop-projects.local.json validated with all 10 entries, sha256:43e64029ec9a0e009555dcfab1faa0825ee4c003b90994a42f547be05d2eea2a; not deployed and not UIA-tested per project",
+    "release_preflight": "Production checkout clean at 3ea243893a2647dc631662c2a2030de7679ae0e1; main/health/backup Disabled; exact task-definition and launcher hashes in RELEASE-PLAN-20260924.md; read-only signed backup journal phase complete and confirmation sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c",
+    "backup_schema": "New and migrated exact DDL hashes pass runtime schema/content validation; unknown DDL fails closed. A01 completed-journal rebind now holds admission and migrates only known prior DDL before full runtime validation.",
+    "production_schema_readonly": "15 actual DDL keys equal 15 expected keys; only desktop_bridge_requests remains at exact previous sha256:c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6. No row or mutation was performed; this is input evidence, not production migration success.",
+    "linked_tests": "301 passed, 1 skipped, 1 unrelated Starlette/httpx2 deprecation warning across 13 M2 files and four affected compatibility cases; fixtures are not live D01-D17 evidence",
+    "production_checkout_changed": false,
+    "production_bot_tasks": "NobusSpaceBot, Health and Backup remain Disabled",
+    "new_desktop_turn": false,
+    "new_product_telegram_send": false,
+    "full_l1_l2_l3": "NOT_RUN",
+    "d01_d17_accepted": false
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Keep all three production tasks disabled. Conduct an independent audit of f3fdb2d..3ea2438 and AUDIT-JOURNAL.md. On explicit resume, first localize the backup Scheduled Task result 1 without repeating the cycle, create and verify one backup generation for the new application binding, and prove runtime readiness. Do not replay Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Any post-fix live journey must be a new request with a fresh action-time confirmation."
+  "next_step": "Keep production bot tasks disabled until the coherent candidate, exact staged scheduler/backup binding, isolated recovery and independent L1/L2/L3 are checked. Then run controlled Desktop/Telegram D01-D17 with exact receipts, including positive notifier opt-out. Do not replay Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50."
 }

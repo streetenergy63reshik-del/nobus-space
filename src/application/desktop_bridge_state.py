@@ -303,6 +303,49 @@ class SQLiteDesktopBridgeState:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
+    def request_for_reply(
+        self, *, chat_id: int, topic_id: int | None, telegram_message_id: int
+    ) -> BridgeRequest | None:
+        """Resolve a reply to an original prompt or a delivered result card."""
+        _nonzero_int(chat_id)
+        _optional_positive_int(topic_id)
+        _positive_int(telegram_message_id)
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(
+                    """SELECT DISTINCT r.* FROM desktop_bridge_requests r
+                       LEFT JOIN desktop_bridge_deliveries d ON d.request_id=r.request_id
+                       WHERE r.chat_id=? AND r.topic_id IS ?
+                         AND (r.source_message_id=? OR
+                              (d.telegram_message_id=? AND d.status='sent'))
+                         AND r.desktop_thread_id IS NOT NULL""",
+                    (chat_id, topic_id, telegram_message_id, telegram_message_id),
+                ).fetchall()
+                if len(rows) > 1:
+                    raise DesktopBridgeStateError("desktop_bridge_reply_ambiguous")
+                return None if not rows else self._request_from_row(rows[0])
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def topic_thread_count(self, *, chat_id: int, topic_id: int | None) -> int:
+        _nonzero_int(chat_id)
+        _optional_positive_int(topic_id)
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT COUNT(DISTINCT desktop_thread_id)
+                       FROM desktop_bridge_requests
+                       WHERE chat_id=? AND topic_id IS ?
+                         AND desktop_thread_id IS NOT NULL
+                         AND status NOT IN ('failed','cancelled','unknown_dispatch')""",
+                    (chat_id, topic_id),
+                ).fetchone()
+                return int(row[0])
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
     def recent_author_request_count(
         self, *, author_user_id: int, since: datetime
     ) -> int:
@@ -407,6 +450,39 @@ class SQLiteDesktopBridgeState:
                 return self._request_from_row(updated)
         except DesktopBridgeStateError:
             raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def bind_bootstrap_turn(
+        self, request_id: UUID, *, thread_id: str, turn_id: str
+    ) -> bool:
+        """Persist the UIA creation turn separately from the actual task turn."""
+        if not isinstance(request_id, UUID):
+            return False
+        thread = _text(thread_id, 256)
+        turn = _text(turn_id, 256)
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    """SELECT desktop_thread_id,bootstrap_turn_id,client_message_id,status
+                       FROM desktop_bridge_requests WHERE request_id=?""",
+                    (str(request_id),),
+                ).fetchone()
+                if (
+                    row is None
+                    or row["desktop_thread_id"] != thread
+                    or row["client_message_id"] != f"nobus:{request_id}"
+                    or row["status"] in _TERMINAL_REQUEST_STATUSES
+                ):
+                    return False
+                if row["bootstrap_turn_id"] is not None:
+                    return row["bootstrap_turn_id"] == turn
+                connection.execute(
+                    """UPDATE desktop_bridge_requests SET bootstrap_turn_id=?,updated_at=?
+                       WHERE request_id=? AND bootstrap_turn_id IS NULL""",
+                    (turn, self._now().isoformat(), str(request_id)),
+                )
+                return True
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
@@ -588,6 +664,50 @@ class SQLiteDesktopBridgeState:
                        WHERE interaction_id=? AND target_user_id=? AND status='pending'
                          AND expires_at>?""",
                     (now, identifier, responder, now),
+                )
+                return cursor.rowcount == 1
+        except (OSError, sqlite3.DatabaseError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def claim_interaction_answer(
+        self, interaction: PendingDesktopInteraction, *, responder_user_id: int
+    ) -> bool:
+        """Atomically reserve one exact pending answer before the Desktop effect."""
+        responder = _positive_int(responder_user_id)
+        now = self._now().isoformat()
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE desktop_bridge_interactions
+                       SET status='unknown',updated_at=?
+                       WHERE interaction_id=? AND request_id=? AND target_user_id=?
+                         AND desktop_request_id=? AND desktop_turn_id=?
+                         AND kind=? AND payload_digest=? AND status='pending'
+                         AND expires_at>?""",
+                    (
+                        now, interaction.interaction_id, str(interaction.request_id),
+                        responder, interaction.desktop_request_id,
+                        interaction.desktop_turn_id, interaction.kind.value,
+                        interaction.payload_digest, now,
+                    ),
+                )
+                return cursor.rowcount == 1
+        except (OSError, sqlite3.DatabaseError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def finish_interaction_answer(
+        self, interaction_id: str, *, status: str
+    ) -> bool:
+        """Finish a reserved response after ACK or readback; never reopen it."""
+        identifier = _text(interaction_id, 256)
+        if status not in {"answered", "superseded", "unknown", "expired"}:
+            raise ValueError("desktop interaction answer status is invalid")
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    """UPDATE desktop_bridge_interactions SET status=?,updated_at=?
+                       WHERE interaction_id=? AND status='unknown'""",
+                    (status, self._now().isoformat(), identifier),
                 )
                 return cursor.rowcount == 1
         except (OSError, sqlite3.DatabaseError):
@@ -845,6 +965,7 @@ class SQLiteDesktopBridgeState:
                     project_name TEXT,
                     desktop_thread_id TEXT,
                     desktop_turn_id TEXT,
+                    bootstrap_turn_id TEXT,
                     client_message_id TEXT,
                     status TEXT NOT NULL CHECK(status IN (
                         'received','needs_target','needs_voice_confirmation','dispatching','running',
@@ -906,6 +1027,16 @@ class SQLiteDesktopBridgeState:
                     "PRAGMA table_info(desktop_bridge_interactions)"
                 )
             }
+            request_columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(desktop_bridge_requests)"
+                )
+            }
+            if "bootstrap_turn_id" not in request_columns:
+                connection.execute(
+                    "ALTER TABLE desktop_bridge_requests ADD COLUMN bootstrap_turn_id TEXT"
+                )
             if "telegram_chat_id" not in columns:
                 connection.execute(
                     """ALTER TABLE desktop_bridge_interactions

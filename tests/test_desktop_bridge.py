@@ -1,21 +1,27 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+import src.application.desktop_bridge as desktop_bridge_module
 
 from src.application.desktop_bridge import (
     DesktopBridgeService,
     _bridge_turn_text,
+    _desktop_execution_settings,
     _desktop_final_text,
     inspect_artifacts,
     snapshot_artifacts,
     telegram_text_parts,
     telegram_visible_final,
+    _pending_matches_interaction,
+    _interprocess_bootstrap_lock,
+    _parse_thread_ref,
 )
 from src.application.desktop_bridge_state import (
     BridgeRequestStatus,
@@ -27,6 +33,7 @@ from src.integrations.codex_desktop_ipc import (
     DesktopAgentMessage,
     DesktopPendingRequest,
     DesktopTurnState,
+    DesktopIpcUnavailableError,
 )
 from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
 from src.transport.telegram.models import TextMessage, VoiceMessage, VoiceMetadata
@@ -57,6 +64,51 @@ def _request(state: SQLiteDesktopBridgeState, *, ingress: str, request_id=None):
         operation="create",
         project_name="nobus-orchestrator-dev",
         payload={"instruction": "Проверь задачу"},
+    )
+
+
+def test_bootstrap_turn_is_bound_once_for_notifier_correlation(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "b" * 64)
+    thread_id, turn_id = str(uuid4()), str(uuid4())
+    state.transition(
+        request.request_id,
+        expected=frozenset({BridgeRequestStatus.RECEIVED}),
+        status=BridgeRequestStatus.DISPATCHING,
+    )
+    state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    assert state.bind_bootstrap_turn(
+        request.request_id, thread_id=thread_id, turn_id=turn_id
+    )
+    assert state.bind_bootstrap_turn(
+        request.request_id, thread_id=thread_id, turn_id=turn_id
+    )
+    assert not state.bind_bootstrap_turn(
+        request.request_id, thread_id=thread_id, turn_id=str(uuid4())
+    )
+
+
+def test_existing_bridge_database_adds_bootstrap_turn_binding(tmp_path: Path) -> None:
+    path = tmp_path / "telegram-state.sqlite3"
+    _state(path)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "ALTER TABLE desktop_bridge_requests DROP COLUMN bootstrap_turn_id"
+        )
+    state = _state(path)
+    request = _request(state, ingress="sha256:" + "c" * 64)
+    thread_id, turn_id = str(uuid4()), str(uuid4())
+    state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    assert state.bind_bootstrap_turn(
+        request.request_id, thread_id=thread_id, turn_id=turn_id
     )
 
 
@@ -276,6 +328,126 @@ def test_interaction_is_bound_to_numeric_recipient(tmp_path: Path) -> None:
     assert not state.resolve_interaction(interaction.interaction_id, responder_user_id=41)
 
 
+def test_approval_claim_is_exact_atomic_and_expires_before_effect(tmp_path: Path) -> None:
+    now = datetime.now(UTC)
+    clock_value = [now]
+    encode, decode = _codec()
+    state = SQLiteDesktopBridgeState(
+        tmp_path / "telegram-state.sqlite3", encode=encode, decode=decode,
+        clock=lambda: clock_value[0],
+    )
+    request = _request(state, ingress="sha256:" + "6" * 64)
+    payload = {
+        "id": 23,
+        "method": "item/commandExecution/requestApproval",
+        "params": {"threadId": "thread-1", "turnId": "turn-1", "command": "safe"},
+    }
+    interaction = state.put_interaction(
+        interaction_id="approval-claim", request_id=request.request_id,
+        kind=InteractionKind.COMMAND_APPROVAL, desktop_request_id=23,
+        desktop_turn_id="turn-1", target_user_id=99, generation=1,
+        payload=payload, expires_at=now + timedelta(seconds=5),
+    )
+    same = DesktopPendingRequest(23, payload["method"], payload)
+    assert _pending_matches_interaction(same, interaction, "thread-1")
+    changed = {
+        **payload,
+        "params": {**payload["params"], "turnId": "turn-2", "command": "unsafe"},
+    }
+    assert not _pending_matches_interaction(
+        DesktopPendingRequest(23, payload["method"], changed), interaction,
+        "thread-1",
+    )
+    assert not state.claim_interaction_answer(interaction, responder_user_id=41)
+    assert state.claim_interaction_answer(interaction, responder_user_id=99)
+    assert not state.claim_interaction_answer(interaction, responder_user_id=99)
+    assert state.finish_interaction_answer(interaction.interaction_id, status="answered")
+    assert not state.claim_interaction_answer(interaction, responder_user_id=99)
+    later = state.put_interaction(
+        interaction_id="approval-expired-before-claim", request_id=request.request_id,
+        kind=InteractionKind.COMMAND_APPROVAL, desktop_request_id=24,
+        desktop_turn_id="turn-1", target_user_id=99, generation=1,
+        payload={**payload, "id": 24}, expires_at=now + timedelta(seconds=5),
+    )
+    clock_value[0] = now + timedelta(seconds=6)
+    assert not state.claim_interaction_answer(later, responder_user_id=99)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("change_during_read", ["payload", "expiry"])
+async def test_changed_or_expired_approval_never_calls_desktop_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change_during_read: str,
+) -> None:
+    now = datetime.now(UTC)
+    clock_value = [now]
+    encode, decode = _codec()
+    state = SQLiteDesktopBridgeState(
+        tmp_path / "telegram-state.sqlite3", encode=encode, decode=decode,
+        clock=lambda: clock_value[0],
+    )
+    request = _request(state, ingress="sha256:" + "7" * 64)
+    state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.WAITING_OWNER,
+    )
+    payload = {
+        "id": 23, "method": "item/commandExecution/requestApproval",
+        "params": {"threadId": "thread-1", "turnId": "turn-1", "command": "safe"},
+    }
+    interaction = state.put_interaction(
+        interaction_id="approval-read-race", request_id=request.request_id,
+        kind=InteractionKind.COMMAND_APPROVAL, desktop_request_id=23,
+        desktop_turn_id="turn-1", target_user_id=99, generation=1,
+        payload=payload, expires_at=now + timedelta(seconds=5),
+    )
+
+    class Client:
+        async def find_thread_owner(self, _thread_id):
+            return object()
+
+        async def load_complete_history_snapshot(self, _thread_id, *, owner):
+            if change_during_read == "expiry":
+                clock_value[0] = now + timedelta(seconds=6)
+            return object()
+
+        async def close(self):
+            pass
+
+    changed_payload = {
+        **payload,
+        "params": {**payload["params"], "turnId": "turn-2", "command": "unsafe"},
+    }
+    current = changed_payload if change_during_read == "payload" else payload
+    monkeypatch.setattr(
+        desktop_bridge_module, "project_desktop_conversation",
+        lambda _snapshot: SimpleNamespace(pending_requests=(
+            DesktopPendingRequest(23, payload["method"], current),
+        )),
+    )
+    project = tmp_path / "project"
+    project.mkdir()
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        ipc_factory=Client, clock=lambda: clock_value[0],
+    )
+    calls = []
+
+    async def send_answer(*args):
+        calls.append(args)
+
+    monkeypatch.setattr(service, "_submit_interaction_answer", send_answer)
+    await service._answer_interaction(
+        _origin_message("разрешаю", user_id=99), interaction
+    )
+    assert calls == []
+    assert any(
+        word in api.messages[-1][1]
+        for word in ("не отправлен", "остановлен", "истёк")
+    )
+
+
 def test_approval_reply_is_bound_to_owner_private_chat(tmp_path: Path) -> None:
     state = _state(tmp_path / "telegram-state.sqlite3")
     request = _request(state, ingress="sha256:" + "a" * 64)
@@ -394,12 +566,75 @@ def test_multiple_final_blocks_strip_each_marker_without_progress() -> None:
     assert _desktop_final_text(turn) == "Первый\n\nВторой"
 
 
+@pytest.mark.asyncio
+async def test_delivery_formats_visible_final_as_telegram_html(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "b" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.EXECUTION_COMPLETED,
+    )
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1", status="completed",
+        user_text=("request",),
+        agent_messages=(DesktopAgentMessage("final-1", "**Готово** и `код`", "final_answer"),),
+        plan_items=(), text_outputs=(),
+    )
+    await service._deliver(request, SimpleNamespace(cwd=str(project)), turn)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.DELIVERED
+    assert len(api.messages) == 1
+    assert api.messages[0][2]["parse_mode"] == "HTML"
+    assert "<b>Готово</b>" in api.messages[0][1]
+    assert "<code>код</code>" in api.messages[0][1]
+
+
 def test_bridge_turn_contains_exact_durable_request_marker(tmp_path: Path) -> None:
     state = _state(tmp_path / "telegram-state.sqlite3")
     request = _request(state, ingress="sha256:" + "8" * 64)
-    assert _bridge_turn_text(request) == (
-        f"NOBUS-BRIDGE-REQUEST:{request.request_id}\nПроверь задачу"
-    )
+    text = _bridge_turn_text(request)
+    assert text.startswith(f"NOBUS-BRIDGE-REQUEST:{request.request_id}\n")
+    assert "Не вызывай nobus-send-results" in text
+    assert text.endswith("\nПроверь задачу")
+
+
+def test_desktop_turn_preserves_plan_and_owner_permission_policy() -> None:
+    mode = {
+        "mode": "plan",
+        "settings": {
+            "model": "gpt-test", "reasoning_effort": "high",
+            "developer_instructions": "project rule",
+        },
+    }
+    state = {
+        "latestCollaborationMode": mode,
+        "latestThreadSettings": {
+            "collaborationMode": mode,
+            "approvalPolicy": "on-request",
+            "approvalsReviewer": "auto_review",
+            "sandboxPolicy": {"type": "workspaceWrite"},
+        },
+    }
+    assert _desktop_execution_settings(state) == {
+        "approvalPolicy": "on-request",
+        "approvalsReviewer": "auto_review",
+        "collaborationMode": mode,
+    }
+    state["latestCollaborationMode"] = {
+        **mode, "settings": {**mode["settings"], "developer_instructions": None}
+    }
+    assert _desktop_execution_settings(state)["collaborationMode"] == mode
+    state["latestThreadSettings"] = {
+        **state["latestThreadSettings"], "collaborationMode": {**mode, "mode": "unknown"}
+    }
+    with pytest.raises(Exception, match="desktop-collaboration-mode-unsupported"):
+        _desktop_execution_settings(state)
 
 
 def test_artifact_snapshot_requires_explicit_regular_file_below_project(tmp_path: Path) -> None:
@@ -436,6 +671,33 @@ def test_artifact_snapshot_allows_unknown_extension_but_blocks_credentials(
     assert [(item.filename, item.reason) for item in inspection.failures] == [
         (secret.name, "sensitive_file")
     ]
+
+
+def test_markdown_forward_slash_artifact_and_explicit_extra_root(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    documents = tmp_path / "documents"
+    documents.mkdir()
+    artifact = documents / "report.txt"
+    artifact.write_bytes(b"report bytes")
+    link = f"[report]({artifact.as_posix()})"
+    blocked = inspect_artifacts(link, allowed_root=project)
+    assert not blocked.snapshots
+    assert any(item.reason == "outside_allowed_roots" for item in blocked.failures)
+    allowed = inspect_artifacts(
+        link, allowed_root=project, additional_roots=(documents,)
+    )
+    assert [(item.filename, item.content) for item in allowed.snapshots] == [
+        ("report.txt", b"report bytes")
+    ]
+
+
+def test_ui_bootstrap_lock_blocks_second_creator(tmp_path: Path) -> None:
+    path = tmp_path / "desktop-bootstrap.lock"
+    with _interprocess_bootstrap_lock(path):
+        with pytest.raises(DesktopIpcUnavailableError, match="desktop-ui-bootstrap-(busy|lock-unavailable)"):
+            with _interprocess_bootstrap_lock(path):
+                pass
 
 
 class _Api:
@@ -480,6 +742,101 @@ def test_bridge_health_retains_completed_worker_failure(tmp_path: Path) -> None:
     service._worker_error = RuntimeError("unexpected worker failure")
     with pytest.raises(RuntimeError, match="desktop bridge worker stopped"):
         service.assert_healthy()
+
+
+def test_project_name_with_spaces_and_task_link_are_parsed(tmp_path: Path) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=_state(tmp_path / "telegram-state.sqlite3"),
+        uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    parsed = service._parse_command(
+        _message("/codex new Business Project\nСделай отчёт")
+    )
+    assert parsed is not None
+    assert (parsed.operation, parsed.project_name, parsed.instruction) == (
+        "create", "Business Project", "Сделай отчёт",
+    )
+    task_id = str(uuid4())
+    link = service._parse_command(
+        _message(f"/codex continue codex://threads/{task_id}\nПродолжи")
+    )
+    assert link is not None and link.thread_id == f"codex://threads/{task_id}"
+    assert _parse_thread_ref(link.thread_id) == task_id
+    assert _parse_thread_ref(task_id) == task_id
+
+
+def test_reply_resolves_older_task_and_ambiguous_topic_stops(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    first = _request(state, ingress="sha256:" + "1" * 64)
+    state.bind_desktop(
+        first.request_id, thread_id=str(uuid4()), turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.RUNNING,
+    )
+    second = state.create_request(
+        request_id=uuid4(), ingress_key="sha256:" + "2" * 64,
+        tenant_id="owner", author_user_id=41,
+        author_identity="telegram:member:41", chat_id=-1001, topic_id=7,
+        source_message_id=13, operation="create",
+        project_name="nobus-orchestrator-dev", payload={"instruction": "second"},
+    )
+    state.bind_desktop(
+        second.request_id, thread_id=str(uuid4()), turn_id="turn-2",
+        client_message_id="client-2", status=BridgeRequestStatus.RUNNING,
+    )
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    assert state.topic_thread_count(chat_id=-1001, topic_id=7) == 2
+    assert service._topic_predecessor(_message("/codex дальше")) is None
+    assert service._topic_predecessor(
+        _message("/codex дальше", reply=12)
+    ).request_id == first.request_id
+    assert service._topic_predecessor(
+        _message("/codex дальше", reply=13)
+    ).request_id == second.request_id
+
+
+@pytest.mark.asyncio
+async def test_redelivery_only_schedules_known_partial_in_same_topic(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "c" * 64)
+    state.bind_desktop(
+        request.request_id, thread_id=str(uuid4()), turn_id="turn-1",
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.DELIVERY_PARTIAL,
+    )
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    scheduled = []
+    service._schedule = scheduled.append
+    await service._redeliver_known_partial(
+        _origin_message("restore", user_id=41), str(request.request_id)
+    )
+    assert scheduled == [request.request_id]
+    await service._redeliver_known_partial(
+        _origin_message("restore", user_id=55), str(request.request_id)
+    )
+    assert scheduled == [request.request_id]
+    state.transition(
+        request.request_id,
+        expected=frozenset({BridgeRequestStatus.DELIVERY_PARTIAL}),
+        status=BridgeRequestStatus.DELIVERY_UNKNOWN,
+    )
+    await service._redeliver_known_partial(
+        _origin_message("restore", user_id=41), str(request.request_id)
+    )
+    assert scheduled == [request.request_id]
 
 
 def _message(text: str, *, reply: int | None = None) -> TextMessage:
@@ -769,7 +1126,7 @@ async def test_forwarded_owner_reply_cannot_answer_approval(tmp_path: Path) -> N
 
 
 @pytest.mark.asyncio
-async def test_mixed_question_goes_to_author_and_approval_goes_to_owner(
+async def test_mixed_question_and_approval_stay_in_source_topic_with_numeric_mentions(
     tmp_path: Path,
 ) -> None:
     project = tmp_path / "nobus-orchestrator-dev"
@@ -814,14 +1171,51 @@ async def test_mixed_question_goes_to_author_and_approval_goes_to_owner(
             DesktopPendingRequest(
                 request_id=2,
                 method="item/commandExecution/requestApproval",
-                payload={"params": {"command": "safe"}},
+                payload={"params": {"command": "echo **literal**"}},
             ),
         ],
         1,
     )
-    assert [item[0] for item in api.messages] == [-1001, 99]
-    assert api.messages[0][2]["message_thread_id"] == 7
+    assert [item[0] for item in api.messages] == [-1001] * 4
+    assert all(item[2]["message_thread_id"] == 7 for item in api.messages)
     assert api.messages[0][2]["reply_to_message_id"] == 12
-    assert api.messages[1][2]["message_thread_id"] is None
-    assert api.messages[1][2]["reply_to_message_id"] is None
+    assert api.messages[2][2]["reply_to_message_id"] == 12
+    assert 'tg://user?id=41' in api.messages[0][1]
+    assert 'tg://user?id=99' in api.messages[2][1]
+    assert api.messages[0][2]["parse_mode"] == "HTML"
+    assert api.messages[2][2]["parse_mode"] == "HTML"
+    assert api.messages[1][2].get("parse_mode") is None
+    assert api.messages[3][2].get("parse_mode") is None
+    assert "echo **literal**" in api.messages[3][1]
     assert state.read_request(request.request_id).status is BridgeRequestStatus.WAITING_OWNER
+
+
+@pytest.mark.asyncio
+async def test_manual_review_card_is_not_resent_each_monitor_cycle(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "d" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.RUNNING,
+    )
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1",
+        status="inProgress", user_text=("test",), agent_messages=(),
+        plan_items=(), text_outputs=(),
+    )
+    pending = [DesktopPendingRequest(
+        request_id=9, method="unknown/request",
+        payload={"id": 9, "method": "unknown/request", "params": {"turnId": "turn-1"}},
+    )]
+    await service._publish_interactions(request, turn, pending, 1)
+    sent = len(api.messages)
+    assert sent >= 2
+    await service._publish_interactions(request, turn, pending, 1)
+    assert len(api.messages) == sent

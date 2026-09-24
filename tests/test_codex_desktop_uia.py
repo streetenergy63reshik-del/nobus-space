@@ -159,7 +159,7 @@ async def test_snapshot_passes_a_normal_powershell_parameter_value(
             stdout=json.dumps(
                 {
                     "action": "Snapshot",
-                    "desktop_version": "26.915.4065.0",
+                    "desktop_version": "26.917.9434.0",
                     "process_id": 123,
                     "mutations": [],
                 }

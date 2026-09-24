@@ -22,7 +22,7 @@ from uuid import uuid4
 
 DESKTOP_PIPE_NAME = r"\\.\pipe\codex-ipc"
 INITIAL_CLIENT_ID = "initializing-client"
-PROTOCOL_PROFILE = "codex-desktop-26.915.4065.0"
+PROTOCOL_PROFILE = "codex-desktop-26.917.9434.0"
 HARD_MAX_FRAME_BYTES = 256 * 1024 * 1024
 DEFAULT_MAX_FRAME_BYTES = 16 * 1024 * 1024
 DEFAULT_CONNECT_TIMEOUT_MS = 1_500

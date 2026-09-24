@@ -1,0 +1,94 @@
+diff --git a/notify_codex_completion.py b/notify_codex_completion.py
+--- a/notify_codex_completion.py
++++ b/notify_codex_completion.py
+@@ -59,6 +59,7 @@ class Settings:
+     credential_target: str
+     session_index: Path
+     state_path: Path
++    bridge_state_path: Path | None = None
+ 
+ 
+ def _plain(value: object, limit: int) -> str:
+@@ -131,6 +132,10 @@ def load_settings(path: Path = CONFIG_PATH) -> Settings:
+             ),
+             "state_path",
+         ),
++        bridge_state_path=(
++            None if raw.get("bridge_state_path") is None
++            else _absolute_path(raw["bridge_state_path"], "bridge_state_path")
++        ),
+     )
+ 
+ 
+diff --git a/notify_every_turn.py b/notify_every_turn.py
+--- a/notify_every_turn.py
++++ b/notify_every_turn.py
+@@ -71,8 +71,8 @@ STRICT_FINAL_MARKER_RE = re.compile(
+     re.IGNORECASE,
+ )
+ DESKTOP_BRIDGE_REQUEST_RE = re.compile(
+-    r"(?im)^NOBUS-BRIDGE-REQUEST:"
+-    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ \t]*$"
++    r"(?im)^NOBUS-BRIDGE-REQUEST:(?P<request_id>"
++    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[ \t]*$"
+ )
+ DESKTOP_ID_RE = re.compile(
+     r"(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+@@ -353,8 +353,10 @@ def desktop_bridge_turn(
+     runtime_thread_id: str,
+     turn_id: str,
+     index_path: object,
++    bridge_state_path: Path | None = None,
++    bot_repo: Path | None = None,
+ ) -> bool:
+-    """Recognize only an exact bridge marker in the user input of this turn."""
++    """Suppress only an exact marker backed by one durable bridge turn."""
+     if (
+         not isinstance(index_path, Path)
+         or DESKTOP_ID_RE.fullmatch(runtime_thread_id) is None
+@@ -403,7 +405,32 @@ def desktop_bridge_turn(
+                     and item.get("type") == "input_text"
+                     and isinstance(item.get("text"), str)
+                 )
+-                return DESKTOP_BRIDGE_REQUEST_RE.search(text) is not None
++                marker = DESKTOP_BRIDGE_REQUEST_RE.search(text)
++                if (
++                    marker is None
++                    or not isinstance(bridge_state_path, Path)
++                    or not isinstance(bot_repo, Path)
++                ):
++                    return False
++                verifier = bot_repo / "src" / "integrations" / "desktop_notifier_auth.py"
++                if not verifier.is_file() or verifier.is_symlink():
++                    return False
++                try:
++                    spec = importlib.util.spec_from_file_location(
++                        "nobus_desktop_notifier_auth", verifier
++                    )
++                    if spec is None or spec.loader is None:
++                        return False
++                    module = importlib.util.module_from_spec(spec)
++                    spec.loader.exec_module(module)
++                    return module.registered_bridge_turn(
++                        bridge_state_path,
++                        request_id=marker.group("request_id"),
++                        thread_id=runtime_thread_id,
++                        turn_id=turn_id,
++                    ) is True
++                except Exception:
++                    return False
+     except (OSError, UnicodeError):
+         return False
+     return False
+@@ -472,7 +499,10 @@ def process_event(raw_event: str, settings: Settings) -> str:
+         return "skipped"
+     if not isinstance(message, str) or not message.strip():
+         return "skipped"
+-    if desktop_bridge_turn(thread_id, turn_id, settings.session_index):
++    if desktop_bridge_turn(
++        thread_id, turn_id, settings.session_index,
++        settings.bridge_state_path, settings.bot_repo,
++    ):
+         return "bridge_suppressed"
+     visible = resolve_visible_thread_context(thread_id, settings.session_index)
+     if visible is None:

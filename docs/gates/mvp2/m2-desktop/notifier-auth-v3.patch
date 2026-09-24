@@ -1,0 +1,124 @@
+diff --git a/notify_codex_completion.py b/notify_codex_completion.py
+--- a/notify_codex_completion.py
++++ b/notify_codex_completion.py
+@@ -12,6 +12,7 @@ import sys
+ from dataclasses import dataclass
+ from pathlib import Path
+ from typing import Any, Callable, Mapping, Sequence
++from uuid import UUID
+ 
+ 
+ EVENT_TYPE = "agent-turn-complete"
+@@ -59,6 +60,47 @@ class Settings:
+     credential_target: str
+     session_index: Path
+     state_path: Path
++    bridge_state_path: Path | None = None
++
++
++_BRIDGE_CLIENT_MESSAGE = re.compile(r"nobus:[0-9a-f-]{36}\Z")
++
++
++def registered_bridge_turn(
++    state_path: Path, *, request_id: str, thread_id: str, turn_id: str
++) -> bool:
++    """Read-only exact binding; a copied marker never authenticates a turn."""
++    try:
++        identifier = str(UUID(request_id))
++        thread = str(UUID(thread_id))
++        if not isinstance(turn_id, str) or not turn_id or len(turn_id) > 256:
++            return False
++        path = Path(state_path)
++        if not path.is_absolute() or not path.is_file() or path.is_symlink():
++            return False
++        with contextlib.closing(
++            sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
++        ) as connection:
++            connection.execute("PRAGMA query_only=ON")
++            row = connection.execute(
++                """SELECT desktop_thread_id,desktop_turn_id,client_message_id,
++                          status,chat_id,topic_id
++                   FROM desktop_bridge_requests WHERE request_id=?""",
++                (identifier,),
++            ).fetchone()
++        return bool(
++            row is not None
++            and row[0] == thread
++            and row[1] == turn_id
++            and isinstance(row[2], str)
++            and _BRIDGE_CLIENT_MESSAGE.fullmatch(row[2]) is not None
++            and row[2] == f"nobus:{identifier}"
++            and row[3] not in {"cancelled", "failed"}
++            and type(row[4]) is int and row[4] < 0
++            and (row[5] is None or type(row[5]) is int and row[5] > 0)
++        )
++    except (OSError, ValueError, sqlite3.Error):
++        return False
+ 
+ 
+ def _plain(value: object, limit: int) -> str:
+@@ -131,6 +173,10 @@ def load_settings(path: Path = CONFIG_PATH) -> Settings:
+             ),
+             "state_path",
+         ),
++        bridge_state_path=(
++            None if raw.get("bridge_state_path") is None
++            else _absolute_path(raw["bridge_state_path"], "bridge_state_path")
++        ),
+     )
+ 
+ 
+diff --git a/notify_every_turn.py b/notify_every_turn.py
+--- a/notify_every_turn.py
++++ b/notify_every_turn.py
+@@ -71,8 +71,8 @@ STRICT_FINAL_MARKER_RE = re.compile(
+     re.IGNORECASE,
+ )
+ DESKTOP_BRIDGE_REQUEST_RE = re.compile(
+-    r"(?im)^NOBUS-BRIDGE-REQUEST:"
+-    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ \t]*$"
++    r"(?im)^NOBUS-BRIDGE-REQUEST:(?P<request_id>"
++    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[ \t]*$"
+ )
+ DESKTOP_ID_RE = re.compile(
+     r"(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+@@ -353,8 +353,9 @@ def desktop_bridge_turn(
+     runtime_thread_id: str,
+     turn_id: str,
+     index_path: object,
++    bridge_state_path: Path | None = None,
+ ) -> bool:
+-    """Recognize only an exact bridge marker in the user input of this turn."""
++    """Suppress only an exact marker backed by one durable bridge turn."""
+     if (
+         not isinstance(index_path, Path)
+         or DESKTOP_ID_RE.fullmatch(runtime_thread_id) is None
+@@ -403,7 +404,15 @@ def desktop_bridge_turn(
+                     and item.get("type") == "input_text"
+                     and isinstance(item.get("text"), str)
+                 )
+-                return DESKTOP_BRIDGE_REQUEST_RE.search(text) is not None
++                marker = DESKTOP_BRIDGE_REQUEST_RE.search(text)
++                if marker is None or not isinstance(bridge_state_path, Path):
++                    return False
++                return core.registered_bridge_turn(
++                    bridge_state_path,
++                    request_id=marker.group("request_id"),
++                    thread_id=runtime_thread_id,
++                    turn_id=turn_id,
++                ) is True
+     except (OSError, UnicodeError):
+         return False
+     return False
+@@ -472,7 +481,10 @@ def process_event(raw_event: str, settings: Settings) -> str:
+         return "skipped"
+     if not isinstance(message, str) or not message.strip():
+         return "skipped"
+-    if desktop_bridge_turn(thread_id, turn_id, settings.session_index):
++    if desktop_bridge_turn(
++        thread_id, turn_id, settings.session_index,
++        settings.bridge_state_path,
++    ):
+         return "bridge_suppressed"
+     visible = resolve_visible_thread_context(thread_id, settings.session_index)
+     if visible is None:

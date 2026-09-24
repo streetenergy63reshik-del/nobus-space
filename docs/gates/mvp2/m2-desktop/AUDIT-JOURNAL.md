@@ -42,8 +42,11 @@ Scheduled Tasks остановлены и Disabled. Gate не принят, prod
   `Code\worktrees\telegram-live`, detached на `3ea2438`; он не является
   опубликованной `main`.
 - Прямых записей в БД или историю Codex Desktop не было. Codex не
-  устанавливался, не обновлялся и не патчился; PATH, ACL, credentials и
-  BotFather не менялись.
+  устанавливался, не обновлялся и не патчился; PATH, ACL и credentials не
+  менялись. Позднейший независимый аудит восстановил UIA-действие по
+  переключателю Bot to Bot Communication Mode в BotFather: это доказывает
+  действие, но не текущую настройку и не приём сообщения Артура. Утверждение
+  «BotFather не менялся» больше не является действующей квитанцией.
 - CDP не запускался. Отдельный CLI/App Server не принят как замена Desktop.
 - Полный независимый L1/L2/L3 не выполнялся: кандидат ещё не заморожен и live
   journey не завершён.
@@ -299,3 +302,145 @@ Runtime-only evidence не добавлено в Git и находится по�
 - backup cycle до локализации последнего result `1`;
 - полный L1/L2/L3 до заморозки цельного кандидата;
 - C6, MVP1 acceptance и 72-часовое наблюдение.
+
+## 13. Журнал локального возобновления 24.09.2026
+
+Этот раздел дополняет исторический журнал, не переписывая старые receipts.
+Рабочий HEAD `31df0d00a0a74de920a7a7367d3b662566a653ff`, все изменения
+пока незакоммичены. Не было новых внешних сообщений, Desktop turn, установки,
+изменения notifier/skill, production start, push/merge/deploy.
+
+| Граница | Факт / проверка | Решение / остаток |
+|---|---|---|
+| Grok GA/GB/GC/IN | SHA ZIP совпали с аудитом; импортированы шесть файлов. После адресных исправлений 100 тестов прошли. | Код используется в продуктовых границах, но ZIP и fixtures не являются D01–D17. |
+| A01 backup rebind | Новая конфигурация и old phase=complete раньше отвергались до попытки. Адресный тест reconcile прошёл, старый сертификат сохранён. | Только локальная логика; живой цикл запрещён до точного разрешения. Весь файл C6-тестов повторно запускать отказал auto-review; обхода не было. |
+| A02 stale approval | Тесты смены payload/turn и expiry во время history read не вызвали Desktop answer; CAS отвергает второй ответ. | Между последним read и IPC остаётся теоретическая гонка, как у любого внешнего API без условного ACK. Реконнект с новой generation при том же payload потребует отдельного подтверждения: попытка снять проверку generation в durable state была отклонена auto-review как риск устаревшего approval, изменение не применено. |
+| A03 files | Markdown C:/..., backslash, explicit additional roots, reparse и sensitive filter проходят локальные тесты. | Корни должны быть явно включены оператором; live файл и два topic не проверены. |
+| A04/A05 cards | Renderer показывает exact IDs и action scope, карточка остаётся literal/plain, numeric mention — HTML в исходной теме. | Получение каждого вида pending и фактический Telegram approve/deny ещё live. |
+| A06 UIA | Python lock удерживается до owner correlation; PowerShell mutex и non-empty draft guard. Тест второго lock пройден. | После ручного UI-переключения нужен live stop-check; слепой retry запрещён. |
+| A07/A08 | Reply, UUID/deep link, проект с пробелами и каталог проектов — локальные проверки. | Автоматическая полнота сохранённых проектов, managed worktree и mode parity не доказаны. Продукт по-прежнему передаёт Default; Plan question receipt относится к harness. |
+| A09 | Новая команда redeliver вызывает только восстановление known partial без нового turn; unknown остаётся остановленным. | Shared skill runtime v1 ключует destination+digest; нужен совместимый operation-key и receipt, без второго sender и без изменения смысла destination_ref. |
+| A10 | Продуктовый `_deliver` отправляет HTML `parse_mode`; test доказывает bold/code. | Длинный live ответ, часть/файл и Telegram receipt ждут разрешения. |
+| A11 | Исправлены три битые ссылки, docs16 регенерирован; `tests/test_documentation.py` — 4 passed. | Machine EVIDENCE пересчитать на замороженном снимке; прежний digest не выдавать за текущий. |
+| A12 | Флаг `--desktop-bridge` default false; runner + bridge тесты проходят. | Изолированный rollback/backup generation и readiness ещё не проведены, production не трогать. |
+| A13 | Read-only verifier exact durable request/thread/turn отвергает поддельный/скопированный marker в unit-тесте. | Установленный notifier пока не вызывает verifier; не считать opt-out аутентичным. |
+
+Последние целевые проверки: `tests/test_telegram_mvp1_runner.py` +
+`tests/test_desktop_bridge.py` + `tests/test_desktop_notifier_auth.py` +
+`tests/test_documentation.py` — 63 passed; затем inventory+bridge — 59 passed;
+после redelivery bridge — 32 passed. Срезы различаются, повторный общий прогон
+будет только по замороженному кандидату. `git diff --check` на момент проверки
+не сообщал whitespace errors; после дальнейших правок проверить снова.
+
+Поздний локальный связанный non-C6 regression-набор на текущем WIP: 12 файлов,
+`287 passed` за 22,75 с на последнем WIP; `git diff --check` без whitespace errors. Этот
+результат не заменяет independent L1/L2/L3 и не относится к live D01–D17.
+
+### A09 — подготовленный sender-v2 patch (после 287-test среза)
+
+Только в игнорируемой копии установленного `telegram_delivery_runtime.py`
+проверен [минимальный patch](telegram-delivery-runtime-v2.patch): прежний v1
+ключ остаётся неизменным; optional operation key различает новый запрос того
+же файла; read-only receipt возвращает status/message_id. `git apply --check`
+на свежей копии прошёл. Интеграционный adapter теперь передаёт стабильный
+proof-bound destination_ref без request ID, отдельный request-scoped operation
+key и принимает `sent_existing` только с числовой квитанцией. Тесты
+sender/bridge/runner — 63 passed. Установленный skill не менялся: с его v1
+adapter намеренно отказывает при opt-in. Автоматического решения для второго
+skill-вызова из bridge-turn пока нет; A09 не закрыт полностью.
+
+### A13 — локальный patch существующего notifier (24.09.2026)
+
+Подготовлен [notifier-auth-v2.patch](notifier-auth-v2.patch) для двух файлов
+существующего глобального notifier. Вместо подавления по пользовательскому
+маркеру патч требует точную read-only связь request↔thread↔turn в durable
+bridge DB. Неуказанный `bridge_state_path`, отсутствующий DB, поддельный
+request и другой turn сохраняют обычное уведомление. `git apply --check` на
+свежей копии источника прошёл. Функциональный тест на ранее подготовленной
+локальной патченной копии и verifier — `2 passed`; вместе с sender-тестами —
+`4 passed`. Применение patch через `git apply` к второй игнорируемой копии
+получило отказ записи песочницы; установленный notifier и его config не
+менялись. Это не доказательство production opt-out: A13 открыт до разрешённой
+установки и проверки обычной/bridge-задачи, включая сбой доставки.
+
+После изменения sender-adapter полный связанный non-C6 набор 12 файлов на
+текущем WIP — `187 passed` за 18,46 с. Ранее полученные `287 passed` относятся
+к другим bytes; полная независимая проверка замороженного кандидата не
+проводилась. В тестах не было новых Desktop turn или Telegram-доставки.
+
+После этого текст IPC turn получил явное правило единственного владельца
+доставки: модель не должна вызывать `nobus-send-results`, поскольку Bridge
+сам доставляет итог и файлы. Адресные bridge-тесты — `33 passed`, после них
+повторён связанный non-C6 набор на новых bytes — `187 passed` за 20,08 с.
+Это снижение риска, но не исполнимая блокировка стороннего skill-вызова; A09
+остаётся открытым.
+
+## 24.09: проверка обновлённого Desktop и установка общего runtime
+
+Установленный Desktop обновился до `26.917.9434.0`. Read-only IPC
+initialize/owner/history текущей задачи и semantic UIA selector существующего
+проекта прошли. В новых `latestThreadSettings` подтверждены default,
+on-request, auto_review и workspaceWrite; это не полный паритет tools.
+До и после проверки не отправлялись новый Desktop turn/approval.
+
+Sender: исходный installed runtime совпал с manifest; патч A09 применён
+к тому же файлу. Hash установленного файла
+`72b7cff9c49a925d6bb6030b8c976b434e43e96f1d9dd98f7d5b05463c9d5207`
+совпал с тестовой копией; self-test и регрессии v1 прошли. Новой
+Telegram-доставки не было.
+
+Notifier: первоначальный выпуск A13 был подтверждён и установлен, но
+конфигурация с изменением `bot_repo` отклонена auto-review как переход
+trust boundary; отказ не обходился. Вместо этого создан самодостаточный
+read-only verifier в существующем core. Актуальный патч
+[notifier-auth-v3.patch](notifier-auth-v3.patch) применён к чистым локальным
+копиям; hashes совпали с установленным выпуском. Его SHA
+`3befa848059448783b2f5f2b270078a4240226485390d9b76c9eb93e7bfef08a`
+подтверждён владельцем. Первая установка была отклонена из-за опечатки
+в подтверждённом SHA, вторая — из-за другого Python относительно
+Scheduled Task. После read-only выяснения точных причин штатная установка
+через прежний проектный `.venv` прошла: задача планировщика не создана
+заново, settings/credentials не изменены установщиком, Telegram не вызван.
+Отдельно добавлен только явно подтверждённый `bridge_state_path` в JSON.
+Installed verifier загрузил настройки, увидел production SQLite и отверг
+несуществующую request/thread/turn связку. Положительного live-подавления
+ещё нет.
+
+Целевой набор текущего WIP: `65 passed, 1 skipped`. Два первых запуска
+давали 50 setup errors из-за отказа записи pytest tmp, а не ошибок продукта;
+запуск с временной папкой в назначенном worktree прошёл. Это не полный
+Gate suite, не L1/L2/L3 и не D01–D17. Production bot tasks остаются Disabled.
+
+Read-only разбор старого Backup result `1` дал конкретную причину.
+`--inspect-failure` из production checkout успешно проверил конфигурацию
+и подписанный журнал, `phase=complete`; текущая Scheduled Task передаёт
+digest `7c3876…`, журнал связан с `2051b0…`. Вызов inspect из WIP
+worktree сначала дал общий FAIL из-за другого application binding;
+его не принимали за состояние production. Production-скрипт без A01
+отказывает на mismatched completed journal. Сам цикл не повторялся;
+три production tasks оставлены Disabled. Следующее изменение требует
+контролируемого deploy A01, новой проверенной backup generation и readiness.
+
+Ровно один согласованный smoke существующего notifier после выпуска:
+завершённый turn `01a0d2d7-7499-7e73-83fe-591580c11061` в тестовой
+задаче `01a0c45d-e9f8-7f81-a7b5-eb29818e33a5`; local rollout содержит
+один `task_complete` с тестовой фразой, one-shot ledger exact event key —
+`sent`. Проверка не относится к bridge-auth positive path, полному
+Telegram-ответу или D01–D17.
+
+### Продолжение: fast-turn и production wiring (24.09)
+
+| ID | Новый воспроизводимый факт | Исправление и проверка | Остаток |
+|---|---|---|---|
+| M2B-012 / A13-D15 | Bootstrap turn UIA не был привязан к durable request; установленный v3 notifier мог отправить summary до bridge final. | Red-тест `AttributeError` для `bind_bootstrap_turn`; затем аддитивная миграция, точный turn binding и v4 notifier с ограниченным ожиданием записи. Патч на v3-копию совпал побайтно с исходником. Canonical package: `91 passed, 54 subtests`; release SHA `e6e08ba29097b3a35e58f43cf2a7619778b95bf72561d23499c31e91a6479eda` подтверждён и установлен; installer не менял settings/credentials и не вызывал Telegram. | Позитивный живой opt-out и один полный итог в исходной теме не проверены. |
+| M2B-013 / A12 | Production Scheduled Task через supervisor не передавал Core `--desktop-bridge`; прежний backup запустил бы только MVP1. | Три red-теста, затем opt-in цепочка installer → supervisor → Core, точная привязка каталога проектов и явных корней артефактов. PS Parser 0 errors; целевые 5 tests PASS. | Остановленный production ещё не обновлён; staged action/activation/readiness нужны на точной версии. |
+| M2B-014 / A01-A12 | Аддитивный столбец меняет DDL, а backup проверяет точные хэши; новый application не мог бы подтвердить старую БД до Core startup. | Red-тест свежей схемы, два точных разрешённых DDL-хэша, миграция только известной прежней DDL под admission hold в A01 reconcile. Fresh+migrated content validation и one A01 test PASS (`7 passed` вместе с новыми тестами). | Неизвестная схема отвергается; реальная новая backup generation и rollback не проверены. |
+
+После этих правок общий связанный срез до последнего A01 helper —
+`295 passed, 1 skipped`; затем на последних кодовых bytes связанный набор
+и четыре адресных совместимости дали `301 passed, 1 skipped`.
+Неиспользуемый локальный verifier-дубль и его тест удалены по двум точным
+путям после отказа `apply_patch`; установленный runtime не затронут.
+Production bot tasks остаются остановленными и
+Disabled. Ни одного нового продуктового Telegram-запроса или Desktop turn
+не отправлено. Gate не заморожен, не опубликован и не принят.

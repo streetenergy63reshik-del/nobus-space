@@ -5,6 +5,9 @@ param(
     [string]$RuntimeRoot = '',
     [string]$HealthLauncherRoot = '',
     [switch]$SemanticAdmission,
+    [switch]$DesktopBridge,
+    [string]$DesktopProjectsFile = '',
+    [string[]]$DesktopArtifactRoot = @(),
     [string]$StateRoot = '',
     [string]$VoiceModelDirectory = '',
     [string]$BackupRoot = '',
@@ -98,6 +101,54 @@ $modelDirectory = Resolve-CompositionDirectory $VoiceModelDirectory
 $backupDirectory = Resolve-CompositionDirectory $BackupRoot
 if ([bool]$backupDirectory -ne [bool]$BackupOwnership -or ($BackupOwnership -and $BackupOwnership -notmatch "^sha256:[0-9a-f]{64}$")) { throw "Backup root and ownership must be supplied together." }
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
+$desktopInventory = $null
+if (-not [string]::IsNullOrWhiteSpace($DesktopProjectsFile)) {
+    if ($DesktopProjectsFile -notmatch '^[A-Za-z]:[\\/]') {
+        throw 'Desktop project inventory must be an absolute local path.'
+    }
+    $file = Get-Item -LiteralPath $DesktopProjectsFile -ErrorAction Stop
+    if ($file.PSIsContainer -or $file.Length -gt 1MB -or
+        -not $file.FullName.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Desktop project inventory must be a bounded worktree file.'
+    }
+    $ancestor = $file
+    while ($null -ne $ancestor) {
+        if (($ancestor.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Desktop project inventory cannot use a reparse point.'
+        }
+        $ancestor = if ($ancestor -is [System.IO.FileInfo]) {
+            $ancestor.Directory
+        }
+        else {
+            $ancestor.Parent
+        }
+    }
+    $desktopInventory = $file.FullName
+}
+if ([bool]$DesktopBridge.IsPresent -ne [bool]$desktopInventory) {
+    throw 'Desktop bridge and project inventory must be supplied together.'
+}
+$desktopArtifactRoots = @()
+if ($DesktopArtifactRoot.Count -gt 8 -or
+    ($DesktopArtifactRoot.Count -gt 0 -and -not $DesktopBridge.IsPresent)) {
+    throw 'Desktop artifact roots require the bridge and are bounded.'
+}
+$ownerRoot = Get-Item -LiteralPath $root
+while ($null -ne $ownerRoot -and $ownerRoot.Name -cne 'АГЕНТ') {
+    $ownerRoot = $ownerRoot.Parent
+}
+if ($DesktopArtifactRoot.Count -gt 0 -and $null -eq $ownerRoot) {
+    throw 'Desktop artifact owner root is unavailable.'
+}
+foreach ($candidate in $DesktopArtifactRoot) {
+    $resolved = Resolve-CompositionDirectory $candidate
+    if ($resolved -ceq $ownerRoot.FullName -or
+        -not $resolved.StartsWith($ownerRoot.FullName + '\', [StringComparison]::OrdinalIgnoreCase) -or
+        $desktopArtifactRoots -contains $resolved) {
+        throw 'Desktop artifact root is outside the owner workspace or repeated.'
+    }
+    $desktopArtifactRoots += $resolved
+}
 $runtimeOwner = if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) {
     $root
 }
@@ -204,6 +255,12 @@ $healthStateDirectory = if ($null -ne $stateDirectory) { $stateDirectory } else 
 $runnerArguments = @('"' + $runner + '"')
 if ($SemanticAdmission.IsPresent) {
     $runnerArguments += '--semantic-admission'
+}
+if ($DesktopBridge.IsPresent) {
+    $runnerArguments += @('--desktop-bridge', '--desktop-projects-file', ('"' + $desktopInventory + '"'))
+}
+foreach ($desktopRoot in $desktopArtifactRoots) {
+    $runnerArguments += @('--desktop-artifact-root', ('"' + $desktopRoot + '"'))
 }
 if ($null -ne $stateDirectory) {
     $runnerArguments += @('--runtime-root', ('"' + $stateDirectory + '"'))

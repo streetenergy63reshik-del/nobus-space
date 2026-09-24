@@ -165,16 +165,36 @@ function Submit-Prompt {
         if ($null -eq $scroll) { throw 'Composer is offscreen without ScrollItem' }
         $scroll.ScrollIntoView()
     }
+    if (-not [string]::IsNullOrEmpty($composer.Pattern.Current.Value)) {
+        throw 'Composer has an existing draft; no input was changed'
+    }
     $composer.Pattern.SetValue($Prompt)
+    if ($composer.Pattern.Current.Value -cne $Prompt) {
+        throw 'Composer did not retain the exact prompt; send was stopped'
+    }
     $send = Wait-Exact $Root 'Отправить' ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.InvokePattern]::Pattern) -TimeoutMs 10000
     $send.Pattern.Invoke()
 }
 
 $desktop = Get-CodexDocument
+$bootstrapMutex = $null
+$bootstrapLockHeld = $false
 try {
     $document = $desktop.Element
     $result = [ordered]@{ action = $Action; desktop_version = $desktop.DesktopVersion; process_id = $desktop.ProcessId; mutations = @() }
+    if ($Action -eq 'Snapshot') {
+        $project = Find-Exact $document $ProjectName ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+        $result.project_found = $true
+        $result.project_expanded = ($project.Pattern.Current.ExpandCollapseState -eq [System.Windows.Automation.ExpandCollapseState]::Expanded)
+    }
     if ($Action -ne 'Snapshot') {
+        $bootstrapMutex = [System.Threading.Mutex]::new($false, 'Local\NobusCodexDesktopBootstrap')
+        try {
+            $bootstrapLockHeld = $bootstrapMutex.WaitOne(30000)
+        } catch [System.Threading.AbandonedMutexException] {
+            throw 'Prior Desktop bootstrap ended without a confirmed outcome; inspect Desktop before retry'
+        }
+        if (-not $bootstrapLockHeld) { throw 'Another Desktop bootstrap is active' }
         $prompt = Read-Prompt
         if ($Action -eq 'CreateAndSubmit') {
             $project = Find-Exact $document $ProjectName ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
@@ -203,6 +223,8 @@ try {
     }
     $result | ConvertTo-Json -Depth 4 -Compress
 } finally {
+    if ($bootstrapLockHeld) { $bootstrapMutex.ReleaseMutex() }
+    if ($null -ne $bootstrapMutex) { $bootstrapMutex.Dispose() }
     [System.Windows.Automation.Automation]::RemoveStructureChangedEventHandler(
         $desktop.Window,
         $desktop.Listener

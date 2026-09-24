@@ -1,0 +1,67 @@
+diff --git a/telegram_delivery_runtime.py b/telegram_delivery_runtime.py
+--- a/telegram_delivery_runtime.py
++++ b/telegram_delivery_runtime.py
+@@ -378,6 +378,21 @@ class SQLiteTelegramDocumentDeliveryLedger:
+             ) from None
+         return None if row is None else row[0]
+ 
++    def receipt(self, delivery_key: str) -> tuple[str, int | None] | None:
++        """Read back a delivery outcome without changing the ledger."""
++        if not isinstance(delivery_key, str) or _DIGEST_RE.fullmatch(delivery_key) is None:
++            raise TelegramDocumentDeliveryError("delivery_configuration_invalid")
++        try:
++            with closing(self._connect()) as connection:
++                row = connection.execute(
++                    """SELECT state,message_id FROM telegram_document_deliveries
++                       WHERE delivery_key=?""",
++                    (delivery_key,),
++                ).fetchone()
++        except (OSError, sqlite3.Error):
++            raise TelegramDocumentDeliveryError("delivery_ledger_unavailable") from None
++        return None if row is None else (row[0], row[1])
++
+     def _transition(
+         self,
+         delivery_key: str,
+@@ -426,13 +441,21 @@ class SQLiteTelegramDocumentDeliveryLedger:
+         return value.astimezone(UTC).isoformat()
+ 
+ 
+-def delivery_key_for(destination_ref: str, artifact_digest: str) -> str:
++def delivery_key_for(
++    destination_ref: str, artifact_digest: str, *, operation_key: str | None = None
++) -> str:
+     if not all(
+         isinstance(value, str) and _DIGEST_RE.fullmatch(value)
+         for value in (destination_ref, artifact_digest)
+-    ):
++    ) or (operation_key is not None and (
++        not isinstance(operation_key, str) or _DIGEST_RE.fullmatch(operation_key) is None
++    )):
+         raise TelegramDocumentDeliveryError("delivery_configuration_invalid")
+-    payload = f"telegram-document-delivery-v1\0{destination_ref}\0{artifact_digest}"
++    payload = (
++        f"telegram-document-delivery-v1\0{destination_ref}\0{artifact_digest}"
++        if operation_key is None else
++        f"telegram-document-delivery-v2\0{destination_ref}\0{artifact_digest}\0{operation_key}"
++    )
+     return "sha256:" + hashlib.sha256(payload.encode("ascii")).hexdigest()
+ 
+ 
+@@ -444,6 +467,7 @@ async def deliver_document_once(
+     filename: str,
+     content: bytes,
+     artifact_digest: str,
++    operation_key: str | None = None,
+ ) -> int:
+     """Claim, send once, and persist receipt or unknown outcome."""
+ 
+@@ -479,7 +503,7 @@ async def deliver_document_once(
+             "delivery_artifact_digest_mismatch"
+         )
+     delivery_key = delivery_key_for(
+-        destination.destination_ref, artifact_digest
++        destination.destination_ref, artifact_digest, operation_key=operation_key
+     )
+     ledger.claim(
+         delivery_key,
