@@ -755,6 +755,18 @@ fixtures не правились.
 
 ### Локальный code checkpoint 55297db и release preflight
 
+Документальный commit `16f9029d4426577ebaa61826b8baa76f6c627c6c`
+имеет tree `d6840c926ec933d89e9cad5ae86381d12f7e0c35` и чистый
+Git-экспорт ZIP SHA-256
+`0b1bea51ea59137f4e64c15ff24bfeb0f37cef9d18254067c4a55b1f4a0ec62c`.
+Этот экспорт прошёл те же 14 связанных тестовых файлов: `237 passed,
+1 skipped`; skip только для проверки sender до уже установленного v2.
+Старый независимый audit harness дал R01–R04 PASS. Его R05 synthetic
+unregistered cwd дал fail-closed, что не свидетельствует о регрессии:
+адресный read-only вызов на настоящем зарегистрированном worktree от
+пользователя-владельца вернул true, на вложенном незарегистрированном —
+false. Для живого managed-worktree continuation доказательства ещё нет.
+
 После test-fixture исправления чистый ZIP-экспорт точного commit
 `55297db440b502292159f2612c579f588e37c323` (tree `e0cde457…`, ZIP
 SHA-256 `13f2cf38805de7b9d457bcb8f9a5db96c707c1e3d1466300a20748a3e7e2c18c`)

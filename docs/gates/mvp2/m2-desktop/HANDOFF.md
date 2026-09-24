@@ -9,6 +9,20 @@
 
 ## Локальный code checkpoint и read-only release preflight, около 21:00 МСК
 
+После документального commit `16f9029d4426577ebaa61826b8baa76f6c627c6c`
+(tree `d6840c926ec933d89e9cad5ae86381d12f7e0c35`) рабочая копия была
+чистой, а заявленный digest EVIDENCE совпал с пересчётом. Чистый Git-экспорт
+этого commit, ZIP SHA-256
+`0b1bea51ea59137f4e64c15ff24bfeb0f37cef9d18254067c4a55b1f4a0ec62c`,
+снова прошёл связанный набор `237 passed, 1 skipped`; единственный skip —
+тест, применимый лишь к sender до уже установленного v2 extension.
+Независимый старый audit harness на точном commit подтвердил R01–R04.
+Его R05 моделирует незарегистрированную папку и закономерно получил отказ;
+адресный read-only вызов от пользователя-владельца файлов подтвердил
+`registered_worktree=True`, `nested_unregistered=False`. В sandbox тот же
+вызов упёрся в Git dubious ownership; Git config не менялся и отказ не
+обходился. Это не живое продолжение managed-worktree task и не полная L3.
+
 В той же ветке созданы только локальные commits `7022186` и `55297db`;
 точный второй commit `55297db440b502292159f2612c579f588e37c323`, Git tree
 `e0cde457c7993791311a6e9249ddb6fb382626e3`. Второй commit исправил
