@@ -503,6 +503,60 @@ class SQLiteDesktopBridgeState:
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
+    def remember_thread_title(
+        self, request_id: UUID, *, thread_id: str, title: str
+    ) -> None:
+        """Keep only an IPC-verified title for safe UIA reopening after unload."""
+        thread = _text(thread_id, 256)
+        clean_title = _text(title, 256)
+        if not isinstance(request_id, UUID):
+            raise ValueError("desktop bridge title binding is invalid")
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM desktop_bridge_requests WHERE request_id=?",
+                    (str(request_id),),
+                ).fetchone()
+                if row is None:
+                    raise DesktopBridgeStateError("desktop_bridge_request_missing")
+                request = self._request_from_row(row)
+                if request.desktop_thread_id != thread:
+                    raise DesktopBridgeStateError("desktop_bridge_thread_conflict")
+                payload = dict(request.payload)
+                if payload.get("_desktop_title") == clean_title:
+                    return
+                payload["_desktop_title"] = clean_title
+                connection.execute(
+                    """UPDATE desktop_bridge_requests SET payload=?,payload_digest=?,updated_at=?
+                       WHERE request_id=?""",
+                    (self._encode(payload), canonical_json_digest(payload),
+                     self._now().isoformat(), str(request_id)),
+                )
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def known_thread_title(self, thread_id: str) -> str | None:
+        """Return the last verified title, never one supplied by Telegram."""
+        thread = _text(thread_id, 256)
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(
+                    """SELECT * FROM desktop_bridge_requests
+                       WHERE desktop_thread_id=? ORDER BY updated_at DESC,request_id DESC""",
+                    (thread,),
+                ).fetchall()
+                for row in rows:
+                    title = self._request_from_row(row).payload.get("_desktop_title")
+                    if isinstance(title, str) and title:
+                        return _text(title, 256)
+                return None
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
     def bind_bootstrap_turn(
         self, request_id: UUID, *, thread_id: str, turn_id: str
     ) -> bool:

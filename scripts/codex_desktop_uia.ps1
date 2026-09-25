@@ -1,5 +1,5 @@
 ﻿param(
-    [ValidateSet('Snapshot', 'CreateAndSubmit', 'OpenAndSubmit', 'SubmitExactDraft')]
+    [ValidateSet('Snapshot', 'CreateAndSubmit', 'OpenAndSubmit', 'OpenExisting', 'SubmitExactDraft')]
     [string]$Action = 'Snapshot',
     [Parameter(Mandatory = $true)][string]$ProjectName,
     [string]$TaskTitle = '',
@@ -420,8 +420,10 @@ try {
             throw 'Prior Desktop bootstrap ended without a confirmed outcome; inspect Desktop before retry'
         }
         if (-not $bootstrapLockHeld) { throw 'Another Desktop bootstrap is active' }
-        $script:uiaStage = 'read-prompt'
-        $prompt = Read-Prompt
+        if ($Action -ne 'OpenExisting') {
+            $script:uiaStage = 'read-prompt'
+            $prompt = Read-Prompt
+        }
         if ($Action -eq 'CreateAndSubmit') {
             $script:uiaStage = 'find-project'
             $project = Find-Exact $document $ProjectName ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.ExpandCollapsePattern]::Pattern) -InListItem
@@ -437,7 +439,7 @@ try {
             }
             $script:uiaStage = 'invoke-create-control'
             $create.Pattern.Invoke(); $result.mutations += 'invoked-create-task'; Start-Sleep -Milliseconds 500
-        } elseif ($Action -eq 'OpenAndSubmit') {
+        } elseif ($Action -in @('OpenAndSubmit', 'OpenExisting')) {
             $script:uiaStage = 'find-task'
             if ([string]::IsNullOrWhiteSpace($TaskTitle)) { throw 'TaskTitle is required' }
             $task = Find-Exact $document $TaskTitle ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.InvokePattern]::Pattern) -InListItem
@@ -449,15 +451,24 @@ try {
             $script:uiaStage = 'invoke-open-control'
             $task.Pattern.Invoke(); $result.mutations += 'invoked-open-task'; Start-Sleep -Milliseconds 500
         }
-        $script:uiaStage = 'submit-prompt'
-        if ($Action -eq 'SubmitExactDraft') {
-            Submit-ExactDraft $document $prompt -ExpectedProjectName $ProjectName
-        } elseif ($Action -eq 'OpenAndSubmit') {
-            Submit-Prompt $document $prompt -ExpectedTaskTitle $TaskTitle
+        if ($Action -eq 'OpenExisting') {
+            $script:uiaStage = 'check-active-context'
+            $deadline = [DateTime]::UtcNow.AddSeconds(5)
+            do {
+                try { Assert-ActiveTaskHeader $document $TaskTitle; break } catch { Start-Sleep -Milliseconds 200 }
+            } while ([DateTime]::UtcNow -lt $deadline)
+            Assert-ActiveTaskHeader $document $TaskTitle
         } else {
-            Submit-Prompt $document $prompt -ExpectedProjectName $ProjectName
+            $script:uiaStage = 'submit-prompt'
+            if ($Action -eq 'SubmitExactDraft') {
+                Submit-ExactDraft $document $prompt -ExpectedProjectName $ProjectName
+            } elseif ($Action -eq 'OpenAndSubmit') {
+                Submit-Prompt $document $prompt -ExpectedTaskTitle $TaskTitle
+            } else {
+                Submit-Prompt $document $prompt -ExpectedProjectName $ProjectName
+            }
+            $result.mutations += 'submitted-prompt'
         }
-        $result.mutations += 'submitted-prompt'
     }
     $result | ConvertTo-Json -Depth 4 -Compress
 } catch {

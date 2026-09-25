@@ -849,7 +849,7 @@ class DesktopBridgeService:
         client = self._ipc_factory()
         claimed = False
         try:
-            owner = await client.find_thread_owner(request.desktop_thread_id)
+            owner = await self._find_or_open_owner(client, request)
             snapshot = await client.load_complete_history_snapshot(request.desktop_thread_id, owner=owner)
             projection = project_desktop_conversation(snapshot)
             pending = [item for item in projection.pending_requests if str(item.request_id) == interaction.desktop_request_id]
@@ -1193,7 +1193,7 @@ class DesktopBridgeService:
                 if request.desktop_thread_id is None:
                     request, owner = await self._create_desktop_task(client, request)
                 else:
-                    owner = await client.find_thread_owner(request.desktop_thread_id)
+                    owner = await self._find_or_open_owner(client, request)
                 if request.desktop_turn_id is None or request.status in {BridgeRequestStatus.RECEIVED, BridgeRequestStatus.DISPATCHING, BridgeRequestStatus.WAITING_PC}:
                     request = await self._start_desktop_turn(client, owner, request)
                 await self._monitor(client, owner, request)
@@ -1219,7 +1219,7 @@ class DesktopBridgeService:
                     )
                 else:
                     await self._notify_request(request, "UI Automation не подтвердил исход создания задачи. Повтор не выполнен, чтобы не создать дубль.")
-            except (DesktopIpcUnavailableError, DesktopIpcTimeoutError):
+            except (DesktopIpcUnavailableError, DesktopIpcTimeoutError) as exc:
                 self._state.transition(
                     request_id,
                     expected=_RUNNING_STATUSES | frozenset({BridgeRequestStatus.RECEIVED}),
@@ -1228,7 +1228,13 @@ class DesktopBridgeService:
                 if request.status is not BridgeRequestStatus.WAITING_PC:
                     await self._notify_request(
                         request,
-                        "Codex Desktop сейчас недоступен. Запрос сохранён и будет восстановлен после запуска.",
+                        (
+                            "Задача выгружена из Codex Desktop. Откройте её в приложении; "
+                            "запрос сохранён и будет восстановлен без повторной отправки."
+                            if isinstance(exc, DesktopIpcUnavailableError)
+                            and exc.reason == "no-client-found"
+                            else "Codex Desktop сейчас недоступен. Запрос сохранён и будет восстановлен после запуска."
+                        ),
                     )
             except DesktopIpcError:
                 self._state.transition(
@@ -1272,6 +1278,41 @@ class DesktopBridgeService:
                     )
                     if queued is not None:
                         self._schedule(queued.request_id)
+
+    async def _find_or_open_owner(
+        self, client: CodexDesktopIpcClient, request: BridgeRequest
+    ) -> OwnerBinding:
+        """Load a known task in Desktop UI before retrying owner discovery once."""
+        thread_id = request.desktop_thread_id
+        if thread_id is None:
+            raise DesktopIpcError("desktop-thread-missing")
+        try:
+            return await client.find_thread_owner(thread_id)
+        except DesktopIpcUnavailableError as exc:
+            if exc.reason != "no-client-found":
+                raise
+        title = self._state.known_thread_title(thread_id)
+        if title is None:
+            raise DesktopIpcUnavailableError("no-client-found")
+        async with self._ui_bootstrap_lock:
+            with _interprocess_bootstrap_lock(self._ui_bootstrap_lock_path):
+                try:
+                    await self._uia.open_existing(
+                        project_name=request.project_name or "snapshot",
+                        task_title=title,
+                    )
+                except DesktopUiAutomationError as exc:
+                    raise DesktopIpcUnavailableError("desktop-uia-open-unavailable") from exc
+                # The title is only a UI selector. The IPC owner for the exact
+                # requested thread ID remains mandatory before any mutation.
+                for attempt in range(6):
+                    try:
+                        return await client.find_thread_owner(thread_id)
+                    except DesktopIpcUnavailableError as exc:
+                        if exc.reason != "no-client-found" or attempt == 5:
+                            raise
+                        await asyncio.sleep(0.5)
+        raise DesktopIpcUnavailableError("no-client-found")
 
     async def _create_desktop_task(
         self, client: CodexDesktopIpcClient, request: BridgeRequest
@@ -1356,7 +1397,21 @@ class DesktopBridgeService:
                 request_digest=hashlib.sha256(bootstrap.encode()).hexdigest(),
                 reason="bootstrap-turn-binding-conflict",
             )
+        self._remember_title(bound, projection)
         return bound, owner
+
+    def _remember_title(
+        self, request: BridgeRequest, projection: DesktopConversationProjection
+    ) -> None:
+        if (
+            request.desktop_thread_id == projection.conversation_id
+            and 0 < len(projection.title) <= 256
+        ):
+            self._state.remember_thread_title(
+                request.request_id,
+                thread_id=projection.conversation_id,
+                title=projection.title,
+            )
 
     async def _start_desktop_turn(
         self,
@@ -1379,6 +1434,7 @@ class DesktopBridgeService:
             project = self._projects.get(request.project_name.casefold())
             if project is None or actual_projects[0] != project:
                 raise DesktopIpcError("desktop-project-context-mismatch")
+        self._remember_title(request, projection)
         client_message_id = request.client_message_id or f"nobus:{request.request_id}"
         existing = projection.turn_by_client_message_id(client_message_id)
         if existing is not None:
@@ -1424,6 +1480,7 @@ class DesktopBridgeService:
             projection = project_desktop_conversation(
                 await client.load_complete_history_snapshot(request.desktop_thread_id, owner=owner)
             )
+            self._remember_title(request, projection)
             turn = projection.turn_by_client_message_id(request.client_message_id or "")
             if turn is None:
                 raise DesktopIpcError("desktop-turn-readback-missing")

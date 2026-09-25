@@ -96,6 +96,114 @@ def test_bootstrap_turn_is_bound_once_for_notifier_correlation(tmp_path: Path) -
     )
 
 
+def test_verified_title_is_bound_to_exact_thread_and_survives_store_reopen(tmp_path: Path) -> None:
+    path = tmp_path / "telegram-state.sqlite3"
+    state = _state(path)
+    request = _request(state, ingress="sha256:" + "e" * 64)
+    thread_id = str(uuid4())
+    state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    with pytest.raises(DesktopBridgeStateError, match="thread_conflict"):
+        state.remember_thread_title(request.request_id, thread_id=str(uuid4()), title="Wrong")
+    assert state.known_thread_title(thread_id) is None
+    state.remember_thread_title(request.request_id, thread_id=thread_id, title="Точная задача")
+    assert _state(path).known_thread_title(thread_id) == "Точная задача"
+    assert state.known_thread_title(str(uuid4())) is None
+
+
+@pytest.mark.asyncio
+async def test_unloaded_owner_opens_only_verified_title_then_rediscovers_exact_id(
+    tmp_path: Path,
+) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "f" * 64)
+    thread_id = str(uuid4())
+    request = state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    calls: list[tuple[str, str]] = []
+
+    class Client:
+        async def find_thread_owner(self, candidate: str):
+            calls.append(("discover", candidate))
+            if len(calls) == 1:
+                raise DesktopIpcUnavailableError("no-client-found")
+            return object()
+
+    class Uia:
+        async def open_existing(self, *, project_name: str, task_title: str):
+            calls.append((project_name, task_title))
+
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=Uia(),
+        projects={"nobus-orchestrator-dev": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    with pytest.raises(DesktopIpcUnavailableError, match="no-client-found"):
+        await service._find_or_open_owner(Client(), request)
+    assert calls == [("discover", thread_id)]
+    state.remember_thread_title(request.request_id, thread_id=thread_id, title="Точная задача")
+    calls.clear()
+    owner = await service._find_or_open_owner(Client(), request)
+    assert owner is not None
+    assert calls == [
+        ("discover", thread_id),
+        ("nobus-orchestrator-dev", "Точная задача"),
+        ("discover", thread_id),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_opened_wrong_or_still_unloaded_task_never_substitutes_owner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "1" * 64)
+    thread_id = str(uuid4())
+    request = state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    state.remember_thread_title(request.request_id, thread_id=thread_id, title="Старый заголовок")
+    calls: list[str] = []
+
+    class Client:
+        async def find_thread_owner(self, candidate: str):
+            assert candidate == thread_id
+            calls.append("discover")
+            raise DesktopIpcUnavailableError("no-client-found")
+
+    class Uia:
+        async def open_existing(self, *, project_name: str, task_title: str):
+            assert project_name == "nobus-orchestrator-dev"
+            assert task_title == "Старый заголовок"
+            calls.append("open-only")
+
+    async def no_wait(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(desktop_bridge_module.asyncio, "sleep", no_wait)
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=Uia(),
+        projects={"nobus-orchestrator-dev": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    with pytest.raises(DesktopIpcUnavailableError, match="no-client-found"):
+        await service._find_or_open_owner(Client(), request)
+    assert calls == ["discover", "open-only"] + ["discover"] * 6
+    assert state.read_request(request.request_id).desktop_turn_id is None
+
+
 def test_existing_bridge_database_adds_bootstrap_turn_binding(tmp_path: Path) -> None:
     path = tmp_path / "telegram-state.sqlite3"
     _state(path)

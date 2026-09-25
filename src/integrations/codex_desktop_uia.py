@@ -240,6 +240,16 @@ class CodexDesktopUiAutomation:
             prompt=_prompt_text(prompt),
         )
 
+    async def open_existing(
+        self, *, project_name: str, task_title: str
+    ) -> DesktopUiActionReceipt:
+        """Only navigate to one exact sidebar task; never touch its composer."""
+        return await self._run(
+            "OpenExisting",
+            project_name=_selector_text(project_name, "project"),
+            task_title=_selector_text(task_title, "task title"),
+        )
+
     async def submit_exact_draft(
         self, *, project_name: str, prompt: str
     ) -> DesktopUiActionReceipt:

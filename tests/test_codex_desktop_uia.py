@@ -158,8 +158,11 @@ def test_powershell_adapter_uses_semantic_uia_without_input_fallbacks() -> None:
     exact_draft = script.split("function Submit-ExactDraft", 1)[1].split("$desktop = Get-CodexDocument", 1)[0]
     assert exact_draft.count("$composer.Pattern.Current.Value -cne $Prompt") == 2
     assert ".SetValue(" not in exact_draft
-    assert "} elseif ($Action -eq 'OpenAndSubmit') {\n            $script:uiaStage = 'find-task'" in script
-    assert "if ($Action -eq 'SubmitExactDraft') {\n            Submit-ExactDraft $document $prompt -ExpectedProjectName $ProjectName" in script
+    assert "} elseif ($Action -in @('OpenAndSubmit', 'OpenExisting')) {\n            $script:uiaStage = 'find-task'" in script
+    open_only = script.split("if ($Action -eq 'OpenExisting') {\n            $script:uiaStage = 'check-active-context'", 1)[1].split("} else {\n            $script:uiaStage = 'submit-prompt'", 1)[0]
+    assert "Assert-ActiveTaskHeader $document $TaskTitle" in open_only
+    assert "Submit-Prompt" not in open_only
+    assert "if ($Action -eq 'SubmitExactDraft') {\n                Submit-ExactDraft $document $prompt -ExpectedProjectName $ProjectName" in script
     assert "$projectCount -ne 1 -or $newTaskCount -lt 1 -or $newTaskCount -gt 2" in script
     for forbidden in ("SendKeys", "SetCursorPos", "mouse_event", "Clipboard"):
         assert forbidden not in script
@@ -206,6 +209,38 @@ async def test_snapshot_passes_a_normal_powershell_parameter_value(
     assert command[project_index + 1] == "snapshot"
     assert captured["errors"] == "replace"
     assert receipt.mutations == ()
+
+
+@pytest.mark.asyncio
+async def test_open_existing_never_creates_prompt_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = tmp_path / "uia.ps1"
+    shell = tmp_path / "powershell.exe"
+    script.write_text("# fixture", encoding="utf-8")
+    shell.write_bytes(b"fixture")
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        captured["command"] = command
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
+            "action": "OpenExisting", "desktop_version": "26.917.9434.0",
+            "process_id": 123, "mutations": ["invoked-open-task"],
+        }), stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    automation = CodexDesktopUiAutomation(
+        script_path=script, runtime_root=tmp_path / "runtime", powershell_path=shell,
+    )
+    receipt = await automation.open_existing(
+        project_name="nobus-orchestrator-dev", task_title="Точная задача",
+    )
+    command = captured["command"]
+    assert command[command.index("-Action") + 1] == "OpenExisting"
+    assert command[command.index("-TaskTitle") + 1] == "Точная задача"
+    assert "-PromptFile" not in command
+    assert not list((tmp_path / "runtime").glob("prompt-*"))
+    assert receipt.mutations == ("invoked-open-task",)
 
 
 @pytest.mark.asyncio
