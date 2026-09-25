@@ -7,7 +7,7 @@
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:a9161e9e872a11a55b78e7c70b5b58d5b3251734295dd020c69148467012476c",
+  "content_digest": "sha256:76eb9b9645b38f25357207c9279984cf9a828f149c79fc56dcbdaad2f2e59b69",
   "content_digest_scope": [
     ".gitattributes",
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
@@ -28,6 +28,7 @@
     ,"docs/gates/mvp2/m2-desktop/AUDIT-JOURNAL.md"
     ,"scripts/codex_desktop_uia.ps1"
     ,"scripts/run_telegram_backup_cycle.py"
+    ,"scripts/migrate_telegram_runtime.py"
     ,"scripts/run_telegram_mvp1.py"
     ,"src/application/desktop_bridge.py"
     ,"src/application/desktop_bridge_state.py"
@@ -945,6 +946,19 @@
     "registered_worktree_readonly": "as actual file owner, registered M2 worktree accepted and nested unregistered cwd rejected; sandbox Git dubious-ownership result is not production context",
     "live_managed_worktree_continuation_verified": false,
     "full_independent_gate_l3_complete": false
+  },
+  "broad_regression_and_migration_fix_20260925": {
+    "stage": "WIP_CORRECTION_NOT_GATE_FROZEN",
+    "before_commit": "e5921b81c539e3c8aceaa8bfde2711ce9dcd9a96",
+    "broad_suite": "tests excluding historical tests/gate0: 2894 passed, 3 skipped, 13 failed in 411.52s under sandbox identity",
+    "implementation_defect": "three tests/test_c6_migration.py failures: exact known table:desktop_bridge_requests DDL alternatives stored as tuple but inspect_legacy used direct string equality",
+    "fix_commit": "935d93037a94f63e9e63395d626ebdec11cff515",
+    "fix_tree": "5588c5552374565db046edcfd2257535e8ced5bb",
+    "focused_migration_after_fix": "6 passed",
+    "environment_failures": "C5 actual-process crash and two M1 Windows tests failed under sandbox identity; addressed run as file owner: 1 passed and 2 passed, no production effects",
+    "historical_verifier_failures": "seven Gate C0/pre-Gate1/ops_queue1 assertions bind old publication wording, sealed hashes or installer shape; historical fixtures unchanged",
+    "production_changed": false,
+    "new_full_candidate_chain_complete": false
   },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
   "next_step": "Owner IPC plus semantic Desktop UI create/visibility and bidirectional continuation are proven. Isolated Bridge with real Desktop and fake Telegram delivered short/long/file output and completed async question and owner approve/deny cycles; installed notifier exact opt-out was read-only positive. These are not real Telegram receipts. Do not replay any one-shot probe marker, Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Finish frozen-candidate checks and backup/release preflight, then controlled real Telegram D01-D17 with live duplicate check. Keep production Scheduled Tasks Disabled until safe staged binding and independent L1/L2/L3 are complete."
