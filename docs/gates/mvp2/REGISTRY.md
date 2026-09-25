@@ -1,5 +1,12 @@
 # Реестр Gate MVP2
 
+25 сентября локальный кандидат кода `fe333c6` (tree `c016023e2b4b32a2403e2c50d312ddc905891730`):
+чистый Git ZIP `225 passed`; широкий L1 `2915 passed, 3 skipped,
+5 exact historical deselected`. Production read-only: clean `fa6f1f0`,
+три Tasks Disabled, signed failed journal без дрейфа. R02 manual-Desktop
+граница согласована; R01 не объявлен полным модельным пониманием.
+Gate остаётся неактивным и непринятым до точного recovery и живых D01–D17.
+
 25 сентября текущий checkpoint: `telegram-live` staged на локальном
 `fa6f1f0` по точному разрешению, но один backup reconciliation завершился
 `failed_operator_required` на `starting`: verified generation создана,

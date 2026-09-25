@@ -1,5 +1,46 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 25.09 — candidate-bound L1/L2 и read-only production preflight
+
+Adversarial L3 по `fe333c6` выполнен по изменённым границам, без внешнего
+действия. Проверены: запрет исполнять неоднозначный create/continue до
+подтверждения автора и истечение инертного запроса; allowlist проекта и
+проверка exact IPC owner/thread/cwd после UIA selector; отказ от повторной
+отправки при неизвестном ACK; signed digest/VERIFIED generation/hold/cleanup/
+disabled tasks при backup rebind, архивная readback-проверка до нового
+snapshot; отказ от лишних полей restart journal. Адресные негативные тесты
+включены в L1/L2. Изменённые исполняемые файлы не содержат совпадений с
+ограниченным набором шаблонов секретов; зависимости не менялись.
+Вывод L3 ограничен локальным кодом: реальная гонка Scheduled Tasks,
+Telegram-доставка, skills/MCP/host-tools и весь D01–D17 ещё не проверены.
+R01 подтверждает безопасный диалог, но не универсальный смысловой парсер;
+R02 имеет согласованную ручную Desktop-границу для неоднозначного текста.
+Это не независимый внешний аудитор и не финальный Gate verdict.
+
+Точный локальный code checkpoint `fe333c614e30340057acd917b592c2e36b62c574`,
+tree `c016023e2b4b32a2403e2c50d312ddc905891730`. Чистый Git ZIP
+SHA-256 `063e6f0c7bc665fe83a0cc65b380aeb32d5fe6b956c21da87db81d95a31dcfb8`:
+`225 passed, 1 warning` за 126,17 с. Первый широкий прогон без
+`tests/gate0`: `2914 passed, 3 skipped, 6 failed` за 438,17 с.
+Пять точных старых assertions:
+`test_gate_c0_governance.py::{test_active_status_and_roadmap_are_consistent,
+test_publication_projection_excludes_held_editorial_docs,
+test_candidate_changes_no_production_code}` и
+`test_pre_gate1_architecture_integration.py::{test_active_projections_and_authority_point_to_adr0022,
+test_gate0_catalog_required_sources_remain_byte_identical}`.
+Шестой `test_voice_retention.py::test_running_deadline_cancels_pending_await_and_has_no_late_result`
+прошёл отдельно и в составе всего файла (`43 passed`); неизменённый код
+прошёл повторный широкий прогон с исключением только пяти старых test IDs:
+`2915 passed, 3 skipped, 5 deselected, 25 subtests passed` за 441,18 с.
+Причина разового голосового отказа не доказана; он не повторился, но
+наблюдение сохранено.
+
+После тестов read-only checkout production clean на `fa6f1f0`, Main/Health/Backup
+Disabled. Штатный `--inspect-failure` вернул `failed_operator_required` и
+confirmation digest `sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da`.
+Ни recovery, ни Telegram не запускались. Точный следующий production шаг
+нуждается в отдельном разрешении на `fe333c6` и подписанный rebind.
+
 ### 25.09 — восстановление после подписанного failed backup и R01/R02
 
 После согласованного staging `fa6f1f0` единственный backup reconciliation

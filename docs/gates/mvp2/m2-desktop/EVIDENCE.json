@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
-  "stage": "WIP_ITERATION",
-  "observed_at_utc": "2026-09-25T08:52:08Z",
+  "stage": "LOCAL_CODE_CANDIDATE_VERIFIED",
+  "observed_at_utc": "2026-09-25T10:11:27Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
-  "candidate_commit": null,
-  "candidate_tree": null,
-  "content_digest": "sha256:17c995367aa867181b1d9f8fc331fa77506baacca15177fbbf6d68bea76d3b2e",
+  "candidate_commit": "fe333c614e30340057acd917b592c2e36b62c574",
+  "candidate_tree": "c016023e2b4b32a2403e2c50d312ddc905891730",
+  "content_digest": "sha256:8fcdd605a704ab2df258b227e6ebaeb4f0580b0d2dadddc509a30843f77141f3",
   "content_digest_scope": [
     ".gitattributes",
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
@@ -68,7 +68,7 @@
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "25 September WIP after fa6f1f0 staging: production checkout is fa6f1f0, all three tasks are Disabled after one failed restart; no real Telegram acceptance. Exact signed rebind passed and one backup reconciliation created VERIFIED generation but failed at starting/code 75 because the signed reconciled_from_digest journal field was not accepted by the old activation reader. New source correction and R01/unbound-task work are not frozen or deployed. Previous b8834ae broad L1 and fa6f1f0 clean-export L2 remain historical evidence, not proof of changed bytes. EVIDENCE.json is excluded from non-recursive content_digest.",
+  "candidate_note": "fe333c6 freezes the changed code; this evidence is a docs-only validation addendum. Production remains clean on fa6f1f0 with three Tasks Disabled after one failed restart; signed journal digest is unchanged. fe333c6 passed clean-export linked tests and broad L1 with five exact historical deselections but is not deployed or live Telegram accepted. EVIDENCE.json is excluded from non-recursive content_digest.",
   "environment_scope_note": "The environment block below records the initial 21 September Desktop 26.915 read-only probe. The current 24 September real-turn observations are separately bound to Desktop 26.917.9434.0 in a06_live_owner_transport_20260924 and isolated_question_approval_real_desktop_20260924.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
@@ -1020,6 +1020,20 @@
     "failed_journal_config_rebind": "separate --rebind-failed-digest requires exact signed failed journal, verified generation, starting/restart_not_ready, proven hold/cleanup and stopped tasks; archives old receipt and creates fresh generation; not deployed",
     "ops_queue1": "13 passed after replacing historical health-probe string assertions with current WhatIf and readiness/details checks",
     "affected_tests": "225 passed, 1 warning in 120.51s across bridge/IPC/UIA/C6 backup/M1/ops/docs on unmoving files; not a frozen clean-export L2 or full D01-D17"
+  },
+  "candidate_validation_20260925": {
+    "code_commit": "fe333c614e30340057acd917b592c2e36b62c574",
+    "code_tree": "c016023e2b4b32a2403e2c50d312ddc905891730",
+    "clean_git_export_zip_sha256": "063e6f0c7bc665fe83a0cc65b380aeb32d5fe6b956c21da87db81d95a31dcfb8",
+    "clean_export_linked_tests": "225 passed, 1 warning in 126.17s",
+    "initial_broad_l1": "2914 passed, 3 skipped, 6 failed in 438.17s; five exact legacy Gate C0/pre-Gate1 governance assertions and one voice-retention timing assertion",
+    "voice_followup": "the exact timing test passed alone and all 43 voice-retention tests passed unchanged; cause of one broad-suite failure not proven",
+    "confirming_broad_l1": "2915 passed, 3 skipped, 5 exact historical deselections, 25 subtests passed in 441.18s; voice timing test included",
+    "adversarial_l3": "local changed-boundary inspection: inert author route and expiry, allowlisted exact IPC owner/thread/cwd after UIA selector, signed backup rebind preconditions/archive readback, unknown ACK stop and strict journal fields; not an external auditor and not live D01-D17",
+    "changed_executable_secret_scan": "no filename matches for bounded OpenAI/GitHub/AWS/PEM token patterns in the four changed Python runtime files; no dependency file changed; not a full secret/CVE scan",
+    "production_read_only": "clean fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8, all three Scheduled Tasks Disabled, inspect-failure phase failed_operator_required and unchanged digest sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da",
+    "release_authorized": false,
+    "d01_d17_accepted": false
   },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
   "next_step": "Do not rerun the failed backup cycle or start production under fa6f1f0. Freeze and independently verify the changed WIP with exact commit/tree, then obtain exact authorization for changed production bytes and signed recovery from failed journal sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da. Apply the owner's agreed manual-Desktop limitation for ambiguous requestUserInput; after safe recovery and bot readiness run real Telegram D01-D17. Retain all old positive and negative Desktop evidence without replay."

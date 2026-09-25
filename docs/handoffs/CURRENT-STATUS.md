@@ -2,6 +2,16 @@
 
 ## M2-DESKTOP: 25 сентября production staged, восстановление не завершено
 
+Локальный code checkpoint `fe333c614e30340057acd917b592c2e36b62c574`
+(tree `c016023e2b4b32a2403e2c50d312ddc905891730`) прошёл независимый
+чистый ZIP-набор `225 passed` и широкий L1 `2915 passed, 3 skipped,
+5 точно исторических deselected`; голосовой timing-тест включён и прошёл.
+Read-only сверка после проверки: production checkout по-прежнему clean на
+`fa6f1f0`, три Tasks Disabled, signed failed journal имеет прежний digest.
+Это проверенный локальный кандидат кода, не активация и не приёмка D01–D17.
+Для изменённых production bytes и одного подписанного recovery требуется
+отдельное точное разрешение.
+
 По точному разрешению владельца production checkout `telegram-live` переведён
 на локальный `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8`, каталог проектов
 и три Scheduled Tasks staged. Старый подписанный recovery head успешно
