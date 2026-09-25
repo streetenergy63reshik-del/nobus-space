@@ -2936,12 +2936,17 @@ def _activation_manifest(values, runtime: Path, *,
 
     python = Path(sys.executable).with_name("python.exe").resolve(strict=True)
     pythonw = Path(sys.executable).with_name("pythonw.exe").resolve(strict=True)
-    base_python = Path(sys._base_executable).resolve(strict=True)
+    # python.exe (operator recovery) and pythonw.exe (Scheduled Task) expose
+    # different _base_executable values. Bind both files in a stable order so
+    # the same installed runtime yields one activation digest in either mode.
+    base_python = Path(sys._base_executable).with_name("python.exe").resolve(strict=True)
+    base_pythonw = Path(sys._base_executable).with_name("pythonw.exe").resolve(strict=True)
     runtime_identity = {
         "python_version": list(sys.version_info[:5]),
         "python": file_evidence(python),
         "pythonw": file_evidence(pythonw),
         "base_python": file_evidence(base_python),
+        "base_pythonw": file_evidence(base_pythonw),
         "distributions": _installed_distribution_identity(),
     }
     if any(value is None for key, value in runtime_identity.items() if key != "python_version"):

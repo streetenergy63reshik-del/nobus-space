@@ -1,5 +1,82 @@
 # M2-DESKTOP: план контролируемого выпуска
 
+## 25.09, вечер: signed recovery остановлен на interpreter binding
+
+После точного подтверждения Backup Task был включён только после проверки
+чистого `26b95e5`, XML-хэшей трёх заданий, same-config signed journal
+`sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4`,
+отсутствия процесса и будущего `NextRunTime` 26.09 03:30 +03:00. Readback:
+Backup `Ready`, Main/Health `Disabled`. Ровно один
+`--recover-failure-digest` создал VERIFIED generation
+`daily-20260925T194753-54c9cc845cdd4ee2828fc77c491302a2`, но Main
+завершился кодом 78 (`recovery_history_blocked`), а цикл —
+`failed_operator_required`. Новый signed journal digest
+`sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df`,
+`starting/restart_not_ready`, `admission_hold=true`, `cleanup_proven=true`.
+Штатный readback подтвердил отсутствие процесса и неизменный recovery head
+`sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4`:
+история под прежним binding остаётся `new`, latch отсутствует. После отказа
+Backup Task был единственным Enabled и обратимо выключен; readback всех трёх
+заданий — `Disabled`. Telegram не тестировался.
+
+Причина кода 78 воспроизведена read-only: `sys._base_executable` для
+`python.exe` указывает на базовый `python.exe`, а у Scheduled Task
+`pythonw.exe` — на базовый `pythonw.exe` (exit-only probe 12). Старая
+`_activation_manifest` хэшировала один из них под общим ключом
+`base_python`, поэтому подписанный rebind через console и реальный GUI-run
+получали разные digests: `sha256:060b26…` против синтетически вычисленного
+`sha256:2ef8e1…`. Это не повреждение recovery history. В WIP код
+канонически связывает **оба** базовых файла независимо от способа запуска;
+целевая регрессия и пять связанных модулей дали `274 passed, 1 warning`.
+Это локальная проверка, не новый frozen commit/полный L1/L2/L3.
+
+Новый production выпуск нельзя проводить по старому разрешению/commit:
+сначала цельный кандидат и независимая проверка, затем новый точный commit,
+rollback, O_EXCL config под новый application binding, staged Backup Task,
+signed recovery rebind от `sha256:f82b14…`, *включённый Backup перед стартом
+Main* и только один `--rebind-failed-digest` **нового** journal
+`sha256:7221cf56…` после точного readback. При неизвестном исходе не
+повторять. Для этого нужен отдельный точный выпускной допуск владельца.
+
+## 25.09: остановка второго восстановления на проверке Backup Task
+
+По точному разрешению production checkout чисто переключён на
+`26b95e556ac0374e43925ba55e92b119cf212e51`. Сохранены rollback XML,
+launcher, config и inventory в
+`.runtime/m2-desktop-release-20260925/26b95e5-preflight/`; создана локальная
+ветка возврата `codex/m2-desktop-fa6f1f0-before-recovery`. Новый O_EXCL
+backup config имеет канонический digest
+`sha256:fcdb25b206e12885456b11001696397890411fd7dc93621d9411d5c23e3c4c74`.
+Заменено только определение Backup Task с readback; Main/Health остались
+Disabled. Подписанный recovery head перепривязан один раз: новый event
+`sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4`,
+binding `sha256:060b26b17559eeed88a2d21a4d051bb227521a7ac5f86fb8c0db24c763b21078`;
+`--inspect-recovery` после операции дал `PASS/new`.
+
+Один разрешённый `--rebind-failed-digest` прежнего signed journal создал
+VERIFIED generation `daily-20260925T160530-6da220b0e0cf4375a768b41b1e1270bf`,
+но снова остановился в `starting` с Main exit 75. Новый signed failed journal:
+`sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4`,
+`admission_hold=true`, `cleanup_proven=true`, все три Tasks Disabled.
+Живые Telegram-тесты не запускались. Предыдущая причина с полем
+`reconciled_from_digest` устранена в установленном commit; у этого отказа
+другая проверенная причина: при запуске Main задание Backup осталось Disabled.
+`_scheduler_activation` допускает Disabled Health по signed restart journal,
+но требует Enabled Backup. Read-only вызов валидатора с фактическим Backup
+snapshot воспроизвёл `scheduler task profile is invalid`; тот же snapshot
+с разрешённым *только в памяти* staging прошёл. Текущий цикл включает Main
+и Health, но не Backup. Это ошибка последовательности выпуска; код обычного
+ежедневного цикла рассчитан на уже включённый Backup.
+
+Перед возможным восстановлением нужно точное readback трёх Tasks, config,
+signed journal и recovery head; затем отдельно подтвердить включение только
+Backup Task и один `--recover-failure-digest` **нового** digest. Его
+`NextRunTime` до включения — 26.09.2026 03:30 +03:00; после включения
+проверить состояние до запуска цикла. При ином состоянии или неизвестном
+исходе не повторять действие. После успешного readiness проверить Backup
+Enabled, Main/Health Enabled и только затем приступать к live Telegram.
+Старый `--rebind-failed-digest` не повторять.
+
 ## Обновление 25.09: stopped failure после точного staging `fa6f1f0`
 
 Локальный проверенный code checkpoint для следующего выпуска:
@@ -42,6 +119,15 @@ lost ACK сначала readback. Telegram smoke только после readine
 `requestUserInput` отвечает в Desktop, структурированные approvals —
 только владелец по numeric user_id. Прежнее точное разрешение касается
 только `fa6f1f0`.
+
+Одноразовый локальный подготовитель config в игнорируемом каталоге
+`.runtime/m2-desktop-release-20260924/prepare_backup_config.py` расширен
+строгим флагом `--failed-journal` для этого signed состояния. Его SHA-256
+`12edf775627fdee7587a9f56ca88528120afc03c96b0ae169894c6cef963b6ac`;
+AST parse прошёл. Флаг требует точный старый config/journal digest,
+`failed_operator_required/starting`, `restart_not_ready`, VERIFIED,
+hold/cleanup и проверенную generation до O_EXCL создания нового config.
+Production helper ещё не запускался.
 
 Историческая запись до staging: production release PREPARED, не исполнен;
 отдельно подтверждённое
@@ -123,7 +209,11 @@ backup cycle и activation не выполнялись.
   ровно для SHA-bound guard и patch. Перед staging проверить оба source SHA
   и Git index `i/lf`; изменение атрибутов не переустанавливает skill.
 
-## До production activation
+## Исторический план до первого staging — не повторять буквально
+
+Ниже зафиксирован план до failed journal на `fa6f1f0`. В текущем состоянии
+его `--reconcile-complete-digest` неприменим; действует только верхнее
+обновление с новым точным разрешением и `--rebind-failed-digest`.
 
 1. Завершить исходный код и документацию, зафиксировать один кандидат в этом
    worktree. Выполнить полный candidate-bound L1, независимый по методу L2 и

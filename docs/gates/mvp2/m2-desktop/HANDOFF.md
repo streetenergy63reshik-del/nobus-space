@@ -7,6 +7,63 @@
 **Ветка:** `codex/m2-desktop`
 **Проверенный code checkpoint:** `fe333c614e30340057acd917b592c2e36b62c574`, tree `c016023e2b4b32a2403e2c50d312ddc905891730`; текущие записи о проверке — docs addendum
 
+## 25.09, вечер — третья остановка, исправление в WIP
+
+После подтверждения владельца Backup Task включён из `Disabled` в `Ready`,
+прочитаны точные Task signatures, same-config signed journal, отсутствие
+процессов и будущий scheduled run. Один штатный `--recover-failure-digest`
+создал VERIFIED generation, но Main вышел с кодом 78
+(`recovery_history_blocked`). Новая подписанная failed-квитанция:
+`sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df`,
+фаза `starting`, admission hold и cleanup доказаны. Backup Task после
+отказа оставался `Ready`; его выключили обратимо, readback всех трёх Tasks
+теперь `Disabled`. Порт/дочерние процессы отсутствуют. Recovery head
+`sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4`
+сохранился, его состояние по записанному binding — `new`, latch нет.
+Telegram live-тесты не начинались, Gate не принят.
+
+Корень второго отказа отличен от предыдущих: rebind через `python.exe`
+и Main через `pythonw.exe` читали разные `sys._base_executable`.
+Активационный манифест прежнего code commit связывал только один
+базовый файл, из-за чего у двух штатных режимов получались разные digests
+и Main честно отклонял историю. Exit-only probe реального `pythonw.exe`
+подтвердил базовый `pythonw.exe`; read-only вычисление прежнего манифеста
+дало digest `sha256:060b26b17559eeed88a2d21a4d051bb227521a7ac5f86fb8c0db24c763b21078`
+для console и `sha256:2ef8e1a14d1c924a56d6ad8cd34df10d8c74406857a7f7dd8ced0eb94b602cdc`
+для GUI base. WIP-поправка всегда связывает оба базовых исполняемых файла,
+не меняя права/sandbox. Регрессия добавляет смену обоих режимов; целевой
+тест прошёл, пять связанных supervisor/backup-модулей — `274 passed,
+1 warning`. Первый sandbox-прогон fixture был прерван WinError 5 на
+системном Temp; тот же тест от файлового владельца прошёл. Код пока не
+заморожен; текущий production commit `26b95e5` остаётся выключенным.
+
+## 25.09 — второй production restart остановлен, новая причина локализована
+
+После независимой проверки установлен точный docs-only commit
+`26b95e556ac0374e43925ba55e92b119cf212e51` с теми же проверенными
+code bytes `fe333c6`. Чистый production checkout теперь на `26b95e5`.
+Rollback-снимок: `.runtime/m2-desktop-release-20260925/26b95e5-preflight`;
+локальная ветка возврата: `codex/m2-desktop-fa6f1f0-before-recovery`.
+Новый backup config создан через O_EXCL, Backup Task заменён в Disabled
+staging, точный signed recovery rebind прошёл с inspect `PASS/new`.
+Один разрешённый цикл от прежнего failed journal создал VERIFIED generation,
+но Main снова завершился кодом 75, readiness нет. Новый signed failed
+journal: `sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4`;
+`failed_phase=starting`, `failure_class=restart_not_ready`, admission hold
+и cleanup доказаны, все три Scheduled Tasks Disabled. Telegram-тестов не было.
+
+Это **другая** причина: в момент старта Main Backup Task оставался Disabled.
+Активационный валидатор принимает Disabled Health по подписанному backup
+restart, но Backup требует Enabled. Read-only проверка на фактическом
+snapshot воспроизвела отказ; разрешение Disabled только в копии snapshot
+показало, что остальная форма задания проходит. Штатный цикл включает
+Main и Health, но не включает Backup: обычный ежедневный режим предполагает
+заранее включённый Backup Task. Его ближайший старт до включения —
+26.09.2026 03:30 +03:00. Новый `--recover-failure-digest` либо включение
+Backup ещё не выполнялись; требуется точное согласование нового шага и
+readback перед ним. Исторические доказательства сохранены в
+`EVIDENCE.json`, последовательность — в `RELEASE-PLAN-20260924.md`.
+
 ## 25.09 — кандидат `fe333c6` и граница выпуска
 
 После узкой поправки проверки архивной signed-квитанции `25` backup-тестов

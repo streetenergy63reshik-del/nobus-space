@@ -1,5 +1,24 @@
 # Реестр Gate MVP2
 
+25 сентября вечером один точно разрешённый same-config recovery после
+включения Backup снова завершился `failed_operator_required`: Main exit 78,
+signed journal `sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df`.
+История восстановления исправна, все три Tasks после безопасного отката
+Disabled. Подтверждённый новый дефект — различный base interpreter в
+activation binding `python.exe`/`pythonw.exe`; локальная поправка и
+регрессия `274 passed` ещё WIP. Нового frozen commit, Telegram D01–D17 и
+приёмки нет; предыдущая точная авторизация израсходована.
+
+25 сентября следующий разрешённый выпуск установил clean `26b95e5` в
+production, сохранил rollback, поставил новый backup config и подписанно
+перепривязал recovery head. Один цикл создал VERIFIED generation, но снова
+остановился на `starting` (Main exit 75). Новый signed failed journal
+`sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4`;
+admission hold и cleanup доказаны, три Tasks Disabled. Новая конкретная
+причина — Backup Task остался Disabled при запуске Main, а активация требует
+его Enabled. Telegram live-тестов не было. Включение Backup и один
+same-config recovery запрошены отдельно; старый цикл не повторять.
+
 25 сентября локальный кандидат кода `fe333c6` (tree `c016023e2b4b32a2403e2c50d312ddc905891730`):
 чистый Git ZIP `225 passed`; широкий L1 `2915 passed, 3 skipped,
 5 exact historical deselected`. Production read-only: clean `fa6f1f0`,
@@ -70,7 +89,7 @@ fixture, не относящемся к M2.
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | WIP / 25.09; production staged на `fa6f1f0`, но restart после verified backup failed_operator_required; все Tasks Disabled. Новый источник исправления ещё WIP; exact unbound-task UIA→IPC owner recovery подтверждён без turn. Ранее изолированные full-answer/file/approval и L1/L2 положительны только для старого снимка. Реальный Telegram D01–D17, remote ambiguity R02, новый кандидат и L3 открыты | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | последний staged commit `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8`; новый frozen Gate tree отсутствует | `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8` / LOCAL ONLY, бот Disabled | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | WIP / 25.09; production clean на `26b95e5`, новый signed failed journal после Main exit 78; все Tasks Disabled, admission hold/cleanup доказаны. Причина — несовпадение base interpreter при console rebind и GUI Main; локальный fix WIP, 274 затронутых теста прошли. Telegram D01–D17, live R02 и приёмка открыты | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | последний code checkpoint `fe333c614e30340057acd917b592c2e36b62c574`; новый frozen Gate tree отсутствует | `26b95e556ac0374e43925ba55e92b119cf212e51` / LOCAL ONLY, бот Disabled | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
 
 Реальные task id и title внесены после запуска. В Gate сохраняются один
 `m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал

@@ -1,5 +1,37 @@
 # Nobus Space: текущий принятый статус
 
+## M2-DESKTOP: 25 сентября вечером production вновь остановлен
+
+По новому точному разрешению Backup Task был включён, затем выполнен один
+same-config recovery. VERIFIED backup создан, но Main вышел с кодом 78;
+signed failed journal теперь
+`sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df`.
+Admission hold и cleanup доказаны; после обратимого выключения Backup все
+три Tasks Disabled, процессов нет. Telegram live-тестов не было.
+Read-only диагностика доказала новую причину: rebind через `python.exe`
+и Scheduled Task через `pythonw.exe` формировали разные activation digests
+из-за `sys._base_executable`. Подписанная история исправна, latch нет.
+Локальное исправление связывает оба базовых файла независимо от режима;
+затронутая регрессия — `274 passed, 1 warning`. Новый код WIP,
+не развёрнут и не принят; нужен один новый frozen кандидат с независимой
+проверкой и отдельное точное разрешение на новый production commit.
+
+## M2-DESKTOP: 25 сентября второй восстановительный запуск остановлен
+
+Production checkout чисто переведён на локальный `26b95e5`, который
+содержит проверенные code bytes `fe333c6`; rollback-снимок сохранён.
+Новый backup config и определение Backup Task установлены, подписанный
+recovery rebind прошёл. Один разрешённый цикл создал VERIFIED backup, но
+Main не достиг readiness (exit 75). Новый signed failed journal:
+`sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4`,
+`starting/restart_not_ready`, admission hold и cleanup подтверждены.
+Все три Scheduled Tasks Disabled, Telegram-тестов не было. Read-only
+диагностика локализовала новую причину: Backup Task оставался Disabled
+при запуске Main, тогда как активация требует Enabled Backup. Цикл не
+повторялся. Для продолжения нужно отдельно согласовать включение Backup
+и один same-config recovery после точной сверки состояния; прежний
+`--rebind-failed-digest` не повторять. Gate и D01–D17 не приняты.
+
 ## M2-DESKTOP: 25 сентября production staged, восстановление не завершено
 
 Локальный code checkpoint `fe333c614e30340057acd917b592c2e36b62c574`

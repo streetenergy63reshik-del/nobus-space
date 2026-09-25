@@ -1,13 +1,14 @@
 {
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
-  "stage": "LOCAL_CODE_CANDIDATE_VERIFIED",
-  "observed_at_utc": "2026-09-25T10:11:27Z",
+  "stage": "WIP_CORRECTION_AFTER_LIVE_FAILURE",
+  "observed_at_utc": "2026-09-25T17:05:29Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": "fe333c614e30340057acd917b592c2e36b62c574",
   "candidate_tree": "c016023e2b4b32a2403e2c50d312ddc905891730",
-  "content_digest": "sha256:8fcdd605a704ab2df258b227e6ebaeb4f0580b0d2dadddc509a30843f77141f3",
+  "content_digest": "sha256:ff52fe7575092212e4115c5c2b3341833560b446709d9b4cda76806b9362617f",
+  "content_digest_status": "Historical 2026-09-25 candidate snapshot; the 2026-09-25 production failure addenda are WIP and are not covered by this digest",
   "content_digest_scope": [
     ".gitattributes",
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
@@ -1032,9 +1033,40 @@
     "adversarial_l3": "local changed-boundary inspection: inert author route and expiry, allowlisted exact IPC owner/thread/cwd after UIA selector, signed backup rebind preconditions/archive readback, unknown ACK stop and strict journal fields; not an external auditor and not live D01-D17",
     "changed_executable_secret_scan": "no filename matches for bounded OpenAI/GitHub/AWS/PEM token patterns in the four changed Python runtime files; no dependency file changed; not a full secret/CVE scan",
     "production_read_only": "clean fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8, all three Scheduled Tasks Disabled, inspect-failure phase failed_operator_required and unchanged digest sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da",
+    "ignored_one_shot_config_helper": "prepare_backup_config.py SHA-256 12edf775627fdee7587a9f56ca88528120afc03c96b0ae169894c6cef963b6ac; --failed-journal exact signed schema/digest preconditions and O_EXCL destination; AST parsed, not run on production",
     "release_authorized": false,
     "d01_d17_accepted": false
   },
+  "production_second_failed_restart_20260925": {
+    "approved_exact_commit": "26b95e556ac0374e43925ba55e92b119cf212e51",
+    "production_checkout": "26b95e556ac0374e43925ba55e92b119cf212e51; clean after failure",
+    "rollback_snapshot": ".runtime/m2-desktop-release-20260925/26b95e5-preflight",
+    "rollback_branch": "codex/m2-desktop-fa6f1f0-before-recovery",
+    "new_backup_config_digest": "sha256:fcdb25b206e12885456b11001696397890411fd7dc93621d9411d5c23e3c4c74",
+    "backup_task_xml_sha256": "5e1757d06956b64b143730b629661036602eff26e8cd91196419a3cf6301df0b",
+    "signed_recovery_rebind": "event sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4; binding sha256:060b26b17559eeed88a2d21a4d051bb227521a7ac5f86fb8c0db24c763b21078; inspect PASS/new",
+    "backup_cycle_attempt": "one --rebind-failed-digest from sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da; VERIFIED daily-20260925T160530-6da220b0e0cf4375a768b41b1e1270bf; failed_operator_required at starting",
+    "failed_journal_digest": "sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4",
+    "failure_class": "restart_not_ready; Main exit 75. Actual Backup Task remained Disabled while Main restarted; _validate_scheduler_task_snapshot rejects that state outside all-disabled staging. Read-only validation against the actual snapshot reproduced scheduler task profile is invalid; in-memory staging allowance passed.",
+    "after_failure": "admission_hold=true, cleanup_proven=true; all three Scheduled Tasks Disabled; production checkout clean; no Telegram live tests",
+    "backup_next_run_before_enable": "2026-09-26T03:30:00+03:00",
+    "replayed_backup_cycle": false,
+    "production_ready": false
+  },
+  "production_third_failed_restart_20260925": {
+    "authorized_step": "Enable only NobusSpaceBot-Backup and run one same-config --recover-failure-digest from sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4",
+    "preflight": "clean production HEAD 26b95e556ac0374e43925ba55e92b119cf212e51; all three Task XML hashes matched; Main/Health/Backup Disabled; signed journal exact, hold/cleanup/VERIFIED; port and owned children absent; Backup NextRun 2026-09-26 03:30 +03:00",
+    "backup_enable_readback": "Backup Ready/Enabled, NextRun 2026-09-26 03:30 +03:00; Main/Health Disabled",
+    "single_recovery_attempt": "one --recover-failure-digest; VERIFIED daily-20260925T194753-54c9cc845cdd4ee2828fc77c491302a2; Main exit 78 recovery_history_blocked; backup cycle operator_required",
+    "new_failed_journal_digest": "sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df",
+    "signed_failure": "starting/restart_not_ready, admission_hold=true, cleanup_proven=true, backup_status=VERIFIED",
+    "recovery_head_after_failure": "sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4; state new under recorded binding; latch absent",
+    "root_cause": "python.exe rebind and Scheduled Task pythonw.exe use different sys._base_executable. Old manifest bound one base file: console digest sha256:060b26b17559eeed88a2d21a4d051bb227521a7ac5f86fb8c0db24c763b21078 vs in-memory GUI-base digest sha256:2ef8e1a14d1c924a56d6ad8cd34df10d8c74406857a7f7dd8ced0eb94b602cdc; exit-only pythonw probe confirmed its base is pythonw.exe",
+    "safe_end_state": "Backup Task reversibly disabled after failure; readback all three Tasks Disabled, port and owned children absent; no Telegram messages or tasks",
+    "local_source_fix": "activation manifest now binds canonical base_python and base_pythonw independent of console/GUI interpreter; focused regression and five linked supervisor/backup modules 274 passed, 1 warning; not frozen/deployed",
+    "replayed_cycle": false,
+    "production_ready": false
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Do not rerun the failed backup cycle or start production under fa6f1f0. Freeze and independently verify the changed WIP with exact commit/tree, then obtain exact authorization for changed production bytes and signed recovery from failed journal sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da. Apply the owner's agreed manual-Desktop limitation for ambiguous requestUserInput; after safe recovery and bot readiness run real Telegram D01-D17. Retain all old positive and negative Desktop evidence without replay."
+  "next_step": "Freeze and independently verify the two-file WIP fix plus current documentation. A new exact release authorization is required for changed code/application binding; do not run any old recovery command. For a new authorized release, create new O_EXCL config, stage exact Backup Task, signed-rebind the preserved head sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4, enable Backup before Main restart, and use one --rebind-failed-digest from new signed journal sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df. Only after readiness and all three tasks enabled, run bounded real Telegram D01-D17 under the agreed R02 manual-Desktop limitation."
 }

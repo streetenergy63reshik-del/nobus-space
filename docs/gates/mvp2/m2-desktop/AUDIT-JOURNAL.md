@@ -1,5 +1,59 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 25.09, вечер — новый подтверждённый defect интерпретаторной привязки
+
+Точный разрешённый шаг: Backup Task Enabled/readback `Ready`, один
+same-config recovery из signed journal `sha256:d32cbd…`, без Telegram.
+Новый VERIFIED backup создан, Main вышел кодом 78, цикл оставил подписанный
+`failed_operator_required` digest
+`sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df`.
+Head истории не изменился, состояние `new`, latch нет; это не повреждённая
+история. Все три Tasks после обратимого выключения Backup вновь Disabled,
+порт/дочерние процессы отсутствуют. Неподтверждённых Telegram-эффектов нет.
+
+Гипотеза и проверка: rebind выполняется `python.exe`, а Task —
+`pythonw.exe`; у них разный `sys._base_executable`. Exit-only probe
+реального venv `pythonw.exe` вернул 12 (= base `pythonw.exe`). Read-only
+вычисление прежнего manifest на тех же Task аргументах: console digest
+`sha256:060b26b17559eeed88a2d21a4d051bb227521a7ac5f86fb8c0db24c763b21078`
+совпадает с signed head, а под GUI-base получается
+`sha256:2ef8e1a14d1c924a56d6ad8cd34df10d8c74406857a7f7dd8ced0eb94b602cdc`.
+Следовательно Main блокирует чужую для него привязку (exit 78) до
+runtime event. Минимальная локальная поправка в `run_nobus_space_live.py`
+всегда связывает base `python.exe` **и** `pythonw.exe`, независимо от
+исполняемого режима. Регрессия меняет оба `sys`-пути и требует один digest.
+Целевой тест прошёл; пять связанных модулей — `274 passed, 1 warning`.
+Первый sandbox-прогон fixture получил WinError 5 на системном Temp,
+запуск от файлового владельца прошёл; продуктовый отказ этим не маскируется.
+Полная новая candidate-bound L1/L2/L3 и production разрешение открыты.
+
+### 25.09 — второй signed recovery: отдельный release-sequencing defect
+
+После точного разрешения установлен clean `26b95e5`; rollback snapshot
+`26b95e5-preflight` сохранён. Новый O_EXCL backup config digest
+`sha256:fcdb25b206e12885456b11001696397890411fd7dc93621d9411d5c23e3c4c74`,
+Backup XML после stage SHA-256
+`5e1757d06956b64b143730b629661036602eff26e8cd91196419a3cf6301df0b`.
+Signed recovery rebind прошёл (`PASS/new`, head
+`sha256:f82b14b781526f4a6a8eb75d4e1eb432e5e8ac7bd16da6131796c76a2d6474b4`).
+Один `--rebind-failed-digest` создал VERIFIED generation, но restart
+завершился Main exit 75; новый signed failed journal digest
+`sha256:d32cbd85ae804f4cb3a92cdf6e0482a1ba0bc1d506990a5a7d8a9f9996ff60d4`.
+Штатный `--inspect-failure` подтвердил same-config и exact digest.
+Все три Tasks Disabled; admission hold/cleanup доказаны, бот не готов,
+Telegram-эффектов нет.
+
+Новая проверенная гипотеза: `run_telegram_backup_cycle.py` включает только
+Main/Health, а staged Backup Task остаётся Disabled. В
+`_scheduler_activation` signed restart разрешает Disabled Health, но не
+Backup. Read-only валидатор на фактическом Backup snapshot вернул
+`scheduler task profile is invalid`; тот же snapshot с локальным
+`allow_disabled_staging=True` прошёл. Task action указывает на точный
+новый config/digest; его следующий запуск до включения назначен на
+26.09.2026 03:30 +03:00. Это не повтор старой причины с
+`reconciled_from_digest`. Ни Task Enable, ни второй цикл не выполнялись;
+запрошено отдельное разрешение на эти два действия и stop-on-drift.
+
 ### 25.09 — candidate-bound L1/L2 и read-only production preflight
 
 Adversarial L3 по `fe333c6` выполнен по изменённым границам, без внешнего
