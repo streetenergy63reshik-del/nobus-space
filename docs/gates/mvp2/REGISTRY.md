@@ -1,5 +1,18 @@
 # Реестр Gate MVP2
 
+25 сентября текущий checkpoint: `telegram-live` staged на локальном
+`fa6f1f0` по точному разрешению, но один backup reconciliation завершился
+`failed_operator_required` на `starting`: verified generation создана,
+admission hold и cleanup подтверждены, все три Scheduled Tasks Disabled.
+Причина exit 75 — непринятое signed поле `reconciled_from_digest`; поправка
+только в WIP. Новый live UIA open-only для ранее не связанной выгруженной
+задачи восстановил owner точного ID без turn. Затронутая регрессия после
+последних правок — 225 passed, в том числе `ops_queue1` — 13 passed.
+Владелец согласовал ручной Desktop-ответ для неоднозначного текстового R02;
+структурированные Telegram approvals ещё требуют live-цикла. Gate остаётся WIP, публикации, живой
+Telegram-приёмки D01–D17 и принятия нет. Для изменённого commit и recovery
+нужна новая точная авторизация.
+
 25 сентября checkpoint `b8834ae` добавил безопасное open-only восстановление
 известной выгруженной задачи Desktop. Один live опыт через UIA+IPC дал
 точного owner, другой не дал и сохранён как ограничение; turn и Telegram
@@ -50,7 +63,7 @@ fixture, не относящемся к M2.
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | WIP / 25.09; реальный Desktop owner-транспорт, UI↔IPC, изолированные full-answer/file и approvals проверены. Open-only recovery подтверждён ограниченно; один отрицательный опыт сохранён. L1 `2904 passed, 3 skipped, 7 deselected`; чистый ZIP L2 `247 passed, 1 skipped`. Реальный Telegram D01–D17, позитивное отсутствие дубля, backup/release и финальный L3 открыты; production Disabled | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | code checkpoint `b8834aeedc7a7501bdc2049f8458ef025ab8c5ff` / `8622aeb6c6d57ca80a6cbca693a65af6c43a0103`; frozen Gate tree отсутствует | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | WIP / 25.09; production staged на `fa6f1f0`, но restart после verified backup failed_operator_required; все Tasks Disabled. Новый источник исправления ещё WIP; exact unbound-task UIA→IPC owner recovery подтверждён без turn. Ранее изолированные full-answer/file/approval и L1/L2 положительны только для старого снимка. Реальный Telegram D01–D17, remote ambiguity R02, новый кандидат и L3 открыты | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | последний staged commit `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8`; новый frozen Gate tree отсутствует | `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8` / LOCAL ONLY, бот Disabled | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
 
 Реальные task id и title внесены после запуска. В Gate сохраняются один
 `m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал

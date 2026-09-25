@@ -13,6 +13,7 @@ import src.application.desktop_bridge as desktop_bridge_module
 
 from src.application.desktop_bridge import (
     DesktopBridgeService,
+    ParsedDesktopCommand,
     _bridge_turn_text,
     _desktop_execution_settings,
     _desktop_final_text,
@@ -158,6 +159,56 @@ async def test_unloaded_owner_opens_only_verified_title_then_rediscovers_exact_i
         ("nobus-orchestrator-dev", "Точная задача"),
         ("discover", thread_id),
     ]
+
+
+@pytest.mark.asyncio
+async def test_unbound_unloaded_task_uses_explicit_title_only_as_uia_selector(
+    tmp_path: Path,
+) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    thread_id = str(uuid4())
+    request = state.create_request(
+        request_id=uuid4(), ingress_key="sha256:" + "2" * 64,
+        tenant_id="owner", author_user_id=41,
+        author_identity="telegram:member:41", chat_id=-1001, topic_id=7,
+        source_message_id=22, operation="continue",
+        project_name="Business Project",
+        payload={"instruction": "Продолжи", "requested_thread_id": thread_id,
+                 "requested_task_title": "Существующая задача"},
+    )
+    request = state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    assert state.known_thread_title(thread_id) is None
+    calls: list[tuple[str, str]] = []
+
+    class Client:
+        async def find_thread_owner(self, candidate: str):
+            calls.append(("discover", candidate))
+            if len(calls) == 1:
+                raise DesktopIpcUnavailableError("no-client-found")
+            return object()
+
+    class Uia:
+        async def open_existing(self, *, project_name: str, task_title: str):
+            calls.append((project_name, task_title))
+
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=Uia(),
+        projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    assert await service._find_or_open_owner(Client(), request) is not None
+    assert calls == [
+        ("discover", thread_id),
+        ("Business Project", "Существующая задача"),
+        ("discover", thread_id),
+    ]
+    assert state.known_thread_title(thread_id) is None
 
 
 @pytest.mark.asyncio
@@ -833,6 +884,37 @@ def test_expired_interaction_fails_closed_without_answering_desktop(tmp_path: Pa
     assert state.expire_interactions() == ()
 
 
+def test_expired_route_atomically_closes_inert_request(tmp_path: Path) -> None:
+    now = datetime(2026, 9, 25, 12, tzinfo=UTC)
+    encode, decode = _codec()
+    state = SQLiteDesktopBridgeState(
+        tmp_path / "telegram-state.sqlite3", encode=encode,
+        decode=decode, clock=lambda: now,
+    )
+    request = state.create_request(
+        request_id=uuid4(), ingress_key="sha256:" + "6" * 64,
+        tenant_id="owner", author_user_id=41,
+        author_identity="telegram:member:41", chat_id=-1001, topic_id=7,
+        source_message_id=17, operation="create", project_name=None,
+        payload={"instruction": "создай отчёт", "route_thread_id": None},
+    )
+    assert state.transition(
+        request.request_id, expected=frozenset({BridgeRequestStatus.RECEIVED}),
+        status=BridgeRequestStatus.NEEDS_TARGET,
+    )
+    state.put_interaction(
+        interaction_id="route-expiry", request_id=request.request_id,
+        kind=InteractionKind.QUESTION, desktop_request_id="route",
+        desktop_turn_id="route", target_user_id=41, generation=1,
+        payload={"method": "bridge/route"}, expires_at=now + timedelta(seconds=1),
+    )
+    now += timedelta(seconds=2)
+    expired = state.expire_interactions()
+    assert len(expired) == 1 and expired[0].interaction_id == "route-expiry"
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.FAILED
+    assert state.expire_interactions() == ()
+
+
 def test_telegram_projection_is_lossless_for_unicode_and_code() -> None:
     text = ("Начало 🧪\n```python\nprint('тест')\n```\n| A | Б |\n" * 250) + "конец"
     parts = telegram_text_parts(text, max_bytes=512)
@@ -1203,6 +1285,39 @@ def test_project_name_with_spaces_and_task_link_are_parsed(tmp_path: Path) -> No
     assert link is not None and link.thread_id == f"codex://threads/{task_id}"
     assert _parse_thread_ref(link.thread_id) == task_id
     assert _parse_thread_ref(task_id) == task_id
+    unbound = service._parse_command(_message(
+        f"/codex continue {task_id} | Business Project | Существующая задача\nПродолжи"
+    ))
+    assert unbound == ParsedDesktopCommand(
+        "continue", "Business Project", task_id, "Продолжи", "Существующая задача"
+    )
+
+
+@pytest.mark.asyncio
+async def test_unbound_existing_task_title_is_durable_but_not_trusted_identity(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(),
+        projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    scheduled = []
+    service._schedule = scheduled.append
+    thread_id = str(uuid4())
+    message = _message(
+        f"/codex continue {thread_id} | Business Project | Существующая задача\nПродолжи"
+    )
+    assert await service.handle(message, _envelope())
+    assert len(scheduled) == 1
+    stored = state.read_request(scheduled[0])
+    assert stored.desktop_thread_id == thread_id
+    assert stored.project_name == "Business Project"
+    assert stored.payload["requested_task_title"] == "Существующая задача"
+    assert state.known_thread_title(thread_id) is None
 
 
 @pytest.mark.asyncio
@@ -1271,6 +1386,33 @@ async def test_natural_voice_create_requires_transcript_and_project_choice(tmp_p
     assert launched.payload["instruction"] == "составь план"
 
 
+@pytest.mark.asyncio
+async def test_ambiguous_voice_waits_for_route_after_transcript_confirmation(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        voice_service=_Voice("Нобус, в проекте Business Project создай задачу: отчёт"),
+    )
+    scheduled = []
+    service._schedule = scheduled.append
+    assert await service.handle(_voice_message(), _envelope())
+    voice = state.list_requests(statuses=frozenset({BridgeRequestStatus.NEEDS_VOICE_CONFIRMATION}))
+    assert len(voice) == 1 and voice[0].payload["route_required"] is True
+    assert scheduled == []
+    confirm = _message("да", reply=1).model_copy(update={"message_id": 14})
+    await service.handle(confirm, _envelope())
+    route = state.pending_interaction_for_reply(chat_id=-1001, telegram_message_id=2)
+    assert route is not None and route.payload["method"] == "bridge/route"
+    assert state.read_request(voice[0].request_id).status is BridgeRequestStatus.NEEDS_TARGET
+    assert scheduled == []
+
+
 def test_natural_create_with_exact_project_never_becomes_topic(tmp_path: Path) -> None:
     project = tmp_path / "Business Project"
     project.mkdir()
@@ -1285,6 +1427,60 @@ def test_natural_create_with_exact_project_never_becomes_topic(tmp_path: Path) -
     assert (parsed.operation, parsed.project_name, parsed.instruction) == (
         "create", "Business Project", "составь план",
     )
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_natural_request_never_silently_continues_topic(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "Business Project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    prior = state.create_request(
+        request_id=uuid4(), ingress_key="sha256:" + "3" * 64,
+        tenant_id="owner", author_user_id=41,
+        author_identity="telegram:member:41", chat_id=-1001, topic_id=7,
+        source_message_id=12, operation="create", project_name="Business Project",
+        payload={"instruction": "первое поручение"},
+    )
+    state.bind_desktop(
+        prior.request_id, thread_id=str(uuid4()), turn_id="turn-1",
+        client_message_id=f"nobus:{prior.request_id}",
+        status=BridgeRequestStatus.DELIVERED,
+    )
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"Business Project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    scheduled = []
+    service._schedule = scheduled.append
+    message = _message("@Nobusspacebot в проекте Business Project создай задачу: отчёт")
+    assert service._parse_command(message).operation == "route"
+    assert service._parse_command(_message(
+        "/codex в проекте Business Project создай задачу: отчёт"
+    )).operation == "route"
+    assert await service.handle(message, _envelope())
+    assert scheduled == []
+    route = state.pending_interaction_for_reply(chat_id=-1001, telegram_message_id=1)
+    assert route is not None and route.payload["method"] == "bridge/route"
+    assert state.read_request(route.request_id).status is BridgeRequestStatus.NEEDS_TARGET
+    wrong_author = _origin_message("продолжить", user_id=55, reply=1).model_copy(
+        update={"message_id": 13}
+    )
+    await service.handle(wrong_author, _envelope().model_copy(update={
+        "idempotency_key": "sha256:" + "4" * 64,
+    }))
+    assert scheduled == []
+    choose = _message("создать", reply=1).model_copy(
+        update={"message_id": 14, "update_id": 4}
+    )
+    await service.handle(choose, _envelope().model_copy(update={
+        "idempotency_key": "sha256:" + "5" * 64, "external_message_id": "message:14",
+    }))
+    assert scheduled == []
+    assert state.read_request(route.request_id).status is BridgeRequestStatus.CANCELLED
+    assert any("выберите существующий проект" in item[1] for item in api.messages)
 
 
 def test_name_address_and_wrong_bot_command_are_not_ambient_commands(tmp_path: Path) -> None:

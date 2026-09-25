@@ -188,7 +188,8 @@ def _recovery_progress(runtime, binding, initial_digest):
 
 
 def cycle(config_path,expected,*,recover_failure_digest=None,
-          reconcile_complete_digest=None,clock=time.monotonic,wait=time.sleep):
+          reconcile_complete_digest=None,rebind_failed_digest=None,
+          clock=time.monotonic,wait=time.sleep):
     with WindowsNamedMutex(r'Global\NobusSpaceBackupCycle'):
         cycle_deadline=clock()+1140
         config=load_config(config_path,expected)
@@ -196,19 +197,32 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
         journal=m.checked_path(config_path.parent/'backup-cycle-state.dpapi')
         recovering=False
         reconciling=False
+        rebinding_failed=False
         old=None
-        if recover_failure_digest is not None and reconcile_complete_digest is not None:
-            raise ValueError('backup recovery and completed-journal reconciliation are exclusive')
+        if sum(value is not None for value in (
+                recover_failure_digest,reconcile_complete_digest,rebind_failed_digest))>1:
+            raise ValueError('backup recovery controls are exclusive')
         if journal.exists():
             old=managed._certificate(journal)
             old_digest=canonical_json_digest(old)
             if old.get('schema')!='c6-backup-cycle-state-1':
                 raise ValueError('previous backup cycle schema invalid')
             if old.get('config_digest')!=expected:
-                if (old.get('phase')!='complete'
-                        or reconcile_complete_digest!=old_digest):
+                if old.get('phase')=='complete' and reconcile_complete_digest==old_digest:
+                    reconciling=True
+                elif (old.get('phase')=='failed_operator_required'
+                        and rebind_failed_digest==old_digest
+                        and old.get('failed_phase')=='starting'
+                        and old.get('failure_class')=='restart_not_ready'
+                        and old.get('backup_status')=='VERIFIED'
+                        and old.get('admission_hold') is True
+                        and old.get('cleanup_proven') is True
+                        and isinstance(old.get('generation'),str)
+                        and managed.GENERATION.fullmatch(old['generation'])):
+                    recovering=True
+                    rebinding_failed=True
+                else:
                     raise ValueError('previous backup cycle requires operator reconciliation')
-                reconciling=True
             elif old.get('phase')!='complete':
                 if recover_failure_digest != canonical_json_digest(old):
                     raise ValueError('previous backup cycle requires operator reconciliation')
@@ -217,6 +231,8 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
             raise ValueError('no matching failed cycle')
         if reconcile_complete_digest is not None and not reconciling:
             raise ValueError('no matching completed cycle')
+        if rebind_failed_digest is not None and not rebinding_failed:
+            raise ValueError('no matching failed cycle for config rebind')
         main,health=config['tasks']['main']['name'],config['tasks']['health']['name']
         initial=_task('Inspect',main)
         cold_start=initial['state']!='Running' and _port_closed()
@@ -225,9 +241,15 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
             if (initial['enabled'] or health_state['enabled'] or initial['state']=='Running'
                     or health_state['state']=='Running' or not _port_closed()):
                 raise ValueError('failure recovery requires both tasks stopped and disabled')
+            if rebinding_failed:
+                managed._generation(
+                    backups, backups/old['generation'], config['ownership']
+                )
             # Retain the authenticated failed journal before any fresh attempt.
             archive=m.checked_path(journal.with_name('failed-cycle-'+uuid4().hex+'.dpapi'),root=journal.parent)
             m.write_bytes_durable(archive,journal.read_bytes())
+            if managed._certificate(archive)!=old:
+                raise ValueError('failed-cycle archive verification failed')
             m.validate_runtime_set(runtime)
         elif reconciling:
             # A changed application/config binding must not inherit the prior
@@ -253,7 +275,7 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
                 return {'status':'SKIPPED','reason':'runtime_intentionally_disabled','backup_created':False}
             if initial['state']!='Running' and not cold_start:
                 raise ValueError('runtime stop state is ambiguous')
-        attempt_id=old.get('attempt_id') if recovering else uuid4().hex
+        attempt_id=old.get('attempt_id') if recovering and not rebinding_failed else uuid4().hex
         if not isinstance(attempt_id,str) or not re.fullmatch('[0-9a-f]{32}',attempt_id):
             raise ValueError('failed cycle attempt binding invalid')
         generation_name=None
@@ -263,8 +285,11 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
             phase_name=phase
             details.setdefault('generation',generation_name)
             details.setdefault('backup_status','VERIFIED' if generation_name else 'NOT_CREATED')
-            if reconciling:
-                details.setdefault('reconciled_from_digest',reconcile_complete_digest)
+            if reconciling or rebinding_failed:
+                details.setdefault(
+                    'reconciled_from_digest',
+                    reconcile_complete_digest if reconciling else rebind_failed_digest,
+                )
             _journal(journal,expected,phase,attempt_id=attempt_id,**details)
         try:
             managed.hold_admission(backups,config['ownership'])
@@ -340,6 +365,7 @@ def main():
     parser.add_argument('--config-digest',required=True)
     parser.add_argument('--recover-failure-digest')
     parser.add_argument('--reconcile-complete-digest')
+    parser.add_argument('--rebind-failed-digest')
     parser.add_argument('--inspect-failure',action='store_true')
     args=parser.parse_args()
     try:
@@ -354,7 +380,8 @@ def main():
         else:
             result=cycle(args.config,args.config_digest,
                          recover_failure_digest=args.recover_failure_digest,
-                         reconcile_complete_digest=args.reconcile_complete_digest)
+                         reconcile_complete_digest=args.reconcile_complete_digest,
+                         rebind_failed_digest=args.rebind_failed_digest)
     except Exception:
         print('{"status":"FAIL","code":"backup_cycle_operator_required"}')
         return 1

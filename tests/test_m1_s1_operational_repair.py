@@ -554,7 +554,14 @@ def test_reboot_delivered_capability_is_safe_unknown_still_stops(tmp_path):
     reboot.validate_effects(runtime)
 
 
-@pytest.mark.parametrize('extra,expected',[({'backup_status':'VERIFIED'},True),({'backup_status':'NOT_CREATED'},False),({'backup_status':'VERIFIED','unreviewed':True},False)])
+@pytest.mark.parametrize('extra,expected',[
+    ({'backup_status':'VERIFIED'},True),
+    ({'backup_status':'NOT_CREATED'},False),
+    ({'backup_status':'VERIFIED','reconciled_from_digest':'sha256:'+'a'*64},True),
+    ({'backup_status':'VERIFIED','reconciled_from_digest':'invalid'},False),
+    ({'backup_status':'VERIFIED','reconciled_from_digest':'sha256:'+'a'*64,'unreviewed':True},False),
+    ({'backup_status':'VERIFIED','unreviewed':True},False),
+])
 def test_backup_journal_writer_and_restart_reader_agree(tmp_path,extra,expected):
     config=tmp_path/'cycle.json';digest='sha256:'+'c'*64
     backup._journal(tmp_path/'backup-cycle-state.dpapi',digest,'restart_permitted',

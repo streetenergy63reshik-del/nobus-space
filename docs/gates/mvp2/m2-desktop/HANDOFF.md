@@ -1,11 +1,92 @@
 # M2-DESKTOP — рабочая передача
 
 **Gate:** M2-DESKTOP
-**Текущая стадия:** WIP / локальные исправления по аудиту 24 сентября; кандидат не заморожен
+**Текущая стадия:** WIP / новая локальная правка после неудачной активации; кандидат не заморожен, production остановлен
 
-**Дата текущего наблюдения:** 24 сентября 2026 года, около 20:35 МСК
+**Дата текущего наблюдения:** 25 сентября 2026 года
 **Ветка:** `codex/m2-desktop`
-**HEAD до локальных правок:** `696fe2ca34865047276fdb7734f296a0616ee73c`, tree `a11a806d363e0a9786644be34745e391624a067b`
+**Последний проверенный docs commit:** `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8`; новые исправления ниже ещё WIP
+
+## 25.09 — точная production staging, неудачный restart и текущая разработка
+
+Владелец подтвердил выпуск именно `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8`
+с точным rollback и ограниченным Telegram smoke. До эффекта `telegram-live`
+был clean на `3ea2438`, все три Scheduled Tasks Disabled; их XML и
+Health launcher совпали с release plan. Созданы точные rollback-копии в
+`.runtime/m2-desktop-release-20260925/fa6f1f0-preflight/` и локальная ветка
+`codex/m2-desktop-pre-release-20260925`. Production checkout переведён на
+`fa6f1f0`; установлены только проверенный 10-проектный локальный каталог,
+staged-disabled Main/Health/Backup и отдельный новый backup config с digest
+`sha256:d3837510c95cb1ef1fce7d1a44f8cbc7524c829f04bb85a1349baae1d98be9ad`.
+Credentials и Codex не менялись, push/merge не выполнялись.
+
+Старый signed recovery head `recovery_reset` имел digest
+`sha256:e911277e820fa2244266d9914e9562403be2cfc37383479ec4a1ce9adbc51885`.
+Первый `--inspect-recovery` с **новым** binding закономерно ответил
+`runtime_history_invalid`: это сравнение с прежней привязкой, не порча
+журнала. Прямое read-only чтение подтвердило прежний event и отсутствие
+latch. Однократный разрешённый rebind вернул `REBOUND`, event digest
+`sha256:7a77a2b7bd37ea498cc2e97cac16661f9ee44adab02cab2e8b5bf6b112b65062`,
+новый binding `sha256:220a5980a0ee1e95ec3dd153d11757645939136813941cfc1d0ee6b4bba905f3`;
+повторный inspect — `PASS/new`.
+
+Один разрешённый backup reconciliation от старой завершённой квитанции
+`sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c`
+создал VERIFIED generation
+`daily-20260925T110018-12b0d56094fb4793bf3cfa694eb5c87b`, но
+завершился `FAIL/backup_cycle_operator_required` на фазе `starting`.
+Подписанный failed journal: digest
+`sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da`,
+`failure_class=restart_not_ready`, `admission_hold=true`,
+`cleanup_proven=true`. Main вернул код 75 до записи runtime event;
+Main/Health/Backup снова Disabled. Цикл и start не повторялись. Причина:
+в согласованном backup config journal на `restart_permitted/starting` содержит
+подписанное `reconciled_from_digest`, а `_backup_restart_authorized` прежнего
+commit допускал только базовые поля и `backup_status`; следовательно
+`activation_binding_invalid` (75). Это доказанный production defect.
+Новая WIP-поправка принимает только дополнительное поле точного digest при
+`backup_status=VERIFIED`, неизвестные поля и неверный digest по-прежнему
+отвергаются. Поскольку новый commit изменит application binding, добавлен
+отдельный `--rebind-failed-digest`: старый signed failed journal принимается
+только при точном digest, verified generation, конкретной фазе/причине,
+доказанных admission hold и cleanup, остановленных задачах и валидной новой
+конфигурации; прежний журнал архивируется до нового snapshot. Обычный
+`--recover-failure-digest` для неизменного config и completed reconciliation
+остаются отдельными ветвями. До нового точного разрешения production checkout
+не менять, backup recovery не запускать и Telegram-тесты не начинать.
+
+По функционалу R01 неизвестная адресованная текстовая или голосовая просьба
+теперь проходит через сохранённое уточнение «создать / продолжить», не
+переходит молча к задаче темы. До ответа автора Desktop не получает turn;
+истечение времени атомарно закрывает и карточку, и инертный request в SQLite;
+это безопасное согласование маршрута через durable Core, **не** полноценный
+смысловой выбор проекта/задачи моделью. В R02 безопасный вопрос «Какой цвет
+записать в отчёт?» уже классифицируется как QUESTION, явная просьба о
+разрешении — UNKNOWN владельцу; для неоднозначного `requestUserInput` нет
+доверенного IPC-поля происхождения. Владелец 25.09 согласовал точную
+границу: неоднозначный текстовый `requestUserInput` останавливается для
+ручного ответа в Desktop; структурированные approvals остаются адресованными
+только владельцу по numeric Telegram user_id. Это не доказательство полного
+удалённого паритета: живой Telegram-цикл вопросов и approve/deny ещё нужен.
+
+Для ранее не связанной с bridge выгруженной задачи добавлен явный формат
+`/codex continue <thread-id> | <проект> | <точный заголовок>`: заголовок
+служит только selector UIA, а точные thread ID и `cwd` проверяются через
+Desktop IPC до turn. На реальной не связанной задаче
+`01a0c547-986f-71c2-9847-ba3a4f5925be` сначала получено
+`no-client-found`, затем UIA snapshot нашёл ровно один sidebar item,
+`OpenExisting` дал только `invoked-open-task`, после чего IPC подтвердил
+исходный ID, заголовок и каталог `nobus-orchestrator-dev`. Нового turn,
+Telegram и approvals в этой проверке не было. Отрицательный опыт прежней
+задачи `01a0d432…` сохранён, универсальная успешность не утверждается.
+
+Исторический `tests/test_ops_queue1.py` проверен целиком: два отказа были
+устаревшими именем health probe и статическим ожиданием `--check-ready` в
+installer. Тест теперь проверяет действующий `check_nobus_space_health.py`,
+его readiness pair/details и отсутствие записи в `-WhatIf`; **13 passed**.
+Затронутый неподвижный набор bridge/IPC/UIA/C6 backup/M1/ops/docs после
+последних правок дал `225 passed, 1 warning` за 120,51 с; это ещё не новый
+замороженный кандидат и не D01–D17.
 
 ## Checkpoint 25.09 — расширенная регрессия и исправление C6-совместимости
 

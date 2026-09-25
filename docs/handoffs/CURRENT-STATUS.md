@@ -1,5 +1,34 @@
 # Nobus Space: текущий принятый статус
 
+## M2-DESKTOP: 25 сентября production staged, восстановление не завершено
+
+По точному разрешению владельца production checkout `telegram-live` переведён
+на локальный `fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8`, каталог проектов
+и три Scheduled Tasks staged. Старый подписанный recovery head успешно
+перепривязан; один согласованный backup reconciliation создал verified
+generation, но Main не достиг readiness (`exit 75`). Подписанный журнал:
+`failed_operator_required` на `starting`, admission hold и cleanup подтверждены;
+все три задачи планировщика снова Disabled. Причина — проверка запуска в
+`fa6f1f0` не принимает подписанное поле `reconciled_from_digest` нового
+backup journal. Ни цикл, ни запуск не повторялись; Telegram-тестов не было.
+Реальный MVP2 не активирован и D01–D17 не приняты.
+
+В текущем WIP добавлены узкая поправка restart guard, сохранённое уточнение
+неоднозначного create/continue и явный selector для ранее не связанной
+выгруженной Desktop-задачи. Read-only UIA→IPC проверка такой задачи на
+установленном Desktop подтвердила exact owner/thread/title/cwd без turn.
+Для смены application binding после failed journal добавлена отдельная
+строго проверяемая ветвь `--rebind-failed-digest`; она ещё не развёрнута.
+Затронутая регрессия на неподвижных файлах: 225 тестов прошли;
+`ops_queue1` теперь целиком проверяет действующие WhatIf и Health
+(13 passed). Код ещё не заморожен и не установлен в production.
+Неоднозначный `requestUserInput` без доверенного поля происхождения остаётся
+точной границей R02: владелец согласовал ручной ответ в Desktop для такого
+случая; живой цикл структурированных approvals остаётся обязательным.
+Следующий безопасный шаг — единый проверенный кандидат
+и отдельное разрешение на его конкретный commit и восстановление failed
+backup journal; до этого бот остаётся выключен.
+
 ## M2-DESKTOP: 25 сентября ограниченно проверен owner recovery; production не активирован
 
 Кодовый checkpoint `b8834aeedc7a7501bdc2049f8458ef025ab8c5ff`

@@ -1,5 +1,33 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 25.09 — восстановление после подписанного failed backup и R01/R02
+
+После согласованного staging `fa6f1f0` единственный backup reconciliation
+создал VERIFIED generation, но Main завершился кодом 75: reader не принимал
+подписанное `reconciled_from_digest`. Failed journal
+`sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da`
+остался в `failed_operator_required/starting`, все три Tasks Disabled,
+дополнительных production-попыток не было. WIP добавил узкую проверку поля
+и отдельный `--rebind-failed-digest`, не развёрнутый в production.
+
+Для R01 неизвестная адресованная просьба теперь требует сохранённого выбора
+автора «создать/продолжить» до Desktop-эффекта; это безопасный маршрут, не
+полное смысловое понимание Core. Для выгруженной ранее не связанной задачи
+один живой open-only UIA→IPC опыт подтвердил точные ID/title/cwd без turn.
+Владелец согласовал ограничение R02: неоднозначный текстовый
+`requestUserInput` — ручной ответ в Desktop, структурированные approvals —
+только numeric Telegram user_id владельца. Живой Telegram-цикл не проводился.
+
+Затронутая регрессия на неподвижной рабочей копии: `225 passed, 1 warning`
+за 120,51 с (bridge/IPC/UIA/C6 backup/M1/ops/docs), включая все 13
+`ops_queue1`-проверок действующих WhatIf и Health. Более ранний частичный
+прогон backup-тестов дал один отказ `application changed during backup`,
+поскольку исходник редактировался одновременно с тестом, который специально
+проверяет неизменность application binding; этот прогон не использован как
+доказательство, а на неподвижных файлах соответствующий тест прошёл.
+Нужны замороженный снимок, независимая проверка, новое точное разрешение на
+изменённые production bytes и подписанное восстановление, затем D01–D17.
+
 ### 25.09 — широкий набор и точная классификация отказов
 
 На `e5921b8` полный `tests` без `tests/gate0`: `2894 passed, 3 skipped,
@@ -820,3 +848,49 @@ parser 0; широкий L1 на `b8834ae`: 2904/3 skip/7 исторически
 Desktop. Имя может устареть, и тогда система останавливается, не угадывая.
 Production и D01–D17 не активированы; точная release-привязка прежнего
 `16f9029` устарела. Исторический набор Gate C0/MVP1 не переделывался.
+
+### 25.09 — production restart failure и адресная функциональная работа
+
+Exact approval `fa6f1f0` позволил staged-disabled замену трёх заданий,
+локальную копию каталога проектов, новый backup config, signed rebind и один
+backup cycle. Rollback-копии и старый checkout сохранены. Rebind прошёл с
+`REBOUND` и inspect `PASS/new`. Один backup reconciliation от точного
+старого complete digest создал verified generation, затем Main завершился
+кодом 75; signed failed journal (digest `sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da`)
+показывает `failed_phase=starting`, `admission_hold=true`,
+`cleanup_proven=true`. Все три Tasks Disabled, новая runtime запись отсутствует.
+Повторов и Telegram-вызовов не было.
+
+Причинный read-only разбор: `record()` во время reconciliation подписывает
+`reconciled_from_digest` на каждой фазе, включая `restart_permitted`;
+`_backup_restart_authorized()` на deployed commit считал это поле неизвестным
+и отклонял activation manifest (`exit 75`). WIP-патч принимает поле только
+при `backup_status=VERIFIED`, проверяет SHA-формат и продолжает отвергать
+любое иное поле. Отрицательные тесты добавлены. Recovery требует нового
+точного release-решения; failed journal не перезаписывать вслепую. Новый
+`--rebind-failed-digest` отделён от same-config failed recovery и принимает
+только exact signed receipt после verified backup и доказанного STOP; он
+архивирует прежний журнал перед новой generation и отвергает replay.
+
+Для R01 без распознанного явного синтаксиса добавлено durable author-choice
+создать/продолжить. Это блокирует неправильное автоматическое продолжение
+при адресованном «в проекте … создай …», но не является универсальным
+смысловым resolver Core. Голос сначала подтверждает ASR, затем маршрут;
+фоновое голосовое сообщение по-прежнему не перехватывается. R02 имеет
+позитивный вопросный и отрицательный consent пример, однако IPC не даёт
+доверенной классификации всех `requestUserInput`; неоднозначный тип
+остаётся owner/manual Desktop и вынесен на согласование.
+
+Для не связанной с bridge выгруженной задачи `01a0c547…` read-only IPC
+подтвердил `no-client-found`, UIA нашёл один точный sidebar item и открыл
+его, следующий IPC snapshot подтвердил исходный ID, title и project cwd.
+Это open-only proof, не продолжение turn. Новый явный Telegram selector
+хранится как подсказка UIA, не как доверенная identity.
+
+Исторический `ops_queue1` повторно запущен как проверка поведения: 11
+положительных и 2 несовместимых статических ожидания. Два теста приведены
+к текущему имени health probe и readiness pair/details; WhatIf по-прежнему
+проверяет отсутствие записи. Итог `13 passed`; связанный затронутый набор
+после правок `187 passed, 1 warning`. Старая заморозка `fa6f1f0` не
+распространяется на новые bytes. Новый независимый кандидат и реальная
+Telegram-приёмка ещё впереди.

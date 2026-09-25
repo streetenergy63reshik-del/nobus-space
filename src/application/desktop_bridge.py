@@ -172,6 +172,7 @@ class ParsedDesktopCommand:
     project_name: str | None
     thread_id: str | None
     instruction: str
+    task_title: str | None = None
 
 
 class DesktopBridgeService:
@@ -317,13 +318,18 @@ class DesktopBridgeService:
                 "Codex Desktop:\n"
                 "/codex new <проект> — затем с новой строки задача;\n"
                 "/codex continue <thread-id> — затем с новой строки продолжение;\n"
-                "/codex <текст> — продолжить задачу, уже связанную с этой темой.",
+                "/codex continue <thread-id> | <проект> | <точный заголовок> — "
+                "если прежняя задача выгружена из Desktop;\n"
+                "/codex <текст> — уточнить создание или продолжение перед запуском.",
                 message_thread_id=message.message_thread_id,
                 reply_to_message_id=message.message_id,
             )
             return True
         if parsed.operation == "redeliver":
             await self._redeliver_known_partial(message, parsed.thread_id)
+            return True
+        if parsed.operation == "route":
+            await self._request_route(message, envelope, parsed)
             return True
         await self._admit(message, envelope, parsed)
         return True
@@ -389,13 +395,97 @@ class DesktopBridgeService:
         if verb in {"continue", "продолжить"}:
             if len(fields) < 2:
                 return ParsedDesktopCommand("help", None, None, "")
+            if " | " in first:
+                parts = [part.strip() for part in first[len(fields[0]):].split(" | ", 2)]
+                if len(parts) == 3 and all(parts) and separator:
+                    return ParsedDesktopCommand(
+                        "continue", parts[1], parts[0], remainder.strip(), parts[2]
+                    )
+                return ParsedDesktopCommand("help", None, None, "")
             instruction = ((fields[2] if len(fields) == 3 else "") + ("\n" + remainder if separator else "")).strip()
             return ParsedDesktopCommand("continue", None, fields[1], instruction)
         if verb in {"redeliver", "доставить"}:
             return ParsedDesktopCommand(
                 "redeliver", None, fields[1] if len(fields) >= 2 else None, ""
             )
-        return ParsedDesktopCommand("topic", None, None, body)
+        return ParsedDesktopCommand(
+            "topic" if message.reply_to_message_id is not None else "route",
+            None, None, body,
+        )
+
+    async def _request_route(
+        self, message: TextMessage, envelope: TrustedIngressEnvelope,
+        parsed: ParsedDesktopCommand,
+    ) -> None:
+        """Persist ambiguous natural language before choosing a Desktop effect."""
+        if message.is_forwarded or not parsed.instruction or len(parsed.instruction) > 12_000:
+            await self._reply(message, "Не удалось безопасно определить поручение Desktop.")
+            return
+        if (
+            message.is_bot
+            and self._state.recent_author_request_count(
+                author_user_id=message.user_id,
+                since=self._now() - _BOT_REQUEST_WINDOW,
+            ) >= _BOT_REQUEST_LIMIT
+        ):
+            await self._reply(message, "Лимит агента: не более четырёх новых запросов за 10 минут.")
+            return
+        previous = self._topic_predecessor(message)
+        try:
+            request = self._state.create_request(
+                request_id=_request_uuid(envelope.idempotency_key),
+                ingress_key=envelope.idempotency_key, tenant_id=message.tenant_id,
+                author_user_id=message.user_id, author_identity=message.actor_identity,
+                chat_id=message.chat_id, topic_id=message.message_thread_id,
+                source_message_id=message.message_id, operation="create",
+                project_name=None,
+                payload={
+                    "instruction": parsed.instruction,
+                    "route_thread_id": previous.desktop_thread_id if previous else None,
+                },
+            )
+        except DesktopBridgeStateError as error:
+            if str(error) != "desktop_bridge_queue_full":
+                raise
+            await self._reply(message, "Очередь задач Codex Desktop заполнена. Повторите запрос позже.")
+            return
+        if not self._state.transition(
+            request.request_id, expected=frozenset({BridgeRequestStatus.RECEIVED}),
+            status=BridgeRequestStatus.NEEDS_TARGET,
+        ):
+            return
+        await self._publish_route_card(message, request)
+
+    async def _publish_route_card(
+        self, message: TextMessage, request: BridgeRequest,
+    ) -> None:
+        interaction = self._state.put_interaction(
+            interaction_id=_interaction_id(request.request_id, "route"),
+            request_id=request.request_id, kind=InteractionKind.QUESTION,
+            desktop_request_id="route", desktop_turn_id="route",
+            target_user_id=message.user_id, generation=1,
+            payload={"method": "bridge/route"},
+            expires_at=self._now() + _INTERACTION_TTL,
+        )
+        if not self._state.claim_interaction_delivery(interaction.interaction_id):
+            return
+        try:
+            card_id = await self._api.send_message(
+                message.chat_id,
+                f'<a href="tg://user?id={message.user_id}">Автор запроса</a>, '
+                "уточните действие с этим поручением: ответьте «создать» для новой "
+                "задачи или «продолжить» для задачи, связанной с темой. "
+                "Для другой задачи ответьте «продолжить <ID>». "
+                "До ответа Codex Desktop не запускается.",
+                message_thread_id=message.message_thread_id,
+                reply_to_message_id=message.message_id, parse_mode="HTML",
+            )
+        except Exception:
+            return  # Lost Telegram ACK: do not duplicate the card.
+        self._state.finish_interaction_delivery(
+            interaction.interaction_id, telegram_chat_id=message.chat_id,
+            telegram_message_id=card_id,
+        )
 
     async def _redeliver_known_partial(
         self, message: TextMessage, request_ref: str | None
@@ -497,6 +587,12 @@ class DesktopBridgeService:
             except (ValueError, TypeError):
                 await self._reply(message, "Некорректный идентификатор задачи Desktop.")
                 return
+            if parsed.task_title is not None:
+                project = self._projects.get((project_name or "").casefold())
+                if project is None or not 0 < len(parsed.task_title.strip()) <= 256:
+                    await self._reply(message, "Укажите точный существующий проект и заголовок задачи Desktop.")
+                    return
+                project_name = project.name
         request_id = _request_uuid(envelope.idempotency_key)
         try:
             request = self._state.create_request(
@@ -513,6 +609,7 @@ class DesktopBridgeService:
                 payload={
                     "instruction": parsed.instruction,
                     "requested_thread_id": thread_id,
+                    "requested_task_title": parsed.task_title,
                 },
             )
         except DesktopBridgeStateError as error:
@@ -626,6 +723,10 @@ class DesktopBridgeService:
                 project_name = None
             else:
                 project_name = project.name
+        elif operation == "route":
+            operation = "create"  # The pending route is inert until confirmed.
+            project_name = None
+            thread_id = None
         elif operation == "continue":
             try:
                 thread_id = _parse_thread_ref(thread_id)
@@ -682,6 +783,8 @@ class DesktopBridgeService:
                     "instruction": instruction,
                     "requested_thread_id": thread_id,
                     "requested_project": parsed.project_name,
+                    "route_required": parsed.operation == "route",
+                    "route_thread_id": previous.desktop_thread_id if previous else None,
                     "voice": True,
                 },
             )
@@ -761,7 +864,8 @@ class DesktopBridgeService:
             text=text,
         )
         return self._parse_command(synthetic) or ParsedDesktopCommand(
-            "topic", None, None, normalized
+            "route" if message.reply_to_message_id is None else "topic",
+            None, None, normalized,
         )
 
     async def _answer_interaction(
@@ -789,6 +893,47 @@ class DesktopBridgeService:
             await self._reply(message, "Ответ принимается только в исходной теме запроса.")
             return
         answer = message.text.strip()
+        if interaction.payload.get("method") == "bridge/route":
+            normalized = answer.casefold()
+            if normalized in {"создать", "новая", "create"}:
+                chosen = ParsedDesktopCommand(
+                    "create", None, None, str(request.payload["instruction"])
+                )
+            elif normalized in {"продолжить", "continue"}:
+                thread = request.payload.get("route_thread_id")
+                if not isinstance(thread, str):
+                    await self._reply(message, "Укажите «продолжить <ID>» или выберите создание.")
+                    return
+                chosen = ParsedDesktopCommand(
+                    "continue", None, thread, str(request.payload["instruction"])
+                )
+            elif normalized.startswith(("продолжить ", "continue ")):
+                thread = answer.split(maxsplit=1)[1]
+                try:
+                    _parse_thread_ref(thread)
+                except (ValueError, TypeError):
+                    await self._reply(message, "Некорректный идентификатор задачи Desktop.")
+                    return
+                chosen = ParsedDesktopCommand(
+                    "continue", None, thread, str(request.payload["instruction"])
+                )
+            else:
+                await self._reply(message, "Ответьте «создать» или «продолжить <ID>».")
+                return
+            if request.status is not BridgeRequestStatus.NEEDS_TARGET or envelope is None:
+                await self._reply(message, "Уточнение уже закрыто или не связано с этим сообщением.")
+                return
+            if not self._state.resolve_interaction(
+                interaction.interaction_id, responder_user_id=message.user_id,
+            ):
+                await self._reply(message, "Выбор уже обработан или истёк.")
+                return
+            self._state.transition(
+                request.request_id, expected=frozenset({BridgeRequestStatus.NEEDS_TARGET}),
+                status=BridgeRequestStatus.CANCELLED,
+            )
+            await self._admit(message, envelope, chosen)
+            return
         if interaction.payload.get("method") == "bridge/target":
             project = self._projects.get(answer.casefold())
             if project is None or project.name not in interaction.payload.get("projects", ()):
@@ -829,14 +974,18 @@ class DesktopBridgeService:
             if not self._state.resolve_interaction(interaction.interaction_id, responder_user_id=message.user_id):
                 await self._reply(message, "Подтверждение уже обработано или истекло.")
                 return
+            needs_route = request.payload.get("route_required") is True
             needs_target = request.operation == "create" and request.project_name is None
             if self._state.transition(
                 request.request_id,
                 expected=frozenset({BridgeRequestStatus.NEEDS_VOICE_CONFIRMATION}),
-                status=(BridgeRequestStatus.NEEDS_TARGET if needs_target
+                status=(BridgeRequestStatus.NEEDS_TARGET if needs_route or needs_target
                         else BridgeRequestStatus.RECEIVED),
             ):
-                if needs_target:
+                if needs_route:
+                    await self._publish_route_card(message, request)
+                    await self._reply(message, "Распознанная задача подтверждена; уточните создание или продолжение. До выбора Desktop не запускается.")
+                elif needs_target:
                     await self._publish_project_target(message, request)
                     await self._reply(message, "Распознанная задача подтверждена; выберите проект в карточке. До выбора Desktop не запускается.")
                 else:
@@ -1149,10 +1298,10 @@ class DesktopBridgeService:
                 chat_id = request.chat_id
                 topic_id = request.topic_id
                 reply_id = request.source_message_id
-            elif interaction.payload.get("method") == "bridge/target":
+            elif interaction.payload.get("method") in {"bridge/target", "bridge/route"}:
                 text = (
-                    "Срок выбора проекта истёк. Задача в Codex Desktop не запускалась; "
-                    "отправьте новое поручение с точным названием проекта."
+                    "Срок выбора действия или проекта истёк. Задача в Codex Desktop "
+                    "не запускалась; отправьте новое поручение."
                 )
                 chat_id = request.chat_id
                 topic_id = request.topic_id
@@ -1292,6 +1441,18 @@ class DesktopBridgeService:
             if exc.reason != "no-client-found":
                 raise
         title = self._state.known_thread_title(thread_id)
+        if title is None:
+            candidate = request.payload.get("requested_task_title")
+            if (
+                request.project_name is not None
+                and request.project_name.casefold() in self._projects
+                and isinstance(candidate, str)
+                and 0 < len(candidate.strip()) <= 256
+            ):
+                # Telegram supplies only a UI selector, not task identity.
+                # The exact thread owner and project cwd must still be proven
+                # through IPC before a turn can be sent.
+                title = candidate.strip()
         if title is None:
             raise DesktopIpcUnavailableError("no-client-found")
         async with self._ui_bootstrap_lock:

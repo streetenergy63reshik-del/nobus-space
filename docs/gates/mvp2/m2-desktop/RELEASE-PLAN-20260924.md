@@ -1,6 +1,42 @@
 # M2-DESKTOP: план контролируемого выпуска
 
-Статус: production release PREPARED, не исполнен; отдельно подтверждённое
+## Обновление 25.09: stopped failure после точного staging `fa6f1f0`
+
+Исторический план ниже выполнен до единственного backup cycle. Подписанный
+rebind прошёл, verified backup generation создана, но запуск Main завершился
+кодом 75; failed journal digest
+`sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da`,
+фаза `starting`, `admission_hold=true`, `cleanup_proven=true`, три Tasks
+Disabled. Причина — old restart reader не принимал подписанное
+`reconciled_from_digest`. Backup и cleanup прочитаны через штатный
+inspector/DPAPI, но старый цикл/команду не повторять.
+
+Новый WIP-кандидат добавляет строгое чтение этого поля и отдельный
+`--rebind-failed-digest` для смены application/config binding после
+подписанного failed journal. Требуются exact digest, verified generation,
+`failed_phase=starting`, `failure_class=restart_not_ready`, доказанные hold и
+cleanup, остановленные задачи и валидные новые config/Task signatures;
+старый signed journal архивируется, создаётся новая generation. Неполный
+backup, неизвестная фаза, чужой digest или отсутствие остановки дают отказ.
+
+После независимой проверки нового точного commit и отдельного разрешения:
+сверить rollback и disabled-состояние; переключить clean production checkout
+на этот commit; создать новый O_EXCL backup config под новый application
+binding; заменить только Backup Task в disabled staging с точными старыми
+XML/config digest; подписанно перепривязать clean runtime head
+`sha256:7a77a2b7bd37ea498cc2e97cac16661f9ee44adab02cab2e8b5bf6b112b65062`
+к новой конфигурации; сверить inspect; один раз запустить
+`run_telegram_backup_cycle.py --rebind-failed-digest
+sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da`
+с новым config/digest. При mismatch остановиться до внешнего действия; после
+lost ACK сначала readback. Telegram smoke только после readiness с
+согласованной владельцем границей R02: неоднозначный текстовый
+`requestUserInput` отвечает в Desktop, структурированные approvals —
+только владелец по numeric user_id. Прежнее точное разрешение касается
+только `fa6f1f0`.
+
+Историческая запись до staging: production release PREPARED, не исполнен;
+отдельно подтверждённое
 обновление skill `nobus-send-results` исполнено. Этот документ не является разрешением
 запускать старый Telegram request `e18a5ca3-95d3-4be8-8453-630d88e97a50`
 или считать Gate принятым. Точные значения ниже сняты 24.09.2026;

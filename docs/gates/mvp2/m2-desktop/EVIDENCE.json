@@ -2,12 +2,12 @@
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
   "stage": "WIP_ITERATION",
-  "observed_at_utc": "2026-09-25T07:32:00Z",
+  "observed_at_utc": "2026-09-25T08:52:08Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:09622d866cd742fcd81fb1c6d92e456c611f1e14d29795e8ea2761c37f290e6c",
+  "content_digest": "sha256:17c995367aa867181b1d9f8fc331fa77506baacca15177fbbf6d68bea76d3b2e",
   "content_digest_scope": [
     ".gitattributes",
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
@@ -55,6 +55,8 @@
     ,"ops/windows/Install-NobusSpaceBot.ps1"
     ,"src/application/runtime_maintenance.py"
     ,"tests/test_desktop_supervisor_wiring.py"
+    ,"tests/test_m1_s1_operational_repair.py"
+    ,"tests/test_ops_queue1.py"
     ,"docs/gates/mvp2/m2-desktop/RELEASE-PLAN-20260924.md"
     ,"tests/fixtures/desktop_bridge_requests_3ea2438.sql"
     ,"docs/gates/mvp2/m2-desktop/SECURITY-TRIAGE-20260924.md"
@@ -66,7 +68,7 @@
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "25 September WIP: code checkpoint b8834ae has broad L1 2904 passed, 3 skipped, seven exact historical deselections, and clean ZIP L2 247 passed, 1 skipped. An unloaded-task UIA open-only attempt found exact owner, while an earlier attempt did not; no turn/Telegram in either. Prior isolated real Desktop question, owner approve/deny, full answer/file and installed notifier read-only opt-out evidence remain positive but do not replace product Telegram D01-D17. Production remains Disabled. No frozen accepted Gate or full D01-D17. EVIDENCE.json is excluded from non-recursive content_digest.",
+  "candidate_note": "25 September WIP after fa6f1f0 staging: production checkout is fa6f1f0, all three tasks are Disabled after one failed restart; no real Telegram acceptance. Exact signed rebind passed and one backup reconciliation created VERIFIED generation but failed at starting/code 75 because the signed reconciled_from_digest journal field was not accepted by the old activation reader. New source correction and R01/unbound-task work are not frozen or deployed. Previous b8834ae broad L1 and fa6f1f0 clean-export L2 remain historical evidence, not proof of changed bytes. EVIDENCE.json is excluded from non-recursive content_digest.",
   "environment_scope_note": "The environment block below records the initial 21 September Desktop 26.915 read-only probe. The current 24 September real-turn observations are separately bound to Desktop 26.917.9434.0 in a06_live_owner_transport_20260924 and isolated_question_approval_real_desktop_20260924.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
@@ -982,6 +984,43 @@
     "product_recovery_d12_accepted": false,
     "remaining_limit": "A previously unbound unloaded thread has no trusted title for UIA; manual Desktop opening is required. Stale/ambiguous title and missing exact owner stop without alternate executor. Real Telegram restart/lost ACK still untested."
   },
+  "production_staging_and_failed_restart_20260925": {
+    "approved_exact_commit": "fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8",
+    "production_checkout": "fa6f1f08c67968b63bf1d33bab8a2bbfae8217f8",
+    "rollback_snapshot": ".runtime/m2-desktop-release-20260925/fa6f1f0-preflight",
+    "rollback_branch": "codex/m2-desktop-pre-release-20260925",
+    "staged_tasks": "NobusSpaceBot, NobusSpaceBot-Health and NobusSpaceBot-Backup all Disabled after failure",
+    "project_inventory_sha256": "43e64029ec9a0e009555dcfab1faa0825ee4c003b90994a42f547be05d2eea2a",
+    "new_backup_config_digest": "sha256:d3837510c95cb1ef1fce7d1a44f8cbc7524c829f04bb85a1349baae1d98be9ad",
+    "recovery_rebind": "REBOUND from sha256:e911277e820fa2244266d9914e9562403be2cfc37383479ec4a1ce9adbc51885 to sha256:220a5980a0ee1e95ec3dd153d11757645939136813941cfc1d0ee6b4bba905f3; new event sha256:7a77a2b7bd37ea498cc2e97cac16661f9ee44adab02cab2e8b5bf6b112b65062; inspect PASS/new",
+    "backup_cycle_attempt": "one reconciliation from completed sha256:924656486923cc0c4c72acb65ce8e893de72ba6af193a05792a741eb7a4c738c; VERIFIED daily-20260925T110018-12b0d56094fb4793bf3cfa694eb5c87b; failed_operator_required at starting",
+    "failed_journal_digest": "sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da",
+    "failure_class": "restart_not_ready; Main exit 75 activation_binding_invalid because signed reconciled_from_digest is rejected by _backup_restart_authorized in approved commit",
+    "after_failure": "admission_hold=true, cleanup_proven=true, all three tasks Disabled, no runtime event after activation_rebind, no Telegram live messages",
+    "replayed_backup_cycle": false,
+    "new_source_fix_deployed": false
+  },
+  "unbound_unloaded_task_probe_20260925": {
+    "desktop_version": "26.917.9434.0",
+    "thread_id": "01a0c547-986f-71c2-9847-ba3a4f5925be",
+    "previously_bridge_bound": false,
+    "owner_before": "no-client-found",
+    "uia_snapshot": "one exact sidebar item, zero task headers before opening",
+    "uia_mutations": ["invoked-open-task"],
+    "owner_after": "exact original thread ID; matching title and nobus-orchestrator-dev cwd",
+    "new_turn_sent": false,
+    "telegram_sent": false,
+    "scope": "positive owner recovery for one unbound unloaded task; not a universal UIA or continuation proof"
+  },
+  "post_failure_wip_20260925": {
+    "r01": "Ambiguous addressed text and voice use persisted author route confirmation before Desktop effect; Core semantic project/task understanding remains narrower than full natural-language contract",
+    "r02": "Owner agreed 2026-09-25: ambiguous text requestUserInput remains manual in Desktop because IPC lacks trusted provenance; structured approvals route only to owner numeric Telegram user_id. Live Telegram question/approve/deny cycle still unproven",
+    "unbound_continuation": "Explicit ID | existing project | exact title selects only UIA target; exact IPC thread ID and cwd gate start-turn",
+    "backup_restart_source_fix": "allow only signed reconciled_from_digest with verified backup_status in restart_permitted/starting; reject malformed/unknown fields; not deployed",
+    "failed_journal_config_rebind": "separate --rebind-failed-digest requires exact signed failed journal, verified generation, starting/restart_not_ready, proven hold/cleanup and stopped tasks; archives old receipt and creates fresh generation; not deployed",
+    "ops_queue1": "13 passed after replacing historical health-probe string assertions with current WhatIf and readiness/details checks",
+    "affected_tests": "225 passed, 1 warning in 120.51s across bridge/IPC/UIA/C6 backup/M1/ops/docs on unmoving files; not a frozen clean-export L2 or full D01-D17"
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Code checkpoint b8834ae passed broad L1 and clean-export L2. Safe UIA open-only recovery works for some previously bound unloaded tasks but is not proven universally; unknown title/owner requires manual Desktop opening. Isolated Desktop and fake Telegram evidence is not real Telegram receipt. Do not replay old one-shot probe markers, Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Finish coherent docs/candidate and adversarial L3, exact backup/release binding and fresh approval, then controlled real Telegram D01-D17 with live duplicate check. Keep production Scheduled Tasks Disabled until safe staged binding and verification are complete."
+  "next_step": "Do not rerun the failed backup cycle or start production under fa6f1f0. Freeze and independently verify the changed WIP with exact commit/tree, then obtain exact authorization for changed production bytes and signed recovery from failed journal sha256:16ef2ad933ac69fe0f791529bfb2338264be1d1bb60698da866f0cb699a854da. Apply the owner's agreed manual-Desktop limitation for ambiguous requestUserInput; after safe recovery and bot readiness run real Telegram D01-D17. Retain all old positive and negative Desktop evidence without replay."
 }

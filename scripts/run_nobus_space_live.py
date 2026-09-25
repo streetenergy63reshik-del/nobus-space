@@ -2751,8 +2751,13 @@ def _backup_restart_authorized(config_path: Path, config_digest: str) -> bool:
                 "schema", "config_digest", "phase", "at", "attempt_id",
                 "generation",
             }
-        if (type(value) is not dict or set(value) not in (allowed, allowed | {"backup_status"})
+        allowed_reconciled = allowed | {"backup_status", "reconciled_from_digest"}
+        if (type(value) is not dict or set(value) not in (
+                allowed, allowed | {"backup_status"}, allowed_reconciled,
+            )
                 or ("backup_status" in value and value["backup_status"] != "VERIFIED")
+                or ("reconciled_from_digest" in value
+                    and not _digest(value["reconciled_from_digest"]))
                 or value["schema"] != "c6-backup-cycle-state-1"
                 or value["config_digest"] != config_digest
                 or value["phase"] not in {"restart_permitted", "starting"}

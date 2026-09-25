@@ -923,7 +923,8 @@ class SQLiteDesktopBridgeState:
                     f"""UPDATE desktop_bridge_requests
                         SET status='failed',updated_at=?
                         WHERE request_id IN ({request_placeholders})
-                          AND status IN ('needs_voice_confirmation','waiting_author','waiting_owner')""",
+                          AND status IN ('needs_target','needs_voice_confirmation',
+                                         'waiting_author','waiting_owner')""",
                     (now, *request_ids),
                 )
                 return interactions
