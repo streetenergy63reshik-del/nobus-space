@@ -2,12 +2,12 @@
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
   "stage": "WIP_ITERATION",
-  "observed_at_utc": "2026-09-24T17:35:00Z",
+  "observed_at_utc": "2026-09-25T07:32:00Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
   "candidate_tree": null,
-  "content_digest": "sha256:76eb9b9645b38f25357207c9279984cf9a828f149c79fc56dcbdaad2f2e59b69",
+  "content_digest": "sha256:09622d866cd742fcd81fb1c6d92e456c611f1e14d29795e8ea2761c37f290e6c",
   "content_digest_scope": [
     ".gitattributes",
     "docs/gates/mvp2/M2-DESKTOP-ARCHITECTURE.md",
@@ -66,7 +66,7 @@
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "24 September WIP: real Desktop UIA/owner IPC create and bidirectional continuation succeeded; isolated DesktopBridgeService/fake Telegram delivered short and 6243-character/file output. Isolated real-Desktop async-question and owner approve/deny cycles succeeded with wrong numeric IDs rejected. Installed notifier read-only exact bridge opt-out succeeded. Clean Git export of code checkpoint 55297db passed the linked M2 suite: 237 passed, 1 skipped. Broad all-repo diagnostic stopped after 44 successes on historical Gate 0 dirty-manifest fixture. No product Telegram request, full D01-D17, frozen Gate candidate or complete independent L1/L2/L3. EVIDENCE.json is excluded from the non-recursive content digest.",
+  "candidate_note": "25 September WIP: code checkpoint b8834ae has broad L1 2904 passed, 3 skipped, seven exact historical deselections, and clean ZIP L2 247 passed, 1 skipped. An unloaded-task UIA open-only attempt found exact owner, while an earlier attempt did not; no turn/Telegram in either. Prior isolated real Desktop question, owner approve/deny, full answer/file and installed notifier read-only opt-out evidence remain positive but do not replace product Telegram D01-D17. Production remains Disabled. No frozen accepted Gate or full D01-D17. EVIDENCE.json is excluded from non-recursive content_digest.",
   "environment_scope_note": "The environment block below records the initial 21 September Desktop 26.915 read-only probe. The current 24 September real-turn observations are separately bound to Desktop 26.917.9434.0 in a06_live_owner_transport_20260924 and isolated_question_approval_real_desktop_20260924.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
@@ -960,6 +960,28 @@
     "production_changed": false,
     "new_full_candidate_chain_complete": false
   },
+  "unloaded_desktop_owner_recovery_20260925": {
+    "stage": "LOCAL_CODE_CHECKPOINT_NOT_GATE_ACCEPTED",
+    "code_commit": "b8834aeedc7a7501bdc2049f8458ef025ab8c5ff",
+    "code_tree": "8622aeb6c6d57ca80a6cbca693a65af6c43a0103",
+    "desktop_version": "26.917.9434.0",
+    "cause": "A saved but notLoaded task returned no-client-found through Desktop owner IPC; opening it in installed Desktop restored exact owner discovery",
+    "implementation": "OpenExisting uses one exact semantic UIA sidebar selector, confirms active header, never reads or submits prompt; bridge persists only IPC-verified title in encrypted request payload, then rediscovers owner for original thread ID and validates project cwd before turn",
+    "first_live_open_only": "UIA receipt invoked-open-task for 01a0d432-e0c9-7280-bcd5-4350a8c7843f; immediate owner readback no-client-found and later header absent; negative/unstable outcome retained",
+    "manual_open_readback": "Opening the same test task with installed Codex app navigation restored exact owner on first read-only discovery",
+    "second_live_open_only": "UIA receipt invoked-open-task for unloaded 01a0d43f-edb8-70e2-85ae-5434cc992228; exact owner found on first read-only discovery",
+    "turn_or_approval_sent": false,
+    "telegram_sent_by_bridge": false,
+    "focused_tests": "69 passed across UIA and bridge, including unknown title and absent owner fail-closed",
+    "powershell_parser_errors": 0,
+    "broad_l1": "2904 passed, 3 skipped, 7 exact historical deselections, 25 subtests passed in 527.03s; tests/gate0 excluded",
+    "l2_clean_export_zip_sha256": "d8f351a6da17c20b9702aa95c0f21fb100ceb454185e1db11bdcd773043dd119",
+    "l2_clean_export": "247 passed, 1 skipped in 15 linked M2/migration test files on exact b8834ae archive",
+    "production_checkout_changed": false,
+    "production_tasks": "NobusSpaceBot, Health, Backup Disabled; exact XML digests unchanged from release plan",
+    "product_recovery_d12_accepted": false,
+    "remaining_limit": "A previously unbound unloaded thread has no trusted title for UIA; manual Desktop opening is required. Stale/ambiguous title and missing exact owner stop without alternate executor. Real Telegram restart/lost ACK still untested."
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Owner IPC plus semantic Desktop UI create/visibility and bidirectional continuation are proven. Isolated Bridge with real Desktop and fake Telegram delivered short/long/file output and completed async question and owner approve/deny cycles; installed notifier exact opt-out was read-only positive. These are not real Telegram receipts. Do not replay any one-shot probe marker, Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Finish frozen-candidate checks and backup/release preflight, then controlled real Telegram D01-D17 with live duplicate check. Keep production Scheduled Tasks Disabled until safe staged binding and independent L1/L2/L3 are complete."
+  "next_step": "Code checkpoint b8834ae passed broad L1 and clean-export L2. Safe UIA open-only recovery works for some previously bound unloaded tasks but is not proven universally; unknown title/owner requires manual Desktop opening. Isolated Desktop and fake Telegram evidence is not real Telegram receipt. Do not replay old one-shot probe markers, Telegram message 2150 or request e18a5ca3-95d3-4be8-8453-630d88e97a50. Finish coherent docs/candidate and adversarial L3, exact backup/release binding and fresh approval, then controlled real Telegram D01-D17 with live duplicate check. Keep production Scheduled Tasks Disabled until safe staged binding and verification are complete."
 }

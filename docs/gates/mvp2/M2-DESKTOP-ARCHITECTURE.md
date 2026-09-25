@@ -1,6 +1,6 @@
 # M2-DESKTOP — Telegram ↔ Codex Desktop
 
-24 сентября 2026. **TARGET / LOCAL WIP; OWNER IPC/UIA LIVE
+25 сентября 2026. **TARGET / LOCAL WIP; OWNER IPC/UIA LIVE
 TRANSPORT VERIFIED, TELEGRAM PRODUCT NOT ACTIVE.** Функциональный scope задан
 владельцем. Локальный адаптер и часть интеграции реализованы; реальный
 Desktop подтвердил создание/продолжение, полный ответ, вопрос и approve/deny,
@@ -15,7 +15,9 @@ request-scoped operation key/receipt установлен в существую�
 продуктовый live-цикл, отсутствие дублей и mode/pending parity
 ещё не подтверждены. UIA/context и owner IPC уже прошли узкий реальный
 create/continue цикл ниже. Production bot tasks остаются Disabled; обычный
-notifier отправил summary для трёх тестовых turn, но bridge opt-out не проверен.
+notifier отправил summary для трёх тестовых turn; позже exact bridge opt-out
+проверен только read-only на установленном notifier и изолированной SQLite.
+Отсутствие живого Telegram-дубля ещё не доказано.
 [Точный журнал](m2-desktop/AUDIT-JOURNAL.md).
 
 Уточнение локального WIP после аудита 24 сентября: R01–R05 адресно
@@ -40,8 +42,22 @@ owner IPC прочитал полный короткий финал. Затем 
 узкий create/visibility/двустороннее продолжение в выбранном существующем
 проекте, но не продуктовую Telegram-приёмку, полный capability parity,
 pending/approval и восстановление после lost ACK. A01 на
-реальной старой SQLite, позитивный bridge opt-out A09/A13 и D01–D17
-остаются открытыми.
+реальной старой SQLite, живой bridge/notifier opt-out A09/A13 и D01–D17
+остаются открытыми; read-only exact opt-out проверен отдельно.
+
+25.09 проверена отдельная граница восстановления: после выгрузки задачи
+`thread-owner-discovery` может вернуть `no-client-found`, хотя задача
+сохранена и видна в списке Desktop. Внешний адаптер не вправе перейти к
+отдельному CLI/App Server. Для ранее связанного точного thread ID он хранит
+последнее название, полученное только из полной IPC-истории, открывает
+единственный семантический sidebar-элемент через UIA **без ввода** и
+повторяет read-only owner discovery для исходного ID. Лишь после exact owner
+и проверки `cwd` допускается ход. При неизвестном/устаревшем названии,
+неоднозначном selector или отсутствии владельца задача ждёт ручного
+открытия; другое исполнение не запускается. Один live open-only опыт не дал
+владельца, другой открыл ранее выгруженную задачу и дал exact owner с первого
+readback. Это положительное, но не универсальное доказательство recovery;
+продуктовый Telegram restart/lost-ACK D12 остаётся открытым.
 
 Отдельный ограниченный опыт запустил настоящий `DesktopBridgeService` с
 реальными UIA/IPC, но изолированной SQLite и локальным приёмником вместо

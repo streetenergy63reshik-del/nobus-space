@@ -798,3 +798,25 @@ stale/expired approval, lost ACK, replay, reconnect, partial/changed file
 Инспектор новой ветки закономерно отказал до чтения журнала из-за другого
 application binding; отказ не обходился изменением config. Staging,
 backup cycle, production и Telegram не запускались.
+
+### 25.09 — выгруженная Desktop-задача и recovery через UIA
+
+После restart задача, остающаяся в списке Desktop, дала IPC `no-client-found`.
+Штатное открытие в Desktop восстановило owner. Минимальное исправление
+`b8834ae` добавило UIA `OpenExisting` без prompt/send и сохранение последнего
+IPC-подтверждённого title в bridge SQLite. Перед любым продолжением после
+UIA требуется read-only owner для **исходного** thread ID и обычная проверка
+проекта по `cwd`. Нет title или owner — WAITING_PC, не CLI fallback.
+
+Live-проба на установленном `26.917.9434.0`: первый open-only receipt не
+сопроводился owner и не принят; затем штатное открытие этой задачи owner
+вернуло. Вторая open-only проба на другой выгруженной задаче вернула exact
+owner сразу. Ходов, approvals и Telegram не было. 69 адресных тестов, PS5
+parser 0; широкий L1 на `b8834ae`: 2904/3 skip/7 исторических deselect;
+чистый Git ZIP L2: 247/1 skip. Это не D12 live Telegram recovery.
+
+Неустранённые границы: произвольный ранее не связанный thread без owner/title
+нельзя надёжно открыть внешним UIA только по ID; нужна ручная загрузка в
+Desktop. Имя может устареть, и тогда система останавливается, не угадывая.
+Production и D01–D17 не активированы; точная release-привязка прежнего
+`16f9029` устарела. Исторический набор Gate C0/MVP1 не переделывался.

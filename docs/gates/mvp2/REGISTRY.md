@@ -1,5 +1,13 @@
 # Реестр Gate MVP2
 
+25 сентября checkpoint `b8834ae` добавил безопасное open-only восстановление
+известной выгруженной задачи Desktop. Один live опыт через UIA+IPC дал
+точного owner, другой не дал и сохранён как ограничение; turn и Telegram
+не отправлялись. Широкий локальный L1: 2904 успеха, 3 skip, 7 точных
+исторических deselect; чистый Git ZIP L2: 247 успехов, 1 skip.
+Production по-прежнему выключен; D01–D17, release L3 и точное разрешение
+на новую привязку остаются открытыми.
+
 25 сентября локальный code checkpoint дополнен точным исправлением
 мигратора `935d93037a94f63e9e63395d626ebdec11cff515`: оба разрешённых
 DDL-хэша принимаются, неизвестный по-прежнему запрещён. Шесть C6 migration
@@ -42,7 +50,7 @@ fixture, не относящемся к M2.
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | WIP / 24.09; R01–R05 исправлены локально; реальный create/visibility/UI↔IPC и изолированные full-answer/file, async question, owner approve/deny прошли на установленном Desktop. Установленный notifier read-only подтвердил exact opt-out; live отсутствие дубля и Telegram D01–D17, A01, голос/агент/две темы, паритет и независимый L1/L2/L3 открыты. Чистый Git-экспорт code checkpoint `55297db` прошёл связанный набор `237 passed, 1 skipped`; all-repo диагностика упёрлась в исторический Gate 0 dirty-manifest fixture. Production bot Disabled по точному read-only preflight | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | code checkpoint `55297db440b502292159f2612c579f588e37c323` / `e0cde457c7993791311a6e9249ddb6fb382626e3`; frozen Gate tree отсутствует | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | WIP / 25.09; реальный Desktop owner-транспорт, UI↔IPC, изолированные full-answer/file и approvals проверены. Open-only recovery подтверждён ограниченно; один отрицательный опыт сохранён. L1 `2904 passed, 3 skipped, 7 deselected`; чистый ZIP L2 `247 passed, 1 skipped`. Реальный Telegram D01–D17, позитивное отсутствие дубля, backup/release и финальный L3 открыты; production Disabled | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | code checkpoint `b8834aeedc7a7501bdc2049f8458ef025ab8c5ff` / `8622aeb6c6d57ca80a6cbca693a65af6c43a0103`; frozen Gate tree отсутствует | `3ea243893a2647dc631662c2a2030de7679ae0e1` / LOCAL ONLY | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
 
 Реальные task id и title внесены после запуска. В Gate сохраняются один
 `m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал
