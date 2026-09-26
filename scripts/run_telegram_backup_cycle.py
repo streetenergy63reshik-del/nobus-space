@@ -94,6 +94,12 @@ def _journal(path,config_digest,phase,**details):
         'at':datetime.now(UTC).isoformat(),**details}
     temporary=m.checked_path(path.with_name('cycle-'+uuid4().hex+'.dpapi'),root=path.parent)
     m.write_bytes_durable(temporary,DpapiJsonCodec().encode(value))
+    if path.exists():
+        archive=m.checked_path(path.with_name('cycle-history-'+uuid4().hex+'.dpapi'),root=path.parent)
+        evidence=m.file_evidence(path)
+        m.write_bytes_durable(archive,path.read_bytes())
+        if m.file_evidence(archive)!=evidence:
+            raise ValueError('backup journal archive mismatch')
     os.replace(temporary,m.checked_path(path,root=path.parent))
 
 
@@ -316,7 +322,10 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
                 raise ValueError('runtime disk pressure')
             generation=managed.create_generation(backups,runtime,config['ownership'],attempt_id=attempt_id)
             generation_name=generation.name
-            retention=managed.retention(backups,config['ownership'],apply=True)
+            # Preserve every generation during the owner's no-delete Gate.
+            # ponytail: inventory remains bounded at 128; resume reversible
+            # quarantine only after an explicit retention decision.
+            retention=managed.retention(backups,config['ownership'],apply=False)
             record('backed_up',generation=generation.name)
             # Recheck exact inputs/actions after snapshot before resuming the one task.
             load_config(config_path,expected)

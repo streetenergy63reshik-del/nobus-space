@@ -178,6 +178,7 @@ def _read_connection(path: Path) -> sqlite3.Connection:
         raise RuntimeError("SQLite defensive configuration unavailable")
     connection.setconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE, True)
     connection.setconfig(sqlite3.SQLITE_DBCONFIG_TRUSTED_SCHEMA, False)
+    connection.execute("PRAGMA temp_store=MEMORY")
     return connection
 
 
@@ -196,22 +197,31 @@ def file_evidence(path: Path) -> dict[str, object] | None:
 
 def database_state_digest(path: Path, *, exclude_reconciliation: bool = False) -> str:
     """Logical state includes WAL commits and every authority/replay row."""
-    digest = hashlib.sha256()
     with closing(_read_connection(path)) as connection:
-        tables = sorted(row[0] for row in connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
-        for name in tables:
-            if exclude_reconciliation and name == "runtime_reconciliations":
-                continue
-            if not re.fullmatch(r"[a-z_]+", name):
-                raise RuntimeError("runtime table invalid")
-            digest.update(name.encode() + b"\x00")
-            columns = len(connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description)
-            order = ",".join(str(index + 1) for index in range(columns))
-            for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}'):
-                safe = [{"blob_digest": hashlib.sha256(item).hexdigest()} if isinstance(item, bytes)
-                        else item for item in row]
-                digest.update(json.dumps(safe, ensure_ascii=True, separators=(",", ":")).encode() + b"\n")
+        return database_connection_state_digest(
+            connection, exclude_reconciliation=exclude_reconciliation,
+        )
+
+
+def database_connection_state_digest(
+    connection: sqlite3.Connection, *, exclude_reconciliation: bool = False,
+) -> str:
+    """The same logical digest for a verified in-memory SQLite snapshot."""
+    digest = hashlib.sha256()
+    tables = sorted(row[0] for row in connection.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
+    for name in tables:
+        if exclude_reconciliation and name == "runtime_reconciliations":
+            continue
+        if not re.fullmatch(r"[a-z_]+", name):
+            raise RuntimeError("runtime table invalid")
+        digest.update(name.encode() + b"\x00")
+        columns = len(connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description)
+        order = ",".join(str(index + 1) for index in range(columns))
+        for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}'):
+            safe = [{"blob_digest": hashlib.sha256(item).hexdigest()} if isinstance(item, bytes)
+                    else item for item in row]
+            digest.update(json.dumps(safe, ensure_ascii=True, separators=(",", ":")).encode() + b"\n")
     return "sha256:" + digest.hexdigest()
 
 

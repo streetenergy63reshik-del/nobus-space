@@ -82,8 +82,18 @@ def permit_admission(root, expected):
     path=m.checked_path(root/'admission-hold',root=root)
     if m.file_evidence(path)!={'bytes':0,'sha256':hashlib.sha256(b'').hexdigest()}:
         raise ValueError('admission hold missing or changed')
-    # This is an exact zero-byte control flag, never a user-data cleanup.
-    m.unlink_durable(path)
+    # Preserve the control file outside the owned generation inventory.
+    archive=m.checked_path(
+        root.parent/(root.name+'-admission-hold-released-'+uuid4().hex+'.zero'),
+        root=root.parent,
+    )
+    if archive.exists():
+        raise ValueError('admission hold archive collision')
+    os.rename(path,archive)
+    m.fsync_directory(root)
+    m.fsync_directory(root.parent)
+    if m.file_evidence(archive)!={'bytes':0,'sha256':hashlib.sha256(b'').hexdigest()} or path.exists():
+        raise RuntimeError('admission release preservation failed')
 
 
 def _inventory(path):
@@ -156,7 +166,17 @@ def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily',
     m.write_bytes_durable(generation/'generation.dpapi',CODEC.encode(certificate))
     temporary=m.checked_path(generation/'latest-pending.dpapi',root=generation)
     m.write_bytes_durable(temporary,pointer_bytes)
-    os.replace(temporary,m.checked_path(root/'latest.dpapi',root=root))
+    latest=m.checked_path(root/'latest.dpapi',root=root)
+    if latest.exists():
+        archive=m.checked_path(
+            root.parent/(root.name+'-latest-before-'+uuid4().hex+'.dpapi'),
+            root=root.parent,
+        )
+        evidence=m.file_evidence(latest)
+        m.write_bytes_durable(archive,latest.read_bytes())
+        if m.file_evidence(archive)!=evidence:
+            raise ValueError('backup latest pointer archive mismatch')
+    os.replace(temporary,latest)
     return generation
 
 
