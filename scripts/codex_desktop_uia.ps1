@@ -439,6 +439,13 @@ try {
             }
             $script:uiaStage = 'invoke-create-control'
             $create.Pattern.Invoke(); $result.mutations += 'invoked-create-task'; Start-Sleep -Milliseconds 500
+            $script:uiaStage = 'check-active-context'
+            $contextDeadline = [DateTime]::UtcNow.AddSeconds(5)
+            do {
+                try { Assert-NewTaskProjectContext $document $ProjectName; break }
+                catch { Start-Sleep -Milliseconds 200 }
+            } while ([DateTime]::UtcNow -lt $contextDeadline)
+            Assert-NewTaskProjectContext $document $ProjectName
         } elseif ($Action -in @('OpenAndSubmit', 'OpenExisting')) {
             $script:uiaStage = 'find-task'
             if ([string]::IsNullOrWhiteSpace($TaskTitle)) { throw 'TaskTitle is required' }

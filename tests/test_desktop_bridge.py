@@ -1455,10 +1455,15 @@ async def test_ambiguous_natural_request_never_silently_continues_topic(
     )
     scheduled = []
     service._schedule = scheduled.append
-    message = _message("@Nobusspacebot в проекте Business Project создай задачу: отчёт")
+    # Telegram topics may attach their root service message as a reply even
+    # when the user explicitly addresses the bot with a new instruction.
+    message = _message("@Nobusspacebot в проекте Business Project создай задачу: отчёт", reply=99)
     assert service._parse_command(message).operation == "route"
     assert service._parse_command(_message(
-        "/codex в проекте Business Project создай задачу: отчёт"
+        "/codex в проекте Business Project создай задачу: отчёт", reply=99,
+    )).operation == "route"
+    assert service._parse_command(_message(
+        "Нобус, в проекте Business Project создай задачу: отчёт", reply=99,
     )).operation == "route"
     assert await service.handle(message, _envelope())
     assert scheduled == []

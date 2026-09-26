@@ -11,6 +11,7 @@ import pytest
 from src.integrations.codex_desktop_uia import (
     CodexDesktopUiAutomation,
     DesktopUiAutomationError,
+    TESTED_DESKTOP_VERSION,
     UiBootstrapStatus,
     UiElementSnapshot,
     assess_ui_automation,
@@ -151,6 +152,8 @@ def test_powershell_adapter_uses_semantic_uia_without_input_fallbacks() -> None:
     assert "$initialValue -cne $placeholderValue" in script
     assert script.count("ExpandCollapsePattern]::Pattern) -InListItem") >= 2
     assert script.count("Assert-NewTaskProjectContext $Root $ExpectedProjectName") == 4
+    assert script.count("Assert-NewTaskProjectContext $document $ProjectName") == 3
+    assert "$contextDeadline = [DateTime]::UtcNow.AddSeconds(5)" in script
     standard_submit = script.split("function Submit-Prompt", 1)[1].split("function Submit-ExactDraft", 1)[0]
     assert standard_submit.rfind("Assert-NewTaskProjectContext $Root $ExpectedProjectName") < standard_submit.index("$send.Pattern.Invoke()")
     assert "New task project context changed; prompt was not sent" in script
@@ -187,7 +190,7 @@ async def test_snapshot_passes_a_normal_powershell_parameter_value(
             stdout=json.dumps(
                 {
                     "action": "Snapshot",
-                    "desktop_version": "26.917.9434.0",
+                    "desktop_version": TESTED_DESKTOP_VERSION,
                     "process_id": 123,
                     "mutations": [],
                 }
@@ -207,6 +210,7 @@ async def test_snapshot_passes_a_normal_powershell_parameter_value(
     command = captured["command"]
     project_index = command.index("-ProjectName")
     assert command[project_index + 1] == "snapshot"
+    assert command[command.index("-ExpectedDesktopVersion") + 1] == TESTED_DESKTOP_VERSION
     assert captured["errors"] == "replace"
     assert receipt.mutations == ()
 
@@ -224,7 +228,7 @@ async def test_open_existing_never_creates_prompt_file(
     def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
         captured["command"] = command
         return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
-            "action": "OpenExisting", "desktop_version": "26.917.9434.0",
+            "action": "OpenExisting", "desktop_version": TESTED_DESKTOP_VERSION,
             "process_id": 123, "mutations": ["invoked-open-task"],
         }), stderr="")
 
@@ -263,7 +267,7 @@ async def test_exact_draft_recovery_uses_only_bound_action_and_cleans_prompt(
             0,
             stdout=json.dumps({
                 "action": "SubmitExactDraft",
-                "desktop_version": "26.917.9434.0",
+                "desktop_version": TESTED_DESKTOP_VERSION,
                 "process_id": 123,
                 "mutations": ["submitted-prompt"],
             }),

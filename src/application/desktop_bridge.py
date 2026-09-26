@@ -339,6 +339,7 @@ class DesktopBridgeService:
         if _PARTICIPANT_BIND_MARKER.fullmatch(text) is not None:
             return None
         command = _COMMAND.match(text)
+        addressed = command is not None
         if command is not None:
             if command.group("username") is not None and command.group("username").casefold() != self._bot_username:
                 return None
@@ -348,10 +349,12 @@ class DesktopBridgeService:
             if mention is not None:
                 if mention.group("username").casefold() != self._bot_username:
                     return None
+                addressed = True
                 body = text[mention.end() :].strip()
             else:
                 address = _NAME_ADDRESS.match(text)
                 if address is not None:
+                    addressed = True
                     body = text[address.end() :].strip()
                 elif message.reply_to_message_id is not None and self._topic_predecessor(message) is not None:
                     body = text
@@ -409,7 +412,7 @@ class DesktopBridgeService:
                 "redeliver", None, fields[1] if len(fields) >= 2 else None, ""
             )
         return ParsedDesktopCommand(
-            "topic" if message.reply_to_message_id is not None else "route",
+            "topic" if message.reply_to_message_id is not None and not addressed else "route",
             None, None, body,
         )
 
