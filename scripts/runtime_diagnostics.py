@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import time
 from pathlib import Path
+from uuid import uuid4
 
 RELAY_CAUSES = frozenset({
     "transport_timeout", "transport_refused", "transport_reset", "transport_unreachable",
@@ -78,7 +80,7 @@ class RelayCapture:
 
 
 def write_diagnostic(root: Path, kind: str, value: dict):
-    """Only safe, typed fields; finite two-segment journal, never raw output."""
+    """Only safe, typed fields; append-only archived journal, never raw output."""
     from scripts import run_nobus_space_live as s
     if kind not in {"readiness", "health"} or set(value) != {"run_id", "attempt", "stage", "checks"}:
         raise ValueError("diagnostic schema invalid")
@@ -111,7 +113,11 @@ def write_diagnostic(root: Path, kind: str, value: dict):
     if len(line) > 4096:
         raise ValueError("diagnostic size invalid")
     if path.exists() and path.stat().st_size + len(line) > 1024 * 1024:
-        os.replace(path, previous)
+        # ponytail: archives accumulate until an explicitly approved retention policy exists.
+        archive = root / (kind + ".previous." + uuid4().hex + ".jsonl")
+        if archive.exists():
+            raise OSError("diagnostic archive collision")
+        os.rename(path, archive)
     if identity != s._plain_root(root, create=False):
         raise OSError("diagnostic root changed")
     with path.open("ab") as stream:
@@ -124,3 +130,64 @@ def write_diagnostic(root: Path, kind: str, value: dict):
         current = path.stat(follow_symlinks=False)
         if (metadata.st_dev, metadata.st_ino) != (current.st_dev, current.st_ino) or s._path_is_reparse(path):
             raise OSError("diagnostic target changed")
+
+
+def start_loop_stall_capture(loop, runtime_root: Path):
+    """Capture only the blocked Core stack, never task content or locals."""
+    from src.application.runtime_maintenance import checked_path
+
+    owner_thread = threading.get_ident()
+    stopped = threading.Event()
+    last_beat = [time.monotonic()]
+
+    def beat():
+        last_beat[0] = time.monotonic()
+        if not stopped.is_set():
+            loop.call_later(0.25, beat)
+
+    loop.call_soon(beat)
+
+    def watch():
+        captured = False
+        while not stopped.wait(0.25):
+            lag = time.monotonic() - last_beat[0]
+            if lag < 0.75:
+                captured = False
+            if lag < 1.5 or captured:
+                continue
+            captured = True
+            frame = sys._current_frames().get(owner_thread)
+            if frame is None:
+                continue
+            stack = []
+            while frame is not None and len(stack) < 24:
+                stack.append([Path(frame.f_code.co_filename).name,
+                              frame.f_code.co_name, frame.f_lineno])
+                frame = frame.f_back
+            record = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                      "lag_ms": round(lag * 1000), "stack": stack}
+            line = json.dumps(record, ensure_ascii=True, separators=(",", ":")).encode() + b"\n"
+            try:
+                path = checked_path(runtime_root / "core-loop-stalls.jsonl", root=runtime_root)
+                if len(line) > 4096 or (path.exists() and path.stat().st_size + len(line) > 128 * 1024):
+                    continue  # Fixed capture ceiling; never prune or replace evidence.
+                with path.open("ab") as stream:
+                    metadata = os.fstat(stream.fileno())
+                    current = checked_path(path, root=runtime_root).stat(follow_symlinks=False)
+                    if (metadata.st_nlink != 1 or
+                            (metadata.st_dev, metadata.st_ino) != (current.st_dev, current.st_ino)):
+                        continue
+                    stream.write(line)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+            except (OSError, ValueError):
+                pass  # Diagnostic failure must not change product authority.
+
+    thread = threading.Thread(target=watch, name="nobus-core-loop-stall", daemon=True)
+    thread.start()
+
+    def close():
+        stopped.set()
+        thread.join(timeout=1)
+
+    return close

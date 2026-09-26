@@ -38,6 +38,7 @@ from scripts.run_telegram_control import (  # noqa: E402
     _poll_with_unavailable_backoff,
     _task_destinations,
 )
+from scripts.runtime_diagnostics import start_loop_stall_capture  # noqa: E402
 from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
@@ -466,6 +467,18 @@ def _assert_product_healthy(
         miniapp_server.assert_healthy()
 
 
+async def _assert_product_healthy_nonblocking(
+    control: ProductTelegramControlPlane,
+    miniapp_server: _MiniAppServer | None,
+) -> None:
+    if isinstance(control, DurableProductTelegramControlPlane):
+        await control.assert_healthy_nonblocking()
+    else:
+        control.assert_healthy()
+    if miniapp_server is not None:
+        miniapp_server.assert_healthy()
+
+
 def _load_project_context() -> str:
     try:
         content = _PROJECT_CONTEXT_PATH.read_text(encoding="utf-8").strip()
@@ -537,7 +550,9 @@ async def _run(
         transport=httpx.AsyncHTTPTransport(retries=0, trust_env=False),
         request_timeout=60,
     )
+    close_stall_capture = lambda: None
     try:
+        close_stall_capture = start_loop_stall_capture(asyncio.get_running_loop(), runtime_root)
         report_stage("telegram_identity")
         identity = await api.get_me()
         if identity.username.casefold() != _EXPECTED_USERNAME.casefold():
@@ -728,6 +743,9 @@ async def _run(
 
         report_stage("polling")
         polling = TelegramPollingBoundary(api, handle_with_binding, checkpoint)
+        async def poll_health_check() -> None:
+            await _assert_product_healthy_nonblocking(control, miniapp_server)
+
         if values.once:
             acknowledged = await _poll_once_and_announce(
                 polling, api, bindings, control=control,
@@ -737,23 +755,19 @@ async def _run(
             acknowledged = await _poll_with_unavailable_backoff(
                 polling, api, bindings, control=control,
                 timeout=values.timeout, announce=values.announce,
-                health_check=lambda: _assert_product_healthy(
-                    control, miniapp_server
-                ),
+                health_check=poll_health_check,
             )
             poll_health["last_success"] = time.monotonic()
-            _assert_product_healthy(control, miniapp_server)
+            await _assert_product_healthy_nonblocking(control, miniapp_server)
             while True:
                 acknowledged += await _poll_with_unavailable_backoff(
                     polling, api, bindings, control=control,
                     timeout=values.timeout, announce=False,
-                    health_check=lambda: _assert_product_healthy(
-                        control, miniapp_server
-                    ),
+                    health_check=poll_health_check,
                 )
                 poll_health["last_success"] = time.monotonic()
-                _assert_product_healthy(control, miniapp_server)
-        _assert_product_healthy(control, miniapp_server)
+                await _assert_product_healthy_nonblocking(control, miniapp_server)
+        await _assert_product_healthy_nonblocking(control, miniapp_server)
         return {
             "status": "PASS",
             "mode": "once" if values.once else "serve",
@@ -761,6 +775,7 @@ async def _run(
             "acknowledged": acknowledged,
         }
     finally:
+        close_stall_capture()
         try:
             if control is not None:
                 await control.close()

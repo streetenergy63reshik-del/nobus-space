@@ -1163,7 +1163,9 @@ class DesktopBridgeService:
                 project = self._projects.get((request.project_name or "").casefold())
                 if (
                     project is None or not desktop_cwd
-                    or not _desktop_cwd_belongs_to_project(desktop_cwd, project.cwd)
+                    or not await asyncio.to_thread(
+                        _desktop_cwd_belongs_to_project, desktop_cwd, project.cwd
+                    )
                 ):
                     raise DesktopIpcError("async-question-project-context-invalid")
                 reply_text = _async_question_reply_text(pending.payload, answer)
@@ -1535,8 +1537,8 @@ class DesktopBridgeService:
             except DesktopIpcError:
                 continue
             turns = [turn for turn in projection.turns if any(marker in text for text in turn.user_text)]
-            if len(turns) == 1 and _desktop_cwd_belongs_to_project(
-                projection.cwd, project.cwd,
+            if len(turns) == 1 and await asyncio.to_thread(
+                _desktop_cwd_belongs_to_project, projection.cwd, project.cwd,
             ):
                 matches.append((owner, projection, turns[0]))
         if len(matches) != 1:
@@ -1588,9 +1590,12 @@ class DesktopBridgeService:
             raise DesktopIpcError("desktop-thread-missing")
         before = await client.load_complete_history_snapshot(thread_id, owner=owner)
         projection = project_desktop_conversation(before)
-        actual_projects = tuple(
-            project for project in self._projects.values()
-            if _desktop_cwd_belongs_to_project(projection.cwd, project.cwd)
+        projects = tuple(self._projects.values())
+        actual_projects = await asyncio.to_thread(
+            lambda: tuple(
+                project for project in projects
+                if _desktop_cwd_belongs_to_project(projection.cwd, project.cwd)
+            )
         )
         if len(actual_projects) != 1:
             raise DesktopIpcError("desktop-project-context-not-allowed")
@@ -1779,8 +1784,8 @@ class DesktopBridgeService:
         full_text = "\n\n".join(final_blocks)
         if _SENSITIVE_OUTPUT.search(full_text) is not None:
             raise ValueError("desktop-final-output-sensitive")
-        inspection = inspect_artifacts(
-            full_text, allowed_root=Path(projection.cwd),
+        inspection = await asyncio.to_thread(
+            inspect_artifacts, full_text, allowed_root=Path(projection.cwd),
             additional_roots=self._artifact_roots,
         )
         references = [
