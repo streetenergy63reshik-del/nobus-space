@@ -8,6 +8,7 @@ from contextlib import closing
 
 from scripts import backup_telegram_runtime as backup
 from scripts import run_telegram_backup_cycle as cycle
+from scripts import restore_telegram_runtime as restore
 from src.application import managed_backups, runtime_maintenance as maintenance
 from tests.test_c5_backup_recovery import fixture_runtime
 
@@ -48,7 +49,10 @@ def test_admission_release_preserves_zero_byte_flag(tmp_path):
     assert len(archives) == 1 and archives[0].read_bytes() == b""
 
 
-def test_new_generation_preserves_previous_pointer_and_generation(tmp_path):
+def test_new_generation_preserves_previous_pointer_and_generation(tmp_path, monkeypatch):
+    synthetic_binding = {"source_commit": "0" * 40}
+    monkeypatch.setattr(backup, "application_binding", lambda: synthetic_binding)
+    monkeypatch.setattr(restore, "application_binding", lambda: synthetic_binding)
     runtime = tmp_path / "runtime"
     fixture_runtime(runtime)
     root = tmp_path / "backups"
