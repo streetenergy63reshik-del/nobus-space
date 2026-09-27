@@ -1654,7 +1654,9 @@ def test_reply_to_bound_result_continues_without_command_prefix(tmp_path: Path) 
     assert parsed.instruction == "Продолжи анализ"
 
 
-def test_only_registered_git_worktree_belongs_to_saved_desktop_project(tmp_path: Path) -> None:
+def test_only_registered_git_worktree_belongs_to_saved_desktop_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
     project = tmp_path / "project"
     project.mkdir()
     def git(*args: str) -> None:
@@ -1667,9 +1669,19 @@ def test_only_registered_git_worktree_belongs_to_saved_desktop_project(tmp_path:
     other = tmp_path / "other"
     other.mkdir()
     git("-C", str(other), "init")
+    spoof = tmp_path / "spoof"
+    spoof.mkdir()
+    (spoof / ".git").write_bytes((managed / ".git").read_bytes())
+
+    def no_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("Desktop cwd validation must not start Git")
+
+    monkeypatch.setattr(subprocess, "run", no_subprocess)
     assert _desktop_cwd_belongs_to_project(str(project), project)
     assert _desktop_cwd_belongs_to_project(str(managed), project)
+    assert _desktop_cwd_belongs_to_project(str(project), managed)
     assert not _desktop_cwd_belongs_to_project(str(other), project)
+    assert not _desktop_cwd_belongs_to_project(str(spoof), project)
     assert not _desktop_cwd_belongs_to_project(str(managed / "subdir"), project)
 
 

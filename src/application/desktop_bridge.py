@@ -9,7 +9,6 @@ import json
 import os
 import re
 import stat
-import subprocess
 from contextlib import contextmanager
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -2197,27 +2196,45 @@ def _desktop_cwd_belongs_to_project(cwd: str, project_root: Path) -> bool:
             return False
         if resolved == project_root:
             return True
-        def git(at: Path, *args: str) -> str:
-            result = subprocess.run(
-                ["git", "-C", str(at), *args], capture_output=True,
-                text=True, encoding="utf-8", timeout=5, check=True,
-            )
-            return result.stdout.strip()
-        if Path(git(project_root, "rev-parse", "--show-toplevel")).resolve() != project_root:
+        def pointer(path: Path, *, prefix: str = "") -> Path | None:
+            value = path.read_text(encoding="utf-8")
+            if len(value) > 4096 or len(value.splitlines()) != 1:
+                return None
+            line = value.strip()
+            if not line.startswith(prefix) or not line[len(prefix):].strip():
+                return None
+            return (path.parent / line[len(prefix):].strip()).resolve(strict=True)
+
+        def gitdir(root: Path) -> Path | None:
+            marker = root / ".git"
+            if marker.is_dir():
+                return marker.resolve(strict=True)
+            if marker.is_file():
+                return pointer(marker, prefix="gitdir: ")
+            return None
+
+        def common(root: Path) -> Path | None:
+            directory = gitdir(root)
+            if directory is None or not directory.is_dir():
+                return None
+            marker = directory / "commondir"
+            return pointer(marker) if marker.is_file() else directory
+
+        original_common = common(project_root)
+        candidate_common = common(resolved)
+        candidate_gitdir = gitdir(resolved)
+        if (original_common is not None and candidate_common == original_common
+                and candidate_gitdir == original_common
+                and (resolved / ".git").is_dir()):
+            return True
+        if (original_common is None or candidate_common != original_common
+                or candidate_gitdir is None
+                or candidate_gitdir.parent != original_common / "worktrees"):
             return False
-        if Path(git(resolved, "rev-parse", "--show-toplevel")).resolve() != resolved:
-            return False
-        original_common = (project_root / git(project_root, "rev-parse", "--git-common-dir")).resolve()
-        candidate_common = (resolved / git(resolved, "rev-parse", "--git-common-dir")).resolve()
-        if original_common != candidate_common:
-            return False
-        registered = git(project_root, "worktree", "list", "--porcelain", "-z")
-        return any(
-            Path(record[9:]).resolve() == resolved
-            for record in registered.split("\0")
-            if record.startswith("worktree ")
-        )
-    except (OSError, ValueError, subprocess.SubprocessError):
+        # A copied .git pointer is insufficient: Git must register the exact
+        # worktree path in its private reverse pointer as well.
+        return pointer(candidate_gitdir / "gitdir") == resolved / ".git"
+    except (OSError, UnicodeError, ValueError):
         return False
 
 
