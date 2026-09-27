@@ -265,6 +265,28 @@ def standard_route(
 
 
 @pytest.mark.asyncio
+async def test_close_is_bounded_when_pipe_never_confirms_close(monkeypatch: pytest.MonkeyPatch) -> None:
+    connector = FakeConnector(standard_route)
+    client = CodexDesktopIpcClient(
+        connector=connector, connect_timeout_ms=30, reconnect_delays_ms=(),
+    )
+    await client.start()
+    cancelled = False
+
+    async def never_closed() -> None:
+        nonlocal cancelled
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled = True
+
+    monkeypatch.setattr(connector.writers[0], "wait_closed", never_closed)
+    await asyncio.wait_for(client.close(), timeout=0.3)
+    assert cancelled
+    assert not client.connected
+
+
+@pytest.mark.asyncio
 async def test_frame_codec_is_little_endian_and_accepts_fragmented_reads() -> None:
     message = {"type": "response", "resultType": "success", "value": "Привет"}
     frame = encode_frame(message)

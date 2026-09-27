@@ -1129,8 +1129,10 @@ class CodexDesktopIpcClient:
         if writer is not None:
             writer.close()
             try:
-                await writer.wait_closed()
-            except (AttributeError, OSError, ConnectionError):
+                await asyncio.wait_for(
+                    writer.wait_closed(), timeout=self._connect_timeout_ms / 1_000
+                )
+            except (TimeoutError, AttributeError, OSError, ConnectionError):
                 pass
 
     def _fail_pending(self, error: DesktopIpcError) -> None:
