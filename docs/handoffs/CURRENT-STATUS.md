@@ -1,5 +1,19 @@
 # Nobus Space: текущий принятый статус
 
+## M2-DESKTOP: первый кандидат получил L1-отказ — 27 сентября, 10:05
+
+Локальный frozen DRAFT `2355ae5e47f542ea7485ad509e8128f3d1b5b7db`
+прошёл широкий L1 с результатом `2933 passed, 2 failed, 3 skipped,
+5` прежних исторических deselections и `25 subtests passed`.
+Оба отказа — один дефект `isinstance` в readiness-dispatch при
+внедрённой тестовой фабрике. Адресное исправление в WIP дало
+`7 passed`; первый SHA не объявляется проверенным, L2/L3 по нему не
+начинались. Следующий локальный шаг — новая заморозка и полный
+candidate-bound L1/L2/L3. Production не менялся: чистый `fd4d66c`,
+Main/Health/Backup Disabled, admission hold и signed STOP. D03 Desktop
+turn завершён, но Telegram delivery не было; повторять ход нельзя.
+[Передача](../gates/mvp2/m2-desktop/HANDOFF.md).
+
 ## M2-DESKTOP: источник DRAFT подготовлен к заморозке — 27 сентября, 09:43
 
 В этой задаче владелец поручил заморозить один локальный кандидат и

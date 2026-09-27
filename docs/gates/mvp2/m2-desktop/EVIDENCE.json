@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
-  "stage": "GATE_CANDIDATE_DRAFT_FREEZE_PREPARED",
-  "observed_at_utc": "2026-09-27T06:43:44Z",
+  "stage": "GATE_CANDIDATE_DRAFT_REFREEZE_PREPARED",
+  "observed_at_utc": "2026-09-27T07:05:56Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
   "candidate_commit": null,
@@ -71,7 +71,7 @@
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "This committed document is the DRAFT source snapshot prepared for local freeze. Its own Git commit/tree cannot self-reference; the post-commit verification receipt and Git ref bind the exact candidate. The content_digest above is a historical 25 September snapshot, not this candidate. Pre-freeze checks: 36 backup tests, one added pointer-loss test, six readiness tests; bridge/documentation preflight gave 68 passed and one Git '$GIT_DIR too big' environment failure under a long test root, with the exact failing test passing under a short isolated root. Full candidate L1/L2/L3 and live D02-D17 are not yet claimed. Production remains clean fd4d66c with Main/Health/Backup disabled and admission hold.",
+  "candidate_note": "The first frozen local DRAFT 2355ae5 failed L1 in two parameterizations of the same readiness test (2933 passed, 2 failed, 3 skipped, 5 historical deselections, 25 subtests passed). The runner's isinstance used a factory substituted by the fixture and raised TypeError; a method-capability dispatch now passes seven focused dependent tests in WIP. This document prepares a second local freeze; its own future Git commit/tree cannot self-reference, so post-commit evidence must bind the exact revision. The content_digest above is a historical 25 September snapshot, not this candidate. L2/L3 and live D02-D17 are not claimed. Production remains clean fd4d66c with Main/Health/Backup disabled and admission hold.",
   "environment_scope_note": "The environment block below records the initial 21 September Desktop 26.915 read-only probe. The current 24 September real-turn observations are separately bound to Desktop 26.917.9434.0 in a06_live_owner_transport_20260924 and isolated_question_approval_real_desktop_20260924.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
@@ -1292,6 +1292,22 @@
     "live_d02_d17_run": false,
     "gate_accepted": false
   },
+  "first_frozen_draft_l1_failure_20260927": {
+    "candidate_commit": "2355ae5e47f542ea7485ad509e8128f3d1b5b7db",
+    "source_files_committed": 12,
+    "l1_selection": "pytest tests --ignore=tests/gate0 with five exact historical C0/pre-Gate1 deselections; unique short system temp basetemp",
+    "l1_result": "2933 passed, 2 failed, 3 skipped, 5 deselected, 25 subtests passed in 601.55s",
+    "failed_cases": [
+      "tests/test_c5_runtime_operations.py::test_c5_real_runner_wires_isolated_semantic_profile_once[False-False-False]",
+      "tests/test_c5_runtime_operations.py::test_c5_real_runner_wires_isolated_semantic_profile_once[True-False-False]"
+    ],
+    "finding_class": "IMPLEMENTATION_DEFECT",
+    "root_cause": "_assert_product_healthy_nonblocking used isinstance(control, DurableProductTelegramControlPlane); the isolated runner fixture replaces that constructor with a factory, causing TypeError before health check. This was not live-runtime evidence.",
+    "focused_wip_fix": "Select callable assert_healthy_nonblocking on the control object, otherwise retain synchronous assert_healthy. Seven related parameterized/readiness tests passed in a new short temp root.",
+    "l2_l3_started_for_failed_commit": false,
+    "new_candidate_frozen": false,
+    "production_changed": false
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Do not repeat delivered D01 or the completed M2-CONTINUE-20260926-1 Desktop turn. All three production tasks are disabled with admission hold and signed STOP at sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83. Local backup/recovery and readiness regressions passed, but the historical timeout's exact call and live stability remain unproven. In the next run freeze one candidate, perform required independent review, then controlled release/recovery and real D02-D17 acceptance; no action may assume an unknown prior send failed. Gate acceptance remains open."
+  "next_step": "Do not repeat delivered D01 or the completed M2-CONTINUE-20260926-1 Desktop turn. First DRAFT 2355ae5 failed L1; locally fixed readiness dispatch must be frozen as a new exact revision and undergo candidate-bound L1/L2/L3 now. All three production tasks remain disabled with admission hold and signed STOP at sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83. Historical timeout's exact call and live stability remain unproven. Controlled release/recovery and real D02-D17 acceptance are separate; no action may assume an unknown prior send failed. Gate acceptance remains open."
 }

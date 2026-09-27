@@ -471,8 +471,9 @@ async def _assert_product_healthy_nonblocking(
     control: ProductTelegramControlPlane,
     miniapp_server: _MiniAppServer | None,
 ) -> None:
-    if isinstance(control, DurableProductTelegramControlPlane):
-        await control.assert_healthy_nonblocking()
+    nonblocking = getattr(control, "assert_healthy_nonblocking", None)
+    if callable(nonblocking):
+        await nonblocking()
     else:
         control.assert_healthy()
     if miniapp_server is not None:

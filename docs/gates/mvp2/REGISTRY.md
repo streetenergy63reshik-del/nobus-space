@@ -1,5 +1,13 @@
 # Реестр Gate MVP2
 
+27 сентября, 10:05: первый замороженный DRAFT `2355ae5` получил
+L1 `2933 passed, 2 failed, 3 skipped, 5` исторических deselections;
+два отказа одной причины `isinstance`/внедрённая factory. Адресная
+правка WIP дала `7 passed`; L2/L3 на отказавшем SHA не проводились.
+Нужна новая exact freeze и одна candidate-bound цепочка. Production
+не менялся (`fd4d66c`, все Tasks Disabled); D03 не повторять.
+[Передача](m2-desktop/HANDOFF.md).
+
 27 сентября, 09:43: по новому поручению владельца локальный источник
 M2-DESKTOP подготовлен как DRAFT к одной заморозке и L1–L3. Bridge/docs
 предпроверка: 68 passed; один Git `$GIT_DIR too big` в длинном

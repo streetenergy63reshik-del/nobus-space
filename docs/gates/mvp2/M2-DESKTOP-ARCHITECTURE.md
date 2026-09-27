@@ -1,10 +1,11 @@
 # M2-DESKTOP — Telegram ↔ Codex Desktop
 
-27 сентября 2026, 09:43 МСК. **CURRENT: production `fd4d66c` остановлен;
+27 сентября 2026, 10:05 МСК. **CURRENT: production `fd4d66c` остановлен;
 Main/Health/Backup Disabled, admission hold и signed STOP сохранены;
 Gate D01–D17 не принят.** Локальный backup/recovery WIP прошёл адресные
-проверки и подготовлен как DRAFT к одной заморозке/L1–L3 по новому
-поручению владельца. Исторический readiness timeout не имеет захваченного
+проверки; первый DRAFT `2355ae5` получил два отказа L1 одной readiness-
+причины, адресная WIP-правка готовится к новой заморозке. Исторический
+readiness timeout не имеет захваченного
 стека в момент сбоя; выпуск и живые D02–D17 в этот этап не входят. Точные новые
 факты — в [handoff](m2-desktop/HANDOFF.md) и
 [evidence](m2-desktop/EVIDENCE.json).
