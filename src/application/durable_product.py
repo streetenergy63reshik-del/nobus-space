@@ -314,9 +314,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
 
     async def _reconcile_tasks_nonblocking(self) -> None:
         loop = asyncio.get_running_loop()
-        if self._reconcile_lock.locked() or loop.time() < self._next_reconcile_at:
+        lock = getattr(self, "_reconcile_lock", None)
+        if lock is None:
+            lock = self._reconcile_lock = asyncio.Lock()
+            self._next_reconcile_at = 0.0
+        if lock.locked() or loop.time() < self._next_reconcile_at:
             return
-        async with self._reconcile_lock:
+        async with lock:
             if loop.time() < self._next_reconcile_at:
                 return
             scan = asyncio.create_task(asyncio.to_thread(self._reconcile_tasks))
