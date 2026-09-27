@@ -537,7 +537,7 @@ def test_c5_public_ingress_requires_exact_core_readiness(monkeypatch, body, stat
     response.status = status
     def request(request, *, timeout):
         assert request.full_url == supervisor.PUBLIC_ORIGIN + "/readyz"
-        assert timeout == 5
+        assert timeout == 10
         return response
     def opener(handler, redirect):
         assert handler.proxies == {}
@@ -702,7 +702,7 @@ def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch
     def slow(handler,stopping):
         handler.send_response(200);handler.send_header("Transfer-Encoding","chunked");handler.end_headers()
         for byte in b'{"status":"ready"}':
-            if stopping.wait(.36):return
+            if stopping.wait(.7):return
             try:handler.wfile.write(b'1\r\n'+bytes([byte])+b'\r\n');handler.wfile.flush();progress.append(time.monotonic())
             except OSError:return
         try:handler.wfile.write(b'0\r\n\r\n');handler.wfile.flush()
@@ -720,7 +720,7 @@ def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch
                 assert time.monotonic()-start<.7
             else:
                 assert supervisor.public_ready() is False
-                assert 4.7<=time.monotonic()-start<5.7
+                assert 9.7<=time.monotonic()-start<10.7
                 assert len(progress)>=10  # Valid chunks keep defeating an inactivity-only timeout.
         finally:
             server_stop.set()

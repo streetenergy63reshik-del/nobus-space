@@ -2180,14 +2180,14 @@ def _ready_request(url, *, seconds, probe, headers=None, stop_event=None):
 
 
 def ready(*, stop_event=None) -> bool:
-    return _ready_request("http://127.0.0.1:8765/readyz", seconds=2,
+    return _ready_request("http://127.0.0.1:8765/readyz", seconds=5,
                           probe=_LOCAL_READINESS_PROBE,
                           headers={"Host": "app.nobusspace.com"}, stop_event=stop_event)
 
 
 def public_ready(*, stop_event=None) -> bool:
     return _ready_request(
-        PUBLIC_ORIGIN + "/readyz", seconds=5,
+        PUBLIC_ORIGIN + "/readyz", seconds=10,
         probe=_PUBLIC_READINESS_PROBE, stop_event=stop_event,
     )
 
