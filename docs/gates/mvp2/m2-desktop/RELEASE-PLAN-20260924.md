@@ -1,5 +1,108 @@
 # M2-DESKTOP: план контролируемого выпуска
 
+## 27.09, 09:43 — локальный DRAFT для freeze/L1–L3; это не выпуск
+
+Текущая команда владельца разрешает заморозить один локальный кандидат
+и проверить L1–L3. Она не поручает повторять исторические reset,
+backup/rebind, Telegram turn или deploy на этапе проверки. Точный SHA/tree
+кандидата появится после commit и будет вынесен в post-commit evidence;
+этот план не должен сам ссылаться на собственный будущий SHA.
+Предзаморозочная проверка bridge/docs: 68 passed и один отказ Git
+`$GIT_DIR too big` в длинном кириллическом pytest path; тот же тест
+прошёл в коротком уникальном temp. Production остаётся остановленным
+на `fd4d66c` с signed STOP/admission hold, все три Scheduled Tasks
+Disabled. Исторические циклы ниже не переисполнять.
+
+## 27.09, 08:22 — STOP: ночной backup оставил admission hold
+
+Этот план ниже содержит исторические действия, не команду на повтор.
+Включённый ранее Backup Task автоматически выполнил VERIFIED generation
+в 03:30, затем остановился `failed_operator_required/restart_not_ready`
+с `admission_hold=true`; Main/Health выключены. Backup теперь тоже
+штатно выключен, чтобы не повторить удаляющий staging старый цикл.
+Текущий read-only `--inspect-recovery` подтверждает `STOP/blocked` и
+head `sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83`.
+Локальный WIP без overwrite control-файлов
+отказывает при crash-gap, но не доказывает восстановление и отсутствие
+SQLite sidecar-удалений; backup/rebind/reset/deploy
+не выполнять до доказанного соблюдения no-delete.
+
+## 26.09, 22:47 — STOP: no-delete не подтверждён
+
+Этот документ содержит исторические уже выполненные циклы. Новый
+локальный checkpoint `91a0499` **не выпускать**: FileSystemWatcher
+увидел 59 `Deleted` событий в синтетическом backup-тесте, хотя `pytest`
+дал `4 passed`. Источник каждого события не записан, повторять тест
+без новой проверяемой гипотезы нельзя. Действующий запрет владельца
+на удаление файлов важнее готовности к выпуску. Production остаётся
+на `fd4d66c` и остановлен; новый backup/rebind/reset не запускать.
+
+## 26.09, 19:18 — fd4d66c выпущен, этот цикл не повторять
+
+По точному подтверждению выполнен только один выпуск
+`fd4d66cfccb66c29702c29f6df59d137d3c26e3b`. Rollback:
+`.runtime/m2-desktop-release-20260926/fd4d66c-preflight/` и ветка
+`codex/m2-desktop-cdc59a2-before-fd4d66c`. После остановки runtime
+signed recovery head был
+`sha256:64dbfd5e5203f257e8f28e79d1cf519740e9b95575b08816627c95dac56140cc`;
+один rebind создал
+`sha256:bbf59776cbbc783b2e860109724d609e38916b64ddabe5fa5cd3ecb19ef9843d`.
+Новый config digest:
+`sha256:cb9af8931da6d9f0e896c208f6697845e6e7a23ecb12fa6501f9edb345c9d407`.
+Один reconcile от прежнего complete journal
+`sha256:5c11f47370b09290f9683a78d70061593a3bfd99ba05cafd4cc3fe529363b596`
+дал `PASS`, VERIFIED generation
+`daily-20260926T191008-36e07f063a674ffcab3fa810defcfa98`.
+Новый signed complete journal:
+`sha256:3ceca795c3273a3802fa92fbc3b08c5d2fbdaa03a06dc78b3d0144e5f819b71a`.
+Main работает, Health/Backup готовы, readiness `PASS`.
+Следующий шаг — новые Telegram D01–D17, не повтор release/reset/cycle.
+
+## 26.09, вечер — новый WIP не входит в выполненный выпуск
+
+На `cdc59a2` после одного отдельно разрешённого operator reset Main снова
+работает. Первый реальный Telegram-запрос выявил ошибку маршрута при
+`reply_to` корня темы. Исправление находится только в локальном WIP;
+`292 passed` затронутой регрессии не являются freeze, независимой
+проверкой или разрешением на следующий production выпуск. Этот план ниже
+фиксирует уже выполненный выпуск `cdc59a2`; его backup/rebind не повторять.
+
+Вторая реальная команда дошла до bridge, но его UIA version pin отказал
+до Desktop-действия: установленный Desktop `26.924.2738.0`, production pin
+`26.917.9434.0`. Новая версия и задержка загрузки проектного экрана
+адресно исправлены и проверены на отдельной видимой Desktop-задаче только
+в WIP. Любой следующий выпуск — новый exact commit/config/signed-head
+preflight и отдельное разрешение; старый release plan не переисполнять.
+
+## 26.09 — этот выпуск выполнен; новый цикл без основания не запускать
+
+По точному разрешению выпуск `cdc59a2` завершён: rollback сохранён в
+`.runtime/m2-desktop-release-20260926/cdc59a2-preflight/`, новая конфигурация
+имеет digest `sha256:bd885e5ef5953aae9ac6a38011c5a0f4b49d9f36816d361fb2664aacd929b685`,
+signed recovery head после однократного rebind —
+`sha256:fdb116d5bc52fc322a77759c0a5d63387a13b70588e47f2221a2eaad8c79f9bf`.
+Backup включён до запуска Main. Один `--rebind-failed-digest` от
+`sha256:7221cf56…92df` завершился `PASS` и подписал `complete` journal
+`sha256:5c11f47370b09290f9683a78d70061593a3bfd99ba05cafd4cc3fe529363b596`.
+Main `Running`, Health/Backup `Ready`, local/public readiness `PASS`.
+Следующий этап — живой Telegram-продуктовый сценарий, не повтор этого плана.
+
+## Исторический снимок до выпуска: проверенный local target `cdc59a2`
+
+Точный commit `cdc59a2ebd5d228e062937625da209be6d652c4a`, tree
+`0ac7807464c3ffbdd25a18b415bcce1f4fa47711`, code digest
+`sha256:0ad4d015b031d7d7fd2348eb41d4937fff2dd68fd73cf803f6d473c84ef1147e`.
+Широкий L1 — `2915 passed, 3 skipped, 5 exact historical deselected`;
+чистый Git ZIP SHA-256
+`16d77414ccb4620c1fa5511f39346b829a1d7601d4b77b3afcff9d4562cddf21`,
+связанный L2 — `491 passed`; L3 проверил обе interpreter evidence и
+signed recovery границу. На момент этого снимка production был выключен
+на `26b95e5`, а точный выпускной допуск ещё ожидался. Не переносить в production
+послепроверочные docs addenda: `application_binding()` включает Git HEAD,
+поэтому docs-only commit изменит binding даже без изменения Python-кода.
+После разрешения применять только `cdc59a2` и повторно сверить точные
+preflight значения ниже до каждого эффекта.
+
 ## 25.09, вечер: signed recovery остановлен на interpreter binding
 
 После точного подтверждения Backup Task был включён только после проверки

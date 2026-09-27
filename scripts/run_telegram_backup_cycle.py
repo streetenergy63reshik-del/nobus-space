@@ -94,13 +94,8 @@ def _journal(path,config_digest,phase,**details):
         'at':datetime.now(UTC).isoformat(),**details}
     temporary=m.checked_path(path.with_name('cycle-'+uuid4().hex+'.dpapi'),root=path.parent)
     m.write_bytes_durable(temporary,DpapiJsonCodec().encode(value))
-    if path.exists():
-        archive=m.checked_path(path.with_name('cycle-history-'+uuid4().hex+'.dpapi'),root=path.parent)
-        evidence=m.file_evidence(path)
-        m.write_bytes_durable(archive,path.read_bytes())
-        if m.file_evidence(archive)!=evidence:
-            raise ValueError('backup journal archive mismatch')
-    os.replace(temporary,m.checked_path(path,root=path.parent))
+    archive=m.checked_path(path.with_name('cycle-history-'+uuid4().hex+'.dpapi'),root=path.parent)
+    m.promote_preserving_previous(temporary,m.checked_path(path,root=path.parent),archive)
 
 
 def _bound_task(config,operation,name):
@@ -208,6 +203,11 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
         if sum(value is not None for value in (
                 recover_failure_digest,reconcile_complete_digest,rebind_failed_digest))>1:
             raise ValueError('backup recovery controls are exclusive')
+        if not journal.exists() and (
+            any(config_path.parent.glob('cycle-history-*.dpapi'))
+            or any(config_path.parent.glob('cycle-*.dpapi'))
+        ):
+            raise ValueError('backup journal promotion incomplete')
         if journal.exists():
             old=managed._certificate(journal)
             old_digest=canonical_json_digest(old)
@@ -353,7 +353,7 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
             record('complete',generation=generation.name)
             return {'status':'PASS','backup_created':True,'generation':generation.name,
                 'quarantined':retention['quarantined'],'runtime_ready':True}
-        except BaseException:
+        except BaseException as failure:
             failed_phase=phase_name
             hold_proven=False
             try:
@@ -361,6 +361,9 @@ def cycle(config_path,expected,*,recover_failure_digest=None,
                 hold_proven=True
             except Exception: pass
             cleanup_proven=_cleanup(config,clock,wait)
+            if isinstance(failure,m.ControlPromotionIndeterminate):
+                # The exact prior/new journal state must be inspected by an operator.
+                raise
             record('failed_operator_required',admission_hold=hold_proven,cleanup_proven=cleanup_proven,
                    failed_phase=failed_phase,cycle_status='FAIL',runtime_status='NOT_READY',
                    failure_class='restart_not_ready' if failed_phase=='starting' else 'cycle_operation_failed')

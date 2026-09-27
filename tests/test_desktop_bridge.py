@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import sqlite3
 import subprocess
@@ -984,6 +985,67 @@ async def test_delivery_formats_visible_final_as_telegram_html(tmp_path: Path) -
     assert api.messages[0][2]["parse_mode"] == "HTML"
     assert "<b>Готово</b>" in api.messages[0][1]
     assert "<code>код</code>" in api.messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_recovered_running_request_delivers_completed_turn_without_resend(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "4" * 64)
+    state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id="client-1", status=BridgeRequestStatus.RUNNING,
+    )
+    turn = DesktopTurnState(
+        turn_id="turn-1", client_user_message_id="client-1", status="completed",
+        user_text=("request",),
+        agent_messages=(DesktopAgentMessage("final-1", "Exact final", "final_answer"),),
+        plan_items=(), text_outputs=(),
+    )
+    projection = SimpleNamespace(
+        conversation_id="thread-1", title="Recovered", cwd=str(project),
+        pending_requests=(),
+        turn_by_client_message_id=lambda client_id: turn if client_id == "client-1" else None,
+    )
+    monkeypatch.setattr(
+        desktop_bridge_module, "project_desktop_conversation", lambda _snapshot: projection
+    )
+
+    class Client:
+        async def start(self):
+            pass
+
+        async def find_thread_owner(self, thread_id):
+            assert thread_id == "thread-1"
+            return object()
+
+        async def load_complete_history_snapshot(self, thread_id, *, owner):
+            assert thread_id == "thread-1"
+            return object()
+
+        async def start_turn(self, *_args, **_kwargs):
+            pytest.fail("an already bound Desktop turn must not be repeated")
+
+        async def close(self):
+            pass
+
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+        ipc_factory=Client,
+    )
+    await service.start()
+    try:
+        await asyncio.wait_for(service._tasks[request.request_id], timeout=2)
+    finally:
+        await service.close()
+
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.DELIVERED
+    assert [message[1] for message in api.messages] == ["Exact final"]
 
 
 @pytest.mark.asyncio

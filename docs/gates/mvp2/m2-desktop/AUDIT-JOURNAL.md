@@ -1,5 +1,280 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 27.09, 09:21 — временные файлы классифицированы; recovery WIP проверен локально
+
+Владелец разрешил только этапы 1–2: узкое исключение для временных файлов
+новых изолированных test roots и локальное устранение backup/readiness
+дефектов. Новый watcher: 4 passed, 58 Deleted (44 WAL/SHM, 6 journal,
+4 pytest housekeeping, 4 source-name events при move), 3 Renamed;
+сырые пути событий не сохранены. Предыдущие 59 неклассифицированных
+событий остаются историческим отрицательным результатом. Никаких
+production-файлов и чужого WIP не удаляли.
+
+Двухшаговая Windows promotion заменена одним `ReplaceFileW` с архивом
+прежнего control-файла. Проверены успех, длинный путь, отказ после
+перемещения старого файла с rollback и неизвестный исход с остановкой
+без повторной записи journal. Защитный предикат сначала сломал retry
+первого backup (`1 failed, 24 passed`); после уточнения 36 зависимых
+backup-тестов прошли, плюс один новый тест потери первого опубликованного
+pointer. 6 узких readiness-тестов прошли. Это WIP, а не L1/L2/L3 и не
+живое доказательство точной причины исторического timeout. Production
+остаётся остановленным на `fd4d66c`; выпуск и D02–D17 отложены
+владельцем на следующий запуск.
+
+### 27.09, 08:22 — новый production incident и точечный WIP
+
+Ночной включённый Backup Task автоматически стартовал в 03:30 на старом
+чистом `fd4d66c`: новая generation `daily-20260927T033029-777f247f8b534c47a07e804bf35d74e9`
+имеет journal `backup_status=VERIFIED`, но terminal phase
+`failed_operator_required`, `failed_phase=starting`,
+`failure_class=restart_not_ready`, `runtime_status=NOT_READY`,
+`admission_hold=true`. Main/Health `Disabled`, Main result `78`,
+Backup result `1`. Код этого production backup выполняет
+`cleanup_staging()`; точные пути ночных удалений не записаны.
+Чтобы не повторять такой цикл при no-delete, только idle Backup Task
+выключен штатным helper, readback `Disabled/enabled=false`.
+Supervisor journal не менялся после 26.09 21:37:48 МСК;
+SHA-256 файла `b626744b7a2cea3f626a78c07abe93f8c3835a330e7d9b3b70dce5cf398fd2bc`.
+Повторная **read-only** проверка `latest_manifest` и `verify_backup`
+подтвердила четыре ciphertext-файла новой generation, manifest digest
+`sha256:e47d610b8b758effa31805550cb7ad2593468b77c3ab65c997b3257636be3056`.
+Штатный read-only `--inspect-recovery` вернул `STOP/blocked`,
+`stop_non_retryable`, прежний подписанный head
+`sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83`.
+Reset не выполнялся.
+
+В незакоммиченном WIP общий helper переносит прежний control-файл в
+уникальный archive до promotion нового; `latest.dpapi` и signed backup
+journal больше не используют `os.replace`. Три прямых тестовых вызова
+без pytest/SQLite прошли в новых сохранённых каталогах; тест файловой
+идентичности подтвердил сохранение прежнего inode, коллизия архива
+сохранила все три исходных файла. Ещё два чистых вызова подтвердили
+fail-closed при отсутствующем `latest.dpapi` с прежней generation и
+при отсутствующем backup journal с историей. Все пять каталогов
+сохранены. Это адресная правка overwrite, не доказательство полного
+no-delete: SQLite sidecars и восстановление после crash-gap остаются.
+Выпуск, reset, новые live tests не проводились.
+
+### 26.09, 22:47 — отрицательная файловая проверка
+
+FileSystemWatcher на уникальном синтетическом корне
+`m2-file-watch-97e3b2e4d957` наблюдал четыре no-delete backup теста:
+`4 passed`, `DeleteEvents=59`, общий exit 1. Полные пути событий не
+сохранены; сохранившийся инвентарь — 9 `.sqlite3`, 26 прочих файлов,
+ноль `-wal`/`-shm`. Источник каждого события не доказан; вероятная
+часть — SQLite sidecars. Это воспроизводимое отрицательное свидетельство
+самого заявленного no-delete свойства, поэтому повторять тест без
+новой гипотезы нельзя. Production и чужие файлы не затрагивались;
+релиз, recovery и Telegram smoke не выполнялись. Локальный checkpoint
+`91a0499` оставить WIP, не использовать как выпуск.
+
+### 26.09, после 22:40 — no-delete backup checkpoint, без внешнего эффекта
+
+Checkpoint `91a0499c06567c9d5a9829190e2629aa26663661` / tree
+`30767a04c449455269c67979942ccc39d0c1a89e`. Две локальные
+итерации исправили отдельно обнаруженную несовместимость Python
+backup staging/hold/retention с запретом удаления; SQLite snapshot
+теперь строится в памяти и шифруется до файловой записи. После новой
+проверки reviewer разрешил синтетический cycle. Чистый экспорт: 15
+адресных тестов PASS; signed reconcile, fail-closed backup и disk-full
+на WIP Git-контексте: 3 PASS. Синтетика не доказывает отсутствие
+внутреннего удаления WAL/SHM на настоящем runtime. Read-only снимок
+production показал sidecar у task-runtime/checkpoint; Health result 1
+в 22:40. Ни checkout, ни Tasks, ни backup/rebind/reset, ни Telegram
+после этого checkpoint не изменялись. D03 completed turn без delivery.
+
+### 26.09, 22:27 — checkpoint readiness, выпуск остановлен до эффекта
+
+`133929f5ea153fc8d05a093200f9733045ac2293` (tree
+`e2fd0887de00b85ce672eeb976dfddc7a63019f7`): 11 адресных тестов
+из нового чистого экспорта прошли. Read-only backup probe старого
+production кода: 204/171/157 мс; не воспроизведён сам аварийный spike.
+Ревью реального выпускного пути обнаружило `cleanup_staging()` с `unlink`
+plaintext SQLite и `permit_admission()` с `unlink_durable()` hold-файла.
+Это несовместимо с текущим абсолютным no-delete; backup/rebind, checkout
+switch, recovery reset и Telegram-ход **не выполнялись**. Живой D03 остаётся
+в завершённом Desktop turn и нуле delivery rows. Требуется отдельная
+реализация и проверка no-delete backup без plaintext-следов, затем
+точный signed preflight и однократное восстановление.
+
+### 26.09, 21:36–21:51 — тот же Desktop thread, новый safety stop
+
+Одна подтверждённая команда `continue` из исходной темы дала request
+`5b965633-8670-4db5-a67f-2a530ca48f78`, source message `2312`,
+и turn `01a0df02-48f2-7453-955e-350fbee2e0ea` в прежнем thread
+`01a0de96-455b-73f3-a211-dda674803351`. Desktop `read_thread` и
+новое **read-only** IPC-соединение показали completed и точный финал
+`M2-CONTINUE-20260926-1`. Одновременное ожидание доставки было ошибочно
+похоже на IPC-зависание, но signed журнал доказал ранний safety stop:
+readiness deadline трижды в 18:37:09–18:37:43 UTC, `control_closed`
+head `sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83`.
+Bridge оставил request `running`, delivery rows `0`; никакого повтора.
+
+Пятиминутный py-spy профиль предыдущего здорового периода показал
+синхронные backup/source/Git операции в `/readyz` на Core event loop,
+но не захватил конкретную блокировку 18:37. Утренний Health DB spike
+39,1 с — только корреляция. WIP-диагностика event-loop stall и
+append-only ротация прошли два адресных теста; production всё ещё
+`fd4d66c` и stopped. Старые readiness/health архивы переименованы в
+уникальные `.preserved.*` с проверкой SHA; файлы не удалялись.
+
+### 26.09, 20:17–20:20 — один recovery и D01 доставка
+
+После exact owner approval signed head `sha256:2665c870…` повторно
+сверен, Main `Ready`, listener отсутствовал, production clean `fd4d66c`.
+Один штатный `--acknowledge-recovery-stop` вернул event
+`sha256:7d4bf41df20797f28f210e854d33f8102e629c6b97aa4cdeb81f5ff905e78c0a`;
+один Start существующего Main. Тот же request/turn из строки ниже
+перешёл в `delivered`; ledger содержит одну `text/0/sent` с Telegram
+message ID `2306`. В исходной теме визуально ровно один exact final
+`M2-LIVE-20260926-3` как reply к исходному поручению. Main `Running`,
+Health last result `0`, local/public readiness `PASS`. Исторический
+stop сохранён, его причина не объявлена устранённой; это D01 text path,
+а не весь D01–D17 или Gate.
+
+### 26.09, 19:39–19:48 — реальный Desktop turn, delivery не завершена
+
+Одна команда в «Заметки бизнеса» / «Codex work» с меткой
+`M2-LIVE-20260926-3` дала request
+`ae0183d9-669a-4cde-b81e-74d749cc6643`. Установленный Desktop создал
+thread `01a0de96-455b-73f3-a211-dda674803351` и выполнил turn
+`01a0de97-8678-74f3-9736-0296f7009580` с точным финалом. IPC snapshot
+revision 18 подтвердил `completed`, один `final_answer`, ноль ожидающих
+запросов. Telegram получил только подтверждение приёма. Bridge сохранил
+точную привязку, статус `running`, delivery rows `0`.
+
+Readiness-доказательства: три local/public deadline в 19:40:32–19:41:06;
+подписанный terminal `local_public_readiness_failed`,
+`stop_non_retryable`, cleanup proven, а не падение Desktop или
+самопроизвольный выход дочернего процесса. Signed head после закрытия
+контроля — `sha256:2665c870e53768eb24d0467c8e1b10a9a6d97bb8d11399f156556409686c9365`.
+Main теперь `Ready`/LastTaskResult `1`. Причину задержки Core не
+приписывать IPC без нового доказательства. Узкий локальный тест
+восстановления `RUNNING`→доставка завершённого turn без `start_turn`:
+`1 passed`. Живой reset/start ожидает отдельного точного разрешения;
+не выполнять повтор сообщения, turn или recovery без readback.
+
+### 26.09, 19:00–19:18 — выпуск fd4d66c, живой Gate не принят
+
+На точный `fd4d66cfccb66c29702c29f6df59d137d3c26e3b` сделан
+один контролируемый production switch: rollback сохранён, Main/Health/
+Backup остановлены и выключены, новый O_EXCL config
+`sha256:cb9af8931da6d9f0e896c208f6697845e6e7a23ecb12fa6501f9edb345c9d407`,
+только Backup Task заменён в Disabled staging. Signed rebind от
+`sha256:64dbfd5e5203f257e8f28e79d1cf519740e9b95575b08816627c95dac56140cc`
+дал inspect `PASS/new`; один reconcile от прежнего `complete` journal
+дал `PASS`, новую VERIFIED generation и signed `complete` journal
+`sha256:3ceca795c3273a3802fa92fbc3b08c5d2fbdaa03a06dc78b3d0144e5f819b71a`.
+Production clean на новом commit, Main `Running`, Health/Backup
+`Ready`, local/public readiness `PASS` в 19:18. Первое `-WhatIf`
+Backup Task остановилось на ожидаемом изменении Enabled XML; read-only
+diff установил единственное поле, повтор с точным disabled SHA прошёл.
+Никаких credentials/Codex/notifier/push изменений.
+
+Сквозной Telegram-тест ещё не начат: пользователь остановил Computer Use
+Escape до выбора окна и ввода. Исторические `unknown_dispatch` не
+переисполнялись. Эти release-квитанции не закрывают D01–D17.
+
+### 26.09, 18:23–18:37 — version pin и локальная UIA переквалификация
+
+После отдельного подтверждения отправлена одна команда `/codex new` с
+меткой `M2-LIVE-20260926-2`; бот создал request
+`9202eece-cc7a-4e62-9d7c-e3b3f6d1e98d`, затем сообщил
+неопределённый UIA исход. SQLite: `unknown_dispatch`, thread/turn NULL.
+Повтора не было. Read-only процесс показал Desktop `26.924.2738.0`;
+production UIA pin — `26.917.9434.0`. Старый Snapshot отказал до
+действия. Snapshot с новой версией, отдельное чтение точного UIA
+элемента проекта, IPC initialize и owner discovery прошли.
+
+Локальная проба `…7A4D` вызвала новый чат, но не дошла до ввода:
+`check-active-context` опередил загрузку UI. Read-only Snapshot и
+accessibility подтвердили впоследствии нужный проект, пустой composer
+и отсутствие метки в истории. В WIP добавлено ограниченное ожидание
+контекста, без снятия проверки перед Send. Новая проба `…B19E` получила
+receipt `invoked-create-task, submitted-prompt`; в Desktop видны задача
+и точный финальный ответ. IPC readback exact thread
+`01a0de5a-db5c-7433-8587-93bec1f39917`: один completed turn,
+маркер, точный ответ, cwd проекта и owner. Текущий UIA/bridge набор
+`74 passed`, PS parser 0. Это не live Telegram D01 и не full IPC parity;
+кандидат пока WIP, production на `cdc59a2`.
+
+### 26.09, вечер — production stop и первый Telegram запрос
+
+В 10:34 Main зафиксировал signed `local_public_readiness_failed` после
+трёх timeout. Только после read-only сверки exact head, процессов,
+журнала и состояния заданий владелец отдельно разрешил один signed
+recovery reset от `sha256:df335663097ae8c28dbaecb3c8819bf9dcfc58cc8b3c97c3169632e167017653`
+и один запуск Main. Reset event
+`sha256:84d20173bc1200d029659bd86bc36bcb86b36fef7e43cdae41db9e8df4ae7680`,
+inspect `PASS/new`; в 18:05 Main запущен ровно раз, local/public `PASS`.
+Backup cycle, config, credentials и Tasks не менялись. Первоначальная
+причина задержек readiness не доказана.
+
+Сообщение `M2-LIVE-20260926-1` отправлено один раз в 17:51 в нужную тему;
+после восстановления бот ответил в 18:06 отказом продолжить несуществующую
+задачу. Нового bridge request/turn нет. Регрессионный тест с точной формой
+адресованного сообщения и `reply_to` корня темы до исправления дал
+`topic != route`. Общий парсер теперь сохраняет `route` для явного
+`/codex`, `@Nobusspacebot` и имени бота даже при `reply_to`; обычный
+ответ на связанную задачу остаётся `topic`. Затронутая регрессия:
+`292 passed`. Это локальный WIP, не новая проверенная release revision.
+
+### 26.09 — однократное успешное восстановление production
+
+Точный допуск владельца относился к `cdc59a2`, rollback, новому config,
+одному signed rebind и одному backup/recovery cycle. Перед записью
+production был clean на `26b95e5`, три Tasks Disabled, XML SHA-256
+совпали с прежними квитанциями; failed journal имел точный digest
+`sha256:7221cf56d01c950bb3f82efa65eeebfa8fcf176081fca2595c7f20a8e2bb92df`.
+Сохранены точные XML/config/launcher/inventory rollback-копии и локальный
+ref старого HEAD. Переключён только чистый checkout на `cdc59a2`, создан
+O_EXCL config `sha256:bd885e5ef5953aae9ac6a38011c5a0f4b49d9f36816d361fb2664aacd929b685`,
+заменён только Disabled Backup Task; его XML SHA-256 после readback
+`429f4bdc62d2d6d021889d544760ebada276d2dd096e3b9fd6fc59e2ae790b71`.
+Signed recovery rebind от точного head вернул event
+`sha256:fdb116d5bc52fc322a77759c0a5d63387a13b70588e47f2221a2eaad8c79f9bf`;
+inspect после — `PASS/new`.
+
+Backup Task включён и прочитан как `Ready` с ближайшим расписанием
+27.09 03:30 МСК, затем один `--rebind-failed-digest` завершился `PASS`,
+создал VERIFIED generation
+`daily-20260926T094651-e5271dad8ba84cb9aa8bb4924b94c3e1`.
+Новый signed journal — `complete`, digest
+`sha256:5c11f47370b09290f9683a78d70061593a3bfd99ba05cafd4cc3fe529363b596`.
+Main `Running`, Health/Backup `Ready`, Main `--check-ready` вернул
+`local_ready=true`, `public_ready=true`, Health LastTaskResult `0`.
+Telegram-запрос на новом активном коде пока не отправлялся: runtime
+доказан, D01–D17 и принятие Gate — нет. Этот checkpoint не меняет исходные
+bytes замороженного code commit и не запускает L1/L2/L3 повторно.
+
+### 25.09 — точная кандидатная проверка исправления интерпретаторов
+
+Frozen local commit `cdc59a2ebd5d228e062937625da209be6d652c4a`, tree
+`0ac7807464c3ffbdd25a18b415bcce1f4fa47711`; рабочая копия была чистой
+перед проверкой. L1 (все текущие тесты, кроме прежнего `tests/gate0` и пяти
+точных старых assertions): `2915 passed, 3 skipped, 5 deselected,
+25 subtests passed` за 409,74 с. Новый source diff — только канонизация
+двух base interpreter paths и добавление `base_pythonw` в SHA-bound manifest;
+один целевой тест подтвердил одинаковый digest console/GUI.
+
+L2: чистый `git archive` ZIP SHA-256
+`16d77414ccb4620c1fa5511f39346b829a1d7601d4b77b3afcff9d4562cddf21`;
+runner blob `47f3a6efcf1a38ac69760331f7d2dc94e0129d27` и test blob
+`55c5f4d4ded9d6439e919cf867dbae653e6cda01` совпали с Git. Из
+отдельной распаковки 13 связанных supervisor/backup/Desktop bridge файлов:
+`491 passed` за 136,24 с. Оба набора дали одно старое
+Starlette/httpx deprecation warning, не требующее установки зависимости.
+
+L3: нормализация сохраняет одновременно SHA-256 evidence `python.exe` и
+`pythonw.exe` как отдельные обязательные поля; отсутствующий файл
+отклоняется `resolve(strict=True)`. Изменение любого evidence меняет
+канонический digest, а выбор console/GUI больше не меняет его. Rebind
+истории всё ещё связан с exact Git HEAD, Task signatures, config и
+подписанным head; docs-only commit до выпуска тоже сменил бы binding.
+Поэтому послепроверочные документы оставлены как WIP, production target
+не меняется с `cdc59a2`. Проверка не утверждает живую совместимость
+Desktop/Telegram или приёмку D01–D17. Точный production допуск запрошен.
+
 ### 25.09, вечер — новый подтверждённый defect интерпретаторной привязки
 
 Точный разрешённый шаг: Backup Task Enabled/readback `Ready`, один

@@ -863,6 +863,59 @@ def replace_durable(source: Path, target: Path) -> None:
         fsync_directory(target.parent)
 
 
+class ControlPromotionIndeterminate(RuntimeError):
+    """A control-file promotion needs operator readback before another write."""
+
+
+def promote_preserving_previous(source: Path, target: Path, archive: Path) -> None:
+    """Promote a control file, preserving its predecessor under an exact archive name."""
+    source, target, archive = map(checked_path, (source, target, archive))
+    if len({source, target, archive}) != 3 or archive.exists():
+        raise ValueError("control file promotion paths invalid")
+    new_evidence = file_evidence(source)
+    if new_evidence is None:
+        raise ValueError("pending control file missing")
+    if target.exists() and os.name == "nt":
+        old_evidence = file_evidence(target)
+        def extended(path: Path) -> str:
+            value = str(path)
+            return "\\\\?\\UNC\\" + value[2:] if value.startswith("\\\\") else "\\\\?\\" + value
+
+        replace = ctypes.WinDLL("kernel32", use_last_error=True).ReplaceFileW
+        replace.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p,
+                            ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p)
+        replace.restype = ctypes.c_int
+        if not replace(extended(target), extended(source), extended(archive), 0, None, None):
+            error = ctypes.get_last_error()
+            current = file_evidence(target)
+            if current is None and file_evidence(archive) == old_evidence and file_evidence(source) == new_evidence:
+                try:
+                    os.rename(archive, target)
+                    if file_evidence(target) != old_evidence:
+                        raise RuntimeError("control rollback verification failed")
+                except Exception as failure:
+                    raise ControlPromotionIndeterminate("control promotion rollback failed") from failure
+            elif current != old_evidence or file_evidence(source) != new_evidence or archive.exists():
+                raise ControlPromotionIndeterminate("control promotion outcome unknown")
+            raise OSError(error, "control promotion failed")
+        if file_evidence(archive) != old_evidence:
+            raise ControlPromotionIndeterminate("previous control file archive changed")
+    else:
+        if target.exists():
+            old_evidence = file_evidence(target)
+            os.rename(target, archive)
+            if file_evidence(archive) != old_evidence:
+                raise ControlPromotionIndeterminate("previous control file archive changed")
+        if target.exists():
+            raise ControlPromotionIndeterminate("control promotion target occupied")
+        os.rename(source, target)
+    fsync_directory(source.parent)
+    fsync_directory(target.parent)
+    fsync_directory(archive.parent)
+    if source.exists() or file_evidence(target) != new_evidence:
+        raise ControlPromotionIndeterminate("control promotion outcome unknown")
+
+
 def copy_durable(source: Path, target: Path) -> None:
     with Path(source).open("rb") as current, Path(target).open("wb") as output:
         shutil.copyfileobj(current, output)

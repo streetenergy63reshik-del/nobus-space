@@ -1,11 +1,30 @@
 # M2-DESKTOP — Telegram ↔ Codex Desktop
 
-25 сентября 2026. **TARGET / LOCAL WIP; OWNER IPC/UIA LIVE
-TRANSPORT VERIFIED, TELEGRAM PRODUCT NOT ACTIVE.** Функциональный scope задан
-владельцем. Локальный адаптер и часть интеграции реализованы; реальный
-Desktop подтвердил создание/продолжение, полный ответ, вопрос и approve/deny,
-но сквозная Telegram-приёмка D01–D17 ещё не завершена. Один Gate = одна задача разработки; исследование,
-исправления, проверки и разрешённая активация продолжаются в ней.
+27 сентября 2026, 09:43 МСК. **CURRENT: production `fd4d66c` остановлен;
+Main/Health/Backup Disabled, admission hold и signed STOP сохранены;
+Gate D01–D17 не принят.** Локальный backup/recovery WIP прошёл адресные
+проверки и подготовлен как DRAFT к одной заморозке/L1–L3 по новому
+поручению владельца. Исторический readiness timeout не имеет захваченного
+стека в момент сбоя; выпуск и живые D02–D17 в этот этап не входят. Точные новые
+факты — в [handoff](m2-desktop/HANDOFF.md) и
+[evidence](m2-desktop/EVIDENCE.json).
+
+Исторический статус 26 сентября: production `cdc59a2` был активен после одного
+operator reset; Gate D01–D17 не принят. Desktop обновился до
+`26.924.2738.0`, поэтому production UIA с прежним version pin остановил
+первую явную Telegram-команду до создания задачи. Отдельный локальный
+WIP уже подтвердил семантическое создание задачи на новой версии и IPC
+readback владельца, рабочего каталога и полного ответа; это пока не
+выпущено и не заменяет Telegram-приёмку. Предыдущий естественный запрос
+тоже выявил ошибку маршрута при `reply_to` корня темы; исправление WIP.
+Оба исходных Telegram-сообщения не повторять. Один Gate = одна задача.
+Точные факты — в [handoff](m2-desktop/HANDOFF.md) и
+[evidence](m2-desktop/EVIDENCE.json).
+
+Исторический контекст на 25 сентября: локальный адаптер и часть интеграции
+реализованы; реальный Desktop подтвердил создание/продолжение, полный
+ответ, вопрос и approve/deny, но тогда сквозная Telegram-приёмка ещё не
+началась.
 
 После независимого аудита локально включены renderer полного ответа,
 разбор файловых ссылок, карточки pending-запросов, CAS ответа, opt-in bridge и
@@ -14,7 +33,7 @@ request-scoped operation key/receipt установлен в существую�
 самодостаточная аутентичная проверка — в существующий notifier. Их позитивный
 продуктовый live-цикл, отсутствие дублей и mode/pending parity
 ещё не подтверждены. UIA/context и owner IPC уже прошли узкий реальный
-create/continue цикл ниже. Production bot tasks остаются Disabled; обычный
+create/continue цикл ниже. На том историческом checkpoint production bot tasks были Disabled; обычный
 notifier отправил summary для трёх тестовых turn; позже exact bridge opt-out
 проверен только read-only на установленном notifier и изолированной SQLite.
 Отсутствие живого Telegram-дубля ещё не доказано.

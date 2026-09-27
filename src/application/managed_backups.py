@@ -145,6 +145,18 @@ def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily',
     attempt_id=attempt_id or uuid4().hex
     if now.tzinfo is None or not re.fullmatch('[0-9a-f]{32}',attempt_id):
         raise ValueError('backup attempt invalid')
+    if not (root/'latest.dpapi').exists():
+        prior=[path for path in root.iterdir() if GENERATION.fullmatch(path.name)]
+        archives=list(root.parent.glob(root.name+'-latest-before-*.dpapi'))
+        # Only the authenticated pending first publication of this same failed
+        # attempt may be retried. A preserved prior pointer means manual repair.
+        if archives or (prior and (
+            len(prior)!=1 or not (prior[0]/'latest-pending.dpapi').exists()
+            or _intent(root,prior[0],expected)['attempt_id']!=attempt_id
+        )):
+            raise ValueError('latest pointer missing with existing generation')
+        if prior:
+            _generation(root,prior[0],expected)
     generation=m.checked_path(root/(kind+'-'+now.strftime('%Y%m%dT%H%M%S')+'-'+uuid4().hex),root=root)
     generation.mkdir()
     intent={'schema':'c6-backup-intent-1','root_ownership':expected,'name':generation.name,
@@ -167,16 +179,11 @@ def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily',
     temporary=m.checked_path(generation/'latest-pending.dpapi',root=generation)
     m.write_bytes_durable(temporary,pointer_bytes)
     latest=m.checked_path(root/'latest.dpapi',root=root)
-    if latest.exists():
-        archive=m.checked_path(
-            root.parent/(root.name+'-latest-before-'+uuid4().hex+'.dpapi'),
-            root=root.parent,
-        )
-        evidence=m.file_evidence(latest)
-        m.write_bytes_durable(archive,latest.read_bytes())
-        if m.file_evidence(archive)!=evidence:
-            raise ValueError('backup latest pointer archive mismatch')
-    os.replace(temporary,latest)
+    archive=m.checked_path(
+        root.parent/(root.name+'-latest-before-'+uuid4().hex+'.dpapi'),
+        root=root.parent,
+    )
+    m.promote_preserving_previous(temporary,latest,archive)
     return generation
 
 
