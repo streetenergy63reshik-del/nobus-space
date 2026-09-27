@@ -4,6 +4,7 @@ import json
 import sqlite3
 import subprocess
 import sys
+import threading
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -18,6 +19,62 @@ from src.application.durable_telegram_state import (
 )
 from src.contracts.models import canonical_json_digest
 from tests.test_durable_telegram_state import _store
+
+
+@pytest.mark.asyncio
+async def test_idle_reconcile_keeps_loop_free_and_scans_once(monkeypatch):
+    control = object.__new__(DurableProductTelegramControlPlane)
+    control._reconcile_lock = asyncio.Lock()
+    control._next_reconcile_at = 0.0
+    entered = threading.Event()
+    release = threading.Event()
+    calls = []
+
+    def slow_scan():
+        calls.append(1)
+        entered.set()
+        assert release.wait(5)
+
+    monkeypatch.setattr(control, "_reconcile_tasks", slow_scan)
+    scan = asyncio.create_task(control._reconcile_tasks_nonblocking())
+    try:
+        assert await asyncio.wait_for(asyncio.to_thread(entered.wait, 3), 4)
+        await asyncio.wait_for(control._reconcile_tasks_nonblocking(), 0.25)
+    finally:
+        release.set()
+    await asyncio.wait_for(scan, 3)
+    await control._reconcile_tasks_nonblocking()
+    assert calls == [1]
+
+
+@pytest.mark.asyncio
+async def test_cancelled_reconcile_waits_for_recovery_write(monkeypatch):
+    control = object.__new__(DurableProductTelegramControlPlane)
+    control._reconcile_lock = asyncio.Lock()
+    control._next_reconcile_at = 0.0
+    entered = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+
+    def slow_scan():
+        entered.set()
+        try:
+            assert release.wait(5)
+        finally:
+            finished.set()
+
+    monkeypatch.setattr(control, "_reconcile_tasks", slow_scan)
+    scan = asyncio.create_task(control._reconcile_tasks_nonblocking())
+    try:
+        assert await asyncio.wait_for(asyncio.to_thread(entered.wait, 3), 4)
+        scan.cancel()
+        await asyncio.sleep(0)
+        assert not scan.done()
+    finally:
+        release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(scan, 3)
+    assert finished.is_set()
 
 
 def admit(state, tenant="owner"):

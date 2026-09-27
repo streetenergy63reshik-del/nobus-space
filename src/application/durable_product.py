@@ -124,6 +124,8 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self._durable_voice = DurableVoiceIntake(self, telegram_state)
         self._close_task: asyncio.Task[None] | None = None
         self._cleanup_pending: set[asyncio.Task] = set()
+        self._reconcile_lock = asyncio.Lock()
+        self._next_reconcile_at = 0.0
 
     async def _handle_ingress(self, ingress: Any) -> bool:
         if self._admission_readiness is not None:
@@ -245,7 +247,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             await asyncio.shield(self._start_task)
             if self._execution_workers or self._closing or self._closed:
                 return
-        self._reconcile_tasks()
+        await self._reconcile_tasks_nonblocking()
         self._execution_workers = tuple(
             asyncio.create_task(
                 self._execution_worker(), name=f"telegram-durable-executor-{index + 1}"
@@ -309,6 +311,23 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                     if (tenant, item.task_id, item.contract_digest) not in valid:
                         store.mark_recovery_attention(tenant, item.task_id, item.contract_digest,
                             destination_ref=destination, now=runtime._clock())
+
+    async def _reconcile_tasks_nonblocking(self) -> None:
+        loop = asyncio.get_running_loop()
+        if self._reconcile_lock.locked() or loop.time() < self._next_reconcile_at:
+            return
+        async with self._reconcile_lock:
+            if loop.time() < self._next_reconcile_at:
+                return
+            scan = asyncio.create_task(asyncio.to_thread(self._reconcile_tasks))
+            try:
+                await asyncio.shield(scan)
+            except asyncio.CancelledError:
+                # A graceful stop must wait for any in-flight recovery writes.
+                await asyncio.shield(scan)
+                raise
+            # ponytail: idle scans run once per minute; add a targeted wake-up if orphan latency matters.
+            self._next_reconcile_at = loop.time() + 60
 
     async def submit_miniapp_task(
         self,
@@ -621,7 +640,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 await asyncio.sleep(1)
                 continue
             if durable is None:
-                self._reconcile_tasks()
+                await self._reconcile_tasks_nonblocking()
                 self._worker_error = None
                 self._worker_error_count = 0
                 if marker:
