@@ -1267,6 +1267,70 @@ class _Uia:
 
 
 @pytest.mark.asyncio
+async def test_bootstrap_refreshes_ipc_owner_before_task_turn(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "6" * 64)
+    project = tmp_path / "nobus-orchestrator-dev"
+    project.mkdir()
+    clients = []
+    calls = []
+
+    class Client:
+        def __init__(self):
+            self.number = len(clients)
+            clients.append(self)
+
+        async def start(self):
+            calls.append((self.number, "start"))
+
+        async def find_thread_owner(self, thread_id):
+            assert thread_id == "thread-1"
+            calls.append((self.number, "owner"))
+            return f"owner-{self.number}"
+
+        async def close(self):
+            calls.append((self.number, "close"))
+
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=_Uia(), projects={project.name: project},
+        owner_user_id=99, owner_private_chat_id=99,
+        bot_username="Nobusspacebot", ipc_factory=Client,
+    )
+
+    async def create(client, current):
+        assert client is clients[0]
+        bound = state.bind_desktop(
+            current.request_id, thread_id="thread-1", turn_id=None,
+            client_message_id=f"nobus:{current.request_id}",
+            status=BridgeRequestStatus.RECEIVED,
+        )
+        return bound, "owner-0"
+
+    async def start_turn(client, owner, current):
+        assert client is clients[1] and owner == "owner-1"
+        return state.bind_desktop(
+            current.request_id, thread_id="thread-1", turn_id="turn-1",
+            client_message_id=f"nobus:{current.request_id}",
+            status=BridgeRequestStatus.RUNNING,
+        )
+
+    async def monitor(client, owner, current):
+        assert client is clients[1] and owner == "owner-1"
+        assert current.desktop_turn_id == "turn-1"
+
+    monkeypatch.setattr(service, "_create_desktop_task", create)
+    monkeypatch.setattr(service, "_start_desktop_turn", start_turn)
+    monkeypatch.setattr(service, "_monitor", monitor)
+    await service._run_request(request.request_id)
+    assert calls == [
+        (0, "start"), (0, "close"), (1, "start"),
+        (1, "owner"), (1, "close"),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_existing_desktop_draft_is_reported_without_retry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

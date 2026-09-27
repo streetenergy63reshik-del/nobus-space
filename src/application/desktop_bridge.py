@@ -1349,6 +1349,15 @@ class DesktopBridgeService:
                 else:
                     owner = await self._find_or_open_owner(client, request)
                 if request.desktop_turn_id is None or request.status in {BridgeRequestStatus.RECEIVED, BridgeRequestStatus.DISPATCHING, BridgeRequestStatus.WAITING_PC}:
+                    thread_id = request.desktop_thread_id
+                    if thread_id is None:
+                        raise DesktopIpcError("desktop-thread-missing")
+                    # UIA bootstrap or reopening may change the owner binding.
+                    # Refresh it before reading history or sending a task turn.
+                    await client.close()
+                    client = self._ipc_factory()
+                    await client.start()
+                    owner = await client.find_thread_owner(thread_id)
                     request = await self._start_desktop_turn(client, owner, request)
                 await self._monitor(client, owner, request)
             except DesktopIpcUnknownOutcome:
