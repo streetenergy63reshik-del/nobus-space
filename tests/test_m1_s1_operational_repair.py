@@ -274,7 +274,7 @@ def test_local_probe_contract_and_safe_diagnostics(monkeypatch):
         def open(self,request,timeout):seen.append((request,timeout));return Response()
     monkeypatch.setattr(s.urllib.request,'build_opener',lambda *a:Opener())
     assert s.ready()
-    assert seen[0][0].get_header('Host')=='app.nobusspace.com' and seen[0][1]==2
+    assert seen[0][0].get_header('Host')=='app.nobusspace.com' and seen[0][1]==5
     assert s._LOCAL_READINESS_PROBE.last['status']=='PASS'
     assert s._LOCAL_READINESS_PROBE.last['http_status']==200
 
