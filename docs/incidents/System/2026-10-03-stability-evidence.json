@@ -1,0 +1,1229 @@
+{
+  "schema": "nobus-incident-summary-1",
+  "checked_at": "2026-10-03T09:04:39.200129+00:00",
+  "window_start": "2026-09-19T21:00:00Z",
+  "history_earliest": "2026-09-14T19:45:43Z",
+  "history_head": "sha256:cfc128b2e52ca5908092268e891191e7679ab2be212be13c41d5f110a49c7246",
+  "source_revision": "bd991760312732dd15cdad909e81a6023cc703f2",
+  "authenticated_diagnostic_rows_checked": 23370,
+  "planned_stops_excluded": 16,
+  "events": [
+    {
+      "at": "2026-09-22T07:47:17Z",
+      "event": "terminal",
+      "error_class": "core_exit",
+      "stage": "startup",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": 4294967295,
+      "core_outcome": {
+        "code": "telegram_mvp1_failed",
+        "status": "FAIL"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:be67ebb48c0eb3bcf02640d71cf92378934caff8e224a76fc1a6bf55cf42392d",
+      "last_failures": [
+        {
+          "at": "2026-09-22T07:47:15Z",
+          "checks": [
+            {
+              "at": "2026-09-22T07:47:13Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-22T07:47:15Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 2609,
+              "error_class": "http_error",
+              "http_status": 502,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-22T08:04:35Z",
+      "event": "terminal",
+      "error_class": "core_exit",
+      "stage": "startup",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": 4294967295,
+      "core_outcome": {
+        "code": "telegram_mvp1_failed",
+        "status": "FAIL"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:61767b6ae0a36cedec07c9f97861962cbc2c3fcc5cc020cbfb03499eb201226a",
+      "last_failures": [
+        {
+          "at": "2026-09-22T08:04:34Z",
+          "checks": [
+            {
+              "at": "2026-09-22T08:04:31Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-22T08:04:34Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 2734,
+              "error_class": "http_error",
+              "http_status": 502,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-22T09:14:28Z",
+      "event": "terminal",
+      "error_class": "core_exit",
+      "stage": "startup",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": 4294967295,
+      "core_outcome": {
+        "code": "telegram_mvp1_failed",
+        "status": "FAIL"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:857988b7f7d1c8a4f0d1868370a7b2723d88dede6e5b1384e0a49c027489a006",
+      "last_failures": [
+        {
+          "at": "2026-09-22T09:14:28Z",
+          "checks": [
+            {
+              "at": "2026-09-22T09:14:25Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-22T09:14:28Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 2828,
+              "error_class": "http_error",
+              "http_status": 502,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-26T07:34:52Z",
+      "event": "terminal",
+      "error_class": "local_public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:bfd676ddea074cf72e5ef6d5152ec67cb98c46faa4928bcda6c637a49a6cd788",
+      "last_failures": [
+        {
+          "at": "2026-09-26T07:34:11Z",
+          "checks": [
+            {
+              "at": "2026-09-26T07:34:01Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 969,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-26T07:34:08Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 6578,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-26T07:34:30Z",
+          "checks": [
+            {
+              "at": "2026-09-26T07:34:23Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2031,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T07:34:30Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 6938,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-26T07:34:49Z",
+          "checks": [
+            {
+              "at": "2026-09-26T07:34:44Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T07:34:49Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5703,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-26T16:41:11Z",
+      "event": "terminal",
+      "error_class": "local_public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:cbe4a01133e80fb0fdfd82c1fa305f70d4c60a0cfd7f4778c4f709a601bb247a",
+      "last_failures": [
+        {
+          "at": "2026-09-26T16:40:32Z",
+          "checks": [
+            {
+              "at": "2026-09-26T16:40:27Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T16:40:32Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-26T16:40:49Z",
+          "checks": [
+            {
+              "at": "2026-09-26T16:40:44Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T16:40:49Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-26T16:41:06Z",
+          "checks": [
+            {
+              "at": "2026-09-26T16:41:01Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T16:41:06Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-26T18:37:47Z",
+      "event": "terminal",
+      "error_class": "local_public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:5cf6da470afba1bffb39881d5b6982b46a9806162f272df53c8e2fd25a861c96",
+      "last_failures": [
+        {
+          "at": "2026-09-26T18:37:09Z",
+          "checks": [
+            {
+              "at": "2026-09-26T18:37:04Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T18:37:09Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-26T18:37:26Z",
+          "checks": [
+            {
+              "at": "2026-09-26T18:37:21Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2015,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T18:37:26Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-26T18:37:43Z",
+          "checks": [
+            {
+              "at": "2026-09-26T18:37:38Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2015,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-26T18:37:43Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-27T10:40:32Z",
+      "event": "terminal",
+      "error_class": "local_public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:fb9b84c3a555920ac8eb81e860b209b7af3fae4b16736c150fd9dc4d882f1e2d",
+      "last_failures": [
+        {
+          "at": "2026-09-27T10:39:54Z",
+          "checks": [
+            {
+              "at": "2026-09-27T10:39:49Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2047,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T10:39:54Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T10:40:10Z",
+          "checks": [
+            {
+              "at": "2026-09-27T10:40:07Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T10:40:10Z",
+              "body_matches": true,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 3437,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T10:40:27Z",
+          "checks": [
+            {
+              "at": "2026-09-27T10:40:22Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T10:40:27Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-27T12:52:55Z",
+      "event": "terminal",
+      "error_class": "local_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": true,
+      "readiness_failures": 3,
+      "digest": "sha256:4921454a79970d516ba5a151f031cb312201fe6e75580aa8051a238c569a0949",
+      "last_failures": [
+        {
+          "at": "2026-09-27T12:52:17Z",
+          "checks": [
+            {
+              "at": "2026-09-27T12:52:12Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2047,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T12:52:17Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5078,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T12:52:33Z",
+          "checks": [
+            {
+              "at": "2026-09-27T12:52:30Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2015,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T12:52:33Z",
+              "body_matches": true,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 3422,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T12:52:50Z",
+          "checks": [
+            {
+              "at": "2026-09-27T12:52:45Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 2032,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T12:52:50Z",
+              "body_matches": true,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 4453,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-27T13:27:52Z",
+      "event": "terminal",
+      "error_class": "local_public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:84ea077e9f9eda50a7ab0f2bbb0d4eb90bab9886659604ce96f7526cb46a1598",
+      "last_failures": [
+        {
+          "at": "2026-09-27T13:27:11Z",
+          "checks": [
+            {
+              "at": "2026-09-27T13:27:06Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 1297,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-27T13:27:11Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T13:27:28Z",
+          "checks": [
+            {
+              "at": "2026-09-27T13:27:23Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 1203,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-27T13:27:28Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T13:27:46Z",
+          "checks": [
+            {
+              "at": "2026-09-27T13:27:41Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 2000,
+              "elapsed_ms": 3406,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T13:27:46Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 5000,
+              "elapsed_ms": 5032,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-27T22:04:48Z",
+      "event": "terminal",
+      "error_class": "public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "retry",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": true,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:62e7ec3cdfc0e9a3923a777495ae6c8c2b3c7e5a0179a1064ec436098b8be5a4",
+      "last_failures": [
+        {
+          "at": "2026-09-27T22:03:54Z",
+          "checks": [
+            {
+              "at": "2026-09-27T22:03:44Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 469,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-27T22:03:54Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T22:04:15Z",
+          "checks": [
+            {
+              "at": "2026-09-27T22:04:05Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 531,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-27T22:04:15Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T22:04:36Z",
+          "checks": [
+            {
+              "at": "2026-09-27T22:04:26Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 969,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-27T22:04:36Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-27T22:06:17Z",
+      "event": "terminal",
+      "error_class": "core_and_relay_exit",
+      "stage": "startup",
+      "attempt": 2,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_cause": "unknown",
+      "relay_exit_code": 255,
+      "core_exit_code": 4294967295,
+      "core_outcome": {
+        "code": "telegram_unavailable",
+        "status": "FAIL"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:673b6bd14347285e016a08034ebed356b0bc5199079d59d2bdffc70ac8e6453b",
+      "last_failures": [
+        {
+          "at": "2026-09-27T22:06:03Z",
+          "checks": [
+            {
+              "at": "2026-09-27T22:05:53Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 2172,
+              "error_class": "transport_error",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T22:06:03Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-27T22:06:16Z",
+          "checks": [
+            {
+              "at": "2026-09-27T22:06:06Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 2172,
+              "error_class": "transport_error",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-09-27T22:06:16Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10015,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-29T06:00:54Z",
+      "event": "terminal",
+      "error_class": "public_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "retry",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": true,
+      "public_ready": false,
+      "readiness_failures": 3,
+      "digest": "sha256:3b91ada4cc79dd06eafbd2adcce04db1c51f32b97b9a6d6f8d708c6463718484",
+      "last_failures": [
+        {
+          "at": "2026-09-29T06:00:13Z",
+          "checks": [
+            {
+              "at": "2026-09-29T06:00:03Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 234,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-29T06:00:13Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-29T06:00:33Z",
+          "checks": [
+            {
+              "at": "2026-09-29T06:00:23Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 250,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-29T06:00:33Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-29T06:00:54Z",
+          "checks": [
+            {
+              "at": "2026-09-29T06:00:44Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 219,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-29T06:00:54Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-09-29T09:30:21Z",
+      "event": "terminal",
+      "error_class": "relay_exit",
+      "stage": "steady",
+      "attempt": 2,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_cause": "unknown",
+      "relay_exit_code": 255,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:e68f05585767dc1ec22f4fce7d8cc7028fcbf21c4a8715af4c7698fbb7671e03",
+      "last_failures": []
+    },
+    {
+      "at": "2026-09-30T13:37:57Z",
+      "event": "terminal",
+      "error_class": "relay_exit",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_cause": "unknown",
+      "relay_exit_code": 255,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:d7c933d6f938750f251aa5bbb333199fa2985bc1e47150d733e1935ed7bbd12f",
+      "last_failures": [
+        {
+          "at": "2026-09-30T13:37:16Z",
+          "checks": [
+            {
+              "at": "2026-09-30T13:37:06Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 203,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-30T13:37:16Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-30T13:37:36Z",
+          "checks": [
+            {
+              "at": "2026-09-30T13:37:26Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 187,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-30T13:37:36Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-09-30T13:37:57Z",
+          "checks": [
+            {
+              "at": "2026-09-30T13:37:47Z",
+              "body_matches": true,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 203,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            },
+            {
+              "at": "2026-09-30T13:37:57Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10016,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": "2026-10-01T15:40:25Z",
+      "event": "terminal",
+      "error_class": "relay_exit",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_cause": "unknown",
+      "relay_exit_code": 255,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": null,
+      "public_ready": null,
+      "readiness_failures": 0,
+      "digest": "sha256:225ecb6c766f33a472d114280d1e5984f29b0a40178d4a8b7adbd3ed07b2c8e5",
+      "last_failures": []
+    },
+    {
+      "at": "2026-10-02T06:48:17Z",
+      "event": "terminal",
+      "error_class": "local_readiness_failed",
+      "stage": "steady",
+      "attempt": 1,
+      "recovery_disposition": "stop_non_retryable",
+      "relay_exit_code": null,
+      "core_exit_code": null,
+      "core_outcome": {
+        "status": "STOPPED"
+      },
+      "core_outcome_error": null,
+      "cleanup_outcome": "proven",
+      "local_ready": false,
+      "public_ready": true,
+      "readiness_failures": 3,
+      "digest": "sha256:3acdd63376c06ca833c61d52b57843ab6ce9c0ecaf3a46414c17c0bc38c3b271",
+      "last_failures": [
+        {
+          "at": "2026-10-02T06:45:41Z",
+          "checks": [
+            {
+              "at": "2026-10-02T06:45:31Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 6360,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-10-02T06:45:41Z",
+              "body_matches": false,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 10015,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            }
+          ]
+        },
+        {
+          "at": "2026-10-02T06:46:18Z",
+          "checks": [
+            {
+              "at": "2026-10-02T06:46:14Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 17000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-10-02T06:46:18Z",
+              "body_matches": true,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 3406,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "at": "2026-10-02T06:48:14Z",
+          "checks": [
+            {
+              "at": "2026-10-02T06:48:09Z",
+              "body_matches": false,
+              "boundary": "local",
+              "deadline_ms": 5000,
+              "elapsed_ms": 95000,
+              "error_class": "deadline",
+              "http_status": null,
+              "status": "FAIL"
+            },
+            {
+              "at": "2026-10-02T06:48:14Z",
+              "body_matches": true,
+              "boundary": "public",
+              "deadline_ms": 10000,
+              "elapsed_ms": 5328,
+              "error_class": null,
+              "http_status": 200,
+              "status": "PASS"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

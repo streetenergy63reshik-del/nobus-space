@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+
+from src.storage.nonblocking import run_storage
 import hashlib
 import html
 import json
@@ -1273,8 +1275,8 @@ class DesktopBridgeService:
         while not self._closed:
             await asyncio.sleep(60)
             await self._expire_interactions()
-            for request in self._state.list_requests(
-                statuses=frozenset(
+            for request in await run_storage(
+                self._state.list_requests, statuses=frozenset(
                     {
                         BridgeRequestStatus.WAITING_AUTHOR,
                         BridgeRequestStatus.WAITING_OWNER,
