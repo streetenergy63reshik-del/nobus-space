@@ -1,12 +1,12 @@
 # Nobus Space — рабочие каталоги
 
-**Актуально на 19 сентября 2026.** Канон принятой истории — защищённая GitHub main; точный опубликованный код и состояние runtime разделены в [CURRENT](CURRENT-STATUS.md). Исторические сведения об очистке ниже не являются новым разрешением на удаление.
+**Эксплуатационные указатели актуализированы 3 октября 2026. История уборки ниже — 19 сентября.** Канон принятой истории — защищённая GitHub main; точный опубликованный код и состояние runtime разделены в [CURRENT](CURRENT-STATUS.md). Исторические сведения об очистке ниже не являются новым разрешением на удаление.
 
 | Каталог относительно Code | Назначение |
 |---|---|
-| nobus-orchestrator-dev | Канонический checkout. Прежний WIP сохранён проверенным ZIP и stash; принятая main синхронизируется только fast-forward. `.venv` production и закрытые архивы сохраняются. |
+| nobus-orchestrator-dev | Канонический checkout. Текущий пользовательский документный WIP сохранён на месте; обновление GitHub подготовлено в отдельной рабочей копии. Локальный HEAD канона может отставать от GitHub; fast-forward выполняется только после сохранения и согласования WIP. `.venv` production и закрытые архивы сохраняются. |
 | worktrees/mvp1-closure-c6 | Сохранённая рабочая ветка завершённого C6; не активная разработка и не runtime. |
-| worktrees/telegram-live | Runtime checkout принятого maintenance `0c9b778`; наличие работающего процесса проверяется отдельно. StateRoot и BackupRoot сохранены в canonical `.runtime/production-c6`. |
+| worktrees/telegram-live | Чистый Runtime checkout `4db5f0e`; процессы проверены 3 октября. StateRoot и BackupRoot находятся под canonical `.runtime/production-c6`; точный вложенный StateRoot брать из установленных аргументов, не использовать родительский каталог. Docs-only HEAD GitHub не переносить на LIVE без нового binding. |
 | nobus-orchestrator-dev/.runtime/worktrees/m1-s1-stability | Сохранённая рабочая копия закрытого M1-S1: принятые исправления и локальные проверочные материалы. Удаление remote ref не удаляет эту копию. |
 | nobus-orchestrator-dev/.runtime/production-python/cpython-3.12.14-ed91bed4/base | Отдельная точная копия Python 3.12.14 для `.venv`, вне обновляемого кэша Codex. Inventory и rollback `pyvenv.cfg` хранятся рядом; не обновлять или удалять как кэш. |
 | nobus-orchestrator-dev/.runtime/worktrees/mvp1-closure-c2-voice-parity | Сохранён из-за ASR-модели, указанной в действующем профиле. Удалять его как промежуточную копию нельзя. |
