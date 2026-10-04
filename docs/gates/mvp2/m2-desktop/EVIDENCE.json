@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
-  "stage": "GATE_CANDIDATE_DRAFT_REFREEZE_PREPARED",
-  "observed_at_utc": "2026-09-27T07:05:56Z",
+  "stage": "READY_FOR_MANUAL_ACCEPTANCE_D02_D17_NOT_RUN",
+  "observed_at_utc": "2026-09-29T05:55:00Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
-  "candidate_commit": null,
-  "candidate_tree": null,
-  "production_commit": "fd4d66cfccb66c29702c29f6df59d137d3c26e3b",
-  "production_state": "MAIN_HEALTH_BACKUP_DISABLED_ADMISSION_HOLD",
+  "candidate_commit": "bd991760312732dd15cdad909e81a6023cc703f2",
+  "candidate_tree": "69dae321773812fd3d2a96004ae86f6ee3e3812b",
+  "production_commit": "bd991760312732dd15cdad909e81a6023cc703f2",
+  "production_state": "MAIN_RUNNING_MAIN_HEALTH_BACKUP_ENABLED_READINESS_PASS_BACKUP_COMPLETE",
   "content_digest": "sha256:ff52fe7575092212e4115c5c2b3341833560b446709d9b4cda76806b9362617f",
   "content_digest_status": "Historical 2026-09-25 candidate snapshot; later production and acceptance addenda are WIP and are not covered by this digest",
   "content_digest_scope": [
@@ -71,7 +71,44 @@
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "The first frozen local DRAFT 2355ae5 failed L1 in two parameterizations of the same readiness test (2933 passed, 2 failed, 3 skipped, 5 historical deselections, 25 subtests passed). The runner's isinstance used a factory substituted by the fixture and raised TypeError; a method-capability dispatch now passes seven focused dependent tests in WIP. This document prepares a second local freeze; its own future Git commit/tree cannot self-reference, so post-commit evidence must bind the exact revision. The content_digest above is a historical 25 September snapshot, not this candidate. L2/L3 and live D02-D17 are not claimed. Production remains clean fd4d66c with Main/Health/Backup disabled and admission hold.",
+  "candidate_note": "Current exact source/live bd991760312732dd15cdad909e81a6023cc703f2 / 69dae321773812fd3d2a96004ae86f6ee3e3812b passed clean-clone L1/L2/L3. After signed STOP on 28 September, exact reset and failed-cycle recovery on 29 September restored Main, local/public readiness, two Health PASS and a new complete/VERIFIED backup. The exact external initiating fault was not proved. D02-D17 remain owner manual tests; Gate and MVP2 are not accepted. The content_digest above remains a historical 25 September snapshot. Earlier c6f6858 and failed 2355ae5 sections are historical.",
+  "candidate_verification_20260927": {
+    "scope": "Frozen local source and tests only; not production release, Desktop/Telegram live acceptance or D16 Gate PASS",
+    "candidate_commit": "c6f6858ea1693ea046130a97061fe8fd5f589e47",
+    "candidate_tree": "630ef35e7648cf828d2da5cb6aad15f408644d21",
+    "source_clean_before_postfreeze_evidence_edit": true,
+    "l1": {
+      "method": "pytest tests --ignore=tests/gate0 with five exact historical deselections and a unique short external basetemp",
+      "result": "2935 passed, 3 skipped, 5 deselected, 25 subtests passed in 691.57 s; one known Starlette/httpx deprecation warning",
+      "basetemp": "C:/Users/CGC1ub/AppData/Local/Temp/m2-l1-c6f6858-20260927-a1",
+      "deselected": [
+        "tests/test_gate_c0_governance.py::test_active_status_and_roadmap_are_consistent",
+        "tests/test_gate_c0_governance.py::test_publication_projection_excludes_held_editorial_docs",
+        "tests/test_gate_c0_governance.py::test_candidate_changes_no_production_code",
+        "tests/test_pre_gate1_architecture_integration.py::test_active_projections_and_authority_point_to_adr0022",
+        "tests/test_pre_gate1_architecture_integration.py::test_gate0_catalog_required_sources_remain_byte_identical"
+      ],
+      "other": "pip check: no broken requirements; git diff --check HEAD^ HEAD: clean"
+    },
+    "l2": {
+      "method": "separate local Git clone without hardlinks, detached at the exact candidate commit/tree; 18 linked test files",
+      "result": "406 passed, 1 skipped in 126.20 s; one known deprecation warning; git fsck exit 0",
+      "clone": "C:/Users/CGC1ub/AppData/Local/Temp/m2-l2-git-c6f6858-20260927-a1",
+      "basetemp": "C:/Users/CGC1ub/AppData/Local/Temp/m2-l2-clone-tests-c6f6858-20260927-a1",
+      "discarded_method": "Git ZIP export lacks .git; backup application_binding test failed for verifier-environment reason and ZIP result was not counted as L2",
+      "preserved_zip_sha256": "5d3ca93bc00588e53f8f6ba55fe4a3c52ac9887fe226941bf17d0d9ea64f25d2"
+    },
+    "l3": {
+      "method": "adversarial manual review of changed backup/control-file, recovered-turn, cwd and approval trust boundaries plus offline static scan of exact clone",
+      "verdict": "PASS within frozen local source scope; no new confirmed blocking defect",
+      "static_scan": "42 heuristic findings: six intentional secret-detector fixtures previously triaged, 36 warnings without new confirmed M2 defect",
+      "static_report_sha256": "50283c5490023449c879869227bf7f82a42dfd58aa64a773e6b52e4fc2ff6939",
+      "changed_executable_secret_pattern_files": 0,
+      "new_dependencies": 0,
+      "cve_audit": "NOT_RUN; pip check is compatibility only",
+      "remaining": "Exact historic readiness timeout stack not captured; production not restored; Desktop/Telegram D02-D17 not run on this candidate; D16/D17 and Gate remain OPEN"
+    }
+  },
   "environment_scope_note": "The environment block below records the initial 21 September Desktop 26.915 read-only probe. The current 24 September real-turn observations are separately bound to Desktop 26.917.9434.0 in a06_live_owner_transport_20260924 and isolated_question_approval_real_desktop_20260924.",
   "environment": {
     "desktop_package_version": "26.915.4065.0",
@@ -1308,6 +1345,41 @@
     "new_candidate_frozen": false,
     "production_changed": false
   },
+  "checkpoint_20260927_bd991": {
+    "status": "READY_FOR_MANUAL_ACCEPTANCE",
+    "manual_d02_d17": "NOT_RUN_BY_OWNER",
+    "source_and_live_commit": "bd991760312732dd15cdad909e81a6023cc703f2",
+    "tree": "69dae321773812fd3d2a96004ae86f6ee3e3812b",
+    "l1": "2939 passed, 3 skipped, 5 historical deselections, 25 subtests; clean clone; JUnit sha256:cc399fe6469c170efe33d6a4751df81b2f85b29b3e2045cf2e4c50f0309b636a",
+    "l2": "589 passed, 1 skipped; separate clean clone; JUnit sha256:1bc12eac49c29d59ed78522f0a43cd5435115c15f82ab28b5b3bb3ee0b9e0260; git fsck PASS",
+    "l3": "Targeted review of four-file b0e-to-bd991 deadline calibration; exact readiness body/host, redirect rejection, three-failure signed STOP and authority preserved",
+    "config_digest": "sha256:815329379042de1ecd59d0ea0ddb74f659143f74a79ea99f014fcd709a7ba27b",
+    "backup_complete_digest": "sha256:6869c2093588b176a8b9181444d82323afaa64465ae299434fe95d9bfb9e2a16",
+    "backup_generation": "daily-20260927T180804-e2c2fffdfb1844049cdf10cc49d8956c",
+    "backup_manifest_digest": "sha256:4e36403657fbe38759f770fcdd2bcdd3d2f4ef2ffb35362be2b18dd2734d6133",
+    "live": "Main Running, Main/Health/Backup Enabled, local/public exact /readyz HTTP 200, Health PASS 18:19 MSK",
+    "d03_old_request": "5b965633-8670-4db5-a67f-2a530ca48f78; one text delivery Telegram message 2339; completed Desktop turn not repeated",
+    "uat_run": "UAT-20260927-01; guide and read-only technical aids prepared; D02-D17 text unchanged",
+    "limits": "Numeric Telegram ID for Arthur junior and topic ID for Nobus Space require genuine ingress; next scheduled Backup execution and owner manual D02-D17 pending"
+  },
+  "recovery_20260929": {
+    "status": "PASS_READY_FOR_MANUAL_ACCEPTANCE",
+    "source_and_live_commit_unchanged": "bd991760312732dd15cdad909e81a6023cc703f2",
+    "initial_terminal": "2026-09-27T22:04:48Z public_readiness_failed, local_ready=true, public_ready=false, retry",
+    "second_terminal": "2026-09-27T22:06:17Z core_and_relay_exit, Core telegram_unavailable, relay cause unknown, stop_non_retryable",
+    "stop_head": "sha256:b7c65187347f25b3ed5dc37e2a2929770da34592e8e52964a83ac208192de5cd",
+    "failed_backup_journal": "sha256:d015eaa6481739521e24a594a41d59c99f38e46373397a5ed25e2fcb0d25fb5b",
+    "preflight": "Signed history/config, failed-generation and runtime DB verified; listener absent; Telegram HTTPS reachable without token; live checkout clean",
+    "single_reset_digest": "sha256:c56800ecf1b82326b2165349bddfd2257512fd5f2b0c1274ab60e0c44a66e6f2",
+    "single_recovery": "--recover-failure-digest matched exact failed journal; PASS, runtime_ready=true, quarantined=0",
+    "complete_journal": "sha256:16daf29fc6534bcdc4e3c772ca05866b3fd9c2c2c7b15adb557e47f21c0ba911",
+    "generation": "daily-20260929T085111-deeac3d9f6824ee89466d04829bc677b",
+    "manifest_file_sha256": "dc4bc7c54a42912938102b3e9d20ad7f7335d8ad5f79ded9aec4cf191c17a0b0",
+    "encrypted_file_count": 4,
+    "live": "Main Running, Main/Health/Backup Enabled, local/public exact readyz HTTP 200, Health PASS 08:53 and 08:54 MSK",
+    "manual_d02_d17": "NOT_RUN_BY_OWNER",
+    "limits": "Exact external initiating fault not proved; 30 September scheduled Backup run and owner D02-D17 pending; source bytes unchanged so L1-L3 not repeated"
+  },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Do not repeat delivered D01 or the completed M2-CONTINUE-20260926-1 Desktop turn. First DRAFT 2355ae5 failed L1; locally fixed readiness dispatch must be frozen as a new exact revision and undergo candidate-bound L1/L2/L3 now. All three production tasks remain disabled with admission hold and signed STOP at sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83. Historical timeout's exact call and live stability remain unproven. Controlled release/recovery and real D02-D17 acceptance are separate; no action may assume an unknown prior send failed. Gate acceptance remains open."
+  "next_step": "Owner manually executes D02-D17 using UAT-20260927-01 guide and returns PASS/FAIL/BLOCKED with evidence. Do not repeat old completed D03 Desktop turn or unknown sends. Fix confirmed defects, rerun affected checks, then complete acceptance documentation, PR/merge/release only after criteria close."
 }

@@ -88,6 +88,33 @@ def response(result: Any, **options: Any) -> httpx.Response:
 
 
 @pytest.mark.asyncio
+async def test_codex_menu_tiles_and_empty_force_reply_are_distinct_markups() -> None:
+    payloads: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payloads.append(json.loads(request.content))
+        message_id = 1 if request.url.path.endswith("/editMessageText") else len(payloads)
+        return response({"message_id": message_id, "chat": {"id": 42}})
+
+    api = api_for(handler)
+    try:
+        rows = ((("Проект 1", "CdxM_" + "a" * 32 + "_1_0"),
+                 ("Проект 2", "CdxM_" + "a" * 32 + "_1_1")),
+                (("Назад", "CdxM_" + "a" * 32 + "_1_2"),))
+        await api.send_message(42, "Выберите проект", button_rows=rows)
+        await api.send_message(42, "Напишите промт", force_reply=True)
+        await api.edit_message_text(42, 1, "Выберите задачу", button_rows=rows)
+    finally:
+        await api.aclose()
+    assert [len(row) for row in payloads[0]["reply_markup"]["inline_keyboard"]] == [2, 1]
+    assert payloads[1]["reply_markup"] == {
+        "force_reply": True, "selective": True,
+        "input_field_placeholder": "Текст задачи для Codex",
+    }
+    assert [len(row) for row in payloads[2]["reply_markup"]["inline_keyboard"]] == [2, 1]
+
+
+@pytest.mark.asyncio
 async def test_get_me_returns_strict_bot_identity() -> None:
     calls: list[httpx.Request] = []
 

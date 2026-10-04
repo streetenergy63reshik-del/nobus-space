@@ -1,5 +1,78 @@
 # M2-DESKTOP: план контролируемого выпуска
 
+## 29.09, 08:55 — повторный запуск после подписанного STOP
+
+Source/live и config binding остались `bd991760312732dd15cdad909e81a6023cc703f2` /
+`sha256:815329379042de1ecd59d0ea0ddb74f659143f74a79ea99f014fcd709a7ba27b`.
+28.09 внешний readiness отказ и неуспешный startup оставили signed STOP;
+плановый backup создал VERIFIED copy, но restart был NOT_READY. 29.09
+после read-only preflight выполнены один exact STOP reset и один recovery
+по failed journal digest. Новый complete journal
+`sha256:16daf29fc6534bcdc4e3c772ca05866b3fd9c2c2c7b15adb557e47f21c0ba911`,
+generation `daily-20260929T085111-deeac3d9f6824ee89466d04829bc677b`
+проверена. Main Running, Main/Health/Backup Enabled, local/public readiness
+и два Health PASS. Следующий плановый Backup 30.09 ещё не проверен.
+Ручные D02–D17 открыты; кодовые L1–L3 не повторялись, поскольку source
+bytes не менялись. Нижние разделы сохраняют предыдущие состояния.
+
+## 27.09, 18:20 — восстановление и запуск выполнены
+
+Live checkout и source `bd991760312732dd15cdad909e81a6023cc703f2`,
+tree `69dae321773812fd3d2a96004ae86f6ee3e3812b`. Новый config digest
+`sha256:815329379042de1ecd59d0ea0ddb74f659143f74a79ea99f014fcd709a7ba27b`;
+Main/Health/Backup Enabled, Main Running, local/public readiness PASS.
+Backup cycle на этом binding complete/VERIFIED с journal digest
+`sha256:6869c2093588b176a8b9181444d82323afaa64465ae299434fe95d9bfb9e2a16`.
+Предыдущий failed restart на том же config сохранён; recovery выполнен
+по его точному digest, без удаления файлов и без повторения Desktop turn.
+Кодовые L1/L2/L3 привязаны к bd991. Следующий шаг — только владелец
+проходит D02–D17, после результатов устраняются подтверждённые дефекты,
+затем оформляются принятие и публикация. Текст ниже — история подготовки;
+его старые digest не являются командами текущего восстановления.
+
+## 27.09, 11:38 — передача Gate и read-only preflight
+
+Предыдущий ответственный чат `01a0c425-3a83-7e82-b4c5-9a71e8251ecc`
+остаётся idle; запись ведётся только в текущем Gate. Рабочие изменения
+сохранены. Проверенный source `c6f6858` ещё не развёрнут. Live checkout
+чистый на `fd4d66c`, Main/Health/Backup Disabled, порт 8765 закрыт.
+
+Текущий signed failed backup journal `sha256:2248227dbd32ab08d2608e491c35ca16f98648e38d62d20d7b34c6f7938790ac`
+имеет `failed_operator_required/starting/restart_not_ready`,
+`admission_hold=true`, `cleanup_proven=true`. VERIFIED generation
+`daily-20260927T033029-777f247f8b534c47a07e804bf35d74e9` проверена
+по manifest `sha256:e47d610b8b758effa31805550cb7ad2593468b77c3ab65c997b3257636be3056`.
+Recovery inspector показывает `STOP/stop_non_retryable`, head
+`sha256:1d1bf928da0d8eea509ae329bc15ed271414afca3e50de77f8c8d9c099e42d83`.
+Последняя signed terminal-запись до ночного цикла —
+`local_public_readiness_failed` 26.09; журнал 254453 байта при лимите
+1 MiB, признаков незавершённой ротации в каталоге нет. Эти наблюдения
+не доказывают, что новый код решит runtime-сбой до реального запуска.
+
+Старый D03 request `5b965633-8670-4db5-a67f-2a530ca48f78` хранит
+`running` без delivery rows; Desktop turn `01a0df02-48f2-7453-955e-350fbee2e0ea`
+уже completed. Его не выполнять заново. Перед recovery нужен точный
+config/Task/source preflight, новый application binding и один разрешённый
+штатный цикл с readback. Текущий запрет удаления файлов охватывает
+автоматические SQLite sidecars; узкое исключение запрошено у владельца,
+ответ ещё не получен. До ответа backup/rebind/restart/deploy удержаны.
+
+OSV-срез 80 установленных PyPI-дистрибутивов и шести уникальных CVE
+в `pip 25.0.1` зафиксирован в `SECURITY-TRIAGE-20260924.md`.
+Новый `UAT-20260927-01` и текущие незакрытые пункты подготовки указаны
+в канонической `M2-DESKTOP-MANUAL-ACCEPTANCE.md`.
+
+## 27.09, 10:34 — локальный кодовый кандидат проверен, выпуск не начат
+
+`c6f6858ea1693ea046130a97061fe8fd5f589e47` / tree
+`630ef35e7648cf828d2da5cb6aad15f408644d21` прошёл L1/L2/L3
+по [handoff](HANDOFF.md). Это только проверка исходников. Production
+последней подтверждённой сверки остаётся остановленным на `fd4d66c`;
+старые digest, Task signatures и recovery-действия ниже исторические,
+их нельзя механически повторять. До выпуска заново проверить реальные
+Task/config/journal/head, сохранность D03 completed turn и отсутствие
+неизвестных исходов; D02–D17 и CVE-аудит не закрыты этим checkpoint.
+
 ## 27.09, 10:05 — первая локальная заморозка не прошла L1
 
 Коммит `2355ae5` дал `2933 passed, 2 failed`; одна причина в

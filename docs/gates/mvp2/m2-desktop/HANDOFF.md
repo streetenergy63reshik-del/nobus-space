@@ -1,11 +1,150 @@
 # M2-DESKTOP — рабочая передача
 
-**Gate:** M2-DESKTOP
-**Текущая стадия:** первый замороженный кандидат `2355ae5` получил два отказа L1 из одного brittle readiness-dispatch; в WIP внесено адресное исправление и подготовлена новая DRAFT-заморозка. Production на `fd4d66c` остановлен, три Scheduled Tasks выключены; D01 доставлен, D03 завершён в Desktop, но ещё не доставлен; D02–D17 открыты
+## 04.10, 23:21 МСК — новый вход через меню Codex, пока WIP
 
-**Дата текущего наблюдения:** 27 сентября 2026 года, 10:05 МСК
+Запрошены плитки `/codex`: проекты и задачи берутся из локального индекса
+установленного Desktop при каждом переходе; IPC подтверждает доступность,
+а существующий bridge остаётся единственным исполнителем. Для агентов-ботов
+те же варианты нумеруются и выбираются прямым reply. Подробный контракт —
+[M2-DESKTOP-TILE-MENU](../M2-DESKTOP-TILE-MENU.md). Код и схема находятся
+в этом M2 worktree, адресные проверки дали `177 passed`; IPC read-only
+соединился с Desktop, каталог вернул 11 локальных проектов и 11 задач Nobus
+Space. Никаких новых Telegram-сообщений, Desktop-turn или D02–D17 не было.
+
+Read-only preflight выявил, что production уже чисто работает на новом
+`4db5f0e9266637feca408a57aa0c8e8ac580dbc0`, потомке `bd991` с
+исправлениями стабильности 03.10. Main Running, Health/Backup Ready,
+локальный `/readyz` с `Host: app.nobusspace.com` вернул HTTP 200 и точное
+`{"status":"ready"}`. Новый код ещё основан на `bd991`: перед любым выпуском
+объединить `4db5f0e`, проверить пересечения `desktop_bridge.py` и
+`bot_api.py`, затем собрать новый цельный кандидат и привязать проверки к
+его SHA. Старые L1–L3 относятся к `bd991` и не подтверждают новое меню.
+Gate/MVP2 не приняты, ручные D02–D17 остаются за владельцем.
+
+**Gate:** M2-DESKTOP
+**Текущая стадия:** `READY_FOR_MANUAL_ACCEPTANCE`; source/live `bd991760312732dd15cdad909e81a6023cc703f2`, кодовый L1/L2/L3 пройден, бот восстановлен 29.09 после подписанного STOP. D02–D17 владелец ещё не выполнял; Gate и MVP2 не приняты.
+
+**Дата текущего наблюдения:** 29 сентября 2026 года, 08:55 МСК
 **Ветка:** `codex/m2-desktop`
-**Активный production checkpoint:** `fd4d66cfccb66c29702c29f6df59d137d3c26e3b`, tree `efe10b99be591bb194d0e20f09ddd614f0ac2f27`; локальная документация не меняет его binding.
+**Активный production checkpoint:** `bd991760312732dd15cdad909e81a6023cc703f2`, tree `69dae321773812fd3d2a96004ae86f6ee3e3812b`; этот рабочий документ не меняет live binding.
+
+## 29.09, 08:55 МСК — остановка и штатное восстановление
+
+28.09 в 01:04 МСК подписанный terminal `public_readiness_failed` при
+`local_ready=true` разрешил bounded retry. В 01:06 его startup завершился
+`core_and_relay_exit`, Core outcome `telegram_unavailable`, relay cause
+`unknown`; signed control head `sha256:b7c65187347f25b3ed5dc37e2a2929770da34592e8e52964a83ac208192de5cd`
+оставил STOP. Это последовательность наблюдений, не доказанная единая
+причина внешнего сбоя. Backup 28.09 в 03:30 создал VERIFIED generation
+`daily-20260928T033106-1f93dbbc9db0424891a78d6f12d12ec1`, затем
+`failed_operator_required/starting/restart_not_ready`, journal
+`sha256:d015eaa6481739521e24a594a41d59c99f38e46373397a5ed25e2fcb0d25fb5b`.
+Все три Task были остановлены и Main/Health выключены; плановый Backup
+29.09 в 03:30 снова вернул 1 без нового successful journal.
+
+29.09 read-only проверены signed history, exact config, обе копии/БД,
+отсутствие local listener, доступность Telegram HTTPS без токена и чистый
+live checkout на `bd991`. Idle Backup временно выключен для штатного
+`--inspect-recovery`, который подтвердил STOP по точному head. Один
+`--acknowledge-recovery-stop` вернул reset
+`sha256:c56800ecf1b82326b2165349bddfd2257512fd5f2b0c1274ab60e0c44a66e6f2`.
+После повторного включения Backup один `--recover-failure-digest` по
+`sha256:d015eaa6481739521e24a594a41d59c99f38e46373397a5ed25e2fcb0d25fb5b`
+вернул PASS/runtime_ready. Новый signed journal complete
+`sha256:16daf29fc6534bcdc4e3c772ca05866b3fd9c2c2c7b15adb557e47f21c0ba911`,
+generation `daily-20260929T085111-deeac3d9f6824ee89466d04829bc677b`;
+четыре зашифрованных файла и manifest file SHA-256
+`dc4bc7c54a42912938102b3e9d20ad7f7335d8ad5f79ded9aec4cf191c17a0b0`
+проверены. Main Running, Main/Health/Backup Enabled; local/public `/readyz`
+точное HTTP 200, два плановых Health PASS в 08:53 и 08:54. Прежний D03
+request остаётся delivered с одной text-частью message 2339. Фикстуры
+`UAT-20260927-01` сохранили размеры и SHA-256; тело D02–D17 в инструкции
+не менялось. Следующий плановый Backup 30.09 03:30 ещё не подтверждён.
+
+Кодовые bytes и source SHA не менялись, поэтому L1–L3 не повторялись.
+Наблюдать готовность во время ручных D02–D17; при новом STOP сначала
+разобрать точное событие, не делать слепой reset или повтор Telegram send.
+
+Следующие разделы сохраняют более раннюю историю Gate.
+
+## 27.09, 18:20 МСК — подготовка к ручным D02–D17 завершена
+
+- L1 на отдельном чистом clone точного `bd991`: 2939 passed, 3 skipped,
+  5 исторических deselections, 25 subtests; JUnit SHA-256
+  `cc399fe6469c170efe33d6a4751df81b2f85b29b3e2045cf2e4c50f0309b636a`.
+- L2 на другом чистом clone того же commit/tree: 589 passed, 1 skipped,
+  25 связанных файлов; JUnit SHA-256
+  `1bc12eac49c29d59ed78522f0a43cd5435115c15f82ab28b5b3bb3ee0b9e0260`;
+  `git fsck --no-dangling` PASS. L3 delta-review: deadlines local/public
+  увеличены до 5/10 с без изменения exact body/host, no redirect,
+  трёх последовательных отказов и подписанного STOP. Это не доказательство
+  устранения любой будущей внешней сетевой нестабильности.
+- Live checkout чистый на `bd991`; новый config digest
+  `sha256:815329379042de1ecd59d0ea0ddb74f659143f74a79ea99f014fcd709a7ba27b`,
+  signed rebind `sha256:1adde3f52e7021bea6470101b69073e3e73dc0a4d22bcc3f5d48598b027d3ac5`.
+  Первый запуск вернул код 75, потому что Backup Scheduled Task был Disabled;
+  неудачный signed journal сохранён. После включения Task один exact recovery
+  по `sha256:109ee5da1e499f6487d9f7e076713df8414aadc7a9b7e5239ee3841431bb9198`
+  завершился complete `sha256:6869c2093588b176a8b9181444d82323afaa64465ae299434fe95d9bfb9e2a16`.
+  Generation `daily-20260927T180804-e2c2fffdfb1844049cdf10cc49d8956c`,
+  manifest `sha256:4e36403657fbe38759f770fcdd2bcdd3d2f4ef2ffb35362be2b18dd2734d6133`,
+  четыре encrypted files VERIFIED, runtime ready.
+- Main/Health/Backup Enabled, Main Running с 18:09 МСК. Local/public
+  `/readyz` точное HTTP 200; Health PASS в 18:12–18:19 МСК. Старый D03
+  request `5b965633-8670-4db5-a67f-2a530ca48f78` доставлен один раз
+  Telegram message 2339 без нового Desktop turn; независимый smoke
+  `09143d12-97c6-497a-805d-e57fa8772476` — message 2353.
+- Инструкция и фикстуры `UAT-20260927-01` подготовлены в каноническом
+  проекте; тело D02–D17 не менялось. Numeric ID `@hermes_art_probot` и
+  topic ID «Nobus Space» устанавливаются по реальным ingress во время
+  ручного теста. Результаты D02–D17, а затем публикация ещё открыты.
+
+Следующие разделы описывают исторические кандидаты и инциденты.
+
+## 27.09, 10:34 МСК — кандидат исходного кода c6f6858: L1/L2/L3 завершены
+
+Замороженный commit `c6f6858ea1693ea046130a97061fe8fd5f589e47`,
+tree `630ef35e7648cf828d2da5cb6aad15f408644d21` был чистым до этого
+послезаморозочного документального дополнения. Код, зависимости и тесты
+после freeze не менялись. Предыдущий `2355ae5` сохранён как отдельный
+отклонённый снимок: его L1-отказы не объявлены успешными задним числом.
+
+- L1 на точном `c6f6858`: `2935 passed, 3 skipped, 5 deselected,
+  25 subtests passed` за 691,57 с. Пять исключений — старые нормативные
+  проверки прежних текстов/хэшей/границ публикации, перечисленные в
+  `EVIDENCE.json`; они не засчитаны как PASS. Запуск использовал короткий
+  отдельный `%TEMP%/m2-l1-c6f6858-20260927-a1`, поскольку ранее
+  воспроизведённый Git fixture под длинным кириллическим путём давал
+  `$GIT_DIR too big`. `pip check` не выявил нарушенных требований;
+  `git diff --check` чистый.
+- L2 выполнен не в исходном checkout: независимый локальный Git clone
+  с detached HEAD и тем же SHA/tree в
+  `%TEMP%/m2-l2-git-c6f6858-20260927-a1`. 18 связанных файлов тестов:
+  `406 passed, 1 skipped` за 126,20 с; `git fsck` завершился с кодом 0.
+  Первый метод через чистый Git ZIP сохранён, но не засчитан: backup
+  binding требует `.git`, которой в ZIP нет. Смена метода проверяющей
+  среды устранила только этот verifier error, а не дефект продукта.
+- L3: ручная неблагоприятная проверка изменённого кода и trust boundaries
+  (control-file promotion, неизвестный исход journal, потеря backup pointer,
+  восстановленный Desktop-turn без повторного исполнения, проектный cwd,
+  адресация approvals) не выявила нового блокирующего дефекта.
+  Неизвестный исход `ReplaceFileW` останавливает повторную запись, прежний
+  control-файл сохраняется либо требуется операторская сверка. Локальный
+  `vibe-audit` на том же clone дал 42 эвристических находки:
+  6 «критичных» — уже разобранные намеренные test fixtures, 36 warnings
+  без нового подтверждённого M2-дефекта; report SHA-256
+  `50283c5490023449c879869227bf7f82a42dfd58aa64a773e6b52e4fc2ff6939`.
+  В четырёх изменённых исполняемых Python-файлах адресный поиск типовых
+  ключей не нашёл совпадений. Новых зависимостей нет; отдельный CVE-аудит
+  не проводился и не подменяется `pip check`.
+
+Вердикт: **локальный кодовый кандидат прошёл L1/L2/L3; Gate остаётся
+открытым**. Исходный readiness timeout 26.09 не имеет захваченного стека,
+устойчивость production не доказана. Не запускались release, reset,
+backup/rebind, Desktop/Telegram live и D02–D17; законченный D03 turn не
+повторять. Это дополнение к документации не входит в tree кандидата и не
+меняет его SHA. Перед выпуском заново сверить фактический production,
+отдельно выполнить применимые security/live проверки и закрыть D02–D17.
 
 ## 27.09, 10:05 МСК — первый frozen DRAFT отклонён L1; адресная правка
 

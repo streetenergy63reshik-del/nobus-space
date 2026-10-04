@@ -315,6 +315,8 @@ class TelegramBotApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        button_rows: tuple[tuple[tuple[str, str], ...], ...] = (),
+        force_reply: bool = False,
         message_thread_id: int | None = None,
         reply_to_message_id: int | None = None,
         parse_mode: str | None = None,
@@ -323,6 +325,9 @@ class TelegramBotApi:
             type(chat_id) is not int
             or not _bounded_text(text, 4096)
             or not _valid_buttons(buttons)
+            or not _valid_button_rows(button_rows)
+            or type(force_reply) is not bool
+            or sum((bool(buttons), bool(button_rows), force_reply)) > 1
             or parse_mode not in {None, "HTML"}
             or (
                 message_thread_id is not None
@@ -354,6 +359,17 @@ class TelegramBotApi:
                     for label, token in buttons
                 ]]
             }
+        elif button_rows:
+            payload["reply_markup"] = {"inline_keyboard": [
+                [{"text": label.strip(), "callback_data": token.strip()}
+                 for label, token in row] for row in button_rows
+            ]}
+        elif force_reply:
+            payload["reply_markup"] = {
+                "force_reply": True,
+                "selective": True,
+                "input_field_placeholder": "Текст задачи для Codex",
+            }
         result = await self._call("sendMessage", payload)
         if type(result) is not dict or not _non_negative_int(result.get("message_id")):
             raise TelegramBotApiError("telegram_protocol_error")
@@ -381,12 +397,15 @@ class TelegramBotApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] | None = None,
+        button_rows: tuple[tuple[tuple[str, str], ...], ...] | None = None,
     ) -> None:
         if (
             type(chat_id) is not int
             or not _non_negative_int(message_id)
             or not _bounded_text(text, 4096)
             or (buttons is not None and not _valid_buttons(buttons))
+            or (button_rows is not None and not _valid_button_rows(button_rows))
+            or (buttons is not None and button_rows is not None)
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
         payload: dict[str, Any] = {
@@ -401,6 +420,11 @@ class TelegramBotApi:
                     for label, token in buttons
                 ]] if buttons else []
             }
+        elif button_rows is not None:
+            payload["reply_markup"] = {"inline_keyboard": [
+                [{"text": label.strip(), "callback_data": token.strip()}
+                 for label, token in row] for row in button_rows
+            ]}
         result = await self._call("editMessageText", payload)
         if type(result) is not dict or result.get("message_id") != message_id:
             raise TelegramBotApiError("telegram_protocol_error")
@@ -1022,6 +1046,15 @@ def _valid_buttons(buttons: object) -> bool:
             and len(button[1].encode("utf-8")) <= 64
             for button in buttons
         )
+    )
+
+
+def _valid_button_rows(rows: object) -> bool:
+    return (
+        type(rows) is tuple and len(rows) <= 8
+        and sum(len(row) for row in rows if type(row) is tuple) <= 16
+        and all(type(row) is tuple and 1 <= len(row) <= 2
+                and _valid_buttons(row) for row in rows)
     )
 
 

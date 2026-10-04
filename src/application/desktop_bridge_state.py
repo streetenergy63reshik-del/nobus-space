@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Callable, Mapping
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, Iterator
@@ -97,6 +97,25 @@ class DeliveryClaim:
     source_digest: str
     status: str
     telegram_message_id: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class DesktopMenu:
+    menu_id: UUID
+    tenant_id: str
+    author_user_id: int
+    chat_id: int
+    topic_id: int | None
+    source_message_id: int
+    menu_message_id: int | None
+    prompt_message_id: int | None
+    stage: str
+    project_id: str | None
+    thread_id: str | None
+    page: int
+    revision: int
+    actions: tuple[tuple[str, str | None], ...]
+    expires_at: datetime
 
 
 _REQUEST_STATUSES = frozenset(item.value for item in BridgeRequestStatus)
@@ -266,6 +285,171 @@ class SQLiteDesktopBridgeState:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def create_menu(
+        self, *, menu_id: UUID, tenant_id: str, author_user_id: int,
+        chat_id: int, topic_id: int | None, source_message_id: int,
+        actions: tuple[tuple[str, str | None], ...], expires_at: datetime,
+    ) -> DesktopMenu:
+        if not isinstance(menu_id, UUID) or not _aware(expires_at):
+            raise ValueError("desktop menu is invalid")
+        now = self._now()
+        encoded = self._encode({"actions": [list(item) for item in actions]})
+        try:
+            with self._transaction() as connection:
+                connection.execute(
+                    "DELETE FROM desktop_bridge_menus WHERE expires_at<?",
+                    ((now - timedelta(days=7)).isoformat(),),
+                )
+                connection.execute(
+                    """UPDATE desktop_bridge_menus SET stage='closed',revision=revision+1,
+                       updated_at=? WHERE chat_id=? AND topic_id IS ?
+                       AND author_user_id=? AND stage!='closed'""",
+                    (now.isoformat(), chat_id, topic_id, author_user_id),
+                )
+                connection.execute(
+                    """INSERT INTO desktop_bridge_menus
+                       (menu_id,tenant_id,author_user_id,chat_id,topic_id,
+                        source_message_id,menu_message_id,prompt_message_id,
+                        stage,project_id,thread_id,page,revision,actions,
+                        expires_at,created_at,updated_at)
+                       VALUES (?,?,?,?,?,?,NULL,NULL,'projects',NULL,NULL,0,1,?,?,?,?)""",
+                    (str(menu_id), _text(tenant_id, 128), _positive_int(author_user_id),
+                     _nonzero_int(chat_id), _optional_positive_int(topic_id),
+                     _positive_int(source_message_id), encoded,
+                     expires_at.astimezone(UTC).isoformat(), now.isoformat(), now.isoformat()),
+                )
+                row = connection.execute(
+                    "SELECT * FROM desktop_bridge_menus WHERE menu_id=?", (str(menu_id),)
+                ).fetchone()
+                return self._menu_from_row(row)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def bind_menu_message(self, menu_id: UUID, message_id: int) -> bool:
+        return self._menu_set_message(menu_id, "menu_message_id", message_id)
+
+    def bind_menu_prompt(self, menu_id: UUID, message_id: int) -> bool:
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT chat_id,stage FROM desktop_bridge_menus WHERE menu_id=?",
+                    (str(menu_id),),
+                ).fetchone()
+                if row is None or row["stage"] != "prompt":
+                    return False
+                connection.execute(
+                    """INSERT INTO desktop_bridge_menu_prompts
+                       (chat_id,message_id,menu_id) VALUES (?,?,?)""",
+                    (row["chat_id"], _positive_int(message_id), str(menu_id)),
+                )
+                connection.execute(
+                    """UPDATE desktop_bridge_menus SET prompt_message_id=?,updated_at=?
+                       WHERE menu_id=?""",
+                    (message_id, self._now().isoformat(), str(menu_id)),
+                )
+                return True
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def _menu_set_message(self, menu_id: UUID, column: str, message_id: int) -> bool:
+        if column not in {"menu_message_id", "prompt_message_id"}:
+            raise ValueError("desktop menu message field is invalid")
+        try:
+            with self._transaction() as connection:
+                result = connection.execute(
+                    f"UPDATE desktop_bridge_menus SET {column}=?,updated_at=? "
+                    f"WHERE menu_id=? AND {column} IS NULL",
+                    (_positive_int(message_id), self._now().isoformat(), str(menu_id)),
+                )
+                return result.rowcount == 1
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def read_menu(self, menu_id: UUID) -> DesktopMenu | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT * FROM desktop_bridge_menus WHERE menu_id=?", (str(menu_id),)
+                ).fetchone()
+                return None if row is None else self._menu_from_row(row)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def recent_author_menu_count(self, *, author_user_id: int, since: datetime) -> int:
+        if not _aware(since):
+            raise ValueError("desktop menu interval is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT COUNT(*) FROM desktop_bridge_menus
+                       WHERE author_user_id=? AND created_at>=?""",
+                    (_positive_int(author_user_id), since.astimezone(UTC).isoformat()),
+                ).fetchone()
+                return int(row[0])
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def menu_for_reply(self, *, chat_id: int, message_id: int) -> DesktopMenu | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT * FROM desktop_bridge_menus WHERE chat_id=?
+                       AND (menu_message_id=? OR EXISTS (
+                           SELECT 1 FROM desktop_bridge_menu_prompts p
+                           WHERE p.menu_id=desktop_bridge_menus.menu_id
+                             AND p.chat_id=? AND p.message_id=?))
+                       ORDER BY created_at DESC LIMIT 1""",
+                    (chat_id, message_id, chat_id, message_id),
+                ).fetchone()
+                return None if row is None else self._menu_from_row(row)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def advance_menu(
+        self, menu_id: UUID, *, revision: int, stage: str,
+        project_id: str | None, thread_id: str | None, page: int,
+        actions: tuple[tuple[str, str | None], ...],
+    ) -> bool:
+        if stage not in {"projects", "tasks", "prompt", "closed"} or page < 0:
+            raise ValueError("desktop menu stage is invalid")
+        encoded = self._encode({"actions": [list(item) for item in actions]})
+        try:
+            with self._transaction() as connection:
+                result = connection.execute(
+                    """UPDATE desktop_bridge_menus SET stage=?,project_id=?,thread_id=?,
+                       page=?,revision=revision+1,actions=?,prompt_message_id=NULL,
+                       updated_at=? WHERE menu_id=? AND revision=? AND expires_at>?""",
+                    (stage, project_id, thread_id, page, encoded, self._now().isoformat(),
+                     str(menu_id), revision, self._now().isoformat()),
+                )
+                return result.rowcount == 1
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def _menu_from_row(self, row: sqlite3.Row) -> DesktopMenu:
+        data = self._decode(row["actions"])
+        if not isinstance(data, dict):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable")
+        items = data.get("actions")
+        if not isinstance(items, list) or len(items) > 32 or any(
+            not isinstance(item, list) or len(item) != 2
+            or not isinstance(item[0], str)
+            or (item[1] is not None and not isinstance(item[1], str))
+            for item in items
+        ):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable")
+        return DesktopMenu(
+            menu_id=UUID(row["menu_id"]), tenant_id=row["tenant_id"],
+            author_user_id=row["author_user_id"], chat_id=row["chat_id"],
+            topic_id=row["topic_id"], source_message_id=row["source_message_id"],
+            menu_message_id=row["menu_message_id"],
+            prompt_message_id=row["prompt_message_id"], stage=row["stage"],
+            project_id=row["project_id"], thread_id=row["thread_id"],
+            page=row["page"], revision=row["revision"],
+            actions=tuple((item[0], item[1]) for item in items),
+            expires_at=datetime.fromisoformat(row["expires_at"]),
+        )
 
     def record_delivery_plan(
         self, request_id: UUID, *, final_digest: str,
@@ -1202,6 +1386,34 @@ class SQLiteDesktopBridgeState:
                 );
                 CREATE INDEX IF NOT EXISTS idx_desktop_bridge_delivery_status
                     ON desktop_bridge_deliveries(status,created_at);
+                CREATE TABLE IF NOT EXISTS desktop_bridge_menus (
+                    menu_id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    author_user_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    topic_id INTEGER,
+                    source_message_id INTEGER NOT NULL,
+                    menu_message_id INTEGER,
+                    prompt_message_id INTEGER,
+                    stage TEXT NOT NULL,
+                    project_id TEXT,
+                    thread_id TEXT,
+                    page INTEGER NOT NULL,
+                    revision INTEGER NOT NULL,
+                    actions BLOB NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_desktop_bridge_menus_reply
+                    ON desktop_bridge_menus(chat_id,menu_message_id,prompt_message_id);
+                CREATE TABLE IF NOT EXISTS desktop_bridge_menu_prompts (
+                    chat_id INTEGER NOT NULL,
+                    message_id INTEGER NOT NULL,
+                    menu_id TEXT NOT NULL REFERENCES desktop_bridge_menus(menu_id)
+                        ON DELETE CASCADE,
+                    PRIMARY KEY (chat_id,message_id)
+                );
                 """
             )
             columns = {

@@ -1,5 +1,32 @@
 # Реестр Gate MVP2
 
+29 сентября, 08:55: текущий `bd991760312732dd15cdad909e81a6023cc703f2`
+после signed STOP 28.09 восстановлен точным reset и backup recovery.
+Новая generation `daily-20260929T085111-deeac3d9f6824ee89466d04829bc677b`
+VERIFIED, Main Running, local/public ready, два Health PASS. L1–L3 остаются
+привязаны к тому же неизменному source; D02–D17 ещё не пройдены владельцем,
+Gate не принят. [Квитанции](m2-desktop/HANDOFF.md).
+
+27 сентября, 18:20: `bd991760312732dd15cdad909e81a6023cc703f2`
+(tree `69dae321773812fd3d2a96004ae86f6ee3e3812b`) — текущий source и
+live. Независимый L1: `2939 passed, 3 skipped, 5` исторических deselections;
+L2 в отдельном чистом Git clone: `589 passed, 1 skipped`; L3 изменений
+readiness guard без блокирующего дефекта. Main работает, Health PASS,
+local/public readiness PASS, новый подписанный backup complete/VERIFIED.
+**READY_FOR_MANUAL_ACCEPTANCE; D02–D17 не выполнены владельцем и Gate не
+принят.** [Квитанции](m2-desktop/HANDOFF.md).
+
+27 сентября, 10:34: локальный source-кандидат `c6f6858` (tree
+`630ef35e7648cf828d2da5cb6aad15f408644d21`) прошёл L1
+`2935 passed, 3 skipped, 5` исторических deselections, L2 из отдельного
+чистого Git clone `406 passed, 1 skipped` и L3 неблагоприятную проверку
+изменённых границ. Первоначальный ZIP-L2 был методически непригоден
+без `.git` и не засчитан. Статический сканер дал прежние тестовые
+совпадения; CVE-аудит и live D02–D17 не выполнены. Это проверенный
+локальный исходный кандидат, **не** принятый Gate/D16, не release и
+не восстановленный production. [Точный handoff](m2-desktop/HANDOFF.md)
+и [структурированные доказательства](m2-desktop/EVIDENCE.json).
+
 27 сентября, 10:05: первый замороженный DRAFT `2355ae5` получил
 L1 `2933 passed, 2 failed, 3 skipped, 5` исторических deselections;
 два отказа одной причины `isinstance`/внедрённая factory. Адресная

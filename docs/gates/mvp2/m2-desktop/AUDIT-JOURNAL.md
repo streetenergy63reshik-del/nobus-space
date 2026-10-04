@@ -1,5 +1,57 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 29.09, 08:55 — signed STOP после сетевых отказов, exact recovery PASS
+
+Текущий source/live SHA `bd991760312732dd15cdad909e81a6023cc703f2`
+не менялся. Подписанные terminal: 28.09 01:04 МСК
+`public_readiness_failed` (`local_ready=true`), bounded retry; 01:06
+`core_and_relay_exit`, Core `telegram_unavailable`, relay cause `unknown`,
+затем `stop_non_retryable` head
+`sha256:b7c65187347f25b3ed5dc37e2a2929770da34592e8e52964a83ac208192de5cd`.
+Точная первопричина публичного отказа не установлена. Ночной backup
+28.09 VERIFIED, но restart NOT_READY; failed journal
+`sha256:d015eaa6481739521e24a594a41d59c99f38e46373397a5ed25e2fcb0d25fb5b`.
+Проверены его generation и runtime DB; сеть Telegram 29.09 отвечала
+HTTPS 404 на заведомо недействительный URL без реального токена.
+Один exact reset `sha256:c56800ecf1b82326b2165349bddfd2257512fd5f2b0c1274ab60e0c44a66e6f2`;
+один exact failed-cycle recovery PASS. Новый journal complete
+`sha256:16daf29fc6534bcdc4e3c772ca05866b3fd9c2c2c7b15adb557e47f21c0ba911`,
+generation `daily-20260929T085111-deeac3d9f6824ee89466d04829bc677b`
+VERIFIED. Main Running, обе readiness HTTP 200, Health PASS 08:53/08:54.
+D02–D17 не запускались, Gate не принят; прежний D03 turn не повторялся.
+
+### 27.09, 18:20 — текущий bd991 развёрнут, подготовка к ручной приёмке
+
+Source/live `bd991760312732dd15cdad909e81a6023cc703f2` /
+`69dae321773812fd3d2a96004ae86f6ee3e3812b`. L1 в чистом clone:
+2939 passed, 3 skipped, 5 исторических deselections, 25 subtests;
+L2 в отдельном clone: 589 passed, 1 skipped; L3 по изменению deadlines
+5/10 с сохранил exact body/host, no redirect и подписанный STOP.
+Начальный запуск после rebind не состоялся, потому что Backup Task был
+Disabled; signed journal `sha256:109ee5da1e499f6487d9f7e076713df8414aadc7a9b7e5239ee3841431bb9198`
+сохранён. После включения Backup один exact recovery завершился:
+generation `daily-20260927T180804-e2c2fffdfb1844049cdf10cc49d8956c`,
+complete journal `sha256:6869c2093588b176a8b9181444d82323afaa64465ae299434fe95d9bfb9e2a16`,
+четыре зашифрованных файла проверены. Main/Health/Backup Enabled, Main
+Running; local/public /readyz точное HTTP 200, Health PASS в 18:19 МСК.
+Старый D03 ответ доставлен одной text-частью; turn не повторялся.
+Это техническая готовность к D02–D17, а не их PASS или приёмка Gate.
+
+### 27.09, 10:34 — второй frozen source-кандидат проверен локально
+
+`c6f6858ea1693ea046130a97061fe8fd5f589e47` /
+`630ef35e7648cf828d2da5cb6aad15f408644d21`: L1 `2935 passed,
+3 skipped, 5 deselected, 25 subtests passed`; L2 в отдельном чистом
+Git clone `406 passed, 1 skipped`; L3 — адресная неблагоприятная проверка
+control-file/backup/turn/approval trust boundaries без нового блокирующего
+дефекта. ZIP-экспорт без `.git` не засчитан как L2; исходный методический
+отказ и первый L1-отклонённый commit `2355ae5` сохранены. `vibe-audit`
+нашёл 42 эвристических совпадения, включая шесть известных тестовых
+образцов секретов; новые исполняемые файлы без совпадений типовых ключей.
+Отдельного CVE-аудита и live-проверок на этом SHA не было. Кодовый
+вердикт PASS не закрывает D16/D02–D17 и не разрешает повторять готовый
+D03 Desktop-turn. Детали и ограничения — в HANDOFF/EVIDENCE.
+
 ### 27.09, 09:21 — временные файлы классифицированы; recovery WIP проверен локально
 
 Владелец разрешил только этапы 1–2: узкое исключение для временных файлов

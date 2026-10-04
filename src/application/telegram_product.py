@@ -1036,10 +1036,10 @@ class ProductTelegramControlPlane(TelegramControlPlane):
         payload = ingress.payload
         if (
             self._desktop_bridge is not None
-            and isinstance(payload, (TextMessage, VoiceMessage))
+            and isinstance(payload, (TextMessage, VoiceMessage, CallbackQuery))
             and (
                 payload.binding_purpose == "business_notes"
-                or payload.reply_to_message_id is not None
+                or getattr(payload, "reply_to_message_id", None) is not None
             )
             and await self._desktop_bridge.handle(payload, ingress.envelope)
         ):

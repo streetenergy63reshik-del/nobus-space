@@ -1,5 +1,63 @@
 # Nobus Space: текущий принятый статус
 
+## M2-DESKTOP: плиточное меню Codex в WIP — 4 октября, 23:21 МСК
+
+По read-only сверке работающий live checkout чистый на `4db5f0e9266637feca408a57aa0c8e8ac580dbc0`
+(исправление стабильности 03.10 после `bd991`); Main Running,
+Backup/Health Ready, локальный `/readyz` с точным Host вернул HTTP 200
+и `{"status":"ready"}`. Новый маршрут `/codex` с плитками проектов/задач,
+пустым вводом промта, «Назад» и bot-to-bot ответом по номеру реализован в
+рабочем M2 checkout; source пока не интегрирован с `4db5f0e` и не выпущен.
+Адресные проверки нового кода: 177 passed; живой Desktop IPC и список
+11 локальных проектов/11 задач Nobus Space прочитаны без отправки turn.
+Новая спецификация: [M2-DESKTOP-TILE-MENU](../gates/mvp2/M2-DESKTOP-TILE-MENU.md).
+D02–D17 владелец по-прежнему не проходил; Gate/MVP2 не приняты.
+Следующий абзац описывает прежнюю дату, а не текущий live SHA.
+
+## M2-DESKTOP: восстановлен после STOP — 29 сентября, 08:55 МСК
+
+Live/source остаются на `bd991760312732dd15cdad909e81a6023cc703f2`.
+28 сентября после `public_readiness_failed` повторный запуск получил
+`telegram_unavailable`, и подписанная защита оставила Main/Health Disabled.
+Ночной backup создал VERIFIED generation, но не восстановил ready.
+29 сентября после сверки истории, сети, БД и копии выполнены один exact
+STOP reset и один recovery по failed-journal digest. Новая проверенная
+generation `daily-20260929T085111-deeac3d9f6824ee89466d04829bc677b`;
+Main Running, Main/Health/Backup Enabled, local/public HTTP 200 с точным
+ready-body, Health PASS в 08:53 и 08:54 МСК. Код и L1–L3 не менялись;
+D02–D17 владелец ещё не проходил. Точный внешний первичный сбой не доказан,
+следующий плановый Backup 30 сентября ещё не проверен. Подробности — в
+[handoff](../gates/mvp2/m2-desktop/HANDOFF.md) и
+[карте ручной приёмки](../gates/mvp2/M2-DESKTOP-MANUAL-ACCEPTANCE.md).
+
+## M2-DESKTOP: готово к ручной приёмке — 27 сентября, 18:20 МСК
+
+Текущий source/live `bd991760312732dd15cdad909e81a6023cc703f2`, tree
+`69dae321773812fd3d2a96004ae86f6ee3e3812b`. L1: 2939 passed,
+3 skipped, 5 исторических deselections; L2 на независимом чистом clone:
+589 passed, 1 skipped; L3 адресная проверка изменений. Main работает,
+Main/Health/Backup включены, local/public readiness и Health PASS;
+подписанный backup complete/VERIFIED. Старый D03 завершённый turn доставлен
+без повторного исполнения. Точные данные для владельца — в
+[инструкции D02–D17](../gates/mvp2/M2-DESKTOP-MANUAL-ACCEPTANCE.md) и
+[handoff](../gates/mvp2/m2-desktop/HANDOFF.md). **Это READY_FOR_MANUAL_ACCEPTANCE,
+не принятый MVP2:** результаты D02–D17 ещё не получены, PR/merge/release
+не завершены. Нижеследующие даты — исторические checkpoints.
+
+## M2-DESKTOP: локальный кодовый кандидат прошёл L1/L2/L3 — 27 сентября, 10:34
+
+Точный frozen source commit `c6f6858ea1693ea046130a97061fe8fd5f589e47`,
+tree `630ef35e7648cf828d2da5cb6aad15f408644d21`. L1:
+`2935 passed, 3 skipped, 5` старых исключений; L2 на независимом чистом
+Git clone: `406 passed, 1 skipped`; L3 по изменённым опасным границам
+без нового блокирующего дефекта. Статический отчёт классифицирован;
+отдельный CVE-аудит не проводился. Это локальная проверка кода, а не
+завершение D16: обязательные реальные D02–D17, восстановление production
+и выпуск открыты. Production последней подтверждённой сверки остаётся
+чистым `fd4d66c`, Main/Health/Backup Disabled, admission hold и signed
+STOP; завершённый D03 Desktop-turn не повторять. Послезаморозочные
+доказательства [в handoff](../gates/mvp2/m2-desktop/HANDOFF.md).
+
 ## M2-DESKTOP: первый кандидат получил L1-отказ — 27 сентября, 10:05
 
 Локальный frozen DRAFT `2355ae5e47f542ea7485ad509e8128f3d1b5b7db`

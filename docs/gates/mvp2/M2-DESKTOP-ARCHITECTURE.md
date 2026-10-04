@@ -1,5 +1,34 @@
 # M2-DESKTOP — Telegram ↔ Codex Desktop
 
+29 сентября 2026, 08:55 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE
+после восстановления.** Код/live остаются на `bd991760312732dd15cdad909e81a6023cc703f2`.
+После подписанного STOP 28 сентября выполнены один exact reset и один
+backup recovery; Main Running, local/public readiness и два Health PASS.
+Точная первопричина внешнего отказа не доказана, следующий плановый Backup
+ещё не проверен. D02–D17 выполняет владелец; Gate/MVP2 не приняты.
+Подробности — в [handoff](m2-desktop/HANDOFF.md). Следующий абзац —
+сохранённый снимок 27 сентября.
+
+Дополнительный вход `/codex` через плитки проектов и задач описан в
+[спецификации меню](M2-DESKTOP-TILE-MENU.md). Его код 04.10 находится в WIP;
+этот документ не объявляет новый live-релиз или приёмку D02–D17.
+
+27 сентября 2026, 18:20 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE.**
+Source и live запущены на `bd991760312732dd15cdad909e81a6023cc703f2`
+(tree `69dae321773812fd3d2a96004ae86f6ee3e3812b`). Main работает,
+Main/Health/Backup включены, local/public readiness и подписанный backup
+подтверждены. Кодовые L1/L2/L3 завершены; D02–D17 остаются ручной
+приёмкой владельца, Gate и MVP2 ещё не приняты. Точные квитанции — в
+[handoff](m2-desktop/HANDOFF.md). Следующие датированные абзацы сохраняют
+историю прежних кандидатов и не описывают текущий runtime.
+
+27 сентября 2026, 10:34 МСК. Локальный source-кандидат `c6f6858`
+(tree `630ef35e7648cf828d2da5cb6aad15f408644d21`) прошёл L1/L2/L3
+по [послезаморозочным доказательствам](m2-desktop/HANDOFF.md). Это не
+живой выпуск и не приёмка D16/D17: production последней сверки
+остаётся остановленным на `fd4d66c`, D02–D17 не закрыты. Следующий
+абзац — исторический статус первого отклонённого снимка, а не CURRENT.
+
 27 сентября 2026, 10:05 МСК. **CURRENT: production `fd4d66c` остановлен;
 Main/Health/Backup Disabled, admission hold и signed STOP сохранены;
 Gate D01–D17 не принят.** Локальный backup/recovery WIP прошёл адресные

@@ -15,12 +15,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from src.application.desktop_bridge_state import (
     BridgeRequest,
     BridgeRequestStatus,
     DesktopBridgeStateError,
+    DesktopMenu,
     InteractionKind,
     PendingDesktopInteraction,
     SQLiteDesktopBridgeState,
@@ -34,6 +35,7 @@ from src.integrations.codex_desktop_ipc import (
     CodexDesktopIpcClient,
     DesktopConversationProjection,
     DesktopIpcError,
+    DesktopIpcCompatibilityError,
     DesktopIpcTimeoutError,
     DesktopIpcUnknownOutcome,
     DesktopIpcUnavailableError,
@@ -42,11 +44,14 @@ from src.integrations.codex_desktop_ipc import (
     OwnerBinding,
     project_desktop_conversation,
 )
+from src.integrations.codex_desktop_catalog import (
+    CodexDesktopCatalog, DesktopCatalogError, CatalogProject,
+)
 from src.integrations.codex_desktop_uia import (
     CodexDesktopUiAutomation,
     DesktopUiAutomationError,
 )
-from src.transport.telegram.models import TextMessage, VoiceMessage
+from src.transport.telegram.models import CallbackQuery, TextMessage, VoiceMessage
 
 
 _COMMAND = re.compile(r"^/codex(?:@(?P<username>[A-Za-z0-9_]+))?(?:\s+|$)", re.IGNORECASE)
@@ -101,6 +106,10 @@ _OWNER_REVIEW_QUESTION = re.compile(
 )
 _BOT_REQUEST_WINDOW = timedelta(minutes=10)
 _BOT_REQUEST_LIMIT = 4
+_MENU_TTL = timedelta(minutes=30)
+_MENU_PAGE_SIZE = 6
+_MENU_MAX_STEPS = 32
+_MENU_TOKEN = re.compile(r"^CdxM_([0-9a-f]{32})_([1-9][0-9]*)_([0-9]{1,2})$")
 _RUNNING_STATUSES = frozenset(
     {
         BridgeRequestStatus.DISPATCHING,
@@ -122,10 +131,21 @@ class DesktopBridgeApi(Protocol):
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        button_rows: tuple[tuple[tuple[str, str], ...], ...] = (),
+        force_reply: bool = False,
         message_thread_id: int | None = None,
         reply_to_message_id: int | None = None,
         parse_mode: str | None = None,
     ) -> int: ...
+
+    async def edit_message_text(
+        self, chat_id: int, message_id: int, text: str, *,
+        button_rows: tuple[tuple[tuple[str, str], ...], ...] | None = None,
+    ) -> None: ...
+
+    async def answer_callback_query(
+        self, query_id: str, *, text: str | None = None
+    ) -> None: ...
 
     async def download_file(self, file_id: str, *, size_limit: int) -> bytes: ...
 
@@ -184,6 +204,7 @@ class DesktopBridgeService:
         state: SQLiteDesktopBridgeState,
         uia: CodexDesktopUiAutomation,
         projects: Mapping[str, Path],
+        catalog: CodexDesktopCatalog | None = None,
         owner_user_id: int,
         owner_private_chat_id: int,
         bot_username: str,
@@ -222,6 +243,7 @@ class DesktopBridgeService:
         self._state = state
         self._uia = uia
         self._projects = normalized_projects
+        self._catalog = catalog
         self._owner_user_id = owner_user_id
         self._owner_private_chat_id = owner_private_chat_id
         self._bot_username = username.casefold()
@@ -291,17 +313,31 @@ class DesktopBridgeService:
 
     async def handle(
         self,
-        message: TextMessage | VoiceMessage,
+        message: TextMessage | VoiceMessage | CallbackQuery,
         envelope: TrustedIngressEnvelope,
     ) -> bool:
         """Consume only explicit bridge commands or replies to bridge prompts."""
         await self._expire_interactions()
+        if isinstance(message, CallbackQuery):
+            return await self._handle_menu_callback(message)
         if message.reply_to_message_id is not None and isinstance(message, TextMessage):
+            menu = self._state.menu_for_reply(
+                chat_id=message.chat_id, message_id=message.reply_to_message_id,
+            )
+            if menu is not None:
+                await self._handle_menu_reply(message, envelope, menu)
+                return True
             interaction = self._state.pending_interaction_for_reply(
                 chat_id=message.chat_id,
                 telegram_message_id=message.reply_to_message_id,
             )
             if interaction is not None:
+                if self._catalog is not None:
+                    try:
+                        self._refresh_projects()
+                    except DesktopCatalogError:
+                        await self._reply(message, "Актуальные проекты Codex недоступны; ответ не передан.")
+                        return True
                 await self._answer_interaction(message, interaction, envelope)
                 return True
         if message.binding_purpose != "business_notes":
@@ -311,6 +347,9 @@ class DesktopBridgeService:
         parsed = self._parse_command(message)
         if parsed is None:
             return False
+        if parsed.operation == "menu":
+            await self._open_menu(message)
+            return True
         if parsed.operation == "help":
             await self._api.send_message(
                 message.chat_id,
@@ -332,6 +371,330 @@ class DesktopBridgeService:
             return True
         await self._admit(message, envelope, parsed)
         return True
+
+    def _refresh_projects(self) -> tuple[CatalogProject, ...]:
+        if self._catalog is None:
+            raise DesktopCatalogError("desktop-catalog-not-configured")
+        projects = self._catalog.projects()
+        self._projects = {
+            item.name.casefold(): DesktopProject(item.name, item.cwd)
+            for item in projects
+        }
+        return projects
+
+    async def _desktop_unavailability_text(self) -> str | None:
+        client = self._ipc_factory()
+        try:
+            await asyncio.wait_for(client.start(), timeout=3)
+            return None if client.connected else "Codex не активен на ПК. Откройте Codex Desktop."
+        except DesktopIpcCompatibilityError:
+            return "Версия Codex Desktop изменилась; отправка задач временно недоступна."
+        except (DesktopIpcError, OSError, RuntimeError, asyncio.TimeoutError):
+            return "Codex не активен на ПК. Откройте Codex Desktop."
+        finally:
+            await client.close()
+
+    @staticmethod
+    def _menu_token(menu_id: UUID, revision: int, index: int) -> str:
+        return f"CdxM_{menu_id.hex}_{revision}_{index}"
+
+    def _menu_view(
+        self, menu_id: UUID, revision: int, *, stage: str,
+        project_id: str | None, thread_id: str | None, page: int,
+    ) -> tuple[str, int, tuple[tuple[str, str | None], ...], tuple[tuple[tuple[str, str], ...], ...]]:
+        projects = self._refresh_projects()
+        entries: list[tuple[str, str, str | None]] = []
+        if stage == "projects":
+            pages = max(1, (len(projects) + _MENU_PAGE_SIZE - 1) // _MENU_PAGE_SIZE)
+            page = min(page, pages - 1)
+            for project in projects[page * _MENU_PAGE_SIZE:(page + 1) * _MENU_PAGE_SIZE]:
+                entries.append((project.name, "project", project.project_id))
+            heading = f"Выберите проект Codex · {page + 1}/{pages}"
+        elif stage == "tasks":
+            project = next((item for item in projects if item.project_id == project_id), None)
+            if project is None:
+                raise DesktopCatalogError("desktop-catalog-project")
+            assert self._catalog is not None
+            tasks = self._catalog.tasks(project_id)
+            pages = max(1, (len(tasks) + _MENU_PAGE_SIZE - 1) // _MENU_PAGE_SIZE)
+            page = min(page, pages - 1)
+            entries.append(("Новая задача", "new", None))
+            for task in tasks[page * _MENU_PAGE_SIZE:(page + 1) * _MENU_PAGE_SIZE]:
+                entries.append((task.title, "task", task.thread_id))
+            heading = f"{self._menu_label(project.name, 90)} · выберите задачу · {page + 1}/{pages}"
+        elif stage == "prompt":
+            project = next((item for item in projects if item.project_id == project_id), None)
+            if project is None:
+                raise DesktopCatalogError("desktop-catalog-project")
+            if thread_id is None:
+                task_label = "Новая задача"
+            else:
+                assert self._catalog is not None
+                task = next((item for item in self._catalog.tasks(project_id)
+                             if item.thread_id == thread_id), None)
+                if task is None:
+                    raise DesktopCatalogError("desktop-catalog-task")
+                task_label = task.title
+            heading = (
+                f"{self._menu_label(project.name, 90)} · {self._menu_label(task_label, 90)}\n"
+                "Напишите промт ответом на следующую карточку."
+            )
+        else:
+            raise DesktopCatalogError("desktop-catalog-stage")
+        if stage in {"projects", "tasks"}:
+            if page > 0:
+                entries.append(("◀ Страница", "page", str(page - 1)))
+            if page + 1 < pages:
+                entries.append(("Страница ▶", "page", str(page + 1)))
+        entries.append(("Назад", "back", None))
+        actions = tuple((action, value) for _, action, value in entries)
+        buttons = tuple(
+            (self._menu_label(label), self._menu_token(menu_id, revision, index))
+            for index, (label, _, _) in enumerate(entries)
+        )
+        rows = tuple(tuple(buttons[index:index + 2]) for index in range(0, len(buttons), 2))
+        if stage in {"projects", "tasks"}:
+            numbered = "\n".join(
+                f"{index + 1}. {self._menu_label(label, 90)}"
+                for index, (label, _, _) in enumerate(entries)
+            )
+            heading += "\n" + numbered + "\nАгент может ответить номером на эту карточку."
+        return heading[:4096], page, actions, rows
+
+    @staticmethod
+    def _menu_label(value: str, limit: int = 54) -> str:
+        return " ".join(value.split())[:limit] or "Без названия"
+
+    async def _open_menu(self, message: TextMessage) -> None:
+        if message.is_bot and self._state.recent_author_menu_count(
+            author_user_id=message.user_id,
+            since=self._now() - _BOT_REQUEST_WINDOW,
+        ) >= _BOT_REQUEST_LIMIT:
+            await self._reply(message, "Лимит агента: не более четырёх меню Codex за 10 минут.")
+            return
+        unavailable = await self._desktop_unavailability_text()
+        if unavailable is not None:
+            await self._reply(message, unavailable)
+            return
+        menu_id = uuid4()
+        try:
+            text, _, actions, rows = self._menu_view(
+                menu_id, 1, stage="projects", project_id=None, thread_id=None, page=0,
+            )
+        except DesktopCatalogError:
+            await self._reply(message, "Не удалось получить актуальные проекты Codex Desktop.")
+            return
+        self._state.create_menu(
+            menu_id=menu_id, tenant_id=message.tenant_id,
+            author_user_id=message.user_id, chat_id=message.chat_id,
+            topic_id=message.message_thread_id, source_message_id=message.message_id,
+            actions=actions, expires_at=self._now() + _MENU_TTL,
+        )
+        # Unknown Telegram ACK leaves an inert unbound menu; no automatic duplicate.
+        try:
+            card_id = await self._api.send_message(
+                message.chat_id, text, button_rows=rows,
+                message_thread_id=message.message_thread_id,
+                reply_to_message_id=message.message_id,
+            )
+        except Exception:
+            return
+        self._state.bind_menu_message(menu_id, card_id)
+
+    async def _handle_menu_callback(self, callback: CallbackQuery) -> bool:
+        if not callback.callback_token.startswith("CdxM_"):
+            return False
+        match = _MENU_TOKEN.fullmatch(callback.callback_token)
+        if match is None:
+            await self._api.answer_callback_query(
+                callback.query_id, text="Кнопка меню устарела. Откройте /codex заново.",
+            )
+            return True
+        menu = self._state.read_menu(UUID(hex=match.group(1)))
+        if menu is None or not self._menu_actor_matches(menu, callback) or (
+            menu.menu_message_id != callback.message_id
+        ):
+            await self._api.answer_callback_query(
+                callback.query_id, text="Это меню недоступно. Откройте /codex заново.",
+            )
+            return True
+        unavailable = await self._desktop_unavailability_text()
+        if unavailable is not None:
+            await self._api.answer_callback_query(
+                callback.query_id, text=unavailable,
+            )
+            return True
+        if menu.expires_at <= self._now() or menu.revision != int(match.group(2)):
+            await self._api.answer_callback_query(
+                callback.query_id, text="Меню устарело. Откройте /codex заново.",
+            )
+            return True
+        if menu.revision >= _MENU_MAX_STEPS:
+            await self._api.answer_callback_query(
+                callback.query_id, text="Меню достигло лимита переходов. Откройте /codex заново.",
+            )
+            return True
+        index = int(match.group(3))
+        if index >= len(menu.actions):
+            await self._api.answer_callback_query(callback.query_id, text="Кнопка устарела.")
+            return True
+        await self._api.answer_callback_query(callback.query_id)
+        await self._menu_action(menu, menu.actions[index])
+        return True
+
+    def _menu_actor_matches(self, menu: DesktopMenu, message: TextMessage | CallbackQuery) -> bool:
+        return (
+            menu.tenant_id == message.tenant_id
+            and menu.author_user_id == message.user_id
+            and menu.chat_id == message.chat_id
+            and menu.topic_id == message.message_thread_id
+            and message.binding_purpose == "business_notes"
+            and not message.is_forwarded
+        )
+
+    async def _handle_menu_reply(
+        self, message: TextMessage, envelope: TrustedIngressEnvelope, menu: DesktopMenu,
+    ) -> None:
+        if not self._menu_actor_matches(menu, message):
+            await self._reply(message, "Это меню другого автора. Откройте своё через /codex.")
+            return
+        unavailable = await self._desktop_unavailability_text()
+        if unavailable is not None:
+            await self._reply(message, unavailable)
+            return
+        if menu.expires_at <= self._now() or menu.stage == "closed":
+            await self._reply(message, "Меню устарело. Откройте /codex заново.")
+            return
+        if menu.revision >= _MENU_MAX_STEPS and not (
+            menu.stage == "prompt" and message.reply_to_message_id == menu.prompt_message_id
+        ):
+            await self._reply(message, "Меню достигло лимита переходов. Откройте /codex заново.")
+            return
+        if message.reply_to_message_id == menu.prompt_message_id and menu.stage == "prompt":
+            await self._submit_menu_prompt(message, envelope, menu)
+            return
+        if message.reply_to_message_id != menu.menu_message_id or menu.stage == "prompt":
+            await self._reply(message, "Ответьте на текущую карточку меню.")
+            return
+        answer = message.text.strip().casefold()
+        if answer.isdecimal() and 1 <= int(answer) <= len(menu.actions):
+            await self._menu_action(menu, menu.actions[int(answer) - 1])
+            return
+        if answer in {"назад", "back"}:
+            await self._menu_action(menu, ("back", None))
+            return
+        await self._reply(message, "Ответьте номером пункта из текущей карточки.")
+
+    async def _menu_action(self, menu: DesktopMenu, action: tuple[str, str | None]) -> None:
+        if menu.menu_message_id is None:
+            return
+        kind, value = action
+        stage, project_id, thread_id, page = menu.stage, menu.project_id, menu.thread_id, menu.page
+        try:
+            if kind == "back":
+                if stage == "projects":
+                    if self._state.advance_menu(menu.menu_id, revision=menu.revision,
+                                                stage="closed", project_id=None,
+                                                thread_id=None, page=0, actions=()):
+                        try:
+                            await self._api.edit_message_text(
+                                menu.chat_id, menu.menu_message_id,
+                                "Меню Codex закрыто. Откройте /codex заново.",
+                                button_rows=(),
+                            )
+                        except Exception:
+                            pass  # Unknown edit ACK: closed state remains authoritative.
+                    return
+                stage, project_id, thread_id, page = (
+                    ("projects", None, None, 0) if stage == "tasks"
+                    else ("tasks", project_id, None, 0)
+                )
+            elif kind == "project" and stage == "projects":
+                stage, project_id, thread_id, page = "tasks", value, None, 0
+            elif kind == "task" and stage == "tasks":
+                stage, thread_id = "prompt", value
+            elif kind == "new" and stage == "tasks":
+                stage, thread_id = "prompt", None
+            elif kind == "page" and stage in {"projects", "tasks"} and value is not None:
+                page = int(value)
+            else:
+                return
+            text, page, actions, rows = self._menu_view(
+                menu.menu_id, menu.revision + 1, stage=stage,
+                project_id=project_id, thread_id=thread_id, page=page,
+            )
+        except (DesktopCatalogError, ValueError):
+            await self._api.send_message(
+                menu.chat_id, "Список Codex изменился. Откройте /codex заново.",
+                message_thread_id=menu.topic_id,
+            )
+            return
+        if not self._state.advance_menu(
+            menu.menu_id, revision=menu.revision, stage=stage,
+            project_id=project_id, thread_id=thread_id, page=page, actions=actions,
+        ):
+            return
+        try:
+            await self._api.edit_message_text(
+                menu.chat_id, menu.menu_message_id, text, button_rows=rows,
+            )
+        except Exception:
+            return  # Unknown edit ACK: a stale card cannot dispatch another turn.
+        if stage == "prompt":
+            try:
+                prompt_id = await self._api.send_message(
+                    menu.chat_id, "Напишите текст задачи ответом на это сообщение.",
+                    force_reply=True, message_thread_id=menu.topic_id,
+                    reply_to_message_id=menu.source_message_id,
+                )
+            except Exception:
+                return
+            self._state.bind_menu_prompt(menu.menu_id, prompt_id)
+
+    async def _submit_menu_prompt(
+        self, message: TextMessage, envelope: TrustedIngressEnvelope, menu: DesktopMenu,
+    ) -> None:
+        instruction = message.text.strip()
+        if not instruction or len(instruction) > 12_000:
+            await self._reply(message, "Задача пуста или превышает 12 000 символов.")
+            return
+        try:
+            project = next((item for item in self._refresh_projects()
+                            if item.project_id == menu.project_id), None)
+            if project is None:
+                raise DesktopCatalogError("desktop-catalog-project")
+            task_title = None
+            if menu.thread_id is not None:
+                assert self._catalog is not None
+                task = next((item for item in self._catalog.tasks(project.project_id)
+                             if item.thread_id == menu.thread_id), None)
+                if task is None:
+                    raise DesktopCatalogError("desktop-catalog-task")
+                task_title = task.title
+        except DesktopCatalogError:
+            await self._reply(message, "Проект или задача изменились. Откройте /codex заново.")
+            return
+        if not self._state.advance_menu(
+            menu.menu_id, revision=menu.revision, stage="closed",
+            project_id=menu.project_id, thread_id=menu.thread_id, page=0, actions=(),
+        ):
+            await self._reply(message, "Промт уже обработан или меню изменилось.")
+            return
+        if menu.menu_message_id is not None:
+            try:
+                await self._api.edit_message_text(
+                    menu.chat_id, menu.menu_message_id,
+                    "Промт передаётся в Codex Desktop.", button_rows=(),
+                )
+            except Exception:
+                pass  # A Telegram edit cannot cancel the already claimed prompt.
+        await self._admit(
+            message, envelope,
+            ParsedDesktopCommand(
+                "create" if menu.thread_id is None else "continue",
+                project.name, menu.thread_id, instruction, task_title,
+            ),
+        )
 
     def _parse_command(self, message: TextMessage) -> ParsedDesktopCommand | None:
         text = message.text.strip()
@@ -359,7 +722,9 @@ class DesktopBridgeService:
                     body = text
                 else:
                     return None
-        if not body or body.casefold() in {"help", "помощь"}:
+        if not body:
+            return ParsedDesktopCommand("menu", None, None, "")
+        if body.casefold() in {"help", "помощь"}:
             return ParsedDesktopCommand("help", None, None, "")
         natural_create = _NATURAL_CREATE.match(body)
         if natural_create is not None:
@@ -1342,6 +1707,11 @@ class DesktopBridgeService:
                 return
             client = self._ipc_factory()
             try:
+                if self._catalog is not None:
+                    try:
+                        self._refresh_projects()
+                    except DesktopCatalogError:
+                        raise DesktopIpcUnavailableError("desktop-catalog-unavailable") from None
                 await client.start()
                 if request.desktop_thread_id is None:
                     request, owner = await self._create_desktop_task(client, request)

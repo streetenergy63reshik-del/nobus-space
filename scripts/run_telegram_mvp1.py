@@ -54,6 +54,7 @@ from src.application.durable_semantic import (  # noqa: E402
 )
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
 from src.application.desktop_bridge import DesktopBridgeService  # noqa: E402
+from src.integrations.codex_desktop_catalog import CodexDesktopCatalog  # noqa: E402
 from src.application.desktop_bridge_state import SQLiteDesktopBridgeState  # noqa: E402
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
@@ -657,6 +658,7 @@ async def _run(
                 runtime_root=runtime_root / "desktop-bridge",
             ),
             projects=desktop_projects,
+            catalog=CodexDesktopCatalog(Path.home() / ".codex", owner_root=_OWNER_READ_ROOT),
             owner_user_id=owner_binding.user_id,
             owner_private_chat_id=owner_binding.chat_id,
             bot_username=identity.username,
