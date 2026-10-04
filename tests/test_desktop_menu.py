@@ -184,9 +184,9 @@ async def test_issued_tile_passes_gateway_and_stale_tile_is_rejected(tmp_path: P
 
     callback_store = DesktopMenuCallbackStore(LegacyActions(), state)
     gateway = TelegramGateway(
-        actor_bindings={(41, -1001): ActorBinding(
-            tenant_id="owner", actor_identity="telegram:participant:41",
-            role="participant", auth_context_ref="sha256:" + "a" * 64,
+        actor_bindings={(99, -1001): ActorBinding(
+            tenant_id="owner", actor_identity="telegram:owner",
+            role="owner", auth_context_ref="sha256:" + "a" * 64,
             purpose="business_notes",
         )},
         update_id_store=InMemoryUpdateIdStore(),
