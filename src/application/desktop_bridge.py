@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-
-from src.storage.nonblocking import run_storage
 import hashlib
 import html
 import json
@@ -53,6 +51,7 @@ from src.integrations.codex_desktop_uia import (
     CodexDesktopUiAutomation,
     DesktopUiAutomationError,
 )
+from src.storage.nonblocking import run_storage
 from src.transport.telegram.models import CallbackQuery, TextMessage, VoiceMessage
 
 

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-
-from src.storage.nonblocking import run_storage
 import json
 import math
 import os
@@ -24,6 +22,7 @@ from pydantic import SecretStr
 from src.application.product_status import RuntimeAdmissionPaused, product_task_state
 from src.models.task import TaskStatus
 from src.storage.outbox import DeliveryPart, OutboxMessage, OutboxStatus, artifact_for_message, delivery_parts
+from src.storage.nonblocking import run_storage
 
 
 _API_ROOT = "https://api.telegram.org"

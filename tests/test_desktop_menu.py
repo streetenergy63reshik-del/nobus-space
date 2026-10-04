@@ -15,7 +15,7 @@ from src.application.telegram_product import ProductTelegramControlPlane
 from src.application.desktop_bridge_state import BridgeRequestStatus, SQLiteDesktopBridgeState
 from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
 from src.integrations.codex_desktop_catalog import (
-    CatalogProject, CatalogTask, CodexDesktopCatalog,
+    CatalogProject, CatalogTask, CodexDesktopCatalog, DesktopCatalogError,
 )
 from src.transport.telegram.models import CallbackQuery, TextMessage
 from src.transport.telegram.models import IngressStatus
@@ -258,6 +258,37 @@ def test_catalog_reads_current_saved_projects_and_tasks(tmp_path: Path):
     with sqlite3.connect(codex_home / "state_5.sqlite") as db:
         db.execute("UPDATE threads SET name='Новое имя' WHERE id=?", (THREAD_ID,))
     assert catalog.tasks(PROJECT_ID)[0].title == "Новое имя"
+    remote_id, subagent_id = str(uuid4()), str(uuid4())
+    snapshot = json.loads(state_path.read_text(encoding="utf-8"))
+    snapshot["thread-project-assignments"].update({
+        remote_id: {"projectKind": "local", "projectId": PROJECT_ID},
+        subagent_id: {"projectKind": "local", "projectId": PROJECT_ID},
+    })
+    snapshot["thread-project-membership-host-ids"] = {remote_id: "remote-host"}
+    state_path.write_text(json.dumps(snapshot), encoding="utf-8")
+    with sqlite3.connect(codex_home / "state_5.sqlite") as db:
+        db.executemany("INSERT INTO threads VALUES (?,?,?,?,?,?,?)", [
+            (remote_id, "Чужой host", "", 200, "user", None, 0),
+            (subagent_id, "Внутренний агент", "", 300, "subagent", None, 0),
+        ])
+    assert [item.thread_id for item in catalog.tasks(PROJECT_ID)] == [THREAD_ID]
+
+
+def test_catalog_rejects_project_outside_owner_root(tmp_path: Path):
+    owner = tmp_path / "owner"
+    outside = tmp_path / "outside"
+    owner.mkdir()
+    outside.mkdir()
+    codex_home = tmp_path / ".codex"
+    codex_home.mkdir()
+    (codex_home / ".codex-global-state.json").write_text(json.dumps({
+        "local-projects": {PROJECT_ID: {
+            "id": PROJECT_ID, "name": "Outside", "rootPaths": [str(outside.resolve())],
+        }},
+        "project-order": [PROJECT_ID],
+    }), encoding="utf-8")
+    with pytest.raises(DesktopCatalogError, match="desktop-catalog-root"):
+        CodexDesktopCatalog(codex_home, owner_root=owner).projects()
 
 
 @pytest.mark.asyncio

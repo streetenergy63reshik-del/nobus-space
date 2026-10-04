@@ -119,7 +119,10 @@ class CodexDesktopCatalog:
         if not ids:
             return ()
         try:
-            uri = (self._home / "state_5.sqlite").as_uri() + "?mode=ro"
+            database = self._home / "state_5.sqlite"
+            if database.is_symlink() or not database.is_file():
+                raise DesktopCatalogError("desktop-catalog-tasks-unavailable")
+            uri = database.as_uri() + "?mode=ro"
             with sqlite3.connect(uri, uri=True, timeout=2) as connection:
                 # Bounded chunks avoid SQLite's parameter limit and never read content.
                 rows = []
