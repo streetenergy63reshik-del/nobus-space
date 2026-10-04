@@ -1022,7 +1022,7 @@ class ProductTelegramControlPlane(TelegramControlPlane):
                 self._patch_confirmations.acknowledge_expired(proposal)
 
     async def handle(self, update: dict[str, Any]) -> bool:
-        ingress = self._gateway.process_update(update)
+        ingress = await asyncio.to_thread(self._gateway.process_update, update)
         return await self._handle_ingress(ingress)
 
     async def _handle_ingress(self, ingress: Any) -> bool:

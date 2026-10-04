@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 from collections.abc import Callable, Mapping
 from contextlib import closing, contextmanager
@@ -10,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Protocol
 from uuid import UUID
 
 from src.application.durable_telegram_state import DpapiJsonCodec
@@ -142,6 +143,24 @@ _THREAD_BLOCKING_STATUSES = (
     "waiting_pc",
     "unknown_dispatch",
 )
+MENU_CALLBACK_TOKEN = re.compile(r"^CdxM_([0-9a-f]{32})_([1-9][0-9]*)_([0-9]{1,2})$")
+
+
+class CallbackTokenClaimer(Protocol):
+    def claim(self, token: str, user_id: int, chat_id: int) -> bool: ...
+
+
+class DesktopMenuCallbackStore:
+    """Route issued menu tokens through the same gateway trust boundary."""
+
+    def __init__(self, actions: CallbackTokenClaimer, menus: SQLiteDesktopBridgeState) -> None:
+        self._actions = actions
+        self._menus = menus
+
+    def claim(self, token: str, user_id: int, chat_id: int) -> bool:
+        if token.startswith("CdxM_"):
+            return self._menus.claim_menu_callback(token, user_id, chat_id)
+        return self._actions.claim(token, user_id, chat_id)
 
 
 class SQLiteDesktopBridgeState:
@@ -375,6 +394,23 @@ class SQLiteDesktopBridgeState:
                 return None if row is None else self._menu_from_row(row)
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def claim_menu_callback(self, token: str, user_id: int, chat_id: int) -> bool:
+        """Bind a gateway callback to an issued live menu before routing it."""
+        match = MENU_CALLBACK_TOKEN.fullmatch(token)
+        if match is None or type(user_id) is not int or type(chat_id) is not int:
+            return False
+        menu = self.read_menu(UUID(hex=match.group(1)))
+        return bool(
+            menu is not None
+            and menu.author_user_id == user_id
+            and menu.chat_id == chat_id
+            and menu.menu_message_id is not None
+            and menu.stage in {"projects", "tasks", "prompt"}
+            and menu.expires_at > self._now()
+            and menu.revision == int(match.group(2))
+            and int(match.group(3)) < len(menu.actions)
+        )
 
     def recent_author_menu_count(self, *, author_user_id: int, since: datetime) -> int:
         if not _aware(since):

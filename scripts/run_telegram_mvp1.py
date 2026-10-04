@@ -55,7 +55,9 @@ from src.application.durable_semantic import (  # noqa: E402
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
 from src.application.desktop_bridge import DesktopBridgeService  # noqa: E402
 from src.integrations.codex_desktop_catalog import CodexDesktopCatalog  # noqa: E402
-from src.application.desktop_bridge_state import SQLiteDesktopBridgeState  # noqa: E402
+from src.application.desktop_bridge_state import (  # noqa: E402
+    DesktopMenuCallbackStore, SQLiteDesktopBridgeState,
+)
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
@@ -596,7 +598,7 @@ async def _run(
         gateway = TelegramGateway(
             actor_bindings=bindings,
             update_id_store=PollingCheckpointUpdateIdStore(),
-            callback_token_store=action_store,
+            callback_token_store=DesktopMenuCallbackStore(action_store, desktop_bridge_state),
         )
         destination_refs, sender_destinations = _task_destinations(bindings)
         report_stage("core_runtime")

@@ -22,6 +22,7 @@ from src.application.desktop_bridge_state import (
     BridgeRequestStatus,
     DesktopBridgeStateError,
     DesktopMenu,
+    MENU_CALLBACK_TOKEN,
     InteractionKind,
     PendingDesktopInteraction,
     SQLiteDesktopBridgeState,
@@ -110,7 +111,6 @@ _BOT_REQUEST_LIMIT = 4
 _MENU_TTL = timedelta(minutes=30)
 _MENU_PAGE_SIZE = 6
 _MENU_MAX_STEPS = 32
-_MENU_TOKEN = re.compile(r"^CdxM_([0-9a-f]{32})_([1-9][0-9]*)_([0-9]{1,2})$")
 _RUNNING_STATUSES = frozenset(
     {
         BridgeRequestStatus.DISPATCHING,
@@ -508,7 +508,7 @@ class DesktopBridgeService:
     async def _handle_menu_callback(self, callback: CallbackQuery) -> bool:
         if not callback.callback_token.startswith("CdxM_"):
             return False
-        match = _MENU_TOKEN.fullmatch(callback.callback_token)
+        match = MENU_CALLBACK_TOKEN.fullmatch(callback.callback_token)
         if match is None:
             await self._api.answer_callback_query(
                 callback.query_id, text="Кнопка меню устарела. Откройте /codex заново.",

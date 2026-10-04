@@ -12,12 +12,15 @@ import pytest
 
 from src.application.desktop_bridge import DesktopBridgeService
 from src.application.telegram_product import ProductTelegramControlPlane
-from src.application.desktop_bridge_state import BridgeRequestStatus, SQLiteDesktopBridgeState
+from src.application.desktop_bridge_state import (
+    BridgeRequestStatus, DesktopMenuCallbackStore, SQLiteDesktopBridgeState,
+)
 from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
 from src.integrations.codex_desktop_catalog import (
     CatalogProject, CatalogTask, CodexDesktopCatalog, DesktopCatalogError,
 )
-from src.transport.telegram.models import CallbackQuery, TextMessage
+from src.transport.telegram.gateway import InMemoryUpdateIdStore, TelegramGateway
+from src.transport.telegram.models import ActorBinding, CallbackQuery, TextMessage
 from src.transport.telegram.models import IngressStatus
 
 
@@ -165,6 +168,53 @@ async def test_inactive_desktop_blocks_any_menu_button(tmp_path: Path):
     assert not api.edits
     menu = state.menu_for_reply(chat_id=-1001, message_id=1)
     assert menu is not None and menu.stage == "projects"
+
+
+@pytest.mark.asyncio
+async def test_issued_tile_passes_gateway_and_stale_tile_is_rejected(tmp_path: Path):
+    service, api, ipc, state, _ = _service(tmp_path)
+    await service.handle(_text("/codex", 11), _envelope(11))
+    token = api.sent[0][2]["button_rows"][0][0][1]
+    legacy_claims = []
+
+    class LegacyActions:
+        def claim(self, value, user_id, chat_id):
+            legacy_claims.append((value, user_id, chat_id))
+            return False
+
+    callback_store = DesktopMenuCallbackStore(LegacyActions(), state)
+    gateway = TelegramGateway(
+        actor_bindings={(41, -1001): ActorBinding(
+            tenant_id="owner", actor_identity="telegram:participant:41",
+            role="participant", auth_context_ref="sha256:" + "a" * 64,
+            purpose="business_notes",
+        )},
+        update_id_store=InMemoryUpdateIdStore(),
+        callback_token_store=callback_store,
+    )
+
+    def update(update_id):
+        return {"update_id": update_id, "callback_query": {
+            "id": f"query-{update_id}", "from": {"id": 41},
+            "message": {"message_id": 1, "chat": {"id": -1001},
+                        "message_thread_id": 7}, "data": token,
+        }}
+
+    assert not callback_store.claim(token, 42, -1001)
+    assert not callback_store.claim(token, 41, -1002)
+    assert not callback_store.claim("unknown-action-token", 41, -1001)
+    assert legacy_claims == [("unknown-action-token", 41, -1001)]
+    ipc.available = False
+    offline = gateway.process_update(update(201))
+    assert offline.status is IngressStatus.ACCEPTED
+    assert await service.handle(offline.payload, offline.envelope)
+    assert "Codex не активен" in api.answers[-1][1]
+    ipc.available = True
+    accepted = gateway.process_update(update(202))
+    assert accepted.status is IngressStatus.ACCEPTED
+    assert await service.handle(accepted.payload, accepted.envelope)
+    assert api.edits
+    assert gateway.process_update(update(203)).status is IngressStatus.REJECTED
 
 
 @pytest.mark.asyncio
