@@ -6,6 +6,8 @@ import asyncio
 import hashlib
 import re
 import secrets
+
+from src.storage.nonblocking import run_storage
 from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
@@ -259,10 +261,13 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         if self._admission_readiness is not None:
             self._admission_readiness(for_admission=False)
         self._assert_workers_healthy()
+        self._telegram_state.queue_snapshot()
 
     async def assert_healthy_nonblocking(self) -> None:
         if self._admission_readiness is not None:
             await asyncio.to_thread(self._admission_readiness, for_admission=False)
+        self._assert_workers_healthy()
+        await run_storage(self._telegram_state.queue_snapshot)
         self._assert_workers_healthy()
 
     def _assert_workers_healthy(self) -> None:
@@ -276,7 +281,6 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         desktop_bridge = getattr(self, "_desktop_bridge", None)
         if desktop_bridge is not None:
             desktop_bridge.assert_healthy()
-        self._telegram_state.queue_snapshot()
         if not getattr(getattr(self._product_runtime, "_worker", None), "generation_available", True):
             raise RuntimeError("durable Telegram worker unavailable")
 
@@ -626,9 +630,12 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             except TimeoutError:
                 pass
             try:
-                durable = self._telegram_state.claim(
+                durable = await run_storage(
+                    self._telegram_state.claim,
                     lease_owner=self._lease_owner,
                     lease_seconds=_LEASE_SECONDS,
+                    on_cancel=lambda job: self._telegram_state.release(
+                        job, lease_owner=self._lease_owner),
                 )
             except asyncio.CancelledError:
                 if marker:

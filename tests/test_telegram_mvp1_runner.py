@@ -70,7 +70,7 @@ def test_poll_awaits_async_health_check_on_core_loop(monkeypatch) -> None:
     asyncio.run(scenario())
 
 
-def test_durable_health_keeps_worker_checks_on_core_loop() -> None:
+def test_durable_health_keeps_worker_checks_on_loop_and_storage_off_loop() -> None:
     from src.application.durable_product import DurableProductTelegramControlPlane
 
     entered = threading.Event()
@@ -105,7 +105,7 @@ def test_durable_health_keeps_worker_checks_on_core_loop() -> None:
             await asyncio.sleep(0.02)
             release.set()
             await pending
-            assert checked_on == [owner_thread]
+            assert len(checked_on) == 1 and checked_on[0] != owner_thread
         finally:
             worker.cancel()
             await asyncio.gather(worker, return_exceptions=True)

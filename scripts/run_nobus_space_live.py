@@ -3700,7 +3700,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         command = core_command_override or core_command(python, values)
         relay_values = relay_command or [
             str(SSH), "-NT", "-F", "NUL", "-i", str(private_key),
-            "-o", "BatchMode=yes", "-o", "UserKnownHostsFile=" + str(known_hosts),
+            "-o", "BatchMode=yes", "-o", "StdinNull=yes", "-o", "UserKnownHostsFile=" + str(known_hosts),
             "-o", "StrictHostKeyChecking=yes", "-o", "IdentitiesOnly=yes",
             "-o", "KexAlgorithms=curve25519-sha256", "-o", "ExitOnForwardFailure=yes",
             "-o", "ServerAliveInterval=20", "-o", "ServerAliveCountMax=3",

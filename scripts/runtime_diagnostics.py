@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -37,19 +38,41 @@ def classify_relay(payload: bytes, *, complete: bool = True) -> str:
         if any(pattern in text for pattern in patterns):
             return category
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if len(lines) != 1:
-        return "unknown"
-    line = lines[0]
-    if not (line.startswith("ssh: connect to host ") or line.startswith("read from remote host ")):
-        return "unknown"
+    host = r"[a-z0-9_.:%\[\]-]+"
     endings = {
         "connection timed out": "transport_timeout",
         "connection refused": "transport_refused",
         "connection reset by peer": "transport_reset",
+        "broken pipe": "transport_reset",
         "no route to host": "transport_unreachable",
         "network is unreachable": "transport_unreachable",
     }
-    return next((kind for suffix, kind in endings.items() if line.endswith(": " + suffix)), "unknown")
+    def transport_line(line):
+        for suffix, category in endings.items():
+            prefix = (rf"(?:ssh: connect to host {host} port [0-9]+|"
+                      rf"read from remote host {host}|client_loop: send disconnect)")
+            if re.fullmatch(prefix + ": " + re.escape(suffix), line):
+                return category
+        if re.fullmatch(rf"timeout, server {host} not responding\.", line):
+            return "transport_timeout"
+        if re.fullmatch(rf"connection to {host} closed by remote host\.", line):
+            # EOF/EPIPE is an established transport loss, not an auth decision.
+            return "transport_reset"
+        return "unknown"
+
+    if len(lines) == 1:
+        return transport_line(lines[0])
+    # OpenSSH can report the failed read and then the failed disconnect packet.
+    # Accept only that complete ordered pair with matching categories. Arbitrary
+    # banners, conflicting errors, truncation and permanent failures stay STOP.
+    if (len(lines) == 2 and
+            (lines[0].startswith("read from remote host ") or
+             lines[0].startswith("connection to ")) and
+            lines[1].startswith("client_loop: send disconnect: ")):
+        first, second = map(transport_line, lines)
+        if first == second:
+            return first
+    return "unknown"
 
 
 class RelayCapture:

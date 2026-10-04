@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+
+from src.storage.nonblocking import run_storage
 import json
 import math
 import os
@@ -677,8 +679,10 @@ class TelegramPollingBoundary:
             raise TelegramBotApiError("telegram_consumer_busy")
         async with self._single_flight:
             acquired_at = self._now()
-            lease = self._checkpoint_call(
-                lambda: self._checkpoint.acquire(self._owner_id, acquired_at)
+            lease = await run_storage(
+                self._checkpoint_call,
+                lambda: self._checkpoint.acquire(self._owner_id, acquired_at),
+                on_cancel=self._release_lease,
             )
             if lease is None:
                 raise TelegramBotApiError("telegram_consumer_busy")
@@ -687,8 +691,8 @@ class TelegramPollingBoundary:
             try:
                 if not self._valid_lease(lease, acquired_at):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
-                current = self._checkpoint_call(
-                    lambda: self._checkpoint.load(lease)
+                current = await run_storage(
+                    self._checkpoint_call, lambda: self._checkpoint.load(lease)
                 )
                 if current is not None and not _non_negative_int(current):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
@@ -727,8 +731,8 @@ class TelegramPollingBoundary:
                     next_offset = update_id + 1
                     if not self._valid_lease(lease, self._now()):
                         raise TelegramBotApiError("telegram_checkpoint_failed")
-                    advanced = self._checkpoint_call(
-                        lambda: self._checkpoint.advance(
+                    advanced = await run_storage(
+                        self._checkpoint_call, lambda: self._checkpoint.advance(
                             lease=lease,
                             expected=current,
                             next_offset=next_offset,
@@ -741,7 +745,7 @@ class TelegramPollingBoundary:
                 return PollBatchResult(current, acknowledged, False)
             finally:
                 active_error = sys.exception()
-                released = self._release_lease(lease)
+                released = await run_storage(self._release_lease, lease)
                 if not released and (active_error is None or isinstance(active_error, RuntimeAdmissionPaused)):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+
+from src.storage.nonblocking import run_storage
 import hashlib
 import html
 import json
@@ -321,7 +323,8 @@ class DesktopBridgeService:
         if isinstance(message, CallbackQuery):
             return await self._handle_menu_callback(message)
         if message.reply_to_message_id is not None and isinstance(message, TextMessage):
-            menu = self._state.menu_for_reply(
+            menu = await run_storage(
+                self._state.menu_for_reply,
                 chat_id=message.chat_id, message_id=message.reply_to_message_id,
             )
             if menu is not None:
@@ -334,7 +337,7 @@ class DesktopBridgeService:
             if interaction is not None:
                 if self._catalog is not None:
                     try:
-                        self._refresh_projects()
+                        await run_storage(self._refresh_projects)
                     except DesktopCatalogError:
                         await self._reply(message, "Актуальные проекты Codex недоступны; ответ не передан.")
                         return True
@@ -466,7 +469,8 @@ class DesktopBridgeService:
         return " ".join(value.split())[:limit] or "Без названия"
 
     async def _open_menu(self, message: TextMessage) -> None:
-        if message.is_bot and self._state.recent_author_menu_count(
+        if message.is_bot and await run_storage(
+            self._state.recent_author_menu_count,
             author_user_id=message.user_id,
             since=self._now() - _BOT_REQUEST_WINDOW,
         ) >= _BOT_REQUEST_LIMIT:
@@ -478,13 +482,14 @@ class DesktopBridgeService:
             return
         menu_id = uuid4()
         try:
-            text, _, actions, rows = self._menu_view(
+            text, _, actions, rows = await run_storage(
+                self._menu_view,
                 menu_id, 1, stage="projects", project_id=None, thread_id=None, page=0,
             )
         except DesktopCatalogError:
             await self._reply(message, "Не удалось получить актуальные проекты Codex Desktop.")
             return
-        self._state.create_menu(
+        await run_storage(self._state.create_menu,
             menu_id=menu_id, tenant_id=message.tenant_id,
             author_user_id=message.user_id, chat_id=message.chat_id,
             topic_id=message.message_thread_id, source_message_id=message.message_id,
@@ -499,7 +504,7 @@ class DesktopBridgeService:
             )
         except Exception:
             return
-        self._state.bind_menu_message(menu_id, card_id)
+        await run_storage(self._state.bind_menu_message, menu_id, card_id)
 
     async def _handle_menu_callback(self, callback: CallbackQuery) -> bool:
         if not callback.callback_token.startswith("CdxM_"):
@@ -510,7 +515,7 @@ class DesktopBridgeService:
                 callback.query_id, text="Кнопка меню устарела. Откройте /codex заново.",
             )
             return True
-        menu = self._state.read_menu(UUID(hex=match.group(1)))
+        menu = await run_storage(self._state.read_menu, UUID(hex=match.group(1)))
         if menu is None or not self._menu_actor_matches(menu, callback) or (
             menu.menu_message_id != callback.message_id
         ):
@@ -593,9 +598,11 @@ class DesktopBridgeService:
         try:
             if kind == "back":
                 if stage == "projects":
-                    if self._state.advance_menu(menu.menu_id, revision=menu.revision,
-                                                stage="closed", project_id=None,
-                                                thread_id=None, page=0, actions=()):
+                    if await run_storage(
+                        self._state.advance_menu, menu.menu_id, revision=menu.revision,
+                        stage="closed", project_id=None,
+                        thread_id=None, page=0, actions=(),
+                    ):
                         try:
                             await self._api.edit_message_text(
                                 menu.chat_id, menu.menu_message_id,
@@ -619,7 +626,8 @@ class DesktopBridgeService:
                 page = int(value)
             else:
                 return
-            text, page, actions, rows = self._menu_view(
+            text, page, actions, rows = await run_storage(
+                self._menu_view,
                 menu.menu_id, menu.revision + 1, stage=stage,
                 project_id=project_id, thread_id=thread_id, page=page,
             )
@@ -629,9 +637,10 @@ class DesktopBridgeService:
                 message_thread_id=menu.topic_id,
             )
             return
-        if not self._state.advance_menu(
-            menu.menu_id, revision=menu.revision, stage=stage,
-            project_id=project_id, thread_id=thread_id, page=page, actions=actions,
+        if not await run_storage(
+            self._state.advance_menu, menu.menu_id, revision=menu.revision,
+            stage=stage, project_id=project_id, thread_id=thread_id,
+            page=page, actions=actions,
         ):
             return
         try:
@@ -649,7 +658,7 @@ class DesktopBridgeService:
                 )
             except Exception:
                 return
-            self._state.bind_menu_prompt(menu.menu_id, prompt_id)
+            await run_storage(self._state.bind_menu_prompt, menu.menu_id, prompt_id)
 
     async def _submit_menu_prompt(
         self, message: TextMessage, envelope: TrustedIngressEnvelope, menu: DesktopMenu,
@@ -659,14 +668,16 @@ class DesktopBridgeService:
             await self._reply(message, "Задача пуста или превышает 12 000 символов.")
             return
         try:
-            project = next((item for item in self._refresh_projects()
+            project = next((item for item in await run_storage(self._refresh_projects)
                             if item.project_id == menu.project_id), None)
             if project is None:
                 raise DesktopCatalogError("desktop-catalog-project")
             task_title = None
             if menu.thread_id is not None:
                 assert self._catalog is not None
-                task = next((item for item in self._catalog.tasks(project.project_id)
+                task = next((item for item in await run_storage(
+                    self._catalog.tasks, project.project_id,
+                )
                              if item.thread_id == menu.thread_id), None)
                 if task is None:
                     raise DesktopCatalogError("desktop-catalog-task")
@@ -674,8 +685,8 @@ class DesktopBridgeService:
         except DesktopCatalogError:
             await self._reply(message, "Проект или задача изменились. Откройте /codex заново.")
             return
-        if not self._state.advance_menu(
-            menu.menu_id, revision=menu.revision, stage="closed",
+        if not await run_storage(
+            self._state.advance_menu, menu.menu_id, revision=menu.revision, stage="closed",
             project_id=menu.project_id, thread_id=menu.thread_id, page=0, actions=(),
         ):
             await self._reply(message, "Промт уже обработан или меню изменилось.")
@@ -1638,8 +1649,8 @@ class DesktopBridgeService:
         while not self._closed:
             await asyncio.sleep(60)
             await self._expire_interactions()
-            for request in self._state.list_requests(
-                statuses=frozenset(
+            for request in await run_storage(
+                self._state.list_requests, statuses=frozenset(
                     {
                         BridgeRequestStatus.WAITING_AUTHOR,
                         BridgeRequestStatus.WAITING_OWNER,
@@ -1709,7 +1720,7 @@ class DesktopBridgeService:
             try:
                 if self._catalog is not None:
                     try:
-                        self._refresh_projects()
+                        await run_storage(self._refresh_projects)
                     except DesktopCatalogError:
                         raise DesktopIpcUnavailableError("desktop-catalog-unavailable") from None
                 await client.start()
