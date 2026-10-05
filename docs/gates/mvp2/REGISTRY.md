@@ -1,5 +1,14 @@
 # Реестр Gate MVP2
 
+5 октября, 17:15 МСК: версия Codex Desktop больше не закреплена числом в
+UIA. Код `17651308ce8a9d6a1f27199955b13f42de019978` установлен в LIVE;
+исходный запрос № 3029 завершён одним Desktop turn и Telegram message 3043.
+L1 `2975 passed, 3 skipped, 5` исторических deselected, независимый L2
+`174 passed`; signed backup complete/VERIFIED, Main Running, Health 0,
+обе readiness PASS. [Квитанции](m2-desktop/RELEASE-EVIDENCE-20261005-COMPAT.md).
+**READY_FOR_MANUAL_ACCEPTANCE**, D02–D17 `NOT_RUN`, Gate/MVP2 `NOT_ACCEPTED`.
+Ниже — прежние снимки.
+
 5 октября, 14:38 МСК: плиточное меню `/codex` и точная миграция SQLite
 установлены в LIVE на `9aeff52c3d11e895e048bb496cdaa6c17845b057`.
 L1 2969 passed/3 skipped/5 исторических deselected; независимый L2

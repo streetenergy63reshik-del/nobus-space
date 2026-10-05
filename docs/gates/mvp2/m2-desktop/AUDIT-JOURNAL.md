@@ -1,5 +1,19 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 05.10, 17:15 — совместимость с обновлённым Desktop и доставка запроса
+
+LIVE `17651308ce8a9d6a1f27199955b13f42de019978`, tree
+`f3d56b51d3e7abd554098b43a6a5d24d395b8521`. L1 в чистом clone:
+`2975 passed, 3 skipped, 5` прежних исторических deselected; независимый
+L2: `174 passed`. L3 проверил запрет чужого Store-пакета/процесса,
+изменения UI, отсутствие исторического client ID, exact owner/cwd и
+неизвестный ACK. Live UIA Snapshot на `26.930.4958.0` прошёл без отправки.
+После нового candidate-bound backup и восстановления точной failed-записи
+запрос № 3029 породил один Desktop turn и одну Telegram delivery № 3043.
+Main Running, Health 0, local/public readiness PASS. Ручные D02–D17 и показ
+плиток владельцем `NOT_RUN`, Gate/MVP2 `NOT_ACCEPTED`.
+[Полные доказательства](RELEASE-EVIDENCE-20261005-COMPAT.md).
+
 ### 05.10, 14:38 — единый кодовый кандидат развёрнут для ручной приёмки
 
 Чистый source/live `9aeff52c3d11e895e048bb496cdaa6c17845b057`, tree

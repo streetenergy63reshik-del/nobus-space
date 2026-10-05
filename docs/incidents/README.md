@@ -10,6 +10,7 @@
 | 2 октября | [Local readiness STOP](2026-10-02-local-readiness-stop.md) |
 | 4 октября | [Local/public readiness STOP после ремонта](2026-10-04-readiness-stop.md) |
 | 5 октября | [Readiness HTTP 503 и штатное восстановление](2026-10-05-readiness-503-stop.md) |
+| 5 октября | [Совместимость с обновлённым Codex Desktop и доставка сохранённого запроса](2026-10-05-desktop-compatibility.md) |
 | 20 сентября — 3 октября | [Сводный журнал 16 аварийных завершений и выполненные меры](2026-10-03-production-stability-14d.md) |
 
 Доказательства: [подлинные типизированные исторические наблюдения](System/2026-10-03-stability-evidence.json), [квалификация и выпуск exact 4db5f0e](System/2026-10-03-stability-release.json), [read-only проверка 3 октября 17:35](System/2026-10-03-documentation-observation.json). Эти файлы содержат агрегаты и digests, без payload, содержимого БД, сырого stderr и credentials. Хэши связывают источник, но не заменяют локальную проверку DPAPI под владельцем.

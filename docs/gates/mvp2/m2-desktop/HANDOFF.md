@@ -1,5 +1,28 @@
 # M2-DESKTOP — рабочая передача
 
+## 05.10, 17:15 МСК — связь восстановлена, ручная приёмка впереди
+
+LIVE на `17651308ce8a9d6a1f27199955b13f42de019978`. Исправление
+определяет текущий зарегистрированный Store-пакет вместо числового пина,
+проверяет семантический UI и exact IPC owner/cwd. L1 `2975 passed`,
+независимый L2 `174 passed`; новая signed copy четырёх БД VERIFIED,
+Main Running, Health 0, обе readiness PASS. Сохранённый запрос № 3029
+восстановлен один раз: Desktop turn
+`01a10c69-55cb-7d02-869c-0a98e0cb4e19`, Telegram delivery № 3043,
+статус `delivered`. [Точная запись](RELEASE-EVIDENCE-20261005-COMPAT.md).
+**READY_FOR_MANUAL_ACCEPTANCE** для владельца; D02–D17 `NOT_RUN`, Gate/MVP2
+`NOT_ACCEPTED`. Старую D03 не повторяли.
+
+## 05.10, 16:20 МСК — тогда исправление было кандидатом
+
+После ручного запроса № 3029 связь с Codex Desktop отказала. Точный request
+`e2864d25-51a9-4b2b-897c-e99ec2090416` тогда был `failed` без Desktop turn;
+полная IPC-история не содержит его client ID. Кандидат `1765130` убирает
+жёсткий пин сборки и принимает исторический ход без client ID, сохраняя
+exact owner/cwd и fail-closed повтор. [Разбор](../../../incidents/2026-10-05-desktop-compatibility.md).
+LIVE тогда оставался на `9aeff52`; ручную готовность нельзя было объявлять до выпуска и сверки
+исходного запроса. D02–D17 остаются ручной работой владельца, Gate/MVP2 не приняты.
+
 ## 05.10, 14:38 МСК — плиточное меню работает, готово к ручной проверке
 
 `READY_FOR_MANUAL_ACCEPTANCE`: source/live
@@ -67,7 +90,7 @@ Read-only preflight выявил, что production уже чисто работ
 Gate/MVP2 не приняты, ручные D02–D17 остаются за владельцем.
 
 **Gate:** M2-DESKTOP
-**Текущая стадия:** `READY_FOR_MANUAL_ACCEPTANCE`; source/live `9aeff52c3d11e895e048bb496cdaa6c17845b057`, кодовый L1/L2/L3 привязан к этому commit, бот работает после подписанного backup reconcile 05.10. D02–D17 владелец ещё не выполнял; Gate и MVP2 не приняты.
+**Стадия этого снимка:** `READY_FOR_MANUAL_ACCEPTANCE`; source/live `9aeff52c3d11e895e048bb496cdaa6c17845b057`, кодовый L1/L2/L3 привязан к этому commit, бот работал после подписанного backup reconcile 05.10. D02–D17 владелец ещё не выполнял; Gate и MVP2 не приняты.
 
 **Дата текущего наблюдения:** 5 октября 2026 года, 14:38 МСК
 **Ветка:** `codex/m2-desktop`
