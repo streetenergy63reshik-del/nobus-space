@@ -1211,7 +1211,9 @@ def test_m1_installers_support_exact_disabled_candidate_staging():
     assert "$ExpectedHealthDefinitionDigest" in bot
     assert "$ExpectedHealthLauncherDigest" in bot
     assert "$RollbackRoot" in bot
-    assert "[System.IO.File]::Replace" in bot
+    assert "[System.IO.File]::Move($healthLauncher, $healthLauncherRollback)" in bot
+    assert "[System.IO.File]::Move($candidateLauncher, $healthLauncher)" in bot
+    assert "Remove-Item -LiteralPath $candidateLauncher" not in bot
     assert "$ExpectedDefinitionDigest" in backup
     assert bot.index("-Disable") < bot.index("Register-ScheduledTask")
     assert backup.index("-Disable") < backup.index("Register-ScheduledTask")
@@ -1344,7 +1346,9 @@ try {{
     assert (rollback / "NobusSpaceM1S1Fixture-Health.xml").read_text(
         encoding="utf-8"
     ) == health_xml
-    assert not list((root / ".runtime").glob("*.candidate"))
+    candidates = list((root / ".runtime").glob("*.candidate"))
+    assert len(candidates) == 1
+    assert candidates[0].stat().st_size > 0
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows PowerShell installer")

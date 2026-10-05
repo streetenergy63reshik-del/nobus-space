@@ -310,7 +310,6 @@ if (-not `$healthy) {
 exit 0
 "@
 $candidateLauncher = $null
-$candidateLauncherCreated = $false
 $stagingStage = 'prepare_candidate_launcher'
 $utf8Bom = [System.Text.UTF8Encoding]::new($true)
 try {
@@ -319,7 +318,7 @@ try {
         '.check-nobus-space-bot.' + [guid]::NewGuid().ToString('N') + '.candidate'
     )
     [System.IO.File]::WriteAllText($candidateLauncher, $healthBody, $utf8Bom)
-    $candidateLauncherCreated = $true
+    $candidateLauncherDigest = Get-Sha256File $candidateLauncher
     $stagingStage = 'parse_candidate_launcher'
     $tokens = $null
     $parseErrors = $null
@@ -429,17 +428,17 @@ try {
 
     if ($ReplaceExisting.IsPresent) {
         $stagingStage = 'replace_health_launcher'
-        [System.IO.File]::Replace(
-            $candidateLauncher,
-            $healthLauncher,
-            $healthLauncherRollback
-        )
+        [System.IO.File]::Move($healthLauncher, $healthLauncherRollback)
+        [System.IO.File]::Move($candidateLauncher, $healthLauncher)
+        if ((Get-Sha256File $healthLauncher) -cne $candidateLauncherDigest -or
+            (Get-Sha256File $healthLauncherRollback) -cne $ExpectedHealthLauncherDigest) {
+            throw 'Staged health launcher changed during replacement.'
+        }
     }
     else {
         $stagingStage = 'install_health_launcher'
         [System.IO.File]::Move($candidateLauncher, $healthLauncher)
     }
-    $candidateLauncherCreated = $false
 }
 catch {
     Disable-ScheduledTask `
@@ -451,11 +450,4 @@ catch {
         -TaskPath '\' `
         -ErrorAction SilentlyContinue | Out-Null
     throw ('candidate staging failed closed: ' + $stagingStage)
-}
-finally {
-    if ($candidateLauncherCreated -and
-        $null -ne $candidateLauncher -and
-        (Test-Path -LiteralPath $candidateLauncher -PathType Leaf)) {
-        Remove-Item -LiteralPath $candidateLauncher -Force -ErrorAction SilentlyContinue
-    }
 }
