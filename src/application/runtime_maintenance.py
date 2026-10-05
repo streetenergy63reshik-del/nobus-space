@@ -75,6 +75,8 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str | tuple[str, ...]]] = {
             "b1f338e3deff32d9507eda30384864f4a1baabce6b56d7f59cfdeffe65b5aef4",
     },
     "telegram-state.sqlite3": {
+        "index:idx_desktop_bridge_menus_reply":
+            "a1cca7a8ab371b4887db14b71ceabde26b7ca527e6898770a46b2e113a48d16f",
         "index:idx_desktop_bridge_delivery_status":
             "c497075661b24cf7ce2c4fd933d8880358b460792c5b19108d9e6fe22c3ff1b4",
         "index:idx_desktop_bridge_interaction_message":
@@ -101,6 +103,10 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str | tuple[str, ...]]] = {
             "93178455126f5edaeaa6ed3af42141e688b34d9d481bfa205900d4e9127e434b",
         "table:desktop_bridge_deliveries":
             "a83b734394337d69704741af2c3e11c7ddac7f5d93733ca8140c59d68ac68976",
+        "table:desktop_bridge_menu_prompts":
+            "d4fa11d26242a0f46c8065515a97329c4d151d5a9828f22db1c3302b135cd0d4",
+        "table:desktop_bridge_menus":
+            "b4a6be5a041679d2fb6d0cadb808c02ae9589d95cc8a60dd5aae7c2a9382ae20",
         "table:desktop_bridge_interactions":
             "9d802219fdd8c1afd0daf983c23537a838b7e7c79be9b4a6515aebc6fed0a67f",
         # Fresh schema and the additive migration of the exact prior schema.
@@ -304,6 +310,11 @@ def invalidate_restored_authority(root: Path) -> None:
     with closing(sqlite3.connect(root / "telegram-state.sqlite3")) as connection:
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA secure_delete=ON")
+        connection.execute(
+            """UPDATE desktop_bridge_menus SET stage='closed',revision=revision+1,
+               updated_at=? WHERE stage!='closed'""",
+            (datetime.now(UTC).isoformat(),),
+        )
         for row in connection.execute("SELECT * FROM telegram_capabilities").fetchall():
             payload = codec.decode(bytes(row["payload"]))
             if row["kind"] == "action" and "effect_digest" in payload:
@@ -592,6 +603,12 @@ def _validate_telegram_state_rows(path: Path) -> None:
         bridge_deliveries = connection.execute(
             "SELECT * FROM desktop_bridge_deliveries"
         ).fetchall()
+        bridge_menus = connection.execute(
+            "SELECT * FROM desktop_bridge_menus"
+        ).fetchall()
+        menu_prompts = connection.execute(
+            "SELECT * FROM desktop_bridge_menu_prompts"
+        ).fetchall()
     for row in jobs:
         created = _aware(row["created_at"])
         updated = _aware(row["updated_at"])
@@ -771,6 +788,40 @@ def _validate_telegram_state_rows(path: Path) -> None:
             or updated < created
         ):
             raise RuntimeError("desktop bridge delivery row is invalid")
+    menus_by_id = {}
+    for row in bridge_menus:
+        actions = codec.decode(bytes(row["actions"]))
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        expires = _aware(row["expires_at"])
+        menu_id = UUID(row["menu_id"])
+        items = actions.get("actions") if isinstance(actions, dict) and set(actions) == {"actions"} else None
+        if (
+            not _runtime_text(row["tenant_id"], 128)
+            or type(row["author_user_id"]) is not int or row["author_user_id"] <= 0
+            or type(row["chat_id"]) is not int or row["chat_id"] == 0
+            or (row["topic_id"] is not None and
+                (type(row["topic_id"]) is not int or row["topic_id"] <= 0))
+            or type(row["source_message_id"]) is not int or row["source_message_id"] <= 0
+            or (row["menu_message_id"] is not None and row["menu_message_id"] <= 0)
+            or (row["prompt_message_id"] is not None and row["prompt_message_id"] <= 0)
+            or row["stage"] not in {"projects", "tasks", "prompt", "closed"}
+            or type(row["page"]) is not int or row["page"] < 0
+            or type(row["revision"]) is not int or row["revision"] < 1
+            or not isinstance(items, list) or len(items) > 32
+            or any(not isinstance(item, list) or len(item) != 2
+                   or item[0] not in {"project", "task", "new", "page", "back"}
+                   or (item[1] is not None and not isinstance(item[1], str))
+                   for item in items)
+            or updated < created or expires <= created
+        ):
+            raise RuntimeError("desktop bridge menu row is invalid")
+        menus_by_id[str(menu_id)] = row
+    for row in menu_prompts:
+        menu = menus_by_id.get(row["menu_id"])
+        if (menu is None or type(row["message_id"]) is not int or row["message_id"] <= 0
+                or row["chat_id"] != menu["chat_id"]):
+            raise RuntimeError("desktop bridge menu prompt row is invalid")
 
 
 

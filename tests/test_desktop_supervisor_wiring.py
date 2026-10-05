@@ -145,14 +145,34 @@ def test_backup_rebind_migrates_only_the_exact_previous_bridge_schema(tmp_path: 
 
     old = tmp_path / "old" / "telegram-state.sqlite3"
     old.parent.mkdir()
+    SQLiteTelegramState(old)
     with sqlite3.connect(old) as connection:
+        indexes = [row[0] for row in connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type='index' "
+            "AND tbl_name='desktop_bridge_requests' AND sql IS NOT NULL"
+        )]
+        connection.execute("DROP TABLE desktop_bridge_menu_prompts")
+        connection.execute("DROP TABLE desktop_bridge_menus")
+        connection.execute("DROP TABLE desktop_bridge_requests")
         connection.execute(ddl.replace("bootstrap_turn_id TEXT,", ""))
+        for index in indexes:
+            connection.execute(index)
     assert backup_cycle._migrate_exact_previous_desktop_schema(old.parent)
     with sqlite3.connect(old) as connection:
         assert "bootstrap_turn_id" in {
             row[1] for row in connection.execute("PRAGMA table_info(desktop_bridge_requests)")
         }
     assert not backup_cycle._migrate_exact_previous_desktop_schema(old.parent)
+
+    current = tmp_path / "current" / "telegram-state.sqlite3"
+    current.parent.mkdir()
+    SQLiteTelegramState(current)
+    with sqlite3.connect(current) as connection:
+        connection.execute("DROP TABLE desktop_bridge_menu_prompts")
+        connection.execute("DROP TABLE desktop_bridge_menus")
+    assert backup_cycle._migrate_exact_previous_desktop_schema(current.parent)
+    validate_runtime_database(current, content=False)
+    assert not backup_cycle._migrate_exact_previous_desktop_schema(current.parent)
 
     unknown = tmp_path / "unknown" / "telegram-state.sqlite3"
     unknown.parent.mkdir()

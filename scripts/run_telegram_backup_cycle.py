@@ -123,13 +123,27 @@ def _migrate_exact_previous_desktop_schema(runtime: Path) -> bool:
     """Upgrade only the known additive bridge schema while runtime is stopped."""
     path = m.checked_path(Path(runtime) / 'telegram-state.sqlite3', root=runtime)
     with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=1)) as connection:
-        row = connection.execute(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='desktop_bridge_requests'"
-        ).fetchone()
-    if row is None or m._ddl_digest(str(row[0])) != (
-        'c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6'
-    ):
+        actual = {
+            f'{kind}:{name}': m._ddl_digest(str(ddl or ''))
+            for kind, name, ddl in connection.execute(
+                "SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
+            )
+        }
+    expected = {
+        name: digests for name, digests in m.EXPECTED_SCHEMA_DIGESTS['telegram-state.sqlite3'].items()
+        if name not in {
+            'table:desktop_bridge_menus', 'index:idx_desktop_bridge_menus_reply',
+            'table:desktop_bridge_menu_prompts',
+        }
+    }
+    if set(actual) != set(expected):
         return False
+    for name, digests in expected.items():
+        allowed = digests if isinstance(digests, tuple) else (digests,)
+        if name == 'table:desktop_bridge_requests':
+            allowed += ('c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6',)
+        if actual[name] not in allowed:
+            return False
     from src.application.desktop_bridge_state import SQLiteDesktopBridgeState
 
     SQLiteDesktopBridgeState(path)
