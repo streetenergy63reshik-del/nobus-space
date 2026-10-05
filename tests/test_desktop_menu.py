@@ -19,6 +19,7 @@ from src.contracts import IngressKind, IngressSource, TrustedIngressEnvelope
 from src.integrations.codex_desktop_catalog import (
     CatalogProject, CatalogTask, CodexDesktopCatalog, DesktopCatalogError,
 )
+from src.integrations.codex_desktop_ipc import DesktopIpcError
 from src.transport.telegram.gateway import InMemoryUpdateIdStore, TelegramGateway
 from src.transport.telegram.models import ActorBinding, CallbackQuery, TextMessage
 from src.transport.telegram.models import IngressStatus
@@ -275,6 +276,15 @@ async def test_new_task_tile_uses_current_project_name(tmp_path: Path):
     assert len(requests) == 1
     assert requests[0].operation == "create"
     assert requests[0].project_name == "Переименованный проект"
+    assert requests[0].payload["catalog_project_id"] == PROJECT_ID
+    assert requests[0].payload["catalog_project_cwd"] == str(catalog.project.cwd)
+    assert (await service._bound_project(requests[0])).cwd == catalog.project.cwd
+    catalog.project = CatalogProject(str(uuid4()), "Переименованный проект", catalog.project.cwd)
+    with pytest.raises(DesktopIpcError, match="desktop-project-changed"):
+        await service._bound_project(requests[0])
+    catalog.project = CatalogProject(PROJECT_ID, "Переименованный проект", tmp_path)
+    with pytest.raises(DesktopIpcError, match="desktop-project-changed"):
+        await service._bound_project(requests[0])
     assert scheduled == [requests[0].request_id]
 
 

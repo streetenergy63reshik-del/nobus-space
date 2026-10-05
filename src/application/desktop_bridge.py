@@ -193,6 +193,8 @@ class ParsedDesktopCommand:
     thread_id: str | None
     instruction: str
     task_title: str | None = None
+    catalog_project_id: str | None = None
+    catalog_project_cwd: str | None = None
 
 
 class DesktopBridgeService:
@@ -383,6 +385,29 @@ class DesktopBridgeService:
             for item in projects
         }
         return projects
+
+    async def _bound_project(self, request: BridgeRequest) -> DesktopProject:
+        if request.project_name is None:
+            raise DesktopIpcError("desktop-project-missing")
+        selected_id = request.payload.get("catalog_project_id")
+        selected_cwd = request.payload.get("catalog_project_cwd")
+        if selected_id is None and selected_cwd is None:
+            project = self._projects.get(request.project_name.casefold())
+            if project is None:
+                raise DesktopIpcError("desktop-project-not-allowed")
+            return project
+        if (not isinstance(selected_id, str) or not isinstance(selected_cwd, str)
+                or self._catalog is None):
+            raise DesktopIpcError("desktop-project-binding-invalid")
+        try:
+            projects = await run_storage(self._catalog.projects)
+        except DesktopCatalogError:
+            raise DesktopIpcUnavailableError("desktop-catalog-unavailable") from None
+        match = next((item for item in projects if item.project_id == selected_id), None)
+        if (match is None or match.name != request.project_name
+                or str(match.cwd) != selected_cwd):
+            raise DesktopIpcError("desktop-project-changed")
+        return DesktopProject(match.name, match.cwd)
 
     async def _desktop_unavailability_text(self) -> str | None:
         client = self._ipc_factory()
@@ -703,6 +728,7 @@ class DesktopBridgeService:
             ParsedDesktopCommand(
                 "create" if menu.thread_id is None else "continue",
                 project.name, menu.thread_id, instruction, task_title,
+                project.project_id, str(project.cwd),
             ),
         )
 
@@ -987,6 +1013,8 @@ class DesktopBridgeService:
                     "instruction": parsed.instruction,
                     "requested_thread_id": thread_id,
                     "requested_task_title": parsed.task_title,
+                    "catalog_project_id": parsed.catalog_project_id,
+                    "catalog_project_cwd": parsed.catalog_project_cwd,
                 },
             )
         except DesktopBridgeStateError as error:
@@ -1878,11 +1906,7 @@ class DesktopBridgeService:
     async def _create_desktop_task_locked(
         self, client: CodexDesktopIpcClient, request: BridgeRequest
     ) -> tuple[BridgeRequest, OwnerBinding]:
-        if request.project_name is None:
-            raise DesktopIpcError("desktop-project-missing")
-        project = self._projects.get(request.project_name.casefold())
-        if project is None:
-            raise DesktopIpcError("desktop-project-not-allowed")
+        project = await self._bound_project(request)
         if not self._state.transition(
             request.request_id,
             expected=frozenset({BridgeRequestStatus.RECEIVED, BridgeRequestStatus.WAITING_PC}),
@@ -1988,8 +2012,8 @@ class DesktopBridgeService:
         if len(actual_projects) != 1:
             raise DesktopIpcError("desktop-project-context-not-allowed")
         if request.project_name is not None:
-            project = self._projects.get(request.project_name.casefold())
-            if project is None or actual_projects[0] != project:
+            project = await self._bound_project(request)
+            if actual_projects[0] != project:
                 raise DesktopIpcError("desktop-project-context-mismatch")
         self._remember_title(request, projection)
         client_message_id = request.client_message_id or f"nobus:{request.request_id}"

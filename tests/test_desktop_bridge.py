@@ -33,6 +33,7 @@ from src.application.desktop_bridge_state import (
     InteractionKind,
     SQLiteDesktopBridgeState,
 )
+from src.application.durable_telegram_state import SQLiteTelegramState
 from src.integrations.codex_desktop_ipc import (
     DesktopAgentMessage,
     DesktopPendingRequest,
@@ -1693,8 +1694,18 @@ def test_backup_rebind_migrates_exact_previous_bridge_schema_on_isolated_copy(tm
     database = runtime / "telegram-state.sqlite3"
     old_ddl = (Path(__file__).parent / "fixtures" /
                "desktop_bridge_requests_3ea2438.sql").read_text(encoding="utf-8")
+    SQLiteTelegramState(database)
     with sqlite3.connect(database) as connection:
+        indexes = [row[0] for row in connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type='index' "
+            "AND tbl_name='desktop_bridge_requests' AND sql IS NOT NULL"
+        )]
+        connection.execute("DROP TABLE desktop_bridge_menu_prompts")
+        connection.execute("DROP TABLE desktop_bridge_menus")
+        connection.execute("DROP TABLE desktop_bridge_requests")
         connection.executescript(old_ddl)
+        for index in indexes:
+            connection.execute(index)
         before = connection.execute(
             "SELECT sql FROM sqlite_master WHERE name='desktop_bridge_requests'"
         ).fetchone()[0]
