@@ -1,0 +1,117 @@
+{
+  "schema": "nobus-documentation-observation-1",
+  "observed_at": "2026-10-03T14:35:33.995112+00:00",
+  "source_revision": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+  "source_clean": true,
+  "publication_base": "f3fdb2d22a41b6a5b84fec06544447014c7bb35c",
+  "readback": {
+    "at": "2026-10-03T14:35:33.995112+00:00",
+    "revision": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+    "tasks": [
+      {
+        "name": "NobusSpaceBot",
+        "state": "Running",
+        "enabled": true,
+        "last": "2026-10-03T12:43:09",
+        "result": 267009
+      },
+      {
+        "name": "NobusSpaceBot-Backup",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-03T03:30:01",
+        "result": 0
+      },
+      {
+        "name": "NobusSpaceBot-Health",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-03T17:35:07",
+        "result": 0
+      }
+    ],
+    "readiness": {
+      "local": true,
+      "public": true,
+      "details": [
+        {
+          "boundary": "local",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-03T14:35:33Z",
+          "elapsed_ms": 218,
+          "deadline_ms": 5000,
+          "status": "PASS"
+        },
+        {
+          "boundary": "public",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-03T14:35:33Z",
+          "elapsed_ms": 797,
+          "deadline_ms": 10000,
+          "status": "PASS"
+        }
+      ]
+    },
+    "integrity": "PASS",
+    "task_count": 89,
+    "delivery": {
+      "pending": 0,
+      "leased": 0,
+      "unknown": 0,
+      "failed": 0,
+      "confirmed_parts": 20
+    },
+    "queue": {},
+    "leases": [
+      {
+        "offset": 375634031,
+        "revision": 97423,
+        "active": true
+      }
+    ],
+    "reconciliation": false,
+    "backup": {
+      "phase": "complete",
+      "at": "2026-10-03T09:44:12.474364+00:00",
+      "digest": "sha256:9b4065438d5fa02e3c58ac58c81bd040d5e3f49b47d4dacf9eabf0dd0cd48d9a",
+      "generation": "daily-20261003T124245-cbfb436c85a549feaeb016d7aefb7882",
+      "verified": true,
+      "hold": false
+    },
+    "history_head": "sha256:8e67f2b14a55c65c0a7092b8ed2bacf70abbeb1c533fedf613d771bc919e1878"
+  },
+  "process_chain": {
+    "checked_at": "2026-10-03T14:46:12.116605+00:00",
+    "leaf_supervisors": 1,
+    "leaf_core": 1,
+    "relays": 1,
+    "listeners": 1,
+    "listener_owned_by_core": true,
+    "children_owned_by_supervisor": true
+  },
+  "monitor": {
+    "id": "nobus-space-bot",
+    "status": "ACTIVE",
+    "hours_msk": [
+      8,
+      22
+    ]
+  },
+  "actions": "read-only; no Telegram test, code deployment or production configuration change",
+  "export_provenance": {
+    "2026-10-03-stability-evidence.json": {
+      "original_local_sha256": "0059f17c04e95390c86dc4ee2003bf37ad0b9591cc5f31c8e0993f829e7953a8",
+      "published_lf_sha256": "d97ab672a612b1ec6d86fcfe5954f9c6b6ed7df5e94c49c18ea61bcc9c4ea353",
+      "normalization": "CRLF to LF only; original local bytes and parsed contents unchanged"
+    },
+    "2026-10-03-stability-release.json": {
+      "original_local_sha256": "0f349ddc538ffa2f6d37bdc96e2f7a0c7f7ae06de9a5f2bb3cbf712a9e1233bc",
+      "published_lf_sha256": "457c8475e79d85c4a4645af86b2496591b24168ef1a807e30b4d1201b9e6d905",
+      "normalization": "CRLF to LF only; original local bytes and parsed contents unchanged"
+    }
+  }
+}

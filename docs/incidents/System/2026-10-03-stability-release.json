@@ -1,0 +1,184 @@
+{
+  "schema": "nobus-stability-release-1",
+  "at": "2026-10-03T09:49:59.009240+00:00",
+  "candidate": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+  "status": "PASS",
+  "qualification": {
+    "schema": "nobus-stability-qualification-1",
+    "candidate": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+    "status": "PASS",
+    "l1_broad": {
+      "tests": 2985,
+      "failures": 18,
+      "errors": 0,
+      "skipped": 3
+    },
+    "l1_environment": "18 real production singleton conflicts, resolved by official pytest-only mutex namespace without source changes",
+    "l1_affected_isolated": {
+      "tests": 102,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "l2_clean_export": {
+      "tests": 539,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "l3": 1139,
+    "historical_deselections": [
+      "test_gate_c0_governance::test_active_status_and_roadmap_are_consistent",
+      "test_gate_c0_governance::test_publication_projection_excludes_held_editorial_docs",
+      "test_gate_c0_governance::test_candidate_changes_no_production_code",
+      "test_pre_gate1_architecture_integration::test_active_projections_and_authority_point_to_adr0022",
+      "test_pre_gate1_architecture_integration::test_gate0_catalog_required_sources_remain_byte_identical"
+    ],
+    "artifact_sha256": {
+      "L1-4db5f0e.xml": "6c37321697557d4b8e9fc7e25e8129e7ab7ab2a437997da0f67aae0085cc2c18",
+      "L1-isolated-4db5f0e.xml": "9f23aa7465898e283918299c287119c31b1fbe9074c23a99fcc90e378f8395c3",
+      "L2-clean-4db5f0e.xml": "6f8ca7a068d279263b605f0c8d891d64d8fd82c56a90bdfc27e6bdd688657f33",
+      "L3-4db5f0e.json": "50e61241ebb9d045c1e43ddd2a2d7e2f38c36ece526e67fa34f90dda83c330f6",
+      "candidate-4db5f0e.zip": "93536fe48910f90c90f8d4b7f3c28e4825fed071bab06a39b78e8899dc3f5b58"
+    }
+  },
+  "timeline_utc": {
+    "stopped_proven": "2026-10-03T09:30:40.046256+00:00",
+    "backup_staged": "2026-10-03T09:39:40.422809+00:00",
+    "rebound": "2026-10-03T09:40:18.540345+00:00",
+    "cycle_complete": "2026-10-03T09:44:12.489186+00:00"
+  },
+  "config_digest": "sha256:65404c89ceef32d91d8f72656d75d57bcc03f00244156f7f2a7fba1f551789d7",
+  "activation_binding": "sha256:e674d5d74a3a4f4d20ccd2756bb3c47ebb42594dbab9425af935366894fa99e1",
+  "history": {
+    "before_switch": "sha256:a13502447e35ae84fee576b5091c322eeb241f41dc9c8c888fcfd76c00c47ee9",
+    "after_rebind": "sha256:a6c8b3e239b6e63b63d65f8aec479cb5bcbdccbe9cd32af7a53db388f9071503",
+    "active_starting": "sha256:8e67f2b14a55c65c0a7092b8ed2bacf70abbeb1c533fedf613d771bc919e1878",
+    "preserved": true
+  },
+  "readback": {
+    "tasks": [
+      {
+        "name": "NobusSpaceBot",
+        "state": "Running",
+        "enabled": true,
+        "last": "2026-10-03T12:43:09",
+        "result": 267009
+      },
+      {
+        "name": "NobusSpaceBot-Backup",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-03T03:30:01",
+        "result": 0
+      },
+      {
+        "name": "NobusSpaceBot-Health",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-03T12:46:07",
+        "result": 0
+      }
+    ],
+    "readiness": {
+      "local": true,
+      "public": true,
+      "details": [
+        {
+          "boundary": "local",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-03T09:46:44Z",
+          "elapsed_ms": 203,
+          "deadline_ms": 5000,
+          "status": "PASS"
+        },
+        {
+          "boundary": "public",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-03T09:46:45Z",
+          "elapsed_ms": 656,
+          "deadline_ms": 10000,
+          "status": "PASS"
+        }
+      ]
+    },
+    "integrity": "PASS",
+    "task_count": 89,
+    "delivery": {
+      "pending": 0,
+      "leased": 0,
+      "unknown": 0,
+      "failed": 0,
+      "confirmed_parts": 20
+    },
+    "queue": {},
+    "leases": [
+      {
+        "offset": 375634030,
+        "revision": 96278,
+        "active": true
+      }
+    ],
+    "reconciliation": false,
+    "backup": {
+      "phase": "complete",
+      "at": "2026-10-03T09:44:12.474364+00:00",
+      "digest": "sha256:9b4065438d5fa02e3c58ac58c81bd040d5e3f49b47d4dacf9eabf0dd0cd48d9a",
+      "generation": "daily-20261003T124245-cbfb436c85a549feaeb016d7aefb7882",
+      "verified": true,
+      "hold": false
+    }
+  },
+  "process_chain": {
+    "checked_at_msk": "2026-10-03T12:46",
+    "leaf_supervisors": 1,
+    "leaf_core": 1,
+    "relays": 1,
+    "listeners": 1,
+    "listener_owned_by_core": true,
+    "venv_redirectors_are_parent_nodes": true
+  },
+  "preservation": {
+    "schema": "nobus-stability-preservation-1",
+    "at": "2026-10-03T09:49:59.009240+00:00",
+    "candidate": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+    "unchanged_business_databases": {
+      "business-notes.sqlite3": true,
+      "task-runtime.sqlite3": true,
+      "telegram-state.sqlite3": true
+    },
+    "checkpoint": "lease/revision may advance; offset preserved or monotonic",
+    "steady_probe_pairs": 32,
+    "steady_first": "2026-10-03T09:44:18Z",
+    "steady_last": "2026-10-03T09:49:56Z",
+    "steady_all_pass": true,
+    "steady_max_elapsed_ms": {
+      "local": 234,
+      "public": 937
+    },
+    "history_head": "sha256:8e67f2b14a55c65c0a7092b8ed2bacf70abbeb1c533fedf613d771bc919e1878",
+    "status": "PASS"
+  },
+  "rollback": {
+    "workspace_relative_directory": ".runtime/nobus-stability-20261003/rollback",
+    "source_ref": "codex/nobus-before-stability-20261003",
+    "source_commit": "bd991760312732dd15cdad909e81a6023cc703f2",
+    "files_retained": 5
+  },
+  "git_publication_performed": false,
+  "telegram_test_sent": false,
+  "routine_monitor_schedule_changed": false,
+  "operator_staging_issue": {
+    "cause": "Child Windows PowerShell script-loading policy rejected installer before registration.",
+    "outcome": "Exact new config preserved; unchanged Backup XML/history confirmed; only missing official installer step completed with normal process execution-policy argument. No permanent Windows policy change."
+  },
+  "unresolved": [
+    "Historical SSH 255 cause UNKNOWN: stderr was not retained.",
+    "Exact historical 95-second local probe delay UNKNOWN; synchronous SQLite stalls reproduced and corrected.",
+    "3 October Kernel-Power 41 proves an unclean Windows restart, not the hardware cause."
+  ]
+}
