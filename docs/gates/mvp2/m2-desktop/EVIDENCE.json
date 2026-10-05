@@ -86,6 +86,7 @@
     "production_readback": "Main Running/Enabled; Health result 0/Enabled; Backup Enabled; local and public /readyz 200 exact ready body; four encrypted databases verified; hold=false",
     "desktop_readback": "IPC connected; 11 local projects; 3 nobus-orchestrator-dev tasks; no new turn sent",
     "telegram_profile_readback": "set profile PASS; getMyCommands start,codex,status,limit,help",
+    "telegram_entry_keyboard": "2026-10-05 15:12 MSK Bot API accepted one persistent reply keyboard message 3024 in chat -1004417194376 topic 91; client display and press NOT_RUN",
     "manual_acceptance": "Owner menu and D02-D17 NOT_RUN; Gate/MVP2 NOT_ACCEPTED",
     "evidence_doc": "docs/gates/mvp2/m2-desktop/RELEASE-EVIDENCE-20261005.md"
   },

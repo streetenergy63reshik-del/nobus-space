@@ -15,6 +15,7 @@
 | Службы и сеть | `NobusSpaceBot` Running/Enabled; `NobusSpaceBot-Health` Ready/Enabled, последний result 0 в 14:35 МСК; `NobusSpaceBot-Backup` Ready/Enabled. Локальный `/readyz` с точным Host и публичный `https://app.nobusspace.com/readyz`: HTTP 200, тело `{"status":"ready"}` |
 | Codex Desktop | Работающий процесс владельца; IPC `connected=True`; свежий read-only каталог: 11 локальных проектов и 3 задачи `nobus-orchestrator-dev`. Никакой Desktop turn не отправлялся для этой технической проверки |
 | Telegram | `configure_telegram_profile.py --apply`: PASS; последующий read-only `getMyCommands`: `start,codex,status,limit,help`. Это проверка профиля и доступности API, не живая приёмка маршрута |
+| Видимая кнопка | 05.10, 15:12 МСК: один `sendMessage` с постоянной `ReplyKeyboardMarkup` и кнопкой `/codex@Nobusspacebot` принят Bot API как message `3024` в chat `-1004417194376`, topic `91` («Codex work»); текст и target сверены по ответу. Реальное отображение и нажатие клиентом ещё `NOT_RUN` |
 | Состояние очередей | Runtime-set PASS; desktop requests: 3 delivered, 2 исторических `unknown_dispatch` без повтора; 0 новых меню и 0 Telegram jobs на момент readback |
 | Возврат | Прежний рабочий commit `4db5f0e9266637feca408a57aa0c8e8ac580dbc0` сохранён в `codex/nobus-before-m2-menu-20261005`; старые Task XML, launcher, backup config и signed journal скопированы в игнорируемый release-каталог. Основные БД и резервные копии не удалялись. При штатной остановке SQLite убрал только отдельно разрешённые `-wal`/`-shm` sidecar |
 
