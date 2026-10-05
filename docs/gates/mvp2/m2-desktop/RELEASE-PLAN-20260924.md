@@ -1,5 +1,16 @@
 # M2-DESKTOP: план контролируемого выпуска
 
+## 05.10, 14:38 — плиточное меню выпущено для ручной приёмки
+
+План применён к точному source/live `9aeff52c3d11e895e048bb496cdaa6c17845b057`:
+стадийное выключение трёх Scheduled Tasks, чистое завершение Main,
+backup config и signed rebind, один exact reconcile, запуск Main/Health,
+readiness и Telegram profile PASS. Новый complete/VERIFIED backup и
+точные receipt приведены в [доказательстве выпуска](RELEASE-EVIDENCE-20261005.md).
+Документы ниже сохраняют историю прежних выпусков, а не текущие команды
+для повторного применения. Ручные D02–D17 и меню ещё не проведены;
+Gate/MVP2 не приняты.
+
 ## 29.09, 08:55 — повторный запуск после подписанного STOP
 
 Source/live и config binding остались `bd991760312732dd15cdad909e81a6023cc703f2` /

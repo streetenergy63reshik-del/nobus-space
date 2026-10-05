@@ -1,6 +1,15 @@
 # M2-DESKTOP — Telegram ↔ Codex Desktop
 
-29 сентября 2026, 08:55 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE
+5 октября 2026, 14:38 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE.**
+Исходник и LIVE: `9aeff52c3d11e895e048bb496cdaa6c17845b057`.
+Плиточное меню установлено, профиль Telegram содержит `/codex`, службы
+и signed backup подтверждены. Живые плитки и D02–D17 остаются ручной
+проверкой владельца; Gate/MVP2 не приняты. Точная
+[связка выпуска](m2-desktop/RELEASE-EVIDENCE-20261005.md) и
+[инструкция](M2-DESKTOP-MANUAL-ACCEPTANCE.md) актуальны для нового RUN.
+Следующие абзацы сохраняют историю прежних снимков.
+
+29 сентября 2026, 08:55 МСК. **Тогда: READY_FOR_MANUAL_ACCEPTANCE
 после восстановления.** Код/live остаются на `bd991760312732dd15cdad909e81a6023cc703f2`.
 После подписанного STOP 28 сентября выполнены один exact reset и один
 backup recovery; Main Running, local/public readiness и два Health PASS.
@@ -10,10 +19,10 @@ backup recovery; Main Running, local/public readiness и два Health PASS.
 сохранённый снимок 27 сентября.
 
 Дополнительный вход `/codex` через плитки проектов и задач описан в
-[спецификации меню](M2-DESKTOP-TILE-MENU.md). Его код 04.10 находится в WIP;
-этот документ не объявляет новый live-релиз или приёмку D02–D17.
+[спецификации меню](M2-DESKTOP-TILE-MENU.md). На 04.10 его код был в WIP;
+эта историческая запись не объявляла новый live-релиз или приёмку D02–D17.
 
-27 сентября 2026, 18:20 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE.**
+27 сентября 2026, 18:20 МСК. **Тогда: READY_FOR_MANUAL_ACCEPTANCE.**
 Source и live запущены на `bd991760312732dd15cdad909e81a6023cc703f2`
 (tree `69dae321773812fd3d2a96004ae86f6ee3e3812b`). Main работает,
 Main/Health/Backup включены, local/public readiness и подписанный backup
@@ -29,7 +38,7 @@ Main/Health/Backup включены, local/public readiness и подписан�
 остаётся остановленным на `fd4d66c`, D02–D17 не закрыты. Следующий
 абзац — исторический статус первого отклонённого снимка, а не CURRENT.
 
-27 сентября 2026, 10:05 МСК. **CURRENT: production `fd4d66c` остановлен;
+27 сентября 2026, 10:05 МСК. **Тогда: production `fd4d66c` остановлен;
 Main/Health/Backup Disabled, admission hold и signed STOP сохранены;
 Gate D01–D17 не принят.** Локальный backup/recovery WIP прошёл адресные
 проверки; первый DRAFT `2355ae5` получил два отказа L1 одной readiness-

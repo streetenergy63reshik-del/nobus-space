@@ -2,12 +2,12 @@
   "schema_version": 1,
   "gate_id": "M2-DESKTOP",
   "stage": "READY_FOR_MANUAL_ACCEPTANCE_D02_D17_NOT_RUN",
-  "observed_at_utc": "2026-09-29T05:55:00Z",
+  "observed_at_utc": "2026-10-05T11:38:00Z",
   "base_commit": "31df0d00a0a74de920a7a7367d3b662566a653ff",
   "base_tree": "ea6dc3aee72146b311e19409187522a8831e21cf",
-  "candidate_commit": "bd991760312732dd15cdad909e81a6023cc703f2",
-  "candidate_tree": "69dae321773812fd3d2a96004ae86f6ee3e3812b",
-  "production_commit": "bd991760312732dd15cdad909e81a6023cc703f2",
+  "candidate_commit": "9aeff52c3d11e895e048bb496cdaa6c17845b057",
+  "candidate_tree": "5c9ba94fd72fbf7e6e655eddc7b8329346f8df92",
+  "production_commit": "9aeff52c3d11e895e048bb496cdaa6c17845b057",
   "production_state": "MAIN_RUNNING_MAIN_HEALTH_BACKUP_ENABLED_READINESS_PASS_BACKUP_COMPLETE",
   "content_digest": "sha256:ff52fe7575092212e4115c5c2b3341833560b446709d9b4cda76806b9362617f",
   "content_digest_status": "Historical 2026-09-25 candidate snapshot; later production and acceptance addenda are WIP and are not covered by this digest",
@@ -71,7 +71,24 @@
   "content_digest_algorithm": "SHA-256 of UTF-8 records in listed order: path + NUL + lowercase SHA-256 of exact source-worktree file bytes + LF",
   "clean_export_content_digest": "sha256:0639234b255fd2ce1a534bd797a66d49422ef704654388e5913ecd1921c968b4",
   "clean_export_byte_note": "Git ZIP export on this Windows host applies CRLF to many text entries; its exact-byte digest is distinct from source-worktree content_digest. The clean export is bound to local checkpoint 007c654 / Git tree b1331e4a22d754128e76191a47211d106011f9ee. The source-worktree digest also includes post-checkpoint evidence notes; neither digest alone proves production checkout bytes.",
-  "candidate_note": "Current exact source/live bd991760312732dd15cdad909e81a6023cc703f2 / 69dae321773812fd3d2a96004ae86f6ee3e3812b passed clean-clone L1/L2/L3. After signed STOP on 28 September, exact reset and failed-cycle recovery on 29 September restored Main, local/public readiness, two Health PASS and a new complete/VERIFIED backup. The exact external initiating fault was not proved. D02-D17 remain owner manual tests; Gate and MVP2 are not accepted. The content_digest above remains a historical 25 September snapshot. Earlier c6f6858 and failed 2355ae5 sections are historical.",
+  "candidate_note": "Current exact source/live 9aeff52c3d11e895e048bb496cdaa6c17845b057 / 5c9ba94fd72fbf7e6e655eddc7b8329346f8df92 passed clean-clone L1/L2/L3. One signed backup reconciliation created a complete/VERIFIED generation; Main, Health, local/public readiness and Telegram /codex profile passed readback on 5 October. Owner menu and D02-D17 remain NOT_RUN; Gate and MVP2 are not accepted. The content_digest above remains a historical 25 September snapshot; this current record is linked to RELEASE-EVIDENCE-20261005.md. Earlier candidate sections are historical.",
+  "candidate_verification_20261005": {
+    "scope": "Frozen code commit 9aeff52 deployed for owner manual acceptance; not D02-D17 or final Gate acceptance",
+    "candidate_commit": "9aeff52c3d11e895e048bb496cdaa6c17845b057",
+    "candidate_tree": "5c9ba94fd72fbf7e6e655eddc7b8329346f8df92",
+    "l1": "Clean short Git clone: 2969 passed, 3 skipped, 5 historical deselected, 25 subtests; JUnit sha256:1371e36ba864a3134a4b32ea4c81f79e53454845be87f64f19d5753f7fffe757",
+    "l2": "Independent clean Git clone: 332 passed, 3 mutex deselected (covered by L1); JUnit sha256:92293c98728935a21dcf886866b8f6371ba167c78849d0cee509dfa2fcae30d",
+    "l3": "Focused adversarial review of callback actor and topic binding, project identity, SQLite migration, backup and installer staging; no new blocker",
+    "application_config_digest": "sha256:b13a0e1797d6a67cc96becd90a9f6bf9fff89c2dddcba1a25bb11da60ca923de",
+    "signed_recovery_head": "sha256:7f9aa3f43f177b4bc0fd192ae382d47824c57e488039cae074ccae899db55162",
+    "backup_generation": "daily-20261005T142552-830340671ad3415581725e9209636bcb",
+    "backup_journal_digest": "sha256:31fa08560d03de81b4a9dc6c5cce11d51331445346905611df1f730fc2e9d2a5",
+    "production_readback": "Main Running/Enabled; Health result 0/Enabled; Backup Enabled; local and public /readyz 200 exact ready body; four encrypted databases verified; hold=false",
+    "desktop_readback": "IPC connected; 11 local projects; 3 nobus-orchestrator-dev tasks; no new turn sent",
+    "telegram_profile_readback": "set profile PASS; getMyCommands start,codex,status,limit,help",
+    "manual_acceptance": "Owner menu and D02-D17 NOT_RUN; Gate/MVP2 NOT_ACCEPTED",
+    "evidence_doc": "docs/gates/mvp2/m2-desktop/RELEASE-EVIDENCE-20261005.md"
+  },
   "candidate_verification_20260927": {
     "scope": "Frozen local source and tests only; not production release, Desktop/Telegram live acceptance or D16 Gate PASS",
     "candidate_commit": "c6f6858ea1693ea046130a97061fe8fd5f589e47",
@@ -1381,5 +1398,5 @@
     "limits": "Exact external initiating fault not proved; 30 September scheduled Backup run and owner D02-D17 pending; source bytes unchanged so L1-L3 not repeated"
   },
   "compatibility_criterion": "A real task in a selected existing project is visible in Desktop, can be continued in the same thread from Desktop and the external adapter, preserves the correct working context and required Desktop capabilities, and uses normal question and approval mechanisms. PID or cross-API identifier equality is not required without a documented contract. A separate adapter process is allowed; an isolated CLI sharing only history is insufficient.",
-  "next_step": "Owner manually executes D02-D17 using UAT-20260927-01 guide and returns PASS/FAIL/BLOCKED with evidence. Do not repeat old completed D03 Desktop turn or unknown sends. Fix confirmed defects, rerun affected checks, then complete acceptance documentation, PR/merge/release only after criteria close."
+  "next_step": "Owner manually executes the tile menu and D02-D17 using UAT-20261005-01 guide and returns PASS/FAIL/BLOCKED with time and source message IDs. Do not repeat old completed D03 Desktop turn or unknown sends. Fix confirmed defects, rerun affected checks, then complete acceptance documentation and merge/release only after criteria close."
 }

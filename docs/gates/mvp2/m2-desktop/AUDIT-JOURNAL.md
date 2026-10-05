@@ -1,5 +1,20 @@
 # M2-DESKTOP — журнал для независимого аудита
 
+### 05.10, 14:38 — единый кодовый кандидат развёрнут для ручной приёмки
+
+Чистый source/live `9aeff52c3d11e895e048bb496cdaa6c17845b057`, tree
+`5c9ba94fd72fbf7e6e655eddc7b8329346f8df92`. На этом SHA L1 в коротком
+чистом Git clone: `2969 passed, 3 skipped, 5` исторических deselected,
+25 subtests; L2 в независимом clone: `332 passed, 3` глобальных mutex
+deselected, которые L1 выполнял при остановленном production. L3 проверил
+границы callback, проекта, SQLite, backup и installer, нового блокера нет.
+Новый signed backup cycle complete/VERIFIED, Main Running, Health 0,
+local/public ready 200. Codex IPC подключился, актуальный каталог доступен;
+профиль Telegram содержит `/codex`. Полные digest, ограничения и
+ручной остаток — в [RELEASE-EVIDENCE-20261005](RELEASE-EVIDENCE-20261005.md).
+Живые плитки и D02–D17 владелец ещё не проверял; Gate/MVP2 не приняты.
+Старый завершённый D03 turn и неизвестные исходы не повторяли.
+
 ### 29.09, 08:55 — signed STOP после сетевых отказов, exact recovery PASS
 
 Текущий source/live SHA `bd991760312732dd15cdad909e81a6023cc703f2`

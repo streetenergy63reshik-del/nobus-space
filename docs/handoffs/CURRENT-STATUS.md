@@ -1,9 +1,40 @@
 # Nobus Space: текущий статус и опубликованные версии
 
-Плиточное меню Codex и его backup-миграция находятся в
-`codex/m2-desktop`; работающий экземпляр их ещё не использует.
-Новый исходник проверяется на отдельном снимке. Подтверждённые
-результаты ручных D02–D17 не получены; Gate и MVP2 не приняты.
+**5 октября 2026, 14:38 МСК — READY_FOR_MANUAL_ACCEPTANCE.** Работающий
+экземпляр использует проверенный код плиточного меню и backup-миграции
+`9aeff52c3d11e895e048bb496cdaa6c17845b057` (tree
+`5c9ba94fd72fbf7e6e655eddc7b8329346f8df92`). Это техническая готовность
+к ручным D02–D17, а не их результат: владелец их ещё не проводил, Gate и MVP2
+не приняты. GitHub `main` остаётся на прежнем опубликованном коде; текущий
+кандидат доступен в ветке `codex/m2-desktop` и draft PR #41.
+
+## M2-DESKTOP: развёрнутый кандидат — 5 октября 2026, 14:38 МСК
+
+На точном `9aeff52` в чистом коротком Git clone L1: 2969 passed,
+3 skipped, 5 исторических deselected, 25 subtests; независимый L2: 332 passed,
+3 deselected (глобальный mutex, эти тесты прошли L1). L3 проверил границы
+меню, привязку проекта и backup/installer без нового блокирующего дефекта.
+JUnit SHA-256: L1 `1371e36ba864a3134a4b32ea4c81f79e53454845be87f64f19d5753f7fffe757`,
+L2 `92293c98728935a21dcf886866b8f6371ba167c78849d0cee509dfa2fcae30d`.
+Три службы Main/Health/Backup включены; Main Running, Health 0 в 14:35,
+локальный и публичный `/readyz` вернули HTTP 200 с точным
+`{"status":"ready"}`. Codex Desktop IPC подключился, свежий каталог
+содержал 11 проектов и 3 задачи `nobus-orchestrator-dev`; новых Desktop-turn
+и Telegram D02–D17 не отправляли. Профиль Telegram применён и read-only
+проверкой подтверждена команда `/codex`.
+
+Новая подписанная backup-конфигурация привязана к `9aeff52` с digest
+`sha256:b13a0e1797d6a67cc96becd90a9f6bf9fff89c2dddcba1a25bb11da60ca923de`.
+Один exact reconcile прежнего complete-журнала завершился PASS:
+generation `daily-20261005T142552-830340671ad3415581725e9209636bcb`,
+complete journal `sha256:31fa08560d03de81b4a9dc6c5cce11d51331445346905611df1f730fc2e9d2a5`;
+четыре зашифрованные БД VERIFIED, schema 18/18, hold=false. Старые
+`unknown_dispatch` не переотправлялись. Исходный LIVE `4db5f0e` сохранён
+в rollback ref `codex/nobus-before-m2-menu-20261005`; main не переключали.
+Подробная [карта ручной приёмки](../gates/mvp2/M2-DESKTOP-MANUAL-ACCEPTANCE.md)
+и [передача](../gates/mvp2/m2-desktop/HANDOFF.md) содержат дальнейшие шаги.
+Нижеследующие разделы — датированная история, их старые live SHA не описывают
+текущий запуск.
 
 ## Production перед выпуском меню — 5 октября 2026
 

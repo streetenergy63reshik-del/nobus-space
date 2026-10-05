@@ -1,6 +1,15 @@
 # Реестр Gate MVP2
 
-5 октября: плиточное меню `/codex` подготовлено в ветке
+5 октября, 14:38 МСК: плиточное меню `/codex` и точная миграция SQLite
+установлены в LIVE на `9aeff52c3d11e895e048bb496cdaa6c17845b057`.
+L1 2969 passed/3 skipped/5 исторических deselected; независимый L2
+332 passed/3 mutex deselected; L3 без нового блокера. Main Running,
+Health 0, local/public readiness 200, signed backup complete/VERIFIED,
+профиль Telegram содержит `/codex`. [Точная связка](m2-desktop/RELEASE-EVIDENCE-20261005.md).
+**READY_FOR_MANUAL_ACCEPTANCE**, D02–D17 и плитки владелец ещё не проверял;
+Gate/MVP2 не приняты. Следующий абзац — история до выпуска.
+
+Ранее 5 октября: плиточное меню `/codex` было подготовлено в ветке
 `codex/m2-desktop` вместе с точной миграцией SQLite для новой таблицы меню.
 Адресный набор по меню, bridge и backup: `101 passed` (один тест с
 дочерним Windows Job отдельно прошёл под владельцем чистого temp clone).
