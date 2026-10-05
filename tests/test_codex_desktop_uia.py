@@ -10,8 +10,8 @@ import pytest
 
 from src.integrations.codex_desktop_uia import (
     CodexDesktopUiAutomation,
+    DESKTOP_PACKAGE_FAMILY,
     DesktopUiAutomationError,
-    TESTED_DESKTOP_VERSION,
     UiBootstrapStatus,
     UiElementSnapshot,
     assess_ui_automation,
@@ -20,6 +20,7 @@ from src.integrations.codex_desktop_uia import (
 
 INVOKE = "InvokePatternIdentifiers.Pattern"
 EXPAND = "ExpandCollapsePatternIdentifiers.Pattern"
+OBSERVED_VERSION = "26.930.4958.0"
 
 
 def element(
@@ -113,8 +114,8 @@ def test_missing_invoke_pattern_blocks_ui_action() -> None:
     assert not assessment.can_create_in_project
 
 
-def test_unverified_version_or_locale_fails_closed() -> None:
-    with pytest.raises(ValueError, match="version mismatch"):
+def test_malformed_version_or_locale_fails_closed() -> None:
+    with pytest.raises(ValueError, match="version format"):
         assess_ui_automation(
             [],
             project_name="nobus-orchestrator-dev",
@@ -139,6 +140,9 @@ def test_powershell_adapter_uses_semantic_uia_without_input_fallbacks() -> None:
     assert "if ($found.Count -ge 1)" in script
     assert "if ($appRoots.Count -eq 1)" in script
     assert "if ($appDocuments.Count -eq 1)" in script
+    assert "Get-AppxPackage -Name 'OpenAI.Codex'" in script
+    assert "$_.SignatureKind.ToString() -ceq 'Store'" in script
+    assert "$_.Status.ToString() -ceq 'Ok'" in script
     assert "InvokePattern" in script
     assert "ValuePattern" in script
     assert "ExpandCollapsePattern" in script
@@ -162,8 +166,8 @@ def test_powershell_adapter_uses_semantic_uia_without_input_fallbacks() -> None:
     assert exact_draft.count("$composer.Pattern.Current.Value -cne $Prompt") == 2
     assert ".SetValue(" not in exact_draft
     assert "} elseif ($Action -in @('OpenAndSubmit', 'OpenExisting')) {\n            $script:uiaStage = 'find-task'" in script
-    open_only = script.split("if ($Action -eq 'OpenExisting') {\n            $script:uiaStage = 'check-active-context'", 1)[1].split("} else {\n            $script:uiaStage = 'submit-prompt'", 1)[0]
-    assert "Assert-ActiveTaskHeader $document $TaskTitle" in open_only
+    open_only = script.split("if ($Action -eq 'OpenExisting') {", 1)[1].split("} else {\n            $script:uiaStage = 'submit-prompt'", 1)[0]
+    assert "exact requested thread ID through Desktop IPC" in open_only
     assert "Submit-Prompt" not in open_only
     assert "if ($Action -eq 'SubmitExactDraft') {\n                Submit-ExactDraft $document $prompt -ExpectedProjectName $ProjectName" in script
     assert "$projectCount -ne 1 -or $newTaskCount -lt 1 -or $newTaskCount -gt 2" in script
@@ -172,8 +176,9 @@ def test_powershell_adapter_uses_semantic_uia_without_input_fallbacks() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("observed_version", [OBSERVED_VERSION, "26.931.1.0"])
 async def test_snapshot_passes_a_normal_powershell_parameter_value(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, observed_version: str,
 ) -> None:
     script = tmp_path / "uia.ps1"
     shell = tmp_path / "powershell.exe"
@@ -190,7 +195,8 @@ async def test_snapshot_passes_a_normal_powershell_parameter_value(
             stdout=json.dumps(
                 {
                     "action": "Snapshot",
-                    "desktop_version": TESTED_DESKTOP_VERSION,
+                    "desktop_version": observed_version,
+                    "package_family": DESKTOP_PACKAGE_FAMILY,
                     "process_id": 123,
                     "mutations": [],
                 }
@@ -210,9 +216,37 @@ async def test_snapshot_passes_a_normal_powershell_parameter_value(
     command = captured["command"]
     project_index = command.index("-ProjectName")
     assert command[project_index + 1] == "snapshot"
-    assert command[command.index("-ExpectedDesktopVersion") + 1] == TESTED_DESKTOP_VERSION
+    assert "-ExpectedDesktopVersion" not in command
     assert captured["errors"] == "replace"
     assert receipt.mutations == ()
+    assert receipt.desktop_version == observed_version
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("family,version", [
+    ("Other.App_2p2nqsd0c76g0", OBSERVED_VERSION),
+    (DESKTOP_PACKAGE_FAMILY, "future-version"),
+])
+async def test_snapshot_rejects_untrusted_package_or_malformed_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, family: str, version: str,
+) -> None:
+    script = tmp_path / "uia.ps1"
+    shell = tmp_path / "powershell.exe"
+    script.write_text("# fixture", encoding="utf-8")
+    shell.write_bytes(b"fixture")
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
+            "action": "Snapshot", "desktop_version": version,
+            "package_family": family, "process_id": 123, "mutations": [],
+        }), stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    automation = CodexDesktopUiAutomation(
+        script_path=script, runtime_root=tmp_path / "runtime", powershell_path=shell,
+    )
+    with pytest.raises(DesktopUiAutomationError, match="invalid-response"):
+        await automation.snapshot()
 
 
 @pytest.mark.asyncio
@@ -228,7 +262,8 @@ async def test_open_existing_never_creates_prompt_file(
     def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
         captured["command"] = command
         return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
-            "action": "OpenExisting", "desktop_version": TESTED_DESKTOP_VERSION,
+            "action": "OpenExisting", "desktop_version": OBSERVED_VERSION,
+            "package_family": DESKTOP_PACKAGE_FAMILY,
             "process_id": 123, "mutations": ["invoked-open-task"],
         }), stderr="")
 
@@ -267,7 +302,8 @@ async def test_exact_draft_recovery_uses_only_bound_action_and_cleans_prompt(
             0,
             stdout=json.dumps({
                 "action": "SubmitExactDraft",
-                "desktop_version": TESTED_DESKTOP_VERSION,
+                "desktop_version": OBSERVED_VERSION,
+                "package_family": DESKTOP_PACKAGE_FAMILY,
                 "process_id": 123,
                 "mutations": ["submitted-prompt"],
             }),

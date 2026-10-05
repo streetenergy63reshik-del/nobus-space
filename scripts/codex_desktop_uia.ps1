@@ -5,13 +5,22 @@
     [string]$TaskTitle = '',
     [string]$PromptFile = '',
     [Parameter(Mandatory = $true)][string]$AllowedPromptRoot,
-    [Parameter(Mandatory = $true)][string]$ExpectedDesktopVersion,
     [switch]$InspectProjectContext
 )
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
+$script:expectedPackageFamily = 'OpenAI.Codex_2p2nqsd0c76g0'
+$packages = @(Get-AppxPackage -Name 'OpenAI.Codex' -ErrorAction Stop |
+    Where-Object {
+        $_.PackageFamilyName -ceq $script:expectedPackageFamily -and
+        $_.SignatureKind.ToString() -ceq 'Store' -and
+        $_.Status.ToString() -ceq 'Ok'
+    })
+if ($packages.Count -ne 1) { throw 'Expected one installed Codex package' }
+$script:trustedInstallRoot = [IO.Path]::GetFullPath($packages[0].InstallLocation).TrimEnd('\') + '\'
+$script:installedVersion = $packages[0].Version.ToString()
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -29,7 +38,7 @@ function Get-CodexDocument {
     $documents = [System.Collections.Generic.List[object]]::new()
     $script:discoveryFrames = 0
     $script:discoveryCodex = 0
-    $script:discoveryVersion = 0
+    $script:discoveryIdentity = 0
     $script:discoveryRoots = 0
     $script:discoveryErrors = 0
     $script:discoveryDescendants = 0
@@ -52,9 +61,10 @@ function Get-CodexDocument {
         } catch { return $true }
         if ($processName -ne 'ChatGPT') { return $true }
         $script:discoveryCodex++
-        $versionMatch = [regex]::Match($executablePath, 'OpenAI\.Codex_(\d+\.\d+\.\d+\.\d+)_', [Text.RegularExpressions.RegexOptions]::IgnoreCase)
-        if (-not $versionMatch.Success -or $versionMatch.Groups[1].Value -ne $ExpectedDesktopVersion) { return $true }
-        $script:discoveryVersion++
+        if ([string]::IsNullOrWhiteSpace($executablePath) -or
+            -not [IO.Path]::GetFullPath($executablePath).StartsWith(
+                $script:trustedInstallRoot, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+        $script:discoveryIdentity++
         $listener = [System.Windows.Automation.StructureChangedEventHandler]{
             param($sender, $eventArgs)
         }
@@ -127,7 +137,8 @@ function Get-CodexDocument {
                     Window = $window
                     Listener = $listener
                     ProcessId = [int]$processId
-                    DesktopVersion = $versionMatch.Groups[1].Value
+                    DesktopVersion = $script:installedVersion
+                    PackageFamily = $script:expectedPackageFamily
                 })
             }
         } catch { $script:discoveryErrors++ } finally {
@@ -148,7 +159,7 @@ function Get-CodexDocument {
             )
         }
         $webIds = ($script:discoveryWebIds | Sort-Object) -join ','
-        throw "Expected one Codex document, found $($documents.Count); visible_frames=$script:discoveryFrames codex_frames=$script:discoveryCodex version_frames=$script:discoveryVersion roots=$script:discoveryRoots root_matches=$script:discoveryRootMatches root_summary=index/children/app_root/project/create:$script:discoveryRootSummary descendants=$script:discoveryDescendants web_ids=$webIds uia_errors=$script:discoveryErrors"
+        throw "Expected one Codex document, found $($documents.Count); visible_frames=$script:discoveryFrames codex_frames=$script:discoveryCodex identity_frames=$script:discoveryIdentity roots=$script:discoveryRoots root_matches=$script:discoveryRootMatches root_summary=index/children/app_root/project/create:$script:discoveryRootSummary descendants=$script:discoveryDescendants web_ids=$webIds uia_errors=$script:discoveryErrors"
     }
     return $documents[0]
 }
@@ -324,7 +335,7 @@ $bootstrapLockHeld = $false
 $script:uiaStage = 'prepare-action'
 try {
     $document = $desktop.Element
-    $result = [ordered]@{ action = $Action; desktop_version = $desktop.DesktopVersion; process_id = $desktop.ProcessId; mutations = @() }
+    $result = [ordered]@{ action = $Action; desktop_version = $desktop.DesktopVersion; package_family = $desktop.PackageFamily; process_id = $desktop.ProcessId; mutations = @() }
     if ($Action -eq 'Snapshot') {
         if ($ProjectName -ne 'snapshot') {
             $project = Find-Exact $document $ProjectName ([System.Windows.Automation.ControlType]::Button) ([System.Windows.Automation.ExpandCollapsePattern]::Pattern) -InListItem
@@ -459,12 +470,9 @@ try {
             $task.Pattern.Invoke(); $result.mutations += 'invoked-open-task'; Start-Sleep -Milliseconds 500
         }
         if ($Action -eq 'OpenExisting') {
-            $script:uiaStage = 'check-active-context'
-            $deadline = [DateTime]::UtcNow.AddSeconds(5)
-            do {
-                try { Assert-ActiveTaskHeader $document $TaskTitle; break } catch { Start-Sleep -Milliseconds 200 }
-            } while ([DateTime]::UtcNow -lt $deadline)
-            Assert-ActiveTaskHeader $document $TaskTitle
+            # This action only opens a sidebar item. The caller must discover
+            # the owner of the exact requested thread ID through Desktop IPC
+            # before it sends any prompt; the visual header can change by build.
         } else {
             $script:uiaStage = 'submit-prompt'
             if ($Action -eq 'SubmitExactDraft') {

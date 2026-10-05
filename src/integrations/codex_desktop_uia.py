@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
@@ -19,7 +20,8 @@ from typing import Iterable
 from uuid import uuid4
 
 
-TESTED_DESKTOP_VERSION = "26.930.4958.0"
+DESKTOP_PACKAGE_FAMILY = "OpenAI.Codex_2p2nqsd0c76g0"
+_DESKTOP_VERSION = re.compile(r"^\d{1,4}(?:\.\d{1,5}){3}$")
 TESTED_UI_LOCALE = "ru-RU"
 DEFAULT_UIA_TIMEOUT_SECONDS = 45
 _SAFE_FAILURE_STAGES = frozenset(
@@ -99,7 +101,7 @@ class UiSelectorResult:
 
 @dataclass(frozen=True, slots=True)
 class UiBootstrapAssessment:
-    desktop_version: str
+    desktop_version: str | None
     locale: str
     project: UiSelectorResult
     create_task: UiSelectorResult
@@ -159,12 +161,12 @@ def assess_ui_automation(
     *,
     project_name: str,
     task_title: str | None = None,
-    desktop_version: str = TESTED_DESKTOP_VERSION,
+    desktop_version: str | None = None,
     locale: str = TESTED_UI_LOCALE,
 ) -> UiBootstrapAssessment:
-    """Assess exact selectors from a read-only UIA snapshot."""
-    if desktop_version != TESTED_DESKTOP_VERSION:
-        raise ValueError("Codex Desktop UI profile version mismatch")
+    """Assess semantic selectors regardless of the installed build number."""
+    if desktop_version is not None and not _valid_desktop_version(desktop_version):
+        raise ValueError("Codex Desktop version format is invalid")
     project, create_task, open_task = selectors_for_project(
         project_name, task_title=task_title, locale=locale
     )
@@ -282,8 +284,6 @@ class CodexDesktopUiAutomation:
             action,
             "-ProjectName",
             project_name,
-            "-ExpectedDesktopVersion",
-            TESTED_DESKTOP_VERSION,
             "-AllowedPromptRoot",
             str(self._runtime_root),
         ]
@@ -355,10 +355,12 @@ class CodexDesktopUiAutomation:
             result = json.loads(completed.stdout)
             process_id = result["process_id"]
             mutations = result["mutations"]
+            desktop_version = result["desktop_version"]
             if (
                 not isinstance(result, dict)
                 or result.get("action") != action
-                or result.get("desktop_version") != TESTED_DESKTOP_VERSION
+                or result.get("package_family") != DESKTOP_PACKAGE_FAMILY
+                or not _valid_desktop_version(desktop_version)
                 or type(process_id) is not int
                 or process_id <= 0
                 or not isinstance(mutations, list)
@@ -369,12 +371,18 @@ class CodexDesktopUiAutomation:
             raise DesktopUiAutomationError("desktop-uia-invalid-response") from exc
         return DesktopUiActionReceipt(
             action=action,
-            desktop_version=TESTED_DESKTOP_VERSION,
+            desktop_version=desktop_version,
             project_name=project_name,
             task_title=task_title,
             process_id=process_id,
             mutations=tuple(mutations),
         )
+
+
+def _valid_desktop_version(value: object) -> bool:
+    return isinstance(value, str) and _DESKTOP_VERSION.fullmatch(value) is not None
+
+
 def _assess_selector(
     elements: tuple[UiElementSnapshot, ...], selector: UiSelector
 ) -> UiSelectorResult:
