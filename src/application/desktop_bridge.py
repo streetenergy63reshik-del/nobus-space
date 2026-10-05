@@ -126,6 +126,8 @@ _RECOVERABLE_STATUSES = _RUNNING_STATUSES | frozenset({BridgeRequestStatus.RECEI
 
 
 class DesktopBridgeApi(Protocol):
+    async def delete_message(self, chat_id: int, message_id: int) -> None: ...
+
     async def send_message(
         self,
         chat_id: int,
@@ -730,6 +732,7 @@ class DesktopBridgeService:
                 project.name, menu.thread_id, instruction, task_title,
                 project.project_id, str(project.cwd),
             ),
+            technical_message_ids=self._state.menu_technical_message_ids(menu.menu_id),
         )
 
     def _parse_command(self, message: TextMessage) -> ParsedDesktopCommand | None:
@@ -873,14 +876,13 @@ class DesktopBridgeService:
         if not self._state.claim_interaction_delivery(interaction.interaction_id):
             return
         try:
-            card_id = await self._api.send_message(
-                message.chat_id,
+            card_id = await self._send_technical(
+                request,
                 f'<a href="tg://user?id={message.user_id}">Автор запроса</a>, '
                 "уточните действие с этим поручением: ответьте «создать» для новой "
                 "задачи или «продолжить» для задачи, связанной с темой. "
                 "Для другой задачи ответьте «продолжить <ID>». "
                 "До ответа Codex Desktop не запускается.",
-                message_thread_id=message.message_thread_id,
                 reply_to_message_id=message.message_id, parse_mode="HTML",
             )
         except Exception:
@@ -918,7 +920,11 @@ class DesktopBridgeService:
             await self._reply(message, "Нет подтверждённого завершённого turn для повторной доставки.")
             return
         self._schedule(request.request_id)
-        await self._reply(message, "Проверяю только недоставленные части прежнего ответа; новый turn не создаётся.")
+        await self._send_technical(
+            request,
+            "Проверяю только недоставленные части прежнего ответа; новый turn не создаётся.",
+            reply_to_message_id=message.message_id,
+        )
 
     def _topic_predecessor(
         self, message: TextMessage | VoiceMessage
@@ -941,6 +947,8 @@ class DesktopBridgeService:
         message: TextMessage,
         envelope: TrustedIngressEnvelope,
         parsed: ParsedDesktopCommand,
+        *,
+        technical_message_ids: tuple[int, ...] = (),
     ) -> None:
         if message.is_forwarded:
             await self._reply(
@@ -1025,6 +1033,8 @@ class DesktopBridgeService:
                 "Очередь задач Codex Desktop заполнена. Завершите ожидающие задачи и повторите запрос.",
             )
             return
+        for identifier in technical_message_ids:
+            self._state.record_technical_message(request.request_id, identifier)
         if operation == "continue" and request.desktop_thread_id is None:
             assert thread_id is not None
             request = self._state.bind_desktop(
@@ -1035,8 +1045,8 @@ class DesktopBridgeService:
                 status=BridgeRequestStatus.RECEIVED,
             )
         if request.status is BridgeRequestStatus.RECEIVED:
-            await self._reply(
-                message,
+            await self._send_technical(
+                request,
                 f"Задача принята и передаётся в Codex Desktop. ID запроса: {request.request_id}",
             )
             self._schedule(request.request_id)
@@ -1080,12 +1090,11 @@ class DesktopBridgeService:
         requested_project = request.payload.get("requested_project")
         requested = f" (запрошено: {html.escape(str(requested_project))})" if requested_project else ""
         try:
-            card_id = await self._api.send_message(
-                message.chat_id,
+            card_id = await self._send_technical(
+                request,
                 f"{mention}, выберите существующий проект{requested}. "
                 "Ответьте на эту карточку точным названием:\n"
                 + "\n".join(html.escape(name) for name in projects),
-                message_thread_id=message.message_thread_id,
                 reply_to_message_id=message.message_id, parse_mode="HTML",
             )
         except Exception:
@@ -1226,10 +1235,9 @@ class DesktopBridgeService:
         if not self._state.claim_interaction_delivery(interaction.interaction_id):
             return True
         try:
-            sent = await self._api.send_message(
-                message.chat_id,
+            sent = await self._send_technical(
+                request,
                 f"Распознано:\n\n{transcript}\n\nID запроса: {request.request_id}. Ответьте на это сообщение «да» для запуска или «отмена».",
-                message_thread_id=message.message_thread_id,
                 reply_to_message_id=message.message_id,
             )
         except Exception:
@@ -1337,7 +1345,10 @@ class DesktopBridgeService:
                 request.request_id, expected=frozenset({BridgeRequestStatus.NEEDS_TARGET}),
                 status=BridgeRequestStatus.CANCELLED,
             )
-            await self._admit(message, envelope, chosen)
+            await self._admit(
+                message, envelope, chosen,
+                technical_message_ids=self._state.pending_technical_messages(request.request_id),
+            )
             return
         if interaction.payload.get("method") == "bridge/target":
             project = self._projects.get(answer.casefold())
@@ -1360,6 +1371,7 @@ class DesktopBridgeService:
                 message, envelope,
                 ParsedDesktopCommand("create", project.name, None,
                                      str(request.payload["instruction"])),
+                technical_message_ids=self._state.pending_technical_messages(request.request_id),
             )
             return
         if interaction.kind is InteractionKind.VOICE_CONFIRMATION:
@@ -1676,6 +1688,7 @@ class DesktopBridgeService:
         while not self._closed:
             await asyncio.sleep(60)
             await self._expire_interactions()
+            await self._cleanup_finished_requests()
             for request in await run_storage(
                 self._state.list_requests, statuses=frozenset(
                     {
@@ -1702,39 +1715,26 @@ class DesktopBridgeService:
                     "Срок подтверждения голосовой задачи истёк. "
                     "Задача в Codex Desktop не запускалась."
                 )
-                chat_id = request.chat_id
-                topic_id = request.topic_id
                 reply_id = request.source_message_id
             elif interaction.payload.get("method") in {"bridge/target", "bridge/route"}:
                 text = (
                     "Срок выбора действия или проекта истёк. Задача в Codex Desktop "
                     "не запускалась; отправьте новое поручение."
                 )
-                chat_id = request.chat_id
-                topic_id = request.topic_id
                 reply_id = request.source_message_id
             elif interaction.kind is InteractionKind.QUESTION:
                 text = (
                     "Срок ответа на уточнение истёк. Автоматический ответ не отправлен; "
                     "задача остаётся ожидающей в Codex Desktop."
                 )
-                chat_id = request.chat_id
-                topic_id = request.topic_id
                 reply_id = request.source_message_id
             else:
                 text = (
                     "Срок ответа на запрос разрешения истёк. Разрешение не выдано; "
                     "задача остаётся ожидающей в Codex Desktop."
                 )
-                chat_id = request.chat_id
-                topic_id = request.topic_id
                 reply_id = request.source_message_id
-            await self._api.send_message(
-                chat_id,
-                text,
-                message_thread_id=topic_id,
-                reply_to_message_id=reply_id,
-            )
+            await self._send_technical(request, text, reply_to_message_id=reply_id)
 
     async def _run_request(self, request_id: UUID) -> None:
         async with self._semaphore:
@@ -1789,23 +1789,13 @@ class DesktopBridgeService:
                     )
                 else:
                     await self._notify_request(request, "UI Automation не подтвердил исход создания задачи. Повтор не выполнен, чтобы не создать дубль.")
-            except (DesktopIpcUnavailableError, DesktopIpcTimeoutError) as exc:
+            except (DesktopIpcUnavailableError, DesktopIpcTimeoutError):
                 self._state.transition(
                     request_id,
                     expected=_RUNNING_STATUSES | frozenset({BridgeRequestStatus.RECEIVED}),
                     status=BridgeRequestStatus.WAITING_PC,
                 )
-                if request.status is not BridgeRequestStatus.WAITING_PC:
-                    await self._notify_request(
-                        request,
-                        (
-                            "Задача выгружена из Codex Desktop. Откройте её в приложении; "
-                            "запрос сохранён и будет восстановлен без повторной отправки."
-                            if isinstance(exc, DesktopIpcUnavailableError)
-                            and exc.reason == "no-client-found"
-                            else "Codex Desktop сейчас недоступен. Запрос сохранён и будет восстановлен после запуска."
-                        ),
-                    )
+                # A single IPC miss is retried; it does not prove Desktop is offline.
             except DesktopIpcError:
                 self._state.transition(
                     request_id,
@@ -1828,6 +1818,10 @@ class DesktopBridgeService:
             finally:
                 await client.close()
                 refreshed = self._state.read_request(request_id)
+                if refreshed is not None and refreshed.status in {
+                    BridgeRequestStatus.DELIVERED, BridgeRequestStatus.DELIVERY_PARTIAL,
+                }:
+                    await self._cleanup_technical_messages(refreshed)
                 if (
                     refreshed is not None
                     and refreshed.desktop_thread_id is not None
@@ -2143,17 +2137,15 @@ class DesktopBridgeService:
             if not self._state.claim_interaction_delivery(interaction.interaction_id):
                 continue
             try:
-                message_id = await self._api.send_message(
-                    request.chat_id,
+                message_id = await self._send_technical(
+                    request,
                     f"{mention}: {html.escape(intro)}",
-                    message_thread_id=request.topic_id,
                     reply_to_message_id=request.source_message_id,
                     parse_mode="HTML",
                 )
                 for part in telegram_text_parts(card):
-                    message_id = await self._api.send_message(
-                        request.chat_id, part,
-                        message_thread_id=request.topic_id,
+                    message_id = await self._send_technical(
+                        request, part,
                         reply_to_message_id=message_id,
                     )
             except Exception:
@@ -2410,16 +2402,62 @@ class DesktopBridgeService:
         )
 
     async def _reply(self, message: TextMessage | VoiceMessage, text: str) -> int:
-        return await self._api.send_message(
+        message_id = await self._api.send_message(
             message.chat_id, text, message_thread_id=message.message_thread_id,
             reply_to_message_id=message.message_id,
         )
+        if message.reply_to_message_id is not None:
+            request = self._state.request_for_interaction_card(
+                chat_id=message.chat_id, topic_id=message.message_thread_id,
+                message_id=message.reply_to_message_id,
+            )
+            if request is not None:
+                self._state.record_technical_message(request.request_id, message_id)
+        return message_id
+
+    async def _send_technical(
+        self, request: BridgeRequest, text: str, *,
+        reply_to_message_id: int | None = None,
+        parse_mode: str | None = None,
+    ) -> int:
+        message_id = await self._api.send_message(
+            request.chat_id, text, message_thread_id=request.topic_id,
+            reply_to_message_id=(request.source_message_id if reply_to_message_id is None
+                                 else reply_to_message_id),
+            parse_mode=parse_mode,
+        )
+        self._state.record_technical_message(request.request_id, message_id)
+        return message_id
 
     async def _notify_request(self, request: BridgeRequest, text: str) -> int:
-        return await self._api.send_message(
-            request.chat_id, text, message_thread_id=request.topic_id,
-            reply_to_message_id=request.source_message_id,
-        )
+        return await self._send_technical(request, text)
+
+    async def _cleanup_technical_messages(self, request: BridgeRequest) -> None:
+        if request.status not in {
+            BridgeRequestStatus.DELIVERED, BridgeRequestStatus.DELIVERY_PARTIAL,
+        }:
+            return
+        try:
+            pending = self._state.pending_technical_messages(request.request_id)
+        except DesktopBridgeStateError:
+            return
+        for message_id in pending:
+            try:
+                await self._api.delete_message(request.chat_id, message_id)
+                self._state.mark_technical_message_deleted(request.request_id, message_id)
+            except Exception:
+                # Keep the exact receipt for the next watchdog cycle. Telegram
+                # may be temporarily unavailable or its 48-hour limit may apply.
+                continue
+
+    async def _cleanup_finished_requests(self) -> None:
+        for request in await run_storage(
+            self._state.list_requests,
+            statuses=frozenset({
+                BridgeRequestStatus.DELIVERED, BridgeRequestStatus.DELIVERY_PARTIAL,
+            }),
+        ):
+            await self._cleanup_technical_messages(request)
 
     def _now(self) -> datetime:
         value = self._clock()

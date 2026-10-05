@@ -130,6 +130,9 @@ _TERMINAL_REQUEST_STATUSES = frozenset(
 )
 _OPERATIONS = frozenset({"create", "continue", "redeliver"})
 _DELIVERY_KINDS = frozenset({"text", "artifact", "manifest"})
+_INTERNAL_REQUEST_PAYLOAD_KEYS = frozenset({
+    "_delivery_plan", "_desktop_title", "_technical_messages",
+})
 _INTERACTION_STATUSES = frozenset(
     {"pending", "answered", "expired", "superseded", "unknown"}
 )
@@ -280,7 +283,7 @@ class SQLiteDesktopBridgeState:
                     or request.project_name != values["project_name"]
                     or canonical_json_digest({
                         key: value for key, value in request.payload.items()
-                        if key != "_delivery_plan"
+                        if key not in _INTERNAL_REQUEST_PAYLOAD_KEYS
                     }) != payload_digest
                 ):
                     raise DesktopBridgeStateError("desktop_bridge_ingress_conflict")
@@ -303,6 +306,96 @@ class SQLiteDesktopBridgeState:
         except DesktopBridgeStateError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def record_technical_message(self, request_id: UUID, message_id: int) -> None:
+        """Bind a bot-authored temporary card to its exact request and chat."""
+        if not isinstance(request_id, UUID):
+            raise ValueError("desktop technical message request is invalid")
+        identifier = _positive_int(message_id)
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM desktop_bridge_requests WHERE request_id=?",
+                    (str(request_id),),
+                ).fetchone()
+                if row is None:
+                    raise DesktopBridgeStateError("desktop_bridge_request_missing")
+                request = self._request_from_row(row)
+                if identifier == request.source_message_id or connection.execute(
+                    """SELECT 1 FROM desktop_bridge_requests
+                       WHERE chat_id=? AND source_message_id=? LIMIT 1""",
+                    (request.chat_id, identifier),
+                ).fetchone() or connection.execute(
+                    """SELECT 1 FROM desktop_bridge_deliveries d
+                       JOIN desktop_bridge_requests r ON r.request_id=d.request_id
+                       WHERE r.chat_id=? AND d.telegram_message_id=? LIMIT 1""",
+                    (request.chat_id, identifier),
+                ).fetchone():
+                    raise DesktopBridgeStateError("desktop_bridge_technical_message_conflict")
+                known = dict(request.payload.get("_technical_messages", {}))
+                if known.get(str(identifier)) in {"pending", "deleted"}:
+                    return
+                if len(known) >= 256:
+                    raise DesktopBridgeStateError("desktop_bridge_technical_message_limit")
+                known[str(identifier)] = "pending"
+                payload = dict(request.payload)
+                payload["_technical_messages"] = known
+                connection.execute(
+                    """UPDATE desktop_bridge_requests SET payload=?,payload_digest=?,updated_at=?
+                       WHERE request_id=?""",
+                    (self._encode(payload), canonical_json_digest(payload),
+                     self._now().isoformat(), str(request_id)),
+                )
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError, AttributeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def pending_technical_messages(self, request_id: UUID) -> tuple[int, ...]:
+        request = self.read_request(request_id)
+        if request is None:
+            return ()
+        known = request.payload.get("_technical_messages", {})
+        if not isinstance(known, dict) or any(
+            not isinstance(key, str) or not key.isdecimal()
+            or value not in {"pending", "deleted"}
+            for key, value in known.items()
+        ):
+            raise DesktopBridgeStateError("desktop_bridge_technical_message_invalid")
+        return tuple(sorted((int(key) for key, value in known.items()
+                             if value == "pending"), reverse=True))
+
+    def mark_technical_message_deleted(self, request_id: UUID, message_id: int) -> None:
+        identifier = _positive_int(message_id)
+        if not isinstance(request_id, UUID):
+            raise ValueError("desktop technical message request is invalid")
+        try:
+            with self._transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM desktop_bridge_requests WHERE request_id=?",
+                    (str(request_id),),
+                ).fetchone()
+                if row is None:
+                    raise DesktopBridgeStateError("desktop_bridge_request_missing")
+                request = self._request_from_row(row)
+                known = dict(request.payload.get("_technical_messages", {}))
+                if known.get(str(identifier)) == "deleted":
+                    return
+                if known.get(str(identifier)) != "pending":
+                    raise DesktopBridgeStateError("desktop_bridge_technical_message_missing")
+                known[str(identifier)] = "deleted"
+                payload = dict(request.payload)
+                payload["_technical_messages"] = known
+                connection.execute(
+                    """UPDATE desktop_bridge_requests SET payload=?,payload_digest=?,updated_at=?
+                       WHERE request_id=?""",
+                    (self._encode(payload), canonical_json_digest(payload),
+                     self._now().isoformat(), str(request_id)),
+                )
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError, AttributeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
     def create_menu(
@@ -392,6 +485,29 @@ class SQLiteDesktopBridgeState:
                     "SELECT * FROM desktop_bridge_menus WHERE menu_id=?", (str(menu_id),)
                 ).fetchone()
                 return None if row is None else self._menu_from_row(row)
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def menu_technical_message_ids(self, menu_id: UUID) -> tuple[int, ...]:
+        if not isinstance(menu_id, UUID):
+            raise ValueError("desktop menu is invalid")
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT chat_id,menu_message_id FROM desktop_bridge_menus WHERE menu_id=?",
+                    (str(menu_id),),
+                ).fetchone()
+                if row is None:
+                    return ()
+                identifiers = {row["menu_message_id"]} if row["menu_message_id"] else set()
+                identifiers.update(
+                    item[0] for item in connection.execute(
+                        """SELECT message_id FROM desktop_bridge_menu_prompts
+                           WHERE menu_id=? AND chat_id=?""",
+                        (str(menu_id), row["chat_id"]),
+                    )
+                )
+                return tuple(sorted(identifiers))
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
             raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
 
@@ -1027,6 +1143,28 @@ class SQLiteDesktopBridgeState:
                 if interaction.expires_at <= self._now():
                     return None
                 return interaction
+        except DesktopBridgeStateError:
+            raise
+        except (OSError, sqlite3.DatabaseError, ValueError, TypeError):
+            raise DesktopBridgeStateError("desktop_bridge_store_unavailable") from None
+
+    def request_for_interaction_card(
+        self, *, chat_id: int, topic_id: int | None, message_id: int,
+    ) -> BridgeRequest | None:
+        """Correlate a bot reply to a card even after the interaction is answered."""
+        _nonzero_int(chat_id)
+        _optional_positive_int(topic_id)
+        _positive_int(message_id)
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT r.* FROM desktop_bridge_interactions i
+                       JOIN desktop_bridge_requests r ON r.request_id=i.request_id
+                       WHERE i.telegram_chat_id=? AND i.telegram_message_id=?
+                         AND r.chat_id=? AND r.topic_id IS ? LIMIT 1""",
+                    (chat_id, message_id, chat_id, topic_id),
+                ).fetchone()
+                return None if row is None else self._request_from_row(row)
         except DesktopBridgeStateError:
             raise
         except (OSError, sqlite3.DatabaseError, ValueError, TypeError):

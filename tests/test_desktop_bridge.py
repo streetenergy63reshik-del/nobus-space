@@ -1297,6 +1297,8 @@ def test_ui_bootstrap_lock_blocks_second_creator(tmp_path: Path) -> None:
 class _Api:
     def __init__(self) -> None:
         self.messages: list[tuple[int, str, dict[str, object]]] = []
+        self.deleted: list[tuple[int, int]] = []
+        self.fail_delete: set[int] = set()
 
     async def send_message(self, *args, **kwargs):
         self.messages.append((args[0], args[1], dict(kwargs)))
@@ -1307,6 +1309,184 @@ class _Api:
 
     async def send_document(self, *args, **kwargs):
         return 2
+
+    async def delete_message(self, chat_id: int, message_id: int) -> None:
+        if message_id in self.fail_delete:
+            raise RuntimeError("temporary Telegram failure")
+        self.deleted.append((chat_id, message_id))
+
+
+@pytest.mark.asyncio
+async def test_transient_ipc_miss_waits_without_false_offline_notice(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "8" * 64)
+    project = tmp_path / "project"
+    project.mkdir()
+    api = _Api()
+
+    class Client:
+        async def start(self):
+            raise DesktopIpcUnavailableError("no-client-found")
+
+        async def close(self):
+            pass
+
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99,
+        bot_username="Nobusspacebot", ipc_factory=Client,
+    )
+    await service._run_request(request.request_id)
+    assert state.read_request(request.request_id).status is BridgeRequestStatus.WAITING_PC
+    assert api.messages == []
+
+
+@pytest.mark.asyncio
+async def test_worker_cleans_cards_after_result_delivery(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "7" * 64)
+    state.record_technical_message(request.request_id, 30)
+    state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id="turn-1",
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RUNNING,
+    )
+    project = tmp_path / "project"
+    project.mkdir()
+    api = _Api()
+
+    class Client:
+        async def start(self):
+            pass
+
+        async def find_thread_owner(self, thread_id):
+            assert thread_id == "thread-1"
+            return object()
+
+        async def close(self):
+            pass
+
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99,
+        bot_username="Nobusspacebot", ipc_factory=Client,
+    )
+
+    async def monitor(_client, _owner, current):
+        state.transition(
+            current.request_id,
+            expected=frozenset({BridgeRequestStatus.RUNNING}),
+            status=BridgeRequestStatus.DELIVERED,
+        )
+
+    service._monitor = monitor
+    await service._run_request(request.request_id)
+    assert api.deleted == [(-1001, 30)]
+    assert state.pending_technical_messages(request.request_id) == ()
+
+
+@pytest.mark.asyncio
+async def test_completed_request_deletes_only_bound_technical_cards_and_retries(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "telegram-state.sqlite3"
+    state = _state(path)
+    request = _request(state, ingress="sha256:" + "9" * 64)
+    for identifier in (30, 31):
+        state.record_technical_message(request.request_id, identifier)
+    assert _request(
+        state, ingress="sha256:" + "9" * 64, request_id=request.request_id,
+    ).request_id == request.request_id
+    receipt = state.claim_delivery(
+        request_id=request.request_id, kind="text", ordinal=0,
+        source_digest="sha256:" + "a" * 64,
+        destination_ref="telegram:-1001:topic:7:reply:12",
+        payload={"part_count": 1},
+    )
+    assert state.finish_delivery(
+        receipt.operation_key, telegram_message_id=40, status="sent",
+    )
+    with pytest.raises(DesktopBridgeStateError, match="technical_message_conflict"):
+        state.record_technical_message(request.request_id, 40)
+    with pytest.raises(DesktopBridgeStateError, match="technical_message_conflict"):
+        state.record_technical_message(request.request_id, request.source_message_id)
+    api = _Api()
+    api.fail_delete.add(31)
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={"project": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    await service._cleanup_technical_messages(request)
+    assert api.deleted == []
+    state.transition(
+        request.request_id, expected=frozenset({BridgeRequestStatus.RECEIVED}),
+        status=BridgeRequestStatus.DELIVERY_PARTIAL,
+    )
+    await service._cleanup_technical_messages(state.read_request(request.request_id))
+    assert api.deleted == [(-1001, 30)]
+    assert _state(path).pending_technical_messages(request.request_id) == (31,)
+    api.fail_delete.clear()
+    await service._cleanup_finished_requests()
+    assert api.deleted == [(-1001, 30), (-1001, 31)]
+    assert _state(path).pending_technical_messages(request.request_id) == ()
+
+
+@pytest.mark.asyncio
+async def test_menu_cards_and_receipt_are_removed_after_delivery(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    project = tmp_path / "nobus-orchestrator-dev"
+    project.mkdir()
+    api = _Api()
+    service = DesktopBridgeService(
+        api=api, state=state, uia=_Uia(), projects={project.name: project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    service._schedule = lambda _request_id: None
+    envelope = _envelope()
+    await service._admit(
+        _origin_message("поручение"), envelope,
+        ParsedDesktopCommand("create", project.name, None, "поручение"),
+        technical_message_ids=(30, 31),
+    )
+    request = state.read_request(desktop_bridge_module._request_uuid(envelope.idempotency_key))
+    assert request is not None
+    assert state.pending_technical_messages(request.request_id) == (31, 30, 1)
+    state.transition(
+        request.request_id, expected=frozenset({BridgeRequestStatus.RECEIVED}),
+        status=BridgeRequestStatus.DELIVERED,
+    )
+    await service._cleanup_technical_messages(state.read_request(request.request_id))
+    assert api.deleted == [(-1001, 31), (-1001, 30), (-1001, 1)]
+    assert all(identifier != request.source_message_id for _, identifier in api.deleted)
+
+
+def test_menu_cleanup_includes_every_prior_prompt_card(tmp_path: Path) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    menu_id = uuid4()
+    state.create_menu(
+        menu_id=menu_id, tenant_id="owner", author_user_id=41,
+        chat_id=-1001, topic_id=7, source_message_id=12,
+        actions=(("project", "project-1"),),
+        expires_at=datetime.now(UTC) + timedelta(minutes=30),
+    )
+    assert state.bind_menu_message(menu_id, 30)
+    assert state.advance_menu(
+        menu_id, revision=1, stage="prompt", project_id="project-1",
+        thread_id=None, page=0, actions=(("back", None),),
+    )
+    assert state.bind_menu_prompt(menu_id, 31)
+    assert state.advance_menu(
+        menu_id, revision=2, stage="tasks", project_id="project-1",
+        thread_id=None, page=0, actions=(("new", None),),
+    )
+    assert state.advance_menu(
+        menu_id, revision=3, stage="prompt", project_id="project-1",
+        thread_id=None, page=0, actions=(("back", None),),
+    )
+    assert state.bind_menu_prompt(menu_id, 32)
+    assert state.menu_technical_message_ids(menu_id) == (30, 31, 32)
 
 
 class _Uia:
