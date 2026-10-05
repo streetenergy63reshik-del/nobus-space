@@ -339,6 +339,20 @@ def test_canonical_history_projection_preserves_all_agent_messages() -> None:
     )
 
 
+def test_historical_turn_without_client_message_id_remains_readable() -> None:
+    snapshot = canonical_snapshot()
+    entity = next(iter(snapshot.conversation_state["turnHistory"]["history"]["entitiesByKey"].values()))
+    entity["params"].pop("clientUserMessageId")
+
+    projection = project_desktop_conversation(snapshot)
+    assert projection.turns[0].client_user_message_id is None
+    assert projection.turn_by_client_message_id("bridge-request-1") is None
+
+    entity["params"]["clientUserMessageId"] = None
+    with pytest.raises(ValueError, match="client message id"):
+        project_desktop_conversation(snapshot)
+
+
 def test_canonical_history_projection_rejects_unordered_entity() -> None:
     snapshot = canonical_snapshot()
     snapshot.conversation_state["turnHistory"]["history"]["entitiesByKey"][

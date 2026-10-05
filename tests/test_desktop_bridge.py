@@ -164,6 +164,52 @@ async def test_unloaded_owner_opens_only_verified_title_then_rediscovers_exact_i
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("owner_loaded", [True, False])
+async def test_ui_header_change_requires_exact_ipc_owner_after_open(
+    tmp_path: Path, owner_loaded: bool,
+) -> None:
+    state = _state(tmp_path / "telegram-state.sqlite3")
+    request = _request(state, ingress="sha256:" + "3" * 64)
+    thread_id = str(uuid4())
+    request = state.bind_desktop(
+        request.request_id, thread_id=thread_id, turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    state.remember_thread_title(request.request_id, thread_id=thread_id, title="Точная задача")
+    calls: list[str] = []
+    exact_owner = object()
+
+    class Client:
+        async def find_thread_owner(self, candidate: str):
+            assert candidate == thread_id
+            calls.append("discover")
+            if len(calls) == 1 or not owner_loaded:
+                raise DesktopIpcUnavailableError("no-client-found")
+            return exact_owner
+
+    class Uia:
+        async def open_existing(self, *, project_name: str, task_title: str):
+            assert (project_name, task_title) == ("nobus-orchestrator-dev", "Точная задача")
+            calls.append("open")
+            raise DesktopUiAutomationError("desktop-uia-action-failed:check-active-context")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    service = DesktopBridgeService(
+        api=_Api(), state=state, uia=Uia(),
+        projects={"nobus-orchestrator-dev": project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+    if owner_loaded:
+        assert await service._find_or_open_owner(Client(), request) is exact_owner
+    else:
+        with pytest.raises(DesktopIpcUnavailableError, match="desktop-uia-open-unavailable"):
+            await service._find_or_open_owner(Client(), request)
+    assert calls == ["discover", "open", "discover"]
+
+
+@pytest.mark.asyncio
 async def test_unbound_unloaded_task_uses_explicit_title_only_as_uia_selector(
     tmp_path: Path,
 ) -> None:

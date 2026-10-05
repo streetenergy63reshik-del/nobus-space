@@ -1884,7 +1884,13 @@ class DesktopBridgeService:
                         task_title=title,
                     )
                 except DesktopUiAutomationError as exc:
-                    raise DesktopIpcUnavailableError("desktop-uia-open-unavailable") from exc
+                    # A newer Desktop may load the exact thread while changing
+                    # the visual task header checked by UIA. Only the IPC owner
+                    # of the requested ID can authorize continuation.
+                    try:
+                        return await client.find_thread_owner(thread_id)
+                    except DesktopIpcUnavailableError:
+                        raise DesktopIpcUnavailableError("desktop-uia-open-unavailable") from exc
                 # The title is only a UI selector. The IPC owner for the exact
                 # requested thread ID remains mandatory before any mutation.
                 for attempt in range(6):

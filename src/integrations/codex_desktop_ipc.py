@@ -189,7 +189,7 @@ class DesktopAgentMessage:
 @dataclass(frozen=True, slots=True)
 class DesktopTurnState:
     turn_id: str
-    client_user_message_id: str
+    client_user_message_id: str | None
     status: str
     user_text: tuple[str, ...]
     agent_messages: tuple[DesktopAgentMessage, ...]
@@ -1339,8 +1339,9 @@ def project_desktop_conversation(
         turns.append(
             DesktopTurnState(
                 turn_id=_bounded_text(entity.get("turnId"), "turn id"),
-                client_user_message_id=_bounded_text(
-                    params.get("clientUserMessageId"), "client message id"
+                client_user_message_id=(
+                    _bounded_text(params["clientUserMessageId"], "client message id")
+                    if "clientUserMessageId" in params else None
                 ),
                 status=_bounded_text(entity.get("status"), "turn status"),
                 user_text=tuple(user_text),
