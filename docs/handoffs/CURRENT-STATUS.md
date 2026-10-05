@@ -1,5 +1,27 @@
 # Nobus Space: текущий статус и опубликованные версии
 
+**5 октября 2026, 19:54 МСК — M2-DESKTOP READY_FOR_MANUAL_ACCEPTANCE.**
+LIVE clean detached HEAD `207778aea06869735bef97d58651c0ac117c3ed5`
+(tree `7e62ed5ccde68163cecff01e59da1606b2da5c53`). После принятия
+запроса временный сбой IPC больше не выдаёт ложное сообщение «Codex
+недоступен»; после итоговой доставки bridge удаляет свои временные карточки
+и квитанции с безопасным повтором удаления. Старые служебные сообщения
+3047, 3048, 3050, 3051 и manifest 3053 в показанной теме удалены
+точечным вызовом Bot API; исходное поручение и итоговый ответ сохранены.
+Владелец подтвердил получение нужного файла — подпроверка отправки файла
+**PASS**, хотя запись конкретного bridge request остаётся `delivery_partial`:
+квитанция этого механизма подтверждает текст и manifest, а путь получения
+файла этим снимком не установлен.
+
+Новый commit прошёл L1 `2980 passed, 3 skipped, 5` исторических deselected
+и независимый L2 `388 passed`; подписанная копия `VERIFIED`, Main Running,
+Health 0, Main/Health/Backup Enabled, local/public `/readyz` — HTTP 200.
+GitHub draft PR [#41](https://github.com/streetenergy63reshik-del/nobus-space/pull/41)
+содержит код; `main` не обновлялся. Для нового механизма уборки ещё нужен
+живой сценарий владельца; D02–D17 в целом открыты, Gate/MVP2 не приняты.
+[Квитанции](../gates/mvp2/m2-desktop/RELEASE-EVIDENCE-20261005-CLEANUP.md)
+и [ручная карта](../gates/mvp2/M2-DESKTOP-MANUAL-ACCEPTANCE.md).
+
 **5 октября 2026, 17:15 МСК — M2-DESKTOP снова READY_FOR_MANUAL_ACCEPTANCE.**
 Код `17651308ce8a9d6a1f27199955b13f42de019978` установлен в LIVE;
 числовой пин Codex Desktop убран. Исходный запрос Telegram № 3029 один раз

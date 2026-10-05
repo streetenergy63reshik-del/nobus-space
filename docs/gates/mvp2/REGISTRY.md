@@ -1,12 +1,23 @@
 # Реестр Gate MVP2
 
+5 октября, 19:54 МСК: исправление ложного предупреждения и автоматической
+очистки временных сообщений установлено в LIVE на `207778aea06869735bef97d58651c0ac117c3ed5`.
+L1 `2980 passed, 3 skipped, 5` исторических deselected, L2 `388 passed`;
+новый signed backup complete/VERIFIED, Main Running, Health 0,
+local/public readiness HTTP 200. Владелец подтвердил успешное получение
+файла и прохождение меню/задачи/текстового ответа; это **подпроверки**, а
+не полный PASS D02–D17. Пять старых служебных сообщений показанного
+диалога удалены. [Квитанции](m2-desktop/RELEASE-EVIDENCE-20261005-CLEANUP.md).
+**READY_FOR_MANUAL_ACCEPTANCE**, Gate/MVP2 `NOT_ACCEPTED`.
+Ниже — датированная история.
+
 5 октября, 17:15 МСК: версия Codex Desktop больше не закреплена числом в
 UIA. Код `17651308ce8a9d6a1f27199955b13f42de019978` установлен в LIVE;
 исходный запрос № 3029 завершён одним Desktop turn и Telegram message 3043.
 L1 `2975 passed, 3 skipped, 5` исторических deselected, независимый L2
 `174 passed`; signed backup complete/VERIFIED, Main Running, Health 0,
 обе readiness PASS. [Квитанции](m2-desktop/RELEASE-EVIDENCE-20261005-COMPAT.md).
-**READY_FOR_MANUAL_ACCEPTANCE**, D02–D17 `NOT_RUN`, Gate/MVP2 `NOT_ACCEPTED`.
+Тогда **READY_FOR_MANUAL_ACCEPTANCE**, D02–D17 `NOT_RUN`, Gate/MVP2 `NOT_ACCEPTED`.
 Ниже — прежние снимки.
 
 5 октября, 14:38 МСК: плиточное меню `/codex` и точная миграция SQLite

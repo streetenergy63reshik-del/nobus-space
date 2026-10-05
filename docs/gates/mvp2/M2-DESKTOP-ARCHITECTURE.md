@@ -1,6 +1,14 @@
 # M2-DESKTOP — Telegram ↔ Codex Desktop
 
-5 октября 2026, 17:15 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE.**
+5 октября 2026, 19:54 МСК. **CURRENT: READY_FOR_MANUAL_ACCEPTANCE.**
+В LIVE установлен `207778aea06869735bef97d58651c0ac117c3ed5`.
+Ложное предупреждение при восстановимом IPC-сбое убрано; bridge удаляет свои
+временные Telegram-карточки после итоговой доставки. Local/public readiness,
+signed backup и Health проверены. Получение файла подтвердил владелец;
+полный Gate/D02–D17 не принят.
+[Квитанции](m2-desktop/RELEASE-EVIDENCE-20261005-CLEANUP.md).
+
+5 октября 2026, 17:15 МСК. **Тогда: READY_FOR_MANUAL_ACCEPTANCE.**
 LIVE на `17651308ce8a9d6a1f27199955b13f42de019978`; обновление Codex
 Desktop больше не требует правки номера сборки в коде. Исходный запрос № 3029
 получил один Desktop turn и Telegram message 3043. Подписанный backup
