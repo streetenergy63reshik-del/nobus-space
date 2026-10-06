@@ -354,7 +354,7 @@ def create_miniapp_app(
         try:
             if readiness is None:
                 raise RuntimeError("readiness not configured")
-            readiness()
+            await asyncio.to_thread(readiness)
         except Exception:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return {"status": "ready"}

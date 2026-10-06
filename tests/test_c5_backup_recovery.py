@@ -17,6 +17,7 @@ from scripts import backup_telegram_runtime as backup, restore_telegram_runtime 
 from scripts.check_telegram_health import check, operator_view, retention_dry_run
 from src.application import runtime_maintenance as maintenance
 from src.application.durable_telegram_state import SQLiteTelegramState
+from src.application.desktop_bridge_state import SQLiteDesktopBridgeState
 from src.application.miniapp import MiniAppCore, MiniAppAuthenticationError, MiniAppCoreUnavailableError
 from src.application.product_effects import DurableProductEffectVault, ProductEffectKind
 from src.contracts.models import canonical_json_digest
@@ -38,6 +39,34 @@ def fixture_runtime(root: Path, *, answer: bool = False):
     else:
         store, task, message = SQLiteStore(root / 'task-runtime.sqlite3'), None, None
     return store, queue, task, message
+
+
+def test_desktop_menu_survives_backup_but_restore_revokes_open_prompt(tmp_path):
+    source, target = tmp_path / 'source', tmp_path / 'restored'
+    fixture_runtime(source)
+    state = SQLiteDesktopBridgeState(source / 'telegram-state.sqlite3')
+    menu_id = uuid4()
+    state.create_menu(
+        menu_id=menu_id, tenant_id='tenant-a', author_user_id=41,
+        chat_id=-1001, topic_id=7, source_message_id=12,
+        actions=(('project', 'project-a'),),
+        expires_at=datetime.now(UTC) + timedelta(minutes=30),
+    )
+    assert state.bind_menu_message(menu_id, 13)
+    assert state.advance_menu(
+        menu_id, revision=1, stage='prompt', project_id='project-a',
+        thread_id=None, page=0, actions=(('back', None),),
+    )
+    assert state.bind_menu_prompt(menu_id, 14)
+    maintenance.validate_runtime_database(source / 'telegram-state.sqlite3')
+    manifest = backup._backup_quiescent(
+        maintenance.runtime_database_paths(source), tmp_path / 'backup',
+    )
+    safe_restore(manifest, target)
+    restored = SQLiteDesktopBridgeState(target / 'telegram-state.sqlite3')
+    assert restored.read_menu(menu_id).stage == 'closed'
+    assert not restored.claim_menu_callback(f'CdxM_{menu_id.hex}_2_0', 41, -1001)
+    maintenance.validate_runtime_database(target / 'telegram-state.sqlite3')
 
 
 def safe_restore(manifest: Path, target: Path):

@@ -111,7 +111,7 @@ def test_scheduler_whatif_writes_nothing(tmp_path: Path) -> None:
     (root / ".venv" / "Scripts" / "python.exe").touch()
     (root / ".venv" / "Scripts" / "pythonw.exe").touch()
     (root / "scripts" / "run_nobus_space_live.py").touch()
-    (root / "scripts" / "check_telegram_health.py").touch()
+    (root / "scripts" / "check_nobus_space_health.py").touch()
     script = (
         Path(__file__).resolve().parents[1]
         / "ops"
@@ -211,7 +211,13 @@ def test_health_reports_dead_letter_as_degraded_with_bounded_stopped_recovery(
     assert "-Execute $pythonw" in installer
     assert "-WindowStyle Hidden" in installer
     assert "-RepetitionInterval (New-TimeSpan -Minutes 1)" in installer
-    assert "--check-ready" in installer
+    assert "check_nobus_space_health.py" in installer
+    assert "--diagnostic-root" in installer
+    health_probe = (
+        Path(__file__).resolve().parents[1] / "scripts/check_nobus_space_health.py"
+    ).read_text(encoding="utf-8")
+    assert "supervisor._readiness_pair(None)" in health_probe
+    assert "supervisor.readiness_details()" in health_probe
     assert "Invoke-WebRequest" not in installer
     assert "Generated health launcher is invalid." in installer
     assert "[System.Text.UTF8Encoding]::new($true)" in installer

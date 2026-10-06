@@ -1,0 +1,530 @@
+{
+  "schema": "nobus-native-recovery-evidence-1",
+  "at": "2026-10-06T08:53:01.962556+00:00",
+  "result": "RUNTIME_RESTORED_DATA_PRESERVED",
+  "root_cause": "UNKNOWN_WINDOWS_POWER_FAILURE",
+  "owner_authorization": "current direct request to restore the existing bot",
+  "before": {
+    "at": "2026-10-06T08:38:04.413086+00:00",
+    "config_digest": "sha256:06742c5b268c1dd892e570fabef743ceba921491afc2b28e05752ef885092969",
+    "activation_binding": "sha256:919abbbdbe2dd6a286b02780f6e57d3f886649cb6f5ecb5f7466fb6163798af6",
+    "history_head": "sha256:411a1aea56c30e5f57374d8cf6f167f04d11a1657ebfc34359293c889b245390",
+    "history_tail": [
+      {
+        "at": "2026-10-06T00:30:18Z",
+        "event": "terminal",
+        "stage": "steady",
+        "error_class": "planned_stop",
+        "supervisor_exit_code": 0,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "stop_planned",
+        "cleanup_outcome": "proven",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-06T00:30:19Z",
+        "event": "control_closing",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": 0,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "stop_planned",
+        "cleanup_outcome": "proven",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-06T00:30:19Z",
+        "event": "control_closed",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": 0,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "stop_planned",
+        "cleanup_outcome": "proven",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-06T00:31:03Z",
+        "event": "control_starting",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": null,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "pending",
+        "cleanup_outcome": "not_started",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-06T00:31:03Z",
+        "event": "control_ready",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": 0,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "pending",
+        "cleanup_outcome": "not_started",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-06T00:31:03Z",
+        "event": "starting",
+        "stage": "setup",
+        "error_class": null,
+        "supervisor_exit_code": null,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "relay_cause": null,
+        "recovery_disposition": "pending",
+        "cleanup_outcome": "not_started",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      }
+    ],
+    "backup_digest": "sha256:8e62c896d32e99d518d7f679495d37a8e5cc2e9141850eb2ff05fe441f350e40",
+    "generation": "daily-20261006T033030-4237f05e9422425b9ae4557b58cf32f8",
+    "databases": {
+      "business-notes.sqlite3": "sha256:5480dff810fba0047100ffc4b2294cdd3c72649211ca288ac4b086e57b8cd7e1",
+      "task-runtime.sqlite3": "sha256:ab26ea868e238399d1fd25beb9bf27332c061ebfb1942abd93d1b95326724a84",
+      "telegram-checkpoint.sqlite3": "sha256:9da5b75b0817952e01ea3e2b9ac12b3a066a420118f976804f7831dd039bac61",
+      "telegram-state.sqlite3": "sha256:32cdf7cf52151683ae0a0b94de04f4406a9a8e15bf72cd71ba5908d5c4706c1e"
+    },
+    "integrity": "PASS",
+    "effects": "PASS",
+    "inactive": true,
+    "hold": false,
+    "inspect": {
+      "exit_code": 0,
+      "result": {
+        "last_digest": "sha256:411a1aea56c30e5f57374d8cf6f167f04d11a1657ebfc34359293c889b245390",
+        "next_attempt": null,
+        "reason": "previous_attempt_unknown",
+        "schema": "nobus-recovery-control-1",
+        "series_id": "6e0fedc413494de584df047e43d2bcc9",
+        "state": "blocked",
+        "status": "STOP"
+      }
+    }
+  },
+  "stopped_observation": {
+    "schema": "nobus-read-only-observation-1",
+    "at": "2026-10-06T08:25:03.758600+00:00",
+    "actions": "read-only; no task changes, no inspect/ack, no backup, no Telegram message",
+    "revision": "207778aea06869735bef97d58651c0ac117c3ed5",
+    "live_clean": true,
+    "tasks": [
+      {
+        "name": "NobusSpaceBot",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-06T09:01:50",
+        "result": 78,
+        "next": null
+      },
+      {
+        "name": "NobusSpaceBot-Backup",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-06T03:30:00",
+        "result": 0,
+        "next": "2026-10-07T03:30:00"
+      },
+      {
+        "name": "NobusSpaceBot-Health",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-06T11:24:40",
+        "result": 1,
+        "next": "2026-10-06T11:25:39"
+      }
+    ],
+    "config_digest": "sha256:06742c5b268c1dd892e570fabef743ceba921491afc2b28e05752ef885092969",
+    "activation_binding": "sha256:919abbbdbe2dd6a286b02780f6e57d3f886649cb6f5ecb5f7466fb6163798af6",
+    "installed_binding": "PASS",
+    "history": {
+      "authenticated": true,
+      "head": "sha256:411a1aea56c30e5f57374d8cf6f167f04d11a1657ebfc34359293c889b245390",
+      "last_event": "starting",
+      "last_at": "2026-10-06T00:31:03Z",
+      "latch_present": false
+    },
+    "backup": {
+      "authenticated": true,
+      "phase": "complete",
+      "at": "2026-10-06T00:32:03.951399+00:00",
+      "digest": "sha256:8e62c896d32e99d518d7f679495d37a8e5cc2e9141850eb2ff05fe441f350e40",
+      "generation": "daily-20261006T033030-4237f05e9422425b9ae4557b58cf32f8",
+      "verified": true,
+      "hold": false
+    },
+    "polling_lease_observed_by_effects": false,
+    "task_count": 89,
+    "delivery": {
+      "pending": 0,
+      "leased": 0,
+      "unknown": 0,
+      "failed": 0,
+      "confirmed_parts": 20
+    },
+    "integrity": "PASS",
+    "effects": "PASS",
+    "reconciliation": false,
+    "queue": {},
+    "leases": [
+      {
+        "offset": 375634258,
+        "revision": 108662,
+        "active": false
+      }
+    ],
+    "process_chain": {
+      "supervisors": 0,
+      "core": 0,
+      "relays": 0,
+      "listeners": 0,
+      "owned": false
+    },
+    "readiness": {
+      "local": false,
+      "public": false,
+      "details": [
+        {
+          "boundary": "local",
+          "http_status": null,
+          "body_matches": false,
+          "error_class": "transport_error",
+          "at": "2026-10-06T08:25:36Z",
+          "elapsed_ms": 2109,
+          "deadline_ms": 5000,
+          "status": "FAIL"
+        },
+        {
+          "boundary": "public",
+          "http_status": 502,
+          "body_matches": false,
+          "error_class": "http_error",
+          "at": "2026-10-06T08:25:36Z",
+          "elapsed_ms": 547,
+          "deadline_ms": 10000,
+          "status": "FAIL"
+        }
+      ]
+    },
+    "status": "DEGRADED",
+    "completed_at": "2026-10-06T08:25:36.927907+00:00"
+  },
+  "acknowledge": {
+    "exit_code": 0,
+    "result": {
+      "reset_event_digest": "sha256:3fb7eeb28126a383a9f7f23df0088af440baf4c2b0b4c00b9820fb79f50789a8",
+      "reset_of_digest": "sha256:411a1aea56c30e5f57374d8cf6f167f04d11a1657ebfc34359293c889b245390",
+      "schema": "nobus-recovery-control-1",
+      "status": "RESET"
+    }
+  },
+  "start": {
+    "at": "2026-10-06T08:40:13.263022+00:00",
+    "name": "NobusSpaceBot",
+    "state": "Running",
+    "enabled": true
+  },
+  "after": {
+    "schema": "nobus-read-only-observation-1",
+    "at": "2026-10-06T08:40:54.387377+00:00",
+    "actions": "read-only; no task changes, no inspect/ack, no backup, no Telegram message",
+    "revision": "207778aea06869735bef97d58651c0ac117c3ed5",
+    "live_clean": true,
+    "tasks": [
+      {
+        "name": "NobusSpaceBot",
+        "state": "Running",
+        "enabled": true,
+        "last": "2026-10-06T11:40:12",
+        "result": 267009,
+        "next": null
+      },
+      {
+        "name": "NobusSpaceBot-Backup",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-06T03:30:00",
+        "result": 0,
+        "next": "2026-10-07T03:30:00"
+      },
+      {
+        "name": "NobusSpaceBot-Health",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-06T11:40:40",
+        "result": 0,
+        "next": "2026-10-06T11:41:39"
+      }
+    ],
+    "config_digest": "sha256:06742c5b268c1dd892e570fabef743ceba921491afc2b28e05752ef885092969",
+    "activation_binding": "sha256:919abbbdbe2dd6a286b02780f6e57d3f886649cb6f5ecb5f7466fb6163798af6",
+    "installed_binding": "PASS",
+    "history": {
+      "authenticated": true,
+      "head": "sha256:a78a899a2ec280171a6238812af3d3ca161138f7d11dc6a1c64980d599111366",
+      "last_event": "starting",
+      "last_at": "2026-10-06T08:40:19Z",
+      "latch_present": false
+    },
+    "backup": {
+      "authenticated": true,
+      "phase": "complete",
+      "at": "2026-10-06T00:32:03.951399+00:00",
+      "digest": "sha256:8e62c896d32e99d518d7f679495d37a8e5cc2e9141850eb2ff05fe441f350e40",
+      "generation": "daily-20261006T033030-4237f05e9422425b9ae4557b58cf32f8",
+      "verified": true,
+      "hold": false
+    },
+    "polling_lease_observed_by_effects": true,
+    "task_count": 89,
+    "delivery": {
+      "pending": 0,
+      "leased": 0,
+      "unknown": 0,
+      "failed": 0,
+      "confirmed_parts": 20
+    },
+    "integrity": "PASS",
+    "effects": "PASS",
+    "reconciliation": false,
+    "queue": {},
+    "leases": [
+      {
+        "offset": 375634282,
+        "revision": 108693,
+        "active": true
+      }
+    ],
+    "process_chain": {
+      "supervisors": 1,
+      "core": 1,
+      "relays": 1,
+      "listeners": 1,
+      "owned": true
+    },
+    "readiness": {
+      "local": true,
+      "public": true,
+      "details": [
+        {
+          "boundary": "local",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-06T08:41:28Z",
+          "elapsed_ms": 203,
+          "deadline_ms": 5000,
+          "status": "PASS"
+        },
+        {
+          "boundary": "public",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-06T08:41:28Z",
+          "elapsed_ms": 656,
+          "deadline_ms": 10000,
+          "status": "PASS"
+        }
+      ]
+    },
+    "status": "PASS",
+    "completed_at": "2026-10-06T08:41:28.980576+00:00"
+  },
+  "completed_health": {
+    "at": "2026-10-06T08:47:57.8855135Z",
+    "state": "Ready",
+    "enabled": true,
+    "last_utc": "2026-10-06T08:47:40.0000000Z",
+    "result": 0
+  },
+  "boot_and_business_preservation": {
+    "at": "2026-10-06T08:44:27.860132+00:00",
+    "actions": "read-only",
+    "prior_boot_matches_current": true,
+    "business_database_preservation": {
+      "business-notes.sqlite3": true,
+      "task-runtime.sqlite3": true,
+      "telegram-state.sqlite3": false
+    },
+    "history_authenticated": true,
+    "last_event": "starting",
+    "last_at": "2026-10-06T08:40:19Z",
+    "health": {
+      "state": "Running",
+      "enabled": true,
+      "last_utc": "2026-10-06T08:44:40.0000000Z",
+      "result": 267009
+    },
+    "health_after_start": true,
+    "windows_events": [
+      {
+        "at": "2026-10-06T06:01:17.8593313Z",
+        "id": 41,
+        "provider": "Microsoft-Windows-Kernel-Power"
+      },
+      {
+        "at": "2026-10-06T06:01:35.1524612Z",
+        "id": 6005,
+        "provider": "EventLog"
+      },
+      {
+        "at": "2026-10-06T06:01:35.1505344Z",
+        "id": 6008,
+        "provider": "EventLog"
+      },
+      {
+        "at": "2026-10-06T06:01:11.8906769Z",
+        "id": 12,
+        "provider": "Microsoft-Windows-Kernel-General"
+      }
+    ],
+    "status": "FOLLOW_UP"
+  },
+  "telegram_preservation": {
+    "at": "2026-10-06T08:50:33.922761+00:00",
+    "actions": "read-only; existing copy decrypted in memory only",
+    "copy_matches_stopped_baseline": true,
+    "tables": {
+      "telegram_capabilities": {
+        "copy_count": 1,
+        "current_count": 1,
+        "inserted": 0,
+        "removed": 0,
+        "changed_columns": []
+      },
+      "telegram_progress": {
+        "copy_count": 0,
+        "current_count": 0,
+        "inserted": 0,
+        "removed": 0,
+        "changed_columns": []
+      },
+      "telegram_jobs": {
+        "copy_count": 0,
+        "current_count": 0,
+        "inserted": 0,
+        "removed": 0,
+        "changed_columns": []
+      },
+      "semantic_clarifications": {
+        "copy_count": 1,
+        "current_count": 1,
+        "inserted": 0,
+        "removed": 0,
+        "changed_columns": []
+      },
+      "desktop_bridge_requests": {
+        "copy_count": 7,
+        "current_count": 8,
+        "inserted": 1,
+        "removed": 0,
+        "changed_columns": [],
+        "new_rows_after_start": true,
+        "current_status_counts": {
+          "delivered": 4,
+          "delivery_partial": 1,
+          "needs_target": 1,
+          "unknown_dispatch": 2
+        },
+        "inserted_status_counts": {
+          "needs_target": 1
+        }
+      },
+      "desktop_bridge_interactions": {
+        "copy_count": 0,
+        "current_count": 1,
+        "inserted": 1,
+        "removed": 0,
+        "changed_columns": [],
+        "new_rows_after_start": true,
+        "current_status_counts": {
+          "unknown": 1
+        },
+        "inserted_status_counts": {
+          "unknown": 1
+        }
+      },
+      "desktop_bridge_deliveries": {
+        "copy_count": 6,
+        "current_count": 6,
+        "inserted": 0,
+        "removed": 0,
+        "changed_columns": []
+      },
+      "desktop_bridge_menus": {
+        "copy_count": 2,
+        "current_count": 3,
+        "inserted": 1,
+        "removed": 0,
+        "changed_columns": [],
+        "new_rows_after_start": true
+      },
+      "desktop_bridge_menu_prompts": {
+        "copy_count": 2,
+        "current_count": 2,
+        "inserted": 0,
+        "removed": 0,
+        "changed_columns": []
+      }
+    },
+    "status": "PASS"
+  },
+  "versions": {
+    "schema": "nobus-version-observation-1",
+    "at": "2026-10-06T08:46:48.572582+00:00",
+    "github_main": "332d6bb19d9ef4d7ca1fda579dbc1728b1773b28",
+    "live": "207778aea06869735bef97d58651c0ac117c3ed5",
+    "local_arthur_candidate": "1b6af61fc28156f4afbc5e26302c21414f00ef63",
+    "main_vs_live_counts": "0\t48",
+    "live_vs_candidate_counts": "0\t7",
+    "release_tag_v1_0_2_commit": "82003c03d8a36015703472b472640ab4021fb416",
+    "live_named_remote_head": false,
+    "candidate_named_remote_head": false,
+    "action": "read-only; no fetch/push/deploy"
+  },
+  "actions": {
+    "native_acknowledge": 1,
+    "main_start": 1,
+    "new_backup": 0,
+    "rebind": 0,
+    "code_or_config_change": false,
+    "history_deleted": false,
+    "database_rollback": false,
+    "telegram_test": false,
+    "git_publication": false
+  },
+  "limitations": [
+    "Windows 41/6008 proves an unclean restart, not the hardware or software cause.",
+    "Same boot identity and previous_attempt_unknown retained fail-closed STOP until operator acknowledgement.",
+    "Core delivery counters exclude Desktop bridge requests; two pre-existing unknown_dispatch and one delivery_partial remain.",
+    "A new needs_target request and an interaction with unknown delivery were admitted after start; they were not replayed.",
+    "No end-to-end Telegram test was sent.",
+    "Earlier diagnostic reader failures are retained privately; final evidence resolves preservation and completed Health."
+  ]
+}

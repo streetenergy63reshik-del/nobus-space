@@ -81,7 +81,11 @@ def inspect_legacy(source: Path):
         with closing(_read(path)) as db:
             schema = {f'{t}:{n}': _ddl_digest(s or '') for t, n, s in db.execute(
                 "SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'")}
-            if schema != LEGACY_SCHEMA[path.name]:
+            expected = LEGACY_SCHEMA[path.name]
+            if set(schema) != set(expected) or any(
+                schema[name] not in (allowed if isinstance(allowed, tuple) else (allowed,))
+                for name, allowed in expected.items()
+            ):
                 raise ValueError('unsupported legacy schema')
             if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
                 raise ValueError('legacy integrity failed')

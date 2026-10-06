@@ -22,6 +22,7 @@ from src.transport.telegram.bot_api import TelegramBotApi, TelegramBotApiError  
 
 _COMMANDS = (
     ("start", "Как ставить задачи"),
+    ("codex", "Отправить задачу в Codex Desktop"),
     ("status", "Состояние и очередь"),
     ("limit", "Недельный лимит Codex"),
     ("help", "Помощь и безопасность"),

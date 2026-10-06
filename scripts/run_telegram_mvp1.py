@@ -38,6 +38,7 @@ from scripts.run_telegram_control import (  # noqa: E402
     _poll_with_unavailable_backoff,
     _task_destinations,
 )
+from scripts.runtime_diagnostics import start_loop_stall_capture  # noqa: E402
 from src.application.gate5a4 import (  # noqa: E402
     GATE5A4_EXECUTION_CONCURRENCY,
     build_gate5a4_runtime,
@@ -52,6 +53,11 @@ from src.application.durable_semantic import (  # noqa: E402
     DurableSemanticClarificationStore,
 )
 from src.application.durable_telegram_state import SQLiteTelegramState  # noqa: E402
+from src.application.desktop_bridge import DesktopBridgeService  # noqa: E402
+from src.integrations.codex_desktop_catalog import CodexDesktopCatalog  # noqa: E402
+from src.application.desktop_bridge_state import (  # noqa: E402
+    DesktopMenuCallbackStore, SQLiteDesktopBridgeState,
+)
 from src.application.miniapp import MiniAppCore, MiniAppTaskAdmission  # noqa: E402
 from src.application.nobus_memory import NobusMemory  # noqa: E402
 from src.application.runtime_maintenance import (  # noqa: E402
@@ -91,6 +97,8 @@ from src.transport.telegram.sqlite_checkpoint import (  # noqa: E402
     SQLitePollingCheckpointStore,
 )
 from src.transport.miniapp import BoundedH11Protocol, create_miniapp_app  # noqa: E402
+from src.integrations.codex_desktop_uia import CodexDesktopUiAutomation  # noqa: E402
+from src.integrations.nobus_document_delivery import NobusDocumentDelivery  # noqa: E402
 from src.storage import SQLiteStore  # noqa: E402
 from src.voice import IsolatedFasterWhisperTranscriber, VoicePreviewService  # noqa: E402
 from src.workers.codex_limits import build_codex_rate_limit_client  # noqa: E402
@@ -200,6 +208,9 @@ _RUN_STAGES = frozenset(
 def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--semantic-admission", action="store_true")
+    parser.add_argument("--desktop-bridge", action="store_true")
+    parser.add_argument("--desktop-projects-file", type=Path)
+    parser.add_argument("--desktop-artifact-root", action="append", type=Path, default=[])
     parser.add_argument("--shutdown-stdin", action="store_true")
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--voice-model-directory", type=Path)
@@ -220,7 +231,64 @@ def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
                 if candidate.is_symlink() or candidate.is_junction():
                     parser.error("runtime composition directory is invalid")
             setattr(values, name, value.resolve(strict=True))
+    resolved_roots = []
+    owner_root = _OWNER_READ_ROOT.resolve(strict=True)
+    for value in values.desktop_artifact_root:
+        if not value.is_absolute() or not value.is_dir():
+            parser.error("desktop artifact root is invalid")
+        current = value
+        while current != owner_root and current != current.parent:
+            if current.is_symlink() or current.is_junction():
+                parser.error("desktop artifact root is reparse-linked")
+            current = current.parent
+        resolved = value.resolve(strict=True)
+        if not resolved.is_relative_to(owner_root):
+            parser.error("desktop artifact root is outside owner workspace")
+        resolved_roots.append(resolved)
+    values.desktop_artifact_root = tuple(resolved_roots)
     return values
+
+
+def _load_desktop_projects(path: Path) -> dict[str, Path]:
+    """Operator inventory only; UIA still proves each saved project on use."""
+    if not isinstance(path, Path) or not path.is_absolute() or not path.is_file() or path.is_symlink():
+        raise ValueError("desktop project inventory unavailable")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        raise ValueError("desktop project inventory invalid") from None
+    if (type(data) is not dict or set(data) != {"version", "projects"}
+            or type(data["version"]) is not int or data["version"] != 1):
+        raise ValueError("desktop project inventory invalid")
+    items = data["projects"]
+    if type(items) is not list or not 1 <= len(items) <= 128:
+        raise ValueError("desktop project inventory invalid")
+    projects: dict[str, Path] = {}
+    owner_root = _OWNER_READ_ROOT.resolve(strict=True)
+    for item in items:
+        if type(item) is not dict or set(item) != {"name", "cwd"}:
+            raise ValueError("desktop project inventory invalid")
+        name, raw_cwd = item["name"], item["cwd"]
+        if (
+            type(name) is not str or not name.strip() or len(name) > 256
+            or type(raw_cwd) is not str or "\x00" in raw_cwd
+        ):
+            raise ValueError("desktop project inventory invalid")
+        cwd = Path(raw_cwd)
+        if not cwd.is_absolute() or not cwd.is_dir():
+            raise ValueError("desktop project inventory invalid")
+        current = cwd
+        while current != owner_root and current != current.parent:
+            if current.is_symlink() or current.is_junction():
+                raise ValueError("desktop project inventory reparse-linked")
+            current = current.parent
+        resolved = cwd.resolve(strict=True)
+        if not resolved.is_relative_to(owner_root) or any(
+            existing.casefold() == name.casefold() for existing in projects
+        ):
+            raise ValueError("desktop project inventory invalid")
+        projects[name] = resolved
+    return projects
 
 
 def _semantic_enabled(values: argparse.Namespace) -> bool:
@@ -402,6 +470,19 @@ def _assert_product_healthy(
         miniapp_server.assert_healthy()
 
 
+async def _assert_product_healthy_nonblocking(
+    control: ProductTelegramControlPlane,
+    miniapp_server: _MiniAppServer | None,
+) -> None:
+    nonblocking = getattr(control, "assert_healthy_nonblocking", None)
+    if callable(nonblocking):
+        await nonblocking()
+    else:
+        control.assert_healthy()
+    if miniapp_server is not None:
+        miniapp_server.assert_healthy()
+
+
 def _load_project_context() -> str:
     try:
         content = _PROJECT_CONTEXT_PATH.read_text(encoding="utf-8").strip()
@@ -418,6 +499,10 @@ async def _run(
     report_stage: Callable[[str], None] = lambda stage: None,
 ) -> dict[str, object]:
     semantic_enabled = _semantic_enabled(values)
+    desktop_projects = (
+        _load_desktop_projects(getattr(values, "desktop_projects_file", None))
+        if getattr(values, "desktop_bridge", False) is True else {}
+    )
     runtime_root = getattr(values, "runtime_root", None) or _RUNTIME_ROOT
     isolated = runtime_root != _RUNTIME_ROOT
     checkpoint_path = runtime_root / _CHECKPOINT_PATH.name
@@ -427,6 +512,14 @@ async def _run(
     artifacts = runtime_root / "artifacts" if isolated else _TELEGRAM_PROJECTS_ROOT
     poll_health = {"last_success": 0.0}
     backup_root = getattr(values, "backup_root", None)
+    # Schema creation is the supported additive migration boundary. It must
+    # precede the fresh-backup admission check: after an application upgrade,
+    # the previous backup is intentionally bound to the previous schema and a
+    # candidate backup cannot be produced until the new tables exist.
+    telegram_state = SQLiteTelegramState(telegram_state_path)
+    desktop_bridge_state = SQLiteDesktopBridgeState(telegram_state_path)
+    action_store = DurableTelegramActionStore(telegram_state)
+
     def admission_readiness(*, for_admission):
         if backup_root is not None:
             from src.application.managed_backups import assert_recent
@@ -461,7 +554,9 @@ async def _run(
         transport=httpx.AsyncHTTPTransport(retries=0, trust_env=False),
         request_timeout=60,
     )
+    close_stall_capture = lambda: None
     try:
+        close_stall_capture = start_loop_stall_capture(asyncio.get_running_loop(), runtime_root)
         report_stage("telegram_identity")
         identity = await api.get_me()
         if identity.username.casefold() != _EXPECTED_USERNAME.casefold():
@@ -475,6 +570,15 @@ async def _run(
             for item in binding_config.bindings
             if item.purpose == "owner_private"
         )
+        group_binding = None
+        if getattr(values, "desktop_bridge", False) is True:
+            group_bindings = [
+                item for item in binding_config.bindings
+                if item.purpose == "business_notes"
+            ]
+            if len(group_bindings) != 1:
+                raise ValueError("desktop group binding is not unique")
+            group_binding = group_bindings[0]
         bindings = load_telegram_bindings(
             _BINDING_PATH,
             expected_bot_id=identity.bot_id,
@@ -491,12 +595,10 @@ async def _run(
         )
         if values.bootstrap_next_offset is not None:
             _bootstrap_checkpoint(checkpoint, values.bootstrap_next_offset)
-        telegram_state = SQLiteTelegramState(telegram_state_path)
-        action_store = DurableTelegramActionStore(telegram_state)
         gateway = TelegramGateway(
             actor_bindings=bindings,
             update_id_store=PollingCheckpointUpdateIdStore(),
-            callback_token_store=action_store,
+            callback_token_store=DesktopMenuCallbackStore(action_store, desktop_bridge_state),
         )
         destination_refs, sender_destinations = _task_destinations(bindings)
         report_stage("core_runtime")
@@ -544,6 +646,48 @@ async def _run(
             ),
         )
         report_stage("control_construction")
+        voice_service = VoicePreviewService(
+            voice_transcriber,
+            temp_root=voice_temp,
+            max_bytes=10 * 1024 * 1024,
+            max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
+        )
+        desktop_bridge = DesktopBridgeService(
+            api=api,
+            state=desktop_bridge_state,
+            uia=CodexDesktopUiAutomation(
+                script_path=ROOT / "scripts" / "codex_desktop_uia.ps1",
+                runtime_root=runtime_root / "desktop-bridge",
+            ),
+            projects=desktop_projects,
+            catalog=CodexDesktopCatalog(Path.home() / ".codex", owner_root=_OWNER_READ_ROOT),
+            owner_user_id=owner_binding.user_id,
+            owner_private_chat_id=owner_binding.chat_id,
+            bot_username=identity.username,
+            voice_service=voice_service,
+            artifact_roots=getattr(values, "desktop_artifact_root", ()),
+            document_delivery=NobusDocumentDelivery(
+                runtime_path=(
+                    Path.home()
+                    / ".codex"
+                    / "skills"
+                    / "nobus-send-results"
+                    / "scripts"
+                    / "telegram_delivery_runtime.py"
+                ),
+                ledger_path=(
+                    _ORCHESTRATOR_ROOT
+                    / "Code"
+                    / "nobus-orchestrator-dev"
+                    / "telegram-document-delivery.local.sqlite3"
+                ),
+                bot_id=identity.bot_id,
+                bot_username=identity.username,
+                group_binding_ref=group_binding.auth_context_ref,
+                group_chat_id=group_binding.chat_id,
+                group_tenant_id=group_binding.tenant_id,
+            ),
+        ) if getattr(values, "desktop_bridge", False) is True else None
         control = DurableProductTelegramControlPlane(
             gateway,
             api,
@@ -551,12 +695,8 @@ async def _run(
             task_confirmations=DurableTaskConfirmationStore(telegram_state),
             patch_confirmations=DurablePatchConfirmationStore(telegram_state),
             action_store=action_store,
-            voice_service=VoicePreviewService(
-                voice_transcriber,
-                temp_root=voice_temp,
-                max_bytes=10 * 1024 * 1024,
-                max_transcript_length=MAX_TASK_INSTRUCTION_LENGTH,
-            ),
+            voice_service=voice_service,
+            desktop_bridge=desktop_bridge,
             limit_provider=limit_provider,
             semantic_admission=(
                 SemanticAdmissionService(runtime)
@@ -608,6 +748,9 @@ async def _run(
 
         report_stage("polling")
         polling = TelegramPollingBoundary(api, handle_with_binding, checkpoint)
+        async def poll_health_check() -> None:
+            await _assert_product_healthy_nonblocking(control, miniapp_server)
+
         if values.once:
             acknowledged = await _poll_once_and_announce(
                 polling, api, bindings, control=control,
@@ -617,23 +760,19 @@ async def _run(
             acknowledged = await _poll_with_unavailable_backoff(
                 polling, api, bindings, control=control,
                 timeout=values.timeout, announce=values.announce,
-                health_check=lambda: _assert_product_healthy(
-                    control, miniapp_server
-                ),
+                health_check=poll_health_check,
             )
             poll_health["last_success"] = time.monotonic()
-            _assert_product_healthy(control, miniapp_server)
+            await _assert_product_healthy_nonblocking(control, miniapp_server)
             while True:
                 acknowledged += await _poll_with_unavailable_backoff(
                     polling, api, bindings, control=control,
                     timeout=values.timeout, announce=False,
-                    health_check=lambda: _assert_product_healthy(
-                        control, miniapp_server
-                    ),
+                    health_check=poll_health_check,
                 )
                 poll_health["last_success"] = time.monotonic()
-                _assert_product_healthy(control, miniapp_server)
-        _assert_product_healthy(control, miniapp_server)
+                await _assert_product_healthy_nonblocking(control, miniapp_server)
+        await _assert_product_healthy_nonblocking(control, miniapp_server)
         return {
             "status": "PASS",
             "mode": "once" if values.once else "serve",
@@ -641,6 +780,7 @@ async def _run(
             "acknowledged": acknowledged,
         }
     finally:
+        close_stall_capture()
         try:
             if control is not None:
                 await control.close()

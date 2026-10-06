@@ -2,7 +2,7 @@
 
 **Статус документа:** CANONICAL
 
-**CURRENT:** MVP1 ACCEPTED; C0–C6 и M1-S1 завершены. Последняя эксплуатационная приёмка исправленного `0c9b778` — 19.09.2026. Тег v1.0.2 сохранён; MVP2 NOT STARTED. Ниже перечислены архитектурные решения с их собственными статусами.
+**CURRENT:** исполняемый код `207778a`, 6 октября 2026. MVP1 принят 19.09; установлен Desktop bridge по ADR 0029, ручной Gate остаётся открытым. Исторические ADR и evidence сохраняют собственные даты и ревизии.
 Точная кодовая ревизия и проверки — [CURRENT-STATUS](handoffs/CURRENT-STATUS.md).
 
 Наличие старого адаптера в коде не означает доступность возможности в текущей
@@ -39,6 +39,7 @@ semantic composition. Реализованные исторические ADR001
 | [0024](adr/0024-core-durable-recovery-and-part-delivery.md) | Durable admission/recovery, lease fencing, sealed answer и part receipts | ACCEPTED IN C3 | CURRENT; PERMANENT ACTIVE |
 | [0025](adr/0025-miniapp-session-and-request-recovery.md) | Core-owned session rotation и восстановление запроса Mini App без повторного admission | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; ACTIVE IN MVP1 |
 | [0026](adr/0026-channel-neutral-product-projection.md) | Общие состояния, причины, действия и безопасное представление результата в Telegram и Mini App | ACCEPTED FOR C4 IMPLEMENTATION | C4 ACCEPTED / PASS / PUBLISHED; ACTIVE IN MVP1 |
+| [0029](adr/0029-telegram-desktop-owner-tunnel.md) | Доверенная Telegram-группа управляет владельцем задачи установленного Codex Desktop через version-bound owner IPC; разрешения остаются у numeric владельца | ACCEPTED FOR M2-DESKTOP IMPLEMENTATION | M2-DESKTOP WIP |
 
 ## Правила статусов ADR
 

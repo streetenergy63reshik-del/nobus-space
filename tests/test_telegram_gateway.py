@@ -204,6 +204,46 @@ def test_actor_bindings_can_be_atomically_replaced() -> None:
     assert still_bound.status == IngressStatus.ACCEPTED
 
 
+def test_trusted_business_group_accepts_real_participants_by_numeric_sender() -> None:
+    group_id = -1001234567890
+    gateway = make_gateway(
+        bindings={
+            (USER_A, group_id): ActorBinding(
+                tenant_id="tenant-a",
+                actor_identity="telegram:user-a",
+                role="owner",
+                auth_context_ref=AUTH_CONTEXT_REF,
+                purpose="business_notes",
+            )
+        }
+    )
+
+    participant_update = make_text_update(
+        update_id=8,
+        user_id=USER_B,
+        chat_id=group_id,
+    )
+    participant_update["message"]["from"]["is_bot"] = True
+    accepted = gateway.process_update(participant_update)
+    assert accepted.status is IngressStatus.ACCEPTED
+    assert accepted.payload is not None
+    assert accepted.payload.actor_identity == f"telegram:participant:{USER_B}"
+    assert accepted.payload.actor_role == "participant"
+    assert accepted.payload.is_bot is True
+    assert accepted.payload.binding_purpose == "business_notes"
+    assert accepted.payload.auth_context_ref.startswith("sha256:")
+
+    rejected = gateway.process_update(
+        make_text_update(
+            update_id=9,
+            user_id=USER_B,
+            chat_id=group_id - 1,
+        )
+    )
+    assert rejected.status is IngressStatus.REJECTED
+    assert rejected.reason == "user/chat pair not in allowlist"
+
+
 def test_update_claim_is_atomic_under_concurrency() -> None:
     gateway = make_gateway()
     update = make_text_update()

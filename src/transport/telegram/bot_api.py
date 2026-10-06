@@ -22,6 +22,7 @@ from pydantic import SecretStr
 from src.application.product_status import RuntimeAdmissionPaused, product_task_state
 from src.models.task import TaskStatus
 from src.storage.outbox import DeliveryPart, OutboxMessage, OutboxStatus, artifact_for_message, delivery_parts
+from src.storage.nonblocking import run_storage
 
 
 _API_ROOT = "https://api.telegram.org"
@@ -60,6 +61,15 @@ class TelegramBotIdentity:
     bot_id: int
     username: str
     first_name: str
+
+
+@dataclass(frozen=True)
+class TelegramChatAdministrator:
+    user_id: int
+    is_bot: bool
+    username: str | None
+    first_name: str
+    status: str
 
 
 @dataclass(frozen=True)
@@ -139,6 +149,40 @@ class TelegramBotApi:
             username=result["username"].strip(),
             first_name=result["first_name"].strip(),
         )
+
+    async def get_chat_administrators(
+        self, chat_id: int
+    ) -> tuple[TelegramChatAdministrator, ...]:
+        """Read exact administrator identities without consuming updates."""
+        if type(chat_id) is not int or chat_id == 0:
+            raise TelegramBotApiError("telegram_configuration_invalid")
+        result = await self._call("getChatAdministrators", {"chat_id": chat_id})
+        if not isinstance(result, list) or len(result) > 256:
+            raise TelegramBotApiError("telegram_protocol_error")
+        administrators: list[TelegramChatAdministrator] = []
+        for item in result:
+            user = item.get("user") if type(item) is dict else None
+            username = user.get("username") if type(user) is dict else None
+            if (
+                type(user) is not dict
+                or not _positive_int(user.get("id"))
+                or type(user.get("is_bot")) is not bool
+                or not _bounded_text(user.get("first_name"), 128)
+                or username is not None
+                and not _bounded_text(username, 64)
+                or item.get("status") not in {"creator", "administrator"}
+            ):
+                raise TelegramBotApiError("telegram_protocol_error")
+            administrators.append(
+                TelegramChatAdministrator(
+                    user_id=user["id"],
+                    is_bot=user["is_bot"],
+                    username=None if username is None else username.strip(),
+                    first_name=user["first_name"].strip(),
+                    status=item["status"],
+                )
+            )
+        return tuple(administrators)
 
     async def configure_profile(
         self,
@@ -272,12 +316,20 @@ class TelegramBotApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] = (),
+        button_rows: tuple[tuple[tuple[str, str], ...], ...] = (),
+        force_reply: bool = False,
         message_thread_id: int | None = None,
+        reply_to_message_id: int | None = None,
+        parse_mode: str | None = None,
     ) -> int:
         if (
             type(chat_id) is not int
             or not _bounded_text(text, 4096)
             or not _valid_buttons(buttons)
+            or not _valid_button_rows(button_rows)
+            or type(force_reply) is not bool
+            or sum((bool(buttons), bool(button_rows), force_reply)) > 1
+            or parse_mode not in {None, "HTML"}
             or (
                 message_thread_id is not None
                 and (
@@ -285,17 +337,39 @@ class TelegramBotApi:
                     or message_thread_id <= 0
                 )
             )
+            or (
+                reply_to_message_id is not None
+                and (type(reply_to_message_id) is not int or reply_to_message_id <= 0)
+            )
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
-        payload: dict[str, Any] = {"chat_id": chat_id, "text": text.strip()}
+        payload: dict[str, Any] = {"chat_id": chat_id, "text": text}
+        if parse_mode is not None:
+            payload["parse_mode"] = parse_mode
         if message_thread_id is not None:
             payload["message_thread_id"] = message_thread_id
+        if reply_to_message_id is not None:
+            payload["reply_parameters"] = {
+                "message_id": reply_to_message_id,
+                "allow_sending_without_reply": False,
+            }
         if buttons:
             payload["reply_markup"] = {
                 "inline_keyboard": [[
                     {"text": label.strip(), "callback_data": token.strip()}
                     for label, token in buttons
                 ]]
+            }
+        elif button_rows:
+            payload["reply_markup"] = {"inline_keyboard": [
+                [{"text": label.strip(), "callback_data": token.strip()}
+                 for label, token in row] for row in button_rows
+            ]}
+        elif force_reply:
+            payload["reply_markup"] = {
+                "force_reply": True,
+                "selective": True,
+                "input_field_placeholder": "Текст задачи для Codex",
             }
         result = await self._call("sendMessage", payload)
         if type(result) is not dict or not _non_negative_int(result.get("message_id")):
@@ -324,18 +398,21 @@ class TelegramBotApi:
         text: str,
         *,
         buttons: tuple[tuple[str, str], ...] | None = None,
+        button_rows: tuple[tuple[tuple[str, str], ...], ...] | None = None,
     ) -> None:
         if (
             type(chat_id) is not int
             or not _non_negative_int(message_id)
             or not _bounded_text(text, 4096)
             or (buttons is not None and not _valid_buttons(buttons))
+            or (button_rows is not None and not _valid_button_rows(button_rows))
+            or (buttons is not None and button_rows is not None)
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
         payload: dict[str, Any] = {
             "chat_id": chat_id,
             "message_id": message_id,
-            "text": text.strip(),
+            "text": text,
         }
         if buttons is not None:
             payload["reply_markup"] = {
@@ -344,6 +421,11 @@ class TelegramBotApi:
                     for label, token in buttons
                 ]] if buttons else []
             }
+        elif button_rows is not None:
+            payload["reply_markup"] = {"inline_keyboard": [
+                [{"text": label.strip(), "callback_data": token.strip()}
+                 for label, token in row] for row in button_rows
+            ]}
         result = await self._call("editMessageText", payload)
         if type(result) is not dict or result.get("message_id") != message_id:
             raise TelegramBotApiError("telegram_protocol_error")
@@ -352,7 +434,13 @@ class TelegramBotApi:
             raise TelegramBotApiError("telegram_protocol_error")
 
     async def send_document(
-        self, chat_id: int, filename: str, content: bytes
+        self,
+        chat_id: int,
+        filename: str,
+        content: bytes,
+        *,
+        message_thread_id: int | None = None,
+        reply_to_message_id: int | None = None,
     ) -> int:
         """Upload one bounded in-memory document to one exact chat."""
         if (
@@ -360,6 +448,14 @@ class TelegramBotApi:
             or not _safe_upload_filename(filename)
             or type(content) is not bytes
             or not content
+            or (
+                message_thread_id is not None
+                and (type(message_thread_id) is not int or message_thread_id <= 0)
+            )
+            or (
+                reply_to_message_id is not None
+                and (type(reply_to_message_id) is not int or reply_to_message_id <= 0)
+            )
         ):
             raise TelegramBotApiError("telegram_configuration_invalid")
         if len(content) > _MAX_UPLOAD_LIMIT:
@@ -371,7 +467,27 @@ class TelegramBotApi:
             async with self._client.stream(
                 "POST",
                 self._method_url("sendDocument"),
-                data={"chat_id": str(chat_id)},
+                data={
+                    "chat_id": str(chat_id),
+                    **(
+                        {"message_thread_id": str(message_thread_id)}
+                        if message_thread_id is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            "reply_parameters": json.dumps(
+                                {
+                                    "message_id": reply_to_message_id,
+                                    "allow_sending_without_reply": False,
+                                },
+                                separators=(",", ":"),
+                            )
+                        }
+                        if reply_to_message_id is not None
+                        else {}
+                    ),
+                },
                 files={
                     "document": (
                         filename,
@@ -404,6 +520,10 @@ class TelegramBotApi:
             or type(chat) is not dict
             or type(chat.get("id")) is not int
             or chat["id"] != chat_id
+            or (
+                message_thread_id is not None
+                and result.get("message_thread_id") != message_thread_id
+            )
             or type(document) is not dict
             or not _bounded_text(document.get("file_id"), 512)
             or not _bounded_text(document.get("file_unique_id"), 512)
@@ -505,6 +625,7 @@ class TelegramBotApi:
             "deleteMessage",
             "editMessageText",
             "getFile",
+            "getChatAdministrators",
             "getMe",
             "getUpdates",
             "sendMessage",
@@ -557,8 +678,10 @@ class TelegramPollingBoundary:
             raise TelegramBotApiError("telegram_consumer_busy")
         async with self._single_flight:
             acquired_at = self._now()
-            lease = self._checkpoint_call(
-                lambda: self._checkpoint.acquire(self._owner_id, acquired_at)
+            lease = await run_storage(
+                self._checkpoint_call,
+                lambda: self._checkpoint.acquire(self._owner_id, acquired_at),
+                on_cancel=self._release_lease,
             )
             if lease is None:
                 raise TelegramBotApiError("telegram_consumer_busy")
@@ -567,8 +690,8 @@ class TelegramPollingBoundary:
             try:
                 if not self._valid_lease(lease, acquired_at):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
-                current = self._checkpoint_call(
-                    lambda: self._checkpoint.load(lease)
+                current = await run_storage(
+                    self._checkpoint_call, lambda: self._checkpoint.load(lease)
                 )
                 if current is not None and not _non_negative_int(current):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
@@ -607,8 +730,8 @@ class TelegramPollingBoundary:
                     next_offset = update_id + 1
                     if not self._valid_lease(lease, self._now()):
                         raise TelegramBotApiError("telegram_checkpoint_failed")
-                    advanced = self._checkpoint_call(
-                        lambda: self._checkpoint.advance(
+                    advanced = await run_storage(
+                        self._checkpoint_call, lambda: self._checkpoint.advance(
                             lease=lease,
                             expected=current,
                             next_offset=next_offset,
@@ -621,7 +744,7 @@ class TelegramPollingBoundary:
                 return PollBatchResult(current, acknowledged, False)
             finally:
                 active_error = sys.exception()
-                released = self._release_lease(lease)
+                released = await run_storage(self._release_lease, lease)
                 if not released and (active_error is None or isinstance(active_error, RuntimeAdmissionPaused)):
                     raise TelegramBotApiError("telegram_checkpoint_failed")
 
@@ -926,6 +1049,15 @@ def _valid_buttons(buttons: object) -> bool:
             and len(button[1].encode("utf-8")) <= 64
             for button in buttons
         )
+    )
+
+
+def _valid_button_rows(rows: object) -> bool:
+    return (
+        type(rows) is tuple and len(rows) <= 8
+        and sum(len(row) for row in rows if type(row) is tuple) <= 16
+        and all(type(row) is tuple and 1 <= len(row) <= 2
+                and _valid_buttons(row) for row in rows)
     )
 
 

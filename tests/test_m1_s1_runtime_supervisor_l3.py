@@ -388,8 +388,21 @@ def test_m1_activation_binds_every_runtime_input_and_scheduler_signature(
     assert first["voice"]["inventory"]["count"] == 5
     assert set(first["scheduler_signatures"]) == {"main", "health", "backup"}
     assert first["installed_runtime"]["distributions"]["count"] > 0
+    assert {"base_python", "base_pythonw"}.issubset(first["installed_runtime"])
 
     before = canonical_json_digest(first)
+    original_base = Path(supervisor.sys._base_executable)
+    alternate_base = original_base.with_name(
+        "pythonw.exe" if original_base.name.lower() == "python.exe" else "python.exe"
+    )
+    assert alternate_base.is_file()
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            supervisor.sys, "executable",
+            str(Path(supervisor.sys.executable).with_name("pythonw.exe")),
+        )
+        patcher.setattr(supervisor.sys, "_base_executable", str(alternate_base))
+        assert canonical_json_digest(supervisor._activation_manifest(values, runtime)) == before
     (worktree / "docs/11-Контекст-продукта.md").write_text(
         "changed runtime input\n", encoding="utf-8"
     )
@@ -1198,7 +1211,9 @@ def test_m1_installers_support_exact_disabled_candidate_staging():
     assert "$ExpectedHealthDefinitionDigest" in bot
     assert "$ExpectedHealthLauncherDigest" in bot
     assert "$RollbackRoot" in bot
-    assert "[System.IO.File]::Replace" in bot
+    assert "[System.IO.File]::Move($healthLauncher, $healthLauncherRollback)" in bot
+    assert "[System.IO.File]::Move($candidateLauncher, $healthLauncher)" in bot
+    assert "Remove-Item -LiteralPath $candidateLauncher" not in bot
     assert "$ExpectedDefinitionDigest" in backup
     assert bot.index("-Disable") < bot.index("Register-ScheduledTask")
     assert backup.index("-Disable") < backup.index("Register-ScheduledTask")
@@ -1331,7 +1346,9 @@ try {{
     assert (rollback / "NobusSpaceM1S1Fixture-Health.xml").read_text(
         encoding="utf-8"
     ) == health_xml
-    assert not list((root / ".runtime").glob("*.candidate"))
+    candidates = list((root / ".runtime").glob("*.candidate"))
+    assert len(candidates) == 1
+    assert candidates[0].stat().st_size > 0
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows PowerShell installer")

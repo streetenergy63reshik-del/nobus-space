@@ -2180,14 +2180,14 @@ def _ready_request(url, *, seconds, probe, headers=None, stop_event=None):
 
 
 def ready(*, stop_event=None) -> bool:
-    return _ready_request("http://127.0.0.1:8765/readyz", seconds=2,
+    return _ready_request("http://127.0.0.1:8765/readyz", seconds=5,
                           probe=_LOCAL_READINESS_PROBE,
                           headers={"Host": "app.nobusspace.com"}, stop_event=stop_event)
 
 
 def public_ready(*, stop_event=None) -> bool:
     return _ready_request(
-        PUBLIC_ORIGIN + "/readyz", seconds=5,
+        PUBLIC_ORIGIN + "/readyz", seconds=10,
         probe=_PUBLIC_READINESS_PROBE, stop_event=stop_event,
     )
 
@@ -2327,6 +2327,9 @@ def _arguments(argv=None):
     commands.add_argument("--acknowledge-recovery-stop")
     commands.add_argument("--rebind-recovery-from")
     parser.add_argument("--semantic-admission", action="store_true")
+    parser.add_argument("--desktop-bridge", action="store_true")
+    parser.add_argument("--desktop-projects-file", type=Path)
+    parser.add_argument("--desktop-artifact-root", action="append", type=Path, default=[])
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--voice-model-directory", type=Path)
     parser.add_argument("--backup-root", type=Path)
@@ -2336,12 +2339,59 @@ def _arguments(argv=None):
     return parser.parse_args(argv)
 
 
+def _desktop_inventory(values) -> Path | None:
+    """Bind the opt-in Desktop project inventory to this exact worktree."""
+    enabled = bool(getattr(values, "desktop_bridge", False))
+    raw = getattr(values, "desktop_projects_file", None)
+    if enabled != (raw is not None):
+        raise ValueError("desktop bridge configuration is incomplete")
+    if raw is None:
+        return None
+    from src.application.runtime_maintenance import checked_path
+
+    path = checked_path(Path(raw), root=WORKTREE)
+    if (not path.is_absolute() or not path.is_file()
+            or path.stat().st_size > 1024 * 1024):
+        raise ValueError("desktop project inventory is invalid")
+    return path.resolve(strict=True)
+
+
+def _desktop_artifact_roots(values) -> tuple[Path, ...]:
+    """Allow only explicit owner-workspace roots, never a broad home root."""
+    raw = tuple(getattr(values, "desktop_artifact_root", ()) or ())
+    if not raw:
+        return ()
+    if not bool(getattr(values, "desktop_bridge", False)) or len(raw) > 8:
+        raise ValueError("desktop artifact roots require the bridge")
+    from src.application.runtime_maintenance import checked_path
+
+    owner_root = next(
+        (path for path in (WORKTREE, *WORKTREE.parents) if path.name == "АГЕНТ"),
+        None,
+    )
+    if owner_root is None:
+        raise ValueError("desktop artifact owner root unavailable")
+    if any(not Path(item).is_absolute() for item in raw):
+        raise ValueError("desktop artifact root is invalid")
+    roots = tuple(checked_path(Path(item), root=owner_root) for item in raw)
+    if any(not root.is_dir() or root == owner_root for root in roots):
+        raise ValueError("desktop artifact root is invalid")
+    if len(set(roots)) != len(roots):
+        raise ValueError("desktop artifact root is duplicated")
+    return tuple(root.resolve(strict=True) for root in roots)
+
+
 def core_command(python: Path, values) -> list[str]:
     command = [str(python), str(RUNNER), "--serve", "--timeout", "30",
                "--shutdown-stdin", "--miniapp-bind", "127.0.0.1",
                "--miniapp-port", "8765", "--miniapp-origin", PUBLIC_ORIGIN]
     if values.semantic_admission:
         command.append("--semantic-admission")
+    inventory = _desktop_inventory(values)
+    if inventory is not None:
+        command.extend(["--desktop-bridge", "--desktop-projects-file", str(inventory)])
+    for root in _desktop_artifact_roots(values):
+        command.extend(["--desktop-artifact-root", str(root)])
     for name in ("runtime_root", "voice_model_directory", "backup_root"):
         value = getattr(values, name, None)
         if value is not None:
@@ -2623,6 +2673,11 @@ def _main_scheduler_action(values, runtime: Path, pythonw: Path,
     arguments = [f'"{WORKTREE / "scripts" / "run_nobus_space_live.py"}"']
     if bool(getattr(values, "semantic_admission", False)):
         arguments.append("--semantic-admission")
+    inventory = _desktop_inventory(values)
+    if inventory is not None:
+        arguments.extend(["--desktop-bridge", "--desktop-projects-file", f'"{inventory}"'])
+    for root in _desktop_artifact_roots(values):
+        arguments.extend(["--desktop-artifact-root", f'"{root}"'])
     arguments.extend([
         "--runtime-root", f'"{runtime}"',
         "--voice-model-directory", f'"{Path(values.voice_model_directory).resolve(strict=True)}"',
@@ -2696,8 +2751,13 @@ def _backup_restart_authorized(config_path: Path, config_digest: str) -> bool:
                 "schema", "config_digest", "phase", "at", "attempt_id",
                 "generation",
             }
-        if (type(value) is not dict or set(value) not in (allowed, allowed | {"backup_status"})
+        allowed_reconciled = allowed | {"backup_status", "reconciled_from_digest"}
+        if (type(value) is not dict or set(value) not in (
+                allowed, allowed | {"backup_status"}, allowed_reconciled,
+            )
                 or ("backup_status" in value and value["backup_status"] != "VERIFIED")
+                or ("reconciled_from_digest" in value
+                    and not _digest(value["reconciled_from_digest"]))
                 or value["schema"] != "c6-backup-cycle-state-1"
                 or value["config_digest"] != config_digest
                 or value["phase"] not in {"restart_permitted", "starting"}
@@ -2718,7 +2778,8 @@ def _backup_restart_authorized(config_path: Path, config_digest: str) -> bool:
 
 def _validate_backup_activation_config(path: Path, digest: str, *, application,
                                        runtime: Path, backup: Path, ownership: str,
-                                       task_name: str, snapshots):
+                                       task_name: str, snapshots,
+                                       desktop_inventory: Path | None = None):
     from src.application.runtime_maintenance import checked_path, file_evidence
     from src.contracts.models import canonical_json_digest
 
@@ -2759,6 +2820,8 @@ def _validate_backup_activation_config(path: Path, digest: str, *, application,
         "docs/11-Контекст-продукта.md",
         "codex-runtime.local.json",
     }
+    if desktop_inventory is not None:
+        required.add(desktop_inventory.relative_to(WORKTREE).as_posix())
     if not required.issubset(value["inputs"]):
         raise ValueError("backup activation configuration is invalid")
     for relative, evidence in value["inputs"].items():
@@ -2814,6 +2877,7 @@ def _scheduler_activation(values, runtime: Path, *, application,
         config_path, config_digest, application=application, runtime=runtime,
         backup=Path(values.backup_root), ownership=values.backup_ownership,
         task_name=task_name, snapshots=snapshots,
+        desktop_inventory=_desktop_inventory(values),
     )
     return {"tasks": bindings, "backup_config": config}
 
@@ -2849,6 +2913,8 @@ def _activation_manifest(values, runtime: Path, *,
     backup = Path(backup).resolve(strict=True)
     health_launcher = Path(health_launcher).resolve(strict=True)
     application = application_binding()
+    desktop_inventory = _desktop_inventory(values)
+    desktop_artifact_roots = _desktop_artifact_roots(values)
     inputs = {}
     for relative in (
         "docs/11-Контекст-продукта.md",
@@ -2864,15 +2930,23 @@ def _activation_manifest(values, runtime: Path, *,
         if evidence is None:
             raise ValueError("activation input is unavailable")
         inputs[relative] = evidence
+    if desktop_inventory is not None:
+        relative = desktop_inventory.relative_to(WORKTREE).as_posix()
+        inputs[relative] = file_evidence(desktop_inventory)
 
     python = Path(sys.executable).with_name("python.exe").resolve(strict=True)
     pythonw = Path(sys.executable).with_name("pythonw.exe").resolve(strict=True)
-    base_python = Path(sys._base_executable).resolve(strict=True)
+    # python.exe (operator recovery) and pythonw.exe (Scheduled Task) expose
+    # different _base_executable values. Bind both files in a stable order so
+    # the same installed runtime yields one activation digest in either mode.
+    base_python = Path(sys._base_executable).with_name("python.exe").resolve(strict=True)
+    base_pythonw = Path(sys._base_executable).with_name("pythonw.exe").resolve(strict=True)
     runtime_identity = {
         "python_version": list(sys.version_info[:5]),
         "python": file_evidence(python),
         "pythonw": file_evidence(pythonw),
         "base_python": file_evidence(base_python),
+        "base_pythonw": file_evidence(base_pythonw),
         "distributions": _installed_distribution_identity(),
     }
     if any(value is None for key, value in runtime_identity.items() if key != "python_version"):
@@ -2884,7 +2958,7 @@ def _activation_manifest(values, runtime: Path, *,
         allow_disabled_staging=allow_disabled_staging,
     )
 
-    return {
+    manifest = {
         "schema": "nobus-supervisor-activation-3",
         "application": application,
         "runtime_binding": runtime_target_binding(runtime),
@@ -2903,6 +2977,13 @@ def _activation_manifest(values, runtime: Path, *,
         "scheduler_signatures": scheduler["tasks"],
         "backup_config": scheduler["backup_config"],
     }
+    if desktop_inventory is not None:
+        manifest["desktop_bridge"] = {
+            "project_inventory": desktop_inventory.relative_to(WORKTREE).as_posix(),
+            "evidence": file_evidence(desktop_inventory),
+            "artifact_roots": [runtime_target_binding(root) for root in desktop_artifact_roots],
+        }
+    return manifest
 
 
 def _runtime_recovery_context(values):
@@ -3619,7 +3700,7 @@ def _run_attempt(values, *, stop_event, series_id, attempt, retry_budget,
         command = core_command_override or core_command(python, values)
         relay_values = relay_command or [
             str(SSH), "-NT", "-F", "NUL", "-i", str(private_key),
-            "-o", "BatchMode=yes", "-o", "UserKnownHostsFile=" + str(known_hosts),
+            "-o", "BatchMode=yes", "-o", "StdinNull=yes", "-o", "UserKnownHostsFile=" + str(known_hosts),
             "-o", "StrictHostKeyChecking=yes", "-o", "IdentitiesOnly=yes",
             "-o", "KexAlgorithms=curve25519-sha256", "-o", "ExitOnForwardFailure=yes",
             "-o", "ServerAliveInterval=20", "-o", "ServerAliveCountMax=3",

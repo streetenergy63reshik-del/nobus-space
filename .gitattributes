@@ -24,3 +24,5 @@ tests/test_fake_vertical.py text eol=lf
 tests/test_telegram_gateway.py text eol=lf
 tests/test_trusted_ingress.py text eol=lf
 ops/windows/*.patch text eol=lf whitespace=-blank-at-eol
+ops/windows/nobus_send_results_guard.py text eol=lf
+docs/gates/mvp2/m2-desktop/send-results-bridge-owner.patch text eol=lf whitespace=-blank-at-eol

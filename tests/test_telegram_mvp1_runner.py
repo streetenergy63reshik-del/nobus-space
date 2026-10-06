@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import argparse
 import json
 import socket
+import threading
+import time
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,6 +16,196 @@ import pytest
 import httpx
 
 from scripts import run_telegram_mvp1 as runner
+
+
+def test_slow_poll_health_check_does_not_block_core_loop(monkeypatch) -> None:
+    from scripts import run_telegram_control as polling_runner
+
+    entered = threading.Event()
+    release = threading.Event()
+
+    def health_check() -> None:
+        entered.set()
+        release.wait(0.8)
+
+    async def poll(*_args, **_kwargs) -> int:
+        return 0
+
+    monkeypatch.setattr(polling_runner, "_poll_once_and_announce", poll)
+
+    async def scenario() -> None:
+        started = time.monotonic()
+        pending = asyncio.create_task(polling_runner._poll_with_unavailable_backoff(
+            None, None, {}, timeout=1, announce=False, health_check=health_check,
+        ))
+        assert await asyncio.to_thread(entered.wait, 0.4)
+        await asyncio.sleep(0.02)
+        assert time.monotonic() - started < 0.5
+        release.set()
+        assert await pending == 0
+
+    asyncio.run(scenario())
+
+
+def test_poll_awaits_async_health_check_on_core_loop(monkeypatch) -> None:
+    from scripts import run_telegram_control as polling_runner
+
+    observed = []
+
+    async def health_check() -> None:
+        observed.append(threading.get_ident())
+
+    async def poll(*_args, **_kwargs) -> int:
+        return 0
+
+    monkeypatch.setattr(polling_runner, "_poll_once_and_announce", poll)
+
+    async def scenario() -> None:
+        owner_thread = threading.get_ident()
+        assert await polling_runner._poll_with_unavailable_backoff(
+            None, None, {}, timeout=1, announce=False, health_check=health_check,
+        ) == 0
+        assert observed == [owner_thread]
+
+    asyncio.run(scenario())
+
+
+def test_durable_health_keeps_worker_checks_on_loop_and_storage_off_loop() -> None:
+    from src.application.durable_product import DurableProductTelegramControlPlane
+
+    entered = threading.Event()
+    release = threading.Event()
+    checked_on = []
+    control = object.__new__(DurableProductTelegramControlPlane)
+
+    def admission(*, for_admission):
+        assert for_admission is False
+        entered.set()
+        release.wait(0.8)
+
+    control._admission_readiness = admission
+    control._closing = control._closed = False
+    control._execution_concurrency = 1
+    control._worker_error = None
+    control._desktop_bridge = None
+    control._telegram_state = SimpleNamespace(
+        queue_snapshot=lambda: checked_on.append(threading.get_ident())
+    )
+    control._product_runtime = SimpleNamespace(
+        _worker=SimpleNamespace(generation_available=True)
+    )
+
+    async def scenario() -> None:
+        worker = asyncio.create_task(asyncio.sleep(1))
+        control._execution_workers = (worker,)
+        owner_thread = threading.get_ident()
+        try:
+            pending = asyncio.create_task(control.assert_healthy_nonblocking())
+            assert await asyncio.to_thread(entered.wait, 0.4)
+            await asyncio.sleep(0.02)
+            release.set()
+            await pending
+            assert len(checked_on) == 1 and checked_on[0] != owner_thread
+        finally:
+            worker.cancel()
+            await asyncio.gather(worker, return_exceptions=True)
+
+    asyncio.run(scenario())
+
+
+def test_slow_desktop_project_check_does_not_block_core_loop(tmp_path, monkeypatch) -> None:
+    import src.application.desktop_bridge as bridge_module
+    from src.application.desktop_bridge import DesktopBridgeService
+    from src.application.desktop_bridge_state import BridgeRequestStatus
+    from tests.test_desktop_bridge import _request, _state
+
+    project = tmp_path / "nobus-orchestrator-dev"
+    project.mkdir()
+    state = _state(tmp_path / "bridge.sqlite3")
+    request = _request(state, ingress="sha256:" + "9" * 64)
+    request = state.bind_desktop(
+        request.request_id, thread_id="thread-1", turn_id=None,
+        client_message_id=f"nobus:{request.request_id}",
+        status=BridgeRequestStatus.RECEIVED,
+    )
+    projection = SimpleNamespace(
+        conversation_id="thread-1", title="Existing Desktop task", cwd=str(project),
+        turn_by_client_message_id=lambda _value: None,
+    )
+    monkeypatch.setattr(bridge_module, "project_desktop_conversation", lambda _snapshot: projection)
+    monkeypatch.setattr(bridge_module, "_desktop_execution_settings", lambda _state: {})
+    entered = threading.Event()
+    release = threading.Event()
+
+    def slow_check(_cwd, _project):
+        entered.set()
+        release.wait(0.8)
+        return True
+
+    monkeypatch.setattr(bridge_module, "_desktop_cwd_belongs_to_project", slow_check)
+
+    class Client:
+        async def load_complete_history_snapshot(self, _thread_id, *, owner):
+            return SimpleNamespace(conversation_state={})
+
+        async def start_turn(self, *_args, **_kwargs):
+            return SimpleNamespace(turn_id="turn-1")
+
+    service = DesktopBridgeService(
+        api=object(), state=state, uia=object(), projects={project.name: project},
+        owner_user_id=99, owner_private_chat_id=99, bot_username="Nobusspacebot",
+    )
+
+    async def scenario() -> None:
+        started = time.monotonic()
+        pending = asyncio.create_task(service._start_desktop_turn(Client(), object(), request))
+        assert await asyncio.to_thread(entered.wait, 0.4)
+        await asyncio.sleep(0.02)
+        assert time.monotonic() - started < 0.5
+        release.set()
+        assert (await pending).status is BridgeRequestStatus.RUNNING
+
+    asyncio.run(scenario())
+
+
+def test_desktop_bridge_is_opt_in_for_mvp1_runner(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(runner, "_control_arguments", lambda _remaining: argparse.Namespace())
+    monkeypatch.setattr(runner, "_OWNER_READ_ROOT", tmp_path)
+    assert runner._arguments([]).desktop_bridge is False
+    assert runner._arguments(["--desktop-bridge"]).desktop_bridge is True
+    allowed = tmp_path / "documents"
+    allowed.mkdir()
+    values = runner._arguments(["--desktop-artifact-root", str(allowed)])
+    assert values.desktop_artifact_root == (allowed,)
+    with pytest.raises(SystemExit):
+        runner._arguments(["--desktop-artifact-root", str(tmp_path.parent)])
+
+
+def test_desktop_project_inventory_preserves_names_and_rejects_outside_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(runner, "_OWNER_READ_ROOT", tmp_path)
+    one = tmp_path / "Business Project"
+    two = tmp_path / "Research"
+    one.mkdir()
+    two.mkdir()
+    inventory = tmp_path / "projects.json"
+    inventory.write_text(json.dumps({
+        "version": 1,
+        "projects": [
+            {"name": "Business Project", "cwd": str(one)},
+            {"name": "Research", "cwd": str(two)},
+        ],
+    }), encoding="utf-8")
+    assert runner._load_desktop_projects(inventory) == {
+        "Business Project": one, "Research": two,
+    }
+    inventory.write_text(json.dumps({
+        "version": 1,
+        "projects": [{"name": "Other", "cwd": str(tmp_path.parent)}],
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="desktop project inventory invalid"):
+        runner._load_desktop_projects(inventory)
 
 
 def test_missing_pinned_asr_never_falls_back_to_download(tmp_path, monkeypatch):
@@ -57,6 +250,57 @@ def test_main_reports_only_allowlisted_startup_stage(
     assert json.loads(output) == {"status": "FAIL", "code": expected_code}
     assert "secret" not in output
     assert "token" not in output
+
+
+@pytest.mark.asyncio
+async def test_runtime_schema_migration_precedes_candidate_backup_admission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An additive schema upgrade must make a fresh candidate backup possible."""
+    from src.application import managed_backups
+
+    events: list[str] = []
+    state = object()
+    backup_root = tmp_path / "backups"
+    backup_root.mkdir()
+
+    monkeypatch.setattr(
+        runner,
+        "SQLiteTelegramState",
+        lambda path: events.append("telegram_schema") or state,
+    )
+    monkeypatch.setattr(
+        runner,
+        "SQLiteDesktopBridgeState",
+        lambda path: events.append("desktop_schema") or object(),
+    )
+    monkeypatch.setattr(
+        runner,
+        "DurableTelegramActionStore",
+        lambda actual: events.append("action_store") or object(),
+    )
+
+    def reject_stale_backup(*args: object, **kwargs: object) -> None:
+        events.append("backup_admission")
+        raise ValueError("backup application version mismatch")
+
+    monkeypatch.setattr(managed_backups, "assert_recent", reject_stale_backup)
+    values = SimpleNamespace(
+        runtime_root=tmp_path,
+        semantic_admission=False,
+        backup_root=backup_root,
+        backup_ownership="sha256:" + "a" * 64,
+    )
+
+    with pytest.raises(ValueError, match="backup application version mismatch"):
+        await runner._run(values)
+
+    assert events == [
+        "telegram_schema",
+        "desktop_schema",
+        "action_store",
+        "backup_admission",
+    ]
 
 
 def _bundled_cli(home: Path, version: str) -> Path:
@@ -467,7 +711,7 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
         "TelegramBindingConfig",
         SimpleNamespace(
             model_validate=lambda value: SimpleNamespace(
-                bindings=(SimpleNamespace(purpose="owner_private"),)
+                bindings=(SimpleNamespace(purpose="owner_private", user_id=1, chat_id=1),)
             )
         ),
     )
@@ -484,6 +728,9 @@ async def test_failed_startup_probe_prevents_control_polling_and_announcement(
     telegram_state = object()
     monkeypatch.setattr(
         runner, "SQLiteTelegramState", lambda *args, **kwargs: telegram_state
+    )
+    monkeypatch.setattr(
+        runner, "SQLiteDesktopBridgeState", lambda *args, **kwargs: object()
     )
     monkeypatch.setattr(
         runner,

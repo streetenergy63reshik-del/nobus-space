@@ -7,12 +7,15 @@ import hashlib
 import hmac
 import json
 import sqlite3
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode
 from uuid import UUID
 
 import pytest
+import httpx
 from fastapi.testclient import TestClient
 
 from src.application.durable_product import DurableProductTelegramControlPlane
@@ -385,6 +388,35 @@ def test_loopback_http_origin_and_health_readiness_are_bounded() -> None:
     assert unavailable.status_code == 503
     assert unavailable.json() == {"status": "unavailable"}
     assert "private" not in unavailable.text
+
+
+def test_slow_readiness_does_not_block_core_event_loop() -> None:
+    entered = threading.Event()
+    release = threading.Event()
+
+    def readiness() -> None:
+        entered.set()
+        release.wait(0.8)
+
+    app = create_miniapp_app(
+        RecordingCore(), allowed_host="127.0.0.1",
+        allowed_origin="http://127.0.0.1:8765", readiness=readiness,
+    )
+
+    async def scenario() -> None:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://127.0.0.1:8765", trust_env=False,
+        ) as client:
+            started = time.monotonic()
+            pending = asyncio.create_task(client.get("/readyz"))
+            assert await asyncio.to_thread(entered.wait, 0.4)
+            await asyncio.sleep(0.02)
+            assert time.monotonic() - started < 0.5
+            release.set()
+            assert (await pending).status_code == 200
+
+    asyncio.run(scenario())
 
 
 def test_plain_http_is_rejected_outside_exact_loopback() -> None:

@@ -1,0 +1,429 @@
+{
+  "schema": "nobus-readiness-stop-recovery-1",
+  "source_revision": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+  "incident_at_utc": "2026-10-04T07:22:45Z",
+  "immediate_stop": "local_public_readiness_failed",
+  "root_cause": "UNKNOWN",
+  "before": {
+    "at": "2026-10-04T19:08:28.266899+00:00",
+    "config_digest": "sha256:65404c89ceef32d91d8f72656d75d57bcc03f00244156f7f2a7fba1f551789d7",
+    "activation_binding": "sha256:e674d5d74a3a4f4d20ccd2756bb3c47ebb42594dbab9425af935366894fa99e1",
+    "history_head": "sha256:ed21e2f3fb26898fd774463cd0b40e4a7f4c1c0751d1f452aca92a44422d8545",
+    "history_tail": [
+      {
+        "at": "2026-10-04T00:30:58Z",
+        "event": "control_starting",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": null,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "pending",
+        "cleanup_outcome": "not_started",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-04T00:30:58Z",
+        "event": "control_ready",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": 0,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "pending",
+        "cleanup_outcome": "not_started",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-04T00:30:58Z",
+        "event": "starting",
+        "stage": "setup",
+        "error_class": null,
+        "supervisor_exit_code": null,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "relay_cause": null,
+        "recovery_disposition": "pending",
+        "cleanup_outcome": "not_started",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-04T07:22:45Z",
+        "event": "terminal",
+        "stage": "steady",
+        "error_class": "local_public_readiness_failed",
+        "supervisor_exit_code": 1,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "stop_non_retryable",
+        "cleanup_outcome": "proven",
+        "local_ready": false,
+        "public_ready": false,
+        "readiness_failures": 3,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-04T07:22:46Z",
+        "event": "control_closing",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": 1,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "stop_non_retryable",
+        "cleanup_outcome": "proven",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      },
+      {
+        "at": "2026-10-04T07:22:47Z",
+        "event": "control_closed",
+        "stage": "recovery_control",
+        "error_class": null,
+        "supervisor_exit_code": 1,
+        "core_exit_code": null,
+        "relay_exit_code": null,
+        "recovery_disposition": "stop_non_retryable",
+        "cleanup_outcome": "proven",
+        "local_ready": null,
+        "public_ready": null,
+        "readiness_failures": 0,
+        "reset_of_digest": null
+      }
+    ],
+    "backup_digest": "sha256:74cda45283b8604948dd11c01b1bfab928dc56e14ae62e6c2ba66ddef2131b09",
+    "generation": "daily-20261004T033030-ce1daf7d0c434487a072e8abbef10e96",
+    "databases": {
+      "business-notes.sqlite3": "sha256:5480dff810fba0047100ffc4b2294cdd3c72649211ca288ac4b086e57b8cd7e1",
+      "task-runtime.sqlite3": "sha256:c9540e2d398a0e57ebf8938ca2d953e4c9b302970f3caae73106647d29ebfa7b",
+      "telegram-checkpoint.sqlite3": "sha256:f0d097100ed8a95bbdaf835f8e6f0692080299f68891fc09c01b485c7833272c",
+      "telegram-state.sqlite3": "sha256:8efb9fe0ab51f50752bc6f336f8be13c4ada8ab852074a19645391bc92d2533c"
+    },
+    "integrity": "PASS",
+    "effects": "PASS",
+    "inactive": true,
+    "hold": false,
+    "inspect": {
+      "exit_code": 0,
+      "result": {
+        "last_digest": "sha256:ed21e2f3fb26898fd774463cd0b40e4a7f4c1c0751d1f452aca92a44422d8545",
+        "next_attempt": null,
+        "reason": "stop_non_retryable",
+        "schema": "nobus-recovery-control-1",
+        "series_id": "53ea5db055114c3f93c72e5f3ae1a366",
+        "state": "blocked",
+        "status": "STOP"
+      }
+    }
+  },
+  "acknowledgement": {
+    "exit_code": 0,
+    "result": {
+      "reset_event_digest": "sha256:85df4874fabfed47d7bb94b14c7ac4891ef9fc1e935c22aebc8a942cf0abec64",
+      "reset_of_digest": "sha256:ed21e2f3fb26898fd774463cd0b40e4a7f4c1c0751d1f452aca92a44422d8545",
+      "schema": "nobus-recovery-control-1",
+      "status": "RESET"
+    }
+  },
+  "single_start": {
+    "at": "2026-10-04T19:11:18.743827+00:00",
+    "name": "NobusSpaceBot",
+    "state": "Running",
+    "enabled": true
+  },
+  "after": {
+    "schema": "nobus-read-only-observation-1",
+    "at": "2026-10-04T19:11:52.911906+00:00",
+    "actions": "read-only; no task changes, no inspect/ack, no backup, no Telegram message",
+    "revision": "4db5f0e9266637feca408a57aa0c8e8ac580dbc0",
+    "live_clean": true,
+    "tasks": [
+      {
+        "name": "NobusSpaceBot",
+        "state": "Running",
+        "enabled": true,
+        "last": "2026-10-04T22:11:18",
+        "result": 267009,
+        "next": null
+      },
+      {
+        "name": "NobusSpaceBot-Backup",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-04T03:30:00",
+        "result": 0,
+        "next": "2026-10-05T03:30:00"
+      },
+      {
+        "name": "NobusSpaceBot-Health",
+        "state": "Ready",
+        "enabled": true,
+        "last": "2026-10-04T22:11:07",
+        "result": 1,
+        "next": "2026-10-04T22:12:06"
+      }
+    ],
+    "config_digest": "sha256:65404c89ceef32d91d8f72656d75d57bcc03f00244156f7f2a7fba1f551789d7",
+    "activation_binding": "sha256:e674d5d74a3a4f4d20ccd2756bb3c47ebb42594dbab9425af935366894fa99e1",
+    "installed_binding": "PASS",
+    "history": {
+      "authenticated": true,
+      "head": "sha256:42fbcd45f6f69bec4c09200db227055c12d5c7a63ac08d3e4af8f13c6f67a79a",
+      "last_event": "starting",
+      "last_at": "2026-10-04T19:11:27Z",
+      "latch_present": false
+    },
+    "backup": {
+      "authenticated": true,
+      "phase": "complete",
+      "at": "2026-10-04T00:32:01.031907+00:00",
+      "digest": "sha256:74cda45283b8604948dd11c01b1bfab928dc56e14ae62e6c2ba66ddef2131b09",
+      "generation": "daily-20261004T033030-ce1daf7d0c434487a072e8abbef10e96",
+      "verified": true,
+      "hold": false
+    },
+    "polling_lease_observed_by_effects": true,
+    "task_count": 89,
+    "delivery": {
+      "pending": 0,
+      "leased": 0,
+      "unknown": 0,
+      "failed": 0,
+      "confirmed_parts": 20
+    },
+    "integrity": "PASS",
+    "effects": "PASS",
+    "reconciliation": false,
+    "queue": {},
+    "leases": [
+      {
+        "offset": 375634075,
+        "revision": 101433,
+        "active": true
+      }
+    ],
+    "process_chain": {
+      "supervisors": 1,
+      "core": 1,
+      "relays": 1,
+      "listeners": 1,
+      "owned": true
+    },
+    "readiness": {
+      "local": true,
+      "public": true,
+      "details": [
+        {
+          "boundary": "local",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-04T19:12:25Z",
+          "elapsed_ms": 265,
+          "deadline_ms": 5000,
+          "status": "PASS"
+        },
+        {
+          "boundary": "public",
+          "http_status": 200,
+          "body_matches": true,
+          "error_class": null,
+          "at": "2026-10-04T19:12:26Z",
+          "elapsed_ms": 750,
+          "deadline_ms": 10000,
+          "status": "PASS"
+        }
+      ]
+    },
+    "status": "DEGRADED",
+    "completed_at": "2026-10-04T19:12:26.577771+00:00"
+  },
+  "post_start_supplement": {
+    "at": "2026-10-04T19:14:41.027503+00:00",
+    "authenticated_diagnostic_rows_checked": 30620,
+    "preterminal_checks": [
+      {
+        "at": "2026-10-04T07:20:26Z",
+        "checks": [
+          {
+            "boundary": "local",
+            "status": "PASS",
+            "http_status": 200,
+            "body_matches": true,
+            "error_class": null,
+            "at": "2026-10-04T07:20:25Z",
+            "elapsed_ms": 796,
+            "deadline_ms": 5000
+          },
+          {
+            "boundary": "public",
+            "status": "PASS",
+            "http_status": 200,
+            "body_matches": true,
+            "error_class": null,
+            "at": "2026-10-04T07:20:26Z",
+            "elapsed_ms": 1172,
+            "deadline_ms": 10000
+          }
+        ]
+      },
+      {
+        "at": "2026-10-04T07:20:39Z",
+        "checks": [
+          {
+            "boundary": "local",
+            "status": "PASS",
+            "http_status": 200,
+            "body_matches": true,
+            "error_class": null,
+            "at": "2026-10-04T07:20:37Z",
+            "elapsed_ms": 1047,
+            "deadline_ms": 5000
+          },
+          {
+            "boundary": "public",
+            "status": "PASS",
+            "http_status": 200,
+            "body_matches": true,
+            "error_class": null,
+            "at": "2026-10-04T07:20:39Z",
+            "elapsed_ms": 1578,
+            "deadline_ms": 10000
+          }
+        ]
+      },
+      {
+        "at": "2026-10-04T07:21:04Z",
+        "checks": [
+          {
+            "boundary": "local",
+            "status": "FAIL",
+            "http_status": null,
+            "body_matches": false,
+            "error_class": "deadline",
+            "at": "2026-10-04T07:20:54Z",
+            "elapsed_ms": 5000,
+            "deadline_ms": 5000
+          },
+          {
+            "boundary": "public",
+            "status": "FAIL",
+            "http_status": null,
+            "body_matches": false,
+            "error_class": "deadline",
+            "at": "2026-10-04T07:21:04Z",
+            "elapsed_ms": 10000,
+            "deadline_ms": 10000
+          }
+        ]
+      },
+      {
+        "at": "2026-10-04T07:21:29Z",
+        "checks": [
+          {
+            "boundary": "local",
+            "status": "FAIL",
+            "http_status": null,
+            "body_matches": false,
+            "error_class": "deadline",
+            "at": "2026-10-04T07:21:19Z",
+            "elapsed_ms": 5000,
+            "deadline_ms": 5000
+          },
+          {
+            "boundary": "public",
+            "status": "FAIL",
+            "http_status": null,
+            "body_matches": false,
+            "error_class": "deadline",
+            "at": "2026-10-04T07:21:29Z",
+            "elapsed_ms": 10000,
+            "deadline_ms": 10000
+          }
+        ]
+      },
+      {
+        "at": "2026-10-04T07:22:10Z",
+        "checks": [
+          {
+            "boundary": "local",
+            "status": "FAIL",
+            "http_status": null,
+            "body_matches": false,
+            "error_class": "deadline",
+            "at": "2026-10-04T07:22:00Z",
+            "elapsed_ms": 5000,
+            "deadline_ms": 5000
+          },
+          {
+            "boundary": "public",
+            "status": "FAIL",
+            "http_status": null,
+            "body_matches": false,
+            "error_class": "deadline",
+            "at": "2026-10-04T07:22:10Z",
+            "elapsed_ms": 10016,
+            "deadline_ms": 10000
+          }
+        ]
+      }
+    ],
+    "business_database_preservation": {
+      "business-notes.sqlite3": true,
+      "task-runtime.sqlite3": true,
+      "telegram-state.sqlite3": true
+    },
+    "health": {
+      "name": "NobusSpaceBot-Health",
+      "state": "Ready",
+      "enabled": true,
+      "last_result": 0
+    },
+    "status": "PASS"
+  },
+  "health_final_readback": {
+    "at_msk": "2026-10-04T22:16:07",
+    "enabled": true,
+    "state": "Ready",
+    "result": 0
+  },
+  "windows_system_power_window": {
+    "start_msk": "2026-10-04T10:15:00",
+    "end_msk": "2026-10-04T10:30:00",
+    "ids": [
+      1,
+      41,
+      42,
+      107,
+      1074,
+      6005,
+      6006,
+      6008
+    ],
+    "result": "NO_MATCHING_EVENTS"
+  },
+  "final_status": "PASS",
+  "observation_caveat": "after.status was DEGRADED solely because its initial Health snapshot preceded Main startup; post_start_supplement and final readback close this check.",
+  "actions": {
+    "native_acknowledge": 1,
+    "main_start": 1,
+    "backup_runs": 0,
+    "rebind": 0,
+    "history_deleted": false,
+    "database_rollback": false,
+    "telegram_test_sent": false,
+    "code_or_production_config_changed": false,
+    "git_publication": false
+  }
+}

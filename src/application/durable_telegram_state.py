@@ -1588,6 +1588,18 @@ class SQLiteTelegramState:
                     ON semantic_clarifications(expires_at);
                 """
             )
+        # M2-DESKTOP extends this same runtime database.  The bridge owns its
+        # DDL implementation; initializing it here keeps every existing
+        # SQLiteTelegramState caller on the one migrated schema.
+        from src.application.desktop_bridge_state import SQLiteDesktopBridgeState
+
+        SQLiteDesktopBridgeState(
+            self._path,
+            encode=self._encode,
+            decode=self._decode,
+            clock=self._clock,
+            busy_timeout_ms=self._timeout,
+        )
 
     @staticmethod
     def _sweep_capabilities(connection: sqlite3.Connection, now: datetime) -> None:

@@ -60,5 +60,5 @@ def test_live_supervisor_readiness_uses_exact_host(monkeypatch: object) -> None:
     assert observed == {
         "url": "http://127.0.0.1:8765/readyz",
         "host": "app.nobusspace.com",
-        "timeout": 2,
+        "timeout": 5,
     }

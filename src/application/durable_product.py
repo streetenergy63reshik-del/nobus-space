@@ -6,6 +6,8 @@ import asyncio
 import hashlib
 import re
 import secrets
+
+from src.storage.nonblocking import run_storage
 from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
@@ -124,10 +126,12 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
         self._durable_voice = DurableVoiceIntake(self, telegram_state)
         self._close_task: asyncio.Task[None] | None = None
         self._cleanup_pending: set[asyncio.Task] = set()
+        self._reconcile_lock = asyncio.Lock()
+        self._next_reconcile_at = 0.0
 
     async def _handle_ingress(self, ingress: Any) -> bool:
         if self._admission_readiness is not None:
-            self._admission_readiness(for_admission=True)
+            await asyncio.to_thread(self._admission_readiness, for_admission=True)
         if (self._enable_semantic_admission and ingress.status is IngressStatus.REJECTED
             and ingress.rejection_chat_id is not None):
             await self._api.send_message(ingress.rejection_chat_id,
@@ -233,6 +237,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 "Не удалось подтвердить приём задачи. " + product_reason_state(ProductReason.RECOVERY_REQUIRED).reason_label)
 
     async def start(self) -> None:
+        desktop_bridge = getattr(self, "_desktop_bridge", None)
+        if desktop_bridge is not None:
+            await desktop_bridge.start()
         if self._execution_workers or self._closing or self._closed:
             return
         start_worker = getattr(getattr(self._product_runtime, "_worker", None), "start", None)
@@ -242,7 +249,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             await asyncio.shield(self._start_task)
             if self._execution_workers or self._closing or self._closed:
                 return
-        self._reconcile_tasks()
+        await self._reconcile_tasks_nonblocking()
         self._execution_workers = tuple(
             asyncio.create_task(
                 self._execution_worker(), name=f"telegram-durable-executor-{index + 1}"
@@ -253,6 +260,17 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     def assert_healthy(self) -> None:
         if self._admission_readiness is not None:
             self._admission_readiness(for_admission=False)
+        self._assert_workers_healthy()
+        self._telegram_state.queue_snapshot()
+
+    async def assert_healthy_nonblocking(self) -> None:
+        if self._admission_readiness is not None:
+            await asyncio.to_thread(self._admission_readiness, for_admission=False)
+        self._assert_workers_healthy()
+        await run_storage(self._telegram_state.queue_snapshot)
+        self._assert_workers_healthy()
+
+    def _assert_workers_healthy(self) -> None:
         if self._closing or self._closed or len(self._execution_workers) != self._execution_concurrency:
             raise RuntimeError("durable Telegram worker unavailable")
         for worker in self._execution_workers:
@@ -260,7 +278,9 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 raise RuntimeError("durable Telegram worker stopped")
         if self._worker_error is not None:
             raise RuntimeError("durable Telegram recovery required")
-        self._telegram_state.queue_snapshot()
+        desktop_bridge = getattr(self, "_desktop_bridge", None)
+        if desktop_bridge is not None:
+            desktop_bridge.assert_healthy()
         if not getattr(getattr(self._product_runtime, "_worker", None), "generation_available", True):
             raise RuntimeError("durable Telegram worker unavailable")
 
@@ -296,6 +316,27 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                         store.mark_recovery_attention(tenant, item.task_id, item.contract_digest,
                             destination_ref=destination, now=runtime._clock())
 
+    async def _reconcile_tasks_nonblocking(self) -> None:
+        loop = asyncio.get_running_loop()
+        lock = getattr(self, "_reconcile_lock", None)
+        if lock is None:
+            lock = self._reconcile_lock = asyncio.Lock()
+            self._next_reconcile_at = 0.0
+        if lock.locked() or loop.time() < self._next_reconcile_at:
+            return
+        async with lock:
+            if loop.time() < self._next_reconcile_at:
+                return
+            scan = asyncio.create_task(asyncio.to_thread(self._reconcile_tasks))
+            try:
+                await asyncio.shield(scan)
+            except asyncio.CancelledError:
+                # A graceful stop must wait for any in-flight recovery writes.
+                await asyncio.shield(scan)
+                raise
+            # ponytail: idle scans run once per minute; add a targeted wake-up if orphan latency matters.
+            self._next_reconcile_at = loop.time() + 60
+
     async def submit_miniapp_task(
         self,
         instruction: str,
@@ -305,7 +346,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
     ) -> UUID:
         """Admit one Mini App task through the existing Core and durable queue."""
         if self._admission_readiness is not None:
-            self._admission_readiness(for_admission=True)
+            await asyncio.to_thread(self._admission_readiness, for_admission=True)
         if self._closing:
             raise RuntimeError("runtime queue is closing")
         trusted = TrustedIngressEnvelope.model_validate(
@@ -540,6 +581,12 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 worker.cancel()
             done, pending = await asyncio.wait(owned, timeout=_SHUTDOWN_SECONDS) if owned else (set(), set())
             results = [worker.exception() for worker in done if not worker.cancelled()]
+            desktop_bridge = getattr(self, "_desktop_bridge", None)
+            if desktop_bridge is not None:
+                try:
+                    await desktop_bridge.close()
+                except BaseException as error:
+                    results.append(error)
             effects = getattr(self, "_product_effects", None)
             if effects is not None:
                 cleanup = asyncio.create_task(effects.close())
@@ -583,9 +630,12 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
             except TimeoutError:
                 pass
             try:
-                durable = self._telegram_state.claim(
+                durable = await run_storage(
+                    self._telegram_state.claim,
                     lease_owner=self._lease_owner,
                     lease_seconds=_LEASE_SECONDS,
+                    on_cancel=lambda job: self._telegram_state.release(
+                        job, lease_owner=self._lease_owner),
                 )
             except asyncio.CancelledError:
                 if marker:
@@ -601,7 +651,7 @@ class DurableProductTelegramControlPlane(ProductTelegramControlPlane):
                 await asyncio.sleep(1)
                 continue
             if durable is None:
-                self._reconcile_tasks()
+                await self._reconcile_tasks_nonblocking()
                 self._worker_error = None
                 self._worker_error_count = 0
                 if marker:

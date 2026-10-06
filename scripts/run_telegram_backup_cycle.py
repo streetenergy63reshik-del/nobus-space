@@ -11,11 +11,13 @@ import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 import shutil
 import subprocess
 import sys
 import time
 from uuid import uuid4
+from contextlib import closing
 
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -92,7 +94,8 @@ def _journal(path,config_digest,phase,**details):
         'at':datetime.now(UTC).isoformat(),**details}
     temporary=m.checked_path(path.with_name('cycle-'+uuid4().hex+'.dpapi'),root=path.parent)
     m.write_bytes_durable(temporary,DpapiJsonCodec().encode(value))
-    os.replace(temporary,m.checked_path(path,root=path.parent))
+    archive=m.checked_path(path.with_name('cycle-history-'+uuid4().hex+'.dpapi'),root=path.parent)
+    m.promote_preserving_previous(temporary,m.checked_path(path,root=path.parent),archive)
 
 
 def _bound_task(config,operation,name):
@@ -114,6 +117,37 @@ def _stopped(config):
             return True
     except RuntimeError:
         return False
+
+
+def _migrate_exact_previous_desktop_schema(runtime: Path) -> bool:
+    """Upgrade only the known additive bridge schema while runtime is stopped."""
+    path = m.checked_path(Path(runtime) / 'telegram-state.sqlite3', root=runtime)
+    with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=1)) as connection:
+        actual = {
+            f'{kind}:{name}': m._ddl_digest(str(ddl or ''))
+            for kind, name, ddl in connection.execute(
+                "SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
+            )
+        }
+    expected = {
+        name: digests for name, digests in m.EXPECTED_SCHEMA_DIGESTS['telegram-state.sqlite3'].items()
+        if name not in {
+            'table:desktop_bridge_menus', 'index:idx_desktop_bridge_menus_reply',
+            'table:desktop_bridge_menu_prompts',
+        }
+    }
+    if set(actual) != set(expected):
+        return False
+    for name, digests in expected.items():
+        allowed = digests if isinstance(digests, tuple) else (digests,)
+        if name == 'table:desktop_bridge_requests':
+            allowed += ('c9b10b0ff3ed2e0474e68b6e951177e39f70e2e46c6281f913c4056b8bac4fe6',)
+        if actual[name] not in allowed:
+            return False
+    from src.application.desktop_bridge_state import SQLiteDesktopBridgeState
+
+    SQLiteDesktopBridgeState(path)
+    return True
 
 
 def _cleanup(config,clock,wait):
@@ -168,23 +202,57 @@ def _recovery_progress(runtime, binding, initial_digest):
     return event['attempt'] + int(event['recovery_disposition']=='retry')
 
 
-def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotonic,wait=time.sleep):
+def cycle(config_path,expected,*,recover_failure_digest=None,
+          reconcile_complete_digest=None,rebind_failed_digest=None,
+          clock=time.monotonic,wait=time.sleep):
     with WindowsNamedMutex(r'Global\NobusSpaceBackupCycle'):
         cycle_deadline=clock()+1140
         config=load_config(config_path,expected)
         runtime,backups=Path(config['runtime']),Path(config['backup_root'])
         journal=m.checked_path(config_path.parent/'backup-cycle-state.dpapi')
         recovering=False
+        reconciling=False
+        rebinding_failed=False
+        old=None
+        if sum(value is not None for value in (
+                recover_failure_digest,reconcile_complete_digest,rebind_failed_digest))>1:
+            raise ValueError('backup recovery controls are exclusive')
+        if not journal.exists() and (
+            any(config_path.parent.glob('cycle-history-*.dpapi'))
+            or any(config_path.parent.glob('cycle-*.dpapi'))
+        ):
+            raise ValueError('backup journal promotion incomplete')
         if journal.exists():
             old=managed._certificate(journal)
-            if old.get('schema')!='c6-backup-cycle-state-1' or old.get('config_digest')!=expected:
-                raise ValueError('previous backup cycle requires operator reconciliation')
-            if old.get('phase')!='complete':
+            old_digest=canonical_json_digest(old)
+            if old.get('schema')!='c6-backup-cycle-state-1':
+                raise ValueError('previous backup cycle schema invalid')
+            if old.get('config_digest')!=expected:
+                if old.get('phase')=='complete' and reconcile_complete_digest==old_digest:
+                    reconciling=True
+                elif (old.get('phase')=='failed_operator_required'
+                        and rebind_failed_digest==old_digest
+                        and old.get('failed_phase')=='starting'
+                        and old.get('failure_class')=='restart_not_ready'
+                        and old.get('backup_status')=='VERIFIED'
+                        and old.get('admission_hold') is True
+                        and old.get('cleanup_proven') is True
+                        and isinstance(old.get('generation'),str)
+                        and managed.GENERATION.fullmatch(old['generation'])):
+                    recovering=True
+                    rebinding_failed=True
+                else:
+                    raise ValueError('previous backup cycle requires operator reconciliation')
+            elif old.get('phase')!='complete':
                 if recover_failure_digest != canonical_json_digest(old):
                     raise ValueError('previous backup cycle requires operator reconciliation')
                 recovering=True
         if recover_failure_digest is not None and not recovering:
             raise ValueError('no matching failed cycle')
+        if reconcile_complete_digest is not None and not reconciling:
+            raise ValueError('no matching completed cycle')
+        if rebind_failed_digest is not None and not rebinding_failed:
+            raise ValueError('no matching failed cycle for config rebind')
         main,health=config['tasks']['main']['name'],config['tasks']['health']['name']
         initial=_task('Inspect',main)
         cold_start=initial['state']!='Running' and _port_closed()
@@ -193,16 +261,41 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             if (initial['enabled'] or health_state['enabled'] or initial['state']=='Running'
                     or health_state['state']=='Running' or not _port_closed()):
                 raise ValueError('failure recovery requires both tasks stopped and disabled')
+            if rebinding_failed:
+                managed._generation(
+                    backups, backups/old['generation'], config['ownership']
+                )
             # Retain the authenticated failed journal before any fresh attempt.
             archive=m.checked_path(journal.with_name('failed-cycle-'+uuid4().hex+'.dpapi'),root=journal.parent)
             m.write_bytes_durable(archive,journal.read_bytes())
+            if managed._certificate(archive)!=old:
+                raise ValueError('failed-cycle archive verification failed')
             m.validate_runtime_set(runtime)
+        elif reconciling:
+            # A changed application/config binding must not inherit the prior
+            # generation's admission. Preserve its authenticated completion
+            # receipt and start a new attempt only from a proven stopped state.
+            if not _stopped(config):
+                raise ValueError('completed-cycle reconciliation requires stopped tasks')
+            # The previous completed generation remains recoverable.  Hold
+            # admission before the exact additive migration, then validate the
+            # resulting installed schema before taking a new generation.
+            managed.hold_admission(backups,config['ownership'])
+            _migrate_exact_previous_desktop_schema(runtime)
+            m.validate_runtime_set(runtime)
+            archive=m.checked_path(
+                journal.with_name('completed-cycle-'+uuid4().hex+'.dpapi'),
+                root=journal.parent,
+            )
+            m.write_bytes_durable(archive,journal.read_bytes())
+            if managed._certificate(archive)!=old:
+                raise ValueError('completed-cycle archive verification failed')
         else:
             if not initial['enabled']:
                 return {'status':'SKIPPED','reason':'runtime_intentionally_disabled','backup_created':False}
             if initial['state']!='Running' and not cold_start:
                 raise ValueError('runtime stop state is ambiguous')
-        attempt_id=old.get('attempt_id') if recovering else uuid4().hex
+        attempt_id=old.get('attempt_id') if recovering and not rebinding_failed else uuid4().hex
         if not isinstance(attempt_id,str) or not re.fullmatch('[0-9a-f]{32}',attempt_id):
             raise ValueError('failed cycle attempt binding invalid')
         generation_name=None
@@ -212,6 +305,11 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             phase_name=phase
             details.setdefault('generation',generation_name)
             details.setdefault('backup_status','VERIFIED' if generation_name else 'NOT_CREATED')
+            if reconciling or rebinding_failed:
+                details.setdefault(
+                    'reconciled_from_digest',
+                    reconcile_complete_digest if reconciling else rebind_failed_digest,
+                )
             _journal(journal,expected,phase,attempt_id=attempt_id,**details)
         try:
             managed.hold_admission(backups,config['ownership'])
@@ -226,7 +324,7 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             deadline=clock()+115
             while clock()<deadline:
                 state=_task('Inspect',main)
-                if state['state']!='Running' and (recovering or cold_start or state['last_result']==0) and _stopped(config):
+                if state['state']!='Running' and (recovering or reconciling or cold_start or state['last_result']==0) and _stopped(config):
                     break
                 wait(1)
             else:
@@ -238,7 +336,10 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
                 raise ValueError('runtime disk pressure')
             generation=managed.create_generation(backups,runtime,config['ownership'],attempt_id=attempt_id)
             generation_name=generation.name
-            retention=managed.retention(backups,config['ownership'],apply=True)
+            # Preserve every generation during the owner's no-delete Gate.
+            # ponytail: inventory remains bounded at 128; resume reversible
+            # quarantine only after an explicit retention decision.
+            retention=managed.retention(backups,config['ownership'],apply=False)
             record('backed_up',generation=generation.name)
             # Recheck exact inputs/actions after snapshot before resuming the one task.
             load_config(config_path,expected)
@@ -266,7 +367,7 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
             record('complete',generation=generation.name)
             return {'status':'PASS','backup_created':True,'generation':generation.name,
                 'quarantined':retention['quarantined'],'runtime_ready':True}
-        except BaseException:
+        except BaseException as failure:
             failed_phase=phase_name
             hold_proven=False
             try:
@@ -274,6 +375,9 @@ def cycle(config_path,expected,*,recover_failure_digest=None,clock=time.monotoni
                 hold_proven=True
             except Exception: pass
             cleanup_proven=_cleanup(config,clock,wait)
+            if isinstance(failure,m.ControlPromotionIndeterminate):
+                # The exact prior/new journal state must be inspected by an operator.
+                raise
             record('failed_operator_required',admission_hold=hold_proven,cleanup_proven=cleanup_proven,
                    failed_phase=failed_phase,cycle_status='FAIL',runtime_status='NOT_READY',
                    failure_class='restart_not_ready' if failed_phase=='starting' else 'cycle_operation_failed')
@@ -286,15 +390,24 @@ def main():
     parser.add_argument('--config',type=Path,required=True)
     parser.add_argument('--config-digest',required=True)
     parser.add_argument('--recover-failure-digest')
+    parser.add_argument('--reconcile-complete-digest')
+    parser.add_argument('--rebind-failed-digest')
     parser.add_argument('--inspect-failure',action='store_true')
     args=parser.parse_args()
     try:
         if args.inspect_failure:
             load_config(args.config,args.config_digest)
             old=managed._certificate(m.checked_path(args.config.parent/'backup-cycle-state.dpapi'))
-            result={'phase':old['phase'],'confirmation_digest':canonical_json_digest(old)}
+            result={'phase':old['phase'],'confirmation_digest':canonical_json_digest(old),
+                    'journal_config_digest':old.get('config_digest'),
+                    'current_config_digest':args.config_digest,
+                    'attempt_id':old.get('attempt_id'),
+                    'reconciliation_required':old.get('config_digest')!=args.config_digest}
         else:
-            result=cycle(args.config,args.config_digest,recover_failure_digest=args.recover_failure_digest)
+            result=cycle(args.config,args.config_digest,
+                         recover_failure_digest=args.recover_failure_digest,
+                         reconcile_complete_digest=args.reconcile_complete_digest,
+                         rebind_failed_digest=args.rebind_failed_digest)
     except Exception:
         print('{"status":"FAIL","code":"backup_cycle_operator_required"}')
         return 1

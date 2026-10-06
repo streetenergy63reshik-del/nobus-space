@@ -1,20 +1,23 @@
 # Документация Nobus Space
 
-**Production работает на 3 октября 2026, 17:35 МСК:** чистый LIVE `4db5f0e`, local/public HTTP 200, Health 0, четыре БД PASS, подлинная VERIFIED-копия и hold=false. [Текущий статус, точные версии и границы GitHub/LIVE](handoffs/CURRENT-STATUS.md).
+**Актуальный исполняемый код — `207778a`, 6 октября 2026.** Бот работает после штатного восстановления; точное время, readiness, данные и ограничения — в [CURRENT](handoffs/CURRENT-STATUS.md). Публикация в main — [PR №42](https://github.com/streetenergy63reshik-del/nobus-space/pull/42). [Инструкция Артурам по текстовым командам](CODEX-AGENT-COMMANDS.md) описывает существующий интерфейс, меню остаётся владельцу.
 
-[Журнал причин за 20.09–03.10 и выполненный ремонт](incidents/2026-10-03-production-stability-14d.md), [каталог инцидентов](incidents/README.md), [операторская передача](handoffs/ARCHITECT-HANDOFF.md). Историческая приёмка MVP1/M1-S1 от 19 сентября и её NOT PASS 72-часовое окно сохранены отдельно. Эта публикация обновляет документы, без смены production-кода и без запуска старого MVP2.
+Исторические приёмки и инциденты сохраняют собственные ревизии. MVP1 принят 19 сентября; ручная приёмка всего M2-DESKTOP ещё не завершена. [Журнал инцидентов](incidents/README.md) и [операторская передача](handoffs/ARCHITECT-HANDOFF.md). Прежние планы не запускаются этой публикацией.
 
 ## С чего начать
 
 | Задача | Документ |
 |---|---|
 | Узнать принятый статус и время проверки | [CURRENT-STATUS](handoffs/CURRENT-STATUS.md) |
+| Продолжить планирование после новых вводных | [Текущий статус](handoffs/CURRENT-STATUS.md), [дорожная карта](15-Продуктовая-дорожная-карта.md) и [передача архитектора](handoffs/ARCHITECT-HANDOFF.md) |
+| Артурам обращаться к Desktop без меню | [Текстовые команды](CODEX-AGENT-COMMANDS.md) |
 | Пользоваться ботом | [Инструкция владельца](14-Действия-владельца-после-Gate-0-SSH-VPS-и-Gate-1-2.md) |
 | Сопровождать работающий экземпляр | [Runbook](08-Runbook-эксплуатации.md), [рабочие каталоги](handoffs/WORKSPACE-INVENTORY.md) |
 | Разобрать текущие остановки | [Журнал инцидентов](incidents/README.md), [мероприятия и выпуск 3 октября](incidents/2026-10-03-production-stability-14d.md) |
 | Найти историческую приёмку MVP1 | [Таблица и приёмка M1-S1](gates/mvp1-maintenance/REPAIR-ACCEPTANCE.md), [EVIDENCE](gates/mvp1-maintenance/EVIDENCE.json) |
 | Найти архитектурный контракт | [Обзор](03-Архитектурный-обзор.md), [журнал ADR](04-Журнал-ADR.md) |
-| Посмотреть будущие планы | [Дорожная карта](15-Продуктовая-дорожная-карта.md), [HTML-представление](16-Управленческая-карта-разработки.html) — историческое предложение; не инструкция запуска |
+| Продолжить M2-DESKTOP | [Текущий статус](handoffs/CURRENT-STATUS.md), [архитектура](gates/mvp2/M2-DESKTOP-ARCHITECTURE.md), [плиточное меню](gates/mvp2/M2-DESKTOP-TILE-MENU.md); D02–D17 остаются ручной приёмкой владельца |
+| Посмотреть прежний план | [Дорожная карта](15-Продуктовая-дорожная-карта.md), [HTML-представление](16-Управленческая-карта-разработки.html) — историческое предложение, не инструкция запуска |
 | Найти старую проверку или передачу | [Gate](gates/README.md), [передачи](handoffs/README.md), [аудиты](audits/README.md) |
 
 ## Действующая документация
@@ -28,11 +31,13 @@
 | Контекст работающего продукта | [11 — Контекст продукта](11-Контекст-продукта.md): принятый вход activation binding; историческая строка статуса не заменяет CURRENT |
 | Git и рабочие копии | [Роли каталогов](handoffs/WORKSPACE-INVENTORY.md), [итог упорядочивания](handoffs/REPOSITORY-MAINTENANCE.md) |
 
-Telegram и Mini App используют один локальный Core. Действующие решения: [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md), [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md), [0024](adr/0024-core-durable-recovery-and-part-delivery.md), [0025](adr/0025-miniapp-session-and-request-recovery.md), [0026](adr/0026-channel-neutral-product-projection.md), [0027](adr/0027-miniapp-bounded-admission-reconciliation.md). Полный распределённый Gate 2A остаётся FROZEN / NOT CURRENT.
+Telegram и Mini App используют один локальный Core. Действующие решения: [ADR 0022](adr/0022-thin-miniapp-orchestrator-mvp1-and-delivery-workflow.md), [0023](adr/0023-modality-neutral-semantic-admission-and-core-decision.md), [0024](adr/0024-core-durable-recovery-and-part-delivery.md), [0025](adr/0025-miniapp-session-and-request-recovery.md), [0026](adr/0026-channel-neutral-product-projection.md), [0027](adr/0027-miniapp-bounded-admission-reconciliation.md), [0029](adr/0029-telegram-desktop-owner-tunnel.md). Полный распределённый Gate 2A остаётся FROZEN / NOT CURRENT.
 
-## Планы, ещё не принятые к реализации
+## Следующий функциональный Gate
 
-[Документ 15](15-Продуктовая-дорожная-карта.md) — единственный источник предложенного продуктового плана. [Документ 16](16-Управленческая-карта-разработки.html) генерируется из него и содержит хэш исходника. [Реестр MVP2](gates/mvp2/REGISTRY.md) хранит статусы пяти незапущенных Gate; [порядок ведения документов](mvp2/DOCUMENTATION.md) — механизм обновления. Этот опубликованный план отражает прежний срез. Локально развивавшийся Desktop bridge уже присутствует в LIVE, но его полный Gate здесь не принят и не публикуется этим документным PR. Актуальные факты и следующий шаг — в CURRENT; старые команды из плана не выполнять.
+[Документ 15](15-Продуктовая-дорожная-карта.md) и производный [документ 16](16-Управленческая-карта-разработки.html) сохраняют прежний план. Один действующий Gate M2-DESKTOP ведётся по [архитектуре](gates/mvp2/M2-DESKTOP-ARCHITECTURE.md), [ADR 0029](adr/0029-telegram-desktop-owner-tunnel.md) и [реестру](gates/mvp2/REGISTRY.md). Desktop bridge и плиточное меню проектов и задач работают в LIVE; точный статус выпуска и ручной приёмки всегда указан в CURRENT. D02–D17 нельзя считать пройденными по результатам кодовых тестов. Старые M2-G0…G4 и команды из прежней дорожной карты не запускать.
+
+[Исследование транспорта](gates/mvp2/M2-DESKTOP-TRANSPORT-RESEARCH.md) объясняет owner IPC; [порядок ведения документов](mvp2/DOCUMENTATION.md) сохраняет источники истины. Ранние CURRENT-разделы docs05/07 и старые статусы имеют исторические даты; актуальные факты находятся в CURRENT и Gate evidence.
 
 ## Сохранённые исторические материалы
 

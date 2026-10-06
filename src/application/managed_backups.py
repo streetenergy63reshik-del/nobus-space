@@ -82,8 +82,18 @@ def permit_admission(root, expected):
     path=m.checked_path(root/'admission-hold',root=root)
     if m.file_evidence(path)!={'bytes':0,'sha256':hashlib.sha256(b'').hexdigest()}:
         raise ValueError('admission hold missing or changed')
-    # This is an exact zero-byte control flag, never a user-data cleanup.
-    m.unlink_durable(path)
+    # Preserve the control file outside the owned generation inventory.
+    archive=m.checked_path(
+        root.parent/(root.name+'-admission-hold-released-'+uuid4().hex+'.zero'),
+        root=root.parent,
+    )
+    if archive.exists():
+        raise ValueError('admission hold archive collision')
+    os.rename(path,archive)
+    m.fsync_directory(root)
+    m.fsync_directory(root.parent)
+    if m.file_evidence(archive)!={'bytes':0,'sha256':hashlib.sha256(b'').hexdigest()} or path.exists():
+        raise RuntimeError('admission release preservation failed')
 
 
 def _inventory(path):
@@ -135,6 +145,18 @@ def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily',
     attempt_id=attempt_id or uuid4().hex
     if now.tzinfo is None or not re.fullmatch('[0-9a-f]{32}',attempt_id):
         raise ValueError('backup attempt invalid')
+    if not (root/'latest.dpapi').exists():
+        prior=[path for path in root.iterdir() if GENERATION.fullmatch(path.name)]
+        archives=list(root.parent.glob(root.name+'-latest-before-*.dpapi'))
+        # Only the authenticated pending first publication of this same failed
+        # attempt may be retried. A preserved prior pointer means manual repair.
+        if archives or (prior and (
+            len(prior)!=1 or not (prior[0]/'latest-pending.dpapi').exists()
+            or _intent(root,prior[0],expected)['attempt_id']!=attempt_id
+        )):
+            raise ValueError('latest pointer missing with existing generation')
+        if prior:
+            _generation(root,prior[0],expected)
     generation=m.checked_path(root/(kind+'-'+now.strftime('%Y%m%dT%H%M%S')+'-'+uuid4().hex),root=root)
     generation.mkdir()
     intent={'schema':'c6-backup-intent-1','root_ownership':expected,'name':generation.name,
@@ -156,7 +178,12 @@ def create_generation(root: Path, runtime: Path, expected: str, *, kind='daily',
     m.write_bytes_durable(generation/'generation.dpapi',CODEC.encode(certificate))
     temporary=m.checked_path(generation/'latest-pending.dpapi',root=generation)
     m.write_bytes_durable(temporary,pointer_bytes)
-    os.replace(temporary,m.checked_path(root/'latest.dpapi',root=root))
+    latest=m.checked_path(root/'latest.dpapi',root=root)
+    archive=m.checked_path(
+        root.parent/(root.name+'-latest-before-'+uuid4().hex+'.dpapi'),
+        root=root.parent,
+    )
+    m.promote_preserving_previous(temporary,latest,archive)
     return generation
 
 

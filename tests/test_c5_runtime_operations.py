@@ -364,11 +364,12 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
     monkeypatch.setattr(runner, "NobusMemory", lambda _: object())
     monkeypatch.setattr(runner, "TelegramBotApi", lambda **_: Api())
     monkeypatch.setattr(runner, "TelegramBindingConfig", SimpleNamespace(model_validate=lambda _: SimpleNamespace(
-        bindings=[SimpleNamespace(purpose="owner_private")])))
+        bindings=[SimpleNamespace(purpose="owner_private", user_id=1, chat_id=1)])))
     monkeypatch.setattr(runner, "load_telegram_bindings", lambda *a, **k: {})
     monkeypatch.setattr(runner, "_task_destinations", lambda _: ({"owner": "sha256:" + "a" * 64}, {"owner": ("sha256:" + "a" * 64, 1)}))
     monkeypatch.setattr(runner, "SQLitePollingCheckpointStore", checkpoint_store)
     monkeypatch.setattr(runner, "SQLiteTelegramState", state_store)
+    monkeypatch.setattr(runner, "SQLiteDesktopBridgeState", lambda path: object())
     monkeypatch.setattr(runner, "TelegramGateway", lambda **_: object())
     monkeypatch.setattr(runner, "build_gate5a4_runtime", build_runtime)
     def validate(path):
@@ -383,6 +384,9 @@ async def test_c5_real_runner_wires_isolated_semantic_profile_once(tmp_path, mon
     monkeypatch.setattr(runner, "assert_runtime_admission_ready", admission_ready)
     monkeypatch.setattr(runner, "_build_voice_transcriber", lambda _: Voice())
     monkeypatch.setattr(runner, "build_codex_rate_limit_client", lambda **_: object())
+    monkeypatch.setattr(runner, "CodexDesktopUiAutomation", lambda **_: object())
+    monkeypatch.setattr(runner, "NobusDocumentDelivery", lambda **_: object())
+    monkeypatch.setattr(runner, "DesktopBridgeService", lambda **_: object())
     monkeypatch.setattr(runner, "SemanticAdmissionService", compile_service)
     for name in ("DurableTaskConfirmationStore", "DurablePatchConfirmationStore",
                  "DurableTelegramActionStore", "DurableSemanticClarificationStore"):
@@ -533,7 +537,7 @@ def test_c5_public_ingress_requires_exact_core_readiness(monkeypatch, body, stat
     response.status = status
     def request(request, *, timeout):
         assert request.full_url == supervisor.PUBLIC_ORIGIN + "/readyz"
-        assert timeout == 5
+        assert timeout == 10
         return response
     def opener(handler, redirect):
         assert handler.proxies == {}
@@ -698,7 +702,7 @@ def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch
     def slow(handler,stopping):
         handler.send_response(200);handler.send_header("Transfer-Encoding","chunked");handler.end_headers()
         for byte in b'{"status":"ready"}':
-            if stopping.wait(.36):return
+            if stopping.wait(.7):return
             try:handler.wfile.write(b'1\r\n'+bytes([byte])+b'\r\n');handler.wfile.flush();progress.append(time.monotonic())
             except OSError:return
         try:handler.wfile.write(b'0\r\n\r\n');handler.wfile.flush()
@@ -716,7 +720,7 @@ def test_c5_real_chunked_body_has_total_deadline_and_supervisor_stop(monkeypatch
                 assert time.monotonic()-start<.7
             else:
                 assert supervisor.public_ready() is False
-                assert 4.7<=time.monotonic()-start<5.7
+                assert 9.7<=time.monotonic()-start<10.7
                 assert len(progress)>=10  # Valid chunks keep defeating an inactivity-only timeout.
         finally:
             server_stop.set()

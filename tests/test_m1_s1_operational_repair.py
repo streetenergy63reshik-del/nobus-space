@@ -3,6 +3,7 @@ from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+import asyncio
 import io
 import json
 import sqlite3
@@ -273,7 +274,7 @@ def test_local_probe_contract_and_safe_diagnostics(monkeypatch):
         def open(self,request,timeout):seen.append((request,timeout));return Response()
     monkeypatch.setattr(s.urllib.request,'build_opener',lambda *a:Opener())
     assert s.ready()
-    assert seen[0][0].get_header('Host')=='app.nobusspace.com' and seen[0][1]==2
+    assert seen[0][0].get_header('Host')=='app.nobusspace.com' and seen[0][1]==5
     assert s._LOCAL_READINESS_PROBE.last['status']=='PASS'
     assert s._LOCAL_READINESS_PROBE.last['http_status']==200
 
@@ -294,6 +295,35 @@ def test_diagnostic_rejects_payload_and_preserves_typed_failure(tmp_path):
     check['payload']='must not persist'
     with pytest.raises(ValueError):diag.write_diagnostic(tmp_path,'readiness',value)
     assert b'must not persist' not in (tmp_path/'readiness.jsonl').read_bytes()
+
+
+def test_diagnostic_rotation_preserves_previous_archive(tmp_path):
+    check={'boundary':'local','status':'PASS','at':'2026-09-26T00:00:00Z','http_status':200,
+           'body_matches':True,'error_class':None,'elapsed_ms':10,'deadline_ms':2000}
+    value={'run_id':'a'*32,'attempt':1,'stage':'steady','checks':[check]}
+    previous=tmp_path/'readiness.previous.jsonl'
+    previous.write_bytes(b'historical evidence')
+    current=tmp_path/'readiness.jsonl'
+    current.write_bytes(b'x'*(1024*1024-100))
+    diag.write_diagnostic(tmp_path,'readiness',value)
+    assert previous.read_bytes()==b'historical evidence'
+    archives=list(tmp_path.glob('readiness.previous.*.jsonl'))
+    assert len(archives)==1 and archives[0].read_bytes()==b'x'*(1024*1024-100)
+    assert json.loads(current.read_bytes())['schema']=='nobus-runtime-diagnostic-1'
+
+
+def test_loop_stall_capture_records_blocked_call_without_locals(tmp_path):
+    async def scenario():
+        close=diag.start_loop_stall_capture(asyncio.get_running_loop(),tmp_path)
+        await asyncio.sleep(.05)
+        time.sleep(1.8)
+        await asyncio.sleep(.05)
+        close()
+    asyncio.run(scenario())
+    rows=[json.loads(line) for line in (tmp_path/'core-loop-stalls.jsonl').read_text().splitlines()]
+    assert len(rows)==1 and rows[0]['lag_ms']>=1500
+    assert any(frame[1]=='scenario' for frame in rows[0]['stack'])
+    assert set(rows[0])=={'at','lag_ms','stack'}
 
 
 def test_backup_cleanup_already_stopped_never_requests_stop(monkeypatch):
@@ -554,7 +584,14 @@ def test_reboot_delivered_capability_is_safe_unknown_still_stops(tmp_path):
     reboot.validate_effects(runtime)
 
 
-@pytest.mark.parametrize('extra,expected',[({'backup_status':'VERIFIED'},True),({'backup_status':'NOT_CREATED'},False),({'backup_status':'VERIFIED','unreviewed':True},False)])
+@pytest.mark.parametrize('extra,expected',[
+    ({'backup_status':'VERIFIED'},True),
+    ({'backup_status':'NOT_CREATED'},False),
+    ({'backup_status':'VERIFIED','reconciled_from_digest':'sha256:'+'a'*64},True),
+    ({'backup_status':'VERIFIED','reconciled_from_digest':'invalid'},False),
+    ({'backup_status':'VERIFIED','reconciled_from_digest':'sha256:'+'a'*64,'unreviewed':True},False),
+    ({'backup_status':'VERIFIED','unreviewed':True},False),
+])
 def test_backup_journal_writer_and_restart_reader_agree(tmp_path,extra,expected):
     config=tmp_path/'cycle.json';digest='sha256:'+'c'*64
     backup._journal(tmp_path/'backup-cycle-state.dpapi',digest,'restart_permitted',

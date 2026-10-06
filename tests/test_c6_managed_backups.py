@@ -181,6 +181,108 @@ def test_explicit_failed_cycle_recovery_retains_failure_and_rejects_replay(tmp_p
         cycle.cycle(path,digest,recover_failure_digest=confirmation)
 
 
+def test_completed_cycle_config_rebind_requires_exact_receipt_and_stopped_runtime(
+    tmp_path, monkeypatch
+):
+    path, old_digest, states, events = fake_cycle(tmp_path, monkeypatch)
+    assert cycle.cycle(path, old_digest)['status'] == 'PASS'
+    journal = tmp_path / 'backup-cycle-state.dpapi'
+    old_receipt = b._certificate(journal)
+    old_receipt_digest = canonical_json_digest(old_receipt)
+    extra = cycle.ROOT / 'm2-reconciliation-fixture.txt'
+    extra.write_text('new application input', encoding='utf-8')
+    config = json.loads(path.read_text(encoding='utf-8'))
+    config['inputs'][extra.name] = m.file_evidence(extra)
+    path.write_text(json.dumps(config), encoding='utf-8')
+    new_digest = canonical_json_digest(config)
+    assert new_digest != old_digest
+
+    with pytest.raises(ValueError, match='operator reconciliation'):
+        cycle.cycle(path, new_digest)
+    assert b._certificate(journal) == old_receipt
+    with pytest.raises(ValueError, match='stopped tasks'):
+        cycle.cycle(
+            path, new_digest, reconcile_complete_digest=old_receipt_digest
+        )
+    for state in states.values():
+        state.update(enabled=False, state='Disabled')
+    with pytest.raises(ValueError, match='operator reconciliation'):
+        cycle.cycle(
+            path, new_digest,
+            reconcile_complete_digest='sha256:' + '0' * 64,
+        )
+    assert b._certificate(journal) == old_receipt
+    result = cycle.cycle(
+        path, new_digest, reconcile_complete_digest=old_receipt_digest
+    )
+    assert result['status'] == 'PASS'
+    new_receipt = b._certificate(journal)
+    assert new_receipt['attempt_id'] != old_receipt['attempt_id']
+    assert new_receipt['config_digest'] == new_digest
+    assert new_receipt['reconciled_from_digest'] == old_receipt_digest
+    archives = list(tmp_path.glob('completed-cycle-*.dpapi'))
+    assert len(archives) == 1
+    assert b._certificate(archives[0]) == old_receipt
+    with pytest.raises(ValueError, match='no matching completed cycle'):
+        cycle.cycle(
+            path, new_digest, reconcile_complete_digest=old_receipt_digest
+        )
+
+
+def test_verified_failed_restart_rebinds_only_exact_signed_journal_and_stop(
+    tmp_path, monkeypatch
+):
+    path, old_digest, states, events = fake_cycle(tmp_path, monkeypatch)
+    original_runner = cycle._runner
+    monkeypatch.setattr(
+        cycle, '_runner',
+        lambda mode: False if mode == '--check-ready' else original_runner(mode),
+    )
+    ticks = iter(range(0, 10000, 20))
+    with pytest.raises(ValueError, match='restart readiness'):
+        cycle.cycle(path, old_digest, clock=lambda: next(ticks), wait=lambda _: None)
+    journal = tmp_path/'backup-cycle-state.dpapi'
+    old = b._certificate(journal)
+    old_receipt_digest = canonical_json_digest(old)
+    assert old['phase'] == 'failed_operator_required'
+    assert old['backup_status'] == 'VERIFIED'
+    assert old['admission_hold'] and old['cleanup_proven']
+    assert not any(value['enabled'] for value in states.values())
+    monkeypatch.setattr(cycle, '_runner', original_runner)
+    extra = cycle.ROOT/'m2-post-failure-rebind-fixture.txt'
+    extra.write_text('changed installed application', encoding='utf-8')
+    config = json.loads(path.read_text(encoding='utf-8'))
+    config['inputs'][extra.name] = m.file_evidence(extra)
+    path.write_text(json.dumps(config), encoding='utf-8')
+    new_digest = canonical_json_digest(config)
+    assert new_digest != old_digest
+    with pytest.raises(ValueError, match='operator reconciliation'):
+        cycle.cycle(path, new_digest)
+    with pytest.raises(ValueError, match='operator reconciliation'):
+        cycle.cycle(path, new_digest, rebind_failed_digest='sha256:'+'0'*64)
+    journal.write_bytes(b.CODEC.encode(dict(old, cleanup_proven=False)))
+    with pytest.raises(ValueError, match='operator reconciliation'):
+        cycle.cycle(
+            path, new_digest,
+            rebind_failed_digest=canonical_json_digest(
+                b._certificate(journal)
+            ),
+        )
+    journal.write_bytes(b.CODEC.encode(old))
+    assert b._certificate(tmp_path/'backup-cycle-state.dpapi') == old
+    result = cycle.cycle(
+        path, new_digest, rebind_failed_digest=old_receipt_digest
+    )
+    assert result['status'] == 'PASS' and result['backup_created']
+    receipt = b._certificate(tmp_path/'backup-cycle-state.dpapi')
+    assert receipt['reconciled_from_digest'] == old_receipt_digest
+    assert receipt['attempt_id'] != old['attempt_id']
+    archived = list(tmp_path.glob('failed-cycle-*.dpapi'))
+    assert len(archived) == 1 and b._certificate(archived[0]) == old
+    with pytest.raises(ValueError, match='no matching failed cycle'):
+        cycle.cycle(path, new_digest, rebind_failed_digest=old_receipt_digest)
+
+
 def test_missed_daily_run_backs_up_before_starting_stopped_enabled_runtime(tmp_path,monkeypatch):
     path,digest,states,events=fake_cycle(tmp_path,monkeypatch)
     states['NobusSpaceTestMain'].update(state='Ready',last_result=1)

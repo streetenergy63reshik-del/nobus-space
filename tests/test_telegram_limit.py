@@ -28,6 +28,7 @@ def test_product_profile_keeps_menu_small_and_product_facing() -> None:
     assert ("limit", "Недельный лимит Codex") in _COMMANDS
     assert {command for command, _ in _COMMANDS} == {
         "start",
+        "codex",
         "status",
         "limit",
         "help",

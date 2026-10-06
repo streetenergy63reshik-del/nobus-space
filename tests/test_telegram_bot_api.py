@@ -23,6 +23,7 @@ from src.storage.outbox import (
 from src.transport.telegram.bot_api import (
     TelegramBotApi,
     TelegramBotApiError,
+    TelegramChatAdministrator,
     TelegramBotIdentity,
     PollingLease,
     TelegramPollingBoundary,
@@ -87,6 +88,33 @@ def response(result: Any, **options: Any) -> httpx.Response:
 
 
 @pytest.mark.asyncio
+async def test_codex_menu_tiles_and_empty_force_reply_are_distinct_markups() -> None:
+    payloads: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payloads.append(json.loads(request.content))
+        message_id = 1 if request.url.path.endswith("/editMessageText") else len(payloads)
+        return response({"message_id": message_id, "chat": {"id": 42}})
+
+    api = api_for(handler)
+    try:
+        rows = ((("Проект 1", "CdxM_" + "a" * 32 + "_1_0"),
+                 ("Проект 2", "CdxM_" + "a" * 32 + "_1_1")),
+                (("Назад", "CdxM_" + "a" * 32 + "_1_2"),))
+        await api.send_message(42, "Выберите проект", button_rows=rows)
+        await api.send_message(42, "Напишите промт", force_reply=True)
+        await api.edit_message_text(42, 1, "Выберите задачу", button_rows=rows)
+    finally:
+        await api.aclose()
+    assert [len(row) for row in payloads[0]["reply_markup"]["inline_keyboard"]] == [2, 1]
+    assert payloads[1]["reply_markup"] == {
+        "force_reply": True, "selective": True,
+        "input_field_placeholder": "Текст задачи для Codex",
+    }
+    assert [len(row) for row in payloads[2]["reply_markup"]["inline_keyboard"]] == [2, 1]
+
+
+@pytest.mark.asyncio
 async def test_get_me_returns_strict_bot_identity() -> None:
     calls: list[httpx.Request] = []
 
@@ -126,6 +154,70 @@ async def test_get_me_rejects_malformed_identity(result: Any) -> None:
     try:
         with pytest.raises(TelegramBotApiError) as caught:
             await api.get_me()
+    finally:
+        await api.aclose()
+    assert caught.value.code == "telegram_protocol_error"
+
+
+@pytest.mark.asyncio
+async def test_get_chat_administrators_is_read_only_and_strict() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response(
+            [
+                {
+                    "status": "creator",
+                    "user": {
+                        "id": 41,
+                        "is_bot": False,
+                        "first_name": "Owner",
+                    },
+                },
+                {
+                    "status": "administrator",
+                    "user": {
+                        "id": 42,
+                        "is_bot": True,
+                        "username": "ArthurJuniorBot",
+                        "first_name": "Arthur",
+                    },
+                },
+            ]
+        )
+
+    api = api_for(handler)
+    try:
+        administrators = await api.get_chat_administrators(-1001)
+    finally:
+        await api.aclose()
+    assert administrators == (
+        TelegramChatAdministrator(41, False, None, "Owner", "creator"),
+        TelegramChatAdministrator(
+            42, True, "ArthurJuniorBot", "Arthur", "administrator"
+        ),
+    )
+    assert calls[0].url.path.endswith("/getChatAdministrators")
+    assert json.loads(calls[0].content) == {"chat_id": -1001}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "result",
+    [
+        [{"status": "member", "user": {"id": 1, "is_bot": False, "first_name": "x"}}],
+        [{"status": "administrator", "user": {"id": True, "is_bot": False, "first_name": "x"}}],
+        [{"status": "administrator", "user": {"id": 1, "is_bot": "yes", "first_name": "x"}}],
+    ],
+)
+async def test_get_chat_administrators_rejects_malformed_result(
+    result: Any,
+) -> None:
+    api = api_for(lambda request: response(result))
+    try:
+        with pytest.raises(TelegramBotApiError) as caught:
+            await api.get_chat_administrators(-1001)
     finally:
         await api.aclose()
     assert caught.value.code == "telegram_protocol_error"
@@ -238,7 +330,7 @@ async def test_edit_message_text_updates_or_clears_buttons(
     assert json.loads(calls[0].content) == {
         "chat_id": 42,
         "message_id": 101,
-        "text": "Проверьте текст",
+        "text": " Проверьте текст ",
         "reply_markup": {"inline_keyboard": keyboard},
     }
 
@@ -1173,3 +1265,63 @@ async def test_send_message_binds_exact_forum_topic() -> None:
             "message_thread_id": 77,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_send_message_binds_exact_reply_without_fallback() -> None:
+    payloads: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payloads.append(json.loads(request.content))
+        return response({"message_id": 6, "chat": {"id": -1001}})
+
+    api = api_for(handler)
+    try:
+        assert await api.send_message(
+            -1001, "Ответ", reply_to_message_id=55
+        ) == 6
+    finally:
+        await api.aclose()
+    assert payloads == [
+        {
+            "chat_id": -1001,
+            "text": "Ответ",
+            "reply_parameters": {
+                "message_id": 55,
+                "allow_sending_without_reply": False,
+            },
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_send_document_binds_topic_and_reply_in_multipart() -> None:
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request.read()
+        calls.append(request)
+        return response(
+            {
+                "message_id": 13,
+                "message_thread_id": 77,
+                "chat": {"id": -1001},
+                "document": {"file_id": "id", "file_unique_id": "unique"},
+            }
+        )
+
+    api = api_for(handler)
+    try:
+        assert await api.send_document(
+            -1001,
+            "result.txt",
+            b"result",
+            message_thread_id=77,
+            reply_to_message_id=55,
+        ) == 13
+    finally:
+        await api.aclose()
+    content = calls[0].content
+    assert b'name="message_thread_id"' in content and b"\r\n\r\n77\r\n" in content
+    assert b'name="reply_parameters"' in content
+    assert b'"message_id":55' in content

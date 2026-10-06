@@ -1,6 +1,32 @@
 # 08. Эксплуатация Nobus Space
 
-## Актуализация эксплуатации — 3 октября 2026
+## Действующий экземпляр — 6 октября 2026
+
+LIVE `207778a`; [CURRENT](handoffs/CURRENT-STATUS.md) содержит последний срез и ограничения. Утреннее восстановление после некорректного завершения Windows — [отдельный инцидент](incidents/2026-10-06-reboot-stop.md). На 12:27: Main Running, завершённый Health 0, Backup Ready; local/public 200, одна цепочка, четыре БД/effects PASS, подлинная complete/VERIFIED копия, hold=false. Подписанный starting при активном Main/lease — текущий запуск; acknowledge для него запрещён.
+
+Публикация кода в main не требует перезапуска работающего LIVE. Не менять его HEAD из-за docs-only commit: docs11 входит в activation binding. Два комплекта предыдущего кода/конфигурации: `.runtime/rollback/1765130` и `.runtime/rollback/9aeff52`, с проверенными manifest. Это материалы для отдельного точного возврата через штатный binding/rebind и проверку совместимости, не команды автоматического отката. Старый `9aeff52` содержит числовой Desktop pin; текущую установку Codex он может отвергнуть. БД и recovery history не откатывать; подписанный старый journal не подменять текущим. Политика БД 7 daily / 4 weekly сохраняется.
+
+В Desktop ledger остаются два исторических unknown_dispatch и одна delivery_partial; ноль Core delivery_unknown не закрывает их. Не повторять неизвестную отправку. [Текстовые команды Артурам](CODEX-AGENT-COMMANDS.md) отдельно описывают частичные доставки и отсутствие status-команды. Health не является сквозной проверкой Desktop или Telegram.
+
+## Актуализация эксплуатации — 5 октября 2026
+
+**Codex Desktop:** bridge больше не закрепляет конкретный номер Store-сборки.
+UIA каждый раз проверяет точный зарегистрированный package family, статус
+пакета и путь процесса внутри его установки; фактическую версию пишет в
+квитанцию. Продолжение существующей задачи разрешает только exact IPC
+owner/thread/cwd; отсутствие привычного визуального заголовка само по себе
+не блокирует ход. Исторический turn без `clientUserMessageId` читается, но
+неизвестный ACK никогда не разрешает слепой повтор. При изменении смысловых
+UI-контролов или приватной IPC-схемы бот должен остановить действие и
+потребовать адресного исправления. [Выпуск 05.10](gates/mvp2/m2-desktop/RELEASE-EVIDENCE-20261005-COMPAT.md).
+
+При обновлении кода включить staged Backup Task **до** первого старта Main:
+иначе проверка activation binding останавливает Main с кодом 75. Во время
+инцидента 05.10 signed `starting` и неизменный recovery head позволили
+доказать отсутствие runtime, включить Backup и выполнить один исправленный
+запуск внутри исходного backup cycle. Использовать этот вывод только при
+таком же фактически подтверждённом состоянии, а не как общий рецепт
+повторного запуска.
 
 LIVE закреплён на `4db5f0e9266637feca408a57aa0c8e8ac580dbc0`; [журнал и результат ремонта](incidents/2026-10-03-production-stability-14d.md), [точная квитанция](incidents/System/2026-10-03-stability-release.json). Распознаются строгие штатные OpenSSH transport timeout/reset/EOF и конкретная пара read/disconnect. Ключ, authentication, host verification, configuration, неполный/oversize/неизвестный или конфликтующий stderr остаются STOP. Keepalive 20/3, verified known_hosts, ограничение 10 повторов/60 с, owned Job и доказанный cleanup сохранены; SSH получает `StdinNull=yes`. Сырой stderr не сохраняется.
 
@@ -10,7 +36,7 @@ Idle queue claim, health snapshot, polling checkpoint и периодическ�
 
 При смене кода: точный frozen SHA/regression/rollback → hold/штатный STOP → доказанное отсутствие дерева, listener и lease → disabled tasks → candidate-bound config и staged Backup → точный rebind → Backup Enabled/Ready → **один** reconcile от проверенной прежней complete-квитанции → complete/VERIFIED/hold=false → одна цепочка и local/public readiness, Health, БД/доставки. Config создаётся отдельно, XML/config/launcher/HEAD сохраняются; Main/Health параметры и interpreter без основания не заменять. Штатные PowerShell helpers запускаются с предусмотренными ими параметрами загрузки; постоянную политику Windows не менять. После промежуточного отказа сначала доказать фактический исход и продолжать только отсутствующий шаг.
 
-Код уже установлен локально; его публикация отдельно от этого документного PR ещё не выполнена. GitHub main и LIVE различаются; точные версии приведены в CURRENT. После docs-only commit не менять HEAD LIVE без нового application binding. Откат source/config/tasks возможен по точному текущему доказательству и совместимой history; поверх принятых задач БД не откатывать. Rollback этого выпуска сохранён локально в `.runtime/nobus-stability-20261003/rollback`, ref `codex/nobus-before-stability-20261003`.
+Код `207778a` публикуется в main через PR №42; точный SHA публикации проверяется по GitHub, исполняемый SHA — по LIVE. Исторический выпуск 3 октября описан ниже со своей датой. После docs-only commit не менять HEAD LIVE без нового application binding. Откат source/config/tasks возможен по точному текущему доказательству и совместимой history; поверх принятых задач БД не откатывать. Актуальные два комплекта возврата перечислены в CURRENT и WORKSPACE-INVENTORY. Старые refs и журналы выпуска сохраняются как история, а не действующие rollback-пакеты.
 
 Kernel-Power 41 доказывает некорректный перезапуск Windows, но не аппаратную первопричину. Автозапуск требует доступной interactive owner session и допуска recovery; UNKNOWN остаётся fail-closed. Монитор 08:00/22:00 МСК продолжает scoped проверки/штатное восстановление; Telegram-тест только по отдельному разрешению. Старую приёмку MVP1 и планы MVP2 не повторять. Записи ниже сохраняют историю и применимые подробные контракты.
 

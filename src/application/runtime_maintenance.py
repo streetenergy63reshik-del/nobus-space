@@ -31,7 +31,7 @@ REQUIRED_RUNTIME_DATABASE_NAMES = RUNTIME_DATABASE_NAMES - {"business-notes.sqli
 # Local MVP bound: DPAPI JSON adds base64 and uses the existing 80 MiB codec.
 MAX_BACKUP_DATABASE_BYTES = 48 * 1024 * 1024
 BACKUP_SCHEMA_VERSION = 3
-EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
+EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str | tuple[str, ...]]] = {
     "business-notes.sqlite3": {
         "index:idx_business_notes_topic":
             "05fcb014bb5a54c2220f990ce2c1b211c2dc6d3e7f5e0b490defb656b74307fc",
@@ -75,6 +75,18 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "b1f338e3deff32d9507eda30384864f4a1baabce6b56d7f59cfdeffe65b5aef4",
     },
     "telegram-state.sqlite3": {
+        "index:idx_desktop_bridge_menus_reply":
+            "a1cca7a8ab371b4887db14b71ceabde26b7ca527e6898770a46b2e113a48d16f",
+        "index:idx_desktop_bridge_delivery_status":
+            "c497075661b24cf7ce2c4fd933d8880358b460792c5b19108d9e6fe22c3ff1b4",
+        "index:idx_desktop_bridge_interaction_message":
+            "f8633e63e8741dd1183ea6a361055eaca95d8371db6d9fe781c885f5accbc511",
+        "index:idx_desktop_bridge_interaction_pending":
+            "67ff2d3c6a62164e97e804bafbe9b03a5b314808877c2cd047592544ab90cbbd",
+        "index:idx_desktop_bridge_requests_status":
+            "f5c3fb41f155010bef79a3a916a0f9755025bf849cb3c4cd7def1712aba3c62e",
+        "index:idx_desktop_bridge_requests_topic":
+            "5ebe866c0a64dcfd97e14eaaae86b53a13ad997a8b033a5958292bbb2b53c41c",
         "index:idx_semantic_clarification_expiry":
             "39cb81c8d32e7ca047b8a0f738441ec28cea8aeaa391ba242d2894e161310719",
         "index:idx_telegram_capability_expiry":
@@ -89,6 +101,19 @@ EXPECTED_SCHEMA_DIGESTS: dict[str, dict[str, str]] = {
             "ce29f038e79e8b2c0e27fbd313a1f60e1a5a4277eba8d2d641cf20d90a0949e7",
         "table:telegram_progress":
             "93178455126f5edaeaa6ed3af42141e688b34d9d481bfa205900d4e9127e434b",
+        "table:desktop_bridge_deliveries":
+            "a83b734394337d69704741af2c3e11c7ddac7f5d93733ca8140c59d68ac68976",
+        "table:desktop_bridge_menu_prompts":
+            "d4fa11d26242a0f46c8065515a97329c4d151d5a9828f22db1c3302b135cd0d4",
+        "table:desktop_bridge_menus":
+            "b4a6be5a041679d2fb6d0cadb808c02ae9589d95cc8a60dd5aae7c2a9382ae20",
+        "table:desktop_bridge_interactions":
+            "9d802219fdd8c1afd0daf983c23537a838b7e7c79be9b4a6515aebc6fed0a67f",
+        # Fresh schema and the additive migration of the exact prior schema.
+        "table:desktop_bridge_requests": (
+            "ac852e263ff57953bab96946b3b37f8110cdf1993f39640e6f2e7c2c17b37c6e",
+            "cc37addb9c0055f0eeaab4b69ffda56beabe5af1313c242357fc8e9259e6efe8",
+        ),
     },
 }
 
@@ -159,6 +184,7 @@ def _read_connection(path: Path) -> sqlite3.Connection:
         raise RuntimeError("SQLite defensive configuration unavailable")
     connection.setconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE, True)
     connection.setconfig(sqlite3.SQLITE_DBCONFIG_TRUSTED_SCHEMA, False)
+    connection.execute("PRAGMA temp_store=MEMORY")
     return connection
 
 
@@ -177,22 +203,31 @@ def file_evidence(path: Path) -> dict[str, object] | None:
 
 def database_state_digest(path: Path, *, exclude_reconciliation: bool = False) -> str:
     """Logical state includes WAL commits and every authority/replay row."""
-    digest = hashlib.sha256()
     with closing(_read_connection(path)) as connection:
-        tables = sorted(row[0] for row in connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
-        for name in tables:
-            if exclude_reconciliation and name == "runtime_reconciliations":
-                continue
-            if not re.fullmatch(r"[a-z_]+", name):
-                raise RuntimeError("runtime table invalid")
-            digest.update(name.encode() + b"\x00")
-            columns = len(connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description)
-            order = ",".join(str(index + 1) for index in range(columns))
-            for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}'):
-                safe = [{"blob_digest": hashlib.sha256(item).hexdigest()} if isinstance(item, bytes)
-                        else item for item in row]
-                digest.update(json.dumps(safe, ensure_ascii=True, separators=(",", ":")).encode() + b"\n")
+        return database_connection_state_digest(
+            connection, exclude_reconciliation=exclude_reconciliation,
+        )
+
+
+def database_connection_state_digest(
+    connection: sqlite3.Connection, *, exclude_reconciliation: bool = False,
+) -> str:
+    """The same logical digest for a verified in-memory SQLite snapshot."""
+    digest = hashlib.sha256()
+    tables = sorted(row[0] for row in connection.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
+    for name in tables:
+        if exclude_reconciliation and name == "runtime_reconciliations":
+            continue
+        if not re.fullmatch(r"[a-z_]+", name):
+            raise RuntimeError("runtime table invalid")
+        digest.update(name.encode() + b"\x00")
+        columns = len(connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description)
+        order = ",".join(str(index + 1) for index in range(columns))
+        for row in connection.execute(f'SELECT * FROM "{name}" ORDER BY {order}'):
+            safe = [{"blob_digest": hashlib.sha256(item).hexdigest()} if isinstance(item, bytes)
+                    else item for item in row]
+            digest.update(json.dumps(safe, ensure_ascii=True, separators=(",", ":")).encode() + b"\n")
     return "sha256:" + digest.hexdigest()
 
 
@@ -275,6 +310,11 @@ def invalidate_restored_authority(root: Path) -> None:
     with closing(sqlite3.connect(root / "telegram-state.sqlite3")) as connection:
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA secure_delete=ON")
+        connection.execute(
+            """UPDATE desktop_bridge_menus SET stage='closed',revision=revision+1,
+               updated_at=? WHERE stage!='closed'""",
+            (datetime.now(UTC).isoformat(),),
+        )
         for row in connection.execute("SELECT * FROM telegram_capabilities").fetchall():
             payload = codec.decode(bytes(row["payload"]))
             if row["kind"] == "action" and "effect_digest" in payload:
@@ -314,7 +354,10 @@ def validate_runtime_database(path: Path, *, content: bool = True) -> None:
                    WHERE name NOT LIKE 'sqlite_%'"""
             )
         }
-    if actual != expected:
+    if set(actual) != set(expected) or any(
+        actual[name] not in (allowed if isinstance(allowed, tuple) else (allowed,))
+        for name, allowed in expected.items()
+    ):
         raise RuntimeError("runtime database schema mismatch")
     quick_check(path)
     if not content:
@@ -551,6 +594,21 @@ def _validate_telegram_state_rows(path: Path) -> None:
         clarifications = connection.execute(
             "SELECT * FROM semantic_clarifications"
         ).fetchall()
+        bridge_requests = connection.execute(
+            "SELECT * FROM desktop_bridge_requests"
+        ).fetchall()
+        bridge_interactions = connection.execute(
+            "SELECT * FROM desktop_bridge_interactions"
+        ).fetchall()
+        bridge_deliveries = connection.execute(
+            "SELECT * FROM desktop_bridge_deliveries"
+        ).fetchall()
+        bridge_menus = connection.execute(
+            "SELECT * FROM desktop_bridge_menus"
+        ).fetchall()
+        menu_prompts = connection.execute(
+            "SELECT * FROM desktop_bridge_menu_prompts"
+        ).fetchall()
     for row in jobs:
         created = _aware(row["created_at"])
         updated = _aware(row["updated_at"])
@@ -646,6 +704,124 @@ def _validate_telegram_state_rows(path: Path) -> None:
             or not created < expires <= created + timedelta(minutes=30)
         ):
             raise RuntimeError("semantic clarification row is invalid")
+    bridge_statuses = {
+        "received", "needs_target", "needs_voice_confirmation", "dispatching",
+        "running", "waiting_author", "waiting_owner", "execution_completed",
+        "delivering", "delivered", "waiting_pc", "unknown_dispatch",
+        "delivery_partial", "delivery_unknown", "failed", "cancelled",
+    }
+    for row in bridge_requests:
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        UUID(row["request_id"])
+        if (
+            not _runtime_digest(row["ingress_key"])
+            or not _runtime_text(row["tenant_id"], 128)
+            or type(row["author_user_id"]) is not int
+            or row["author_user_id"] <= 0
+            or not _runtime_text(row["author_identity"], 256)
+            or type(row["chat_id"]) is not int
+            or row["chat_id"] == 0
+            or (row["topic_id"] is not None and (type(row["topic_id"]) is not int or row["topic_id"] <= 0))
+            or type(row["source_message_id"]) is not int
+            or row["source_message_id"] <= 0
+            or row["operation"] not in {"create", "continue", "redeliver"}
+            or (row["bootstrap_turn_id"] is not None and (
+                row["operation"] != "create"
+                or not _runtime_text(row["bootstrap_turn_id"], 256)
+                or not _runtime_text(row["desktop_thread_id"], 256)
+            ))
+            or row["status"] not in bridge_statuses
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or updated < created
+        ):
+            raise RuntimeError("desktop bridge request row is invalid")
+    for row in bridge_interactions:
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        expires = _aware(row["expires_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        UUID(row["request_id"])
+        if (
+            not _runtime_text(row["interaction_id"], 256)
+            or row["kind"] not in {
+                "voice_confirmation", "question", "command_approval",
+                "file_approval", "permissions_approval", "mcp_elicitation", "unknown",
+            }
+            or not _runtime_text(row["desktop_request_id"], 256)
+            or not _runtime_text(row["desktop_turn_id"], 256)
+            or type(row["target_user_id"]) is not int
+            or row["target_user_id"] <= 0
+            or (
+                row["telegram_chat_id"] is not None
+                and (type(row["telegram_chat_id"]) is not int or row["telegram_chat_id"] == 0)
+            )
+            or (row["telegram_message_id"] is not None and row["telegram_message_id"] <= 0)
+            or ((row["telegram_chat_id"] is None) != (row["telegram_message_id"] is None))
+            or type(row["connection_generation"]) is not int
+            or row["connection_generation"] <= 0
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or row["status"] not in {"pending", "answered", "expired", "superseded", "unknown"}
+            or updated < created
+            or expires <= created
+        ):
+            raise RuntimeError("desktop bridge interaction row is invalid")
+    for row in bridge_deliveries:
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        payload = codec.decode(bytes(row["payload"]))
+        UUID(row["request_id"])
+        if (
+            not _runtime_digest(row["operation_key"])
+            or row["kind"] not in {"text", "artifact", "manifest"}
+            or type(row["ordinal"]) is not int
+            or row["ordinal"] < 0
+            or not _runtime_digest(row["source_digest"])
+            or not _runtime_text(row["destination_ref"], 512)
+            or not _runtime_digest(row["payload_digest"])
+            or canonical_json_digest(payload) != row["payload_digest"]
+            or row["status"] not in {"claimed", "sent", "unknown", "failed"}
+            or (row["status"] == "sent") != (row["telegram_message_id"] is not None)
+            or updated < created
+        ):
+            raise RuntimeError("desktop bridge delivery row is invalid")
+    menus_by_id = {}
+    for row in bridge_menus:
+        actions = codec.decode(bytes(row["actions"]))
+        created = _aware(row["created_at"])
+        updated = _aware(row["updated_at"])
+        expires = _aware(row["expires_at"])
+        menu_id = UUID(row["menu_id"])
+        items = actions.get("actions") if isinstance(actions, dict) and set(actions) == {"actions"} else None
+        if (
+            not _runtime_text(row["tenant_id"], 128)
+            or type(row["author_user_id"]) is not int or row["author_user_id"] <= 0
+            or type(row["chat_id"]) is not int or row["chat_id"] == 0
+            or (row["topic_id"] is not None and
+                (type(row["topic_id"]) is not int or row["topic_id"] <= 0))
+            or type(row["source_message_id"]) is not int or row["source_message_id"] <= 0
+            or (row["menu_message_id"] is not None and row["menu_message_id"] <= 0)
+            or (row["prompt_message_id"] is not None and row["prompt_message_id"] <= 0)
+            or row["stage"] not in {"projects", "tasks", "prompt", "closed"}
+            or type(row["page"]) is not int or row["page"] < 0
+            or type(row["revision"]) is not int or row["revision"] < 1
+            or not isinstance(items, list) or len(items) > 32
+            or any(not isinstance(item, list) or len(item) != 2
+                   or item[0] not in {"project", "task", "new", "page", "back"}
+                   or (item[1] is not None and not isinstance(item[1], str))
+                   for item in items)
+            or updated < created or expires <= created
+        ):
+            raise RuntimeError("desktop bridge menu row is invalid")
+        menus_by_id[str(menu_id)] = row
+    for row in menu_prompts:
+        menu = menus_by_id.get(row["menu_id"])
+        if (menu is None or type(row["message_id"]) is not int or row["message_id"] <= 0
+                or row["chat_id"] != menu["chat_id"]):
+            raise RuntimeError("desktop bridge menu prompt row is invalid")
 
 
 
@@ -736,6 +912,59 @@ def replace_durable(source: Path, target: Path) -> None:
     else:
         os.replace(source, target)
         fsync_directory(target.parent)
+
+
+class ControlPromotionIndeterminate(RuntimeError):
+    """A control-file promotion needs operator readback before another write."""
+
+
+def promote_preserving_previous(source: Path, target: Path, archive: Path) -> None:
+    """Promote a control file, preserving its predecessor under an exact archive name."""
+    source, target, archive = map(checked_path, (source, target, archive))
+    if len({source, target, archive}) != 3 or archive.exists():
+        raise ValueError("control file promotion paths invalid")
+    new_evidence = file_evidence(source)
+    if new_evidence is None:
+        raise ValueError("pending control file missing")
+    if target.exists() and os.name == "nt":
+        old_evidence = file_evidence(target)
+        def extended(path: Path) -> str:
+            value = str(path)
+            return "\\\\?\\UNC\\" + value[2:] if value.startswith("\\\\") else "\\\\?\\" + value
+
+        replace = ctypes.WinDLL("kernel32", use_last_error=True).ReplaceFileW
+        replace.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p,
+                            ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p)
+        replace.restype = ctypes.c_int
+        if not replace(extended(target), extended(source), extended(archive), 0, None, None):
+            error = ctypes.get_last_error()
+            current = file_evidence(target)
+            if current is None and file_evidence(archive) == old_evidence and file_evidence(source) == new_evidence:
+                try:
+                    os.rename(archive, target)
+                    if file_evidence(target) != old_evidence:
+                        raise RuntimeError("control rollback verification failed")
+                except Exception as failure:
+                    raise ControlPromotionIndeterminate("control promotion rollback failed") from failure
+            elif current != old_evidence or file_evidence(source) != new_evidence or archive.exists():
+                raise ControlPromotionIndeterminate("control promotion outcome unknown")
+            raise OSError(error, "control promotion failed")
+        if file_evidence(archive) != old_evidence:
+            raise ControlPromotionIndeterminate("previous control file archive changed")
+    else:
+        if target.exists():
+            old_evidence = file_evidence(target)
+            os.rename(target, archive)
+            if file_evidence(archive) != old_evidence:
+                raise ControlPromotionIndeterminate("previous control file archive changed")
+        if target.exists():
+            raise ControlPromotionIndeterminate("control promotion target occupied")
+        os.rename(source, target)
+    fsync_directory(source.parent)
+    fsync_directory(target.parent)
+    fsync_directory(archive.parent)
+    if source.exists() or file_evidence(target) != new_evidence:
+        raise ControlPromotionIndeterminate("control promotion outcome unknown")
 
 
 def copy_durable(source: Path, target: Path) -> None:
