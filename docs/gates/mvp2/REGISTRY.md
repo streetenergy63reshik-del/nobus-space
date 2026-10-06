@@ -1,5 +1,9 @@
 # Реестр Gate MVP2
 
+## Актуальная эксплуатационная проекция — 6 октября 2026
+
+LIVE `207778a`, source публикации PR №42. Бот восстановлен и работает; подробности только в [CURRENT](../../handoffs/CURRENT-STATUS.md). Владелец подтвердил отдельный путь меню/исполнения/результата 5 октября; полный D02–D17 остаётся OPEN, M2-DESKTOP/MVP2 NOT_ACCEPTED. Старые записи и таблица ниже отражают собственные checkpoint, а не текущий развёрнутый SHA. Публикация уже установленного кода по решению владельца не подменяет ручную приёмку.
+
 5 октября, 17:15 МСК: версия Codex Desktop больше не закреплена числом в
 UIA. Код `17651308ce8a9d6a1f27199955b13f42de019978` установлен в LIVE;
 исходный запрос № 3029 завершён одним Desktop turn и Telegram message 3043.
@@ -270,7 +274,7 @@ fixture, не относящемся к M2.
 
 | Gate | Статус | Задача | Base SHA/tree | Result SHA/tree | Документы |
 |---|---|---|---|---|---|
-| M2-DESKTOP | `fd4d66c` в production, Main остановлен safety guard после повторного readiness timeout. Реальный D01 доставлен ровно один раз; новый Telegram continuation завершён в том же Desktop thread, но не доставлен из-за остановки. D03 частичен, D02–D17 и Gate открыты. | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | Исторический code checkpoint `cdc59a2ebd5d228e062937625da209be6d652c4a`, tree `0ac7807464c3ffbdd25a18b415bcce1f4fa47711`; Gate ещё не принят | `fd4d66cfccb66c29702c29f6df59d137d3c26e3b`, tree `efe10b99be591bb194d0e20f09ddd614f0ac2f27` / PRODUCTION STOPPED, ACCEPTANCE OPEN | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [исследование транспорта](M2-DESKTOP-TRANSPORT-RESEARCH.md), [промпт](M2-DESKTOP-PROMPT.md), [handoff](m2-desktop/HANDOFF.md), [журнал аудита](m2-desktop/AUDIT-JOURNAL.md), [evidence](m2-desktop/EVIDENCE.json) |
+| M2-DESKTOP | Код `207778a` установлен; source verified, публикация PR №42; полная ручная приёмка OPEN / NOT_ACCEPTED | `01a0c425-3a83-7e82-b4c5-9a71e8251ecc` — «Реализовать Gate M2-DESKTOP» | Прежние checkpoint и их tree сохранены в Git / HANDOFF | LIVE `207778aea06869735bef97d58651c0ac117c3ed5`; текущие source-bound проверки — [публикация](../../handoffs/REPOSITORY-MAINTENANCE.md) | [Архитектура](M2-DESKTOP-ARCHITECTURE.md), [ручные результаты](M2-DESKTOP-MANUAL-ACCEPTANCE.md), [CURRENT](../../handoffs/CURRENT-STATUS.md), [исторический audit](m2-desktop/AUDIT-JOURNAL.md) |
 
 Реальные task id и title внесены после запуска. В Gate сохраняются один
 `m2-desktop/HANDOFF.md`, один `m2-desktop/EVIDENCE.json` и один журнал
